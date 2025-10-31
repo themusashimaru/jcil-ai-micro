@@ -130,7 +130,7 @@ export default function Home() {
       setIsRecording(true); 
       finalTranscriptRef.current = localInput; 
     };
-    instance.onresult = (event) => { 
+    instance.onresult = (event: any) => {
       let iT = '', cF = ''; 
       for (let i = 0; i < event.results.length; ++i) { 
         const tS = event.results[i][0].transcript; 
