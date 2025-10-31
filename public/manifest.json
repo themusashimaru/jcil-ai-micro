@@ -1,0 +1,17 @@
+{
+  "name": "JCIL.AI",
+  "short_name": "JCIL.AI",
+  "description": "Christian AI Assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "/jcil-ai-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
