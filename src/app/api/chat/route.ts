@@ -299,7 +299,7 @@ export async function POST(req: NextRequest) {
     // --- 12. Prepare AI Request ---
     let messagesForAI = [...messages]; 
     const lastMessageIndex = messagesForAI.length - 1;
-    let result: TextStreamPart; 
+    let result: any; 
 
     console.log(`Using Google Gemini (Tool: ${tool || 'none'})`);
     
