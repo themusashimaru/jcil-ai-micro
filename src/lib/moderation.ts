@@ -181,7 +181,7 @@ async function createSupabaseClient() {
           try { cookieStore.set(name, value, options); } catch (error) { console.error(`Failed to set cookie:`, error); }
         },
         remove: (name: string, options: CookieOptions) => {
-          try { cookieStore.delete(name, options); } catch (error) { console.error(`Failed to delete cookie:`, error); }
+          try { cookieStore.set({ name, value: '', ...options }); } catch (error) { console.error(`Failed to delete cookie:`, error); }
         },
       },
     }
