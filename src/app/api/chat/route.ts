@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
           try { cookieStore.set(name, value, options); } catch (error) { console.error(`Failed to set cookie "${name}" (Route Handler):`, error); }
         },
         remove: (name: string, options: CookieOptions) => {
-          try { cookieStore.delete(name, options); } catch (error) { console.error(`Failed to delete cookie "${name}" (Route Handler):`, error); }
+          try { cookieStore.set({ name, value: '', ...options }); } catch (error) { console.error(`Failed to delete cookie "${name}" (Route Handler):`, error); }
         },
       },
     }
