@@ -65,6 +65,13 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================
+  // SKIP API ROUTES - THEY HANDLE THEIR OWN AUTH
+  // ============================================
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
+  // ============================================
   // EXISTING MIDDLEWARE CODE (YOUR AUTH LOGIC)
   // ============================================
 
