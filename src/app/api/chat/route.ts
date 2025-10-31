@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { streamText, type CoreMessage, type MessageContent, type TextStreamPart } from 'ai';
+import { streamText, type CoreMessage, type TextStreamPart } from 'ai';
 import { rateLimit } from '@/lib/rate-limit';
 import { sanitizeInput, containsSuspiciousContent } from '@/lib/sanitize';
 import { moderateUserMessage } from '@/lib/moderation';
@@ -326,13 +326,13 @@ export async function POST(req: NextRequest) {
       }
       
       console.log("Adding file URL as 'image' for Gemini:", fileUrl);
-      const multimodalContent: MessageContent = [
+      const multimodalContent = [
         { type: 'text', text: messagesForAI[lastMessageIndex].content as string },
         { type: 'image', image: new URL(fileUrl) }
       ];
        messagesForAI[lastMessageIndex] = {
            ...messagesForAI[lastMessageIndex],
-           content: multimodalContent
+           content: multimodalContent as any
        };
     }
 
