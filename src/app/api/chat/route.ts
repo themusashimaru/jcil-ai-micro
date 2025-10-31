@@ -1,5 +1,5 @@
 // /app/api/chat/route.ts
-// UPDATED with FILE TRACKING (image moderation temporarily removed)
+// UPDATED with IMAGE MODERATION + FILE TRACKING
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -9,6 +9,7 @@ import { streamText, type CoreMessage } from 'ai';
 import { rateLimit } from '@/lib/rate-limit';
 import { sanitizeInput, containsSuspiciousContent } from '@/lib/sanitize';
 import { moderateUserMessage } from '@/lib/moderation';
+import { moderateImage } from '@/lib/image-moderation';
 
 export const dynamic = 'force-dynamic';
 
@@ -210,7 +211,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // --- 11. IMAGE VALIDATION ---
+    // --- 11. IMAGE VALIDATION & MODERATION ---
     let fileSize: number | null = null;
     
     if (fileUrl && fileMimeType) {
@@ -250,6 +251,24 @@ export async function POST(req: NextRequest) {
       } catch (error) {
         console.warn('Could not get file size:', error);
       }
+
+      console.log('🔍 Moderating uploaded image...');
+      const imageModerationResult = await moderateImage(user.id, fileUrl);
+      
+      if (!imageModerationResult.allowed) {
+        console.warn(`Image blocked for user ${user.id}: ${imageModerationResult.reason}`);
+        return NextResponse.json(
+          {
+            error: imageModerationResult.reason,
+            severity: imageModerationResult.severity,
+            categories: imageModerationResult.categories,
+            action: imageModerationResult.action,
+          },
+          { status: 403 }
+        );
+      }
+      
+      console.log('✅ Image passed moderation');
     }
 
     // --- 12. SAVE USER MESSAGE ---
