@@ -111,7 +111,7 @@ export default function Home() {
     
     setSpeechRecognitionSupported(true);
     
-    let instance: SpeechRecognition | null = recognitionRef.current;
+    let instance: any = recognitionRef.current;
     if (!instance) {
         instance = new SpeechRecognitionAPI();
         instance.continuous = true; 
