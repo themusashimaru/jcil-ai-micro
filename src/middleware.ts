@@ -3,18 +3,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { rateLimiters, getClientIdentifier } from '@/lib/rate-limit';
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // ============================================
-  // SKIP ALL API ROUTES FIRST (except auth endpoints that need rate limiting)
-  // ============================================
-  if (pathname.startsWith('/api/') && 
-      !pathname.startsWith('/api/auth/')) {
-    return NextResponse.next();
-  }
-
   // Get client identifier for rate limiting
   const clientId = getClientIdentifier(request);
+  const { pathname } = request.nextUrl;
 
   // ============================================
   // RATE LIMITING FOR SENSITIVE ENDPOINTS
@@ -136,6 +127,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|service-worker.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|service-worker.js|icons/|api/chat|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
