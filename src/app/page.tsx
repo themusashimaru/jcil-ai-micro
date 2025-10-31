@@ -141,7 +141,7 @@ export default function Home() {
       const fT = finalTranscriptRef.current + (iT ? ' ' + iT : ''); 
       setLocalInput(fT.trim()); 
     };
-    instance.onerror = (event) => { 
+    instance.onerror = (event: any) => {
       console.error("Speech Error:", event.error); 
       
       if (event.error === 'not-allowed') {
