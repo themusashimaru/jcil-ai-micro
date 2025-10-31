@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { streamText, type CoreMessage, type TextStreamPart } from 'ai';
+import { streamText, type CoreMessage } from 'ai';
 import { rateLimit } from '@/lib/rate-limit';
 import { sanitizeInput, containsSuspiciousContent } from '@/lib/sanitize';
 import { moderateUserMessage } from '@/lib/moderation';
@@ -53,8 +53,8 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'
 
 // ===== RATE LIMIT CONFIG =====
 const RATE_LIMIT_CONFIG = {
-  maxRequests: 20, // 20 requests
-  windowMs: 60 * 1000, // Per minute
+  maxRequests: 20,
+  windowMs: 60 * 1000,
 };
 
 export async function POST(req: NextRequest) {
@@ -70,25 +70,24 @@ export async function POST(req: NextRequest) {
           return cookieStore.get(name)?.value;
         },
         set: (name: string, value: string, options: CookieOptions) => {
-          try { cookieStore.set(name, value, options); } catch (error) { console.error(`Failed to set cookie "${name}" (Route Handler):`, error); }
+          try { cookieStore.set(name, value, options); } catch (error) { console.error(`Failed to set cookie "${name}":`, error); }
         },
         remove: (name: string, options: CookieOptions) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) { console.error(`Failed to delete cookie "${name}" (Route Handler):`, error); }
+          try { cookieStore.set({ name, value: '', ...options }); } catch (error) { console.error(`Failed to delete cookie "${name}":`, error); }
         },
       },
     }
   );
 
   try {
-    // --- 1. AUTHENTICATION: Get User ---
+    // --- 1. AUTHENTICATION ---
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error('Auth Error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.log("User authenticated:", user.id);
 
-    // ===== 2. RATE LIMITING =====
+    // --- 2. RATE LIMITING ---
     const rateLimitResult = rateLimit(user.id, RATE_LIMIT_CONFIG);
     
     if (!rateLimitResult.success) {
@@ -110,7 +109,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // --- 3. Parse Request Body ---
+    // --- 3. PARSE REQUEST ---
     const {
       messages: rawMessages,
       conversationId,
@@ -121,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     const messages: CoreMessage[] = rawMessages as CoreMessage[]; 
 
-    // ===== 4. INPUT VALIDATION =====
+    // --- 4. VALIDATION ---
     if (!messages || !Array.isArray(messages)) { 
       return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 }); 
     }
@@ -138,13 +137,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Valid conversationId is required' }, { status: 400 }); 
     }
 
-    // Validate tool parameter
     const validTools = ['none', 'textMessageTool', 'emailWriter', 'recipeExtractor'];
     if (tool && !validTools.includes(tool)) {
       return NextResponse.json({ error: 'Invalid tool parameter' }, { status: 400 });
     }
 
-    // ===== 5. AUTHORIZATION: Verify Conversation Ownership =====
+    // --- 5. AUTHORIZATION ---
     const { data: conversationData, error: convError } = await supabase
       .from('conversations')
       .select('user_id')
@@ -156,13 +154,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    // CRITICAL: Check if the conversation belongs to the authenticated user
     if (conversationData.user_id !== user.id) {
-      console.warn(`Unauthorized access attempt: User ${user.id} tried to access conversation ${conversationId} owned by ${conversationData.user_id}`);
+      console.warn(`Unauthorized access attempt: User ${user.id} tried to access conversation ${conversationId}`);
       return NextResponse.json({ error: 'Unauthorized access to conversation' }, { status: 403 });
     }
 
-    // --- 6. Extract and Sanitize Message Content ---
+    // --- 6. EXTRACT MESSAGE CONTENT ---
     const userMessage = messages[messages.length - 1];
     let userMessageContent: string | undefined;
 
@@ -177,7 +174,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Last message content is missing or not text' }, { status: 400 }); 
     }
 
-    // ===== 7. VALIDATE MESSAGE CONTENT =====
+    // --- 7. VALIDATE MESSAGE ---
     if (userMessageContent.length === 0) {
       return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
     }
@@ -186,20 +183,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters` }, { status: 400 });
     }
 
-    // ===== 8. XSS PROTECTION: Check for suspicious content =====
+    // --- 8. XSS PROTECTION ---
     if (containsSuspiciousContent(userMessageContent)) {
       console.warn(`Suspicious content detected from user ${user.id}`);
       return NextResponse.json({ error: 'Message contains invalid content' }, { status: 400 });
     }
 
-    // ===== 9. SANITIZE INPUT =====
+    // --- 9. SANITIZE ---
     const sanitizedContent = sanitizeInput(userMessageContent);
 
     if (sanitizedContent.length === 0) {
       return NextResponse.json({ error: 'Message content is invalid after sanitization' }, { status: 400 });
     }
 
-    // ===== 9.5. TEXT CONTENT MODERATION =====
+    // --- 10. TEXT MODERATION ---
     const moderationResult = await moderateUserMessage(user.id, sanitizedContent);
     
     if (!moderationResult.allowed) {
@@ -214,32 +211,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ===== 10. VALIDATE & MODERATE IMAGE IF PROVIDED =====
+    // --- 11. IMAGE VALIDATION & MODERATION ---
     let fileSize: number | null = null;
     
     if (fileUrl && fileMimeType) {
-      // Validate file type
       if (!ALLOWED_IMAGE_TYPES.includes(fileMimeType.toLowerCase())) {
         return NextResponse.json({ 
           error: `Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}` 
         }, { status: 400 });
       }
 
-      // Validate URL format
       try {
         new URL(fileUrl);
       } catch {
         return NextResponse.json({ error: 'Invalid file URL' }, { status: 400 });
       }
 
-      // Verify URL is from Supabase storage
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
       if (!fileUrl.startsWith(supabaseUrl)) {
         console.warn(`File URL from unexpected domain: ${fileUrl}`);
         return NextResponse.json({ error: 'Invalid file source' }, { status: 400 });
       }
 
-      // Get file size from storage
       try {
         const filePathMatch = fileUrl.match(/uploads\/(.+)$/);
         if (filePathMatch) {
@@ -259,12 +252,10 @@ export async function POST(req: NextRequest) {
         console.warn('Could not get file size:', error);
       }
 
-      // IMAGE MODERATION CHECK
       console.log('🔍 Moderating uploaded image...');
       const imageModerationResult = await moderateImage(user.id, fileUrl);
       
       if (!imageModerationResult.allowed) {
-        // Image was BLOCKED and AUTO-DELETED!
         console.warn(`Image blocked for user ${user.id}: ${imageModerationResult.reason}`);
         return NextResponse.json(
           {
@@ -280,30 +271,26 @@ export async function POST(req: NextRequest) {
       console.log('✅ Image passed moderation');
     }
 
-    // ===== 11. SAVE USER MESSAGE WITH FILE TRACKING 🔥 UPDATED! =====
+    // --- 12. SAVE USER MESSAGE ---
     (async () => {
       const { error: userMsgError } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         user_id: user.id,
         role: 'user',
         content: sanitizedContent,
-        file_url: fileUrl || null,        // 🔥 NEW: Track file URL
-        file_type: fileMimeType || null,  // 🔥 NEW: Track file type
-        file_size: fileSize,              // 🔥 NEW: Track file size
+        file_url: fileUrl || null,
+        file_type: fileMimeType || null,
+        file_size: fileSize,
       });
       if (userMsgError) {
         console.error('Error saving user message:', userMsgError);
       }
     })();
     
-    // --- 12. Prepare AI Request ---
+    // --- 13. PREPARE AI REQUEST ---
     let messagesForAI = [...messages]; 
     const lastMessageIndex = messagesForAI.length - 1;
-    let result: any; 
 
-    console.log(`Using Google Gemini (Tool: ${tool || 'none'})`);
-    
-    // Get System Prompt
     let systemPrompt: string;
     
     if (tool === 'textMessageTool') {
@@ -319,13 +306,11 @@ export async function POST(req: NextRequest) {
       systemPrompt = regularChatPrompt;
     }
     
-    // Prepare messages for AI (Gemini Image-only Multimodal)
     if (fileUrl && typeof messagesForAI[lastMessageIndex].content === 'string') {
       if (!fileMimeType?.startsWith('image/')) {
           console.warn(`Warning: Sending non-image file (${fileMimeType}) to Gemini.`);
       }
       
-      console.log("Adding file URL as 'image' for Gemini:", fileUrl);
       const multimodalContent = [
         { type: 'text', text: messagesForAI[lastMessageIndex].content as string },
         { type: 'image', image: new URL(fileUrl) }
@@ -336,14 +321,13 @@ export async function POST(req: NextRequest) {
        };
     }
 
-    // --- 13. Call Google AI ---
-    result = await streamText({
+    // --- 14. CALL AI ---
+    const result = await streamText({
       model: google('gemini-2.5-flash'),
       system: systemPrompt,
       messages: messagesForAI, 
       onFinish: async ({ text }) => {
         if (conversationId && text) {
-          // Sanitize AI response before saving (extra safety layer)
           const sanitizedResponse = sanitizeInput(text);
           
           const { error: assistantMsgError } = await supabase.from('messages').insert({
@@ -357,10 +341,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // --- 14. Return Response with Rate Limit Headers ---
+    // --- 15. RETURN STREAM ---
     return new Response(result.textStream, {
       headers: {
-        'Content-Type': 'text-plain; charset=utf-8',
+        'Content-Type': 'text/plain; charset=utf-8',
         'X-RateLimit-Limit': rateLimitResult.limit.toString(),
         'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
         'X-RateLimit-Reset': rateLimitResult.reset.toString(),
