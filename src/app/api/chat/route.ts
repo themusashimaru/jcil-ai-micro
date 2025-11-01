@@ -1,4 +1,4 @@
-// /src/app/api/chat/route.ts
+// src/app/api/chat/route.ts
 // UPDATED with IMAGE MODERATION + FILE TRACKING
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,7 +11,7 @@ import { sanitizeInput, containsSuspiciousContent } from '@/lib/sanitize';
 import { moderateUserMessage } from '@/lib/moderation';
 import { moderateImage } from '@/lib/image-moderation';
 
-// ✅ make sure Vercel uses Node, not Edge
+// ✅ force Node on Vercel
 export const runtime = 'nodejs';
 
 export const dynamic = 'force-dynamic';
@@ -61,7 +61,7 @@ const RATE_LIMIT_CONFIG = {
 };
 
 export async function POST(req: NextRequest) {
-  // in your setup cookies() is async
+  // in your Next version this is async
   const cookieStore = await cookies();
 
   // Initialize Supabase Client
@@ -374,7 +374,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 👇 IMPORTANT: return 200 so the service worker doesn’t cache a 405
+// 👇 return 200 so the SW doesn’t cache a 405
 export async function GET() {
   return NextResponse.json({ ok: true, route: '/api/chat' }, { status: 200 });
 }
