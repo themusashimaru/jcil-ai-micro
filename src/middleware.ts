@@ -14,23 +14,21 @@ export async function middleware(request: NextRequest) {
   // Login rate limiting: 5 attempts per 15 minutes
   if (pathname === '/login' || pathname === '/api/auth/login') {
     const result = rateLimiters.login(clientId);
-    
     if (!result.success) {
       const resetDate = new Date(result.reset);
       const minutesUntilReset = Math.ceil((result.reset - Date.now()) / 60000);
-      
       return NextResponse.json(
-        { 
+        {
           error: `Too many login attempts. Please try again in ${minutesUntilReset} minutes.`,
-          resetAt: resetDate.toISOString()
+          resetAt: resetDate.toISOString(),
         },
-        { 
+        {
           status: 429,
           headers: {
             'X-RateLimit-Limit': result.limit.toString(),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': result.reset.toString(),
-          }
+          },
         }
       );
     }
@@ -39,10 +37,8 @@ export async function middleware(request: NextRequest) {
   // Password reset rate limiting: 3 attempts per hour
   if (pathname === '/forgot-password' || pathname === '/api/auth/reset-password') {
     const result = rateLimiters.passwordReset(clientId);
-    
     if (!result.success) {
       const minutesUntilReset = Math.ceil((result.reset - Date.now()) / 60000);
-      
       return NextResponse.json(
         { error: `Too many password reset attempts. Please try again in ${minutesUntilReset} minutes.` },
         { status: 429 }
@@ -53,10 +49,8 @@ export async function middleware(request: NextRequest) {
   // Signup rate limiting: 3 attempts per hour per IP
   if (pathname === '/signup' || pathname === '/api/auth/signup') {
     const result = rateLimiters.signup(clientId);
-    
     if (!result.success) {
       const minutesUntilReset = Math.ceil((result.reset - Date.now()) / 60000);
-      
       return NextResponse.json(
         { error: `Too many signup attempts. Please try again in ${minutesUntilReset} minutes.` },
         { status: 429 }
@@ -65,14 +59,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================
-  // EXISTING MIDDLEWARE CODE (YOUR AUTH LOGIC)
+  // EXISTING MIDDLEWARE CODE (AUTH LOGIC)
   // ============================================
 
-  // Create the response object first
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   });
 
   // Create Supabase client
@@ -87,35 +78,34 @@ export async function middleware(request: NextRequest) {
         set(name: string, value: string, options: CookieOptions) {
           try {
             response.cookies.set({ name, value, ...options });
-          } catch (error) {
-            // Can fail in read-only environments
-          }
+          } catch {}
         },
         remove(name: string, options: CookieOptions) {
           try {
             response.cookies.set({ name, value: '', ...options });
-          } catch (error) {
-            // Can fail in read-only environments
-          }
+          } catch {}
         },
       },
     }
   );
 
-  // Refresh session
   const { data: { session } } = await supabase.auth.getSession();
 
-  // Handle redirects
-  const publicRoutes = ['/login', '/signup', '/auth/callback', '/forgot-password', '/reset-password', '/privacy'];
+  const publicRoutes = [
+    '/login',
+    '/signup',
+    '/auth/callback',
+    '/forgot-password',
+    '/reset-password',
+    '/privacy',
+  ];
 
-  // Redirect to login if not authenticated and trying to access protected route
   if (!session && !publicRoutes.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  // Redirect to home if authenticated and trying to access auth pages
   if (session && publicRoutes.includes(pathname) && pathname !== '/auth/callback') {
     const url = request.nextUrl.clone();
     url.pathname = '/';
@@ -125,8 +115,9 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
+// ✅ Updated matcher — allows robots.txt, sitemap.xml, og-image.png, etc
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|service-worker.js|icons/|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|service-worker.js|robots.txt|sitemap.xml|icons/|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
