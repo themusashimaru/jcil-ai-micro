@@ -11,6 +11,9 @@ import { sanitizeInput, containsSuspiciousContent } from '@/lib/sanitize';
 import { moderateUserMessage } from '@/lib/moderation';
 import { moderateImage } from '@/lib/image-moderation';
 
+// ✅ STEP 1: force Node runtime on Vercel
+export const runtime = 'nodejs';
+
 export const dynamic = 'force-dynamic';
 
 // --- Google Provider Only ---
@@ -58,7 +61,8 @@ const RATE_LIMIT_CONFIG = {
 };
 
 export async function POST(req: NextRequest) {
-  const cookieStore = await cookies();
+  // ❗ STEP 1: cookies() should not be awaited
+  const cookieStore = cookies();
 
   // Initialize Supabase Client
   const supabase = createServerClient(
