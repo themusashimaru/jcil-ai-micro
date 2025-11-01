@@ -11,7 +11,7 @@ import { sanitizeInput, containsSuspiciousContent } from '@/lib/sanitize';
 import { moderateUserMessage } from '@/lib/moderation';
 import { moderateImage } from '@/lib/image-moderation';
 
-// ✅ STEP 1: force Node runtime on Vercel
+// ✅ force Node on Vercel so it behaves like local
 export const runtime = 'nodejs';
 
 export const dynamic = 'force-dynamic';
@@ -61,8 +61,8 @@ const RATE_LIMIT_CONFIG = {
 };
 
 export async function POST(req: NextRequest) {
-  // ❗ STEP 1: cookies() should not be awaited
-  const cookieStore = cookies();
+  // 👇 in your Next version this is async, so keep the await
+  const cookieStore = await cookies();
 
   // Initialize Supabase Client
   const supabase = createServerClient(
@@ -74,10 +74,18 @@ export async function POST(req: NextRequest) {
           return cookieStore.get(name)?.value;
         },
         set: (name: string, value: string, options: CookieOptions) => {
-          try { cookieStore.set(name, value, options); } catch (error) { console.error(`Failed to set cookie "${name}":`, error); }
+          try {
+            cookieStore.set(name, value, options);
+          } catch (error) {
+            console.error(`Failed to set cookie "${name}":`, error);
+          }
         },
         remove: (name: string, options: CookieOptions) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch (error) { console.error(`Failed to delete cookie "${name}":`, error); }
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {
+            console.error(`Failed to delete cookie "${name}":`, error);
+          }
         },
       },
     }
