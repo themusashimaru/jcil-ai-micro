@@ -1,7 +1,7 @@
 // public/service-worker.js
+// 🧩 Neutral SW — does nothing, ensures clean bypass for APIs
 
-// keep the worker alive
-self.addEventListener("install", () => {
+self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
@@ -9,14 +9,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// IMPORTANT: do NOT intercept API calls
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
-
-  // let all /api/* requests go straight to the server
-  if (url.pathname.startsWith("/api/")) {
-    return; // no respondWith -> browser uses network
-  }
-
-  // you can add other caching here later if you want
+  // ✅ Always let /api requests hit the server directly
+  if (url.pathname.startsWith("/api/")) return;
+  // no caching, no intercepting anything
 });
