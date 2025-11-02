@@ -13,7 +13,7 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function CookiePolicy() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4 dark:bg-gray-900">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-3xl">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -27,7 +27,7 @@ export default function CookiePolicy() {
           </div>
           <CardDescription>Last updated: October 28, 2025</CardDescription>
         </CardHeader>
-        <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <CardContent className="prose prose-sm max-w-none">
           <p>
             This Cookie Policy explains how JCIL.AI ("we," "us," or "our") uses
             cookies and similar tracking technologies when you use our Service.
@@ -145,7 +145,7 @@ export default function CookiePolicy() {
                 href="https://supabase.com/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline dark:text-blue-400"
+                className="text-blue-600 hover:underline"
               >
                 Supabase Privacy Policy
               </a>
@@ -155,7 +155,7 @@ export default function CookiePolicy() {
                 href="https://policies.google.com/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline dark:text-blue-400"
+                className="text-blue-600 hover:underline"
               >
                 Google Privacy Policy
               </a>
@@ -165,7 +165,7 @@ export default function CookiePolicy() {
                 href="https://www.anthropic.com/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline dark:text-blue-400"
+                className="text-blue-600 hover:underline"
               >
                 Anthropic Privacy Policy
               </a>
@@ -197,7 +197,7 @@ export default function CookiePolicy() {
                 href="https://support.google.com/chrome/answer/95647"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline dark:text-blue-400"
+                className="text-blue-600 hover:underline"
               >
                 Google Chrome
               </a>
@@ -207,7 +207,7 @@ export default function CookiePolicy() {
                 href="https://support.mozilla.org/en-US/kb/cookies-information-websites-store-on-your-computer"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline dark:text-blue-400"
+                className="text-blue-600 hover:underline"
               >
                 Mozilla Firefox
               </a>
@@ -217,7 +217,7 @@ export default function CookiePolicy() {
                 href="https://support.apple.com/guide/safari/manage-cookies-sfri11471/mac"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline dark:text-blue-400"
+                className="text-blue-600 hover:underline"
               >
                 Safari
               </a>
@@ -227,7 +227,7 @@ export default function CookiePolicy() {
                 href="https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline dark:text-blue-400"
+                className="text-blue-600 hover:underline"
               >
                 Microsoft Edge
               </a>
@@ -279,7 +279,7 @@ export default function CookiePolicy() {
             </li>
           </ul>
 
-          <div className="mt-8 rounded-lg bg-gray-100 p-4 dark:bg-gray-800">
+          <div className="mt-8 rounded-lg bg-gray-100 p-4">
             <p className="text-sm font-semibold">
               By using JCIL.AI, you consent to our use of cookies as described in
               this Cookie Policy. If you do not agree to our use of cookies, please

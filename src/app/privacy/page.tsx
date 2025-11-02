@@ -13,7 +13,7 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function PrivacyPolicy() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4 dark:bg-gray-900">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-3xl">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -27,7 +27,7 @@ export default function PrivacyPolicy() {
           </div>
           <CardDescription>Last updated: October 29, 2025</CardDescription>
         </CardHeader>
-        <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <CardContent className="prose prose-sm max-w-none">
           <p>
             Welcome to JCIL.AI ("we," "us," or "our"). We are committed to
             protecting your privacy and handling your data responsibly. This
@@ -35,8 +35,8 @@ export default function PrivacyPolicy() {
             safeguard your information when you use our Service.
           </p>
 
-          <div className="my-4 rounded-lg border-2 border-blue-500 bg-blue-50 p-4 dark:bg-blue-950">
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+          <div className="my-4 rounded-lg border-2 border-blue-500 bg-blue-50 p-4">
+            <p className="text-sm font-semibold text-blue-900">
               JCIL.AI is an American-made service that utilizes our proprietary
               Christian Filtering system to ensure biblically-aligned responses
               in all AI conversations. We partner with leading AI providers
@@ -237,11 +237,11 @@ export default function PrivacyPolicy() {
             data storage.
           </p>
 
-          <div className="my-4 rounded-lg border-2 border-blue-500 bg-blue-50 p-4 dark:bg-blue-950">
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+          <div className="my-4 rounded-lg border-2 border-blue-500 bg-blue-50 p-4">
+            <p className="text-sm font-semibold text-blue-900">
               ⏰ Automatic Deletion After 3 Days
             </p>
-            <p className="text-sm mt-2 text-slate-700 dark:text-slate-300">
+            <p className="text-sm mt-2 text-slate-700">
               All uploaded files are automatically deleted from our servers 72 hours 
               (3 days) after upload. Your conversation text and message history remain 
               intact indefinitely.
@@ -270,8 +270,8 @@ export default function PrivacyPolicy() {
 
           <h4>What Gets Deleted vs. What Stays</h4>
           <div className="grid gap-4 md:grid-cols-2 my-4">
-            <div className="rounded-lg bg-red-50 p-4 dark:bg-red-950">
-              <p className="font-semibold text-red-900 dark:text-red-100 mb-2">
+            <div className="rounded-lg bg-red-50 p-4">
+              <p className="font-semibold text-red-900 mb-2">
                 Deleted After 3 Days:
               </p>
               <ul className="text-sm space-y-1 list-none pl-0">
@@ -282,8 +282,8 @@ export default function PrivacyPolicy() {
               </ul>
             </div>
             
-            <div className="rounded-lg bg-green-50 p-4 dark:bg-green-950">
-              <p className="font-semibold text-green-900 dark:text-green-100 mb-2">
+            <div className="rounded-lg bg-green-50 p-4">
+              <p className="font-semibold text-green-900 mb-2">
                 Kept Indefinitely:
               </p>
               <ul className="text-sm space-y-1 list-none pl-0">
@@ -418,7 +418,7 @@ export default function PrivacyPolicy() {
             address any concerns you may have.
           </p>
 
-          <div className="mt-8 rounded-lg bg-gray-100 p-4 dark:bg-gray-800">
+          <div className="mt-8 rounded-lg bg-gray-100 p-4">
             <p className="text-sm font-semibold">
               By using JCIL.AI, you acknowledge that you have read, understood,
               and agree to be bound by this Privacy Policy. You also acknowledge

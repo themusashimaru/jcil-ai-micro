@@ -13,7 +13,7 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function TermsOfService() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4 dark:bg-gray-900">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-3xl">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -27,7 +27,7 @@ export default function TermsOfService() {
           </div>
           <CardDescription>Last updated: October 28, 2025</CardDescription>
         </CardHeader>
-        <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+        <CardContent className="prose prose-sm max-w-none">
           <p>
             Welcome to JCIL.AI. These Terms of Service ("Terms") govern your
             access to and use of our Service. By accessing or using JCIL.AI,
@@ -35,8 +35,8 @@ export default function TermsOfService() {
             do not use our Service.
           </p>
 
-          <div className="my-4 rounded-lg border-2 border-blue-500 bg-blue-50 p-4 dark:bg-blue-950">
-            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+          <div className="my-4 rounded-lg border-2 border-blue-500 bg-blue-50 p-4">
+            <p className="text-sm font-semibold text-blue-900">
               JCIL.AI is a faith-based AI service that filters all responses
               through our Christian Filtering system to ensure biblical
               alignment. By using this Service, you acknowledge and agree to
@@ -311,7 +311,7 @@ export default function TermsOfService() {
           <p>
             Your privacy is important to us. Our collection, use, and disclosure
             of your personal information is governed by our{' '}
-            <Link href="/privacy" className="text-blue-600 hover:underline dark:text-blue-400">
+            <Link href="/privacy" className="text-blue-600 hover:underline">
               Privacy Policy
             </Link>
             , which is incorporated into these Terms by reference. By using the
@@ -487,7 +487,7 @@ export default function TermsOfService() {
             </li>
           </ul>
 
-          <div className="mt-8 rounded-lg bg-gray-100 p-4 dark:bg-gray-800">
+          <div className="mt-8 rounded-lg bg-gray-100 p-4">
             <p className="text-sm font-semibold">
               By using JCIL.AI, you acknowledge that you have read, understood,
               and agree to be bound by these Terms of Service. God bless you!
