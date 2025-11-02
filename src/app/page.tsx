@@ -242,7 +242,7 @@ export default function Home() {
     setRenameValue('');
   };
 
-  // 🔥 --- REWRITTEN FORM SUBMIT ---
+  // 🔥 --- REWRITTEN FORM SUBMIT (WITH ALL BUG FIXES) ---
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
      if (e) e.preventDefault();
      if (isLoading || isTranscribing || isRecording) return;
@@ -264,7 +264,7 @@ export default function Home() {
      setIsLoading(true);
      setIsTyping(true);
      
-     // --- 1. Create userMsg logic (Fixes Bug #1) ---
+     // --- 1. Create userMsg logic ---
      let userMsg: string;
      let userMsgForTitle: string;
 
@@ -291,9 +291,6 @@ export default function Home() {
      
      setMessages(currentMessages); 
      setLocalInput(''); 
-     
-     // 🔥 BUG FIX: Clear attachment state AFTER sending, not before
-     // We will do this in the `finally` block of the fetch
      
      let currentConvoId = conversationId;
      if (!currentConvoId) {
@@ -415,7 +412,7 @@ export default function Home() {
   // 🔥 BUG FIX: New function to resize textarea
   const resizeTextarea = () => {
     if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = 'auto'; // Reset height first
       inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + 'px';
     }
   };
@@ -438,8 +435,7 @@ export default function Home() {
         setLocalInput(prev => (prev + ' ' + data.text).trim());
         
         // 🔥 BUG FIX: Force resize after setting new text
-        // We need a slight delay for React to update the value
-        setTimeout(resizeTextarea, 0); 
+        setTimeout(resizeTextarea, 0); // Wait for next render tick
       } else {
         alert(`Transcription failed: ${data.error || 'Unknown error'}`);
       }
@@ -978,7 +974,7 @@ export default function Home() {
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onSelect={() => fileInputRef.current?.click()} 
-                    className="text-slate-700 text-sm cursor.pointer"
+                    className="text-slate-700 text-sm cursor-pointer"
                   >
                     Choose File
                   </DropdownMenuItem>
