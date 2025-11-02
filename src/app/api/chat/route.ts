@@ -8,58 +8,64 @@ const client = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    // Clone request to safely read twice
-    const clonedReq = req.clone();
-
+    const contentType = req.headers.get("content-type") || "";
     let message = "";
-    let fileUrl: string | null = null;
-    let fileMimeType: string | null = null;
+    let file: File | null = null;
 
-    // Try JSON first
-    try {
-      const body = await req.json();
-      message = body?.message || "";
-      fileUrl = body?.fileUrl || null;
-      fileMimeType = body?.fileMimeType || null;
-    } catch {
-      // Fallback for text/plain
-      const text = await clonedReq.text();
-      message = text.trim();
+    // Handle both multipart (file uploads) and JSON
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      message = (formData.get("message") as string) || "";
+      const maybeFile = formData.get("file");
+      if (maybeFile && typeof maybeFile !== "string") file = maybeFile;
+    } else {
+      const body = await req.json().catch(() => ({}));
+      message = body.message || "";
     }
 
-    if (!message && !fileUrl) {
+    if (!message && !file) {
       return NextResponse.json(
-        { ok: false, error: "Message or file required." },
+        { ok: false, error: "Message or image required." },
         { status: 400 }
       );
     }
 
-    // 🔹 Trim overly long inputs to avoid token overflow
+    // Limit overly long text
     if (message.length > 4000) {
       message = message.slice(0, 4000) + " ...[truncated]";
     }
 
-    // 🔹 Build multimodal chat message
-    const messages: any[] = [
-      {
-        role: "user",
-        content: [{ type: "text", text: message }],
-      },
-    ];
+    // Convert image to base64 if provided
+    let imageBase64: string | undefined;
+    let mimeType: string | undefined;
+    if (file) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      imageBase64 = buffer.toString("base64");
+      mimeType = file.type;
+    }
 
-    if (fileUrl && fileMimeType?.startsWith("image/")) {
-      messages[0].content.push({
+    // Construct multimodal message for GPT-4o
+    const content: any[] = [];
+    if (message) content.push({ type: "text", text: message });
+    if (imageBase64 && mimeType) {
+      content.push({
         type: "image_url",
-        image_url: { url: fileUrl },
+        image_url: { url: `data:${mimeType};base64,${imageBase64}` },
       });
     }
 
-    // 🔹 Send to OpenAI safely
     const response = await client.chat.completions.create({
       model: "gpt-4o",
-      messages,
-      temperature: 0.6,
-      max_tokens: 500, // prevents massive output
+      temperature: 0.3,
+      max_tokens: 500,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an assistant that interprets screenshots, logs, or code. Always respond in plain English with an explanation of what’s happening and what the user should do next.",
+        },
+        { role: "user", content },
+      ],
     });
 
     const reply =
@@ -70,12 +76,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Error in /api/chat:", error);
     return NextResponse.json(
-      {
-        ok: false,
-        error:
-          error.message ||
-          "An unexpected error occurred while processing your request.",
-      },
+      { ok: false, error: error.message || "Internal Server Error" },
       { status: 500 }
     );
   }
@@ -86,6 +87,6 @@ export async function GET() {
     ok: true,
     route: "/api/chat",
     model: "gpt-4o",
-    status: "ready",
+    status: "ready for image + text interpretation",
   });
 }
