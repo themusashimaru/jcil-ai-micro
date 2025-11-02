@@ -1,6 +1,6 @@
 // src/app/api/chat/route.ts
-// SINGLE CHAT ROUTE – Supabase auth, tools, file validation, Gemini call
-// no protected, no chat2, no re-exports
+// single chat endpoint – POST = main, GET = health
+// Next 16: do NOT re-export from another file
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -15,7 +15,7 @@ import { moderateImage } from '@/lib/image-moderation';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// ===== SYSTEM PROMPTS =====
+// ---- system prompts ----
 const regularChatPrompt = `You are a helpful and neutral AI assistant. Your goal is to answer questions, provide information, and engage in conversation clearly and directly.
 
 Guidelines:
@@ -25,38 +25,37 @@ Guidelines:
 4. Sound natural.
 `;
 
-const textMessageToolPrompt = `You are a concise message assistant. Your task is to draft a short, clear, and professional text message (SMS, WhatsApp, etc.) in response to a user's request or an uploaded screenshot.
+const textMessageToolPrompt = `You are a concise message assistant. Your task is to draft a short, clear, professional text message.
 
-CRITICAL OUTPUT MANDATE:
-Your entire response will be the text message itself.
-`;
+CRITICAL: output ONLY the message.`;
 
-const emailWriterPrompt = `You are a high-precision email drafting tool. Your single task is to generate a professional, plain-text email based on the user's request.
+const emailWriterPrompt = `You are a high-precision email drafting tool.
 
-CRITICAL OUTPUT MANDATE:
-Your entire response will be the email text itself, starting with "Subject:" or the first line of the email body.
-`;
+CRITICAL: output ONLY the email text, starting with "Subject:" if needed.`;
 
-const recipeExtractorPrompt = `You are a meticulous culinary assistant. Your sole purpose is to extract ingredients from a recipe (provided as text or an image) and generate a clean shopping list.
+const recipeExtractorPrompt = `You extract a shopping list from a recipe (text or image).
 
-CRITICAL OUTPUT MANDATE:
-Your entire response must follow this strict format.
-`;
+CRITICAL: output ONLY the shopping list format.`;
 
-// ===== CONSTANTS =====
-const MAX_MESSAGE_LENGTH = 10000;
+const MAX_MESSAGE_LENGTH = 10_000;
 const MAX_MESSAGES_IN_CONVERSATION = 100;
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+];
 
 const RATE_LIMIT_CONFIG = {
   maxRequests: 20,
-  windowMs: 60 * 1000,
+  windowMs: 60_000,
 };
 
 export async function POST(req: NextRequest) {
+  // we keep everything INSIDE the handler so missing envs don’t crash the route
   const cookieStore = await cookies();
 
-  // --- Supabase server client (with cookies)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -82,22 +81,26 @@ export async function POST(req: NextRequest) {
   );
 
   try {
-    // 1) AUTH
+    // 1) auth
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      console.error('Auth error in /api/chat:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2) RATE LIMIT
+    // 2) rate limit
     const rl = rateLimit(user.id, RATE_LIMIT_CONFIG);
     if (!rl.success) {
       const retryAfter = Math.ceil((rl.reset - Date.now()) / 1000);
       return NextResponse.json(
-        { error: 'Too many requests. Please try again later.', retryAfter },
+        {
+          error: 'Too many requests. Please try again later.',
+          retryAfter,
+        },
         {
           status: 429,
           headers: {
@@ -110,7 +113,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3) PARSE BODY
+    // 3) body
     const {
       messages: rawMessages,
       conversationId,
@@ -121,8 +124,8 @@ export async function POST(req: NextRequest) {
 
     const messages = rawMessages as CoreMessage[];
 
-    // 4) VALIDATE BODY
-    if (!Array.isArray(messages)) {
+    // 4) validate
+    if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 });
     }
     if (messages.length === 0) {
@@ -140,95 +143,120 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid tool parameter' }, { status: 400 });
     }
 
-    // 5) OWNERSHIP CHECK
-    const { data: convo, error: convErr } = await supabase
+    // 5) check conversation ownership
+    const { data: convData, error: convErr } = await supabase
       .from('conversations')
       .select('user_id')
       .eq('id', conversationId)
       .single();
 
     if (convErr) {
-      console.error('conversation lookup error:', convErr);
+      console.error('Conversation check failed:', convErr);
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
-
-    if (convo.user_id !== user.id) {
+    if (convData.user_id !== user.id) {
+      console.warn(
+        `Unauthorized convo access: user ${user.id} tried to use convo ${conversationId}`
+      );
       return NextResponse.json({ error: 'Unauthorized access to conversation' }, { status: 403 });
     }
 
-    // 6) EXTRACT LAST USER MESSAGE (TS SAFE)
-    const lastMessage = messages[messages.length - 1];
-    let userText = '';
+    // 6) get last message text
+    const userMessage = messages[messages.length - 1];
+    let userMessageContent = '';
 
-    if (typeof lastMessage?.content === 'string') {
-      userText = lastMessage.content;
-    } else if (Array.isArray(lastMessage?.content)) {
-      const textPart = (lastMessage.content as Array<{ type?: string; text?: string }>).find(
+    if (typeof userMessage?.content === 'string') {
+      userMessageContent = userMessage.content;
+    } else if (Array.isArray(userMessage?.content)) {
+      const textPart = (userMessage.content as Array<{ type?: string; text?: string }>).find(
         (p) => p?.type === 'text'
       );
-      if (textPart?.text) {
-        userText = textPart.text;
-      }
+      if (textPart?.text) userMessageContent = textPart.text;
     }
 
-    if (!userText) {
-      return NextResponse.json({ error: 'Last message content is missing or not text' }, { status: 400 });
-    }
-
-    if (userText.length > MAX_MESSAGE_LENGTH) {
+    if (!userMessageContent) {
       return NextResponse.json(
-        { error: `Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters` },
+        { error: 'Last message content is missing or not text' },
         { status: 400 }
       );
     }
 
-    if (containsSuspiciousContent(userText)) {
+    if (userMessageContent.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Message too long. Max ${MAX_MESSAGE_LENGTH} chars.` },
+        { status: 400 }
+      );
+    }
+
+    if (containsSuspiciousContent(userMessageContent)) {
       return NextResponse.json({ error: 'Message contains invalid content' }, { status: 400 });
     }
 
-    const sanitizedContent = sanitizeInput(userText);
+    const sanitizedContent = sanitizeInput(userMessageContent);
     if (!sanitizedContent) {
-      return NextResponse.json({ error: 'Message content is invalid after sanitization' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Message content is invalid after sanitization' },
+        { status: 400 }
+      );
     }
 
-    // 7) TEXT MODERATION
-    const moderation = await moderateUserMessage(user.id, sanitizedContent);
-    if (!moderation.allowed) {
+    // 7) text moderation
+    const moderationResult = await moderateUserMessage(user.id, sanitizedContent);
+    if (!moderationResult.allowed) {
       return NextResponse.json(
         {
-          error: moderation.reason,
-          violationType: moderation.violationType,
-          action: moderation.action,
+          error: moderationResult.reason,
+          violationType: moderationResult.violationType,
+          action: moderationResult.action,
         },
         { status: 403 }
       );
     }
 
-    // 8) IMAGE VALIDATION (NO STORAGE LOOKUP – THIS WAS CAUSING PAIN)
+    // 8) optional image
     let fileSize: number | null = null;
 
     if (fileUrl && fileMimeType) {
       if (!ALLOWED_IMAGE_TYPES.includes(fileMimeType.toLowerCase())) {
         return NextResponse.json(
-          { error: `Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}` },
+          {
+            error: `Invalid file type. Allowed: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
+          },
           { status: 400 }
         );
       }
 
-      // must be valid URL
       try {
         new URL(fileUrl);
       } catch {
         return NextResponse.json({ error: 'Invalid file URL' }, { status: 400 });
       }
 
-      // must come from our Supabase
-      const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      if (!fileUrl.startsWith(supaUrl)) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      if (!fileUrl.startsWith(supabaseUrl)) {
         return NextResponse.json({ error: 'Invalid file source' }, { status: 400 });
       }
 
-      // IMAGE MODERATION
+      // we TRY to get the file size, but we don’t fail if we can’t
+      try {
+        const filePathMatch = fileUrl.match(/uploads\/(.+)$/);
+        if (filePathMatch) {
+          const filePath = filePathMatch[1];
+          const { data: fileData } = await supabase.storage
+            .from('uploads')
+            .list('', { search: filePath });
+          if (fileData && fileData.length > 0) {
+            const meta = (fileData[0] as any).metadata;
+            if (meta && typeof meta === 'object' && 'size' in meta) {
+              fileSize = Number(meta.size) || null;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not read file size:', err);
+      }
+
+      // image moderation
       const imgMod = await moderateImage(user.id, fileUrl);
       if (!imgMod.allowed) {
         return NextResponse.json(
@@ -241,14 +269,11 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
-
-      // we don't actually need the real size for now
-      fileSize = null;
     }
 
-    // 9) SAVE USER MESSAGE (async)
+    // 9) save user message (async on purpose)
     (async () => {
-      const { error: saveErr } = await supabase.from('messages').insert({
+      const { error: userMsgErr } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         user_id: user.id,
         role: 'user',
@@ -257,72 +282,80 @@ export async function POST(req: NextRequest) {
         file_type: fileMimeType || null,
         file_size: fileSize,
       });
-      if (saveErr) console.error('save user message error:', saveErr);
+      if (userMsgErr) console.error('Error saving user message:', userMsgErr);
     })();
 
-    // 10) BUILD AI MESSAGES
-    let systemPrompt = regularChatPrompt;
+    // 10) build AI messages
+    let messagesForAI: CoreMessage[] = [...messages];
+    const lastIndex = messagesForAI.length - 1;
+    const lastMsg = messagesForAI[lastIndex];
+
+    let systemPrompt: string;
     if (tool === 'textMessageTool') systemPrompt = textMessageToolPrompt;
     else if (tool === 'emailWriter') systemPrompt = emailWriterPrompt;
     else if (tool === 'recipeExtractor') systemPrompt = recipeExtractorPrompt;
+    else systemPrompt = regularChatPrompt;
 
-    const messagesForAI: CoreMessage[] = [...messages];
-    const lastIdx = messagesForAI.length - 1;
-    const last = messagesForAI[lastIdx];
-
+    // if file attached, wrap as multimodal
     if (fileUrl) {
-      // rebuild as multimodal
       let baseText = '';
-      if (typeof last.content === 'string') {
-        baseText = last.content;
-      } else if (Array.isArray(last.content)) {
-        const part = (last.content as Array<{ type?: string; text?: string }>).find((p) => p?.type === 'text');
-        if (part?.text) baseText = part.text;
+      if (typeof lastMsg.content === 'string') {
+        baseText = lastMsg.content;
+      } else if (Array.isArray(lastMsg.content)) {
+        const parts = lastMsg.content as Array<{ type?: string; text?: string }>;
+        const textPart = parts.find((p) => p && p.type === 'text');
+        if (textPart?.text) baseText = textPart.text;
       }
 
-      const multimodalContent: any[] = [];
-      if (baseText) multimodalContent.push({ type: 'text', text: baseText });
-      multimodalContent.push({ type: 'image', image: new URL(fileUrl) });
+      const multimodal: any[] = [];
+      if (baseText) {
+        multimodal.push({ type: 'text', text: baseText });
+      }
+      multimodal.push({ type: 'image', image: new URL(fileUrl) });
 
-      messagesForAI[lastIdx] = {
-        ...last,
-        content: multimodalContent as any,
+      messagesForAI[lastIndex] = {
+        ...lastMsg,
+        content: multimodal as any,
       };
     }
 
-    // 11) INIT GEMINI *INSIDE* HANDLER
-    const GEMINI_KEY =
+    // 11) init Gemini HERE
+    const GEMINI_API_KEY =
       process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
       process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY;
 
-    if (!GEMINI_KEY) {
-      console.error('Missing Gemini key');
-      return NextResponse.json({ error: 'Gemini API key is not configured' }, { status: 500 });
+    if (!GEMINI_API_KEY) {
+      console.error('Missing Gemini key on server');
+      return NextResponse.json(
+        { error: 'Gemini API key is not configured on the server.' },
+        { status: 500 }
+      );
     }
 
-    const google = createGoogleGenerativeAI({ apiKey: GEMINI_KEY });
+    const google = createGoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
 
-    // 12) CALL AI
+    // 12) stream
     const result = await streamText({
       model: google('gemini-2.5-flash'),
       system: systemPrompt,
       messages: messagesForAI,
       onFinish: async ({ text }) => {
-        if (text) {
-          const cleaned = sanitizeInput(text);
-          const { error: saveAssistantErr } = await supabase.from('messages').insert({
+        if (conversationId && text) {
+          const sanitizedResponse = sanitizeInput(text);
+          const { error: assistantErr } = await supabase.from('messages').insert({
             conversation_id: conversationId,
             user_id: user.id,
             role: 'assistant',
-            content: cleaned,
+            content: sanitizedResponse,
           });
-          if (saveAssistantErr) console.error('save assistant msg error:', saveAssistantErr);
+          if (assistantErr) {
+            console.error('Error saving assistant message:', assistantErr);
+          }
         }
       },
     });
 
-    // 13) STREAM BACK
     return new Response(result.textStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -333,14 +366,12 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error('Error in POST /api/chat:', err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Internal server error' },
-      { status: 500 }
-    );
+    const msg = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
-// keep GET simple
+// keep GET super simple – Vercel will show this in the route list
 export async function GET() {
   return NextResponse.json({ ok: true, route: '/api/chat' }, { status: 200 });
 }
