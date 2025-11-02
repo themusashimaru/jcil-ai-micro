@@ -1,6 +1,6 @@
-// src/app/api/chat/route.ts
-// single chat endpoint – POST = main, GET = health
-// Next 16: do NOT re-export from another file
+// src/app/api/chat-strict/route.ts
+// 🔒 original, Supabase-authenticated, conversation-based chat
+// (this is basically your old file, just moved)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -15,7 +15,6 @@ import { moderateImage } from '@/lib/image-moderation';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// ---- system prompts ----
 const regularChatPrompt = `You are a helpful and neutral AI assistant. Your goal is to answer questions, provide information, and engage in conversation clearly and directly.
 
 Guidelines:
@@ -53,7 +52,6 @@ const RATE_LIMIT_CONFIG = {
 };
 
 export async function POST(req: NextRequest) {
-  // we keep everything INSIDE the handler so missing envs don’t crash the route
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -81,18 +79,16 @@ export async function POST(req: NextRequest) {
   );
 
   try {
-    // 1) auth
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error('Auth error in /api/chat:', authError);
+      console.error('Auth error in /api/chat-strict:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2) rate limit
     const rl = rateLimit(user.id, RATE_LIMIT_CONFIG);
     if (!rl.success) {
       const retryAfter = Math.ceil((rl.reset - Date.now()) / 1000);
@@ -113,7 +109,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3) body
     const {
       messages: rawMessages,
       conversationId,
@@ -124,7 +119,6 @@ export async function POST(req: NextRequest) {
 
     const messages = rawMessages as CoreMessage[];
 
-    // 4) validate
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 });
     }
@@ -143,7 +137,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid tool parameter' }, { status: 400 });
     }
 
-    // 5) check conversation ownership
     const { data: convData, error: convErr } = await supabase
       .from('conversations')
       .select('user_id')
@@ -161,7 +154,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized access to conversation' }, { status: 403 });
     }
 
-    // 6) get last message text
     const userMessage = messages[messages.length - 1];
     let userMessageContent = '';
 
@@ -200,7 +192,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 7) text moderation
     const moderationResult = await moderateUserMessage(user.id, sanitizedContent);
     if (!moderationResult.allowed) {
       return NextResponse.json(
@@ -213,7 +204,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 8) optional image
     let fileSize: number | null = null;
 
     if (fileUrl && fileMimeType) {
@@ -237,7 +227,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid file source' }, { status: 400 });
       }
 
-      // we TRY to get the file size, but we don’t fail if we can’t
       try {
         const filePathMatch = fileUrl.match(/uploads\/(.+)$/);
         if (filePathMatch) {
@@ -256,7 +245,6 @@ export async function POST(req: NextRequest) {
         console.warn('Could not read file size:', err);
       }
 
-      // image moderation
       const imgMod = await moderateImage(user.id, fileUrl);
       if (!imgMod.allowed) {
         return NextResponse.json(
@@ -271,7 +259,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 9) save user message (async on purpose)
     (async () => {
       const { error: userMsgErr } = await supabase.from('messages').insert({
         conversation_id: conversationId,
@@ -285,7 +272,6 @@ export async function POST(req: NextRequest) {
       if (userMsgErr) console.error('Error saving user message:', userMsgErr);
     })();
 
-    // 10) build AI messages
     let messagesForAI: CoreMessage[] = [...messages];
     const lastIndex = messagesForAI.length - 1;
     const lastMsg = messagesForAI[lastIndex];
@@ -296,7 +282,6 @@ export async function POST(req: NextRequest) {
     else if (tool === 'recipeExtractor') systemPrompt = recipeExtractorPrompt;
     else systemPrompt = regularChatPrompt;
 
-    // if file attached, wrap as multimodal
     if (fileUrl) {
       let baseText = '';
       if (typeof lastMsg.content === 'string') {
@@ -319,7 +304,6 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // 11) init Gemini HERE
     const GEMINI_API_KEY =
       process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
@@ -335,7 +319,6 @@ export async function POST(req: NextRequest) {
 
     const google = createGoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
 
-    // 12) stream
     const result = await streamText({
       model: google('gemini-2.5-flash'),
       system: systemPrompt,
@@ -365,13 +348,12 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('Error in POST /api/chat:', err);
+    console.error('Error in POST /api/chat-strict:', err);
     const msg = err instanceof Error ? err.message : 'Internal error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
-// keep GET super simple – Vercel will show this in the route list
 export async function GET() {
-  return NextResponse.json({ ok: true, route: '/api/chat' }, { status: 200 });
+  return NextResponse.json({ ok: true, route: '/api/chat-strict' }, { status: 200 });
 }

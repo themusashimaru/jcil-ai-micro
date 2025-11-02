@@ -1,10 +1,7 @@
 // src/app/api/chat/route.ts
-// 👉 lightweight chat endpoint for the frontend
-// - accepts JSON *and* multipart/form-data
-// - does NOT require Supabase auth
-// - does NOT require conversationId
-// - still uses Gemini 2.5 Flash
-// - returns JSON (easy for UI)
+// ✅ simple, public-ish chat endpoint
+// - accepts JSON OR multipart/form-data
+// - returns { ok: true, reply: "..." }
 
 import { NextRequest, NextResponse } from "next/server";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -13,7 +10,6 @@ import { streamText } from "ai";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// allowed image types if we ever want to pass them on
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
@@ -27,11 +23,10 @@ export async function POST(req: NextRequest) {
     const contentType = req.headers.get("content-type") || "";
 
     let userMessage = "";
-    let imageUrl: string | null = null;
-    let imageMime: string | null = null;
+    let imageInfo: string | null = null;
 
-    // 1) multipart (text + file from the browser)
     if (contentType.includes("multipart/form-data")) {
+      // browser sent text + file
       const formData = await req.formData();
       const msg = formData.get("message");
       if (typeof msg === "string") {
@@ -40,47 +35,29 @@ export async function POST(req: NextRequest) {
 
       const file = formData.get("file");
       if (file && typeof file !== "string") {
-        // NOTE: your old route expected a *URL* to an image in Supabase.
-        // Here we only validate the file and mention it in the AI prompt.
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
           return NextResponse.json(
-            {
-              ok: false,
-              error: "Unsupported image type.",
-            },
+            { ok: false, error: "Unsupported image type." },
             { status: 400 }
           );
         }
-
-        // we won't upload here — just tell the model an image was sent
-        imageUrl = "uploaded-file";
-        imageMime = file.type;
+        // we’re not actually using the raw file with Gemini here
+        imageInfo = `User also sent an image (${file.type})`;
       }
     } else {
-      // 2) JSON (text-only or your older FE format)
+      // JSON body
       const body = await req.json().catch(() => ({} as any));
-
-      // allow both { message: "hi" } and { messages: [...] }
       if (typeof body.message === "string") {
         userMessage = body.message;
-      } else if (Array.isArray(body.messages) && body.messages.length > 0) {
-        const last = body.messages[body.messages.length - 1];
-        if (typeof last?.content === "string") {
-          userMessage = last.content;
-        } else if (Array.isArray(last?.content)) {
-          const textPart = last.content.find((p: any) => p?.type === "text");
-          if (textPart?.text) userMessage = textPart.text;
-        }
       }
 
-      // support old style: { fileUrl, fileMimeType }
+      // support legacy shape
       if (body.fileUrl && body.fileMimeType) {
-        imageUrl = body.fileUrl;
-        imageMime = body.fileMimeType;
+        imageInfo = `User also sent an image URL (${body.fileMimeType})`;
       }
     }
 
-    if (!userMessage && !imageUrl) {
+    if (!userMessage && !imageInfo) {
       return NextResponse.json(
         { ok: false, error: "No message provided." },
         { status: 400 }
@@ -102,27 +79,22 @@ export async function POST(req: NextRequest) {
 
     const google = createGoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
 
-    // build a simple prompt
-    const systemPrompt =
-      "You are a helpful AI assistant. Be concise, clear, and avoid extra formatting.";
-
-    // if image present, just tell the model (we could do real multimodal if needed)
-    const userText = imageUrl
-      ? `${userMessage}\n\n(User also sent an image: ${imageMime ?? "image"})`
+    const finalUserText = imageInfo
+      ? `${userMessage}\n\n${imageInfo}`
       : userMessage;
 
     const result = await streamText({
       model: google("gemini-2.5-flash"),
-      system: systemPrompt,
+      system:
+        "You are a helpful AI assistant. Be concise, clear, and avoid extra formatting.",
       messages: [
         {
           role: "user",
-          content: userText,
+          content: finalUserText,
         },
       ],
     });
 
-    // unlike your old route, we return JSON so the FE can parse it easily
     const fullText = await result.text;
 
     return NextResponse.json(
