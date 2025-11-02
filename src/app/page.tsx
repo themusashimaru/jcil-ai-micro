@@ -381,7 +381,9 @@ export default function Home() {
      finally {
          setIsLoading(false);
          setIsTyping(false);
-         clearAttachmentState(); // 🔥 BUG FIX: Clear state AFTER fetch is done
+         // 🔥 BUG FIX: Clear state AFTER fetch is done, not before.
+         // This fixes both the "ignored image" and "stale image" bugs.
+         clearAttachmentState(); 
          inputRef.current?.focus();
      }
    };
@@ -407,7 +409,7 @@ export default function Home() {
     }
   }, []);
 
-  // 🔥 --- WHISPER API LOGIC ---
+  // 🔥 --- WHISPER API LOGIC (WITH BUG FIXES) ---
   
   // 🔥 BUG FIX: New function to resize textarea
   const resizeTextarea = () => {
