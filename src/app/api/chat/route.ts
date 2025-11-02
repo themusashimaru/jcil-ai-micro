@@ -2,11 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-if (!OPENAI_API_KEY) {
-  console.error("Missing OPENAI_API_KEY on server");
-}
+if (!OPENAI_API_KEY) console.error("Missing OPENAI_API_KEY on server");
 
-// Allowed image types
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
@@ -15,8 +12,8 @@ const ALLOWED_IMAGE_TYPES = [
   "image/webp",
 ];
 
-// Helper to call OpenAI API with image + text
-async function callOpenAIWithImage({
+// ---- Core OpenAI call ----
+async function callOpenAI({
   message,
   imageBase64,
   imageMime,
@@ -27,13 +24,9 @@ async function callOpenAIWithImage({
 }): Promise<string> {
   const url = "https://api.openai.com/v1/chat/completions";
 
-  // Build content with text + image parts
-  const content: any[] = [
-    { type: "text", text: message },
-  ];
-
+  const userContent: any[] = [{ type: "text", text: message }];
   if (imageBase64 && imageMime) {
-    content.push({
+    userContent.push({
       type: "image_url",
       image_url: { url: `data:${imageMime};base64,${imageBase64}` },
     });
@@ -44,11 +37,12 @@ async function callOpenAIWithImage({
     messages: [
       {
         role: "system",
-        content: "You are a technical assistant that can read and interpret images, screenshots, and text. If an image shows code, logs, or terminal output, read and explain what’s happening.",
+        content:
+          "You are a technical assistant that can read and interpret screenshots, code, logs, or terminal outputs. Provide clear explanations of what’s visible in the image.",
       },
       {
         role: "user",
-        content,
+        content: userContent,
       },
     ],
   };
@@ -64,67 +58,72 @@ async function callOpenAIWithImage({
 
   if (!res.ok) {
     const err = await res.text();
-    console.error("OpenAI error:", err);
-    throw new Error(`OpenAI API error: ${err}`);
+    console.error("OpenAI API error:", err);
+    throw new Error(err);
   }
 
   const data = await res.json();
-  const reply = data.choices?.[0]?.message?.content ?? "No reply received.";
-  return reply;
+  return data.choices?.[0]?.message?.content ?? "No reply.";
 }
 
+// ---- Route handlers ----
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
-
-    let userMessage = "";
+    let message = "";
     let imageFile: File | null = null;
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
       const msg = formData.get("message");
-      if (typeof msg === "string") userMessage = msg.trim();
+      if (typeof msg === "string") message = msg.trim();
 
       const file = formData.get("file");
       if (file && typeof file !== "string") {
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-          return NextResponse.json({ ok: false, error: "Unsupported image type." }, { status: 400 });
+          return NextResponse.json(
+            { ok: false, error: "Unsupported image type." },
+            { status: 400 }
+          );
         }
         imageFile = file;
       }
     } else {
       const body = await req.json().catch(() => ({} as any));
-      if (typeof body.message === "string") userMessage = body.message.trim();
+      if (typeof body.message === "string") message = body.message.trim();
     }
 
-    if (!userMessage && !imageFile) {
-      return NextResponse.json({ ok: false, error: "No message provided." }, { status: 400 });
+    if (!message && !imageFile) {
+      return NextResponse.json(
+        { ok: false, error: "Message or image required." },
+        { status: 400 }
+      );
     }
 
-    // Convert image to base64 if present
+    // Convert image to base64 if attached
     let imageBase64: string | undefined;
     let imageMime: string | undefined;
-
     if (imageFile) {
-      const arrayBuffer = await imageFile.arrayBuffer();
-      imageBase64 = Buffer.from(arrayBuffer).toString("base64");
+      const buffer = Buffer.from(await imageFile.arrayBuffer());
+      imageBase64 = buffer.toString("base64");
       imageMime = imageFile.type;
     }
 
-    // Send to OpenAI
-    const reply = await callOpenAIWithImage({
-      message: userMessage,
-      imageBase64,
-      imageMime,
-    });
+    const reply = await callOpenAI({ message, imageBase64, imageMime });
 
     return NextResponse.json({ ok: true, reply }, { status: 200 });
   } catch (err: any) {
-    console.error("[/api/chat] error:", err);
-    return NextResponse.json({ ok: false, error: "Internal error occurred.", detail: err.message });
+    console.error("Error in /api/chat:", err);
+    return NextResponse.json(
+      { ok: false, error: err.message || "Internal error." },
+      { status: 500 }
+    );
   }
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, route: "/api/chat (OpenAI GPT-4o base64)" }, { status: 200 });
+  return NextResponse.json(
+    { ok: true, route: "/api/chat (GPT-4o multimodal)" },
+    { status: 200 }
+  );
 }
