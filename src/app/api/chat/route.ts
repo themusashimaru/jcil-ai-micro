@@ -1,7 +1,5 @@
 // src/app/api/chat/route.ts
-// ✅ simple, public-ish chat endpoint
-// - accepts JSON OR multipart/form-data
-// - returns { ok: true, reply: "..." }
+// simple, multimodal-aware chat endpoint
 
 import { NextRequest, NextResponse } from "next/server";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -10,6 +8,7 @@ import { streamText } from "ai";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// if you later want to block weird files
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
@@ -23,47 +22,65 @@ export async function POST(req: NextRequest) {
     const contentType = req.headers.get("content-type") || "";
 
     let userMessage = "";
-    let imageInfo: string | null = null;
+    // we'll store "what kind of image we got" in here
+    // either { kind: "file", file: File }  OR  { kind: "url", url: string, mime?: string }
+    let imageInput:
+      | { kind: "file"; file: File }
+      | { kind: "url"; url: string; mime?: string }
+      | null = null;
 
+    // ─────────────────────────────────────────
+    // 1) multipart (browser sends real file)
+    // ─────────────────────────────────────────
     if (contentType.includes("multipart/form-data")) {
-      // browser sent text + file
       const formData = await req.formData();
+
       const msg = formData.get("message");
       if (typeof msg === "string") {
-        userMessage = msg;
+        userMessage = msg.trim();
       }
 
       const file = formData.get("file");
       if (file && typeof file !== "string") {
+        // this is a real File/Blob
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
           return NextResponse.json(
             { ok: false, error: "Unsupported image type." },
             { status: 400 }
           );
         }
-        // we’re not actually using the raw file with Gemini here
-        imageInfo = `User also sent an image (${file.type})`;
+
+        imageInput = { kind: "file", file };
       }
     } else {
-      // JSON body
-      const body = await req.json().catch(() => ({} as any));
+      // ─────────────────────────────────────────
+      // 2) JSON (your current app flow)
+      //     { message, fileUrl, fileMimeType }
+      // ─────────────────────────────────────────
+      const body = (await req.json().catch(() => ({}))) as any;
+
       if (typeof body.message === "string") {
-        userMessage = body.message;
+        userMessage = body.message.trim();
       }
 
-      // support legacy shape
-      if (body.fileUrl && body.fileMimeType) {
-        imageInfo = `User also sent an image URL (${body.fileMimeType})`;
+      // this is what your big chat page sends after uploading to Supabase
+      if (body.fileUrl && typeof body.fileUrl === "string") {
+        imageInput = {
+          kind: "url",
+          url: body.fileUrl,
+          mime: typeof body.fileMimeType === "string" ? body.fileMimeType : undefined,
+        };
       }
     }
 
-    if (!userMessage && !imageInfo) {
-      return NextResponse.json(
-        { ok: false, error: "No message provided." },
-        { status: 400 }
-      );
+    // safety: don't send empty text
+    if (!userMessage) {
+      userMessage = "Please analyze the image I sent.";
     }
 
+    // ─────────────────────────────────────────
+    // 3) init Gemini
+    // ─────────────────────────────────────────
     const GEMINI_API_KEY =
       process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
@@ -79,28 +96,65 @@ export async function POST(req: NextRequest) {
 
     const google = createGoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
 
-    const finalUserText = imageInfo
-      ? `${userMessage}\n\n${imageInfo}`
-      : userMessage;
+    // ─────────────────────────────────────────
+    // 4) build messages for AI
+    //    if we have an image → send real multimodal
+    // ─────────────────────────────────────────
+    const systemPrompt =
+      "You are a helpful AI assistant. If an image is provided, use it. Be concise.";
 
-    const result = await streamText({
-      model: google("gemini-2.5-flash"),
-      system:
-        "You are a helpful AI assistant. Be concise, clear, and avoid extra formatting.",
-      messages: [
+    let aiMessages: any[] = [];
+
+    if (imageInput) {
+      // CASE A: we got a real FILE (multipart)
+      if (imageInput.kind === "file") {
+        aiMessages = [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: userMessage },
+              // Vercel AI SDK (google) can accept a File/Blob here
+              { type: "image", image: imageInput.file },
+            ],
+          },
+        ];
+      } else {
+        // CASE B: we got a Supabase signed URL → pass as URL
+        aiMessages = [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: userMessage },
+              { type: "image", image: new URL(imageInput.url) },
+            ],
+          },
+        ];
+      }
+    } else {
+      // text only
+      aiMessages = [
         {
           role: "user",
-          content: finalUserText,
+          content: userMessage,
         },
-      ],
+      ];
+    }
+
+    // ─────────────────────────────────────────
+    // 5) call Gemini
+    // ─────────────────────────────────────────
+    const result = await streamText({
+      model: google("gemini-2.5-flash"),
+      system: systemPrompt,
+      messages: aiMessages,
     });
 
-    const fullText = await result.text;
+    const text = await result.text;
 
     return NextResponse.json(
       {
         ok: true,
-        reply: fullText,
+        reply: text,
       },
       { status: 200 }
     );
@@ -119,7 +173,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   return NextResponse.json(
-    { ok: true, route: "/api/chat", mode: "simple" },
+    { ok: true, route: "/api/chat", mode: "simple+multimodal" },
     { status: 200 }
   );
 }
