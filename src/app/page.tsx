@@ -247,9 +247,15 @@ export default function Home() {
      if (e) e.preventDefault();
      if (isLoading || isTranscribing || isRecording) return;
      
+     // --- Capture current state at the time of submission ---
+     const textInput = localInput.trim();
+     const fileUrl = uploadedFileUrl;
+     const fileMimeType = attachedFileMimeType;
+     const fileName = attachedFileName;
+
      // --- Check for content ---
-     const hasText = localInput.trim().length > 0;
-     const hasFile = attachedFileName && uploadedFileUrl;
+     const hasText = textInput.length > 0;
+     const hasFile = fileName && fileUrl;
      
      if (!hasText && !hasFile) return; // Exit if nothing to send
 
@@ -258,25 +264,18 @@ export default function Home() {
      setIsLoading(true);
      setIsTyping(true);
      
-     // --- Capture current file state ---
-     const fileUrl = uploadedFileUrl;
-     const fileMimeType = attachedFileMimeType;
-
      // --- 1. Create userMsg logic (Fixes Bug #1) ---
      let userMsg: string;
      let userMsgForTitle: string;
 
-     if (hasText && hasFile) {
-        userMsg = localInput.trim(); // File is shown in indicator, so just send text
+     if (hasText) {
+        userMsg = textInput; // If there's text, use it as the content
         userMsgForTitle = userMsg;
-     } else if (hasText && !hasFile) {
-        userMsg = localInput.trim();
-        userMsgForTitle = userMsg;
-     } else if (!hasText && hasFile) {
-        userMsg = `[Image: ${attachedFileName}]`; // More professional text
+     } else if (hasFile) {
+        userMsg = `[Image: ${fileName}]`; // If only a file, use this
         userMsgForTitle = userMsg;
      } else {
-        // Should be impossible due to guard clause, but good to have
+        // Should be impossible due to guard clause
         setIsLoading(false);
         setIsTyping(false);
         return;
@@ -292,7 +291,9 @@ export default function Home() {
      
      setMessages(currentMessages); 
      setLocalInput(''); 
-     clearAttachmentState(); // Clear UI state immediately
+     
+     // 🔥 BUG FIX: Clear attachment state AFTER sending, not before
+     // We will do this in the `finally` block of the fetch
      
      let currentConvoId = conversationId;
      if (!currentConvoId) {
@@ -319,7 +320,7 @@ export default function Home() {
             messages: currentMessages, 
             conversationId: currentConvoId, 
             tool: activeTool,
-            // Explicitly send file data or null
+            // Explicitly pass the captured file data
             fileUrl: hasFile ? fileUrl : null,         
             fileMimeType: hasFile ? fileMimeType : null,
           }) 
@@ -383,9 +384,11 @@ export default function Home() {
      finally {
          setIsLoading(false);
          setIsTyping(false);
+         clearAttachmentState(); // 🔥 BUG FIX: Clear state AFTER fetch is done
          inputRef.current?.focus();
      }
    };
+   // 🔥 --- END REWRITTEN FORM SUBMIT ---
 
   const handleSignOut = async () => { 
     await supabase.auth.signOut(); 
@@ -408,10 +411,19 @@ export default function Home() {
   }, []);
 
   // 🔥 --- WHISPER API LOGIC ---
+  
+  // 🔥 BUG FIX: New function to resize textarea
+  const resizeTextarea = () => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + 'px';
+    }
+  };
+
   const handleTranscribe = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm'); // Send as webm
+    formData.append('file', audioBlob, 'audio.webm');
 
     try {
       const response = await fetch('/api/transcribe', {
@@ -422,7 +434,12 @@ export default function Home() {
       const data = await response.json();
 
       if (response.ok) {
-        setLocalInput(data.text);
+        // 🔥 BUG FIX: Append text, don't replace
+        setLocalInput(prev => (prev + ' ' + data.text).trim());
+        
+        // 🔥 BUG FIX: Force resize after setting new text
+        // We need a slight delay for React to update the value
+        setTimeout(resizeTextarea, 0); 
       } else {
         alert(`Transcription failed: ${data.error || 'Unknown error'}`);
       }
@@ -431,7 +448,7 @@ export default function Home() {
       alert('Failed to transcribe audio.');
     } finally {
       setIsTranscribing(false);
-      audioChunksRef.current = []; // Clear chunks
+      audioChunksRef.current = [];
     }
   };
   
@@ -442,13 +459,12 @@ export default function Home() {
       // --- STOP RECORDING ---
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
-      // onstop event will handle transcription
     } else {
       // --- START RECORDING ---
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         setIsRecording(true);
-        audioChunksRef.current = []; // Clear previous chunks
+        audioChunksRef.current = [];
 
         const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
         mediaRecorderRef.current = mediaRecorder;
@@ -462,7 +478,7 @@ export default function Home() {
         mediaRecorder.onstop = async () => {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           await handleTranscribe(audioBlob);
-          stream.getTracks().forEach(track => track.stop()); // Stop microphone access
+          stream.getTracks().forEach(track => track.stop());
         };
 
         mediaRecorder.start();
@@ -550,9 +566,7 @@ export default function Home() {
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalInput(e.target.value);
-    
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+    resizeTextarea(); // 🔥 BUG FIX: Call resize function here too
   };
 
   const handleTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -798,6 +812,7 @@ export default function Home() {
       </aside>
 
       {/* Main Chat Area */}
+      {/* 🔥 FIX: Wider on mobile. Changed p-2 to p-0 */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
@@ -1051,7 +1066,7 @@ export default function Home() {
                 
                 <Button
                    type="submit"
-                   disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
+                   disabled={isLoading || isTranscribing || (!hasText && !hasFile)}
                    className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 active:bg-blue-950 text-white rounded-lg transition-all p-0 flex items-center justify-center group" 
                  >
                    {isLoading ? (
