@@ -15,29 +15,43 @@ const ALLOWED_IMAGE_TYPES = [
   "image/webp",
 ];
 
-interface OpenAIMessage {
-  role: "user" | "assistant" | "system";
-  content?: string;
-  name?: string;
-  // if image input support: content can be array of text + image link or base64?
-}
-
-// Helper to call OpenAI Chat Completions with image / text
+// Helper to call OpenAI API with image + text
 async function callOpenAIWithImage({
-  messages,
-  model = "gpt-4o", // adjust if your model name differs
+  message,
+  imageBase64,
+  imageMime,
 }: {
-  messages: OpenAIMessage[];
-  model?: string;
+  message: string;
+  imageBase64?: string;
+  imageMime?: string;
 }): Promise<string> {
   const url = "https://api.openai.com/v1/chat/completions";
-  const body: any = {
-    model,
-    messages,
-  };
 
-  // The API may support `files` or `image` property if base64 or url: you'll need to adjust based on docs.
-  // If your model supports sending image URLs in message.content, you can embed the URL inline.
+  // Build content with text + image parts
+  const content: any[] = [
+    { type: "text", text: message },
+  ];
+
+  if (imageBase64 && imageMime) {
+    content.push({
+      type: "image_url",
+      image_url: { url: `data:${imageMime};base64,${imageBase64}` },
+    });
+  }
+
+  const body = {
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: "You are a technical assistant that can read and interpret images, screenshots, and text. If an image shows code, logs, or terminal output, read and explain what’s happening.",
+      },
+      {
+        role: "user",
+        content,
+      },
+    ],
+  };
 
   const res = await fetch(url, {
     method: "POST",
@@ -55,8 +69,8 @@ async function callOpenAIWithImage({
   }
 
   const data = await res.json();
-  const reply = data.choices?.[0]?.message?.content;
-  return reply || "";
+  const reply = data.choices?.[0]?.message?.content ?? "No reply received.";
+  return reply;
 }
 
 export async function POST(req: NextRequest) {
@@ -64,16 +78,12 @@ export async function POST(req: NextRequest) {
     const contentType = req.headers.get("content-type") || "";
 
     let userMessage = "";
-    let imageUrl: string | null = null;
-    let imageMime: string | null = null;
     let imageFile: File | null = null;
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
       const msg = formData.get("message");
-      if (typeof msg === "string") {
-        userMessage = msg.trim();
-      }
+      if (typeof msg === "string") userMessage = msg.trim();
 
       const file = formData.get("file");
       if (file && typeof file !== "string") {
@@ -81,46 +91,32 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ ok: false, error: "Unsupported image type." }, { status: 400 });
         }
         imageFile = file;
-        imageMime = file.type;
       }
     } else {
-      // JSON body
       const body = await req.json().catch(() => ({} as any));
-      if (typeof body.message === "string") {
-        userMessage = body.message.trim();
-      }
-      if (body.fileUrl && typeof body.fileUrl === "string" && typeof body.fileMimeType === "string") {
-        imageUrl = body.fileUrl;
-        imageMime = body.fileMimeType;
-      }
+      if (typeof body.message === "string") userMessage = body.message.trim();
     }
 
-    if (!userMessage && !imageFile && !imageUrl) {
+    if (!userMessage && !imageFile) {
       return NextResponse.json({ ok: false, error: "No message provided." }, { status: 400 });
     }
 
-    // Build messages for OpenAI
-    const systemPrompt = `
-You are a technical assistant. If the user sends an image (screenshot of code, terminal, logs, etc.), you should interpret it, extract text, and explain the issues clearly.
-If only text is sent, answer using your best knowledge.
-`;
-    const messages: OpenAIMessage[] = [
-      { role: "system", content: systemPrompt },
-    ];
+    // Convert image to base64 if present
+    let imageBase64: string | undefined;
+    let imageMime: string | undefined;
 
-    let userContent = userMessage;
     if (imageFile) {
-      // if your OpenAI model allows base64 or file upload, you'd embed it. Otherwise upload to URL and refer.
-      // Simplifying: we'll ask user to refer to imageFile name.
-      userContent += `\n\nUser uploaded an image (type: ${imageMime}). Please interpret it.`;
-    } else if (imageUrl) {
-      userContent += `\n\nUser uploaded an image URL: ${imageUrl}. Please interpret it.`;
+      const arrayBuffer = await imageFile.arrayBuffer();
+      imageBase64 = Buffer.from(arrayBuffer).toString("base64");
+      imageMime = imageFile.type;
     }
 
-    messages.push({ role: "user", content: userContent });
-
-    // Call OpenAI
-    const reply = await callOpenAIWithImage({ messages, model: "gpt-4o" });
+    // Send to OpenAI
+    const reply = await callOpenAIWithImage({
+      message: userMessage,
+      imageBase64,
+      imageMime,
+    });
 
     return NextResponse.json({ ok: true, reply }, { status: 200 });
   } catch (err: any) {
@@ -130,5 +126,5 @@ If only text is sent, answer using your best knowledge.
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, route: "/api/chat (OpenAI)", version: "gpt-4o" }, { status: 200 });
+  return NextResponse.json({ ok: true, route: "/api/chat (OpenAI GPT-4o base64)" }, { status: 200 });
 }
