@@ -1,4 +1,3 @@
-// src/app/page.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -99,7 +98,7 @@ export default function Home() {
 
   // tools / files
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
 
@@ -124,7 +123,7 @@ export default function Home() {
   };
 
   const clearAttachmentState = () => {
-    setUploadedFileUrl(null);
+    setUploadedFile(null);
     setAttachedFileName(null);
     setAttachedFileMimeType(null);
   };
@@ -145,7 +144,6 @@ export default function Home() {
 
   const renderCheck = (tool: ActiveTool) =>
     activeTool === tool ? <Check className="ml-auto h-4 w-4" strokeWidth={2} /> : null;
-
   const getPlaceholderText = () => {
     if (isTranscribing) return 'Transcribing audio...';
     if (isLoading) return 'AI is thinking...';
@@ -367,7 +365,6 @@ export default function Home() {
       },
     );
   }, []);
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -385,51 +382,12 @@ export default function Home() {
         return;
       }
 
-      uploadFile(file);
+      setUploadedFile(file);
+      setAttachedFileName(file.name);
+      setAttachedFileMimeType(file.type);
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const uploadFile = async (file: File) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !user) {
-      alert('Authentication issue. Please sign in again.');
-      return;
-    }
-
-    const filePath = `${user.id}/${Date.now()}_${file.name}`;
-    setIsLoading(true);
-    clearAttachmentState();
-
-    const { data, error } = await supabase.storage.from('uploads').upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-    if (error) {
-      console.error('upload error:', error);
-      alert(`Upload failed: ${error.message}`);
-      setIsLoading(false);
-      return;
-    }
-
-    if (data) {
-      const { data: urlData, error: urlError } = await supabase.storage
-        .from('uploads')
-        .createSignedUrl(filePath, 3600);
-
-      if (urlError) {
-        console.error('URL error:', urlError);
-        alert('Upload succeeded but failed to get file URL.');
-      } else if (urlData) {
-        setUploadedFileUrl(urlData.signedUrl);
-        setAttachedFileName(file.name);
-        setAttachedFileMimeType(file.type);
-      }
-    }
-
-    setIsLoading(false);
   };
 
   const removeAttachedFile = () => {
@@ -518,27 +476,23 @@ export default function Home() {
     setTimeout(() => setToolButtonFlash(false), 200);
   };
 
-  // 👇👇👇 THIS IS THE PART WE CHANGED TO MATCH NEW /api/chat 👇👇👇
+  // ---- CHAT SEND LOGIC ----
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (isLoading || isTranscribing || isRecording) return;
 
     const textInput = localInput.trim();
-    const fileUrl = uploadedFileUrl;
-    const fileMimeType = attachedFileMimeType;
-    const fileName = attachedFileName;
-
+    const hasFile = !!uploadedFile;
     const hasText = textInput.length > 0;
-    const hasFile = fileUrl && fileMimeType;
 
     if (!hasText && !hasFile) return;
 
     if (isRecording) mediaRecorderRef.current?.stop();
 
     setIsLoading(true);
-    setIsTyping(false); // we’re not streaming now
+    setIsTyping(false);
 
-    const userMsgText = hasText ? textInput : `[Image: ${fileName}]`;
+    const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
 
     const newUserMessage: Message = {
       id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
@@ -551,7 +505,7 @@ export default function Home() {
     setLocalInput('');
     clearAttachmentState();
 
-    // we STILL create a conversation so your sidebar works
+    // ensure conversation exists
     let currentConvoId = conversationId;
     if (!currentConvoId && user) {
       const title = userMsgText.substring(0, 40) + '...';
@@ -569,28 +523,28 @@ export default function Home() {
     }
 
     try {
-      // build payload for SIMPLE /api/chat
-      const payload: any = {
-        message: textInput,
-      };
-
+      let response;
       if (hasFile) {
-        // our simple route supports this
-        payload.fileUrl = fileUrl;
-        payload.fileMimeType = fileMimeType;
+        // send FormData if a file is attached
+        const formData = new FormData();
+        formData.append('message', textInput);
+        formData.append('file', uploadedFile as File);
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // simple JSON if only text
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: textInput }),
+        });
       }
 
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      const data = await response.json();
 
-      const data = await res.json();
-
-      if (!res.ok || !data.ok) {
+      if (!response.ok || !data.ok) {
         throw new Error(data.error || 'Error from /api/chat');
       }
 
@@ -619,8 +573,6 @@ export default function Home() {
       inputRef.current?.focus();
     }
   };
-  // 👆👆👆 END OF CHANGED SEND LOGIC 👆👆👆
-
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       {/* mobile overlay */}
@@ -816,7 +768,6 @@ export default function Home() {
           </DropdownMenu>
         </div>
       </aside>
-
       {/* main chat area */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
@@ -863,9 +814,7 @@ export default function Home() {
                     }}
                   />
                 </div>
-                <h2 className="text-lg sm:text-xl font-semibold text-blue-900 text-center">
-                  slingshot 2.0
-                </h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-blue-900 text-center">slingshot 2.0</h2>
                 <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
                   {getTimeBasedGreeting()}
                 </p>
@@ -920,30 +869,26 @@ export default function Home() {
                 </div>
               ))
             )}
-
             {isTyping && <TypingIndicator />}
-
             <div ref={messagesEndRef} />
           </CardContent>
 
-          {/* input */}
+          {/* input bar */}
           <form
             onSubmit={handleFormSubmit}
             className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
           >
             {attachedFileName && (
-              <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg sm:rounded-xl border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
+              <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
                 <div className="flex items-center gap-2 truncate">
-                  <FileIcon className="h-4 w-4 flex-shrink-0 text-blue-600" strokeWidth={2} />
-                  <span className="truncate text-blue-800 font-medium" title={attachedFileName}>
-                    Attached: {attachedFileName}
-                  </span>
+                  <FileIcon className="h-4 w-4 text-blue-600" strokeWidth={2} />
+                  <span className="truncate text-blue-800 font-medium">{attachedFileName}</span>
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 rounded-full hover:bg-blue-100 transition-all"
+                  className="h-6 w-6 sm:h-7 sm:w-7 hover:bg-blue-100 rounded-full"
                   onClick={removeAttachedFile}
                   disabled={isLoading}
                 >
@@ -953,7 +898,6 @@ export default function Home() {
             )}
 
             <div className="flex items-center space-x-2">
-              {/* hidden file inputs */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -970,7 +914,7 @@ export default function Home() {
                 className="hidden"
               />
 
-              {/* attach button */}
+              {/* attach */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -978,7 +922,7 @@ export default function Home() {
                     variant="ghost"
                     size="icon"
                     disabled={isLoading}
-                    className={`flex-shrink-0 hover:bg-slate-100 transition-all rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${
+                    className={`hover:bg-slate-100 rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${
                       fileButtonFlash ? 'bg-slate-200' : ''
                     }`}
                     title="Attach file or take photo"
@@ -1006,66 +950,7 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* tool button */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={isLoading}
-                    onClick={handleToolButtonClick}
-                    className={`flex-shrink-0 transition-all rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${
-                      activeTool === 'none'
-                        ? 'hover:bg-slate-100 text-slate-700'
-                        : 'bg-blue-900 hover:bg-blue-950 text-white'
-                    } ${toolButtonFlash ? 'bg-slate-200' : ''}`}
-                    title="Select tool"
-                  >
-                    <Wrench className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side="top"
-                  align="start"
-                  className="bg-white border border-slate-200 shadow-lg rounded-lg"
-                >
-                  <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">
-                    Select Tool
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-slate-200" />
-                  <DropdownMenuItem
-                    onSelect={() => setActiveTool('none')}
-                    className="text-slate-700 text-sm cursor-pointer"
-                  >
-                    Regular Chat
-                    {renderCheck('none')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => setActiveTool('textMessageTool')}
-                    className="text-slate-700 text-sm cursor-pointer"
-                  >
-                    Text Message Tool
-                    {renderCheck('textMessageTool')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => setActiveTool('emailWriter')}
-                    className="text-slate-700 text-sm cursor-pointer"
-                  >
-                    Email Writer
-                    {renderCheck('emailWriter')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => setActiveTool('recipeExtractor')}
-                    className="text-slate-700 text-sm cursor-pointer"
-                  >
-                    Recipe Extractor
-                    {renderCheck('recipeExtractor')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* input */}
+              {/* mic + text + send */}
               <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
                 <Textarea
                   ref={inputRef}
@@ -1075,13 +960,10 @@ export default function Home() {
                   disabled={isLoading || isTranscribing}
                   autoComplete="off"
                   autoCorrect="off"
-                  autoCapitalize="sentences"
                   spellCheck
-                  inputMode="text"
-                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none focus:!ring-0 focus:!outline-none shadow-none px-3 sm:px-4 py-2.5 sm:py-3 !text-slate-900"
+                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none px-3 sm:px-4 py-2.5 sm:py-3 text-slate-900"
                   rows={1}
                   onKeyDown={handleTextareaKeyDown}
-                  style={{ border: 'none', boxShadow: 'none', outline: 'none' }}
                 />
 
                 <Button
@@ -1090,11 +972,11 @@ export default function Home() {
                   size="icon"
                   disabled={isLoading || isTranscribing}
                   onClick={handleMicClick}
-                  className={`flex flex-shrink-0 transition-all rounded-lg h-8 w-8 mr-1 ${
+                  className={`h-8 w-8 mr-1 ${
                     isRecording
                       ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
                       : 'hover:bg-slate-100 text-slate-700'
-                  }`}
+                  } rounded-lg`}
                   title={isRecording ? 'Stop recording' : 'Start recording'}
                 >
                   {isTranscribing ? (
@@ -1107,12 +989,12 @@ export default function Home() {
                 <Button
                   type="submit"
                   disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
-                  className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 active:bg-blue-950 text-white rounded-lg transition-all p-0 flex items-center justify-center group"
+                  className="h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 text-white rounded-lg flex items-center justify-center"
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
                   ) : (
-                    <Send className="h-4 w-4 group-active:text-yellow-500 transition-colors" strokeWidth={2} />
+                    <Send className="h-4 w-4" strokeWidth={2} />
                   )}
                 </Button>
               </div>
