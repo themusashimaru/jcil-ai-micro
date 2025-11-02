@@ -60,59 +60,59 @@ export async function POST(req: NextRequest) {
     if (imageBase64 && imageMime) {
       content.push({
         type: "image_url",
-        image_url: {
-          url: `data:${imageMime};base64,${imageBase64}`,
-        },
+        image_url: { url: `data:${imageMime};base64,${imageBase64}` },
       });
     }
 
-    // ---- Send to GPT-4o ----
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    // ---- Construct OpenAI request ----
+    const payload = {
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an assistant that interprets screenshots, logs, or code. Always respond in **valid JSON** with two keys: 'raw_text' (the exact text you can read from the image) and 'explanation' (a clear, human summary).",
+        },
+        {
+          role: "user",
+          content,
+        },
+      ],
+      temperature: 0.2,
+      max_tokens: 800,
+    };
+
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an assistant that can interpret screenshots, code, logs, and text. Extract any visible text (OCR) and then provide a detailed explanation of what’s happening.",
-          },
-          { role: "user", content },
-        ],
-        response_format: { type: "json_object" }, // ensures clean JSON output
-      }),
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const err = await response.text();
-      console.error("OpenAI error:", err);
-      return NextResponse.json({ ok: false, error: err }, { status: 500 });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("OpenAI API error:", err);
+      return NextResponse.json({ ok: false, error: err }, { status: res.status });
     }
 
-    const data = await response.json();
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content || "";
 
-    // ---- Parse model output ----
-    let replyText = "";
-    let rawText = "";
-
+    // ---- Try to parse JSON output ----
+    let raw_text = "";
+    let explanation = raw;
     try {
-      const parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}");
-      replyText = parsed.reply || parsed.explanation || "";
-      rawText = parsed.raw_text || "";
+      const parsed = JSON.parse(raw);
+      raw_text = parsed.raw_text || "";
+      explanation = parsed.explanation || raw;
     } catch {
-      replyText = data.choices?.[0]?.message?.content || "No reply received.";
+      console.warn("Non-JSON output, returning raw text.");
     }
 
     return NextResponse.json(
-      {
-        ok: true,
-        reply: replyText,
-        raw_text: rawText || "(no OCR text extracted)",
-      },
+      { ok: true, raw_text, reply: explanation },
       { status: 200 }
     );
   } catch (err: any) {
@@ -127,6 +127,6 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    route: "/api/chat (GPT-4o multimodal + OCR)",
+    route: "/api/chat (GPT-4o multimodal JSON OCR)",
   });
 }
