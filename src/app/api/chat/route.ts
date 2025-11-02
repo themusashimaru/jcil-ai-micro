@@ -12,61 +12,6 @@ const ALLOWED_IMAGE_TYPES = [
   "image/webp",
 ];
 
-// ---- Core OpenAI call ----
-async function callOpenAI({
-  message,
-  imageBase64,
-  imageMime,
-}: {
-  message: string;
-  imageBase64?: string;
-  imageMime?: string;
-}): Promise<string> {
-  const url = "https://api.openai.com/v1/chat/completions";
-
-  const userContent: any[] = [{ type: "text", text: message }];
-  if (imageBase64 && imageMime) {
-    userContent.push({
-      type: "image_url",
-      image_url: { url: `data:${imageMime};base64,${imageBase64}` },
-    });
-  }
-
-  const body = {
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a technical assistant that can read and interpret screenshots, code, logs, or terminal outputs. Provide clear explanations of what’s visible in the image.",
-      },
-      {
-        role: "user",
-        content: userContent,
-      },
-    ],
-  };
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    console.error("OpenAI API error:", err);
-    throw new Error(err);
-  }
-
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content ?? "No reply.";
-}
-
-// ---- Route handlers ----
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
@@ -100,30 +45,59 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert image to base64 if attached
-    let imageBase64: string | undefined;
-    let imageMime: string | undefined;
+    let content: any[] = [];
+    if (message) content.push({ type: "text", text: message });
+
     if (imageFile) {
       const buffer = Buffer.from(await imageFile.arrayBuffer());
-      imageBase64 = buffer.toString("base64");
-      imageMime = imageFile.type;
+      const base64 = buffer.toString("base64");
+      content.push({
+        type: "image_url",
+        image_url: {
+          url: `data:${imageFile.type};base64,${base64}`,
+        },
+      });
     }
 
-    const reply = await callOpenAI({ message, imageBase64, imageMime });
+    const body = {
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an assistant that can interpret screenshots, terminal output, and images. Provide detailed insight about what’s visible in the image if one is included.",
+        },
+        {
+          role: "user",
+          content,
+        },
+      ],
+    };
 
-    return NextResponse.json({ ok: true, reply }, { status: 200 });
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("OpenAI API error:", err);
+      return NextResponse.json({ ok: false, error: err }, { status: res.status });
+    }
+
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content ?? "No reply.";
+    return NextResponse.json({ ok: true, reply });
   } catch (err: any) {
     console.error("Error in /api/chat:", err);
-    return NextResponse.json(
-      { ok: false, error: err.message || "Internal error." },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: err.message || "Internal error." });
   }
 }
 
 export async function GET() {
-  return NextResponse.json(
-    { ok: true, route: "/api/chat (GPT-4o multimodal)" },
-    { status: 200 }
-  );
+  return NextResponse.json({ ok: true, route: "/api/chat (GPT-4o multimodal)" });
 }
