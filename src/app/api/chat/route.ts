@@ -1,6 +1,6 @@
 // src/app/api/chat/route.ts
-// UPDATED: move Gemini init *inside* the handler so missing env doesn't crash the route
-// also keeps image moderation + file tracking + TS-safe multimodal
+// SINGLE CHAT ROUTE – Supabase auth, tools, file validation, Gemini call
+// no protected, no chat2, no re-exports
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -15,40 +15,39 @@ import { moderateImage } from '@/lib/image-moderation';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// --- System Prompts ---
+// ===== SYSTEM PROMPTS =====
 const regularChatPrompt = `You are a helpful and neutral AI assistant. Your goal is to answer questions, provide information, and engage in conversation clearly and directly.
 
-**Guidelines:**
-1.  **Be Direct:** Provide factual, direct answers to the user's queries.
-2.  **Stay Neutral:** Approach all topics objectively.
-3.  **Be Helpful:** Fulfill the user's request to the best of your ability.
-4.  **Natural Conversation:** Respond in a natural, conversational manner.
+Guidelines:
+1. Be direct.
+2. Stay neutral.
+3. Be helpful.
+4. Sound natural.
 `;
 
 const textMessageToolPrompt = `You are a concise message assistant. Your task is to draft a short, clear, and professional text message (SMS, WhatsApp, etc.) in response to a user's request or an uploaded screenshot.
 
-**CRITICAL OUTPUT MANDATE:**
+CRITICAL OUTPUT MANDATE:
 Your entire response will be the text message itself.
 `;
 
 const emailWriterPrompt = `You are a high-precision email drafting tool. Your single task is to generate a professional, plain-text email based on the user's request.
 
-**CRITICAL OUTPUT MANDATE:**
+CRITICAL OUTPUT MANDATE:
 Your entire response will be the email text itself, starting with "Subject:" or the first line of the email body.
 `;
 
 const recipeExtractorPrompt = `You are a meticulous culinary assistant. Your sole purpose is to extract ingredients from a recipe (provided as text or an image) and generate a clean shopping list.
 
-**CRITICAL OUTPUT MANDATE:**
+CRITICAL OUTPUT MANDATE:
 Your entire response must follow this strict format.
 `;
 
-// ===== VALIDATION CONSTANTS =====
+// ===== CONSTANTS =====
 const MAX_MESSAGE_LENGTH = 10000;
 const MAX_MESSAGES_IN_CONVERSATION = 100;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 
-// ===== RATE LIMIT CONFIG =====
 const RATE_LIMIT_CONFIG = {
   maxRequests: 20,
   windowMs: 60 * 1000,
@@ -57,7 +56,7 @@ const RATE_LIMIT_CONFIG = {
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
 
-  // Supabase (server-side, with cookies)
+  // --- Supabase server client (with cookies)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -83,38 +82,35 @@ export async function POST(req: NextRequest) {
   );
 
   try {
-    // 1. Auth
+    // 1) AUTH
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+
     if (authError || !user) {
-      console.error('Auth Error in /api/chat:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Rate limit
-    const rateLimitResult = rateLimit(user.id, RATE_LIMIT_CONFIG);
-    if (!rateLimitResult.success) {
-      const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
+    // 2) RATE LIMIT
+    const rl = rateLimit(user.id, RATE_LIMIT_CONFIG);
+    if (!rl.success) {
+      const retryAfter = Math.ceil((rl.reset - Date.now()) / 1000);
       return NextResponse.json(
-        {
-          error: 'Too many requests. Please try again later.',
-          retryAfter,
-        },
+        { error: 'Too many requests. Please try again later.', retryAfter },
         {
           status: 429,
           headers: {
-            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Limit': rl.limit.toString(),
             'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+            'X-RateLimit-Reset': rl.reset.toString(),
             'Retry-After': retryAfter.toString(),
           },
         }
       );
     }
 
-    // 3. Parse body
+    // 3) PARSE BODY
     const {
       messages: rawMessages,
       conversationId,
@@ -125,8 +121,8 @@ export async function POST(req: NextRequest) {
 
     const messages = rawMessages as CoreMessage[];
 
-    // 4. Validate
-    if (!messages || !Array.isArray(messages)) {
+    // 4) VALIDATE BODY
+    if (!Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 });
     }
     if (messages.length === 0) {
@@ -144,74 +140,71 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid tool parameter' }, { status: 400 });
     }
 
-    // 5. Check conversation ownership
-    const { data: conversationData, error: convError } = await supabase
+    // 5) OWNERSHIP CHECK
+    const { data: convo, error: convErr } = await supabase
       .from('conversations')
       .select('user_id')
       .eq('id', conversationId)
       .single();
 
-    if (convError) {
-      console.error('Error verifying conversation ownership:', convError);
+    if (convErr) {
+      console.error('conversation lookup error:', convErr);
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    if (conversationData.user_id !== user.id) {
-      console.warn(`Unauthorized access attempt: User ${user.id} tried to access conversation ${conversationId}`);
+    if (convo.user_id !== user.id) {
       return NextResponse.json({ error: 'Unauthorized access to conversation' }, { status: 403 });
     }
 
-    // 6. Extract last message text (TS-safe)
-    const userMessage = messages[messages.length - 1];
-    let userMessageContent = '';
+    // 6) EXTRACT LAST USER MESSAGE (TS SAFE)
+    const lastMessage = messages[messages.length - 1];
+    let userText = '';
 
-    if (typeof userMessage?.content === 'string') {
-      userMessageContent = userMessage.content;
-    } else if (Array.isArray(userMessage?.content)) {
-      const textPart = (userMessage.content as Array<{ type?: string; text?: string }>).find(
-        (part) => part?.type === 'text'
+    if (typeof lastMessage?.content === 'string') {
+      userText = lastMessage.content;
+    } else if (Array.isArray(lastMessage?.content)) {
+      const textPart = (lastMessage.content as Array<{ type?: string; text?: string }>).find(
+        (p) => p?.type === 'text'
       );
-      if (textPart && typeof textPart.text === 'string') {
-        userMessageContent = textPart.text;
+      if (textPart?.text) {
+        userText = textPart.text;
       }
     }
 
-    if (!userMessageContent) {
+    if (!userText) {
       return NextResponse.json({ error: 'Last message content is missing or not text' }, { status: 400 });
     }
 
-    if (userMessageContent.length > MAX_MESSAGE_LENGTH) {
+    if (userText.length > MAX_MESSAGE_LENGTH) {
       return NextResponse.json(
         { error: `Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters` },
         { status: 400 }
       );
     }
 
-    if (containsSuspiciousContent(userMessageContent)) {
-      console.warn(`Suspicious content detected from user ${user.id}`);
+    if (containsSuspiciousContent(userText)) {
       return NextResponse.json({ error: 'Message contains invalid content' }, { status: 400 });
     }
 
-    const sanitizedContent = sanitizeInput(userMessageContent);
+    const sanitizedContent = sanitizeInput(userText);
     if (!sanitizedContent) {
       return NextResponse.json({ error: 'Message content is invalid after sanitization' }, { status: 400 });
     }
 
-    // 7. Text moderation
-    const moderationResult = await moderateUserMessage(user.id, sanitizedContent);
-    if (!moderationResult.allowed) {
-      console.warn(`Message blocked for user ${user.id}: ${moderationResult.reason}`);
+    // 7) TEXT MODERATION
+    const moderation = await moderateUserMessage(user.id, sanitizedContent);
+    if (!moderation.allowed) {
       return NextResponse.json(
         {
-          error: moderationResult.reason,
-          violationType: moderationResult.violationType,
-          action: moderationResult.action,
+          error: moderation.reason,
+          violationType: moderation.violationType,
+          action: moderation.action,
         },
         { status: 403 }
       );
     }
 
-    // 8. Image validation / moderation (optional)
+    // 8) IMAGE VALIDATION (NO STORAGE LOOKUP – THIS WAS CAUSING PAIN)
     let fileSize: number | null = null;
 
     if (fileUrl && fileMimeType) {
@@ -222,54 +215,40 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // must be valid URL
       try {
         new URL(fileUrl);
       } catch {
         return NextResponse.json({ error: 'Invalid file URL' }, { status: 400 });
       }
 
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      if (!fileUrl.startsWith(supabaseUrl)) {
-        console.warn(`File URL from unexpected domain: ${fileUrl}`);
+      // must come from our Supabase
+      const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      if (!fileUrl.startsWith(supaUrl)) {
         return NextResponse.json({ error: 'Invalid file source' }, { status: 400 });
       }
 
-      try {
-        const filePathMatch = fileUrl.match(/uploads\/(.+)$/);
-        if (filePathMatch) {
-          const filePath = filePathMatch[1];
-          const { data: fileData } = await supabase.storage.from('uploads').list('', {
-            search: filePath,
-          });
-          if (fileData && fileData.length > 0) {
-            const meta = (fileData[0] as any).metadata;
-            if (meta && typeof meta === 'object' && 'size' in meta) {
-              fileSize = Number(meta.size) || null;
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Could not get file size:', err);
-      }
-
-      const imageModerationResult = await moderateImage(user.id, fileUrl);
-      if (!imageModerationResult.allowed) {
-        console.warn(`Image blocked for user ${user.id}: ${imageModerationResult.reason}`);
+      // IMAGE MODERATION
+      const imgMod = await moderateImage(user.id, fileUrl);
+      if (!imgMod.allowed) {
         return NextResponse.json(
           {
-            error: imageModerationResult.reason,
-            severity: imageModerationResult.severity,
-            categories: imageModerationResult.categories,
-            action: imageModerationResult.action,
+            error: imgMod.reason,
+            severity: imgMod.severity,
+            categories: imgMod.categories,
+            action: imgMod.action,
           },
           { status: 403 }
         );
       }
+
+      // we don't actually need the real size for now
+      fileSize = null;
     }
 
-    // 9. Save user message (async)
+    // 9) SAVE USER MESSAGE (async)
     (async () => {
-      const { error: userMsgError } = await supabase.from('messages').insert({
+      const { error: saveErr } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         user_id: user.id,
         role: 'user',
@@ -278,108 +257,90 @@ export async function POST(req: NextRequest) {
         file_type: fileMimeType || null,
         file_size: fileSize,
       });
-      if (userMsgError) {
-        console.error('Error saving user message:', userMsgError);
-      }
+      if (saveErr) console.error('save user message error:', saveErr);
     })();
 
-    // 10. Prepare AI messages
-    let messagesForAI: CoreMessage[] = [...messages];
-    const lastMessageIndex = messagesForAI.length - 1;
-    const lastMsg = messagesForAI[lastMessageIndex];
-
-    let systemPrompt: string;
+    // 10) BUILD AI MESSAGES
+    let systemPrompt = regularChatPrompt;
     if (tool === 'textMessageTool') systemPrompt = textMessageToolPrompt;
     else if (tool === 'emailWriter') systemPrompt = emailWriterPrompt;
     else if (tool === 'recipeExtractor') systemPrompt = recipeExtractorPrompt;
-    else systemPrompt = regularChatPrompt;
 
-    // 11. If image present, make multimodal
+    const messagesForAI: CoreMessage[] = [...messages];
+    const lastIdx = messagesForAI.length - 1;
+    const last = messagesForAI[lastIdx];
+
     if (fileUrl) {
+      // rebuild as multimodal
       let baseText = '';
-      if (typeof lastMsg.content === 'string') {
-        baseText = lastMsg.content;
-      } else if (Array.isArray(lastMsg.content)) {
-        const parts = lastMsg.content as Array<{ type?: string; text?: string }>;
-        const textPart = parts.find((p) => p && p.type === 'text');
-        if (textPart && typeof textPart.text === 'string') {
-          baseText = textPart.text;
-        }
+      if (typeof last.content === 'string') {
+        baseText = last.content;
+      } else if (Array.isArray(last.content)) {
+        const part = (last.content as Array<{ type?: string; text?: string }>).find((p) => p?.type === 'text');
+        if (part?.text) baseText = part.text;
       }
 
       const multimodalContent: any[] = [];
-      if (baseText) {
-        multimodalContent.push({ type: 'text', text: baseText });
-      }
-      multimodalContent.push({
-        type: 'image',
-        image: new URL(fileUrl),
-      });
+      if (baseText) multimodalContent.push({ type: 'text', text: baseText });
+      multimodalContent.push({ type: 'image', image: new URL(fileUrl) });
 
-      messagesForAI[lastMessageIndex] = {
-        ...lastMsg,
+      messagesForAI[lastIdx] = {
+        ...last,
         content: multimodalContent as any,
       };
     }
 
-    // 12. INIT GEMINI *HERE*, not at top
-    const GEMINI_API_KEY =
+    // 11) INIT GEMINI *INSIDE* HANDLER
+    const GEMINI_KEY =
       process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
       process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY;
 
-    if (!GEMINI_API_KEY) {
-      console.error('🚨 Missing Gemini API key in /api/chat');
-      return NextResponse.json(
-        { error: 'Gemini API key is not configured on the server.' },
-        { status: 500 }
-      );
+    if (!GEMINI_KEY) {
+      console.error('Missing Gemini key');
+      return NextResponse.json({ error: 'Gemini API key is not configured' }, { status: 500 });
     }
 
-    const google = createGoogleGenerativeAI({
-      apiKey: GEMINI_API_KEY,
-    });
+    const google = createGoogleGenerativeAI({ apiKey: GEMINI_KEY });
 
-    // 13. Call AI
+    // 12) CALL AI
     const result = await streamText({
       model: google('gemini-2.5-flash'),
       system: systemPrompt,
       messages: messagesForAI,
       onFinish: async ({ text }) => {
-        if (conversationId && text) {
-          const sanitizedResponse = sanitizeInput(text);
-          const { error: assistantMsgError } = await supabase.from('messages').insert({
+        if (text) {
+          const cleaned = sanitizeInput(text);
+          const { error: saveAssistantErr } = await supabase.from('messages').insert({
             conversation_id: conversationId,
             user_id: user.id,
             role: 'assistant',
-            content: sanitizedResponse,
+            content: cleaned,
           });
-          if (assistantMsgError) {
-            console.error('Error saving assistant message:', assistantMsgError);
-          }
+          if (saveAssistantErr) console.error('save assistant msg error:', saveAssistantErr);
         }
       },
     });
 
+    // 13) STREAM BACK
     return new Response(result.textStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'X-RateLimit-Limit': rateLimitResult.limit.toString(),
-        'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-        'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+        'X-RateLimit-Limit': rl.limit.toString(),
+        'X-RateLimit-Remaining': rl.remaining.toString(),
+        'X-RateLimit-Reset': rl.reset.toString(),
       },
     });
-  } catch (error) {
-    console.error('Error in POST /api/chat:', error);
-    const message = error instanceof Error ? error.message : 'An internal error occurred';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  } catch (err) {
+    console.error('Error in POST /api/chat:', err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
-// 👇 GET must stay simple and must NOT crash even if Gemini is missing
+// keep GET simple
 export async function GET() {
   return NextResponse.json({ ok: true, route: '/api/chat' }, { status: 200 });
 }
