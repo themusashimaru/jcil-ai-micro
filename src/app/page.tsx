@@ -1,16 +1,20 @@
-// /src/app/page.tsx
+// src/app/page.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { type User as SupabaseUser } from '@supabase/supabase-js';
+
 import { createClient } from '@/lib/supabase/client';
+import { formatMessageTime } from '@/lib/format-date';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -22,6 +26,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+
 import {
   MoreVertical,
   Mic,
@@ -36,11 +41,10 @@ import {
   Menu,
   Send,
 } from 'lucide-react';
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { type User as SupabaseUser } from '@supabase/supabase-js';
-import { formatMessageTime } from '@/lib/format-date';
 
-// --- Types ---
+// ─────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -56,18 +60,16 @@ interface Conversation {
 
 type ActiveTool = 'none' | 'textMessageTool' | 'emailWriter' | 'recipeExtractor';
 
-// ===== FILE UPLOAD CONSTANTS =====
+// ─────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_FILE_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-];
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-// ===== Typing Indicator =====
+// ─────────────────────────────────────────────
+// TYPING INDICATOR
+// ─────────────────────────────────────────────
 const TypingIndicator = () => (
   <div className="flex items-start space-x-2 justify-start">
     <div className="p-3 max-w-xs lg:max-w-md">
@@ -75,67 +77,116 @@ const TypingIndicator = () => (
         <div
           className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
           style={{ animationDelay: '0ms' }}
-        ></div>
+        />
         <div
           className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
           style={{ animationDelay: '150ms' }}
-        ></div>
+        />
         <div
           className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
           style={{ animationDelay: '300ms' }}
-        ></div>
+        />
       </div>
     </div>
   </div>
 );
 
+// ─────────────────────────────────────────────
+// SUPABASE CLIENT
+// ─────────────────────────────────────────────
 const supabase = createClient();
 
+// ─────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────
 export default function Home() {
   const router = useRouter();
+
+  // auth
   const [user, setUser] = useState<SupabaseUser | null>(null);
 
-  // chat state
+  // chat
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [localInput, setLocalInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isTyping, setIsTyping] = useState(false);
 
-  // sidebar/convos
+  // sidebar / history
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [historyIsLoading, setHistoryIsLoading] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  // audio / whisper
+  // notifications
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // tools / attachments
+  const [activeTool, setActiveTool] = useState<ActiveTool>('none');
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
+  const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
+
+  // recording / whisper
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // file
+  // ui
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
-  const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
-  const [attachedFileMimeType, setAttachedFileMimeType] =
-    useState<string | null>(null);
-
-  // notifications
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // tool
-  const [activeTool, setActiveTool] = useState<ActiveTool>('none');
-
-  // misc
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const [isTyping, setIsTyping] = useState(false);
   const [fileButtonFlash, setFileButtonFlash] = useState(false);
   const [toolButtonFlash, setToolButtonFlash] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // ─────────────────────────────────────────────
+  // HELPERS
+  // ─────────────────────────────────────────────
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const clearAttachmentState = () => {
+    setUploadedFileUrl(null);
+    setAttachedFileName(null);
+    setAttachedFileMimeType(null);
+  };
+
+  const resizeTextarea = () => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + 'px';
+    }
+  };
+
+  const getTimeBasedGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'How can I help you this morning?';
+    if (hour >= 12 && hour < 17) return 'How can I help you this afternoon?';
+    return 'How can I help you this evening?';
+  };
+
+  const renderCheck = (tool: ActiveTool) =>
+    activeTool === tool ? <Check className="ml-auto h-4 w-4" strokeWidth={2} /> : null;
+
+  const getPlaceholderText = () => {
+    if (isTranscribing) return 'Transcribing audio...';
+    if (isLoading) return 'AI is thinking...';
+    if (isRecording) return 'Recording... click mic to stop.';
+    if (attachedFileName) return 'Describe the file or add text...';
+    if (activeTool === 'textMessageTool') return 'Using Text Message Tool...';
+    if (activeTool === 'emailWriter') return 'Using Email Writing Tool...';
+    if (activeTool === 'recipeExtractor') return 'Using Recipe Extractor...';
+    return 'Type your message...';
+  };
+
+  // ─────────────────────────────────────────────
+  // FETCH UNREAD NOTIFICATIONS
+  // ─────────────────────────────────────────────
   const fetchUnreadCount = useCallback(async () => {
     const {
       data: { user: currentUser },
@@ -149,57 +200,44 @@ export default function Home() {
       .eq('read_status', false);
 
     if (error) {
-      console.error('fetchUnreadCount: Error:', error);
-    } else {
-      setUnreadCount(count ?? 0);
+      console.error('fetchUnreadCount error:', error);
+      return;
     }
+    setUnreadCount(count ?? 0);
   }, []);
 
-  // get user & initial data
+  // ─────────────────────────────────────────────
+  // INITIAL LOAD: USER + CONVOS + NOTIFS
+  // ─────────────────────────────────────────────
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
 
-    const getUserAndInitialData = async () => {
+    const run = async () => {
       const {
         data: { user: currentUser },
       } = await supabase.auth.getUser();
+      if (!mounted) return;
 
-      if (!isMounted) return;
       setUser(currentUser);
 
       if (currentUser) {
-        fetchConversations(currentUser.id);
-        fetchUnreadCount();
+        await fetchConversations(currentUser.id);
+        await fetchUnreadCount();
       } else {
         setHistoryIsLoading(false);
       }
     };
 
-    getUserAndInitialData();
+    run();
 
     return () => {
-      isMounted = false;
+      mounted = false;
     };
   }, [fetchUnreadCount]);
 
-  const fetchConversations = async (userId: string) => {
-    setHistoryIsLoading(true);
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('id, created_at, title')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error('Error fetching conversations:', error);
-    } else if (data) {
-      setConversations(data);
-    }
-    setHistoryIsLoading(false);
-  };
-
-  // notifications subscription
+  // ─────────────────────────────────────────────
+  // SUBSCRIBE TO NOTIFICATIONS CHANGES
+  // ─────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
 
@@ -215,7 +253,7 @@ export default function Home() {
         },
         () => {
           fetchUnreadCount();
-        }
+        },
       )
       .subscribe();
 
@@ -224,50 +262,48 @@ export default function Home() {
     };
   }, [user, fetchUnreadCount]);
 
-  // scroll chat
+  // ─────────────────────────────────────────────
+  // SCROLL ON NEW MESSAGE
+  // ─────────────────────────────────────────────
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  // focus input once
+  // ─────────────────────────────────────────────
+  // AUTO FOCUS
+  // ─────────────────────────────────────────────
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // ─────────────────────────────────────────────
+  // FETCH CONVERSATIONS
+  // ─────────────────────────────────────────────
+  const fetchConversations = async (userId: string) => {
+    setHistoryIsLoading(true);
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id, created_at, title')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
 
-  const clearAttachmentState = () => {
-    setUploadedFileUrl(null);
-    setAttachedFileName(null);
-    setAttachedFileMimeType(null);
-  };
-
-  const handleNewChat = () => {
-    setMessages([]);
-    setConversationId(null);
-    setLocalInput('');
-    setRenamingId(null);
-    clearAttachmentState();
-    setActiveTool('none');
-
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
+    if (error) {
+      console.error('fetchConversations error:', error);
+    } else {
+      setConversations(data ?? []);
     }
-
-    setIsRecording(false);
-    setIsTranscribing(false);
-    inputRef.current?.focus();
-    setIsTyping(false);
-    setIsSidebarOpen(false);
+    setHistoryIsLoading(false);
   };
 
+  // ─────────────────────────────────────────────
+  // LOAD CONVERSATION
+  // ─────────────────────────────────────────────
   const loadConversation = async (id: string) => {
     if (isLoading || renamingId === id) return;
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-    }
+
+    if (isRecording) mediaRecorderRef.current?.stop();
+
     setIsRecording(false);
     setIsTranscribing(false);
     setIsLoading(true);
@@ -285,18 +321,22 @@ export default function Home() {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error loading msgs:', error);
+      console.error('loadConversation error:', error);
       setMessages([
-        { id: 'err', role: 'assistant', content: 'Error loading conversation.' },
+        {
+          id: 'err',
+          role: 'assistant',
+          content: 'Error loading conversation.',
+        },
       ]);
-    } else if (data) {
-      const loadedMessages = data.map((msg) => ({
-        id: msg.id,
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-        created_at: msg.created_at,
+    } else {
+      const loaded = (data ?? []).map((m) => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        created_at: m.created_at,
       }));
-      setMessages(loadedMessages);
+      setMessages(loaded);
       setConversationId(id);
     }
 
@@ -304,60 +344,270 @@ export default function Home() {
     inputRef.current?.focus();
   };
 
-  const handleDelete = async (id: string) => {
-    if (isLoading || !window.confirm('Delete this chat?')) return;
-
-    const { error } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting:', error);
-      alert('Error deleting conversation.');
-    } else {
-      setConversations((prev) => prev.filter((c) => c.id !== id));
-      if (conversationId === id) handleNewChat();
-    }
+  // ─────────────────────────────────────────────
+  // NEW CHAT
+  // ─────────────────────────────────────────────
+  const handleNewChat = () => {
+    setMessages([]);
+    setConversationId(null);
+    setLocalInput('');
+    setRenamingId(null);
+    clearAttachmentState();
+    setActiveTool('none');
+    if (isRecording) mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+    setIsTranscribing(false);
+    inputRef.current?.focus();
+    setIsTyping(false);
+    setIsSidebarOpen(false);
   };
 
+  // ─────────────────────────────────────────────
+  // DELETE CHAT
+  // ─────────────────────────────────────────────
+  const handleDelete = async (id: string) => {
+    if (isLoading) return;
+    if (!window.confirm('Delete this chat?')) return;
+
+    const { error } = await supabase.from('conversations').delete().eq('id', id);
+    if (error) {
+      console.error('delete conversation error:', error);
+      alert('Error deleting conversation.');
+      return;
+    }
+
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (conversationId === id) handleNewChat();
+  };
+
+  // ─────────────────────────────────────────────
+  // RENAME CHAT
+  // ─────────────────────────────────────────────
   const handleRenameClick = (convo: Conversation) => {
     setRenamingId(convo.id);
-    setRenameValue(
-      convo.title || `Chat from ${new Date(convo.created_at).toLocaleString()}`
-    );
+    setRenameValue(convo.title || `Chat from ${new Date(convo.created_at).toLocaleString()}`);
   };
 
-  const handleRenameSubmit = async (
-    e: React.FormEvent<HTMLFormElement>,
-    id: string
-  ) => {
+  const handleRenameSubmit = async (e: React.FormEvent<HTMLFormElement>, id: string) => {
     e.preventDefault();
-    if (isLoading || !renameValue.trim()) {
+    if (isLoading) {
+      setRenamingId(null);
+      return;
+    }
+    if (!renameValue.trim()) {
       setRenamingId(null);
       return;
     }
 
     const newTitle = renameValue.trim();
-    const { error } = await supabase
-      .from('conversations')
-      .update({ title: newTitle })
-      .eq('id', id);
+    const { error } = await supabase.from('conversations').update({ title: newTitle }).eq('id', id);
 
     if (error) {
-      console.error('Error renaming:', error);
+      console.error('rename error:', error);
       alert('Error renaming conversation.');
     } else {
-      setConversations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c))
-      );
+      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c)));
     }
 
     setRenamingId(null);
     setRenameValue('');
   };
 
-  // --- FORM SUBMIT (chat) ---
+  // ─────────────────────────────────────────────
+  // SIGN OUT
+  // ─────────────────────────────────────────────
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
+
+  // ─────────────────────────────────────────────
+  // COPY MSG
+  // ─────────────────────────────────────────────
+  const handleCopy = useCallback((id: string, content: string) => {
+    if (!navigator.clipboard) {
+      alert('Clipboard API not available.');
+      return;
+    }
+    navigator.clipboard
+      .writeText(content)
+      .then(() => {
+        setCopiedMessageId(id);
+        setTimeout(() => setCopiedMessageId(null), 2000);
+      })
+      .catch((err) => {
+        console.error('copy error:', err);
+        alert('Failed to copy.');
+      });
+  }, []);
+
+  // ─────────────────────────────────────────────
+  // FILE HANDLING
+  // ─────────────────────────────────────────────
+  const handleUploadClick = () => {
+    if (isLoading) return;
+
+    setFileButtonFlash(true);
+    setTimeout(() => setFileButtonFlash(false), 200);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && user) {
+      if (!ALLOWED_FILE_TYPES.includes(file.type.toLowerCase())) {
+        alert(`Invalid file type. Allowed: ${ALLOWED_FILE_EXTENSIONS.join(', ')}`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        const maxMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+        alert(`File too large. Max ${maxMB}MB`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+      uploadFile(file);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const uploadFile = async (file: File) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session || !user) {
+      alert('Auth issue. Please sign in again.');
+      return;
+    }
+
+    const filePath = `${user.id}/${Date.now()}_${file.name}`;
+    setIsLoading(true);
+    clearAttachmentState();
+
+    const { data, error } = await supabase.storage.from('uploads').upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+
+    if (error) {
+      console.error('upload error:', error);
+      alert(`Upload failed: ${error.message}`);
+      setIsLoading(false);
+      return;
+    }
+
+    if (data) {
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from('uploads')
+        .createSignedUrl(filePath, 3600);
+      if (urlError) {
+        console.error('url error:', urlError);
+        alert('Upload succeeded but no signed URL.');
+      } else if (urlData) {
+        setUploadedFileUrl(urlData.signedUrl);
+        setAttachedFileName(file.name);
+        setAttachedFileMimeType(file.type);
+      }
+    }
+
+    setIsLoading(false);
+  };
+
+  const removeAttachedFile = () => {
+    clearAttachmentState();
+  };
+
+  // ─────────────────────────────────────────────
+  // WHISPER / TRANSCRIBE
+  // ─────────────────────────────────────────────
+  const handleTranscribe = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+
+    try {
+      const res = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLocalInput((prev) => (prev + ' ' + data.text).trim());
+        setTimeout(resizeTextarea, 0);
+      } else {
+        alert(`Transcription failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('transcribe error:', err);
+      alert('Failed to transcribe audio.');
+    } finally {
+      setIsTranscribing(false);
+      audioChunksRef.current = [];
+    }
+  };
+
+  const handleMicClick = async () => {
+    if (isLoading || isTranscribing) return;
+
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setIsRecording(true);
+      audioChunksRef.current = [];
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await handleTranscribe(audioBlob);
+        stream.getTracks().forEach((t) => t.stop());
+      };
+
+      mediaRecorder.start();
+    } catch (err) {
+      console.error('mic error:', err);
+      alert('Microphone access denied.');
+      setIsRecording(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // TEXTAREA HANDLERS
+  // ─────────────────────────────────────────────
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setLocalInput(e.target.value);
+    resizeTextarea();
+  };
+
+  const handleTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleFormSubmit();
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // TOOL BUTTON CLICK
+  // ─────────────────────────────────────────────
+  const handleToolButtonClick = () => {
+    setToolButtonFlash(true);
+    setTimeout(() => setToolButtonFlash(false), 200);
+  };
+
+  // ─────────────────────────────────────────────
+  // FORM SUBMIT (CHAT SEND)
+  // ─────────────────────────────────────────────
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (isLoading || isTranscribing || isRecording) return;
@@ -368,36 +618,25 @@ export default function Home() {
     const fileName = attachedFileName;
 
     const hasText = textInput.length > 0;
-    const hasFile = fileName && fileUrl;
+    const hasFile = fileUrl && fileName;
 
     if (!hasText && !hasFile) return;
 
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-    }
-
+    if (isRecording) mediaRecorderRef.current?.stop();
     setIsLoading(true);
     setIsTyping(true);
 
-    let userMsg: string;
-    let userMsgForTitle: string;
-
+    let userMsgText: string;
     if (hasText) {
-      userMsg = textInput;
-      userMsgForTitle = userMsg;
-    } else if (hasFile) {
-      userMsg = `[Image: ${fileName}]`;
-      userMsgForTitle = userMsg;
+      userMsgText = textInput;
     } else {
-      setIsLoading(false);
-      setIsTyping(false);
-      return;
+      userMsgText = `[Image: ${fileName}]`;
     }
 
     const newUserMessage: Message = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       role: 'user',
-      content: userMsg,
+      content: userMsgText,
       created_at: new Date().toISOString(),
     };
 
@@ -406,16 +645,17 @@ export default function Home() {
     clearAttachmentState();
 
     let currentConvoId = conversationId;
+
     if (!currentConvoId) {
-      const title = userMsgForTitle.substring(0, 40) + '...';
-      const { data: newConvo, error: convError } = await supabase
+      const title = userMsgText.substring(0, 40) + '...';
+      const { data: newConvo, error: convErr } = await supabase
         .from('conversations')
         .insert({ user_id: user!.id, title })
         .select('id, created_at, title')
         .single();
 
-      if (convError || !newConvo) {
-        console.error('Error creating convo:', convError);
+      if (convErr || !newConvo) {
+        console.error('create conversation error:', convErr);
         setMessages((prev) => prev.filter((m) => m.id !== newUserMessage.id));
         alert('Error saving conversation.');
         setIsLoading(false);
@@ -429,7 +669,8 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch('/api/chat', {
+      // ✅ THIS is the new endpoint
+      const response = await fetch('/api/jcil-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -442,26 +683,28 @@ export default function Home() {
       });
 
       if (!response.ok || !response.body) {
-        let err;
+        let errMsg = 'Unknown error';
         try {
-          err = await response.json();
-        } catch (_) {
-          //
+          const j = await response.json();
+          errMsg = j?.error || response.statusText;
+        } catch {
+          // ignore
         }
-        throw new Error(err?.error || response.statusText);
+        throw new Error(errMsg);
       }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let assistantId = `msg_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 9)}`;
+
+      let assistantId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
       let assistantContent = '';
       let firstChunk = true;
 
+      // stream
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
         const chunk = decoder.decode(value, { stream: true });
         assistantContent += chunk;
 
@@ -481,36 +724,38 @@ export default function Home() {
                 created_at: new Date().toISOString(),
               },
             ];
-          } else {
-            const last = prev[prev.length - 1];
-            if (last?.role === 'assistant') {
-              return [
-                ...prev.slice(0, -1),
-                { ...last, content: assistantContent },
-              ];
-            }
+          }
+          const last = prev[prev.length - 1];
+          if (last?.role === 'assistant') {
             return [
-              ...prev,
+              ...prev.slice(0, -1),
               {
-                id: assistantId,
-                role: 'assistant',
+                ...last,
                 content: assistantContent,
-                created_at: new Date().toISOString(),
               },
             ];
           }
+          return [
+            ...prev,
+            {
+              id: assistantId,
+              role: 'assistant',
+              content: assistantContent,
+              created_at: new Date().toISOString(),
+            },
+          ];
         });
       }
-    } catch (error) {
-      console.error('Error fetching/streaming:', error);
+    } catch (err) {
+      console.error('chat send error:', err);
       setIsTyping(false);
       setMessages((prev) => [
         ...prev,
         {
-          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           role: 'assistant',
           content: `Sorry, an error occurred: ${
-            error instanceof Error ? error.message : 'Unknown error'
+            err instanceof Error ? err.message : 'Unknown error'
           }`,
           created_at: new Date().toISOString(),
         },
@@ -522,272 +767,26 @@ export default function Home() {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
-
-  const handleCopy = useCallback((id: string, content: string) => {
-    if ('clipboard' in navigator) {
-      navigator.clipboard
-        .writeText(content)
-        .then(() => {
-          setCopiedMessageId(id);
-          setTimeout(() => setCopiedMessageId(null), 2000);
-        })
-        .catch((err) => {
-          console.error('Failed to copy text: ', err);
-          alert('Failed to copy.');
-        });
-    } else {
-      alert('Clipboard API not available. Please copy manually.');
-    }
-  }, []);
-
-  // textarea resize
-  const resizeTextarea = () => {
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-      inputRef.current.style.height =
-        Math.min(inputRef.current.scrollHeight, 150) + 'px';
-    }
-  };
-
-  // whisper
-  const handleTranscribe = async (audioBlob: Blob) => {
-    setIsTranscribing(true);
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
-
-    try {
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setLocalInput((prev) => (prev + ' ' + data.text).trim());
-        setTimeout(resizeTextarea, 0);
-      } else {
-        alert(`Transcription failed: ${data.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Error transcribing audio:', error);
-      alert('Failed to transcribe audio.');
-    } finally {
-      setIsTranscribing(false);
-      audioChunksRef.current = [];
-    }
-  };
-
-  const handleMicClick = async () => {
-    if (isLoading || isTranscribing) return;
-
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-      setIsRecording(false);
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        setIsRecording(true);
-        audioChunksRef.current = [];
-
-        const mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'audio/webm',
-        });
-        mediaRecorderRef.current = mediaRecorder;
-
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
-          }
-        };
-
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, {
-            type: 'audio/webm',
-          });
-          await handleTranscribe(audioBlob);
-          stream.getTracks().forEach((track) => track.stop());
-        };
-
-        mediaRecorder.start();
-      } catch (error) {
-        console.error('Error accessing microphone:', error);
-        alert(
-          'Microphone access denied. Please allow microphone access in your browser settings.'
-        );
-        setIsRecording(false);
-      }
-    }
-  };
-
-  // file upload
-  const handleUploadClick = () => {
-    if (isLoading) return;
-
-    setFileButtonFlash(true);
-    setTimeout(() => setFileButtonFlash(false), 200);
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-
-    if (file && user) {
-      if (!ALLOWED_FILE_TYPES.includes(file.type.toLowerCase())) {
-        alert(
-          `Invalid file type. Please upload an image file:\n${ALLOWED_FILE_EXTENSIONS.join(
-            ', '
-          )}`
-        );
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
-      }
-
-      if (file.size > MAX_FILE_SIZE) {
-        const sizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
-        alert(
-          `File is too large. Maximum size is ${sizeMB}MB.\nYour file: ${(
-            file.size /
-            (1024 * 1024)
-          ).toFixed(2)}MB`
-        );
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
-      }
-
-      uploadFile(file);
-    }
-
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const removeAttachedFile = () => {
-    clearAttachmentState();
-  };
-
-  const uploadFile = async (file: File) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session || !user) {
-      alert('Authentication issue. Please sign in again.');
-      return;
-    }
-
-    const filePath = `${user.id}/${Date.now()}_${file.name}`;
-    setIsLoading(true);
-
-    clearAttachmentState();
-
-    const { data, error } = await supabase.storage
-      .from('uploads')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (error) {
-      console.error('Upload error:', error);
-      alert(`Upload failed: ${error.message}`);
-      setIsLoading(false);
-    } else if (data) {
-      const { data: urlData, error: urlError } = await supabase.storage
-        .from('uploads')
-        .createSignedUrl(filePath, 3600);
-
-      if (urlError) {
-        console.error('URL error:', urlError);
-        alert('Upload succeeded but failed to get file URL.');
-      } else if (urlData) {
-        setUploadedFileUrl(urlData.signedUrl);
-        setAttachedFileName(file.name);
-        setAttachedFileMimeType(file.type);
-      }
-      setIsLoading(false);
-    } else {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLocalInput(e.target.value);
-    resizeTextarea();
-  };
-
-  const handleTextareaKeyDown = (
-    event: React.KeyboardEvent<HTMLTextAreaElement>
-  ) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      handleFormSubmit();
-    }
-  };
-
-  const renderCheck = (tool: ActiveTool) => {
-    if (activeTool === tool) {
-      return <Check className="ml-auto h-4 w-4" strokeWidth={2} />;
-    }
-    return null;
-  };
-
-  const getPlaceholderText = () => {
-    if (isTranscribing) return 'Transcribing audio...';
-    if (isLoading) return 'AI is thinking...';
-    if (isRecording) return 'Recording... Click mic to stop.';
-    if (attachedFileName) return 'Describe the file or add text...';
-    if (activeTool === 'textMessageTool')
-      return 'Using Text Message Tool... (Paste text or upload screenshot)';
-    if (activeTool === 'emailWriter')
-      return 'Using Email Writing Tool... (Paste email or describe)';
-    if (activeTool === 'recipeExtractor')
-      return 'Using Recipe Extractor... (Paste recipe or upload photo)';
-    return 'Type your message...';
-  };
-
-  const handleToolButtonClick = () => {
-    setToolButtonFlash(true);
-    setTimeout(() => setToolButtonFlash(false), 200);
-  };
-
-  const getTimeBasedGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) {
-      return 'How can I help you this morning?';
-    } else if (hour >= 12 && hour < 17) {
-      return 'How can I help you this afternoon?';
-    } else {
-      return 'How can I help you this evening?';
-    }
-  };
-
+  // ─────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* mobile overlay */}
+      {/* MOBILE OVERLAY */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* sidebar */}
+      {/* SIDEBAR */}
       <aside
-        className={`
-        fixed lg:relative
-        w-80 h-full
-        flex-shrink-0 bg-white border-r border-slate-200 flex flex-col shadow-sm
-        transform transition-transform duration-300 ease-in-out
-        z-50
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}
+        className={`fixed lg:relative w-80 h-full flex-shrink-0 bg-white border-r border-slate-200 flex flex-col shadow-sm transform transition-transform duration-300 ease-in-out z-50 ${
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
       >
-        {/* sidebar header */}
+        {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700">
@@ -816,20 +815,15 @@ export default function Home() {
           </Button>
         </div>
 
-        {/* conversation list */}
+        {/* Conversation List */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
           {historyIsLoading ? (
-            <div className="p-4 text-center text-slate-500 text-sm">
-              Loading chats...
-            </div>
+            <div className="p-4 text-center text-slate-500 text-sm">Loading chats...</div>
           ) : conversations.length > 0 ? (
             conversations.map((convo) => (
               <div key={convo.id} className="flex items-center group">
                 {renamingId === convo.id ? (
-                  <form
-                    className="flex-1"
-                    onSubmit={(e) => handleRenameSubmit(e, convo.id)}
-                  >
+                  <form className="flex-1" onSubmit={(e) => handleRenameSubmit(e, convo.id)}>
                     <Input
                       value={renameValue}
                       onChange={(e) => setRenameValue(e.target.value)}
@@ -850,8 +844,7 @@ export default function Home() {
                     disabled={isLoading}
                   >
                     <div className="truncate">
-                      {convo.title ||
-                        new Date(convo.created_at).toLocaleString()}
+                      {convo.title || new Date(convo.created_at).toLocaleString()}
                     </div>
                   </Button>
                 )}
@@ -863,10 +856,7 @@ export default function Home() {
                       className="hover:bg-slate-100 transition-all rounded-lg"
                       disabled={isLoading}
                     >
-                      <MoreVertical
-                        className="h-4 w-4 text-slate-700"
-                        strokeWidth={2}
-                      />
+                      <MoreVertical className="h-4 w-4 text-slate-700" strokeWidth={2} />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-white border-slate-200 shadow-lg rounded-lg">
@@ -887,13 +877,11 @@ export default function Home() {
               </div>
             ))
           ) : (
-            <div className="p-4 text-center text-slate-500 text-sm">
-              No history yet.
-            </div>
+            <div className="p-4 text-center text-slate-500 text-sm">No history yet.</div>
           )}
         </div>
 
-        {/* sidebar footer */}
+        {/* Sidebar footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
           <Button
             variant="ghost"
@@ -969,33 +957,12 @@ export default function Home() {
                 onClick={() => router.push('/settings')}
                 className="text-slate-700 cursor-pointer text-sm"
               >
-                <svg
-                  className="h-4 w-4 mr-2"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
                 Settings
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleSignOut}
                 className="text-slate-700 cursor-pointer text-sm"
               >
-                <svg
-                  className="h-4 w-4 mr-2"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
-                </svg>
                 Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1003,9 +970,10 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* main chat */}
+      {/* MAIN CHAT AREA */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
+          {/* HEADER */}
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
             <div className="flex items-center justify-between">
               <Button
@@ -1021,15 +989,14 @@ export default function Home() {
                   New Chat
                 </CardTitle>
               </div>
-              <div className="w-10 lg:hidden"></div>
+              <div className="w-10 lg:hidden" />
             </div>
           </CardHeader>
 
+          {/* MESSAGES */}
           <CardContent className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-white">
             {isLoading && messages.length === 0 ? (
-              <div className="text-center text-slate-500 text-sm">
-                Loading messages...
-              </div>
+              <div className="text-center text-slate-500 text-sm">Loading messages...</div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full space-y-6">
                 <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center">
@@ -1059,13 +1026,11 @@ export default function Home() {
                 </p>
               </div>
             ) : (
-              messages.map((msg: Message) => (
+              messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex items-start space-x-3 ${
-                    msg.role === 'user'
-                      ? 'justify-end'
-                      : 'justify-start'
+                    msg.role === 'user' ? 'justify-end' : 'justify-start'
                   }`}
                 >
                   <div
@@ -1116,23 +1081,16 @@ export default function Home() {
             <div ref={messagesEndRef} />
           </CardContent>
 
-          {/* input bar */}
+          {/* INPUT BAR */}
           <form
             onSubmit={handleFormSubmit}
             className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
           >
-            {/* file indicator */}
             {attachedFileName && (
               <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg sm:rounded-xl border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
                 <div className="flex items-center gap-2 truncate">
-                  <FileIcon
-                    className="h-4 w-4 flex-shrink-0 text-blue-600"
-                    strokeWidth={2}
-                  />
-                  <span
-                    className="truncate text-blue-800 font-medium"
-                    title={attachedFileName}
-                  >
+                  <FileIcon className="h-4 w-4 flex-shrink-0 text-blue-600" strokeWidth={2} />
+                  <span className="truncate text-blue-800 font-medium" title={attachedFileName}>
                     Attached: {attachedFileName}
                   </span>
                 </div>
@@ -1144,10 +1102,7 @@ export default function Home() {
                   onClick={removeAttachedFile}
                   disabled={isLoading}
                 >
-                  <XIcon
-                    className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600"
-                    strokeWidth={2}
-                  />
+                  <XIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" strokeWidth={2} />
                 </Button>
               </div>
             )}
@@ -1170,7 +1125,7 @@ export default function Home() {
                 className="hidden"
               />
 
-              {/* file button */}
+              {/* attach btn */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1183,10 +1138,7 @@ export default function Home() {
                     }`}
                     title="Attach file or take photo"
                   >
-                    <Paperclip
-                      className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700"
-                      strokeWidth={2}
-                    />
+                    <Paperclip className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700" strokeWidth={2} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -1209,7 +1161,7 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* tool button */}
+              {/* tool btn */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1268,7 +1220,7 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* text input */}
+              {/* input */}
               <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
                 <Textarea
                   ref={inputRef}
@@ -1281,13 +1233,12 @@ export default function Home() {
                   autoCapitalize="sentences"
                   spellCheck
                   inputMode="text"
-                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none shadow-none px-3 sm:px-4 py-2.5 sm:py-3 !text-slate-900 dark:text-slate-200"
+                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none focus:!ring-0 focus:!outline-none shadow-none px-3 sm:px-4 py-2.5 sm:py-3 !text-slate-900"
                   rows={1}
                   onKeyDown={handleTextareaKeyDown}
                   style={{ border: 'none', boxShadow: 'none', outline: 'none' }}
                 />
 
-                {/* mic */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -1308,23 +1259,15 @@ export default function Home() {
                   )}
                 </Button>
 
-                {/* send */}
                 <Button
                   type="submit"
-                  disabled={
-                    isLoading ||
-                    isTranscribing ||
-                    (!localInput.trim() && !attachedFileName)
-                  }
+                  disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
                   className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 active:bg-blue-950 text-white rounded-lg transition-all p-0 flex items-center justify-center group"
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
                   ) : (
-                    <Send
-                      className="h-4 w-4 group-active:text-yellow-500 transition-colors"
-                      strokeWidth={2}
-                    />
+                    <Send className="h-4 w-4 group-active:text-yellow-500 transition-colors" strokeWidth={2} />
                   )}
                 </Button>
               </div>
