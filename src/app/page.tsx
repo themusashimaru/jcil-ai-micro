@@ -550,9 +550,9 @@ export default function Home() {
   };
 
   const getPlaceholderText = () => {
-    if (isTranscribing) return "Transcribing audio..."; // 🔥 NEW
+    if (isTranscribing) return "Transcribing audio...";
     if (isLoading) return "AI is thinking...";
-    if (isRecording) return "Recording... Click mic to stop."; // 🔥 NEW
+    if (isRecording) return "Recording... Click mic to stop.";
     if (attachedFileName) return "Describe the file or add text...";
     if (activeTool === 'textMessageTool') return "Using Text Message Tool... (Paste text or upload screenshot)";
     if (activeTool === 'emailWriter') return "Using Email Writing Tool... (Paste email or describe)";
@@ -778,7 +778,8 @@ export default function Home() {
       </aside>
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col p-2 sm:p-4 md:p-6 bg-white overflow-hidden">
+      {/* 🔥 FIX 1: Changed p-2 to p-0 for wider mobile view */}
+      <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
             <div className="flex items-center justify-between">
@@ -1002,7 +1003,7 @@ export default function Home() {
               </DropdownMenu>
 
               <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
-                {/* 🔥 FIX: Added text-slate-900 dark:text-slate-200 */}
+                {/* 🔥 FIX 2: Added !text-slate-900 to force dark text color */}
                 <Textarea
                    ref={inputRef} 
                    value={localInput}
@@ -1014,13 +1015,12 @@ export default function Home() {
                    autoCapitalize="sentences"
                    spellCheck="true"
                    inputMode="text"
-                   className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none shadow-none px-3 sm:px-4 py-2.5 sm:py-3 text-slate-900 dark:text-slate-200" 
+                   className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none shadow-none px-3 sm:px-4 py-2.5 sm:py-3 !text-slate-900 dark:text-slate-200" 
                    rows={1} 
                    onKeyDown={handleTextareaKeyDown}
                    style={{ border: 'none', boxShadow: 'none', outline: 'none' }}
                  />
                 
-                {/* 🔥 UPDATED: Mic button logic */}
                 <Button 
                   type="button" 
                   variant="ghost"
