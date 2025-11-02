@@ -1,18 +1,16 @@
-// src/app/page.tsx
+// /src/app/page.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { type User as SupabaseUser } from '@supabase/supabase-js';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -38,12 +36,11 @@ import {
   Menu,
   Send,
 } from 'lucide-react';
-
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { type User as SupabaseUser } from '@supabase/supabase-js';
 import { formatMessageTime } from '@/lib/format-date';
 
-// ======================================================
-// TYPES
-// ======================================================
+// --- Types ---
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -57,116 +54,92 @@ interface Conversation {
   title?: string | null;
 }
 
-interface Notification {
-  id: string;
-  created_at: string;
-  content: string;
-  read_status: boolean;
-}
-
 type ActiveTool = 'none' | 'textMessageTool' | 'emailWriter' | 'recipeExtractor';
 
-// ======================================================
-// CONSTANTS
-// ======================================================
+// ===== FILE UPLOAD CONSTANTS =====
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_FILE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-const supabase = createClient();
-
-// ======================================================
-// SMALL COMPONENTS
-// ======================================================
+// ===== Typing Indicator =====
 const TypingIndicator = () => (
   <div className="flex items-start space-x-2 justify-start">
     <div className="p-3 max-w-xs lg:max-w-md">
       <div className="flex space-x-2">
-        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div
+          className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+          style={{ animationDelay: '0ms' }}
+        ></div>
+        <div
+          className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+          style={{ animationDelay: '150ms' }}
+        ></div>
+        <div
+          className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+          style={{ animationDelay: '300ms' }}
+        ></div>
       </div>
     </div>
   </div>
 );
 
-// ======================================================
-// MAIN PAGE
-// ======================================================
+const supabase = createClient();
+
 export default function Home() {
   const router = useRouter();
-
-  // --- auth / user ---
   const [user, setUser] = useState<SupabaseUser | null>(null);
 
-  // --- chats ---
+  // chat state
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [localInput, setLocalInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // sidebar/convos
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [historyIsLoading, setHistoryIsLoading] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
 
-  // --- ui ---
-  const [localInput, setLocalInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [activeTool, setActiveTool] = useState<ActiveTool>('none');
-  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const [fileButtonFlash, setFileButtonFlash] = useState(false);
-  const [toolButtonFlash, setToolButtonFlash] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // --- file / image ---
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
-  const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
-  const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
-
-  // --- audio / whisper ---
+  // audio / whisper
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // --- refs ---
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // file
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
+  const [attachedFileMimeType, setAttachedFileMimeType] =
+    useState<string | null>(null);
+
+  // notifications
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // tool
+  const [activeTool, setActiveTool] = useState<ActiveTool>('none');
+
+  // misc
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [fileButtonFlash, setFileButtonFlash] = useState(false);
+  const [toolButtonFlash, setToolButtonFlash] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // ======================================================
-  // HELPERS
-  // ======================================================
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const clearAttachmentState = () => {
-    setUploadedFileUrl(null);
-    setAttachedFileName(null);
-    setAttachedFileMimeType(null);
-  };
-
-  const resizeTextarea = () => {
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + 'px';
-    }
-  };
-
-  const getTimeBasedGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return 'How can I help you this morning?';
-    if (hour >= 12 && hour < 17) return 'How can I help you this afternoon?';
-    return 'How can I help you this evening?';
-  };
-
-  // ======================================================
-  // FETCHES
-  // ======================================================
   const fetchUnreadCount = useCallback(async () => {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
     if (!currentUser) return;
 
     const { error, count } = await supabase
@@ -176,11 +149,38 @@ export default function Home() {
       .eq('read_status', false);
 
     if (error) {
-      console.error('fetchUnreadCount error:', error);
-      return;
+      console.error('fetchUnreadCount: Error:', error);
+    } else {
+      setUnreadCount(count ?? 0);
     }
-    setUnreadCount(count ?? 0);
   }, []);
+
+  // get user & initial data
+  useEffect(() => {
+    let isMounted = true;
+
+    const getUserAndInitialData = async () => {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+
+      if (!isMounted) return;
+      setUser(currentUser);
+
+      if (currentUser) {
+        fetchConversations(currentUser.id);
+        fetchUnreadCount();
+      } else {
+        setHistoryIsLoading(false);
+      }
+    };
+
+    getUserAndInitialData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchUnreadCount]);
 
   const fetchConversations = async (userId: string) => {
     setHistoryIsLoading(true);
@@ -199,40 +199,20 @@ export default function Home() {
     setHistoryIsLoading(false);
   };
 
-  // ======================================================
-  // EFFECTS
-  // ======================================================
-  // get user + initial data
-  useEffect(() => {
-    let mounted = true;
-
-    const init = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!mounted) return;
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchConversations(currentUser.id);
-        await fetchUnreadCount();
-      } else {
-        setHistoryIsLoading(false);
-      }
-    };
-
-    init();
-
-    return () => {
-      mounted = false;
-    };
-  }, [fetchUnreadCount]);
-
-  // realtime notifications
+  // notifications subscription
   useEffect(() => {
     if (!user) return;
+
     const channel = supabase
       .channel('public:notifications')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
         () => {
           fetchUnreadCount();
         }
@@ -244,42 +224,55 @@ export default function Home() {
     };
   }, [user, fetchUnreadCount]);
 
-  // scroll on messages
+  // scroll chat
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  // focus input
+  // focus input once
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // ======================================================
-  // CHAT ACTIONS
-  // ======================================================
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const clearAttachmentState = () => {
+    setUploadedFileUrl(null);
+    setAttachedFileName(null);
+    setAttachedFileMimeType(null);
+  };
+
   const handleNewChat = () => {
     setMessages([]);
     setConversationId(null);
     setLocalInput('');
+    setRenamingId(null);
     clearAttachmentState();
     setActiveTool('none');
-    setRenamingId(null);
-    if (isRecording) mediaRecorderRef.current?.stop();
+
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+    }
+
     setIsRecording(false);
     setIsTranscribing(false);
+    inputRef.current?.focus();
     setIsTyping(false);
     setIsSidebarOpen(false);
-    inputRef.current?.focus();
   };
 
   const loadConversation = async (id: string) => {
     if (isLoading || renamingId === id) return;
-    if (isRecording) mediaRecorderRef.current?.stop();
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+    }
     setIsRecording(false);
     setIsTranscribing(false);
-
     setIsLoading(true);
     setMessages([]);
+    setRenamingId(null);
     clearAttachmentState();
     setActiveTool('none');
     setIsTyping(false);
@@ -294,20 +287,16 @@ export default function Home() {
     if (error) {
       console.error('Error loading msgs:', error);
       setMessages([
-        {
-          id: 'err',
-          role: 'assistant',
-          content: 'Error loading conversation.',
-        },
+        { id: 'err', role: 'assistant', content: 'Error loading conversation.' },
       ]);
     } else if (data) {
-      const loaded: Message[] = data.map((m) => ({
-        id: m.id,
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-        created_at: m.created_at ?? undefined,
+      const loadedMessages = data.map((msg) => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        created_at: msg.created_at,
       }));
-      setMessages(loaded);
+      setMessages(loadedMessages);
       setConversationId(id);
     }
 
@@ -316,287 +305,73 @@ export default function Home() {
   };
 
   const handleDelete = async (id: string) => {
-    if (isLoading) return;
-    if (!window.confirm('Delete this chat?')) return;
+    if (isLoading || !window.confirm('Delete this chat?')) return;
 
-    const { error } = await supabase.from('conversations').delete().eq('id', id);
+    const { error } = await supabase
+      .from('conversations')
+      .delete()
+      .eq('id', id);
+
     if (error) {
       console.error('Error deleting:', error);
       alert('Error deleting conversation.');
-      return;
+    } else {
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (conversationId === id) handleNewChat();
     }
-
-    setConversations((prev) => prev.filter((c) => c.id !== id));
-    if (conversationId === id) handleNewChat();
   };
 
   const handleRenameClick = (convo: Conversation) => {
     setRenamingId(convo.id);
-    setRenameValue(convo.title || `Chat from ${new Date(convo.created_at).toLocaleString()}`);
+    setRenameValue(
+      convo.title || `Chat from ${new Date(convo.created_at).toLocaleString()}`
+    );
   };
 
-  const handleRenameSubmit = async (e: React.FormEvent<HTMLFormElement>, id: string) => {
+  const handleRenameSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+    id: string
+  ) => {
     e.preventDefault();
-    if (isLoading) {
-      setRenamingId(null);
-      return;
-    }
-    const newTitle = renameValue.trim();
-    if (!newTitle) {
+    if (isLoading || !renameValue.trim()) {
       setRenamingId(null);
       return;
     }
 
-    const { error } = await supabase.from('conversations').update({ title: newTitle }).eq('id', id);
+    const newTitle = renameValue.trim();
+    const { error } = await supabase
+      .from('conversations')
+      .update({ title: newTitle })
+      .eq('id', id);
+
     if (error) {
       console.error('Error renaming:', error);
       alert('Error renaming conversation.');
     } else {
-      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c)));
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c))
+      );
     }
+
     setRenamingId(null);
     setRenameValue('');
   };
 
-  // ======================================================
-  // FILE UPLOAD
-  // ======================================================
-  const handleUploadClick = () => {
-    if (isLoading) return;
-    setFileButtonFlash(true);
-    setTimeout(() => setFileButtonFlash(false), 180);
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
-    if (!ALLOWED_FILE_TYPES.includes(file.type.toLowerCase())) {
-      alert(`Invalid file type. Please upload: ${ALLOWED_FILE_EXTENSIONS.join(', ')}`);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      const maxMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
-      alert(`File too large. Max ${maxMB}MB`);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
-    uploadFile(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const uploadFile = async (file: File) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session || !user) {
-      alert('Authentication issue. Please sign in again.');
-      return;
-    }
-
-    const filePath = `${user.id}/${Date.now()}_${file.name}`;
-    setIsLoading(true);
-    clearAttachmentState();
-
-    const { data, error } = await supabase.storage
-      .from('uploads')
-      .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
-    if (error) {
-      console.error('Upload error:', error);
-      alert(`Upload failed: ${error.message}`);
-      setIsLoading(false);
-      return;
-    }
-
-    if (data) {
-      const { data: urlData, error: urlError } = await supabase
-        .storage
-        .from('uploads')
-        .createSignedUrl(filePath, 3600);
-
-      if (urlError) {
-        console.error('URL error:', urlError);
-        alert('Upload succeeded but could not get file URL.');
-      } else if (urlData) {
-        setUploadedFileUrl(urlData.signedUrl);
-        setAttachedFileName(file.name);
-        setAttachedFileMimeType(file.type);
-      }
-    }
-
-    setIsLoading(false);
-  };
-
-  const removeAttachedFile = () => {
-    clearAttachmentState();
-  };
-
-  // ======================================================
-  // MIC / WHISPER
-  // ======================================================
-  const handleTranscribe = async (audioBlob: Blob) => {
-    setIsTranscribing(true);
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
-
-    try {
-      const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
-      const data = await response.json();
-
-      if (response.ok) {
-        setLocalInput((prev) => (prev + ' ' + data.text).trim());
-        setTimeout(resizeTextarea, 0);
-      } else {
-        alert(`Transcription failed: ${data.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Transcribe error:', error);
-      alert('Failed to transcribe audio.');
-    } finally {
-      setIsTranscribing(false);
-      audioChunksRef.current = [];
-    }
-  };
-
-  const handleMicClick = async () => {
-    if (isLoading || isTranscribing) return;
-
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-      setIsRecording(false);
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setIsRecording(true);
-      audioChunksRef.current = [];
-
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await handleTranscribe(audioBlob);
-        stream.getTracks().forEach((t) => t.stop());
-      };
-
-      mediaRecorder.start();
-    } catch (error) {
-      console.error('Mic error:', error);
-      alert('Microphone access denied.');
-      setIsRecording(false);
-    }
-  };
-
-  // ======================================================
-  // TOOLS
-  // ======================================================
-  const renderCheck = (tool: ActiveTool) => {
-    if (activeTool === tool) {
-      return <Check className="ml-auto h-4 w-4" strokeWidth={2} />;
-    }
-    return null;
-  };
-
-  const handleToolButtonClick = () => {
-    setToolButtonFlash(true);
-    setTimeout(() => setToolButtonFlash(false), 180);
-  };
-
-  const getPlaceholderText = () => {
-    if (isTranscribing) return 'Transcribing audio...';
-    if (isLoading) return 'AI is thinking...';
-    if (isRecording) return 'Recording... Click mic to stop.';
-    if (attachedFileName) return 'Describe the file or add text...';
-    if (activeTool === 'textMessageTool') return 'Using Text Message Tool...';
-    if (activeTool === 'emailWriter') return 'Using Email Writer...';
-    if (activeTool === 'recipeExtractor') return 'Using Recipe Extractor...';
-    return 'Type your message...';
-  };
-
-  // ======================================================
-  // COPY
-  // ======================================================
-  const handleCopy = useCallback((id: string, content: string) => {
-    if ('clipboard' in navigator) {
-      navigator.clipboard
-        .writeText(content)
-        .then(() => {
-          setCopiedMessageId(id);
-          setTimeout(() => setCopiedMessageId(null), 2000);
-        })
-        .catch((err) => {
-          console.error('copy failed', err);
-          alert('Failed to copy.');
-        });
-    } else {
-      alert('Clipboard not available.');
-    }
-  }, []);
-
-  // ======================================================
-  // SIGN OUT
-  // ======================================================
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
-
-  // ======================================================
-  // HANDLE TEXTAREA
-  // ======================================================
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLocalInput(e.target.value);
-    resizeTextarea();
-  };
-
-  const handleTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      handleFormSubmit();
-    }
-  };
-
-  // ======================================================
-  // FORM SUBMIT – THIS IS THE IMPORTANT PART
-  // ======================================================
+  // --- FORM SUBMIT (chat) ---
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (isLoading || isTranscribing || isRecording) return;
 
-    // ✅ must be logged in – your API checks this
-    if (!user) {
-      alert('Your session expired. Please log in again.');
-      router.push('/login');
-      return;
-    }
-
-    // capture current values
     const textInput = localInput.trim();
     const fileUrl = uploadedFileUrl;
     const fileMimeType = attachedFileMimeType;
     const fileName = attachedFileName;
 
     const hasText = textInput.length > 0;
-    const hasFile = fileUrl && fileName;
+    const hasFile = fileName && fileUrl;
 
     if (!hasText && !hasFile) return;
 
-    // stop mic
     if (isRecording) {
       mediaRecorderRef.current?.stop();
     }
@@ -604,48 +379,43 @@ export default function Home() {
     setIsLoading(true);
     setIsTyping(true);
 
-    // build user message
-    let userMsg = '';
-    let userMsgForTitle = '';
+    let userMsg: string;
+    let userMsgForTitle: string;
 
     if (hasText) {
       userMsg = textInput;
-      userMsgForTitle = textInput;
-    } else {
+      userMsgForTitle = userMsg;
+    } else if (hasFile) {
       userMsg = `[Image: ${fileName}]`;
       userMsgForTitle = userMsg;
+    } else {
+      setIsLoading(false);
+      setIsTyping(false);
+      return;
     }
 
     const newUserMessage: Message = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       role: 'user',
       content: userMsg,
       created_at: new Date().toISOString(),
     };
 
-    // update UI immediately
     setMessages((prev) => [...prev, newUserMessage]);
     setLocalInput('');
     clearAttachmentState();
 
-    // make sure there's a conversation
     let currentConvoId = conversationId;
-
     if (!currentConvoId) {
-      const title =
-        userMsgForTitle.length > 40
-          ? userMsgForTitle.slice(0, 40) + '...'
-          : userMsgForTitle;
-
+      const title = userMsgForTitle.substring(0, 40) + '...';
       const { data: newConvo, error: convError } = await supabase
         .from('conversations')
-        .insert({ user_id: user.id, title })
+        .insert({ user_id: user!.id, title })
         .select('id, created_at, title')
         .single();
 
       if (convError || !newConvo) {
-        console.error('Error creating conversation:', convError);
-        // roll back this user message from UI
+        console.error('Error creating convo:', convError);
         setMessages((prev) => prev.filter((m) => m.id !== newUserMessage.id));
         alert('Error saving conversation.');
         setIsLoading(false);
@@ -658,20 +428,12 @@ export default function Home() {
       setConversations((prev) => [newConvo, ...prev]);
     }
 
-    // now call API
     try {
-      // ❗ use the messages that are in state *plus* this new one
-      // we build them as CoreMessage { role, content }
-      const currentMessagesForAPI = [...messages, newUserMessage].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
-      const resp = await fetch('/api/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: currentMessagesForAPI,
+          messages: [...messages, newUserMessage],
           conversationId: currentConvoId,
           tool: activeTool,
           fileUrl: hasFile ? fileUrl : null,
@@ -679,25 +441,24 @@ export default function Home() {
         }),
       });
 
-      if (!resp.ok || !resp.body) {
-        let errMsg = 'Request failed';
+      if (!response.ok || !response.body) {
+        let err;
         try {
-          const errJson = await resp.json();
-          if (errJson?.error) errMsg = errJson.error;
-        } catch {
+          err = await response.json();
+        } catch (_) {
           //
         }
-        throw new Error(errMsg);
+        throw new Error(err?.error || response.statusText);
       }
 
-      // stream it
-      const reader = resp.body.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let assistantId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      let assistantId = `msg_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
       let assistantContent = '';
       let firstChunk = true;
 
-      // read chunks
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -720,33 +481,36 @@ export default function Home() {
                 created_at: new Date().toISOString(),
               },
             ];
+          } else {
+            const last = prev[prev.length - 1];
+            if (last?.role === 'assistant') {
+              return [
+                ...prev.slice(0, -1),
+                { ...last, content: assistantContent },
+              ];
+            }
+            return [
+              ...prev,
+              {
+                id: assistantId,
+                role: 'assistant',
+                content: assistantContent,
+                created_at: new Date().toISOString(),
+              },
+            ];
           }
-
-          const last = prev[prev.length - 1];
-          if (last && last.role === 'assistant') {
-            return [...prev.slice(0, -1), { ...last, content: assistantContent }];
-          }
-          return [
-            ...prev,
-            {
-              id: assistantId,
-              role: 'assistant',
-              content: assistantContent,
-              created_at: new Date().toISOString(),
-            },
-          ];
         });
       }
-    } catch (err) {
-      console.error('Error in chat submit:', err);
+    } catch (error) {
+      console.error('Error fetching/streaming:', error);
       setIsTyping(false);
       setMessages((prev) => [
         ...prev,
         {
-          id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           role: 'assistant',
           content: `Sorry, an error occurred: ${
-            err instanceof Error ? err.message : 'Unknown error'
+            error instanceof Error ? error.message : 'Unknown error'
           }`,
           created_at: new Date().toISOString(),
         },
@@ -758,26 +522,272 @@ export default function Home() {
     }
   };
 
-  // ======================================================
-  // RENDER
-  // ======================================================
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
+
+  const handleCopy = useCallback((id: string, content: string) => {
+    if ('clipboard' in navigator) {
+      navigator.clipboard
+        .writeText(content)
+        .then(() => {
+          setCopiedMessageId(id);
+          setTimeout(() => setCopiedMessageId(null), 2000);
+        })
+        .catch((err) => {
+          console.error('Failed to copy text: ', err);
+          alert('Failed to copy.');
+        });
+    } else {
+      alert('Clipboard API not available. Please copy manually.');
+    }
+  }, []);
+
+  // textarea resize
+  const resizeTextarea = () => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height =
+        Math.min(inputRef.current.scrollHeight, 150) + 'px';
+    }
+  };
+
+  // whisper
+  const handleTranscribe = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+
+    try {
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setLocalInput((prev) => (prev + ' ' + data.text).trim());
+        setTimeout(resizeTextarea, 0);
+      } else {
+        alert(`Transcription failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error transcribing audio:', error);
+      alert('Failed to transcribe audio.');
+    } finally {
+      setIsTranscribing(false);
+      audioChunksRef.current = [];
+    }
+  };
+
+  const handleMicClick = async () => {
+    if (isLoading || isTranscribing) return;
+
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setIsRecording(true);
+        audioChunksRef.current = [];
+
+        const mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm',
+        });
+        mediaRecorderRef.current = mediaRecorder;
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: 'audio/webm',
+          });
+          await handleTranscribe(audioBlob);
+          stream.getTracks().forEach((track) => track.stop());
+        };
+
+        mediaRecorder.start();
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        alert(
+          'Microphone access denied. Please allow microphone access in your browser settings.'
+        );
+        setIsRecording(false);
+      }
+    }
+  };
+
+  // file upload
+  const handleUploadClick = () => {
+    if (isLoading) return;
+
+    setFileButtonFlash(true);
+    setTimeout(() => setFileButtonFlash(false), 200);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (file && user) {
+      if (!ALLOWED_FILE_TYPES.includes(file.type.toLowerCase())) {
+        alert(
+          `Invalid file type. Please upload an image file:\n${ALLOWED_FILE_EXTENSIONS.join(
+            ', '
+          )}`
+        );
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+        alert(
+          `File is too large. Maximum size is ${sizeMB}MB.\nYour file: ${(
+            file.size /
+            (1024 * 1024)
+          ).toFixed(2)}MB`
+        );
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      uploadFile(file);
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachedFile = () => {
+    clearAttachmentState();
+  };
+
+  const uploadFile = async (file: File) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session || !user) {
+      alert('Authentication issue. Please sign in again.');
+      return;
+    }
+
+    const filePath = `${user.id}/${Date.now()}_${file.name}`;
+    setIsLoading(true);
+
+    clearAttachmentState();
+
+    const { data, error } = await supabase.storage
+      .from('uploads')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Upload error:', error);
+      alert(`Upload failed: ${error.message}`);
+      setIsLoading(false);
+    } else if (data) {
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from('uploads')
+        .createSignedUrl(filePath, 3600);
+
+      if (urlError) {
+        console.error('URL error:', urlError);
+        alert('Upload succeeded but failed to get file URL.');
+      } else if (urlData) {
+        setUploadedFileUrl(urlData.signedUrl);
+        setAttachedFileName(file.name);
+        setAttachedFileMimeType(file.type);
+      }
+      setIsLoading(false);
+    } else {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setLocalInput(e.target.value);
+    resizeTextarea();
+  };
+
+  const handleTextareaKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>
+  ) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleFormSubmit();
+    }
+  };
+
+  const renderCheck = (tool: ActiveTool) => {
+    if (activeTool === tool) {
+      return <Check className="ml-auto h-4 w-4" strokeWidth={2} />;
+    }
+    return null;
+  };
+
+  const getPlaceholderText = () => {
+    if (isTranscribing) return 'Transcribing audio...';
+    if (isLoading) return 'AI is thinking...';
+    if (isRecording) return 'Recording... Click mic to stop.';
+    if (attachedFileName) return 'Describe the file or add text...';
+    if (activeTool === 'textMessageTool')
+      return 'Using Text Message Tool... (Paste text or upload screenshot)';
+    if (activeTool === 'emailWriter')
+      return 'Using Email Writing Tool... (Paste email or describe)';
+    if (activeTool === 'recipeExtractor')
+      return 'Using Recipe Extractor... (Paste recipe or upload photo)';
+    return 'Type your message...';
+  };
+
+  const handleToolButtonClick = () => {
+    setToolButtonFlash(true);
+    setTimeout(() => setToolButtonFlash(false), 200);
+  };
+
+  const getTimeBasedGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return 'How can I help you this morning?';
+    } else if (hour >= 12 && hour < 17) {
+      return 'How can I help you this afternoon?';
+    } else {
+      return 'How can I help you this evening?';
+    }
+  };
+
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* Mobile overlay */}
+      {/* mobile overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* SIDEBAR */}
+      {/* sidebar */}
       <aside
-        className={`fixed lg:relative w-80 h-full flex-shrink-0 bg-white border-r border-slate-200 flex flex-col shadow-sm transform transition-transform duration-300 ease-in-out z-50 ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`
+        fixed lg:relative
+        w-80 h-full
+        flex-shrink-0 bg-white border-r border-slate-200 flex flex-col shadow-sm
+        transform transition-transform duration-300 ease-in-out
+        z-50
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}
       >
-        {/* header */}
+        {/* sidebar header */}
         <div className="px-6 py-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700">
@@ -814,7 +824,7 @@ export default function Home() {
             </div>
           ) : conversations.length > 0 ? (
             conversations.map((convo) => (
-              <div key={convo.id} className="flex items-center group gap-1">
+              <div key={convo.id} className="flex items-center group">
                 {renamingId === convo.id ? (
                   <form
                     className="flex-1"
@@ -840,7 +850,8 @@ export default function Home() {
                     disabled={isLoading}
                   >
                     <div className="truncate">
-                      {convo.title || new Date(convo.created_at).toLocaleString()}
+                      {convo.title ||
+                        new Date(convo.created_at).toLocaleString()}
                     </div>
                   </Button>
                 )}
@@ -852,7 +863,10 @@ export default function Home() {
                       className="hover:bg-slate-100 transition-all rounded-lg"
                       disabled={isLoading}
                     >
-                      <MoreVertical className="h-4 w-4 text-slate-700" strokeWidth={2} />
+                      <MoreVertical
+                        className="h-4 w-4 text-slate-700"
+                        strokeWidth={2}
+                      />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-white border-slate-200 shadow-lg rounded-lg">
@@ -879,7 +893,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* footer */}
+        {/* sidebar footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
           <Button
             variant="ghost"
@@ -896,7 +910,6 @@ export default function Home() {
             )}
           </Button>
 
-          {/* legal */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -934,7 +947,6 @@ export default function Home() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* user dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -969,7 +981,10 @@ export default function Home() {
                 </svg>
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSignOut} className="text-slate-700 cursor-pointer text-sm">
+              <DropdownMenuItem
+                onClick={handleSignOut}
+                className="text-slate-700 cursor-pointer text-sm"
+              >
                 <svg
                   className="h-4 w-4 mr-2"
                   viewBox="0 0 24 24"
@@ -988,10 +1003,9 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* MAIN CHAT AREA */}
+      {/* main chat */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
-          {/* header */}
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
             <div className="flex items-center justify-between">
               <Button
@@ -1007,14 +1021,15 @@ export default function Home() {
                   New Chat
                 </CardTitle>
               </div>
-              <div className="w-10 lg:hidden" />
+              <div className="w-10 lg:hidden"></div>
             </div>
           </CardHeader>
 
-          {/* content */}
           <CardContent className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-white">
             {isLoading && messages.length === 0 ? (
-              <div className="text-center text-slate-500 text-sm">Loading messages...</div>
+              <div className="text-center text-slate-500 text-sm">
+                Loading messages...
+              </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full space-y-6">
                 <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center">
@@ -1036,4 +1051,287 @@ export default function Home() {
                     }}
                   />
                 </div>
-                <h2 className="text
+                <h2 className="text-lg sm:text-xl font-semibold text-blue-900 text-center">
+                  slingshot 2.0
+                </h2>
+                <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
+                  {getTimeBasedGreeting()}
+                </p>
+              </div>
+            ) : (
+              messages.map((msg: Message) => (
+                <div
+                  key={msg.id}
+                  className={`flex items-start space-x-3 ${
+                    msg.role === 'user'
+                      ? 'justify-end'
+                      : 'justify-start'
+                  }`}
+                >
+                  <div
+                    className={`flex flex-col ${
+                      msg.role === 'user'
+                        ? 'items-end max-w-[85%] sm:max-w-md'
+                        : 'items-start max-w-[95%] sm:max-w-2xl'
+                    }`}
+                  >
+                    {msg.role === 'user' ? (
+                      <div className="bg-blue-900 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-sm">
+                        {msg.content}
+                      </div>
+                    ) : (
+                      <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+                        {msg.content}
+                      </div>
+                    )}
+
+                    {msg.created_at && (
+                      <div className="text-[10px] sm:text-xs text-slate-400 mt-1 px-1">
+                        {formatMessageTime(msg.created_at)}
+                      </div>
+                    )}
+                  </div>
+
+                  {msg.role === 'assistant' && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0 text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-all rounded-lg"
+                      onClick={() => handleCopy(msg.id, msg.content)}
+                    >
+                      {copiedMessageId === msg.id ? (
+                        <Check className="h-4 w-4 text-green-600" strokeWidth={2} />
+                      ) : (
+                        <ClipboardCopy className="h-4 w-4" strokeWidth={2} />
+                      )}
+                    </Button>
+                  )}
+                </div>
+              ))
+            )}
+
+            {isTyping && <TypingIndicator />}
+
+            <div ref={messagesEndRef} />
+          </CardContent>
+
+          {/* input bar */}
+          <form
+            onSubmit={handleFormSubmit}
+            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
+          >
+            {/* file indicator */}
+            {attachedFileName && (
+              <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg sm:rounded-xl border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
+                <div className="flex items-center gap-2 truncate">
+                  <FileIcon
+                    className="h-4 w-4 flex-shrink-0 text-blue-600"
+                    strokeWidth={2}
+                  />
+                  <span
+                    className="truncate text-blue-800 font-medium"
+                    title={attachedFileName}
+                  >
+                    Attached: {attachedFileName}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 rounded-full hover:bg-blue-100 transition-all"
+                  onClick={removeAttachedFile}
+                  disabled={isLoading}
+                >
+                  <XIcon
+                    className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600"
+                    strokeWidth={2}
+                  />
+                </Button>
+              </div>
+            )}
+
+            <div className="flex items-center space-x-2">
+              {/* hidden file inputs */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept={ALLOWED_FILE_EXTENSIONS.join(',')}
+                className="hidden"
+              />
+              <input
+                type="file"
+                ref={cameraInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+              />
+
+              {/* file button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={isLoading}
+                    className={`flex-shrink-0 hover:bg-slate-100 transition-all rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${
+                      fileButtonFlash ? 'bg-slate-200' : ''
+                    }`}
+                    title="Attach file or take photo"
+                  >
+                    <Paperclip
+                      className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700"
+                      strokeWidth={2}
+                    />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="top"
+                  align="start"
+                  className="bg-white border border-slate-200 shadow-lg rounded-lg"
+                >
+                  <DropdownMenuItem
+                    onSelect={() => cameraInputRef.current?.click()}
+                    className="text-slate-700 text-sm cursor-pointer"
+                  >
+                    Take Photo
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => fileInputRef.current?.click()}
+                    className="text-slate-700 text-sm cursor-pointer"
+                  >
+                    Choose File
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* tool button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={isLoading}
+                    onClick={handleToolButtonClick}
+                    className={`flex-shrink-0 transition-all rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${
+                      activeTool === 'none'
+                        ? 'hover:bg-slate-100 text-slate-700'
+                        : 'bg-blue-900 hover:bg-blue-950 text-white'
+                    } ${toolButtonFlash ? 'bg-slate-200' : ''}`}
+                    title="Select tool"
+                  >
+                    <Wrench className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="top"
+                  align="start"
+                  className="bg-white border border-slate-200 shadow-lg rounded-lg"
+                >
+                  <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">
+                    Select Tool
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-slate-200" />
+                  <DropdownMenuItem
+                    onSelect={() => setActiveTool('none')}
+                    className="text-slate-700 text-sm cursor-pointer"
+                  >
+                    Regular Chat
+                    {renderCheck('none')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setActiveTool('textMessageTool')}
+                    className="text-slate-700 text-sm cursor-pointer"
+                  >
+                    Text Message Tool
+                    {renderCheck('textMessageTool')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setActiveTool('emailWriter')}
+                    className="text-slate-700 text-sm cursor-pointer"
+                  >
+                    Email Writer
+                    {renderCheck('emailWriter')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => setActiveTool('recipeExtractor')}
+                    className="text-slate-700 text-sm cursor-pointer"
+                  >
+                    Recipe Extractor
+                    {renderCheck('recipeExtractor')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* text input */}
+              <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
+                <Textarea
+                  ref={inputRef}
+                  value={localInput}
+                  onChange={handleTextareaChange}
+                  placeholder={getPlaceholderText()}
+                  disabled={isLoading || isTranscribing}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="sentences"
+                  spellCheck
+                  inputMode="text"
+                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none shadow-none px-3 sm:px-4 py-2.5 sm:py-3 !text-slate-900 dark:text-slate-200"
+                  rows={1}
+                  onKeyDown={handleTextareaKeyDown}
+                  style={{ border: 'none', boxShadow: 'none', outline: 'none' }}
+                />
+
+                {/* mic */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={isLoading || isTranscribing}
+                  onClick={handleMicClick}
+                  className={`flex flex-shrink-0 transition-all rounded-lg h-8 w-8 mr-1 ${
+                    isRecording
+                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                      : 'hover:bg-slate-100 text-slate-700'
+                  }`}
+                  title={isRecording ? 'Stop recording' : 'Start recording'}
+                >
+                  {isTranscribing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mic className="h-4 w-4" strokeWidth={2} />
+                  )}
+                </Button>
+
+                {/* send */}
+                <Button
+                  type="submit"
+                  disabled={
+                    isLoading ||
+                    isTranscribing ||
+                    (!localInput.trim() && !attachedFileName)
+                  }
+                  className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 active:bg-blue-950 text-white rounded-lg transition-all p-0 flex items-center justify-center group"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <Send
+                      className="h-4 w-4 group-active:text-yellow-500 transition-colors"
+                      strokeWidth={2}
+                    />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </form>
+        </Card>
+      </main>
+    </div>
+  );
+}
