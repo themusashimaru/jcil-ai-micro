@@ -42,9 +42,6 @@ import {
   Send,
 } from 'lucide-react';
 
-// ─────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -60,14 +57,10 @@ interface Conversation {
 
 type ActiveTool = 'none' | 'textMessageTool' | 'emailWriter' | 'recipeExtractor';
 
-// ─────────────────────────────────────────────
-// CONSTANTS
-// ─────────────────────────────────────────────
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-// typing indicator
 const TypingIndicator = () => (
   <div className="flex items-start space-x-2 justify-start">
     <div className="p-3 max-w-xs lg:max-w-md">
@@ -126,9 +119,6 @@ export default function Home() {
   const [toolButtonFlash, setToolButtonFlash] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // ─────────────────────────────────────────────
-  // helpers
-  // ─────────────────────────────────────────────
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -167,9 +157,6 @@ export default function Home() {
     return 'Type your message...';
   };
 
-  // ─────────────────────────────────────────────
-  // fetch unread notifications
-  // ─────────────────────────────────────────────
   const fetchUnreadCount = useCallback(async () => {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) return;
@@ -188,9 +175,6 @@ export default function Home() {
     setUnreadCount(count ?? 0);
   }, []);
 
-  // ─────────────────────────────────────────────
-  // initial load
-  // ─────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
 
@@ -214,9 +198,6 @@ export default function Home() {
     };
   }, [fetchUnreadCount]);
 
-  // ─────────────────────────────────────────────
-  // subscribe to notifications
-  // ─────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
 
@@ -241,23 +222,14 @@ export default function Home() {
     };
   }, [user, fetchUnreadCount]);
 
-  // ─────────────────────────────────────────────
-  // scroll when messages change
-  // ─────────────────────────────────────────────
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  // ─────────────────────────────────────────────
-  // focus input on load
-  // ─────────────────────────────────────────────
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // ─────────────────────────────────────────────
-  // fetch conversations
-  // ─────────────────────────────────────────────
   const fetchConversations = async (userId: string) => {
     setHistoryIsLoading(true);
     const { data, error } = await supabase
@@ -275,9 +247,6 @@ export default function Home() {
     setHistoryIsLoading(false);
   };
 
-  // ─────────────────────────────────────────────
-  // load conversation
-  // ─────────────────────────────────────────────
   const loadConversation = async (id: string) => {
     if (isLoading || renamingId === id) return;
 
@@ -316,9 +285,6 @@ export default function Home() {
     inputRef.current?.focus();
   };
 
-  // ─────────────────────────────────────────────
-  // new chat
-  // ─────────────────────────────────────────────
   const handleNewChat = () => {
     setMessages([]);
     setConversationId(null);
@@ -334,9 +300,6 @@ export default function Home() {
     setIsSidebarOpen(false);
   };
 
-  // ─────────────────────────────────────────────
-  // delete chat
-  // ─────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     if (isLoading) return;
     if (!window.confirm('Delete this chat?')) return;
@@ -352,9 +315,6 @@ export default function Home() {
     if (conversationId === id) handleNewChat();
   };
 
-  // ─────────────────────────────────────────────
-  // rename chat
-  // ─────────────────────────────────────────────
   const handleRenameClick = (convo: Conversation) => {
     setRenamingId(convo.id);
     setRenameValue(convo.title || `Chat from ${new Date(convo.created_at).toLocaleString()}`);
@@ -385,18 +345,12 @@ export default function Home() {
     setRenameValue('');
   };
 
-  // ─────────────────────────────────────────────
-  // sign out
-  // ─────────────────────────────────────────────
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
   };
 
-  // ─────────────────────────────────────────────
-  // copy message
-  // ─────────────────────────────────────────────
   const handleCopy = useCallback((id: string, content: string) => {
     if (!navigator.clipboard) {
       alert('Clipboard not available.');
@@ -414,9 +368,6 @@ export default function Home() {
     );
   }, []);
 
-  // ─────────────────────────────────────────────
-  // file handling
-  // ─────────────────────────────────────────────
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -485,9 +436,6 @@ export default function Home() {
     clearAttachmentState();
   };
 
-  // ─────────────────────────────────────────────
-  // whisper / audio
-  // ─────────────────────────────────────────────
   const handleTranscribe = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     const formData = new FormData();
@@ -553,9 +501,6 @@ export default function Home() {
     }
   };
 
-  // ─────────────────────────────────────────────
-  // textarea handlers
-  // ─────────────────────────────────────────────
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalInput(e.target.value);
     resizeTextarea();
@@ -568,17 +513,12 @@ export default function Home() {
     }
   };
 
-  // ─────────────────────────────────────────────
-  // tool button
-  // ─────────────────────────────────────────────
   const handleToolButtonClick = () => {
     setToolButtonFlash(true);
     setTimeout(() => setToolButtonFlash(false), 200);
   };
 
-  // ─────────────────────────────────────────────
-  // SEND MESSAGE  ✅ BACK TO /api/chat
-  // ─────────────────────────────────────────────
+  // 👇👇👇 THIS IS THE PART WE CHANGED TO MATCH NEW /api/chat 👇👇👇
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (isLoading || isTranscribing || isRecording) return;
@@ -589,18 +529,16 @@ export default function Home() {
     const fileName = attachedFileName;
 
     const hasText = textInput.length > 0;
-    const hasFile = fileUrl && fileName;
+    const hasFile = fileUrl && fileMimeType;
 
     if (!hasText && !hasFile) return;
 
     if (isRecording) mediaRecorderRef.current?.stop();
 
     setIsLoading(true);
-    setIsTyping(true);
+    setIsTyping(false); // we’re not streaming now
 
-    let userMsgText: string;
-    if (hasText) userMsgText = textInput;
-    else userMsgText = `[Image: ${fileName}]`;
+    const userMsgText = hasText ? textInput : `[Image: ${fileName}]`;
 
     const newUserMessage: Message = {
       id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
@@ -613,118 +551,65 @@ export default function Home() {
     setLocalInput('');
     clearAttachmentState();
 
+    // we STILL create a conversation so your sidebar works
     let currentConvoId = conversationId;
-
-    if (!currentConvoId) {
+    if (!currentConvoId && user) {
       const title = userMsgText.substring(0, 40) + '...';
       const { data: newConvo, error: convError } = await supabase
         .from('conversations')
-        .insert({ user_id: user!.id, title })
+        .insert({ user_id: user.id, title })
         .select('id, created_at, title')
         .single();
 
-      if (convError || !newConvo) {
-        console.error('Error creating convo:', convError);
-        setMessages((prev) => prev.filter((m) => m.id !== newUserMessage.id));
-        alert('Error saving conversation.');
-        setIsLoading(false);
-        setIsTyping(false);
-        return;
+      if (!convError && newConvo) {
+        currentConvoId = newConvo.id;
+        setConversationId(newConvo.id);
+        setConversations((prev) => [newConvo, ...prev]);
       }
-
-      currentConvoId = newConvo.id;
-      setConversationId(newConvo.id);
-      setConversations((prev) => [newConvo, ...prev]);
     }
 
     try {
-      // 👇 THIS was the problem. It must hit the route you actually have.
-      const response = await fetch('/api/chat', {
+      // build payload for SIMPLE /api/chat
+      const payload: any = {
+        message: textInput,
+      };
+
+      if (hasFile) {
+        // our simple route supports this
+        payload.fileUrl = fileUrl;
+        payload.fileMimeType = fileMimeType;
+      }
+
+      const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...messages, newUserMessage],
-          conversationId: currentConvoId,
-          tool: activeTool,
-          fileUrl: hasFile ? fileUrl : null,
-          fileMimeType: hasFile ? fileMimeType : null,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok || !response.body) {
-        let errMsg = 'Unknown error';
-        try {
-          const j = await response.json();
-          errMsg = j?.error || response.statusText;
-        } catch {}
-        throw new Error(errMsg);
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Error from /api/chat');
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+      const assistantMessage: Message = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        role: 'assistant',
+        content: data.reply,
+        created_at: new Date().toISOString(),
+      };
 
-      let assistantId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-      let assistantContent = '';
-      let firstChunk = true;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        assistantContent += chunk;
-
-        if (firstChunk && assistantContent.length > 0) {
-          setIsTyping(false);
-        }
-
-        setMessages((prev) => {
-          if (firstChunk) {
-            firstChunk = false;
-            return [
-              ...prev,
-              {
-                id: assistantId,
-                role: 'assistant',
-                content: assistantContent,
-                created_at: new Date().toISOString(),
-              },
-            ];
-          }
-
-          const last = prev[prev.length - 1];
-          if (last?.role === 'assistant') {
-            return [
-              ...prev.slice(0, -1),
-              {
-                ...last,
-                content: assistantContent,
-              },
-            ];
-          }
-
-          return [
-            ...prev,
-            {
-              id: assistantId,
-              role: 'assistant',
-              content: assistantContent,
-              created_at: new Date().toISOString(),
-            },
-          ];
-        });
-      }
-    } catch (error) {
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error: any) {
       console.error('chat send error:', error);
-      setIsTyping(false);
       setMessages((prev) => [
         ...prev,
         {
           id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           role: 'assistant',
-          content: `Sorry, an error occurred: ${
-            error instanceof Error ? error.message : 'Unknown error'
-          }`,
+          content: `Sorry, an error occurred: ${error?.message || 'Unknown error'}`,
           created_at: new Date().toISOString(),
         },
       ]);
@@ -734,10 +619,8 @@ export default function Home() {
       inputRef.current?.focus();
     }
   };
+  // 👆👆👆 END OF CHANGED SEND LOGIC 👆👆👆
 
-  // ─────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       {/* mobile overlay */}
