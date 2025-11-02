@@ -335,7 +335,7 @@ export async function POST(req: NextRequest) {
 
     // --- 14. CALL AI ---
     const result = await streamText({
-      model: google('gemini-2.0-flash-exp'),
+      model: google('gemini-2.5-flash'),
       system: systemPrompt,
       messages: messagesForAI, 
       onFinish: async ({ text }) => {

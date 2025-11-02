@@ -2,10 +2,10 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #334155;
+  --foreground: #0f172a; /* a bit darker */
   --primary: #1e3a8a;
   --primary-hover: #172554;
-  --accent: #f1f5f9;
+  --accent: #f8fafc;
   --border: #e2e8f0;
   --footer: #0f172a;
 }
@@ -18,20 +18,21 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ✅ real dark mode values */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #ffffff;
-    --foreground: #334155;
-    --primary: #1e3a8a;
-    --primary-hover: #172554;
-    --accent: #f1f5f9;
-    --border: #e2e8f0;
-    --footer: #0f172a;
+    --background: #0f172a;
+    --foreground: #e2e8f0;
+    --primary: #38bdf8;
+    --primary-hover: #0ea5e9;
+    --accent: rgba(15, 23, 42, 0.5);
+    --border: rgba(148, 163, 184, 0.3);
+    --footer: #020617;
   }
 }
 
 body {
-  background: #ffffff;
+  background: radial-gradient(circle at top, #ffffff 0%, #f1f5f9 50%, #ffffff 100%);
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -39,11 +40,11 @@ body {
 }
 
 /* Smooth transitions for interactive elements */
-button, 
-a, 
-input, 
+button,
+a,
+input,
 textarea {
-  transition: all 0.2s ease-in-out;
+  transition: all 0.15s ease-in-out;
 }
 
 /* Custom scrollbar styling */
@@ -51,22 +52,32 @@ textarea {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
-
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
 /* Focus visible styles for accessibility */
 *:focus-visible {
-  outline: 2px solid #1e3a8a;
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+.page-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, #ffffff 0%, #e2e8f0 50%, #ffffff 100%);
+  padding: 1rem;
+}
+@media (min-width: 768px) {
+  .page-shell {
+    padding: 2rem;
+  }
 }

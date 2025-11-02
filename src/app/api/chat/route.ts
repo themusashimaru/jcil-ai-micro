@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await streamText({
-      model: google("gemini-2.0-flash-exp"),
+      model: google("gemini-2.5-flash"),
       system: "You are JCIL.AI. Be short, friendly, and helpful.",
       messages,
     });
