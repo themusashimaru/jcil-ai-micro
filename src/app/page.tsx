@@ -978,7 +978,7 @@ export default function Home() {
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onSelect={() => fileInputRef.current?.click()} 
-                    className="text-slate-700 text-sm cursor-pointer"
+                    className="text-slate-700 text-sm cursor.pointer"
                   >
                     Choose File
                   </DropdownMenuItem>
@@ -1064,11 +1064,11 @@ export default function Home() {
                   )}
                 </Button>
                 
+                {/* 🔥 BUILD FIX: This line is now correct */}
                 <Button
-                 type="submit"
-                 disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
-                 className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 active:bg-blue-950 text-white rounded-lg transition-all p-0 flex items-center justify-center group" 
-                >
+                   type="submit"
+                   disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
+                   className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 active:bg-blue-950 text-white rounded-lg transition-all p-0 flex items-center justify-center group" 
                  >
                    {isLoading ? (
                      <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
