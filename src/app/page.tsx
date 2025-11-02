@@ -67,38 +67,21 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-// ─────────────────────────────────────────────
-// TYPING INDICATOR
-// ─────────────────────────────────────────────
+// typing indicator
 const TypingIndicator = () => (
   <div className="flex items-start space-x-2 justify-start">
     <div className="p-3 max-w-xs lg:max-w-md">
       <div className="flex space-x-2">
-        <div
-          className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-          style={{ animationDelay: '0ms' }}
-        />
-        <div
-          className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-          style={{ animationDelay: '150ms' }}
-        />
-        <div
-          className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-          style={{ animationDelay: '300ms' }}
-        />
+        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
       </div>
     </div>
   </div>
 );
 
-// ─────────────────────────────────────────────
-// SUPABASE CLIENT
-// ─────────────────────────────────────────────
 const supabase = createClient();
 
-// ─────────────────────────────────────────────
-// MAIN COMPONENT
-// ─────────────────────────────────────────────
 export default function Home() {
   const router = useRouter();
 
@@ -112,7 +95,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
 
-  // sidebar / history
+  // history
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [historyIsLoading, setHistoryIsLoading] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -121,19 +104,19 @@ export default function Home() {
   // notifications
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // tools / attachments
+  // tools / files
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
 
-  // recording / whisper
+  // recording
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // ui
+  // ui refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -144,7 +127,7 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // ─────────────────────────────────────────────
-  // HELPERS
+  // helpers
   // ─────────────────────────────────────────────
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -176,21 +159,19 @@ export default function Home() {
   const getPlaceholderText = () => {
     if (isTranscribing) return 'Transcribing audio...';
     if (isLoading) return 'AI is thinking...';
-    if (isRecording) return 'Recording... click mic to stop.';
+    if (isRecording) return 'Recording... Click mic to stop.';
     if (attachedFileName) return 'Describe the file or add text...';
     if (activeTool === 'textMessageTool') return 'Using Text Message Tool...';
-    if (activeTool === 'emailWriter') return 'Using Email Writing Tool...';
+    if (activeTool === 'emailWriter') return 'Using Email Writer...';
     if (activeTool === 'recipeExtractor') return 'Using Recipe Extractor...';
     return 'Type your message...';
   };
 
   // ─────────────────────────────────────────────
-  // FETCH UNREAD NOTIFICATIONS
+  // fetch unread notifications
   // ─────────────────────────────────────────────
   const fetchUnreadCount = useCallback(async () => {
-    const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) return;
 
     const { error, count } = await supabase
@@ -203,21 +184,19 @@ export default function Home() {
       console.error('fetchUnreadCount error:', error);
       return;
     }
+
     setUnreadCount(count ?? 0);
   }, []);
 
   // ─────────────────────────────────────────────
-  // INITIAL LOAD: USER + CONVOS + NOTIFS
+  // initial load
   // ─────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
 
     const run = async () => {
-      const {
-        data: { user: currentUser },
-      } = await supabase.auth.getUser();
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (!mounted) return;
-
       setUser(currentUser);
 
       if (currentUser) {
@@ -236,7 +215,7 @@ export default function Home() {
   }, [fetchUnreadCount]);
 
   // ─────────────────────────────────────────────
-  // SUBSCRIBE TO NOTIFICATIONS CHANGES
+  // subscribe to notifications
   // ─────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
@@ -263,21 +242,21 @@ export default function Home() {
   }, [user, fetchUnreadCount]);
 
   // ─────────────────────────────────────────────
-  // SCROLL ON NEW MESSAGE
+  // scroll when messages change
   // ─────────────────────────────────────────────
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
 
   // ─────────────────────────────────────────────
-  // AUTO FOCUS
+  // focus input on load
   // ─────────────────────────────────────────────
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
   // ─────────────────────────────────────────────
-  // FETCH CONVERSATIONS
+  // fetch conversations
   // ─────────────────────────────────────────────
   const fetchConversations = async (userId: string) => {
     setHistoryIsLoading(true);
@@ -297,13 +276,12 @@ export default function Home() {
   };
 
   // ─────────────────────────────────────────────
-  // LOAD CONVERSATION
+  // load conversation
   // ─────────────────────────────────────────────
   const loadConversation = async (id: string) => {
     if (isLoading || renamingId === id) return;
 
     if (isRecording) mediaRecorderRef.current?.stop();
-
     setIsRecording(false);
     setIsTranscribing(false);
     setIsLoading(true);
@@ -322,13 +300,7 @@ export default function Home() {
 
     if (error) {
       console.error('loadConversation error:', error);
-      setMessages([
-        {
-          id: 'err',
-          role: 'assistant',
-          content: 'Error loading conversation.',
-        },
-      ]);
+      setMessages([{ id: 'err', role: 'assistant', content: 'Error loading conversation.' }]);
     } else {
       const loaded = (data ?? []).map((m) => ({
         id: m.id,
@@ -345,7 +317,7 @@ export default function Home() {
   };
 
   // ─────────────────────────────────────────────
-  // NEW CHAT
+  // new chat
   // ─────────────────────────────────────────────
   const handleNewChat = () => {
     setMessages([]);
@@ -363,7 +335,7 @@ export default function Home() {
   };
 
   // ─────────────────────────────────────────────
-  // DELETE CHAT
+  // delete chat
   // ─────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     if (isLoading) return;
@@ -381,7 +353,7 @@ export default function Home() {
   };
 
   // ─────────────────────────────────────────────
-  // RENAME CHAT
+  // rename chat
   // ─────────────────────────────────────────────
   const handleRenameClick = (convo: Conversation) => {
     setRenamingId(convo.id);
@@ -414,7 +386,7 @@ export default function Home() {
   };
 
   // ─────────────────────────────────────────────
-  // SIGN OUT
+  // sign out
   // ─────────────────────────────────────────────
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -423,61 +395,55 @@ export default function Home() {
   };
 
   // ─────────────────────────────────────────────
-  // COPY MSG
+  // copy message
   // ─────────────────────────────────────────────
   const handleCopy = useCallback((id: string, content: string) => {
     if (!navigator.clipboard) {
-      alert('Clipboard API not available.');
+      alert('Clipboard not available.');
       return;
     }
-    navigator.clipboard
-      .writeText(content)
-      .then(() => {
+    navigator.clipboard.writeText(content).then(
+      () => {
         setCopiedMessageId(id);
         setTimeout(() => setCopiedMessageId(null), 2000);
-      })
-      .catch((err) => {
+      },
+      (err) => {
         console.error('copy error:', err);
         alert('Failed to copy.');
-      });
+      },
+    );
   }, []);
 
   // ─────────────────────────────────────────────
-  // FILE HANDLING
+  // file handling
   // ─────────────────────────────────────────────
-  const handleUploadClick = () => {
-    if (isLoading) return;
-
-    setFileButtonFlash(true);
-    setTimeout(() => setFileButtonFlash(false), 200);
-    fileInputRef.current?.click();
-  };
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
     if (file && user) {
       if (!ALLOWED_FILE_TYPES.includes(file.type.toLowerCase())) {
         alert(`Invalid file type. Allowed: ${ALLOWED_FILE_EXTENSIONS.join(', ')}`);
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
+
       if (file.size > MAX_FILE_SIZE) {
         const maxMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
-        alert(`File too large. Max ${maxMB}MB`);
+        alert(`File is too large. Max ${maxMB}MB`);
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
+
       uploadFile(file);
     }
+
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const uploadFile = async (file: File) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session || !user) {
-      alert('Auth issue. Please sign in again.');
+      alert('Authentication issue. Please sign in again.');
       return;
     }
 
@@ -501,9 +467,10 @@ export default function Home() {
       const { data: urlData, error: urlError } = await supabase.storage
         .from('uploads')
         .createSignedUrl(filePath, 3600);
+
       if (urlError) {
-        console.error('url error:', urlError);
-        alert('Upload succeeded but no signed URL.');
+        console.error('URL error:', urlError);
+        alert('Upload succeeded but failed to get file URL.');
       } else if (urlData) {
         setUploadedFileUrl(urlData.signedUrl);
         setAttachedFileName(file.name);
@@ -519,7 +486,7 @@ export default function Home() {
   };
 
   // ─────────────────────────────────────────────
-  // WHISPER / TRANSCRIBE
+  // whisper / audio
   // ─────────────────────────────────────────────
   const handleTranscribe = async (audioBlob: Blob) => {
     setIsTranscribing(true);
@@ -527,19 +494,21 @@ export default function Home() {
     formData.append('file', audioBlob, 'audio.webm');
 
     try {
-      const res = await fetch('/api/transcribe', {
+      const response = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData,
       });
-      const data = await res.json();
-      if (res.ok) {
+
+      const data = await response.json();
+
+      if (response.ok) {
         setLocalInput((prev) => (prev + ' ' + data.text).trim());
         setTimeout(resizeTextarea, 0);
       } else {
         alert(`Transcription failed: ${data.error || 'Unknown error'}`);
       }
-    } catch (err) {
-      console.error('transcribe error:', err);
+    } catch (error) {
+      console.error('Error transcribing audio:', error);
       alert('Failed to transcribe audio.');
     } finally {
       setIsTranscribing(false);
@@ -565,7 +534,9 @@ export default function Home() {
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
       mediaRecorder.onstop = async () => {
@@ -575,15 +546,15 @@ export default function Home() {
       };
 
       mediaRecorder.start();
-    } catch (err) {
-      console.error('mic error:', err);
+    } catch (error) {
+      console.error('mic error:', error);
       alert('Microphone access denied.');
       setIsRecording(false);
     }
   };
 
   // ─────────────────────────────────────────────
-  // TEXTAREA HANDLERS
+  // textarea handlers
   // ─────────────────────────────────────────────
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalInput(e.target.value);
@@ -598,7 +569,7 @@ export default function Home() {
   };
 
   // ─────────────────────────────────────────────
-  // TOOL BUTTON CLICK
+  // tool button
   // ─────────────────────────────────────────────
   const handleToolButtonClick = () => {
     setToolButtonFlash(true);
@@ -606,7 +577,7 @@ export default function Home() {
   };
 
   // ─────────────────────────────────────────────
-  // FORM SUBMIT (CHAT SEND)
+  // SEND MESSAGE  ✅ BACK TO /api/chat
   // ─────────────────────────────────────────────
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
@@ -623,15 +594,13 @@ export default function Home() {
     if (!hasText && !hasFile) return;
 
     if (isRecording) mediaRecorderRef.current?.stop();
+
     setIsLoading(true);
     setIsTyping(true);
 
     let userMsgText: string;
-    if (hasText) {
-      userMsgText = textInput;
-    } else {
-      userMsgText = `[Image: ${fileName}]`;
-    }
+    if (hasText) userMsgText = textInput;
+    else userMsgText = `[Image: ${fileName}]`;
 
     const newUserMessage: Message = {
       id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
@@ -648,14 +617,14 @@ export default function Home() {
 
     if (!currentConvoId) {
       const title = userMsgText.substring(0, 40) + '...';
-      const { data: newConvo, error: convErr } = await supabase
+      const { data: newConvo, error: convError } = await supabase
         .from('conversations')
         .insert({ user_id: user!.id, title })
         .select('id, created_at, title')
         .single();
 
-      if (convErr || !newConvo) {
-        console.error('create conversation error:', convErr);
+      if (convError || !newConvo) {
+        console.error('Error creating convo:', convError);
         setMessages((prev) => prev.filter((m) => m.id !== newUserMessage.id));
         alert('Error saving conversation.');
         setIsLoading(false);
@@ -669,8 +638,8 @@ export default function Home() {
     }
 
     try {
-      // ✅ THIS is the new endpoint
-      const response = await fetch('/api/jcil-chat', {
+      // 👇 THIS was the problem. It must hit the route you actually have.
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -687,9 +656,7 @@ export default function Home() {
         try {
           const j = await response.json();
           errMsg = j?.error || response.statusText;
-        } catch {
-          // ignore
-        }
+        } catch {}
         throw new Error(errMsg);
       }
 
@@ -700,7 +667,6 @@ export default function Home() {
       let assistantContent = '';
       let firstChunk = true;
 
-      // stream
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -725,6 +691,7 @@ export default function Home() {
               },
             ];
           }
+
           const last = prev[prev.length - 1];
           if (last?.role === 'assistant') {
             return [
@@ -735,6 +702,7 @@ export default function Home() {
               },
             ];
           }
+
           return [
             ...prev,
             {
@@ -746,8 +714,8 @@ export default function Home() {
           ];
         });
       }
-    } catch (err) {
-      console.error('chat send error:', err);
+    } catch (error) {
+      console.error('chat send error:', error);
       setIsTyping(false);
       setMessages((prev) => [
         ...prev,
@@ -755,7 +723,7 @@ export default function Home() {
           id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           role: 'assistant',
           content: `Sorry, an error occurred: ${
-            err instanceof Error ? err.message : 'Unknown error'
+            error instanceof Error ? error.message : 'Unknown error'
           }`,
           created_at: new Date().toISOString(),
         },
@@ -772,7 +740,7 @@ export default function Home() {
   // ─────────────────────────────────────────────
   return (
     <div className="flex h-screen bg-white overflow-hidden">
-      {/* MOBILE OVERLAY */}
+      {/* mobile overlay */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -780,22 +748,18 @@ export default function Home() {
         />
       )}
 
-      {/* SIDEBAR */}
+      {/* sidebar */}
       <aside
         className={`fixed lg:relative w-80 h-full flex-shrink-0 bg-white border-r border-slate-200 flex flex-col shadow-sm transform transition-transform duration-300 ease-in-out z-50 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* Header */}
+        {/* header */}
         <div className="px-6 py-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700">
-              Chat History
-            </h2>
+            <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700">Chat History</h2>
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-bold uppercase tracking-tight text-slate-700">
-                JCIL.ai
-              </span>
+              <span className="text-sm font-bold uppercase tracking-tight text-slate-700">JCIL.ai</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -815,7 +779,7 @@ export default function Home() {
           </Button>
         </div>
 
-        {/* Conversation List */}
+        {/* conversation list */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
           {historyIsLoading ? (
             <div className="p-4 text-center text-slate-500 text-sm">Loading chats...</div>
@@ -881,7 +845,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* Sidebar footer */}
+        {/* sidebar footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
           <Button
             variant="ghost"
@@ -970,10 +934,10 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* MAIN CHAT AREA */}
+      {/* main chat area */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
-          {/* HEADER */}
+          {/* header */}
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
             <div className="flex items-center justify-between">
               <Button
@@ -985,15 +949,13 @@ export default function Home() {
                 <Menu className="h-6 w-6 text-slate-700" strokeWidth={2} />
               </Button>
               <div className="flex-1 text-center">
-                <CardTitle className="text-lg sm:text-xl font-semibold text-blue-900">
-                  New Chat
-                </CardTitle>
+                <CardTitle className="text-lg sm:text-xl font-semibold text-blue-900">New Chat</CardTitle>
               </div>
               <div className="w-10 lg:hidden" />
             </div>
           </CardHeader>
 
-          {/* MESSAGES */}
+          {/* messages */}
           <CardContent className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-white">
             {isLoading && messages.length === 0 ? (
               <div className="text-center text-slate-500 text-sm">Loading messages...</div>
@@ -1081,7 +1043,7 @@ export default function Home() {
             <div ref={messagesEndRef} />
           </CardContent>
 
-          {/* INPUT BAR */}
+          {/* input */}
           <form
             onSubmit={handleFormSubmit}
             className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
@@ -1125,7 +1087,7 @@ export default function Home() {
                 className="hidden"
               />
 
-              {/* attach btn */}
+              {/* attach button */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1161,7 +1123,7 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* tool btn */}
+              {/* tool button */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
