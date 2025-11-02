@@ -1,5 +1,4 @@
 // /src/app/page.tsx
-
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -20,14 +19,14 @@ import {
 import { MoreVertical, Mic, Paperclip, Bell, Loader2, File as FileIcon, X as XIcon, Wrench, Check, ClipboardCopy, Menu, Send } from 'lucide-react'; 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
-import { formatMessageTime } from '@/lib/format-date'; // 🔥 NEW: Import timestamp formatter
+import { formatMessageTime } from '@/lib/format-date';
 
 // --- Define Types ---
 interface Message { 
   id: string; 
   role: 'user' | 'assistant'; 
   content: string;
-  created_at?: string; // 🔥 NEW: Add timestamp support
+  created_at?: string;
 }
 interface Conversation { id: string; created_at: string; title?: string | null; }
 interface Notification { id: string; created_at: string; content: string; read_status: boolean; }
@@ -38,9 +37,6 @@ type ActiveTool = 'none' | 'textMessageTool' | 'emailWriter' | 'recipeExtractor'
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-
-// --- Speech Recognition ---
-const SpeechRecognitionAPI = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
 
 // ===== Typing Indicator Component =====
 const TypingIndicator = () => (
@@ -66,14 +62,19 @@ export default function Home() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [localInput, setLocalInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // For chat response
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [historyIsLoading, setHistoryIsLoading] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  
+  // 🔥 WHISPER AUDIO STATES
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
@@ -82,14 +83,11 @@ export default function Home() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTool, setActiveTool] = useState<ActiveTool>('none'); 
   const inputRef = useRef<HTMLTextAreaElement>(null); 
-  const finalTranscriptRef = useRef<string>('');
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-  const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [fileButtonFlash, setFileButtonFlash] = useState(false);
   const [toolButtonFlash, setToolButtonFlash] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
 
   // --- Function to fetch unread count ---
   const fetchUnreadCount = useCallback(async () => {
@@ -101,72 +99,7 @@ export default function Home() {
   }, []);
 
   // --- Effects ---
-  // Speech Recognition Setup with Auto Language Detection
-  useEffect(() => {
-    if (!SpeechRecognitionAPI) { 
-      console.warn("Speech Recognition not supported in this browser."); 
-      setSpeechRecognitionSupported(false);
-      return; 
-    }
-    
-    setSpeechRecognitionSupported(true);
-    
-    let instance: any = recognitionRef.current;
-    if (!instance) {
-        instance = new SpeechRecognitionAPI();
-        instance.continuous = true; 
-        instance.interimResults = true;
-        
-        // Auto-detect language from browser
-        const browserLanguage = navigator.language || 'en-US';
-        instance.lang = browserLanguage;
-        console.log(`Speech recognition language set to: ${browserLanguage}`);
-        
-        recognitionRef.current = instance; 
-        console.log("Speech instance created.");
-    }
-    instance.onstart = () => { 
-      console.log("Speech started."); 
-      setIsRecording(true); 
-      finalTranscriptRef.current = localInput; 
-    };
-    instance.onresult = (event: any) => {
-      let iT = '', cF = ''; 
-      for (let i = 0; i < event.results.length; ++i) { 
-        const tS = event.results[i][0].transcript; 
-        if (event.results[i].isFinal) cF += tS + ' '; 
-        else if (i >= event.resultIndex) iT = tS; 
-      } 
-      finalTranscriptRef.current = cF.trim(); 
-      const fT = finalTranscriptRef.current + (iT ? ' ' + iT : ''); 
-      setLocalInput(fT.trim()); 
-    };
-    instance.onerror = (event: any) => {
-      console.error("Speech Error:", event.error); 
-      
-      if (event.error === 'not-allowed') {
-        alert('Microphone access denied. Please allow microphone access in your browser settings.');
-      } else if (event.error === 'no-speech') {
-        alert('No speech detected. Please try again.');
-      } else {
-        alert(`Microphone Error: ${event.error}`);
-      }
-      
-      setIsRecording(false); 
-    };
-    instance.onend = () => { 
-      console.log("Speech ended."); 
-      setIsRecording(false); 
-    };
-    return () => { 
-      console.log("Cleaning up speech."); 
-      if (recognitionRef.current) { 
-        recognitionRef.current.stop(); 
-      } 
-      setIsRecording(false); 
-    };
-  }, []); 
-
+  
   // Get User and Initial Data
   useEffect(() => {
     let isMounted = true;
@@ -211,12 +144,6 @@ export default function Home() {
   // Focus Input
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  // Detect iOS device
-  useEffect(() => {
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    setIsIOS(iOS);
-  }, []);
-
   // --- Functions ---
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   
@@ -233,26 +160,27 @@ export default function Home() {
     setRenamingId(null); 
     clearAttachmentState(); 
     setActiveTool('none'); 
-    if (isRecording) { recognitionRef.current?.stop(); } 
+    if (isRecording) { mediaRecorderRef.current?.stop(); } 
+    setIsRecording(false);
+    setIsTranscribing(false);
     inputRef.current?.focus(); 
-    finalTranscriptRef.current = '';
     setIsTyping(false);
     setIsSidebarOpen(false);
   };
 
   const loadConversation = async (id: string) => {
     if (isLoading || renamingId === id) return; 
-    if (isRecording) { recognitionRef.current?.stop(); }
+    if (isRecording) { mediaRecorderRef.current?.stop(); }
+    setIsRecording(false);
+    setIsTranscribing(false);
     setIsLoading(true); 
     setMessages([]); 
     setRenamingId(null); 
     clearAttachmentState(); 
     setActiveTool('none'); 
-    finalTranscriptRef.current = '';
     setIsTyping(false);
     setIsSidebarOpen(false);
     
-    // 🔥 UPDATED: Now fetch created_at timestamp too!
     const { data, error } = await supabase
       .from('messages')
       .select('id, role, content, created_at')
@@ -268,7 +196,7 @@ export default function Home() {
         id: msg.id, 
         role: msg.role as 'user' | 'assistant', 
         content: msg.content,
-        created_at: msg.created_at // 🔥 NEW: Include timestamp
+        created_at: msg.created_at
       })); 
       setMessages(loadedMessages); 
       setConversationId(id); 
@@ -316,8 +244,8 @@ export default function Home() {
 
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
      if (e) e.preventDefault();
-     if ((!localInput.trim() && !attachedFileName) || isLoading) return; 
-     if (isRecording) { recognitionRef.current?.stop(); }
+     if ((!localInput.trim() && !attachedFileName) || isLoading || isTranscribing) return; 
+     if (isRecording) { mediaRecorderRef.current?.stop(); }
      
      setIsLoading(true);
      setIsTyping(true);
@@ -336,19 +264,17 @@ export default function Home() {
         return; 
      }
 
-     // 🔥 FIXED: Using simple ID generator instead of crypto.randomUUID()
      const newUserMessage: Message = { 
        id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, 
        role: 'user', 
        content: userMsg,
-       created_at: new Date().toISOString() // 🔥 NEW: Add timestamp
+       created_at: new Date().toISOString()
      };
      const currentMessages = [...messages, newUserMessage];
      
      setMessages(currentMessages); 
      setLocalInput(''); 
      clearAttachmentState(); 
-     finalTranscriptRef.current = '';
      
      let currentConvoId = conversationId;
      if (!currentConvoId) {
@@ -387,7 +313,6 @@ export default function Home() {
 
         const reader = response.body.getReader(); 
         const decoder = new TextDecoder(); 
-        // 🔥 FIXED: Using simple ID generator instead of crypto.randomUUID()
         let assistantId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         let assistantContent = ''; 
         let firstChunk = true;
@@ -405,7 +330,6 @@ export default function Home() {
            setMessages(prev => { 
              if (firstChunk) { 
                firstChunk = false;
-               // 🔥 NEW: Add timestamp to assistant message
                return [...prev, { 
                  id: assistantId, 
                  role: 'assistant', 
@@ -429,12 +353,11 @@ export default function Home() {
      } catch (error) { 
        console.error("Error fetching/streaming:", error);
        setIsTyping(false);
-       // 🔥 FIXED: Using simple ID generator instead of crypto.randomUUID()
        setMessages(prev => [...prev, { 
          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, 
          role: 'assistant', 
          content: `Sorry, an error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`,
-         created_at: new Date().toISOString() // 🔥 NEW: Add timestamp
+         created_at: new Date().toISOString()
        }]); 
      }
      finally {
@@ -464,40 +387,77 @@ export default function Home() {
     }
   }, []);
 
-  const handleMicClick = () => {
-    if (!speechRecognitionSupported) {
-      alert("Voice input is not supported in this browser. Please use Chrome, Edge, or Safari.");
-      return;
-    }
-    
-    if (!recognitionRef.current) { 
-      alert("Microphone not ready. Please refresh the page."); 
-      return; 
-    }
-    
-    if (isLoading) return;
-    
-    if (isRecording) {
-      console.log("Mic click: Requesting stop...");
-      recognitionRef.current.stop();
-    } else {
-       console.log("Mic click: Requesting start...");
-       finalTranscriptRef.current = localInput; 
-       try { 
-         recognitionRef.current.start(); 
-       }
-       catch (e) { 
-         console.error("Error starting mic:", e); 
-         alert("Failed to start microphone. Please check your browser permissions.");
-         setIsRecording(false); 
-       }
+  // 🔥 --- WHISPER API LOGIC ---
+  const handleTranscribe = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm'); // Send as webm
+
+    try {
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setLocalInput(data.text);
+      } else {
+        alert(`Transcription failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error transcribing audio:', error);
+      alert('Failed to transcribe audio.');
+    } finally {
+      setIsTranscribing(false);
+      audioChunksRef.current = []; // Clear chunks
     }
   };
+  
+  const handleMicClick = async () => {
+    if (isLoading || isTranscribing) return;
+
+    if (isRecording) {
+      // --- STOP RECORDING ---
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      // onstop event will handle transcription
+    } else {
+      // --- START RECORDING ---
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setIsRecording(true);
+        audioChunksRef.current = []; // Clear previous chunks
+
+        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        mediaRecorderRef.current = mediaRecorder;
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          await handleTranscribe(audioBlob);
+          stream.getTracks().forEach(track => track.stop()); // Stop microphone access
+        };
+
+        mediaRecorder.start();
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        alert('Microphone access denied. Please allow microphone access in your browser settings.');
+        setIsRecording(false);
+      }
+    }
+  };
+  // 🔥 --- END WHISPER API LOGIC ---
 
   const handleUploadClick = () => { 
     if(isLoading) return;
     
-    // Flash effect
     setFileButtonFlash(true);
     setTimeout(() => setFileButtonFlash(false), 200);
     
@@ -590,8 +550,9 @@ export default function Home() {
   };
 
   const getPlaceholderText = () => {
+    if (isTranscribing) return "Transcribing audio..."; // 🔥 NEW
     if (isLoading) return "AI is thinking...";
-    if (isRecording) return "Listening...";
+    if (isRecording) return "Recording... Click mic to stop."; // 🔥 NEW
     if (attachedFileName) return "Describe the file or add text...";
     if (activeTool === 'textMessageTool') return "Using Text Message Tool... (Paste text or upload screenshot)";
     if (activeTool === 'emailWriter') return "Using Email Writing Tool... (Paste email or describe)";
@@ -600,7 +561,6 @@ export default function Home() {
   };
 
   const handleToolButtonClick = () => {
-    // Flash effect
     setToolButtonFlash(true);
     setTimeout(() => setToolButtonFlash(false), 200);
   };
@@ -642,7 +602,6 @@ export default function Home() {
             <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700">Chat History</h2>
             <div className="flex items-center space-x-2">
               <span className="text-sm font-bold uppercase tracking-tight text-slate-700">JCIL.ai</span>
-              {/* Close button for mobile */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -728,9 +687,8 @@ export default function Home() {
           )}
         </div>
         
-        {/* Sidebar Footer - White Background to match rest of sidebar */}
+        {/* Sidebar Footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
-           {/* Notifications Button */}
            <Button 
              variant="ghost" 
              className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg relative"
@@ -746,7 +704,6 @@ export default function Home() {
               )}
            </Button>
            
-           {/* Legal Menu Dropdown */}
            <DropdownMenu>
              <DropdownMenuTrigger asChild>
                <Button 
@@ -779,7 +736,6 @@ export default function Home() {
              </DropdownMenuContent>
            </DropdownMenu>
 
-           {/* User Profile Section - Email only, no avatar */}
            <DropdownMenu>
              <DropdownMenuTrigger asChild>
                <Button 
@@ -826,7 +782,6 @@ export default function Home() {
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
             <div className="flex items-center justify-between">
-              {/* Mobile Hamburger Menu - Left */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -835,13 +790,9 @@ export default function Home() {
               >
                 <Menu className="h-6 w-6 text-slate-700" strokeWidth={2} />
               </Button>
-              
-              {/* Centered Title - Navy Blue */}
               <div className="flex-1 text-center">
                 <CardTitle className="text-lg sm:text-xl font-semibold text-blue-900">New Chat</CardTitle>
               </div>
-              
-              {/* Spacer for mobile to keep title centered */}
               <div className="w-10 lg:hidden"></div>
             </div>
           </CardHeader>
@@ -851,14 +802,12 @@ export default function Home() {
               <div className="text-center text-slate-500 text-sm">Loading messages...</div> 
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full space-y-6">
-                {/* Logo Container */}
                 <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center">
                   <img
                     src="/jcil-ai-logo.png"
                     alt="JCIL.ai Logo"
                     className="w-full h-full object-contain"
                     onError={(e) => {
-                      // Fallback if image doesn't load
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const parent = target.parentElement;
@@ -879,7 +828,6 @@ export default function Home() {
               messages.map((msg: Message) => ( 
                 <div key={msg.id} className={`flex items-start space-x-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}> 
                   
-                  {/* AI Avatar - Show JCIL logo for assistant messages */}
                   {msg.role === 'assistant' && (
                     <div className="flex-shrink-0 w-16 h-16 flex items-center justify-center -mt-6">
                       <img
@@ -901,7 +849,6 @@ export default function Home() {
                     </div>
                   )}
                   
-                  {/* Message Content */}
                   <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-xs lg:max-w-md`}>
                     {msg.role === 'user' ? (
                       <div className="bg-blue-900 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-sm">
@@ -913,7 +860,6 @@ export default function Home() {
                       </div>
                     )}
                     
-                    {/* 🔥 NEW: Timestamp Display */}
                     {msg.created_at && (
                       <div className="text-[10px] sm:text-xs text-slate-400 mt-1 px-1">
                         {formatMessageTime(msg.created_at)}
@@ -921,7 +867,6 @@ export default function Home() {
                     )}
                   </div>
                   
-                  {/* Copy Button for Assistant Messages */}
                   {msg.role === 'assistant' && (
                     <Button
                       type="button"
@@ -942,16 +887,13 @@ export default function Home() {
               )) 
             )}
             
-            {/* Typing Indicator */}
             {isTyping && <TypingIndicator />}
             
             <div ref={messagesEndRef} />
           </CardContent>
           
-          {/* Form with Textarea */}
           <form onSubmit={handleFormSubmit} className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl">
             
-            {/* Attached File Indicator */}
             {attachedFileName && (
               <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg sm:rounded-xl border border-slate-300 bg-slate-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
                 <div className="flex items-center gap-2 truncate">
@@ -974,7 +916,6 @@ export default function Home() {
             )}
 
             <div className="flex items-center space-x-2"> 
-              {/* Hidden file inputs */}
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -991,7 +932,6 @@ export default function Home() {
                 className="hidden" 
               />
               
-              {/* File Upload Button with Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -1021,7 +961,6 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              {/* Tool Selector Button */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -1062,49 +1001,49 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Input Container with Textarea, Mic, and Send */}
               <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
-                {/* Textarea Input */}
+                {/* 🔥 FIX: Added text-slate-900 dark:text-slate-200 */}
                 <Textarea
                    ref={inputRef} 
                    value={localInput}
                    onChange={handleTextareaChange}
                    placeholder={getPlaceholderText()} 
-                   disabled={isLoading}
+                   disabled={isLoading || isTranscribing}
                    autoComplete="off"
                    autoCorrect="off"
                    autoCapitalize="sentences"
                    spellCheck="true"
                    inputMode="text"
-                   className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none shadow-none px-3 sm:px-4 py-2.5 sm:py-3" 
+                   className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none shadow-none px-3 sm:px-4 py-2.5 sm:py-3 text-slate-900 dark:text-slate-200" 
                    rows={1} 
                    onKeyDown={handleTextareaKeyDown}
                    style={{ border: 'none', boxShadow: 'none', outline: 'none' }}
                  />
                 
-                {/* Microphone Button - Inside input box, hidden on iOS */}
-                {!isIOS && (
-                  <Button 
-                    type="button" 
-                    variant="ghost"
-                    size="icon" 
-                    disabled={isLoading || !speechRecognitionSupported} 
-                    onClick={handleMicClick} 
-                    className={`flex flex-shrink-0 transition-all rounded-lg h-8 w-8 mr-1 ${
-                      isRecording 
-                        ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
-                        : 'hover:bg-slate-100 text-slate-700'
-                    }`}
-                    title={speechRecognitionSupported ? "Voice input" : "Voice input not supported"}
-                  >
-                      <Mic className="h-4 w-4" strokeWidth={2} />
-                  </Button>
-                )}
+                {/* 🔥 UPDATED: Mic button logic */}
+                <Button 
+                  type="button" 
+                  variant="ghost"
+                  size="icon" 
+                  disabled={isLoading || isTranscribing} 
+                  onClick={handleMicClick} 
+                  className={`flex flex-shrink-0 transition-all rounded-lg h-8 w-8 mr-1 ${
+                    isRecording 
+                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
+                      : 'hover:bg-slate-100 text-slate-700'
+                  }`}
+                  title={isRecording ? "Stop recording" : "Start recording"}
+                >
+                  {isTranscribing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mic className="h-4 w-4" strokeWidth={2} />
+                  )}
+                </Button>
                 
-                {/* Send Button - Navy square with white plane icon, gold on active */}
                 <Button
                    type="submit"
-                   disabled={isLoading || (!localInput.trim() && !attachedFileName)}
+                   disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
                    className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 active:bg-blue-950 text-white rounded-lg transition-all p-0 flex items-center justify-center group" 
                  >
                    {isLoading ? (
