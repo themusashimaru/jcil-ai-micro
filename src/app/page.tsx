@@ -821,6 +821,10 @@ export default function Home() {
                     }}
                   />
                 </div>
+                {/* 🔥 NEW: Added Slingshot 2.0 text */}
+                <h2 className="text-lg sm:text-xl font-semibold text-blue-900 text-center">
+                  slingshot 2.0
+                </h2>
                 <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
                   {getTimeBasedGreeting()}
                 </p>
@@ -829,35 +833,16 @@ export default function Home() {
               messages.map((msg: Message) => ( 
                 <div key={msg.id} className={`flex items-start space-x-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}> 
                   
-                  {/* 🔴 FIX #3: AI Avatar alignment fix (removed -mt-6) */}
-                  {msg.role === 'assistant' && (
-                    <div className="flex-shrink-0 w-16 h-16 flex items-center justify-center">
-                      <img
-                        src="/jcil-ai-logo.png"
-                        alt="JCIL AI"
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const parent = target.parentElement;
-                          if (parent) {
-                            const fallback = document.createElement('div');
-                            fallback.className = 'w-full h-full bg-blue-900 rounded-full flex items-center justify-center';
-                            fallback.innerHTML = '<span class="text-white text-lg font-bold">AI</span>';
-                            parent.appendChild(fallback);
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
+                  {/* 🔥 REMOVED: AI Avatar block was here */}
                   
-                  {/* 🔴 FIX #4: AI text alignment fix (added whitespace-pre-wrap) */}
-                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-md`}>
+                  {/* 🔥 UPDATED: AI message bubble is now wider */}
+                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end max-w-[85%] sm:max-w-md' : 'items-start max-w-[95%] sm:max-w-2xl'}`}>
                     {msg.role === 'user' ? (
                       <div className="bg-blue-900 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-sm">
                         {msg.content}
                       </div>
                     ) : (
+                      // 🔥 UPDATED: Added whitespace-pre-wrap for AI text alignment
                       <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
                         {msg.content}
                       </div>
@@ -1005,7 +990,7 @@ export default function Home() {
               </DropdownMenu>
 
               <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
-                {/* 🔴 FIX #2: Font color fix. Added !text-slate-900 */}
+                {/* 🔥 FIXED: Font color fix. Added !text-slate-900 */}
                 <Textarea
                    ref={inputRef} 
                    value={localInput}
