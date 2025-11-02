@@ -778,7 +778,7 @@ export default function Home() {
       </aside>
 
       {/* Main Chat Area */}
-      {/* 🔥 FIX 1: Changed p-2 to p-0 for wider mobile view */}
+      {/* 🔴 FIX #1: Wider on mobile. Changed p-2 to p-0 */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
@@ -829,8 +829,9 @@ export default function Home() {
               messages.map((msg: Message) => ( 
                 <div key={msg.id} className={`flex items-start space-x-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}> 
                   
+                  {/* 🔴 FIX #3: AI Avatar alignment fix (removed -mt-6) */}
                   {msg.role === 'assistant' && (
-                    <div className="flex-shrink-0 w-16 h-16 flex items-center justify-center -mt-6">
+                    <div className="flex-shrink-0 w-16 h-16 flex items-center justify-center">
                       <img
                         src="/jcil-ai-logo.png"
                         alt="JCIL AI"
@@ -850,13 +851,14 @@ export default function Home() {
                     </div>
                   )}
                   
-                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-xs lg:max-w-md`}>
+                  {/* 🔴 FIX #4: AI text alignment fix (added whitespace-pre-wrap) */}
+                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[85%] sm:max-w-md`}>
                     {msg.role === 'user' ? (
                       <div className="bg-blue-900 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-sm">
                         {msg.content}
                       </div>
                     ) : (
-                      <div className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">
+                      <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
                         {msg.content}
                       </div>
                     )}
@@ -1003,7 +1005,7 @@ export default function Home() {
               </DropdownMenu>
 
               <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
-                {/* 🔥 FIX 2: Added !text-slate-900 to force dark text color */}
+                {/* 🔴 FIX #2: Font color fix. Added !text-slate-900 */}
                 <Textarea
                    ref={inputRef} 
                    value={localInput}
