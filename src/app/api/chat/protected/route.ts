@@ -1,17 +1,19 @@
 // src/app/api/chat/protected/route.ts
+// thin wrapper around the main /api/chat route
 
-import type { NextRequest } from 'next/server';
-import { GET as baseGET, POST as basePOST } from '../route';
+import { NextRequest } from 'next/server';
+import { GET as ChatGET, POST as ChatPOST } from '../route';
 
-// declare locally – DO NOT re-export from another file
+// Next 16 wants these declared in THIS file (not re-exported)
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// just forward to the main chat route
-export async function GET(req: NextRequest) {
-  return baseGET(req);
+export async function GET(_req: NextRequest) {
+  // parent /api/chat GET doesn’t take args
+  return ChatGET();
 }
 
 export async function POST(req: NextRequest) {
-  return basePOST(req);
+  // parent /api/chat POST DOES take the request
+  return ChatPOST(req);
 }
