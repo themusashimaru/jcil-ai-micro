@@ -1,5 +1,5 @@
 // src/app/api/chat/route.ts
-// clean version: auth + supabase + optional image + tools
+// clean chat route: supabase auth + conversation check + optional image → gemini
 
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -17,10 +17,14 @@ const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
 });
 
-const regularChatPrompt = `You are a helpful and neutral AI assistant. Be clear, direct, and natural.`;
-const textMessageToolPrompt = `You write only the final text message. No explanations.`;
-const emailWriterPrompt = `You write only the final email, plain text.`;
-const recipeExtractorPrompt = `You extract ingredients and return only the list.`;
+const regularChatPrompt =
+  "You are a helpful and neutral AI assistant. Be clear, direct, and natural.";
+const textMessageToolPrompt =
+  "You write ONLY the final text message. No extra explanation.";
+const emailWriterPrompt =
+  "You write ONLY the final email, plain text. Start with Subject: if appropriate.";
+const recipeExtractorPrompt =
+  "You extract ingredients from the user’s message (or image OCR result) and output ONLY the clean shopping list.";
 
 const MAX_MESSAGE_LENGTH = 10_000;
 const MAX_MESSAGES_IN_CONVERSATION = 100;
@@ -31,13 +35,12 @@ const VALID_TOOLS = [
   "emailWriter",
   "recipeExtractor",
 ] as const;
-
 type AllowedTool = (typeof VALID_TOOLS)[number];
 
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
 
-  // supabase server client
+  // 1) supabase server client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
   );
 
   try {
-    // 1. auth
+    // 2) auth
     const {
       data: { user },
       error: authError,
@@ -66,7 +69,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. rate limit
+    // 3) rate limit
     const rl = rateLimit(user.id, {
       maxRequests: 20,
       windowMs: 60_000,
@@ -75,7 +78,7 @@ export async function POST(req: NextRequest) {
       const retryAfter = Math.ceil((rl.reset - Date.now()) / 1000);
       return NextResponse.json(
         {
-          error: "Too many requests",
+          error: "Too many requests. Please try again later.",
           retryAfter,
         },
         {
@@ -90,20 +93,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. parse body
-    const {
-      messages: rawMessages,
-      conversationId,
-      tool,
-      fileUrl,
-      fileMimeType,
-    } = (await req.json()) as {
+    // 4) parse body
+    const body = (await req.json()) as {
       messages: CoreMessage[];
       conversationId: string;
       tool?: AllowedTool | string;
       fileUrl?: string | null;
       fileMimeType?: string | null;
     };
+
+    const { messages: rawMessages, conversationId, tool, fileUrl, fileMimeType } =
+      body;
 
     if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
       return NextResponse.json(
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. verify conversation belongs to user
+    // 5) make sure this convo belongs to THIS user
     const { data: convoRow, error: convoErr } = await supabase
       .from("conversations")
       .select("user_id")
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. extract last user message text
+    // 6) get last user text (TS-safe)
     const lastMsg = rawMessages[rawMessages.length - 1] as any;
     let userText = "";
 
@@ -163,14 +163,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
     if (userText.length > MAX_MESSAGE_LENGTH) {
       return NextResponse.json(
         { error: "message too long" },
         { status: 400 }
       );
     }
-
     if (containsSuspiciousContent(userText)) {
       return NextResponse.json(
         { error: "message contains invalid content" },
@@ -180,7 +178,7 @@ export async function POST(req: NextRequest) {
 
     const cleanText = sanitizeInput(userText);
 
-    // 6. text moderation
+    // 7) moderation (text)
     const mod = await moderateUserMessage(user.id, cleanText);
     if (!mod.allowed) {
       return NextResponse.json(
@@ -192,7 +190,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 7. save user message (fire and forget)
+    // 8) save user message (fire and forget)
     void supabase.from("messages").insert({
       conversation_id: conversationId,
       user_id: user.id,
@@ -202,19 +200,19 @@ export async function POST(req: NextRequest) {
       file_type: fileMimeType ?? null,
     });
 
-    // 8. pick system prompt
+    // 9) pick system prompt
     let systemPrompt = regularChatPrompt;
     if (tool === "textMessageTool") systemPrompt = textMessageToolPrompt;
     else if (tool === "emailWriter") systemPrompt = emailWriterPrompt;
     else if (tool === "recipeExtractor") systemPrompt = recipeExtractorPrompt;
 
-    // 9. build messages for AI (add image if present)
+    // 10) build messages for AI
     const messagesForAI: CoreMessage[] = [...rawMessages];
     const lastIndex = messagesForAI.length - 1;
     const lastForAI: any = messagesForAI[lastIndex];
 
+    // if we have a file, make it multimodal
     if (fileUrl) {
-      // make it multimodal
       const mm: any[] = [];
       if (cleanText) {
         mm.push({ type: "text", text: cleanText });
@@ -229,24 +227,23 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // 10. call Gemini
+    // 11) stream from Gemini
     const result = await streamText({
       model: google("gemini-2.5-flash"),
       system: systemPrompt,
       messages: messagesForAI,
       onFinish: async ({ text }) => {
         if (!text) return;
-        const clean = sanitizeInput(text);
+        const sanitized = sanitizeInput(text);
         await supabase.from("messages").insert({
           conversation_id: conversationId,
           user_id: user.id,
           role: "assistant",
-          content: clean,
+          content: sanitized,
         });
       },
     });
 
-    // 11. return stream
     return new Response(result.textStream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
@@ -256,7 +253,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("chat route error:", err);
+    console.error("Error in POST /api/chat:", err);
     return NextResponse.json(
       { error: "internal error", detail: String(err) },
       { status: 500 }
@@ -264,6 +261,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// so hitting https://jcil.ai/api/chat shows this
 export async function GET() {
   return NextResponse.json({ ok: true, route: "/api/chat" });
 }
