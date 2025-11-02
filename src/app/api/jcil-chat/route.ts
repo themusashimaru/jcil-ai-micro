@@ -1,6 +1,4 @@
 // src/app/api/jcil-chat/route.ts
-// thin wrapper around the real chat route
-
 import type { NextRequest } from 'next/server';
 import { POST as ChatPOST } from '../chat/route';
 

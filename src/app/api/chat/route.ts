@@ -1,377 +1,153 @@
 // src/app/api/chat/route.ts
-// single chat endpoint – POST = main, GET = health
-// Next 16: do NOT re-export from another file
+// 👉 lightweight chat endpoint for the frontend
+// - accepts JSON *and* multipart/form-data
+// - does NOT require Supabase auth
+// - does NOT require conversationId
+// - still uses Gemini 2.5 Flash
+// - returns JSON (easy for UI)
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { streamText, type CoreMessage } from 'ai';
-import { rateLimit } from '@/lib/rate-limit';
-import { sanitizeInput, containsSuspiciousContent } from '@/lib/sanitize';
-import { moderateUserMessage } from '@/lib/moderation';
-import { moderateImage } from '@/lib/image-moderation';
+import { NextRequest, NextResponse } from "next/server";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { streamText } from "ai";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-// ---- system prompts ----
-const regularChatPrompt = `You are a helpful and neutral AI assistant. Your goal is to answer questions, provide information, and engage in conversation clearly and directly.
-
-Guidelines:
-1. Be direct.
-2. Stay neutral.
-3. Be helpful.
-4. Sound natural.
-`;
-
-const textMessageToolPrompt = `You are a concise message assistant. Your task is to draft a short, clear, professional text message.
-
-CRITICAL: output ONLY the message.`;
-
-const emailWriterPrompt = `You are a high-precision email drafting tool.
-
-CRITICAL: output ONLY the email text, starting with "Subject:" if needed.`;
-
-const recipeExtractorPrompt = `You extract a shopping list from a recipe (text or image).
-
-CRITICAL: output ONLY the shopping list format.`;
-
-const MAX_MESSAGE_LENGTH = 10_000;
-const MAX_MESSAGES_IN_CONVERSATION = 100;
+// allowed image types if we ever want to pass them on
 const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp',
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
 ];
 
-const RATE_LIMIT_CONFIG = {
-  maxRequests: 20,
-  windowMs: 60_000,
-};
-
 export async function POST(req: NextRequest) {
-  // we keep everything INSIDE the handler so missing envs don’t crash the route
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
-        set: (name: string, value: string, options: CookieOptions) => {
-          try {
-            cookieStore.set(name, value, options);
-          } catch (err) {
-            console.error('supabase cookie set error:', err);
-          }
-        },
-        remove: (name: string, options: CookieOptions) => {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (err) {
-            console.error('supabase cookie delete error:', err);
-          }
-        },
-      },
-    }
-  );
-
   try {
-    // 1) auth
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const contentType = req.headers.get("content-type") || "";
 
-    if (authError || !user) {
-      console.error('Auth error in /api/chat:', authError);
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    let userMessage = "";
+    let imageUrl: string | null = null;
+    let imageMime: string | null = null;
 
-    // 2) rate limit
-    const rl = rateLimit(user.id, RATE_LIMIT_CONFIG);
-    if (!rl.success) {
-      const retryAfter = Math.ceil((rl.reset - Date.now()) / 1000);
-      return NextResponse.json(
-        {
-          error: 'Too many requests. Please try again later.',
-          retryAfter,
-        },
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': rl.limit.toString(),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': rl.reset.toString(),
-            'Retry-After': retryAfter.toString(),
-          },
+    // 1) multipart (text + file from the browser)
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      const msg = formData.get("message");
+      if (typeof msg === "string") {
+        userMessage = msg;
+      }
+
+      const file = formData.get("file");
+      if (file && typeof file !== "string") {
+        // NOTE: your old route expected a *URL* to an image in Supabase.
+        // Here we only validate the file and mention it in the AI prompt.
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error: "Unsupported image type.",
+            },
+            { status: 400 }
+          );
         }
-      );
-    }
 
-    // 3) body
-    const {
-      messages: rawMessages,
-      conversationId,
-      tool,
-      fileUrl,
-      fileMimeType,
-    } = await req.json();
-
-    const messages = rawMessages as CoreMessage[];
-
-    // 4) validate
-    if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 });
-    }
-    if (messages.length === 0) {
-      return NextResponse.json({ error: 'At least one message is required' }, { status: 400 });
-    }
-    if (messages.length > MAX_MESSAGES_IN_CONVERSATION) {
-      return NextResponse.json({ error: 'Too many messages in conversation' }, { status: 400 });
-    }
-    if (!conversationId || typeof conversationId !== 'string') {
-      return NextResponse.json({ error: 'Valid conversationId is required' }, { status: 400 });
-    }
-
-    const validTools = ['none', 'textMessageTool', 'emailWriter', 'recipeExtractor'];
-    if (tool && !validTools.includes(tool)) {
-      return NextResponse.json({ error: 'Invalid tool parameter' }, { status: 400 });
-    }
-
-    // 5) check conversation ownership
-    const { data: convData, error: convErr } = await supabase
-      .from('conversations')
-      .select('user_id')
-      .eq('id', conversationId)
-      .single();
-
-    if (convErr) {
-      console.error('Conversation check failed:', convErr);
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
-    }
-    if (convData.user_id !== user.id) {
-      console.warn(
-        `Unauthorized convo access: user ${user.id} tried to use convo ${conversationId}`
-      );
-      return NextResponse.json({ error: 'Unauthorized access to conversation' }, { status: 403 });
-    }
-
-    // 6) get last message text
-    const userMessage = messages[messages.length - 1];
-    let userMessageContent = '';
-
-    if (typeof userMessage?.content === 'string') {
-      userMessageContent = userMessage.content;
-    } else if (Array.isArray(userMessage?.content)) {
-      const textPart = (userMessage.content as Array<{ type?: string; text?: string }>).find(
-        (p) => p?.type === 'text'
-      );
-      if (textPart?.text) userMessageContent = textPart.text;
-    }
-
-    if (!userMessageContent) {
-      return NextResponse.json(
-        { error: 'Last message content is missing or not text' },
-        { status: 400 }
-      );
-    }
-
-    if (userMessageContent.length > MAX_MESSAGE_LENGTH) {
-      return NextResponse.json(
-        { error: `Message too long. Max ${MAX_MESSAGE_LENGTH} chars.` },
-        { status: 400 }
-      );
-    }
-
-    if (containsSuspiciousContent(userMessageContent)) {
-      return NextResponse.json({ error: 'Message contains invalid content' }, { status: 400 });
-    }
-
-    const sanitizedContent = sanitizeInput(userMessageContent);
-    if (!sanitizedContent) {
-      return NextResponse.json(
-        { error: 'Message content is invalid after sanitization' },
-        { status: 400 }
-      );
-    }
-
-    // 7) text moderation
-    const moderationResult = await moderateUserMessage(user.id, sanitizedContent);
-    if (!moderationResult.allowed) {
-      return NextResponse.json(
-        {
-          error: moderationResult.reason,
-          violationType: moderationResult.violationType,
-          action: moderationResult.action,
-        },
-        { status: 403 }
-      );
-    }
-
-    // 8) optional image
-    let fileSize: number | null = null;
-
-    if (fileUrl && fileMimeType) {
-      if (!ALLOWED_IMAGE_TYPES.includes(fileMimeType.toLowerCase())) {
-        return NextResponse.json(
-          {
-            error: `Invalid file type. Allowed: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
-          },
-          { status: 400 }
-        );
+        // we won't upload here — just tell the model an image was sent
+        imageUrl = "uploaded-file";
+        imageMime = file.type;
       }
+    } else {
+      // 2) JSON (text-only or your older FE format)
+      const body = await req.json().catch(() => ({} as any));
 
-      try {
-        new URL(fileUrl);
-      } catch {
-        return NextResponse.json({ error: 'Invalid file URL' }, { status: 400 });
-      }
-
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      if (!fileUrl.startsWith(supabaseUrl)) {
-        return NextResponse.json({ error: 'Invalid file source' }, { status: 400 });
-      }
-
-      // we TRY to get the file size, but we don’t fail if we can’t
-      try {
-        const filePathMatch = fileUrl.match(/uploads\/(.+)$/);
-        if (filePathMatch) {
-          const filePath = filePathMatch[1];
-          const { data: fileData } = await supabase.storage
-            .from('uploads')
-            .list('', { search: filePath });
-          if (fileData && fileData.length > 0) {
-            const meta = (fileData[0] as any).metadata;
-            if (meta && typeof meta === 'object' && 'size' in meta) {
-              fileSize = Number(meta.size) || null;
-            }
-          }
+      // allow both { message: "hi" } and { messages: [...] }
+      if (typeof body.message === "string") {
+        userMessage = body.message;
+      } else if (Array.isArray(body.messages) && body.messages.length > 0) {
+        const last = body.messages[body.messages.length - 1];
+        if (typeof last?.content === "string") {
+          userMessage = last.content;
+        } else if (Array.isArray(last?.content)) {
+          const textPart = last.content.find((p: any) => p?.type === "text");
+          if (textPart?.text) userMessage = textPart.text;
         }
-      } catch (err) {
-        console.warn('Could not read file size:', err);
       }
 
-      // image moderation
-      const imgMod = await moderateImage(user.id, fileUrl);
-      if (!imgMod.allowed) {
-        return NextResponse.json(
-          {
-            error: imgMod.reason,
-            severity: imgMod.severity,
-            categories: imgMod.categories,
-            action: imgMod.action,
-          },
-          { status: 403 }
-        );
+      // support old style: { fileUrl, fileMimeType }
+      if (body.fileUrl && body.fileMimeType) {
+        imageUrl = body.fileUrl;
+        imageMime = body.fileMimeType;
       }
     }
 
-    // 9) save user message (async on purpose)
-    (async () => {
-      const { error: userMsgErr } = await supabase.from('messages').insert({
-        conversation_id: conversationId,
-        user_id: user.id,
-        role: 'user',
-        content: sanitizedContent,
-        file_url: fileUrl || null,
-        file_type: fileMimeType || null,
-        file_size: fileSize,
-      });
-      if (userMsgErr) console.error('Error saving user message:', userMsgErr);
-    })();
-
-    // 10) build AI messages
-    let messagesForAI: CoreMessage[] = [...messages];
-    const lastIndex = messagesForAI.length - 1;
-    const lastMsg = messagesForAI[lastIndex];
-
-    let systemPrompt: string;
-    if (tool === 'textMessageTool') systemPrompt = textMessageToolPrompt;
-    else if (tool === 'emailWriter') systemPrompt = emailWriterPrompt;
-    else if (tool === 'recipeExtractor') systemPrompt = recipeExtractorPrompt;
-    else systemPrompt = regularChatPrompt;
-
-    // if file attached, wrap as multimodal
-    if (fileUrl) {
-      let baseText = '';
-      if (typeof lastMsg.content === 'string') {
-        baseText = lastMsg.content;
-      } else if (Array.isArray(lastMsg.content)) {
-        const parts = lastMsg.content as Array<{ type?: string; text?: string }>;
-        const textPart = parts.find((p) => p && p.type === 'text');
-        if (textPart?.text) baseText = textPart.text;
-      }
-
-      const multimodal: any[] = [];
-      if (baseText) {
-        multimodal.push({ type: 'text', text: baseText });
-      }
-      multimodal.push({ type: 'image', image: new URL(fileUrl) });
-
-      messagesForAI[lastIndex] = {
-        ...lastMsg,
-        content: multimodal as any,
-      };
+    if (!userMessage && !imageUrl) {
+      return NextResponse.json(
+        { ok: false, error: "No message provided." },
+        { status: 400 }
+      );
     }
 
-    // 11) init Gemini HERE
     const GEMINI_API_KEY =
       process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
       process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY;
 
     if (!GEMINI_API_KEY) {
-      console.error('Missing Gemini key on server');
+      console.error("Missing Gemini key on server");
       return NextResponse.json(
-        { error: 'Gemini API key is not configured on the server.' },
+        { ok: false, error: "Gemini API key not configured." },
         { status: 500 }
       );
     }
 
     const google = createGoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
 
-    // 12) stream
+    // build a simple prompt
+    const systemPrompt =
+      "You are a helpful AI assistant. Be concise, clear, and avoid extra formatting.";
+
+    // if image present, just tell the model (we could do real multimodal if needed)
+    const userText = imageUrl
+      ? `${userMessage}\n\n(User also sent an image: ${imageMime ?? "image"})`
+      : userMessage;
+
     const result = await streamText({
-      model: google('gemini-2.5-flash'),
+      model: google("gemini-2.5-flash"),
       system: systemPrompt,
-      messages: messagesForAI,
-      onFinish: async ({ text }) => {
-        if (conversationId && text) {
-          const sanitizedResponse = sanitizeInput(text);
-          const { error: assistantErr } = await supabase.from('messages').insert({
-            conversation_id: conversationId,
-            user_id: user.id,
-            role: 'assistant',
-            content: sanitizedResponse,
-          });
-          if (assistantErr) {
-            console.error('Error saving assistant message:', assistantErr);
-          }
-        }
-      },
+      messages: [
+        {
+          role: "user",
+          content: userText,
+        },
+      ],
     });
 
-    return new Response(result.textStream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-RateLimit-Limit': rl.limit.toString(),
-        'X-RateLimit-Remaining': rl.remaining.toString(),
-        'X-RateLimit-Reset': rl.reset.toString(),
+    // unlike your old route, we return JSON so the FE can parse it easily
+    const fullText = await result.text;
+
+    return NextResponse.json(
+      {
+        ok: true,
+        reply: fullText,
       },
-    });
-  } catch (err) {
-    console.error('Error in POST /api/chat:', err);
-    const msg = err instanceof Error ? err.message : 'Internal error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+      { status: 200 }
+    );
+  } catch (err: any) {
+    console.error("[/api/chat] error:", err);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Sorry, there has been an error.",
+        detail: err?.message ?? null,
+      },
+      { status: 500 }
+    );
   }
 }
 
-// keep GET super simple – Vercel will show this in the route list
 export async function GET() {
-  return NextResponse.json({ ok: true, route: '/api/chat' }, { status: 200 });
+  return NextResponse.json(
+    { ok: true, route: "/api/chat", mode: "simple" },
+    { status: 200 }
+  );
 }
