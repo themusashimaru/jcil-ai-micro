@@ -8,21 +8,22 @@ const client = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    // ----------------------------
-    // Step 1: Safely parse input
-    // ----------------------------
+    // Clone the request so we can safely read it twice if needed
+    const clonedReq = req.clone();
+
     let message = "";
     let fileUrl: string | null = null;
     let fileMimeType: string | null = null;
 
+    // Try to parse JSON first
     try {
       const body = await req.json();
       message = body?.message || "";
       fileUrl = body?.fileUrl || null;
       fileMimeType = body?.fileMimeType || null;
     } catch {
-      // If it's not valid JSON, treat as plain text
-      const text = await req.text();
+      // If JSON parsing fails, try reading plain text
+      const text = await clonedReq.text();
       message = text.trim();
     }
 
@@ -33,9 +34,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ----------------------------
-    // Step 2: Build multimodal input
-    // ----------------------------
+    // Build multimodal message for GPT-4o
     const messages: any[] = [
       {
         role: "user",
@@ -50,9 +49,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // ----------------------------
-    // Step 3: Send to OpenAI
-    // ----------------------------
+    // Send to OpenAI
     const response = await client.chat.completions.create({
       model: "gpt-4o",
       messages,
@@ -63,9 +60,7 @@ export async function POST(req: Request) {
       response.choices?.[0]?.message?.content ||
       "I'm here — how can I assist you today?";
 
-    // ----------------------------
-    // Step 4: Return response
-    // ----------------------------
+    // Respond to frontend
     return NextResponse.json({ ok: true, reply }, { status: 200 });
   } catch (error: any) {
     console.error("Error in /api/chat:", error);
