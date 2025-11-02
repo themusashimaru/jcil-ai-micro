@@ -247,7 +247,7 @@ export default function Home() {
      if (e) e.preventDefault();
      if (isLoading || isTranscribing || isRecording) return;
      
-     // --- Capture current state at the time of submission ---
+     // --- 🔥 BUG FIX: Capture state AT THIS EXACT MOMENT ---
      const textInput = localInput.trim();
      const fileUrl = uploadedFileUrl;
      const fileMimeType = attachedFileMimeType;
@@ -287,10 +287,14 @@ export default function Home() {
        content: userMsg,
        created_at: new Date().toISOString()
      };
-     const currentMessages = [...messages, newUserMessage];
      
-     setMessages(currentMessages); 
+     // Update UI immediately
+     setMessages(prev => [...prev, newUserMessage]); 
      setLocalInput(''); 
+     clearAttachmentState(); // Clear UI state *now*
+
+     // We are using the `const` variables from the top,
+     // so this UI clear won't affect the API call.
      
      let currentConvoId = conversationId;
      if (!currentConvoId) {
@@ -308,13 +312,15 @@ export default function Home() {
         setConversationId(newConvo.id); 
         setConversations(prev => [newConvo, ...prev]);
      }
+     
      try {
         // --- 2. Send request (Fixes Bug #2) ---
         const response = await fetch('/api/chat', {
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
           body: JSON.stringify({ 
-            messages: currentMessages, 
+            // 🔥 BUG FIX: Pass the updated message list
+            messages: [...messages, newUserMessage], 
             conversationId: currentConvoId, 
             tool: activeTool,
             // Explicitly pass the captured file data
@@ -381,10 +387,8 @@ export default function Home() {
      finally {
          setIsLoading(false);
          setIsTyping(false);
-         // 🔥 BUG FIX: Clear state AFTER fetch is done, not before.
-         // This fixes both the "ignored image" and "stale image" bugs.
-         clearAttachmentState(); 
          inputRef.current?.focus();
+         // We already cleared state, so no need to do it in the finally block
      }
    };
    // 🔥 --- END REWRITTEN FORM SUBMIT ---
