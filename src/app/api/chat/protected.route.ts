@@ -1,5 +1,9 @@
-// src/app/api/chat/route.ts
-// UPDATED with IMAGE MODERATION + FILE TRACKING + TS-SAFE MULTIMODAL
+// src/app/api/chat/protected.route.ts
+// PROTECTED CHAT ENDPOINT (auth required)
+// - Image moderation
+// - File tracking
+// - TS-safe multimodal (no @ts-expect-error)
+// - Mirrors /api/chat logic
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -90,14 +94,14 @@ export async function POST(req: NextRequest) {
   );
 
   try {
-    // --- 1. AUTHENTICATION ---
+    // --- 1. AUTH ---
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       console.error('Auth Error:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // --- 2. RATE LIMITING ---
+    // --- 2. RATE LIMIT ---
     const rateLimitResult = rateLimit(user.id, RATE_LIMIT_CONFIG);
     if (!rateLimitResult.success) {
       const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
@@ -118,7 +122,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // --- 3. PARSE REQUEST ---
+    // --- 3. PARSE BODY ---
     const {
       messages: rawMessages,
       conversationId,
@@ -129,7 +133,7 @@ export async function POST(req: NextRequest) {
 
     const messages = rawMessages as CoreMessage[];
 
-    // --- 4. VALIDATION ---
+    // --- 4. BASIC VALIDATION ---
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 });
     }
@@ -151,7 +155,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid tool parameter' }, { status: 400 });
     }
 
-    // --- 5. AUTHORIZATION ---
+    // --- 5. OWNERSHIP CHECK ---
     const { data: conversationData, error: convError } = await supabase
       .from('conversations')
       .select('user_id')
@@ -168,14 +172,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized access to conversation' }, { status: 403 });
     }
 
-    // --- 6. EXTRACT LAST MESSAGE TEXT ---
+    // --- 6. GET LAST MSG TEXT ---
     const userMessage = messages[messages.length - 1];
     let userMessageContent: string | undefined;
 
     if (typeof userMessage?.content === 'string') {
       userMessageContent = userMessage.content;
     } else if (Array.isArray(userMessage?.content)) {
-      const textPart = (userMessage.content as Array<any>).find((part) => part?.type === 'text');
+      const textPart = (userMessage.content as Array<{ type?: string; text?: string }>).find(
+        (part) => part?.type === 'text'
+      );
       userMessageContent = textPart?.text;
     }
 
@@ -183,16 +189,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Last message content is missing or not text' }, { status: 400 });
     }
 
-    // --- 7. VALIDATE MESSAGE ---
+    // --- 7. VALIDATE MESSAGE CONTENT ---
     if (userMessageContent.length === 0) {
       return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
     }
 
     if (userMessageContent.length > MAX_MESSAGE_LENGTH) {
-      return NextResponse.json({ error: `Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters` }, { status: 400 });
+      return NextResponse.json(
+        { error: `Message too long. Maximum ${MAX_MESSAGE_LENGTH} characters` },
+        { status: 400 }
+      );
     }
 
-    // --- 8. XSS PROTECTION ---
+    // --- 8. XSS / SUSPICIOUS ---
     if (containsSuspiciousContent(userMessageContent)) {
       console.warn(`Suspicious content detected from user ${user.id}`);
       return NextResponse.json({ error: 'Message contains invalid content' }, { status: 400 });
@@ -231,20 +240,21 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // make sure it’s our Supabase
+      // valid URL?
       try {
         new URL(fileUrl);
       } catch {
         return NextResponse.json({ error: 'Invalid file URL' }, { status: 400 });
       }
 
+      // must be our Supabase
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
       if (!fileUrl.startsWith(supabaseUrl)) {
         console.warn(`File URL from unexpected domain: ${fileUrl}`);
         return NextResponse.json({ error: 'Invalid file source' }, { status: 400 });
       }
 
-      // (optional) try to grab size
+      // OPTIONAL: try to derive file size without @ts-expect-error
       try {
         const filePathMatch = fileUrl.match(/uploads\/(.+)$/);
         if (filePathMatch) {
@@ -253,15 +263,17 @@ export async function POST(req: NextRequest) {
             search: filePath,
           });
           if (fileData && fileData.length > 0) {
-            // @ts-expect-error metadata shape can vary
-            fileSize = fileData[0].metadata?.size || null;
+            const meta = (fileData[0] as any).metadata;
+            if (meta && typeof meta === 'object' && 'size' in meta) {
+              fileSize = Number(meta.size) || null;
+            }
           }
         }
       } catch (error) {
         console.warn('Could not get file size:', error);
       }
 
-      // 🔎 moderate
+      // 🔎 moderate image itself
       const imageModerationResult = await moderateImage(user.id, fileUrl);
       if (!imageModerationResult.allowed) {
         console.warn(`Image blocked for user ${user.id}: ${imageModerationResult.reason}`);
@@ -277,7 +289,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // --- 12. SAVE USER MESSAGE (fire and forget) ---
+    // --- 12. SAVE USER MESSAGE (fire & forget)
     (async () => {
       const { error: userMsgError } = await supabase.from('messages').insert({
         conversation_id: conversationId,
@@ -293,21 +305,21 @@ export async function POST(req: NextRequest) {
       }
     })();
 
-    // --- 13. PREPARE AI REQUEST ---
+    // --- 13. PREPARE AI INPUT ---
     let messagesForAI: CoreMessage[] = [...messages];
     const lastMessageIndex = messagesForAI.length - 1;
     const lastMsg = messagesForAI[lastMessageIndex];
 
-    // pick system
+    // choose system
     let systemPrompt: string;
     if (tool === 'textMessageTool') systemPrompt = textMessageToolPrompt;
     else if (tool === 'emailWriter') systemPrompt = emailWriterPrompt;
     else if (tool === 'recipeExtractor') systemPrompt = recipeExtractorPrompt;
     else systemPrompt = regularChatPrompt;
 
-    // 👇 this was the part that failed TS before
+    // --- 14. MULTIMODAL PATCH (TS-SAFE)
     if (fileUrl) {
-      // get the text portion (even if the content is already an array)
+      // get text
       let baseText = '';
 
       if (typeof lastMsg.content === 'string') {
@@ -322,7 +334,6 @@ export async function POST(req: NextRequest) {
       if (baseText) {
         multimodalContent.push({ type: 'text', text: baseText });
       }
-      // AI SDK Gemini image shape
       multimodalContent.push({
         type: 'image',
         image: new URL(fileUrl),
@@ -334,7 +345,7 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // --- 14. CALL AI ---
+    // --- 15. CALL GEMINI ---
     const result = await streamText({
       model: google('gemini-2.5-flash'),
       system: systemPrompt,
@@ -355,7 +366,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // --- 15. RETURN STREAM ---
+    // --- 16. STREAM BACK ---
     return new Response(result.textStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -365,7 +376,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error in POST /api/chat:', error);
+    console.error('Error in POST /api/chat/protected:', error);
     const message = error instanceof Error ? error.message : 'An internal error occurred';
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
@@ -376,5 +387,5 @@ export async function POST(req: NextRequest) {
 
 // 👇 return 200 so the SW doesn’t cache a 405
 export async function GET() {
-  return NextResponse.json({ ok: true, route: '/api/chat' }, { status: 200 });
+  return NextResponse.json({ ok: true, route: '/api/chat/protected' }, { status: 200 });
 }
