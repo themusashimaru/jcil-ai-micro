@@ -1,14 +1,12 @@
 // src/app/api/chat/route.ts
-// simple, multimodal-aware chat endpoint
-
 import { NextRequest, NextResponse } from "next/server";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { streamText } from "ai";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+if (!OPENAI_API_KEY) {
+  console.error("Missing OPENAI_API_KEY on server");
+}
 
-// if you later want to block weird files
+// Allowed image types
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
@@ -17,24 +15,61 @@ const ALLOWED_IMAGE_TYPES = [
   "image/webp",
 ];
 
+interface OpenAIMessage {
+  role: "user" | "assistant" | "system";
+  content?: string;
+  name?: string;
+  // if image input support: content can be array of text + image link or base64?
+}
+
+// Helper to call OpenAI Chat Completions with image / text
+async function callOpenAIWithImage({
+  messages,
+  model = "gpt-4o", // adjust if your model name differs
+}: {
+  messages: OpenAIMessage[];
+  model?: string;
+}): Promise<string> {
+  const url = "https://api.openai.com/v1/chat/completions";
+  const body: any = {
+    model,
+    messages,
+  };
+
+  // The API may support `files` or `image` property if base64 or url: you'll need to adjust based on docs.
+  // If your model supports sending image URLs in message.content, you can embed the URL inline.
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("OpenAI error:", err);
+    throw new Error(`OpenAI API error: ${err}`);
+  }
+
+  const data = await res.json();
+  const reply = data.choices?.[0]?.message?.content;
+  return reply || "";
+}
+
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
 
     let userMessage = "";
-    // we'll store "what kind of image we got" in here
-    // either { kind: "file", file: File }  OR  { kind: "url", url: string, mime?: string }
-    let imageInput:
-      | { kind: "file"; file: File }
-      | { kind: "url"; url: string; mime?: string }
-      | null = null;
+    let imageUrl: string | null = null;
+    let imageMime: string | null = null;
+    let imageFile: File | null = null;
 
-    // ─────────────────────────────────────────
-    // 1) multipart (browser sends real file)
-    // ─────────────────────────────────────────
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
-
       const msg = formData.get("message");
       if (typeof msg === "string") {
         userMessage = msg.trim();
@@ -42,138 +77,58 @@ export async function POST(req: NextRequest) {
 
       const file = formData.get("file");
       if (file && typeof file !== "string") {
-        // this is a real File/Blob
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-          return NextResponse.json(
-            { ok: false, error: "Unsupported image type." },
-            { status: 400 }
-          );
+          return NextResponse.json({ ok: false, error: "Unsupported image type." }, { status: 400 });
         }
-
-        imageInput = { kind: "file", file };
+        imageFile = file;
+        imageMime = file.type;
       }
     } else {
-      // ─────────────────────────────────────────
-      // 2) JSON (your current app flow)
-      //     { message, fileUrl, fileMimeType }
-      // ─────────────────────────────────────────
-      const body = (await req.json().catch(() => ({}))) as any;
-
+      // JSON body
+      const body = await req.json().catch(() => ({} as any));
       if (typeof body.message === "string") {
         userMessage = body.message.trim();
       }
-
-      // this is what your big chat page sends after uploading to Supabase
-      if (body.fileUrl && typeof body.fileUrl === "string") {
-        imageInput = {
-          kind: "url",
-          url: body.fileUrl,
-          mime: typeof body.fileMimeType === "string" ? body.fileMimeType : undefined,
-        };
+      if (body.fileUrl && typeof body.fileUrl === "string" && typeof body.fileMimeType === "string") {
+        imageUrl = body.fileUrl;
+        imageMime = body.fileMimeType;
       }
     }
 
-    // safety: don't send empty text
-    if (!userMessage) {
-      userMessage = "Please analyze the image I sent.";
+    if (!userMessage && !imageFile && !imageUrl) {
+      return NextResponse.json({ ok: false, error: "No message provided." }, { status: 400 });
     }
 
-    // ─────────────────────────────────────────
-    // 3) init Gemini
-    // ─────────────────────────────────────────
-    const GEMINI_API_KEY =
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-      process.env.GOOGLE_API_KEY ||
-      process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY;
+    // Build messages for OpenAI
+    const systemPrompt = `
+You are a technical assistant. If the user sends an image (screenshot of code, terminal, logs, etc.), you should interpret it, extract text, and explain the issues clearly.
+If only text is sent, answer using your best knowledge.
+`;
+    const messages: OpenAIMessage[] = [
+      { role: "system", content: systemPrompt },
+    ];
 
-    if (!GEMINI_API_KEY) {
-      console.error("Missing Gemini key on server");
-      return NextResponse.json(
-        { ok: false, error: "Gemini API key not configured." },
-        { status: 500 }
-      );
+    let userContent = userMessage;
+    if (imageFile) {
+      // if your OpenAI model allows base64 or file upload, you'd embed it. Otherwise upload to URL and refer.
+      // Simplifying: we'll ask user to refer to imageFile name.
+      userContent += `\n\nUser uploaded an image (type: ${imageMime}). Please interpret it.`;
+    } else if (imageUrl) {
+      userContent += `\n\nUser uploaded an image URL: ${imageUrl}. Please interpret it.`;
     }
 
-    const google = createGoogleGenerativeAI({ apiKey: GEMINI_API_KEY });
+    messages.push({ role: "user", content: userContent });
 
-    // ─────────────────────────────────────────
-    // 4) build messages for AI
-    //    if we have an image → send real multimodal
-    // ─────────────────────────────────────────
-    const systemPrompt =
-      "You are a helpful AI assistant. If an image is provided, use it. Be concise.";
+    // Call OpenAI
+    const reply = await callOpenAIWithImage({ messages, model: "gpt-4o" });
 
-    let aiMessages: any[] = [];
-
-    if (imageInput) {
-      // CASE A: we got a real FILE (multipart)
-      if (imageInput.kind === "file") {
-        aiMessages = [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userMessage },
-              // Vercel AI SDK (google) can accept a File/Blob here
-              { type: "image", image: imageInput.file },
-            ],
-          },
-        ];
-      } else {
-        // CASE B: we got a Supabase signed URL → pass as URL
-        aiMessages = [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userMessage },
-              { type: "image", image: new URL(imageInput.url) },
-            ],
-          },
-        ];
-      }
-    } else {
-      // text only
-      aiMessages = [
-        {
-          role: "user",
-          content: userMessage,
-        },
-      ];
-    }
-
-    // ─────────────────────────────────────────
-    // 5) call Gemini
-    // ─────────────────────────────────────────
-    const result = await streamText({
-      model: google("gemini-2.5-flash"),
-      system: systemPrompt,
-      messages: aiMessages,
-    });
-
-    const text = await result.text;
-
-    return NextResponse.json(
-      {
-        ok: true,
-        reply: text,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ ok: true, reply }, { status: 200 });
   } catch (err: any) {
     console.error("[/api/chat] error:", err);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "Sorry, there has been an error.",
-        detail: err?.message ?? null,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, error: "Internal error occurred.", detail: err.message });
   }
 }
 
 export async function GET() {
-  return NextResponse.json(
-    { ok: true, route: "/api/chat", mode: "simple+multimodal" },
-    { status: 200 }
-  );
+  return NextResponse.json({ ok: true, route: "/api/chat (OpenAI)", version: "gpt-4o" }, { status: 200 });
 }
