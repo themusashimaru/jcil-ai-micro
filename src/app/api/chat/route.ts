@@ -45,59 +45,88 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let content: any[] = [];
-    if (message) content.push({ type: "text", text: message });
-
+    // ---- Convert image to base64 ----
+    let imageBase64: string | undefined;
+    let imageMime: string | undefined;
     if (imageFile) {
       const buffer = Buffer.from(await imageFile.arrayBuffer());
-      const base64 = buffer.toString("base64");
+      imageBase64 = buffer.toString("base64");
+      imageMime = imageFile.type;
+    }
+
+    // ---- Build multimodal content ----
+    const content: any[] = [];
+    if (message) content.push({ type: "text", text: message });
+    if (imageBase64 && imageMime) {
       content.push({
         type: "image_url",
         image_url: {
-          url: `data:${imageFile.type};base64,${base64}`,
+          url: `data:${imageMime};base64,${imageBase64}`,
         },
       });
     }
 
-    const body = {
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an assistant that can interpret screenshots, terminal output, and images. Provide detailed insight about what’s visible in the image if one is included.",
-        },
-        {
-          role: "user",
-          content,
-        },
-      ],
-    };
-
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    // ---- Send to GPT-4o ----
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an assistant that can interpret screenshots, code, logs, and text. Extract any visible text (OCR) and then provide a detailed explanation of what’s happening.",
+          },
+          { role: "user", content },
+        ],
+        response_format: { type: "json_object" }, // ensures clean JSON output
+      }),
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      console.error("OpenAI API error:", err);
-      return NextResponse.json({ ok: false, error: err }, { status: res.status });
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("OpenAI error:", err);
+      return NextResponse.json({ ok: false, error: err }, { status: 500 });
     }
 
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content ?? "No reply.";
-    return NextResponse.json({ ok: true, reply });
+    const data = await response.json();
+
+    // ---- Parse model output ----
+    let replyText = "";
+    let rawText = "";
+
+    try {
+      const parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}");
+      replyText = parsed.reply || parsed.explanation || "";
+      rawText = parsed.raw_text || "";
+    } catch {
+      replyText = data.choices?.[0]?.message?.content || "No reply received.";
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        reply: replyText,
+        raw_text: rawText || "(no OCR text extracted)",
+      },
+      { status: 200 }
+    );
   } catch (err: any) {
     console.error("Error in /api/chat:", err);
-    return NextResponse.json({ ok: false, error: err.message || "Internal error." });
+    return NextResponse.json(
+      { ok: false, error: err.message || "Internal error." },
+      { status: 500 }
+    );
   }
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, route: "/api/chat (GPT-4o multimodal)" });
+  return NextResponse.json({
+    ok: true,
+    route: "/api/chat (GPT-4o multimodal + OCR)",
+  });
 }
