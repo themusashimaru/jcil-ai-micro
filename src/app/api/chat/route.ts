@@ -1,5 +1,6 @@
 // src/app/api/chat/route.ts
-// UPDATED with IMAGE MODERATION + FILE TRACKING + TS-SAFE MULTIMODAL
+// UPDATED: move Gemini init *inside* the handler so missing env doesn't crash the route
+// also keeps image moderation + file tracking + TS-safe multimodal
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -11,14 +12,8 @@ import { sanitizeInput, containsSuspiciousContent } from '@/lib/sanitize';
 import { moderateUserMessage } from '@/lib/moderation';
 import { moderateImage } from '@/lib/image-moderation';
 
-// ✅ force Node on Vercel
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-// --- Google Provider Only ---
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-});
 
 // --- System Prompts ---
 const regularChatPrompt = `You are a helpful and neutral AI assistant. Your goal is to answer questions, provide information, and engage in conversation clearly and directly.
@@ -62,27 +57,25 @@ const RATE_LIMIT_CONFIG = {
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
 
-  // Initialize Supabase Client
+  // Supabase (server-side, with cookies)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => {
-          return cookieStore.get(name)?.value;
-        },
+        get: (name: string) => cookieStore.get(name)?.value,
         set: (name: string, value: string, options: CookieOptions) => {
           try {
             cookieStore.set(name, value, options);
-          } catch (error) {
-            console.error(`Failed to set cookie "${name}":`, error);
+          } catch (err) {
+            console.error('supabase cookie set error:', err);
           }
         },
         remove: (name: string, options: CookieOptions) => {
           try {
             cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
-            console.error(`Failed to delete cookie "${name}":`, error);
+          } catch (err) {
+            console.error('supabase cookie delete error:', err);
           }
         },
       },
@@ -90,14 +83,17 @@ export async function POST(req: NextRequest) {
   );
 
   try {
-    // --- 1. AUTHENTICATION ---
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // 1. Auth
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.error('Auth Error:', authError);
+      console.error('Auth Error in /api/chat:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // --- 2. RATE LIMITING ---
+    // 2. Rate limit
     const rateLimitResult = rateLimit(user.id, RATE_LIMIT_CONFIG);
     if (!rateLimitResult.success) {
       const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
@@ -118,7 +114,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // --- 3. PARSE REQUEST ---
+    // 3. Parse body
     const {
       messages: rawMessages,
       conversationId,
@@ -129,19 +125,16 @@ export async function POST(req: NextRequest) {
 
     const messages = rawMessages as CoreMessage[];
 
-    // --- 4. VALIDATION ---
+    // 4. Validate
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 });
     }
-
     if (messages.length === 0) {
       return NextResponse.json({ error: 'At least one message is required' }, { status: 400 });
     }
-
     if (messages.length > MAX_MESSAGES_IN_CONVERSATION) {
       return NextResponse.json({ error: 'Too many messages in conversation' }, { status: 400 });
     }
-
     if (!conversationId || typeof conversationId !== 'string') {
       return NextResponse.json({ error: 'Valid conversationId is required' }, { status: 400 });
     }
@@ -151,7 +144,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid tool parameter' }, { status: 400 });
     }
 
-    // --- 5. AUTHORIZATION ---
+    // 5. Check conversation ownership
     const { data: conversationData, error: convError } = await supabase
       .from('conversations')
       .select('user_id')
@@ -168,9 +161,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized access to conversation' }, { status: 403 });
     }
 
-    // --- 6. EXTRACT LAST MESSAGE TEXT (TS-SAFE) ---
+    // 6. Extract last message text (TS-safe)
     const userMessage = messages[messages.length - 1];
-    let userMessageContent: string | undefined;
+    let userMessageContent = '';
 
     if (typeof userMessage?.content === 'string') {
       userMessageContent = userMessage.content;
@@ -180,18 +173,11 @@ export async function POST(req: NextRequest) {
       );
       if (textPart && typeof textPart.text === 'string') {
         userMessageContent = textPart.text;
-      } else {
-        userMessageContent = '';
       }
     }
 
-    if (typeof userMessageContent !== 'string') {
+    if (!userMessageContent) {
       return NextResponse.json({ error: 'Last message content is missing or not text' }, { status: 400 });
-    }
-
-    // --- 7. VALIDATE MESSAGE ---
-    if (userMessageContent.length === 0) {
-      return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 });
     }
 
     if (userMessageContent.length > MAX_MESSAGE_LENGTH) {
@@ -201,19 +187,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // --- 8. XSS PROTECTION ---
     if (containsSuspiciousContent(userMessageContent)) {
       console.warn(`Suspicious content detected from user ${user.id}`);
       return NextResponse.json({ error: 'Message contains invalid content' }, { status: 400 });
     }
 
-    // --- 9. SANITIZE ---
     const sanitizedContent = sanitizeInput(userMessageContent);
-    if (sanitizedContent.length === 0) {
+    if (!sanitizedContent) {
       return NextResponse.json({ error: 'Message content is invalid after sanitization' }, { status: 400 });
     }
 
-    // --- 10. TEXT MODERATION ---
+    // 7. Text moderation
     const moderationResult = await moderateUserMessage(user.id, sanitizedContent);
     if (!moderationResult.allowed) {
       console.warn(`Message blocked for user ${user.id}: ${moderationResult.reason}`);
@@ -227,15 +211,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // --- 11. IMAGE VALIDATION & MODERATION ---
+    // 8. Image validation / moderation (optional)
     let fileSize: number | null = null;
 
     if (fileUrl && fileMimeType) {
       if (!ALLOWED_IMAGE_TYPES.includes(fileMimeType.toLowerCase())) {
         return NextResponse.json(
-          {
-            error: `Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
-          },
+          { error: `Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}` },
           { status: 400 }
         );
       }
@@ -266,8 +248,8 @@ export async function POST(req: NextRequest) {
             }
           }
         }
-      } catch (error) {
-        console.warn('Could not get file size:', error);
+      } catch (err) {
+        console.warn('Could not get file size:', err);
       }
 
       const imageModerationResult = await moderateImage(user.id, fileUrl);
@@ -285,7 +267,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // --- 12. SAVE USER MESSAGE (fire-and-forget) ---
+    // 9. Save user message (async)
     (async () => {
       const { error: userMsgError } = await supabase.from('messages').insert({
         conversation_id: conversationId,
@@ -301,22 +283,20 @@ export async function POST(req: NextRequest) {
       }
     })();
 
-    // --- 13. PREPARE AI REQUEST ---
+    // 10. Prepare AI messages
     let messagesForAI: CoreMessage[] = [...messages];
     const lastMessageIndex = messagesForAI.length - 1;
     const lastMsg = messagesForAI[lastMessageIndex];
 
-    // pick system
     let systemPrompt: string;
     if (tool === 'textMessageTool') systemPrompt = textMessageToolPrompt;
     else if (tool === 'emailWriter') systemPrompt = emailWriterPrompt;
     else if (tool === 'recipeExtractor') systemPrompt = recipeExtractorPrompt;
     else systemPrompt = regularChatPrompt;
 
-    // --- 14. MULTIMODAL PATCH (TS-SAFE) ---
+    // 11. If image present, make multimodal
     if (fileUrl) {
       let baseText = '';
-
       if (typeof lastMsg.content === 'string') {
         baseText = lastMsg.content;
       } else if (Array.isArray(lastMsg.content)) {
@@ -342,7 +322,25 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    // --- 15. CALL AI ---
+    // 12. INIT GEMINI *HERE*, not at top
+    const GEMINI_API_KEY =
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY;
+
+    if (!GEMINI_API_KEY) {
+      console.error('🚨 Missing Gemini API key in /api/chat');
+      return NextResponse.json(
+        { error: 'Gemini API key is not configured on the server.' },
+        { status: 500 }
+      );
+    }
+
+    const google = createGoogleGenerativeAI({
+      apiKey: GEMINI_API_KEY,
+    });
+
+    // 13. Call AI
     const result = await streamText({
       model: google('gemini-2.5-flash'),
       system: systemPrompt,
@@ -363,7 +361,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // --- 16. RETURN STREAM ---
     return new Response(result.textStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -382,7 +379,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 👇 return 200 so the SW doesn’t cache a 405
+// 👇 GET must stay simple and must NOT crash even if Gemini is missing
 export async function GET() {
   return NextResponse.json({ ok: true, route: '/api/chat' }, { status: 200 });
 }
