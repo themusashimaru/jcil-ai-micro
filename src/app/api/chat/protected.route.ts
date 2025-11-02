@@ -1,5 +1,5 @@
 // src/app/api/chat/route.ts
-// UPDATED with IMAGE MODERATION + FILE TRACKING
+// UPDATED with IMAGE MODERATION + FILE TRACKING + TS-SAFE MULTIMODAL
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
@@ -13,7 +13,6 @@ import { moderateImage } from '@/lib/image-moderation';
 
 // ✅ force Node on Vercel
 export const runtime = 'nodejs';
-
 export const dynamic = 'force-dynamic';
 
 // --- Google Provider Only ---
@@ -26,8 +25,8 @@ const regularChatPrompt = `You are a helpful and neutral AI assistant. Your goal
 
 **Guidelines:**
 1.  **Be Direct:** Provide factual, direct answers to the user's queries.
-2.  **Stay Neutral:** Approach all topics objectively. Avoid expressing personal opinions, biases, or taking political stances.
-3.  **Be Helpful:** Fulfill the user's request to the best of your ability, whether it's writing, summarizing, or explaining.
+2.  **Stay Neutral:** Approach all topics objectively.
+3.  **Be Helpful:** Fulfill the user's request to the best of your ability.
 4.  **Natural Conversation:** Respond in a natural, conversational manner.
 `;
 
@@ -61,7 +60,6 @@ const RATE_LIMIT_CONFIG = {
 };
 
 export async function POST(req: NextRequest) {
-  // in your Next version this is async
   const cookieStore = await cookies();
 
   // Initialize Supabase Client
@@ -101,22 +99,21 @@ export async function POST(req: NextRequest) {
 
     // --- 2. RATE LIMITING ---
     const rateLimitResult = rateLimit(user.id, RATE_LIMIT_CONFIG);
-    
     if (!rateLimitResult.success) {
       const retryAfter = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
       return NextResponse.json(
-        { 
+        {
           error: 'Too many requests. Please try again later.',
-          retryAfter 
+          retryAfter,
         },
-        { 
+        {
           status: 429,
           headers: {
             'X-RateLimit-Limit': rateLimitResult.limit.toString(),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': rateLimitResult.reset.toString(),
             'Retry-After': retryAfter.toString(),
-          }
+          },
         }
       );
     }
@@ -127,26 +124,26 @@ export async function POST(req: NextRequest) {
       conversationId,
       tool,
       fileUrl,
-      fileMimeType
+      fileMimeType,
     } = await req.json();
 
-    const messages: CoreMessage[] = rawMessages as CoreMessage[]; 
+    const messages = rawMessages as CoreMessage[];
 
     // --- 4. VALIDATION ---
-    if (!messages || !Array.isArray(messages)) { 
-      return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 }); 
+    if (!messages || !Array.isArray(messages)) {
+      return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 });
     }
-    
+
     if (messages.length === 0) {
       return NextResponse.json({ error: 'At least one message is required' }, { status: 400 });
     }
-    
+
     if (messages.length > MAX_MESSAGES_IN_CONVERSATION) {
       return NextResponse.json({ error: 'Too many messages in conversation' }, { status: 400 });
     }
 
-    if (!conversationId || typeof conversationId !== 'string') { 
-      return NextResponse.json({ error: 'Valid conversationId is required' }, { status: 400 }); 
+    if (!conversationId || typeof conversationId !== 'string') {
+      return NextResponse.json({ error: 'Valid conversationId is required' }, { status: 400 });
     }
 
     const validTools = ['none', 'textMessageTool', 'emailWriter', 'recipeExtractor'];
@@ -171,19 +168,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized access to conversation' }, { status: 403 });
     }
 
-    // --- 6. EXTRACT MESSAGE CONTENT ---
+    // --- 6. EXTRACT LAST MESSAGE TEXT ---
     const userMessage = messages[messages.length - 1];
     let userMessageContent: string | undefined;
 
     if (typeof userMessage?.content === 'string') {
-        userMessageContent = userMessage.content;
+      userMessageContent = userMessage.content;
     } else if (Array.isArray(userMessage?.content)) {
-        const textPart = userMessage.content.find(part => part.type === 'text');
-        userMessageContent = textPart?.text;
+      const textPart = (userMessage.content as Array<any>).find((part) => part?.type === 'text');
+      userMessageContent = textPart?.text;
     }
 
-    if (typeof userMessageContent !== 'string') { 
-      return NextResponse.json({ error: 'Last message content is missing or not text' }, { status: 400 }); 
+    if (typeof userMessageContent !== 'string') {
+      return NextResponse.json({ error: 'Last message content is missing or not text' }, { status: 400 });
     }
 
     // --- 7. VALIDATE MESSAGE ---
@@ -203,18 +200,16 @@ export async function POST(req: NextRequest) {
 
     // --- 9. SANITIZE ---
     const sanitizedContent = sanitizeInput(userMessageContent);
-
     if (sanitizedContent.length === 0) {
       return NextResponse.json({ error: 'Message content is invalid after sanitization' }, { status: 400 });
     }
 
     // --- 10. TEXT MODERATION ---
     const moderationResult = await moderateUserMessage(user.id, sanitizedContent);
-    
     if (!moderationResult.allowed) {
       console.warn(`Message blocked for user ${user.id}: ${moderationResult.reason}`);
       return NextResponse.json(
-        { 
+        {
           error: moderationResult.reason,
           violationType: moderationResult.violationType,
           action: moderationResult.action,
@@ -225,14 +220,18 @@ export async function POST(req: NextRequest) {
 
     // --- 11. IMAGE VALIDATION & MODERATION ---
     let fileSize: number | null = null;
-    
+
     if (fileUrl && fileMimeType) {
       if (!ALLOWED_IMAGE_TYPES.includes(fileMimeType.toLowerCase())) {
-        return NextResponse.json({ 
-          error: `Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}` 
-        }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: `Invalid file type. Allowed types: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
+          },
+          { status: 400 }
+        );
       }
 
+      // make sure it’s our Supabase
       try {
         new URL(fileUrl);
       } catch {
@@ -245,18 +244,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid file source' }, { status: 400 });
       }
 
+      // (optional) try to grab size
       try {
         const filePathMatch = fileUrl.match(/uploads\/(.+)$/);
         if (filePathMatch) {
           const filePath = filePathMatch[1];
-          const { data: fileData, error: fileError } = await supabase
-            .storage
-            .from('uploads')
-            .list('', {
-              search: filePath
-            });
-          
-          if (!fileError && fileData && fileData.length > 0) {
+          const { data: fileData } = await supabase.storage.from('uploads').list('', {
+            search: filePath,
+          });
+          if (fileData && fileData.length > 0) {
+            // @ts-expect-error metadata shape can vary
             fileSize = fileData[0].metadata?.size || null;
           }
         }
@@ -264,9 +261,8 @@ export async function POST(req: NextRequest) {
         console.warn('Could not get file size:', error);
       }
 
-      console.log('🔍 Moderating uploaded image...');
+      // 🔎 moderate
       const imageModerationResult = await moderateImage(user.id, fileUrl);
-      
       if (!imageModerationResult.allowed) {
         console.warn(`Image blocked for user ${user.id}: ${imageModerationResult.reason}`);
         return NextResponse.json(
@@ -279,11 +275,9 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
-      
-      console.log('✅ Image passed moderation');
     }
 
-    // --- 12. SAVE USER MESSAGE ---
+    // --- 12. SAVE USER MESSAGE (fire and forget) ---
     (async () => {
       const { error: userMsgError } = await supabase.from('messages').insert({
         conversation_id: conversationId,
@@ -298,57 +292,65 @@ export async function POST(req: NextRequest) {
         console.error('Error saving user message:', userMsgError);
       }
     })();
-    
-    // --- 13. PREPARE AI REQUEST ---
-    let messagesForAI = [...messages]; 
-    const lastMessageIndex = messagesForAI.length - 1;
 
+    // --- 13. PREPARE AI REQUEST ---
+    let messagesForAI: CoreMessage[] = [...messages];
+    const lastMessageIndex = messagesForAI.length - 1;
+    const lastMsg = messagesForAI[lastMessageIndex];
+
+    // pick system
     let systemPrompt: string;
-    
-    if (tool === 'textMessageTool') {
-      systemPrompt = textMessageToolPrompt;
-    }
-    else if (tool === 'emailWriter') {
-      systemPrompt = emailWriterPrompt;
-    } 
-    else if (tool === 'recipeExtractor') {
-      systemPrompt = recipeExtractorPrompt;
-    } 
-    else {
-      systemPrompt = regularChatPrompt;
-    }
-    
-    if (fileUrl && typeof messagesForAI[lastMessageIndex].content === 'string') {
-      if (!fileMimeType?.startsWith('image/')) {
-          console.warn(`Warning: Sending non-image file (${fileMimeType}) to Gemini.`);
+    if (tool === 'textMessageTool') systemPrompt = textMessageToolPrompt;
+    else if (tool === 'emailWriter') systemPrompt = emailWriterPrompt;
+    else if (tool === 'recipeExtractor') systemPrompt = recipeExtractorPrompt;
+    else systemPrompt = regularChatPrompt;
+
+    // 👇 this was the part that failed TS before
+    if (fileUrl) {
+      // get the text portion (even if the content is already an array)
+      let baseText = '';
+
+      if (typeof lastMsg.content === 'string') {
+        baseText = lastMsg.content;
+      } else if (Array.isArray(lastMsg.content)) {
+        const parts = lastMsg.content as Array<{ type?: string; text?: string }>;
+        const textPart = parts.find((p) => p && p.type === 'text');
+        baseText = textPart?.text ?? '';
       }
-      
-      const multimodalContent = [
-        { type: 'text', text: messagesForAI[lastMessageIndex].content as string },
-        { type: 'image', image: new URL(fileUrl) }
-      ];
-       messagesForAI[lastMessageIndex] = {
-           ...messagesForAI[lastMessageIndex],
-           content: multimodalContent as any
-       };
+
+      const multimodalContent: any[] = [];
+      if (baseText) {
+        multimodalContent.push({ type: 'text', text: baseText });
+      }
+      // AI SDK Gemini image shape
+      multimodalContent.push({
+        type: 'image',
+        image: new URL(fileUrl),
+      });
+
+      messagesForAI[lastMessageIndex] = {
+        ...lastMsg,
+        content: multimodalContent as any,
+      };
     }
 
     // --- 14. CALL AI ---
     const result = await streamText({
       model: google('gemini-2.5-flash'),
       system: systemPrompt,
-      messages: messagesForAI, 
+      messages: messagesForAI,
       onFinish: async ({ text }) => {
         if (conversationId && text) {
           const sanitizedResponse = sanitizeInput(text);
-          
           const { error: assistantMsgError } = await supabase.from('messages').insert({
-            conversation_id: conversationId, 
-            user_id: user.id, 
-            role: 'assistant', 
-            content: sanitizedResponse
+            conversation_id: conversationId,
+            user_id: user.id,
+            role: 'assistant',
+            content: sanitizedResponse,
           });
-          if (assistantMsgError) console.error('Error saving assistant message:', assistantMsgError);
+          if (assistantMsgError) {
+            console.error('Error saving assistant message:', assistantMsgError);
+          }
         }
       },
     });
@@ -362,12 +364,10 @@ export async function POST(req: NextRequest) {
         'X-RateLimit-Reset': rateLimitResult.reset.toString(),
       },
     });
-
   } catch (error) {
     console.error('Error in POST /api/chat:', error);
-    let errorMessage = 'An internal error occurred';
-    if (error instanceof Error) { errorMessage = error.message; }
-     return new Response(JSON.stringify({ error: errorMessage }), {
+    const message = error instanceof Error ? error.message : 'An internal error occurred';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
