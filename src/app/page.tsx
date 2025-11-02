@@ -387,8 +387,8 @@ export default function Home() {
      finally {
          setIsLoading(false);
          setIsTyping(false);
+         // State was already cleared, so we just focus
          inputRef.current?.focus();
-         // We already cleared state, so no need to do it in the finally block
      }
    };
    // 🔥 --- END REWRITTEN FORM SUBMIT ---
