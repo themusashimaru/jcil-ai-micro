@@ -242,26 +242,44 @@ export default function Home() {
     setRenameValue('');
   };
 
+  // 🔥 --- REWRITTEN FORM SUBMIT ---
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
      if (e) e.preventDefault();
-     if ((!localInput.trim() && !attachedFileName) || isLoading || isTranscribing) return; 
+     if (isLoading || isTranscribing || isRecording) return;
+     
+     // --- Check for content ---
+     const hasText = localInput.trim().length > 0;
+     const hasFile = attachedFileName && uploadedFileUrl;
+     
+     if (!hasText && !hasFile) return; // Exit if nothing to send
+
      if (isRecording) { mediaRecorderRef.current?.stop(); }
      
      setIsLoading(true);
      setIsTyping(true);
      
+     // --- Capture current file state ---
      const fileUrl = uploadedFileUrl;
      const fileMimeType = attachedFileMimeType;
 
+     // --- 1. Create userMsg logic (Fixes Bug #1) ---
      let userMsg: string;
-     if (localInput.trim()) {
-        userMsg = localInput;
-     } else if (attachedFileName) {
-        userMsg = `[Analyzing file: ${attachedFileName}]`;
+     let userMsgForTitle: string;
+
+     if (hasText && hasFile) {
+        userMsg = localInput.trim(); // File is shown in indicator, so just send text
+        userMsgForTitle = userMsg;
+     } else if (hasText && !hasFile) {
+        userMsg = localInput.trim();
+        userMsgForTitle = userMsg;
+     } else if (!hasText && hasFile) {
+        userMsg = `[Image: ${attachedFileName}]`; // More professional text
+        userMsgForTitle = userMsg;
      } else {
+        // Should be impossible due to guard clause, but good to have
         setIsLoading(false);
         setIsTyping(false);
-        return; 
+        return;
      }
 
      const newUserMessage: Message = { 
@@ -274,11 +292,11 @@ export default function Home() {
      
      setMessages(currentMessages); 
      setLocalInput(''); 
-     clearAttachmentState(); 
+     clearAttachmentState(); // Clear UI state immediately
      
      let currentConvoId = conversationId;
      if (!currentConvoId) {
-        const title = userMsg.substring(0, 40) + "...";
+        const title = userMsgForTitle.substring(0, 40) + "...";
         const { data: newConvo, error: convError } = await supabase.from('conversations').insert({ user_id: user!.id, title }).select('id, created_at, title').single();
         if (convError || !newConvo) { 
           console.error("Error creating convo:", convError); 
@@ -293,6 +311,7 @@ export default function Home() {
         setConversations(prev => [newConvo, ...prev]);
      }
      try {
+        // --- 2. Send request (Fixes Bug #2) ---
         const response = await fetch('/api/chat', {
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
@@ -300,8 +319,9 @@ export default function Home() {
             messages: currentMessages, 
             conversationId: currentConvoId, 
             tool: activeTool,
-            fileUrl,         
-            fileMimeType,
+            // Explicitly send file data or null
+            fileUrl: hasFile ? fileUrl : null,         
+            fileMimeType: hasFile ? fileMimeType : null,
           }) 
         });
 
@@ -778,7 +798,6 @@ export default function Home() {
       </aside>
 
       {/* Main Chat Area */}
-      {/* 🔴 FIX #1: Wider on mobile. Changed p-2 to p-0 */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
@@ -882,23 +901,24 @@ export default function Home() {
           
           <form onSubmit={handleFormSubmit} className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl">
             
+            {/* 🔥 UPDATED: Professional file indicator */}
             {attachedFileName && (
-              <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg sm:rounded-xl border border-slate-300 bg-slate-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
+              <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg sm:rounded-xl border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
                 <div className="flex items-center gap-2 truncate">
-                  <FileIcon className="h-4 w-4 flex-shrink-0 text-slate-600" strokeWidth={2} />
-                  <span className="truncate text-slate-700 font-medium" title={attachedFileName}>
-                    {attachedFileName}
+                  <FileIcon className="h-4 w-4 flex-shrink-0 text-blue-600" strokeWidth={2} />
+                  <span className="truncate text-blue-800 font-medium" title={attachedFileName}>
+                    Attached: {attachedFileName}
                   </span>
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 rounded-full hover:bg-slate-200 transition-all"
+                  className="h-6 w-6 sm:h-7 sm:w-7 flex-shrink-0 rounded-full hover:bg-blue-100 transition-all"
                   onClick={removeAttachedFile}
                   disabled={isLoading}
                 >
-                  <XIcon className="h-3 w-3 sm:h-4 sm:w-4 text-slate-600" strokeWidth={2} />
+                  <XIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" strokeWidth={2} />
                 </Button>
               </div>
             )}
@@ -934,17 +954,18 @@ export default function Home() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="bg-white border border-slate-200 shadow-lg rounded-lg">
+                  {/* 🔥 REMOVED: Emojis */}
                   <DropdownMenuItem 
                     onSelect={() => cameraInputRef.current?.click()} 
                     className="text-slate-700 text-sm cursor-pointer"
                   >
-                    📸 Take Photo
+                    Take Photo
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onSelect={() => fileInputRef.current?.click()} 
                     className="text-slate-700 text-sm cursor-pointer"
                   >
-                    🖼️ Choose File
+                    Choose File
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
