@@ -8,21 +8,21 @@ const client = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    // Clone the request so we can safely read it twice if needed
+    // Clone request to safely read twice
     const clonedReq = req.clone();
 
     let message = "";
     let fileUrl: string | null = null;
     let fileMimeType: string | null = null;
 
-    // Try to parse JSON first
+    // Try JSON first
     try {
       const body = await req.json();
       message = body?.message || "";
       fileUrl = body?.fileUrl || null;
       fileMimeType = body?.fileMimeType || null;
     } catch {
-      // If JSON parsing fails, try reading plain text
+      // Fallback for text/plain
       const text = await clonedReq.text();
       message = text.trim();
     }
@@ -34,7 +34,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Build multimodal message for GPT-4o
+    // 🔹 Trim overly long inputs to avoid token overflow
+    if (message.length > 4000) {
+      message = message.slice(0, 4000) + " ...[truncated]";
+    }
+
+    // 🔹 Build multimodal chat message
     const messages: any[] = [
       {
         role: "user",
@@ -49,23 +54,28 @@ export async function POST(req: Request) {
       });
     }
 
-    // Send to OpenAI
+    // 🔹 Send to OpenAI safely
     const response = await client.chat.completions.create({
       model: "gpt-4o",
       messages,
       temperature: 0.6,
+      max_tokens: 500, // prevents massive output
     });
 
     const reply =
       response.choices?.[0]?.message?.content ||
       "I'm here — how can I assist you today?";
 
-    // Respond to frontend
     return NextResponse.json({ ok: true, reply }, { status: 200 });
   } catch (error: any) {
     console.error("Error in /api/chat:", error);
     return NextResponse.json(
-      { ok: false, error: error.message || "Internal Server Error" },
+      {
+        ok: false,
+        error:
+          error.message ||
+          "An unexpected error occurred while processing your request.",
+      },
       { status: 500 }
     );
   }
