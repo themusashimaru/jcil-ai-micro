@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+// src/app/api/chat/route.ts
+import { NextResponse } from "next/server";
+import OpenAI from "openai";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -7,31 +8,79 @@ const client = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { message, fileUrl, fileMimeType } = await req.json();
+    // ----------------------------
+    // Step 1: Safely parse input
+    // ----------------------------
+    let message = "";
+    let fileUrl: string | null = null;
+    let fileMimeType: string | null = null;
 
-    if (!message && !fileUrl) {
-      return NextResponse.json({ ok: false, error: 'Message or file required' }, { status: 400 });
+    try {
+      const body = await req.json();
+      message = body?.message || "";
+      fileUrl = body?.fileUrl || null;
+      fileMimeType = body?.fileMimeType || null;
+    } catch {
+      // If it's not valid JSON, treat as plain text
+      const text = await req.text();
+      message = text.trim();
     }
 
-    let input: any[] = [{ role: 'user', content: [{ type: 'text', text: message || '' }] }];
+    if (!message && !fileUrl) {
+      return NextResponse.json(
+        { ok: false, error: "Message or file required." },
+        { status: 400 }
+      );
+    }
 
-    // if an image was attached, include it as a multimodal input
-    if (fileUrl && fileMimeType?.startsWith('image/')) {
-      input[0].content.push({
-        type: 'image_url',
+    // ----------------------------
+    // Step 2: Build multimodal input
+    // ----------------------------
+    const messages: any[] = [
+      {
+        role: "user",
+        content: [{ type: "text", text: message }],
+      },
+    ];
+
+    if (fileUrl && fileMimeType?.startsWith("image/")) {
+      messages[0].content.push({
+        type: "image_url",
         image_url: { url: fileUrl },
       });
     }
 
+    // ----------------------------
+    // Step 3: Send to OpenAI
+    // ----------------------------
     const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini', // or gpt-4o
-      messages: input,
+      model: "gpt-4o",
+      messages,
+      temperature: 0.6,
     });
 
-    const reply = response.choices[0]?.message?.content || "I'm here — how can I help?";
-    return NextResponse.json({ ok: true, reply });
+    const reply =
+      response.choices?.[0]?.message?.content ||
+      "I'm here — how can I assist you today?";
+
+    // ----------------------------
+    // Step 4: Return response
+    // ----------------------------
+    return NextResponse.json({ ok: true, reply }, { status: 200 });
   } catch (error: any) {
-    console.error('chat route error:', error);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    console.error("Error in /api/chat:", error);
+    return NextResponse.json(
+      { ok: false, error: error.message || "Internal Server Error" },
+      { status: 500 }
+    );
   }
+}
+
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    route: "/api/chat",
+    model: "gpt-4o",
+    status: "ready",
+  });
 }
