@@ -2,122 +2,122 @@
 
 import { useState } from "react";
 
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
 export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<
+    { id: string; role: "user" | "assistant"; content: string }[]
+  >([]);
   const [input, setInput] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [fileToSend, setFileToSend] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
   async function sendMessage(message: string, fileToSend?: File | null) {
     const formData = new FormData();
     formData.append("message", message);
-    if (fileToSend) {
-      formData.append("file", fileToSend);
-    }
+    if (fileToSend) formData.append("file", fileToSend);
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      body: formData,
-    });
+    const res = await fetch("/api/chat", { method: "POST", body: formData });
+
+    // ---- Handle moderation blocks (403) explicitly ----
+    if (res.status === 403) {
+      const data = await res.json().catch(() => ({}));
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `warn_${Date.now()}`,
+          role: "assistant",
+          content:
+            data?.error ||
+            "This message violates policy and cannot be processed.",
+        },
+      ]);
+      return "";
+    }
 
     const data = await res.json();
-
-    if (!res.ok || !data.ok) {
-      throw new Error(data.error || "Unknown error");
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || "Unknown error");
     }
 
-    return data.reply as string;
+    return (data.reply as string) || "";
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!input && !file) return;
+    if (!input.trim()) return;
 
+    const userMessage = { id: Date.now().toString(), role: "user", content: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
     setLoading(true);
-    setErrorMsg("");
-
-    // show user message right away
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: input || (file ? "(sent file)" : "") },
-    ]);
 
     try {
-      const reply = await sendMessage(input, file);
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      const reply = await sendMessage(userMessage.content, fileToSend);
+      if (reply) {
+        setMessages((prev) => [
+          ...prev,
+          { id: `reply_${Date.now()}`, role: "assistant", content: reply },
+        ]);
+      }
     } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || "Sorry, there has been an error.");
-      // remove the last user message if you want, but we can leave it
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `err_${Date.now()}`,
+          role: "assistant",
+          content: `Sorry, an error occurred: ${err.message}`,
+        },
+      ]);
     } finally {
       setLoading(false);
-      setInput("");
-      setFile(null);
+      setFileToSend(null);
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col gap-4 p-4 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold">Chat</h1>
+    <main className="flex flex-col items-center justify-between w-full h-full">
+      <div className="max-w-3xl w-full flex flex-col p-6 space-y-3">
+        <h1 className="text-center text-2xl font-semibold mb-4">New Chat</h1>
 
-      <div className="flex-1 border rounded p-3 space-y-2 overflow-auto bg-white">
-        {messages.length === 0 ? (
-          <p className="text-gray-400 text-sm">Start a conversation…</p>
-        ) : (
-          messages.map((m, i) => (
+        <div className="flex flex-col space-y-2 border rounded-md p-4 min-h-[400px] overflow-y-auto bg-white">
+          {messages.map((m) => (
             <div
-              key={i}
-              className={
+              key={m.id}
+              className={`${
                 m.role === "user"
-                  ? "text-right flex justify-end"
-                  : "text-left flex justify-start"
-              }
+                  ? "self-end bg-blue-500 text-white"
+                  : m.content.includes("violates policy")
+                  ? "self-start bg-red-100 text-red-700 border border-red-300"
+                  : "self-start bg-gray-100 text-gray-800"
+              } px-3 py-2 rounded-lg max-w-[80%] whitespace-pre-wrap`}
             >
-              <div
-                className={
-                  m.role === "user"
-                    ? "bg-blue-100 px-3 py-2 rounded-lg inline-block max-w-[80%]"
-                    : "bg-gray-100 px-3 py-2 rounded-lg inline-block max-w-[80%]"
-                }
-              >
-                {m.content}
-              </div>
+              {m.content}
             </div>
-          ))
-        )}
+          ))}
+        </div>
 
-        {errorMsg ? (
-          <p className="text-red-500 text-sm mt-2">{errorMsg}</p>
-        ) : null}
+        <form onSubmit={handleSubmit} className="flex gap-2 mt-4">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1 border rounded-md px-3 py-2"
+          />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setFileToSend(e.target.files?.[0] || null)}
+            className="text-sm"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-blue-600 text-white rounded-md px-4 py-2 disabled:opacity-50"
+          >
+            {loading ? "..." : "Send"}
+          </button>
+        </form>
       </div>
-
-      <form onSubmit={handleSubmit} className="flex gap-2 items-center">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="flex-1 border rounded px-3 py-2"
-          placeholder="Type your message…"
-          disabled={loading}
-        />
-        <input
-          type="file"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-black text-white px-4 py-2 rounded"
-        >
-          {loading ? "Sending…" : "Send"}
-        </button>
-      </form>
-    </div>
+    </main>
   );
 }
