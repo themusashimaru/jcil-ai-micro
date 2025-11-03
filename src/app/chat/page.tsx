@@ -23,14 +23,12 @@ export default function ChatPage() {
 
     const res = await fetch("/api/chat", { method: "POST", body: formData });
 
-    // ——— Explicit moderation handling (403) ———
+    // Explicit moderation handling
     if (res.status === 403) {
       const data = await res.json().catch(() => ({}));
       const text =
         data?.error ||
         "This message violates policy and cannot be processed.";
-
-      // show a red policy bubble
       const warn: ChatMessage = {
         id: `warn_${Date.now()}`,
         role: "assistant",
@@ -40,11 +38,11 @@ export default function ChatPage() {
       return "";
     }
 
+    // Normal success / errors
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.ok) {
       throw new Error(data?.error || "Unknown error");
     }
-
     return (data.reply as string) || "";
   }
 
@@ -72,10 +70,14 @@ export default function ChatPage() {
         setMessages((prev) => [...prev, bot]);
       }
     } catch (err: any) {
+      // Only show raw message, not “Sorry, an error occurred: ...”
+      const msg = err?.message?.includes("violates policy")
+        ? err.message
+        : `Sorry, an error occurred: ${err.message}`;
       const errMsg: ChatMessage = {
         id: `err_${Date.now()}`,
         role: "assistant",
-        content: `Sorry, an error occurred: ${err.message}`,
+        content: msg,
       };
       setMessages((prev) => [...prev, errMsg]);
     } finally {
@@ -98,7 +100,6 @@ export default function ChatPage() {
                 : isPolicy
                 ? "self-start bg-red-100 text-red-700 border border-red-300"
                 : "self-start bg-gray-100 text-gray-800";
-
             return (
               <div
                 key={m.id}
