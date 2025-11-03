@@ -1,72 +1,15 @@
+// src/middleware.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { rateLimiters, getClientIdentifier } from '@/lib/rate-limit';
 
 export async function middleware(request: NextRequest) {
-  // Get client identifier for rate limiting
-  const clientId = getClientIdentifier(request);
   const { pathname } = request.nextUrl;
 
-  // ============================================
-  // RATE LIMITING FOR SENSITIVE ENDPOINTS
-  // ============================================
-
-  // Login rate limiting: 5 attempts per 15 minutes
-  if (pathname === '/login' || pathname === '/api/auth/login') {
-    const result = rateLimiters.login(clientId);
-    if (!result.success) {
-      const resetDate = new Date(result.reset);
-      const minutesUntilReset = Math.ceil((result.reset - Date.now()) / 60000);
-      return NextResponse.json(
-        {
-          error: `Too many login attempts. Please try again in ${minutesUntilReset} minutes.`,
-          resetAt: resetDate.toISOString(),
-        },
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': result.limit.toString(),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': result.reset.toString(),
-          },
-        }
-      );
-    }
-  }
-
-  // Password reset rate limiting: 3 attempts per hour
-  if (pathname === '/forgot-password' || pathname === '/api/auth/reset-password') {
-    const result = rateLimiters.passwordReset(clientId);
-    if (!result.success) {
-      const minutesUntilReset = Math.ceil((result.reset - Date.now()) / 60000);
-      return NextResponse.json(
-        { error: `Too many password reset attempts. Please try again in ${minutesUntilReset} minutes.` },
-        { status: 429 }
-      );
-    }
-  }
-
-  // Signup rate limiting: 3 attempts per hour per IP
-  if (pathname === '/signup' || pathname === '/api/auth/signup') {
-    const result = rateLimiters.signup(clientId);
-    if (!result.success) {
-      const minutesUntilReset = Math.ceil((result.reset - Date.now()) / 60000);
-      return NextResponse.json(
-        { error: `Too many signup attempts. Please try again in ${minutesUntilReset} minutes.` },
-        { status: 429 }
-      );
-    }
-  }
-
-  // ============================================
-  // EXISTING MIDDLEWARE CODE (AUTH LOGIC)
-  // ============================================
-
+  // Auth redirects only (no page-level rate limiting)
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
 
-  // Create Supabase client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -91,6 +34,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession();
 
+  // Routes allowed for logged-out users
   const publicRoutes = [
     '/login',
     '/signup',
@@ -100,12 +44,14 @@ export async function middleware(request: NextRequest) {
     '/privacy',
   ];
 
+  // Not logged in → protect non-public pages
   if (!session && !publicRoutes.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
+  // Logged in → keep them off login/signup/etc (except callback)
   if (session && publicRoutes.includes(pathname) && pathname !== '/auth/callback') {
     const url = request.nextUrl.clone();
     url.pathname = '/';
@@ -115,7 +61,7 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// ✅ Updated matcher — allows robots.txt, sitemap.xml, og-image.png, etc
+// Allow static assets, icons, api, etc.
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|manifest.json|service-worker.js|robots.txt|sitemap.xml|icons/|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
