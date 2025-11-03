@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
 
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/browser';
 import { formatMessageTime } from '@/lib/format-date';
 
 import { Button } from '@/components/ui/button';
