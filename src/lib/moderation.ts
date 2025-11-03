@@ -1,220 +1,179 @@
-mkdir -p src/lib
-cat > src/lib/moderation.ts <<'EOF'
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+// ---------- ENV HELPERS ----------
+function need(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env: ${name}`);
+  return v;
+}
+
+const OPENAI_API_KEY = need("OPENAI_API_KEY");
+const SUPABASE_URL = need("NEXT_PUBLIC_SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = need("SUPABASE_SERVICE_ROLE_KEY");
+
+// Edge-safe OpenAI and Supabase clients
+const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
 });
 
-function supabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(url, anon);
-}
-
-type ModerationResult = {
+// ---------- TYPES ----------
+export type ModerationResult = {
   allowed: boolean;
   reason?: string;
-  action?: "block" | "flag";
-  categories?: Record<string, boolean>;
-  raw?: any;
-  logId?: string | null;
+  categories?: string[];
 };
 
-async function logModerationEvent(params: {
-  userId?: string | null;
-  inputType: "text" | "image";
-  text?: string | null;
-  categories?: Record<string, boolean> | null;
+// ---------- LOGGING ----------
+async function logModeration(opts: {
+  user_id: string;
+  input_text?: string | null;
+  has_image?: boolean;
   allowed: boolean;
   reason?: string | null;
-  raw?: any;
+  categories?: string[] | null;
 }) {
   try {
-    const s = supabase();
-    const { data, error } = await s.from("moderation_events").insert({
-      user_id: params.userId || null,
-      input_type: params.inputType,
-      text: params.text ?? null,
-      categories: params.categories ?? null,
-      allowed: params.allowed,
-      reason: params.reason ?? null,
-      raw: params.raw ?? null,
-    }).select("id").single();
-    if (error) return null;
-    return data?.id ?? null;
+    await sb.from("moderation_events").insert({
+      user_id: opts.user_id,
+      input_text: opts.input_text ?? null,
+      has_image: !!opts.has_image,
+      allowed: opts.allowed,
+      reason: opts.reason ?? null,
+      categories: opts.categories ?? null,
+    });
   } catch {
-    return null;
+    // swallow logging errors to avoid blocking requests
   }
 }
 
-export async function runModeration(input: {
-  userId?: string;
-  text?: string;
-  imageBase64?: string | null;
-}): Promise<ModerationResult> {
-  const results: ModerationResult[] = [];
+// ---------- TEXT MODERATION ----------
+async function moderateText(text: string): Promise<{
+  flagged: boolean;
+  reason?: string;
+  categories?: string[];
+}> {
+  if (!text || !text.trim()) return { flagged: false };
 
-  // Text moderation via OpenAI Moderations API
-  if (input.text && input.text.trim().length > 0) {
-    try {
-      const mod = await openai.moderations.create({
-        model: "omni-moderation-latest",
-        input: input.text,
-      });
-      const res = mod.results?.[0];
-      const flagged = !!res?.flagged;
-      const categories = res?.categories as Record<string, boolean> | undefined;
-      const reason = flagged ? "Text flagged by moderation." : undefined;
+  // OpenAI text moderation (omni-moderation-latest)
+  const resp = await openai.moderations.create({
+    model: "omni-moderation-latest",
+    input: text,
+  });
 
-      const logId = await logModerationEvent({
-        userId: input.userId ?? null,
-        inputType: "text",
-        text: input.text,
-        categories: categories ?? null,
-        allowed: !flagged,
-        reason: reason ?? null,
-        raw: mod,
-      });
-
-      results.push({
-        allowed: !flagged,
-        reason,
-        action: flagged ? "block" : undefined,
-        categories,
-        raw: mod,
-        logId,
-      });
-    } catch (e: any) {
-      const logId = await logModerationEvent({
-        userId: input.userId ?? null,
-        inputType: "text",
-        text: input.text,
-        categories: null,
-        allowed: false,
-        reason: "Moderation service error.",
-        raw: { error: e?.message || String(e) },
-      });
-      return {
-        allowed: false,
-        reason: "Moderation service error.",
-        action: "block",
-        logId,
-      };
-    }
-  }
-
-  // Image moderation via Responses with vision
-  if (input.imageBase64 && input.imageBase64.length > 0) {
-    try {
-      const rsp = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a strict safety classifier. Output JSON only with keys: allowed (boolean), reason (string), categories (object). If content is sexual minors, graphic sexual content, self-harm instructions, hate/violence incitement, illegal or dangerous activities, or explicit nudity, set allowed=false.",
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Classify this image for policy compliance." },
-              {
-                type: "image_url",
-                image_url: { url: `data:image/jpeg;base64,${input.imageBase64}` },
-              },
-            ],
-          },
-        ],
-        temperature: 0,
-      });
-
-      const txt = rsp.choices?.[0]?.message?.content ?? "{}";
-      let parsed: any = {};
-      try {
-        parsed = JSON.parse(txt);
-      } catch {
-        parsed = {};
-      }
-
-      const allowed = parsed?.allowed !== false;
-      const reason = parsed?.reason || (allowed ? undefined : "Image flagged by moderation.");
-      const categories = parsed?.categories || null;
-
-      const logId = await logModerationEvent({
-        userId: input.userId ?? null,
-        inputType: "image",
-        text: null,
-        categories,
-        allowed,
-        reason,
-        raw: rsp,
-      });
-
-      results.push({
-        allowed,
-        reason,
-        action: allowed ? undefined : "block",
-        categories,
-        raw: rsp,
-        logId,
-      });
-    } catch (e: any) {
-      const logId = await logModerationEvent({
-        userId: input.userId ?? null,
-        inputType: "image",
-        text: null,
-        categories: null,
-        allowed: false,
-        reason: "Image moderation error.",
-        raw: { error: e?.message || String(e) },
-      });
-      return {
-        allowed: false,
-        reason: "Image moderation error.",
-        action: "block",
-        logId,
-      };
-    }
-  }
-
-  if (results.length === 0) {
-    return { allowed: true };
-  }
-
-  const anyBlocked = results.some(r => r.allowed === false);
-  if (anyBlocked) {
-    const first = results.find(r => r.allowed === false)!;
-    return {
-      allowed: false,
-      reason: first.reason || "Content violates policy.",
-      action: "block",
-      categories: first.categories,
-      raw: first.raw,
-      logId: first.logId ?? null,
-    };
-  }
+  const result = resp.results?.[0] as any;
+  const flagged = !!result?.flagged;
+  const catsObj = result?.categories ?? {};
+  const categories = Object.keys(catsObj).filter((k) => catsObj[k] === true);
 
   return {
-    allowed: true,
-    categories: Object.assign({}, ...results.map(r => r.categories || {})),
+    flagged,
+    reason: flagged ? "Text content flagged by moderation." : undefined,
+    categories: categories.length ? categories : undefined,
   };
 }
 
-/** 3-arg wrapper to preserve existing imports/call sites */
-export async function moderateAllContent(
-  userId: string,
-  text?: string | null,
-  imageBase64?: string | null
-) {
-  return runModeration({
-    userId,
-    text: text ?? undefined,
-    imageBase64: imageBase64 ?? undefined,
+// ---------- IMAGE MODERATION ----------
+/**
+ * We ask a small vision model to respond with strict JSON only.
+ * This keeps it fast and deterministic for a "pass/block" decision.
+ */
+async function moderateImage(base64: string): Promise<{
+  flagged: boolean;
+  reason?: string;
+  categories?: string[];
+}> {
+  if (!base64) return { flagged: false };
+
+  const system = [
+    "You are a safety classifier.",
+    "Return ONLY compact JSON with keys: unsafe (boolean), categories (array of short strings).",
+    'Example: {"unsafe": false, "categories": []}',
+    "Unsafe if it contains sexual minors/CSAM, explicit nudity, graphic sexual content, extreme violence/gore, self-harm instructions, terrorism praise or instructions, hate/harassment, or illegal activities.",
+  ].join(" ");
+
+  const userContent = [
+    { type: "input_text", text: "Classify this image for safety." },
+    {
+      type: "input_image",
+      image_url: { url: `data:image/*;base64,${base64}` },
+    },
+  ] as any;
+
+  // Using Responses API for structured JSON-only output
+  const completion = await openai.responses.create({
+    model: "gpt-4o-mini",
+    input: [
+      { role: "system", content: [{ type: "input_text", text: system }] },
+      { role: "user", content: userContent },
+    ],
+    reasoning: { effort: "low" },
+    temperature: 0,
+    max_output_tokens: 150,
   });
+
+  const textOut =
+    (completion.output?.[0] as any)?.content?.[0]?.text ??
+    (completion.output_text ?? "").trim();
+
+  let unsafe = false;
+  let cats: string[] = [];
+  try {
+    const parsed = JSON.parse(textOut);
+    unsafe = !!parsed.unsafe;
+    if (Array.isArray(parsed.categories)) cats = parsed.categories;
+  } catch {
+    // Fallback: if the model didn't return JSON, fail closed to be safe
+    unsafe = true;
+    cats = ["model_non_json"];
+  }
+
+  return {
+    flagged: unsafe,
+    reason: unsafe ? "Image content flagged by moderation." : undefined,
+    categories: cats.length ? cats : undefined,
+  };
 }
 
-/** Legacy alias to keep older imports working */
-export { runModeration as moderateAllContentAlias };
-EOF
+// ---------- PUBLIC API ----------
+export async function runModeration(
+  userId: string,
+  text: string,
+  imageBase64?: string | null
+): Promise<ModerationResult> {
+  // Evaluate both (if present) and block if any is flagged
+  const [t, i] = await Promise.all([
+    moderateText(text || ""),
+    imageBase64 ? moderateImage(imageBase64) : Promise.resolve({ flagged: false } as any),
+  ]);
+
+  const flagged = t.flagged || i.flagged;
+
+  // Merge reasons/categories (dedupe)
+  const reasons = [t.reason, i.reason].filter(Boolean) as string[];
+  const categories = Array.from(
+    new Set([...(t.categories || []), ...(i.categories || [])])
+  );
+
+  const result: ModerationResult = {
+    allowed: !flagged,
+    reason: flagged ? reasons.join(" | ") || "Policy violation." : undefined,
+    categories: categories.length ? categories : undefined,
+  };
+
+  // Log to Supabase (non-blocking)
+  logModeration({
+    user_id: userId,
+    input_text: text || null,
+    has_image: !!imageBase64,
+    allowed: result.allowed,
+    reason: result.reason ?? null,
+    categories: result.categories ?? null,
+  });
+
+  return result;
+}
+
+// Backward-compat export
+export { runModeration as moderateAllContent };
