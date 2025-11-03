@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     const userId = await getUserId();
 
     // --- MODERATION (text + image) ---
-    const moderation = await moderateAllContent(userId, text || "", imageBase64);
+    const moderation = await moderateAllContent(text || "", imageBase64, { userId: userId || undefined, ip: req.headers.get("x-forwarded-for") || undefined });
     if (!moderation.allowed) {
       return json(403, {
         ok: false,
