@@ -1,82 +1,117 @@
 // src/app/api/chat/route.ts
-import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { NextRequest, NextResponse } from "next/server";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+// Expect the xAI API key in Vercel/Env as XAI_API_KEY
+const XAI_API_KEY = process.env.XAI_API_KEY;
+if (!XAI_API_KEY) console.error("Missing XAI_API_KEY on server.");
 
-export async function POST(req: Request) {
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
+
+export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
     let message = "";
-    let file: File | null = null;
+    let imageFile: File | null = null;
 
-    // Handle both multipart (file uploads) and JSON
+    // Handle multipart (text + file)
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
-      message = (formData.get("message") as string) || "";
-      const maybeFile = formData.get("file");
-      if (maybeFile && typeof maybeFile !== "string") file = maybeFile;
+      const msg = formData.get("message");
+      if (typeof msg === "string") message = msg.trim();
+
+      const file = formData.get("file");
+      if (file && typeof file !== "string") {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+          return NextResponse.json(
+            { ok: false, error: "Unsupported image type." },
+            { status: 400 }
+          );
+        }
+        imageFile = file;
+      }
     } else {
-      const body = await req.json().catch(() => ({}));
-      message = body.message || "";
+      const body = await req.json().catch(() => ({} as any));
+      if (typeof body.message === "string") message = body.message.trim();
     }
 
-    if (!message && !file) {
+    if (!message && !imageFile) {
       return NextResponse.json(
         { ok: false, error: "Message or image required." },
         { status: 400 }
       );
     }
 
-    // Limit overly long text
-    if (message.length > 4000) {
-      message = message.slice(0, 4000) + " ...[truncated]";
-    }
-
-    // Convert image to base64 if provided
+    // Convert image to base64 if exists
     let imageBase64: string | undefined;
-    let mimeType: string | undefined;
-    if (file) {
-      const buffer = Buffer.from(await file.arrayBuffer());
+    let imageMime: string | undefined;
+    if (imageFile) {
+      const buffer = Buffer.from(await imageFile.arrayBuffer());
       imageBase64 = buffer.toString("base64");
-      mimeType = file.type;
+      imageMime = imageFile.type;
     }
 
-    // Construct multimodal message for GPT-4o
+    // Build multimodal content (text + optional image)
     const content: any[] = [];
     if (message) content.push({ type: "text", text: message });
-    if (imageBase64 && mimeType) {
+    if (imageBase64 && imageMime) {
       content.push({
         type: "image_url",
-        image_url: { url: `data:${mimeType};base64,${imageBase64}` },
+        image_url: { url: `data:${imageMime};base64,${imageBase64}` },
       });
     }
 
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      temperature: 0.3,
-      max_tokens: 500,
+    // Construct xAI request body
+    const payload = {
+      model: "grok-4-fast", // or "grok-4-latest" if you want that variant
       messages: [
         {
           role: "system",
           content:
-            "You are an assistant that interprets screenshots, logs, or code. Always respond in plain English with an explanation of what’s happening and what the user should do next.",
+            "You are a helpful, accurate assistant. If an image is provided, analyze it carefully and explain or extract relevant information clearly.",
         },
-        { role: "user", content },
+        {
+          role: "user",
+          content,
+        },
       ],
+      temperature: 0.3,
+      max_tokens: 1200,
+      stream: false,
+    };
+
+    // Send to xAI API
+    const response = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${XAI_API_KEY}`,
+      },
+      body: JSON.stringify(payload),
     });
 
-    const reply =
-      response.choices?.[0]?.message?.content ||
-      "I'm here — how can I assist you today?";
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("xAI error:", err);
+      return NextResponse.json(
+        { ok: false, error: "xAI API error", detail: err },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content || "";
 
     return NextResponse.json({ ok: true, reply }, { status: 200 });
-  } catch (error: any) {
-    console.error("Error in /api/chat:", error);
+  } catch (err: any) {
+    console.error("Error in /api/chat:", err);
     return NextResponse.json(
-      { ok: false, error: error.message || "Internal Server Error" },
+      { ok: false, error: err.message || "Internal error." },
       { status: 500 }
     );
   }
@@ -85,8 +120,6 @@ export async function POST(req: Request) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    route: "/api/chat",
-    model: "gpt-4o",
-    status: "ready for image + text interpretation",
+    route: "/api/chat (xAI Grok 4 Fast)",
   });
 }
