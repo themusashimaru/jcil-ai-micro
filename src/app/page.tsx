@@ -1,4 +1,3 @@
-// src/app/page.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -42,6 +41,15 @@ import {
   Send,
 } from 'lucide-react';
 
+interface MessageRow {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+  conversation_id: string;
+  user_id: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -53,17 +61,10 @@ interface Conversation {
   id: string;
   created_at: string;
   title?: string | null;
+  user_id?: string;
 }
 
-type ActiveTool =
-  | 'none'
-  | 'textMessageTool'
-  | 'emailWriter:highschool'
-  | 'emailWriter:bachelor'
-  | 'emailWriter:skilledtrade'
-  | 'emailWriter:masters'
-  | 'emailWriter:phd'
-  | 'ingredientExtractor';
+type ActiveTool = 'none' | 'textMessageTool' | 'emailWriter' | 'recipeExtractor';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -111,16 +112,11 @@ export default function Home() {
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
 
-  // recording + simple voice activity detection (VAD)
+  // recording
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const silenceStartRef = useRef<number | null>(null);
-  const vadRAF = useRef<number | null>(null);
 
   // ui refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -156,31 +152,24 @@ export default function Home() {
     return 'How can I help you this evening?';
   };
 
-  const toolLabel = (tool: ActiveTool) => {
-    switch (tool) {
-      case 'none': return 'Plain Chat';
-      case 'textMessageTool': return 'Text Message Tool';
-      case 'emailWriter:highschool': return 'Email Writer · High School';
-      case 'emailWriter:bachelor': return 'Email Writer · Bachelor';
-      case 'emailWriter:skilledtrade': return 'Email Writer · Skilled Trade';
-      case 'emailWriter:masters': return 'Email Writer · Master’s';
-      case 'emailWriter:phd': return 'Email Writer · PhD';
-      case 'ingredientExtractor': return 'Ingredient Extractor';
-      default: return 'Plain Chat';
-    }
-  };
-
   const renderCheck = (tool: ActiveTool) =>
     activeTool === tool ? <Check className="ml-auto h-4 w-4" strokeWidth={2} /> : null;
+
+  const toolLabel = (tool: ActiveTool) => {
+    if (tool === 'textMessageTool') return 'Text Message Tool';
+    if (tool === 'emailWriter') return 'Email Writer';
+    if (tool === 'recipeExtractor') return 'Ingredient Extractor';
+    return 'Plain Chat';
+  };
 
   const getPlaceholderText = () => {
     if (isTranscribing) return 'Transcribing audio...';
     if (isLoading) return 'AI is thinking...';
     if (isRecording) return 'Begin speaking…';
     if (attachedFileName) return 'Describe the file or add text...';
-    if (activeTool.startsWith('emailWriter')) return 'Using Email Writer...';
     if (activeTool === 'textMessageTool') return 'Using Text Message Tool...';
-    if (activeTool === 'ingredientExtractor') return 'Using Ingredient Extractor...';
+    if (activeTool === 'emailWriter') return 'Using Email Writer...';
+    if (activeTool === 'recipeExtractor') return 'Using Ingredient Extractor...';
     return 'Type your message...';
   };
 
@@ -198,7 +187,6 @@ export default function Home() {
       console.error('fetchUnreadCount error:', error);
       return;
     }
-
     setUnreadCount(count ?? 0);
   }, []);
 
@@ -219,10 +207,7 @@ export default function Home() {
     };
 
     run();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [fetchUnreadCount]);
 
   useEffect(() => {
@@ -238,31 +223,22 @@ export default function Home() {
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
-          fetchUnreadCount();
-        },
+        () => { fetchUnreadCount(); },
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user, fetchUnreadCount]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  useEffect(() => { scrollToBottom(); }, [messages, isTyping]);
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
   const fetchConversations = async (userId: string) => {
     setHistoryIsLoading(true);
     const { data, error } = await supabase
       .from('conversations')
-      .select('id, created_at, title')
-      .eq('user_id', userId)
+      .select('id, created_at, title, user_id')
+      .eq('user_id', userId) // filter by owner
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -276,39 +252,41 @@ export default function Home() {
 
   const loadConversation = async (id: string) => {
     if (isLoading || renamingId === id) return;
+    if (!user) return;
 
-    if (isRecording) stopRecordingPipeline();
+    if (isRecording) mediaRecorderRef.current?.stop();
     setIsRecording(false);
     setIsTranscribing(false);
     setIsLoading(true);
     setMessages([]);
     setRenamingId(null);
     clearAttachmentState();
+    setActiveTool('none');
     setIsTyping(false);
     setIsSidebarOpen(false);
 
+    // Only load messages that belong to the signed-in user
     const { data, error } = await supabase
       .from('messages')
       .select('id, role, content, created_at')
       .eq('conversation_id', id)
+      .eq('user_id', user.id) // 🔒 important for RLS
       .order('created_at', { ascending: true });
 
     if (error) {
       console.error('loadConversation error:', error);
       setMessages([{ id: 'err', role: 'assistant', content: 'Error loading conversation.' }]);
-      setIsLoading(false);
-      return;
+    } else {
+      const loaded = (data ?? []).map((m) => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        created_at: m.created_at,
+      }));
+      setMessages(loaded);
+      setConversationId(id);
     }
 
-    const loaded = (data ?? []).map((m) => ({
-      id: m.id,
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-      created_at: m.created_at,
-    }));
-
-    setMessages(loaded);
-    setConversationId(id);
     setIsLoading(false);
     inputRef.current?.focus();
   };
@@ -319,7 +297,8 @@ export default function Home() {
     setLocalInput('');
     setRenamingId(null);
     clearAttachmentState();
-    if (isRecording) stopRecordingPipeline();
+    setActiveTool('none');
+    if (isRecording) mediaRecorderRef.current?.stop();
     setIsRecording(false);
     setIsTranscribing(false);
     inputRef.current?.focus();
@@ -404,7 +383,6 @@ export default function Home() {
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
-
       if (file.size > MAX_FILE_SIZE) {
         const maxMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
         alert(`File is too large. Max ${maxMB}MB`);
@@ -420,25 +398,19 @@ export default function Home() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeAttachedFile = () => {
-    clearAttachmentState();
-  };
+  const removeAttachedFile = () => { clearAttachmentState(); };
 
+  // --------- AUDIO (unchanged behavior: manual send after transcript) ----------
   const handleTranscribe = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
 
     try {
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-
+      const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
       const data = await response.json();
-
       if (response.ok) {
-        setLocalInput((prev) => (prev + (prev ? ' ' : '') + data.text).trim());
+        setLocalInput((prev) => (prev + ' ' + data.text).trim());
         setTimeout(resizeTextarea, 0);
       } else {
         alert(`Transcription failed: ${data.error || 'Unknown error'}`);
@@ -452,82 +424,12 @@ export default function Home() {
     }
   };
 
-  // ---- basic VAD (silence ~3s) then stop, do NOT auto-send ----
-  const startVAD = (stream: MediaStream) => {
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioCtxRef.current = audioCtx;
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 2048;
-      analyserRef.current = analyser;
-
-      const source = audioCtx.createMediaStreamSource(stream);
-      sourceRef.current = source;
-      source.connect(analyser);
-
-      const data = new Float32Array(analyser.fftSize);
-      const SILENCE_THRESHOLD = 0.01; // RMS
-      const SILENCE_MS = 3000;
-
-      const tick = () => {
-        analyser.getFloatTimeDomainData(data);
-        // Compute RMS
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
-        const rms = Math.sqrt(sum / data.length);
-
-        const now = performance.now();
-        if (rms < SILENCE_THRESHOLD) {
-          if (silenceStartRef.current === null) silenceStartRef.current = now;
-          else if (now - (silenceStartRef.current || 0) > SILENCE_MS) {
-            // Stop due to sustained silence
-            stopRecordingPipeline();
-            return;
-          }
-        } else {
-          silenceStartRef.current = null;
-        }
-
-        vadRAF.current = requestAnimationFrame(tick);
-      };
-
-      silenceStartRef.current = null;
-      vadRAF.current = requestAnimationFrame(tick);
-    } catch (e) {
-      console.warn('VAD init failed, ignoring:', e);
-    }
-  };
-
-  const stopRecordingPipeline = () => {
-    try {
-      mediaRecorderRef.current?.stop();
-    } catch {}
-    setIsRecording(false);
-
-    if (vadRAF.current) cancelAnimationFrame(vadRAF.current);
-    vadRAF.current = null;
-
-    try {
-      sourceRef.current?.disconnect();
-    } catch {}
-    try {
-      analyserRef.current?.disconnect();
-    } catch {}
-    try {
-      audioCtxRef.current?.close();
-    } catch {}
-
-    sourceRef.current = null;
-    analyserRef.current = null;
-    audioCtxRef.current = null;
-    silenceStartRef.current = null;
-  };
-
   const handleMicClick = async () => {
     if (isLoading || isTranscribing) return;
 
     if (isRecording) {
-      stopRecordingPipeline();
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
       return;
     }
 
@@ -552,8 +454,6 @@ export default function Home() {
       };
 
       mediaRecorder.start();
-      // Start our RMS-based silence detector
-      startVAD(stream);
     } catch (error) {
       console.error('mic error:', error);
       alert('Microphone access denied.');
@@ -578,80 +478,81 @@ export default function Home() {
     setTimeout(() => setToolButtonFlash(false), 200);
   };
 
-  // When changing tools, start a NEW chat to avoid confusion
-  const selectTool = (tool: ActiveTool) => {
-    if (tool !== activeTool) {
-      setActiveTool(tool);
-      handleNewChat();
-    }
-  };
-
-  // ---- CHAT SEND LOGIC (persists messages to Supabase) ----
+  // ---- CHAT SEND LOGIC (writes user_id on every insert) ----
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (isLoading || isTranscribing || isRecording) return;
 
+    // must be signed in to write rows under RLS
+    if (!user) {
+      alert('Please sign in to chat.');
+      return;
+    }
+
     const textInput = localInput.trim();
     const hasFile = !!uploadedFile;
     const hasText = textInput.length > 0;
-    if (!hasText && !hasFile) return;
 
-    if (isRecording) stopRecordingPipeline();
+    if (!hasText && !hasFile) return;
+    if (isRecording) mediaRecorderRef.current?.stop();
 
     setIsLoading(true);
     setIsTyping(false);
 
-    const userVisibleText = hasText ? textInput : `[Image: ${attachedFileName}]`;
+    const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
 
-    try {
-      // Ensure conversation exists (so message rows can reference it)
-      let currentConvoId = conversationId;
-
-      if (!currentConvoId && user) {
-        const title = userVisibleText.substring(0, 40) + '...';
-        const { data: newConvo, error: convError } = await supabase
-          .from('conversations')
-          .insert({ user_id: user.id, title })
-          .select('id, created_at, title')
-          .single();
-
-        if (convError || !newConvo) {
-          throw new Error(convError?.message || 'Failed to create conversation');
-        }
-
-        currentConvoId = newConvo.id;
-        setConversationId(newConvo.id);
-        setConversations((prev) => [newConvo, ...prev]);
-      }
-
-      // Insert USER message
-      const { data: userMsgInsert, error: userMsgErr } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: currentConvoId,
-          role: 'user',
-          content: userVisibleText,
-        })
-        .select('id, created_at')
+    // ensure conversation exists (with user_id)
+    let currentConvoId = conversationId;
+    if (!currentConvoId) {
+      const title = userMsgText.substring(0, 40) + '...';
+      const { data: newConvo, error: convError } = await supabase
+        .from('conversations')
+        .insert({ user_id: user.id, title })  // ✅ include user_id
+        .select('id, created_at, title, user_id')
         .single();
 
-      if (userMsgErr || !userMsgInsert) {
-        throw new Error(userMsgErr?.message || 'Failed to save user message');
+      if (convError) {
+        console.error('conversation insert error:', convError);
+        setIsLoading(false);
+        alert('Failed to start a conversation.');
+        return;
       }
+      currentConvoId = newConvo.id;
+      setConversationId(newConvo.id);
+      setConversations((prev) => [newConvo, ...prev]);
+    }
 
-      const newUserMessage: Message = {
-        id: userMsgInsert.id,
-        role: 'user',
-        content: userVisibleText,
-        created_at: userMsgInsert.created_at,
-      };
-      setMessages((prev) => [...prev, newUserMessage]);
+    // locally display user message
+    const newUserMessage: Message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      role: 'user',
+      content: userMsgText,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, newUserMessage]);
+    setLocalInput('');
+    clearAttachmentState();
 
-      // Clear composer + attachments
-      setLocalInput('');
-      clearAttachmentState();
+    // persist user message with user_id
+    const { error: insertUserErr } = await supabase.from('messages').insert({
+      user_id: user.id,                    // ✅ include user_id
+      conversation_id: currentConvoId,
+      role: 'user',
+      content: userMsgText,
+    });
 
-      // Call your API
+    if (insertUserErr) {
+      console.error('insert user message error:', insertUserErr);
+      setIsLoading(false);
+      setMessages((prev) => [
+        ...prev,
+        { id: `err_${Date.now()}`, role: 'assistant', content: 'Error saving your message.' },
+      ]);
+      return;
+    }
+
+    try {
+      // call your chat API
       let response: Response;
       if (hasFile) {
         const formData = new FormData();
@@ -671,30 +572,28 @@ export default function Home() {
         throw new Error(data.error || 'Error from /api/chat');
       }
 
-      const assistantText: string = data.reply || '';
+      const assistantText: string = data.reply ?? '';
 
-      // Insert ASSISTANT message
-      const { data: asstMsgInsert, error: asstMsgErr } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: currentConvoId,
-          role: 'assistant',
-          content: assistantText,
-        })
-        .select('id, created_at')
-        .single();
-
-      if (asstMsgErr || !asstMsgInsert) {
-        throw new Error(asstMsgErr?.message || 'Failed to save assistant message');
-      }
-
+      // show assistant reply
       const assistantMessage: Message = {
-        id: asstMsgInsert.id,
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
         role: 'assistant',
         content: assistantText,
-        created_at: asstMsgInsert.created_at,
+        created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // persist assistant reply with user_id
+      const { error: insertAsstErr } = await supabase.from('messages').insert({
+        user_id: user.id,                    // ✅ include user_id
+        conversation_id: currentConvoId,
+        role: 'assistant',
+        content: assistantText,
+      });
+      if (insertAsstErr) {
+        console.error('insert assistant message error:', insertAsstErr);
+      }
+
     } catch (error: any) {
       console.error('chat send error:', error);
       setMessages((prev) => [
@@ -717,10 +616,7 @@ export default function Home() {
     <div className="flex h-screen bg-white overflow-hidden">
       {/* mobile overlay */}
       {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
       )}
 
       {/* sidebar */}
@@ -956,7 +852,7 @@ export default function Home() {
                     }}
                   />
                 </div>
-                <h2 className="text-lg sm:text-xl font-semibold text-blue-900 text-center">slingshot 2.0</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-blue-900">slingshot 2.0</h2>
                 <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
                   {getTimeBasedGreeting()}
                 </p>
@@ -1065,9 +961,7 @@ export default function Home() {
                     variant="ghost"
                     size="icon"
                     disabled={isLoading}
-                    className={`hover:bg-slate-100 rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${
-                      fileButtonFlash ? 'bg-slate-200' : ''
-                    }`}
+                    className={`hover:bg-slate-100 rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${fileButtonFlash ? 'bg-slate-200' : ''}`}
                     title="Attach file or take photo"
                   >
                     <Paperclip className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700" strokeWidth={2} />
@@ -1093,7 +987,7 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* TOOL PICKER (icon-only wrench, light theme beside composer) */}
+              {/* tool picker (icon-only wrench) */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -1101,11 +995,9 @@ export default function Home() {
                     variant="ghost"
                     size="icon"
                     disabled={isLoading}
-                    onClick={handleToolButtonClick}
-                    className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 ${
-                      toolButtonFlash ? 'ring-2 ring-slate-200' : ''
-                    }`}
+                    className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 ${toolButtonFlash ? 'ring-2 ring-slate-200' : ''}`}
                     title="Pick a tool"
+                    onClick={handleToolButtonClick}
                   >
                     <Wrench className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2} />
                   </Button>
@@ -1121,14 +1013,14 @@ export default function Home() {
                   </DropdownMenuLabel>
 
                   <DropdownMenuItem
-                    onClick={() => selectTool('none')}
+                    onClick={() => setActiveTool('none')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Plain Chat {renderCheck('none')}
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onClick={() => selectTool('textMessageTool')}
+                    onClick={() => setActiveTool('textMessageTool')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Text Message Tool {renderCheck('textMessageTool')}
@@ -1140,42 +1032,42 @@ export default function Home() {
                   </DropdownMenuLabel>
 
                   <DropdownMenuItem
-                    onClick={() => selectTool('emailWriter:highschool')}
+                    onClick={() => setActiveTool('emailWriter')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · High School {renderCheck('emailWriter:highschool')}
+                    Email Writer · High School
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => selectTool('emailWriter:bachelor')}
+                    onClick={() => setActiveTool('emailWriter')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Bachelor {renderCheck('emailWriter:bachelor')}
+                    Email Writer · Bachelor
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => selectTool('emailWriter:skilledtrade')}
+                    onClick={() => setActiveTool('emailWriter')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Skilled Trade {renderCheck('emailWriter:skilledtrade')}
+                    Email Writer · Skilled Trade
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => selectTool('emailWriter:masters')}
+                    onClick={() => setActiveTool('emailWriter')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Master’s {renderCheck('emailWriter:masters')}
+                    Email Writer · Master’s
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => selectTool('emailWriter:phd')}
+                    onClick={() => setActiveTool('emailWriter')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · PhD {renderCheck('emailWriter:phd')}
+                    Email Writer · PhD
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="my-1 bg-slate-200" />
                   <DropdownMenuItem
-                    onClick={() => selectTool('ingredientExtractor')}
+                    onClick={() => setActiveTool('recipeExtractor')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Ingredient Extractor {renderCheck('ingredientExtractor')}
+                    Ingredient Extractor {renderCheck('recipeExtractor')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1191,7 +1083,7 @@ export default function Home() {
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck
-                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[180px] sm:max-h-[220px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none px-3 sm:px-4 py-2.5 sm:py-3 text-slate-900"
+                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none px-3 sm:px-4 py-2.5 sm:py-3 text-slate-900"
                   rows={1}
                   onKeyDown={handleTextareaKeyDown}
                 />
@@ -1209,11 +1101,7 @@ export default function Home() {
                   } rounded-lg`}
                   title={isRecording ? 'Stop recording' : 'Start recording'}
                 >
-                  {isTranscribing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Mic className="h-4 w-4" strokeWidth={2} />
-                  )}
+                  {isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" strokeWidth={2} />}
                 </Button>
 
                 <Button
@@ -1221,11 +1109,7 @@ export default function Home() {
                   disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
                   className="h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 text-white rounded-lg flex items-center justify-center"
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
-                  ) : (
-                    <Send className="h-4 w-4" strokeWidth={2} />
-                  )}
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> : <Send className="h-4 w-4" strokeWidth={2} />}
                 </Button>
               </div>
             </div>
