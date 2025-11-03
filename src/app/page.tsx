@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -34,11 +35,11 @@ import {
   Loader2,
   File as FileIcon,
   X as XIcon,
+  Wrench,
   Check,
   ClipboardCopy,
   Menu,
   Send,
-  Sparkles,
 } from 'lucide-react';
 
 interface Message {
@@ -54,25 +55,7 @@ interface Conversation {
   title?: string | null;
 }
 
-/**
- * tools:
- * - none
- * - textMessageTool
- * - emailWriter
- * - ingredientExtractor
- */
-type ActiveTool = 'none' | 'textMessageTool' | 'emailWriter' | 'ingredientExtractor';
-
-/**
- * email levels for emailWriter
- */
-type EmailLevel =
-  | 'none'
-  | 'highschool'
-  | 'bachelor'
-  | 'bluecollar'
-  | 'masters'
-  | 'phd';
+type ActiveTool = 'none' | 'textMessageTool' | 'emailWriterHS' | 'emailWriterBA' | 'emailWriterSkilled' | 'emailWriterMS' | 'emailWriterPhD' | 'ingredientExtractor';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -116,7 +99,6 @@ export default function Home() {
 
   // tools / files
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
-  const [emailLevel, setEmailLevel] = useState<EmailLevel>('none');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
@@ -126,12 +108,11 @@ export default function Home() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-
-  // for silence detection
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const silenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const silenceTimerRef = useRef<number | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // ui refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -140,6 +121,7 @@ export default function Home() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [fileButtonFlash, setFileButtonFlash] = useState(false);
+  const [toolButtonFlash, setToolButtonFlash] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const scrollToBottom = () => {
@@ -166,22 +148,37 @@ export default function Home() {
     return 'How can I help you this evening?';
   };
 
+  const toolLabel = (tool: ActiveTool) => {
+    switch (tool) {
+      case 'textMessageTool': return 'Text Message Tool';
+      case 'emailWriterHS': return 'Email Writer · High School';
+      case 'emailWriterBA': return 'Email Writer · Bachelor';
+      case 'emailWriterSkilled': return 'Email Writer · Skilled Trade';
+      case 'emailWriterMS': return 'Email Writer · Master’s';
+      case 'emailWriterPhD': return 'Email Writer · PhD';
+      case 'ingredientExtractor': return 'Ingredient Extractor';
+      default: return 'Plain Chat';
+    }
+  };
+
+  const renderCheck = (tool: ActiveTool) =>
+    activeTool === tool ? <Check className="ml-auto h-4 w-4" strokeWidth={2} /> : null;
+
   const getPlaceholderText = () => {
     if (isTranscribing) return 'Transcribing audio...';
     if (isLoading) return 'AI is thinking...';
-    if (isRecording) return 'Listening... stop talking to send.';
+    if (isRecording) return 'Begin speaking…';
     if (attachedFileName) return 'Describe the file or add text...';
-    if (activeTool === 'textMessageTool') return 'Text Message Tool: tell me what to write.';
-    if (activeTool === 'emailWriter') {
-      if (emailLevel === 'highschool') return 'Email Writer (High School): what do you want to say?';
-      if (emailLevel === 'bachelor') return 'Email Writer (Bachelor): what do you want to say?';
-      if (emailLevel === 'bluecollar') return 'Email Writer (Skilled Trade): what do you want to say?';
-      if (emailLevel === 'masters') return 'Email Writer (Master’s): what do you want to say?';
-      if (emailLevel === 'phd') return 'Email Writer (PhD): what do you want to say?';
-      return 'Email Writer: what do you want to say?';
+    switch (activeTool) {
+      case 'textMessageTool': return 'Using Text Message Tool...';
+      case 'emailWriterHS': return 'Email Writer · High School...';
+      case 'emailWriterBA': return 'Email Writer · Bachelor...';
+      case 'emailWriterSkilled': return 'Email Writer · Skilled Trade...';
+      case 'emailWriterMS': return 'Email Writer · Master’s...';
+      case 'emailWriterPhD': return 'Email Writer · PhD...';
+      case 'ingredientExtractor': return 'Describe the recipe or attach a photo...';
+      default: return 'Type your message...';
     }
-    if (activeTool === 'ingredientExtractor') return 'Ingredient Extractor: upload a recipe or describe your meal.';
-    return 'Type your message...';
   };
 
   const fetchUnreadCount = useCallback(async () => {
@@ -202,7 +199,6 @@ export default function Home() {
     setUnreadCount(count ?? 0);
   }, []);
 
-  // ---- initial load ----
   useEffect(() => {
     let mounted = true;
 
@@ -226,7 +222,6 @@ export default function Home() {
     };
   }, [fetchUnreadCount]);
 
-  // ---- notifications RT ----
   useEffect(() => {
     if (!user) return;
 
@@ -279,13 +274,13 @@ export default function Home() {
   const loadConversation = async (id: string) => {
     if (isLoading || renamingId === id) return;
 
-    stopRecordingIfNeeded();
+    if (isRecording) mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+    setIsTranscribing(false);
     setIsLoading(true);
     setMessages([]);
     setRenamingId(null);
     clearAttachmentState();
-    setActiveTool('none');
-    setEmailLevel('none');
     setIsTyping(false);
     setIsSidebarOpen(false);
 
@@ -313,25 +308,30 @@ export default function Home() {
     inputRef.current?.focus();
   };
 
+  const startNewChatForTool = (tool: ActiveTool) => {
+    // switch tool and start a clean conversation to avoid confusion
+    setActiveTool(tool);
+    setMessages([]);
+    setConversationId(null);
+    setLocalInput('');
+    clearAttachmentState();
+    setIsTyping(false);
+    inputRef.current?.focus();
+  };
+
   const handleNewChat = () => {
     setMessages([]);
     setConversationId(null);
     setLocalInput('');
     setRenamingId(null);
     clearAttachmentState();
-    stopRecordingIfNeeded();
     setActiveTool('none');
-    setEmailLevel('none');
+    if (isRecording) mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+    setIsTranscribing(false);
     inputRef.current?.focus();
     setIsTyping(false);
     setIsSidebarOpen(false);
-  };
-
-  const startNewChatForTool = (tool: ActiveTool, level: EmailLevel = 'none') => {
-    // when switching tools, we start a fresh chat
-    handleNewChat();
-    setActiveTool(tool);
-    setEmailLevel(level);
   };
 
   const handleDelete = async (id: string) => {
@@ -425,33 +425,30 @@ export default function Home() {
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
-    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const removeAttachedFile = () => {
     clearAttachmentState();
   };
 
-  const stopRecordingIfNeeded = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-    if (silenceTimeoutRef.current) {
-      clearTimeout(silenceTimeoutRef.current);
-      silenceTimeoutRef.current = null;
-    }
+  // ---------- AUDIO: stop on silence, no auto-send ----------
+  const stopAllAudio = () => {
+    mediaRecorderRef.current?.stop();
+    streamRef.current?.getTracks().forEach((t) => t.stop());
     if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
+      audioContextRef.current.close().catch(() => {});
     }
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
-      mediaStreamRef.current = null;
+    audioContextRef.current = null;
+    analyserRef.current = null;
+    sourceRef.current = null;
+    if (silenceTimerRef.current) {
+      window.clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
     }
     setIsRecording(false);
   };
 
-  const handleTranscribe = async (audioBlob: Blob, autoSend: boolean) => {
+  const handleTranscribe = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
@@ -465,16 +462,8 @@ export default function Home() {
       const data = await response.json();
 
       if (response.ok) {
-        if (autoSend) {
-          // put text in box and send right away
-          setLocalInput(data.text);
-          setTimeout(() => {
-            handleFormSubmit();
-          }, 50);
-        } else {
-          setLocalInput((prev) => (prev + ' ' + data.text).trim());
-          setTimeout(resizeTextarea, 0);
-        }
+        setLocalInput((prev) => (prev + ' ' + data.text).trim());
+        setTimeout(resizeTextarea, 0);
       } else {
         alert(`Transcription failed: ${data.error || 'Unknown error'}`);
       }
@@ -487,68 +476,24 @@ export default function Home() {
     }
   };
 
-  const startSilenceDetection = (onSilence: () => void) => {
-    const audioContext = audioContextRef.current;
-    const analyser = analyserRef.current;
-    const stream = mediaStreamRef.current;
-    if (!audioContext || !analyser || !stream) return;
-
-    const dataArray = new Uint8Array(analyser.fftSize);
-
-    const check = () => {
-      analyser.getByteTimeDomainData(dataArray);
-
-      let maxDeviation = 0;
-      for (let i = 0; i < dataArray.length; i++) {
-        const deviation = Math.abs(dataArray[i] - 128);
-        if (deviation > maxDeviation) maxDeviation = deviation;
-      }
-
-      const isSpeaking = maxDeviation > 10; // tweak threshold
-
-      if (isSpeaking) {
-        if (silenceTimeoutRef.current) {
-          clearTimeout(silenceTimeoutRef.current);
-        }
-        silenceTimeoutRef.current = setTimeout(() => {
-          onSilence();
-        }, 3000); // 3 seconds of no speech
-      }
-
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        requestAnimationFrame(check);
-      }
-    };
-
-    requestAnimationFrame(check);
-  };
-
   const handleMicClick = async () => {
     if (isLoading || isTranscribing) return;
 
-    // stop manually if user taps while recording
+    // stop if already recording
     if (isRecording) {
-      stopRecordingIfNeeded();
+      stopAllAudio();
       return;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
+      streamRef.current = stream;
       setIsRecording(true);
       audioChunksRef.current = [];
 
+      // Recorder
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = mediaRecorder;
-
-      // audio context for levels
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = audioContext;
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      source.connect(analyser);
-      analyserRef.current = analyser;
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -557,29 +502,60 @@ export default function Home() {
       };
 
       mediaRecorder.onstop = async () => {
-        if (silenceTimeoutRef.current) {
-          clearTimeout(silenceTimeoutRef.current);
-          silenceTimeoutRef.current = null;
-        }
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await handleTranscribe(audioBlob, true); // auto send
-        stream.getTracks().forEach((t) => t.stop());
-        setIsRecording(false);
-        if (audioContextRef.current) {
-          audioContextRef.current.close();
-          audioContextRef.current = null;
-        }
-        analyserRef.current = null;
-        mediaStreamRef.current = null;
+        await handleTranscribe(audioBlob);
+        stopAllAudio();
       };
 
       mediaRecorder.start();
 
-      startSilenceDetection(() => {
-        if (mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
+      // VAD: stop after ~1.8s of silence, DO NOT auto-send
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = audioContext;
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyserRef.current = analyser;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      sourceRef.current = source;
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.fftSize);
+      const threshold = 0.008; // RMS threshold for silence
+      const silenceMs = 1800; // 1.8 seconds
+      const checkInterval = 120;
+
+      const loop = () => {
+        if (!analyserRef.current || !isRecording) return;
+        analyserRef.current.getByteTimeDomainData(dataArray);
+
+        // Compute RMS
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          const v = (dataArray[i] - 128) / 128;
+          sum += v * v;
         }
-      });
+        const rms = Math.sqrt(sum / dataArray.length);
+
+        if (rms < threshold) {
+          if (!silenceTimerRef.current) {
+            silenceTimerRef.current = window.setTimeout(() => {
+              if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                mediaRecorderRef.current.stop(); // we only stop recording, user will press send manually
+              }
+            }, silenceMs);
+          }
+        } else {
+          if (silenceTimerRef.current) {
+            window.clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+          }
+        }
+        if (isRecording) {
+          window.setTimeout(loop, checkInterval);
+        }
+      };
+      loop();
     } catch (error) {
       console.error('mic error:', error);
       alert('Microphone access denied.');
@@ -599,13 +575,17 @@ export default function Home() {
     }
   };
 
+  const handleToolButtonClick = () => {
+    setToolButtonFlash(true);
+    setTimeout(() => setToolButtonFlash(false), 200);
+  };
+
   // ---- CHAT SEND LOGIC ----
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (isLoading || isTranscribing || isRecording) return;
 
-    // we will prefix the message based on active tool
-    let textInput = localInput.trim();
+    const textInput = localInput.trim();
     const hasFile = !!uploadedFile;
     const hasText = textInput.length > 0;
 
@@ -613,35 +593,6 @@ export default function Home() {
 
     setIsLoading(true);
     setIsTyping(false);
-
-    // TOOL PROMPTING
-    if (activeTool === 'textMessageTool') {
-      textInput =
-        `You are a smart text message formatting assistant. Write a short, clear, friendly text message based on this user request. Do not add extra fluff.\n\nUser request:\n${textInput}`;
-    } else if (activeTool === 'emailWriter') {
-      let levelInstruction = '';
-      if (emailLevel === 'highschool') {
-        levelInstruction =
-          'Write in a clear, respectful, simple tone suitable for a high school educated professional.';
-      } else if (emailLevel === 'bachelor') {
-        levelInstruction =
-          'Write in a standard business professional tone, concise, clear, no jargon.';
-      } else if (emailLevel === 'bluecollar') {
-        levelInstruction =
-          'Write in a technically competent, respectful, plainspoken tone, reflecting skilled trades and shop floor expertise. Avoid flowery language.';
-      } else if (emailLevel === 'masters') {
-        levelInstruction =
-          'Write in a polished, business graduate level tone, well structured, concise, with clear call to action.';
-      } else if (emailLevel === 'phd') {
-        levelInstruction =
-          'Write in a highly professional, academic-business tone, precise, authoritative, but not condescending.';
-      }
-      textInput =
-        `You are an email writing assistant. Write a complete email based on the user request. Include subject line suggestions. ${levelInstruction}\n\nUser request:\n${textInput}`;
-    } else if (activeTool === 'ingredientExtractor') {
-      textInput =
-        `You are an ingredient and method extractor. The user will either upload a recipe image/file or describe a meal idea. Your job is to list:\n1. Ingredients (clean list)\n2. Equipment if needed\n3. Step-by-step instructions\n4. Notes/substitutions.\nIf the user only sent an image, describe what you see and extract the recipe from it.\n\nUser content:\n${textInput || '[see attached image/file]'}`
-    }
 
     const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
 
@@ -674,15 +625,12 @@ export default function Home() {
     }
 
     try {
-      let response: Response;
+      let response;
       if (hasFile) {
         const formData = new FormData();
         formData.append('message', textInput);
         formData.append('file', uploadedFile as File);
-        response = await fetch('/api/chat', {
-          method: 'POST',
-          body: formData,
-        });
+        response = await fetch('/api/chat', { method: 'POST', body: formData });
       } else {
         response = await fetch('/api/chat', {
           method: 'POST',
@@ -924,7 +872,7 @@ export default function Home() {
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
           {/* header */}
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between">
               <Button
                 variant="ghost"
                 size="icon"
@@ -933,80 +881,11 @@ export default function Home() {
               >
                 <Menu className="h-6 w-6 text-slate-700" strokeWidth={2} />
               </Button>
-              <div className="flex-1">
+              <div className="flex-1 text-center">
                 <CardTitle className="text-lg sm:text-xl font-semibold text-blue-900">New Chat</CardTitle>
-                <p className="text-xs text-slate-500">
-                  SlingShot 2.0 · Christian conversational assistant
-                </p>
+                <div className="text-xs text-slate-500 mt-1">{toolLabel(activeTool)}</div>
               </div>
-
-              {/* tools button */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2 rounded-lg border-slate-200 text-slate-700"
-                  >
-                    <Sparkles className="h-4 w-4 text-blue-700" />
-                    Tools
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-white border border-slate-200 shadow-lg rounded-lg w-60">
-                  <DropdownMenuLabel>Pick a tool</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => startNewChatForTool('none')}
-                    className="text-slate-700 cursor-pointer"
-                  >
-                    Plain Chat
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => startNewChatForTool('textMessageTool')}
-                    className="text-slate-700 cursor-pointer"
-                  >
-                    Text Message Tool
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Email Writer</DropdownMenuLabel>
-                  <DropdownMenuItem
-                    onClick={() => startNewChatForTool('emailWriter', 'highschool')}
-                    className="text-slate-700 cursor-pointer"
-                  >
-                    Email Writer · High School
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => startNewChatForTool('emailWriter', 'bachelor')}
-                    className="text-slate-700 cursor-pointer"
-                  >
-                    Email Writer · Bachelor
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => startNewChatForTool('emailWriter', 'bluecollar')}
-                    className="text-slate-700 cursor-pointer"
-                  >
-                    Email Writer · Skilled Trade
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => startNewChatForTool('emailWriter', 'masters')}
-                    className="text-slate-700 cursor-pointer"
-                  >
-                    Email Writer · Master&apos;s
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => startNewChatForTool('emailWriter', 'phd')}
-                    className="text-slate-700 cursor-pointer"
-                  >
-                    Email Writer · PhD
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => startNewChatForTool('ingredientExtractor')}
-                    className="text-slate-700 cursor-pointer"
-                  >
-                    Ingredient Extractor
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="w-10 lg:hidden" />
             </div>
           </CardHeader>
 
@@ -1035,7 +914,7 @@ export default function Home() {
                     }}
                   />
                 </div>
-                <h2 className="text-lg sm:text-xl font-semibold text-blue-900 text-center">slingshot 2.0</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-blue-900">slingshot 2.0</h2>
                 <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
                   {getTimeBasedGreeting()}
                 </p>
@@ -1119,6 +998,7 @@ export default function Home() {
             )}
 
             <div className="flex items-center space-x-2">
+              {/* file inputs (hidden) */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -1167,6 +1047,57 @@ export default function Home() {
                     className="text-slate-700 text-sm cursor-pointer"
                   >
                     Choose File
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* TOOLS — back next to the input */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoading}
+                    onClick={handleToolButtonClick}
+                    className={`border-slate-300 text-slate-800 hover:bg-slate-100 rounded-lg px-2.5 h-9 sm:h-10 ${
+                      toolButtonFlash ? 'bg-slate-200' : ''
+                    }`}
+                    title="Choose a tool"
+                  >
+                    <Wrench className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Tools</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-white border-slate-200 shadow-lg rounded-lg">
+                  <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">Pick a tool</DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-slate-200" />
+                  <DropdownMenuItem onClick={() => startNewChatForTool('none')}>
+                    Plain Chat {renderCheck('none')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => startNewChatForTool('textMessageTool')}>
+                    Text Message Tool {renderCheck('textMessageTool')}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-slate-200" />
+                  <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">Email Writer</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterHS')}>
+                    Email Writer · High School {renderCheck('emailWriterHS')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterBA')}>
+                    Email Writer · Bachelor {renderCheck('emailWriterBA')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterSkilled')}>
+                    Email Writer · Skilled Trade {renderCheck('emailWriterSkilled')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterMS')}>
+                    Email Writer · Master&apos;s {renderCheck('emailWriterMS')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterPhD')}>
+                    Email Writer · PhD {renderCheck('emailWriterPhD')}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-slate-200" />
+                  <DropdownMenuItem onClick={() => startNewChatForTool('ingredientExtractor')}>
+                    Ingredient Extractor {renderCheck('ingredientExtractor')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
