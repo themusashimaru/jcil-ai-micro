@@ -1,8 +1,5 @@
-mkdir -p src/app/api/chat-strict
-cat > src/app/api/chat-strict/route.ts <<'EOF'
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import OpenAI from "openai";
 import { moderateAllContent } from "@/lib/moderation";
 
 function json(status: number, body: any) {
@@ -10,6 +7,16 @@ function json(status: number, body: any) {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+// Edge-safe ArrayBuffer -> base64 (no Node Buffer)
+function arrayBufferToBase64(ab: ArrayBuffer): string {
+  let binary = "";
+  const bytes = new Uint8Array(ab);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
+  // btoa is available in edge runtime
+  return btoa(binary);
 }
 
 function requireEnv(name: string): string {
@@ -23,6 +30,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
+    // simple auth gate via Supabase cookie
     const cookieStore = await cookies();
     const session = cookieStore.get("sb-access-token")?.value || null;
     if (!session) return json(401, { ok: false, error: "Unauthorized" });
@@ -38,16 +46,18 @@ export async function POST(req: Request) {
       text = (form.get("message") as string) || "";
       const file = form.get("file");
       if (file && typeof file !== "string") {
-        const buf = Buffer.from(await (file as File).arrayBuffer());
-        imageBase64 = buf.toString("base64");
+        const f = file as File;
+        const ab = await f.arrayBuffer();
+        imageBase64 = arrayBufferToBase64(ab);
       }
     } else {
-      const body = await req.json().catch(() => ({}));
+      const body = (await req.json().catch(() => ({}))) as { message?: string };
       text = body.message || "";
     }
 
     const sanitized = text.trim();
 
+    // --- MODERATION FIRST (text + optional image) ---
     const moderation = await moderateAllContent("web-user", sanitized, imageBase64);
     if (!moderation.allowed) {
       return json(403, {
@@ -58,6 +68,7 @@ export async function POST(req: Request) {
       });
     }
 
+    // If clean, call Grok
     const res = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -90,4 +101,3 @@ export async function POST(req: Request) {
     return json(500, { ok: false, error: err?.message || "Internal error." });
   }
 }
-EOF
