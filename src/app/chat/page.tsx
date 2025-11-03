@@ -2,38 +2,45 @@
 
 import { useState } from "react";
 
+type ChatRole = "user" | "assistant";
+
+interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+}
+
 export default function ChatPage() {
-  const [messages, setMessages] = useState<
-    { id: string; role: "user" | "assistant"; content: string }[]
-  >([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [fileToSend, setFileToSend] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function sendMessage(message: string, fileToSend?: File | null) {
+  async function sendMessage(message: string, file?: File | null): Promise<string> {
     const formData = new FormData();
     formData.append("message", message);
-    if (fileToSend) formData.append("file", fileToSend);
+    if (file) formData.append("file", file);
 
     const res = await fetch("/api/chat", { method: "POST", body: formData });
 
-    // ---- Handle moderation blocks (403) explicitly ----
+    // ——— Explicit moderation handling (403) ———
     if (res.status === 403) {
       const data = await res.json().catch(() => ({}));
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `warn_${Date.now()}`,
-          role: "assistant",
-          content:
-            data?.error ||
-            "This message violates policy and cannot be processed.",
-        },
-      ]);
+      const text =
+        data?.error ||
+        "This message violates policy and cannot be processed.";
+
+      // show a red policy bubble
+      const warn: ChatMessage = {
+        id: `warn_${Date.now()}`,
+        role: "assistant",
+        content: text,
+      };
+      setMessages((prev) => [...prev, warn]);
       return "";
     }
 
-    const data = await res.json();
+    const data = await res.json().catch(() => null);
     if (!res.ok || !data?.ok) {
       throw new Error(data?.error || "Unknown error");
     }
@@ -43,9 +50,13 @@ export default function ChatPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() && !fileToSend) return;
 
-    const userMessage = { id: Date.now().toString(), role: "user", content: input };
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input.trim() || (fileToSend ? "[sent image]" : ""),
+    };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setLoading(true);
@@ -53,20 +64,20 @@ export default function ChatPage() {
     try {
       const reply = await sendMessage(userMessage.content, fileToSend);
       if (reply) {
-        setMessages((prev) => [
-          ...prev,
-          { id: `reply_${Date.now()}`, role: "assistant", content: reply },
-        ]);
+        const bot: ChatMessage = {
+          id: `reply_${Date.now()}`,
+          role: "assistant",
+          content: reply,
+        };
+        setMessages((prev) => [...prev, bot]);
       }
     } catch (err: any) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err_${Date.now()}`,
-          role: "assistant",
-          content: `Sorry, an error occurred: ${err.message}`,
-        },
-      ]);
+      const errMsg: ChatMessage = {
+        id: `err_${Date.now()}`,
+        role: "assistant",
+        content: `Sorry, an error occurred: ${err.message}`,
+      };
+      setMessages((prev) => [...prev, errMsg]);
     } finally {
       setLoading(false);
       setFileToSend(null);
@@ -79,29 +90,33 @@ export default function ChatPage() {
         <h1 className="text-center text-2xl font-semibold mb-4">New Chat</h1>
 
         <div className="flex flex-col space-y-2 border rounded-md p-4 min-h-[400px] overflow-y-auto bg-white">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`${
-                m.role === "user"
-                  ? "self-end bg-blue-500 text-white"
-                  : m.content.includes("violates policy")
-                  ? "self-start bg-red-100 text-red-700 border border-red-300"
-                  : "self-start bg-gray-100 text-gray-800"
-              } px-3 py-2 rounded-lg max-w-[80%] whitespace-pre-wrap`}
-            >
-              {m.content}
-            </div>
-          ))}
+          {messages.map((m) => {
+            const isPolicy = m.content.toLowerCase().includes("violates policy");
+            const bubbleClass =
+              m.role === "user"
+                ? "self-end bg-blue-600 text-white"
+                : isPolicy
+                ? "self-start bg-red-100 text-red-700 border border-red-300"
+                : "self-start bg-gray-100 text-gray-800";
+
+            return (
+              <div
+                key={m.id}
+                className={`${bubbleClass} px-3 py-2 rounded-lg max-w-[80%] whitespace-pre-wrap`}
+              >
+                {m.content}
+              </div>
+            );
+          })}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex gap-2 mt-4">
+        <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 mt-4 items-center">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
-            className="flex-1 border rounded-md px-3 py-2"
+            className="flex-1 min-w-[240px] border rounded-md px-3 py-2"
           />
           <input
             type="file"
