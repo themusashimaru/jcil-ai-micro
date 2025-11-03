@@ -114,3 +114,9 @@ export async function fileToDataUrl(file: File): Promise<string> {
   const mime = file.type || "application/octet-stream";
   return `data:${mime};base64,${base64}`;
 }
+
+/** 
+ * Alias export for backward compatibility.
+ * chat-strict/route.ts imports `moderateAllContent`, which is the same as `runModeration`.
+ */
+export { runModeration as moderateAllContent };
