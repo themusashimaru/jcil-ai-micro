@@ -1,108 +1,93 @@
-// /src/app/api/chat-strict/route.ts
-import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import OpenAI from 'openai'
-import { moderateAllContent } from '@/lib/moderation'
-import { rateLimit } from '@/lib/rate-limit'
-import { sanitizeInput, containsSuspiciousContent } from '@/lib/sanitize'
+mkdir -p src/app/api/chat-strict
+cat > src/app/api/chat-strict/route.ts <<'EOF'
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import OpenAI from "openai";
+import { moderateAllContent } from "@/lib/moderation";
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+function json(status: number, body: any) {
+  return new NextResponse(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
-const XAI_BASE_URL = 'https://api.x.ai/v1'
-const MODEL = 'grok-4-fast-reasoning'
+function requireEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Missing env: ${name}`);
+  return v;
+}
 
-export async function POST(req: NextRequest) {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (n: string) => cookieStore.get(n)?.value,
-        set: (n: string, v: string, o: CookieOptions) => { try { cookieStore.set(n, v, o) } catch {} },
-        remove: (n: string, o: CookieOptions) => { try { cookieStore.set({ name: n, value: '', ...o }) } catch {} },
-      },
-    }
-  )
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
+export async function POST(req: Request) {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const cookieStore = await cookies();
+    const session = cookieStore.get("sb-access-token")?.value || null;
+    if (!session) return json(401, { ok: false, error: "Unauthorized" });
 
-    const rl = rateLimit(user.id, { maxRequests: 20, windowMs: 60000 })
-    if (!rl.success)
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    const xaiKey = requireEnv("XAI_API_KEY");
 
-    const { messages, conversationId, fileUrl, fileMimeType } = await req.json()
-    if (!Array.isArray(messages) || !messages.length)
-      return NextResponse.json({ error: 'Invalid messages' }, { status: 400 })
-    if (!conversationId)
-      return NextResponse.json({ error: 'Missing conversationId' }, { status: 400 })
+    let text = "";
+    let imageBase64: string | null = null;
 
-    const last = messages[messages.length - 1]
-    const text = typeof last?.content === 'string' ? last.content : ''
-    if (!text) return NextResponse.json({ error: 'Empty message' }, { status: 400 })
-    if (containsSuspiciousContent(text)) return NextResponse.json({ error: 'Suspicious content' }, { status: 400 })
-    const sanitized = sanitizeInput(text)
-
-    // fetch image data if attached
-    let imageBase64: string | undefined
-    if (fileUrl && fileMimeType?.startsWith('image/')) {
-      const res = await fetch(fileUrl)
-      const arr = Buffer.from(await res.arrayBuffer()).toString('base64')
-      imageBase64 = `data:${fileMimeType};base64,${arr}`
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("multipart/form-data")) {
+      const form = await req.formData();
+      text = (form.get("message") as string) || "";
+      const file = form.get("file");
+      if (file && typeof file !== "string") {
+        const buf = Buffer.from(await (file as File).arrayBuffer());
+        imageBase64 = buf.toString("base64");
+      }
+    } else {
+      const body = await req.json().catch(() => ({}));
+      text = body.message || "";
     }
 
-    // --- MODERATION FIRST ---
-    const moderation = await moderateAllContent(user.id, sanitized, imageBase64)
-    if (!moderation.allowed)
-      return NextResponse.json({ error: moderation.reason, action: moderation.action }, { status: 403 })
+    const sanitized = text.trim();
 
-    // save user message
-    await supabase.from('messages').insert({
-      conversation_id: conversationId,
-      user_id: user.id,
-      role: 'user',
-      content: sanitized,
-      file_url: fileUrl || null,
-      file_type: fileMimeType || null,
-    })
+    const moderation = await moderateAllContent("web-user", sanitized, imageBase64);
+    if (!moderation.allowed) {
+      return json(403, {
+        ok: false,
+        error: "This message violates policy.",
+        reason: moderation.reason || "Policy violation.",
+        categories: moderation.categories || null,
+      });
+    }
 
-    // --- GROK Chat ---
-    const xai = new OpenAI({
-      apiKey: process.env.XAI_API_KEY!,
-      baseURL: XAI_BASE_URL,
-    })
+    const res = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${xaiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "grok-2-latest",
+        messages: [{ role: "user", content: sanitized || "(no text provided)" }],
+        temperature: 0.6,
+      }),
+    });
 
-    const completion = await xai.chat.completions.create({
-      model: MODEL,
-      messages: messages,
-      stream: true,
-    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return json(res.status, {
+        ok: false,
+        error: "xAI API error",
+        details: text || `HTTP ${res.status}`,
+      });
+    }
 
-    const stream = completion.toReadableStream()
+    const data = await res.json().catch(() => null);
+    const reply =
+      data?.choices?.[0]?.message?.content ||
+      "I could not generate a response.";
 
-    ;(async () => {
-      const buffer: string[] = []
-      for await (const chunk of completion) {
-        const delta = chunk?.choices?.[0]?.delta?.content
-        if (delta) buffer.push(delta)
-      }
-      const text = buffer.join('')
-      await supabase.from('messages').insert({
-        conversation_id: conversationId,
-        user_id: user.id,
-        role: 'assistant',
-        content: sanitizeInput(text),
-      })
-    })()
-
-    return new Response(stream, {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    })
+    return json(200, { ok: true, reply });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal error' }, { status: 500 })
+    return json(500, { ok: false, error: err?.message || "Internal error." });
   }
 }
+EOF
