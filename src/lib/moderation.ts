@@ -1,10 +1,10 @@
 // /src/lib/moderation.ts
-// FULL OpenAI moderation firewall for all text, image, and file content
-// Uses omni-moderation-latest (fast & cheap) and adds local profanity, spam, jailbreak detection.
-// Violations are logged to Supabase; repeated offenders get suspended/banned.
+// FULL OpenAI moderation firewall for all text, image, and file content.
+// Uses omni-moderation-latest for text/files + Vision JSON policy (image-moderation.ts) for images.
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { analyzeImageContent } from './image-moderation'  // 🔴 NEW: use Vision for images
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/moderations'
 const OPENAI_MODEL = 'omni-moderation-latest'
@@ -29,23 +29,18 @@ async function createSupabaseClient() {
   )
 }
 
-// --- OpenAI Moderation for text / image / file ---
-export async function openAIModerate(content: string | { type: 'image' | 'file', data: string }): Promise<{ flagged: boolean; categories: string[] }> {
+// --- OpenAI Moderation (text/files) ---
+export async function openAIModerate(content: string): Promise<{ flagged: boolean; categories: string[] }> {
   if (!process.env.OPENAI_API_KEY) throw new Error('Missing OPENAI_API_KEY')
 
   try {
-    const payload =
-      typeof content === 'string'
-        ? { input: content, model: OPENAI_MODEL }
-        : { model: OPENAI_MODEL, input: content.data }
-
     const res = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ input: content, model: OPENAI_MODEL }),
     })
 
     if (!res.ok) {
@@ -138,69 +133,88 @@ export async function checkUserStatus(userId: string) {
 }
 
 function determineAction(severity: string) {
-  return severity === 'critical' ? 'ban' : severity === 'high' ? 'suspension_24h' : severity === 'medium' ? 'suspension_1h' : 'warning'
+  return severity === 'critical' ? 'ban'
+       : severity === 'high'     ? 'suspension_24h'
+       : severity === 'medium'   ? 'suspension_1h'
+       : 'warning'
 }
 
 // --- Main moderation entrypoint ---
-export async function moderateAllContent(userId: string, text?: string, imageData?: string, fileData?: string) {
-  // bypass for whitelisted IDs
-  const wl = (process.env.WHITELISTED_USERS || '').split(',').map(s => s.trim())
+// imageData should be a **data URL or https URL**; files are passed as sampled text.
+export async function moderateAllContent(
+  userId: string,
+  text?: string,
+  imageData?: string,
+  fileData?: string
+) {
+  // Whitelist (owner/dev accounts)
+  const wl = (process.env.WHITELISTED_USERS || '').split(',').map(s => s.trim()).filter(Boolean)
   if (wl.includes(userId)) return { allowed: true }
 
   const status = await checkUserStatus(userId)
-  if (status.isBanned) return { allowed: false, reason: 'Banned', action: 'ban' }
+  if (status.isBanned)   return { allowed: false, reason: 'Banned', action: 'ban' }
   if (status.isSuspended) return { allowed: false, reason: 'Suspended', action: 'suspended' }
 
   const violations: string[] = []
-  const vcount = await getViolationCount(userId)
+  let maxSeverity: 'clean' | 'warning' | 'severe' | 'critical' = 'clean'
 
   const textToCheck = text || ''
-  const needsCheck = textToCheck.trim() !== '' || imageData || fileData
+  const shouldCheck = textToCheck.trim() !== '' || !!imageData || !!fileData
+  if (!shouldCheck) return { allowed: true }
 
-  if (!needsCheck) return { allowed: true }
+  // Local guards
+  if (textToCheck) {
+    if (detectSpam(textToCheck))      violations.push('spam')
+    if (detectJailbreak(textToCheck)) violations.push('jailbreak')
+    if (PROFANITY.test(textToCheck))  violations.push('profanity')
+  }
 
-  // --- Local guards ---
-  if (detectSpam(textToCheck)) violations.push('spam')
-  if (detectJailbreak(textToCheck)) violations.push('jailbreak')
-  if (PROFANITY.test(textToCheck)) violations.push('profanity')
-
-  // --- OpenAI moderation (text) ---
+  // OpenAI text moderation
   if (textToCheck) {
     const result = await openAIModerate(textToCheck)
     if (result.flagged) violations.push(...result.categories)
   }
 
-  // --- OpenAI moderation (image) ---
-  if (imageData) {
-    const result = await openAIModerate({ type: 'image', data: imageData })
-    if (result.flagged) violations.push(...result.categories)
-  }
-
-  // --- OpenAI moderation (file) ---
+  // OpenAI file moderation (sampled text)
   if (fileData) {
-    const snippet = fileData.slice(0, 8000) // only sample
+    const snippet = fileData.slice(0, 8000)
     const result = await openAIModerate(snippet)
     if (result.flagged) violations.push(...result.categories)
   }
 
+  // 🔴 OpenAI Vision moderation for images (via image-moderation.ts)
+  if (imageData) {
+    const analysis = await analyzeImageContent(imageData); // accepts data URL or https
+    if (analysis.severity !== 'clean') {
+      maxSeverity = analysis.severity; // track image severity
+      // If model returned explicit categories, use them; else add a generic tag
+      violations.push(...(analysis.categories?.length ? analysis.categories : [`image_${analysis.severity}`]));
+    }
+  }
+
   if (violations.length === 0) return { allowed: true }
 
+  // Severity mapping
   const categories = [...new Set(violations)]
-  const severity = categories.some(c => c.includes('minors') || c.includes('sexual/minors')) ? 'critical'
-    : categories.some(c => c.includes('violence') || c.includes('hate')) ? 'high'
-    : 'medium'
+  const severity: 'critical' | 'high' | 'medium' =
+    maxSeverity === 'critical' ? 'critical' :
+    (maxSeverity === 'severe' ? 'high' :
+     (categories.some(c => c.includes('violence') || c.includes('hate')) ? 'high' : 'medium'))
 
   await logViolation(userId, textToCheck, 'content', severity, categories)
 
+  // Progressive discipline
   if (severity === 'critical') {
     await suspendUser(userId, 'permanent', `Critical: ${categories.join(', ')}`)
     return { allowed: false, reason: 'Critical violation (banned)', action: 'ban' }
   }
 
-  // progressive suspensions
-  if (vcount >= 4) { await suspendUser(userId, '7d', categories.join(', ')); return { allowed: false, reason: 'Suspended 7 days', action: 'suspension_7d' } }
+  const vcount = await getViolationCount(userId)
+  if (vcount >= 4) { await suspendUser(userId, '7d',  categories.join(', ')); return { allowed: false, reason: 'Suspended 7 days', action: 'suspension_7d' } }
   if (vcount >= 2) { await suspendUser(userId, '24h', categories.join(', ')); return { allowed: false, reason: 'Suspended 24h', action: 'suspension_24h' } }
-  if (vcount >= 1) { await suspendUser(userId, '1h', categories.join(', ')); return { allowed: false, reason: 'Suspended 1h', action: 'suspension_1h' } }
+  if (vcount >= 1) { await suspendUser(userId, '1h',  categories.join(', ')); return { allowed: false, reason: 'Suspended 1h',  action: 'suspension_1h' } }
+
+  // First offense
   await suspendUser(userId, '10m', categories.join(', '))
   return { allowed: false, reason: 'Temporarily restricted 10m', action: 'warning' }
 }
