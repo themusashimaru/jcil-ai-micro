@@ -9,7 +9,6 @@ export async function POST(req: NextRequest) {
     const contentType = req.headers.get("content-type") || "";
     let message = "";
 
-    // --- Handle multipart/form-data (file uploads) ---
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
       const msg = formData.get("message");
@@ -26,14 +25,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // --- Construct Grok request ---
     const payload = {
-      model: "grok-4-fast-reasoning",
+      model: "grok-4",
       messages: [
         {
           role: "system",
           content:
-            "You are Grok 4 Fast Reasoning, a helpful assistant. Respond concisely and clearly.",
+            "You are Grok 4, a highly intelligent and helpful AI assistant. Respond clearly and accurately.",
         },
         {
           role: "user",
@@ -41,6 +39,7 @@ export async function POST(req: NextRequest) {
         },
       ],
       temperature: 0.3,
+      stream: false,
       max_output_tokens: 1024,
     };
 
@@ -78,6 +77,6 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    route: "/api/chat (xAI Grok 4 Fast Reasoning)",
+    route: "/api/chat (xAI Grok 4)",
   });
 }
