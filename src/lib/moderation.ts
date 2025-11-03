@@ -120,3 +120,16 @@ export async function fileToDataUrl(file: File): Promise<string> {
  * chat-strict/route.ts imports `moderateAllContent`, which is the same as `runModeration`.
  */
 export { runModeration as moderateAllContent };
+
+/** Back-compat wrapper so callers can pass 3 args */
+export async function moderateAllContent(
+  userId: string,
+  text?: string | null,
+  imageBase64?: string | null
+) {
+  return runModeration({
+    userId,
+    text: text ?? undefined,
+    imageBase64: imageBase64 ?? undefined,
+  });
+}
