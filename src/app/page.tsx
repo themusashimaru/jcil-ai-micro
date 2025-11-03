@@ -24,6 +24,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 
 import {
@@ -54,7 +57,19 @@ interface Conversation {
   title?: string | null;
 }
 
-type ActiveTool = 'none' | 'textMessageTool' | 'emailWriter' | 'recipeExtractor';
+// tools
+type ActiveTool =
+  | 'none'
+  | 'textMessageTool'
+  | 'emailWriter'
+  | 'ingredientExtractor';
+
+type EmailLevel =
+  | 'highSchool'
+  | 'bachelor'
+  | 'blueCollar'
+  | 'masters'
+  | 'phd';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -98,6 +113,7 @@ export default function Home() {
 
   // tools / files
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
+  const [emailLevel, setEmailLevel] = useState<EmailLevel>('bachelor');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
@@ -107,6 +123,7 @@ export default function Home() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ui refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -131,9 +148,15 @@ export default function Home() {
   const resizeTextarea = () => {
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
-      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + 'px';
+      // let it get a little taller than before
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 220) + 'px';
     }
   };
+
+  // also grow whenever localInput changes (this fixes the whisper dump)
+  useEffect(() => {
+    resizeTextarea();
+  }, [localInput]);
 
   const getTimeBasedGreeting = () => {
     const hour = new Date().getHours();
@@ -144,14 +167,17 @@ export default function Home() {
 
   const renderCheck = (tool: ActiveTool) =>
     activeTool === tool ? <Check className="ml-auto h-4 w-4" strokeWidth={2} /> : null;
+
   const getPlaceholderText = () => {
     if (isTranscribing) return 'Transcribing audio...';
     if (isLoading) return 'AI is thinking...';
-    if (isRecording) return 'Recording... Click mic to stop.';
+    if (isRecording) return 'Recording...';
     if (attachedFileName) return 'Describe the file or add text...';
     if (activeTool === 'textMessageTool') return 'Using Text Message Tool...';
-    if (activeTool === 'emailWriter') return 'Using Email Writer...';
-    if (activeTool === 'recipeExtractor') return 'Using Recipe Extractor...';
+    if (activeTool === 'emailWriter')
+      return `Using Email Writer (${emailLevel})...`;
+    if (activeTool === 'ingredientExtractor')
+      return 'Describe the recipe or attach a photo...';
     return 'Type your message...';
   };
 
@@ -365,6 +391,7 @@ export default function Home() {
       },
     );
   }, []);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -394,7 +421,8 @@ export default function Home() {
     clearAttachmentState();
   };
 
-  const handleTranscribe = async (audioBlob: Blob) => {
+  // TRANSCRIBE, with autoSend option (true for mic, false for file/future)
+  const handleTranscribe = async (audioBlob: Blob, autoSend: boolean = false) => {
     setIsTranscribing(true);
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
@@ -408,8 +436,17 @@ export default function Home() {
       const data = await response.json();
 
       if (response.ok) {
-        setLocalInput((prev) => (prev + ' ' + data.text).trim());
-        setTimeout(resizeTextarea, 0);
+        // append to text
+        const newText = (localInput + ' ' + data.text).trim();
+        setLocalInput(newText);
+
+        // allow DOM to update first, then maybe auto send
+        setTimeout(() => {
+          resizeTextarea();
+          if (autoSend && newText.length > 0) {
+            handleFormSubmit(); // will pick up localInput’s latest value
+          }
+        }, 0);
       } else {
         alert(`Transcription failed: ${data.error || 'Unknown error'}`);
       }
@@ -425,8 +462,11 @@ export default function Home() {
   const handleMicClick = async () => {
     if (isLoading || isTranscribing) return;
 
+    // stop if already recording
     if (isRecording) {
-      mediaRecorderRef.current?.stop();
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
       setIsRecording(false);
       return;
     }
@@ -446,12 +486,24 @@ export default function Home() {
       };
 
       mediaRecorder.onstop = async () => {
+        if (recordTimeoutRef.current) {
+          clearTimeout(recordTimeoutRef.current);
+          recordTimeoutRef.current = null;
+        }
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await handleTranscribe(audioBlob);
+        await handleTranscribe(audioBlob, true); // autoSend = true
         stream.getTracks().forEach((t) => t.stop());
+        setIsRecording(false);
       };
 
       mediaRecorder.start();
+
+      // AUTO STOP after 3s
+      recordTimeoutRef.current = setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+      }, 3000);
     } catch (error) {
       console.error('mic error:', error);
       alert('Microphone access denied.');
@@ -461,7 +513,6 @@ export default function Home() {
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalInput(e.target.value);
-    resizeTextarea();
   };
 
   const handleTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -491,6 +542,34 @@ export default function Home() {
 
     setIsLoading(true);
     setIsTyping(false);
+
+    // TOOL PROMPTS
+    let toolPrefix = '';
+    if (activeTool === 'textMessageTool') {
+      toolPrefix =
+        'You are writing a short, clear, direct text message. Keep it natural, friendly, and concise. No emojis unless the user asks. Then write the message below.\n\n';
+    }
+    if (activeTool === 'emailWriter') {
+      const levelMap: Record<EmailLevel, string> = {
+        highSchool:
+          'Write in a clear, simple, respectful tone suitable for high school educated readers.',
+        bachelor:
+          'Write in a professional, business tone suitable for college educated adults.',
+        blueCollar:
+          'Write in a highly respectful, direct, technically competent tone that honors skilled trades. Avoid academic fluff. Show mastery of the subject.',
+        masters:
+          'Write in a polished, managerial, executive friendly tone with strong structure and clarity.',
+        phd:
+          'Write in a formally structured, highly precise, academic/professional tone with clear reasoning.',
+      };
+      toolPrefix =
+        `You are an email writing assistant. Audience / sophistication level: ${levelMap[emailLevel]}\n` +
+        'Write the email in a human, non-AI sounding way. Include greeting and signoff if user did not specify. Then write the user’s email request below.\n\n';
+    }
+    if (activeTool === 'ingredientExtractor') {
+      toolPrefix =
+        'You are an ingredient and recipe structure assistant. If the user attached an image, read the image and extract ingredients and steps. If the user described a meal, output: 1) ingredient list 2) basic method 3) notes/substitutions. Be concise and clear.\n\n';
+    }
 
     const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
 
@@ -525,20 +604,18 @@ export default function Home() {
     try {
       let response;
       if (hasFile) {
-        // send FormData if a file is attached
         const formData = new FormData();
-        formData.append('message', textInput);
+        formData.append('message', toolPrefix + textInput);
         formData.append('file', uploadedFile as File);
         response = await fetch('/api/chat', {
           method: 'POST',
           body: formData,
         });
       } else {
-        // simple JSON if only text
         response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: textInput }),
+          body: JSON.stringify({ message: toolPrefix + textInput }),
         });
       }
 
@@ -573,6 +650,7 @@ export default function Home() {
       inputRef.current?.focus();
     }
   };
+
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       {/* mobile overlay */}
@@ -768,6 +846,7 @@ export default function Home() {
           </DropdownMenu>
         </div>
       </aside>
+
       {/* main chat area */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
         <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
@@ -950,6 +1029,123 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {/* tools (new) */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={isLoading}
+                    onClick={handleToolButtonClick}
+                    className={`hover:bg-slate-100 rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${
+                      toolButtonFlash ? 'bg-slate-200' : ''
+                    }`}
+                    title="Tools"
+                  >
+                    <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700" strokeWidth={2} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-white border border-slate-200 shadow-lg rounded-lg min-w-[220px]">
+                  <DropdownMenuLabel className="text-xs uppercase text-slate-500">
+                    Choose a tool
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-slate-200" />
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('none')}
+                    className="text-slate-700 text-sm cursor-pointer"
+                  >
+                    None
+                    {renderCheck('none')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('textMessageTool')}
+                    className="text-slate-700 text-sm cursor-pointer"
+                  >
+                    Text Message Tool
+                    {renderCheck('textMessageTool')}
+                  </DropdownMenuItem>
+                  {/* email writer with levels */}
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="text-slate-700 text-sm cursor-pointer">
+                      Email Writer
+                      {activeTool === 'emailWriter' ? (
+                        <Check className="ml-auto h-4 w-4" strokeWidth={2} />
+                      ) : null}
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="bg-white border border-slate-200 rounded-lg shadow-lg">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setActiveTool('emailWriter');
+                          setEmailLevel('highSchool');
+                        }}
+                        className="text-slate-700 text-sm cursor-pointer"
+                      >
+                        High School
+                        {activeTool === 'emailWriter' && emailLevel === 'highSchool' ? (
+                          <Check className="ml-auto h-4 w-4" strokeWidth={2} />
+                        ) : null}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setActiveTool('emailWriter');
+                          setEmailLevel('bachelor');
+                        }}
+                        className="text-slate-700 text-sm cursor-pointer"
+                      >
+                        Bachelor
+                        {activeTool === 'emailWriter' && emailLevel === 'bachelor' ? (
+                          <Check className="ml-auto h-4 w-4" strokeWidth={2} />
+                        ) : null}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setActiveTool('emailWriter');
+                          setEmailLevel('blueCollar');
+                        }}
+                        className="text-slate-700 text-sm cursor-pointer"
+                      >
+                        Blue Collar / Trades
+                        {activeTool === 'emailWriter' && emailLevel === 'blueCollar' ? (
+                          <Check className="ml-auto h-4 w-4" strokeWidth={2} />
+                        ) : null}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setActiveTool('emailWriter');
+                          setEmailLevel('masters');
+                        }}
+                        className="text-slate-700 text-sm cursor-pointer"
+                      >
+                        Masters
+                        {activeTool === 'emailWriter' && emailLevel === 'masters' ? (
+                          <Check className="ml-auto h-4 w-4" strokeWidth={2} />
+                        ) : null}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setActiveTool('emailWriter');
+                          setEmailLevel('phd');
+                        }}
+                        className="text-slate-700 text-sm cursor-pointer"
+                      >
+                        PhD / Executive
+                        {activeTool === 'emailWriter' && emailLevel === 'phd' ? (
+                          <Check className="ml-auto h-4 w-4" strokeWidth={2} />
+                        ) : null}
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('ingredientExtractor')}
+                    className="text-slate-700 text-sm cursor-pointer"
+                  >
+                    Ingredient Extractor (photo or text)
+                    {renderCheck('ingredientExtractor')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               {/* mic + text + send */}
               <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
                 <Textarea
@@ -961,7 +1157,7 @@ export default function Home() {
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck
-                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none px-3 sm:px-4 py-2.5 sm:py-3 text-slate-900"
+                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[220px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none px-3 sm:px-4 py-2.5 sm:py-3 text-slate-900"
                   rows={1}
                   onKeyDown={handleTextareaKeyDown}
                 />
