@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     let message = "";
     let imageFile: File | null = null;
 
-    // Handle multipart (text + file)
+    // ---- Handle multipart (text + optional image) ----
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
       const msg = formData.get("message");
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert image to base64 if exists
+    // ---- Convert image (if any) ----
     let imageBase64: string | undefined;
     let imageMime: string | undefined;
     if (imageFile) {
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       imageMime = imageFile.type;
     }
 
-    // Build multimodal content (text + optional image)
+    // ---- Build multimodal content ----
     const content: any[] = [];
     if (message) content.push({ type: "text", text: message });
     if (imageBase64 && imageMime) {
@@ -66,14 +66,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Construct xAI request body
+    // ---- Construct xAI (Grok) request ----
     const payload = {
-      model: "grok-4-fast", // or "grok-4-latest" if you want that variant
+      model: "grok-4-fast-reasoning",
       messages: [
         {
           role: "system",
           content:
-            "You are a helpful, accurate assistant. If an image is provided, analyze it carefully and explain or extract relevant information clearly.",
+            "You are Grok 4 Fast Reasoning, a helpful and accurate assistant. When an image is provided, analyze it carefully and explain or extract relevant information clearly. Keep your answers concise and structured.",
         },
         {
           role: "user",
@@ -81,11 +81,11 @@ export async function POST(req: NextRequest) {
         },
       ],
       temperature: 0.3,
-      max_tokens: 1200,
+      max_output_tokens: 1200, // xAI uses 'max_output_tokens'
       stream: false,
     };
 
-    // Send to xAI API
+    // ---- Send to xAI API ----
     const response = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -96,10 +96,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      console.error("xAI error:", err);
+      const errText = await response.text();
+      console.error("xAI API error:", errText);
       return NextResponse.json(
-        { ok: false, error: "xAI API error", detail: err },
+        { ok: false, error: "xAI API error", detail: errText },
         { status: response.status }
       );
     }
@@ -120,6 +120,6 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    route: "/api/chat (xAI Grok 4 Fast)",
+    route: "/api/chat (xAI Grok 4 Fast Reasoning)",
   });
 }
