@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -54,13 +55,7 @@ interface Conversation {
   title?: string | null;
 }
 
-/** Tools */
-type ActiveTool =
-  | 'none'
-  | 'textMessageTool'
-  | 'emailWriter'
-  | 'recipeExtractor';
-
+type ActiveTool = 'none' | 'textMessageTool' | 'emailWriter' | 'recipeExtractor';
 type EmailLevel = 'hs' | 'ba' | 'trade' | 'ms' | 'phd' | null;
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -105,7 +100,7 @@ export default function Home() {
 
   // tools / files
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
-  const [emailLevel, setEmailLevel] = useState<EmailLevel>(null);
+  const [emailLevel, setEmailLevel] = useState<EmailLevel>(null); // for emailWriter variants
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
@@ -116,13 +111,6 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // silence detection
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const silenceTimerRef = useRef<number | null>(null);
-  const monitorRAFRef = useRef<number | null>(null);
-
   // ui refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -132,6 +120,10 @@ export default function Home() {
   const [fileButtonFlash, setFileButtonFlash] = useState(false);
   const [toolButtonFlash, setToolButtonFlash] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // guards for tool-change new chat rule
+  const skipToolNewChat = useRef(false);         // suppress new-chat when code changes tool
+  const userInitiatedToolChange = useRef(false); // only trigger new-chat when user picked tool
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -157,24 +149,33 @@ export default function Home() {
     return 'How can I help you this evening?';
   };
 
-  const renderCheck = (tool: ActiveTool) =>
-    activeTool === tool ? <Check className="ml-auto h-4 w-4" strokeWidth={2} /> : null;
-
   const toolLabel = (tool: ActiveTool) => {
-    if (tool === 'none') return 'Plain Chat';
-    if (tool === 'textMessageTool') return 'Text Message Tool';
-    if (tool === 'emailWriter') {
-      const map: Record<NonNullable<EmailLevel>, string> = {
-        hs: 'Email Writer · High School',
-        ba: 'Email Writer · Bachelor',
-        trade: 'Email Writer · Skilled Trade',
-        ms: 'Email Writer · Master’s',
-        phd: 'Email Writer · PhD',
-      };
-      return map[emailLevel || 'hs'] || 'Email Writer';
+    switch (tool) {
+      case 'none': return 'Plain Chat';
+      case 'textMessageTool': return 'Text Message Tool';
+      case 'emailWriter':
+        switch (emailLevel) {
+          case 'hs': return 'Email Writer · High School';
+          case 'ba': return 'Email Writer · Bachelor';
+          case 'trade': return 'Email Writer · Skilled Trade';
+          case 'ms': return 'Email Writer · Master’s';
+          case 'phd': return 'Email Writer · PhD';
+          default: return 'Email Writer';
+        }
+      case 'recipeExtractor': return 'Ingredient Extractor';
+      default: return 'Tool';
     }
-    if (tool === 'recipeExtractor') return 'Ingredient Extractor';
-    return 'Plain Chat';
+  };
+
+  const renderCheck = (tool: ActiveTool, level?: EmailLevel) => {
+    if (tool !== 'emailWriter') {
+      return activeTool === tool ? <Check className="ml-auto h-4 w-4" strokeWidth={2} /> : null;
+    }
+    // emailWriter variant selected?
+    if (activeTool === 'emailWriter' && emailLevel === level) {
+      return <Check className="ml-auto h-4 w-4" strokeWidth={2} />;
+    }
+    return null;
   };
 
   const getPlaceholderText = () => {
@@ -183,7 +184,7 @@ export default function Home() {
     if (isRecording) return 'Begin speaking…';
     if (attachedFileName) return 'Describe the file or add text...';
     if (activeTool === 'textMessageTool') return 'Using Text Message Tool...';
-    if (activeTool === 'emailWriter') return toolLabel('emailWriter') + '...';
+    if (activeTool === 'emailWriter') return 'Using Email Writer...';
     if (activeTool === 'recipeExtractor') return 'Using Ingredient Extractor...';
     return 'Type your message...';
   };
@@ -202,6 +203,7 @@ export default function Home() {
       console.error('fetchUnreadCount error:', error);
       return;
     }
+
     setUnreadCount(count ?? 0);
   }, []);
 
@@ -222,6 +224,7 @@ export default function Home() {
     };
 
     run();
+
     return () => { mounted = false; };
   }, [fetchUnreadCount]);
 
@@ -232,12 +235,7 @@ export default function Home() {
       .channel('public:notifications')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
         () => { fetchUnreadCount(); },
       )
       .subscribe();
@@ -268,7 +266,10 @@ export default function Home() {
   const loadConversation = async (id: string) => {
     if (isLoading || renamingId === id) return;
 
-    if (isRecording) stopRecordingFlow();
+    // prevent tool-change effect from nuking the thread during history load
+    skipToolNewChat.current = true;
+
+    if (isRecording) mediaRecorderRef.current?.stop();
     setIsRecording(false);
     setIsTranscribing(false);
     setIsLoading(true);
@@ -299,6 +300,9 @@ export default function Home() {
     }
 
     setIsLoading(false);
+
+    // re-enable tool-change new-chat after this tick
+    setTimeout(() => { skipToolNewChat.current = false; }, 0);
     inputRef.current?.focus();
   };
 
@@ -308,12 +312,12 @@ export default function Home() {
     setLocalInput('');
     setRenamingId(null);
     clearAttachmentState();
-    if (isRecording) stopRecordingFlow();
+    if (isRecording) mediaRecorderRef.current?.stop();
     setIsRecording(false);
     setIsTranscribing(false);
-    inputRef.current?.focus();
     setIsTyping(false);
     setIsSidebarOpen(false);
+    inputRef.current?.focus();
   };
 
   const handleDelete = async (id: string) => {
@@ -326,6 +330,7 @@ export default function Home() {
       alert('Error deleting conversation.');
       return;
     }
+
     setConversations((prev) => prev.filter((c) => c.id !== id));
     if (conversationId === id) handleNewChat();
   };
@@ -363,18 +368,12 @@ export default function Home() {
   const handleCopy = useCallback((id: string, content: string) => {
     if (!navigator.clipboard) { alert('Clipboard not available.'); return; }
     navigator.clipboard.writeText(content).then(
-      () => {
-        setCopiedMessageId(id);
-        setTimeout(() => setCopiedMessageId(null), 2000);
-      },
-      (err) => {
-        console.error('copy error:', err);
-        alert('Failed to copy.');
-      },
+      () => { setCopiedMessageId(id); setTimeout(() => setCopiedMessageId(null), 2000); },
+      (err) => { console.error('copy error:', err); alert('Failed to copy.'); },
     );
   }, []);
 
-  /** ---------------- Files ------------------ */
+  // ---------- File handling ----------
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -384,96 +383,22 @@ export default function Home() {
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
-
       if (file.size > MAX_FILE_SIZE) {
         const maxMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
         alert(`File is too large. Max ${maxMB}MB`);
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
-
       setUploadedFile(file);
       setAttachedFileName(file.name);
       setAttachedFileMimeType(file.type);
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
-    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const removeAttachedFile = () => { clearAttachmentState(); };
 
-  /** ---------------- Recording with silence stop (no auto-send) ------------------ */
-  const stopMonitoring = () => {
-    if (monitorRAFRef.current) {
-      cancelAnimationFrame(monitorRAFRef.current);
-      monitorRAFRef.current = null;
-    }
-    if (silenceTimerRef.current) {
-      window.clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-    if (audioCtxRef.current) {
-      audioCtxRef.current.close().catch(() => {});
-      audioCtxRef.current = null;
-    }
-    sourceRef.current = null;
-    analyserRef.current = null;
-  };
-
-  const stopRecordingFlow = () => {
-    try {
-      mediaRecorderRef.current?.stop();
-    } catch {}
-    stopMonitoring();
-  };
-
-  const startSilenceMonitor = (stream: MediaStream) => {
-    audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    if (!audioCtxRef.current) return;
-
-    const ctx = audioCtxRef.current;
-    sourceRef.current = ctx.createMediaStreamSource(stream);
-    analyserRef.current = ctx.createAnalyser();
-    analyserRef.current.fftSize = 2048;
-
-    sourceRef.current.connect(analyserRef.current);
-
-    const buffer = new Float32Array(analyserRef.current.fftSize);
-    const SILENCE_RMS = 0.01;          // silence threshold
-    const SILENCE_MS = 2500;           // stop after ~2.5s silence
-
-    const scheduleStop = () => {
-      if (silenceTimerRef.current) return;
-      silenceTimerRef.current = window.setTimeout(() => {
-        stopRecordingFlow(); // stops MediaRecorder; onstop -> transcribe
-      }, SILENCE_MS) as unknown as number;
-    };
-
-    const clearStop = () => {
-      if (silenceTimerRef.current) {
-        window.clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = null;
-      }
-    };
-
-    const tick = () => {
-      if (!analyserRef.current) return;
-      analyserRef.current.getFloatTimeDomainData(buffer);
-      // RMS
-      let sum = 0;
-      for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
-      const rms = Math.sqrt(sum / buffer.length);
-
-      if (rms < SILENCE_RMS) {
-        scheduleStop();
-      } else {
-        clearStop();
-      }
-      monitorRAFRef.current = requestAnimationFrame(tick);
-    };
-    tick();
-  };
-
+  // ---------- Mic / Transcription ----------
   const handleTranscribe = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     const formData = new FormData();
@@ -502,7 +427,7 @@ export default function Home() {
     if (isLoading || isTranscribing) return;
 
     if (isRecording) {
-      stopRecordingFlow();
+      mediaRecorderRef.current?.stop();
       setIsRecording(false);
       return;
     }
@@ -523,11 +448,9 @@ export default function Home() {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         await handleTranscribe(audioBlob);
         stream.getTracks().forEach((t) => t.stop());
-        setIsRecording(false);
       };
 
       mediaRecorder.start();
-      startSilenceMonitor(stream);
     } catch (error) {
       console.error('mic error:', error);
       alert('Microphone access denied.');
@@ -535,7 +458,6 @@ export default function Home() {
     }
   };
 
-  /** ---------------- Textarea & UI ------------------ */
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalInput(e.target.value);
     resizeTextarea();
@@ -548,22 +470,49 @@ export default function Home() {
     }
   };
 
+  // Tool button little flash
   const handleToolButtonClick = () => {
     setToolButtonFlash(true);
     setTimeout(() => setToolButtonFlash(false), 200);
   };
 
-  /** When choosing a tool or variant, start a new chat to avoid confusion */
-  const selectTool = (tool: ActiveTool, level?: EmailLevel) => {
-    if (tool !== activeTool || (tool === 'emailWriter' && level !== emailLevel)) {
-      handleNewChat();
-    }
-    setActiveTool(tool);
-    if (tool === 'emailWriter') setEmailLevel(level ?? 'hs');
-    else setEmailLevel(null);
+  // When USER changes tool, start a new chat (guarded)
+  useEffect(() => {
+    if (skipToolNewChat.current) return;       // history load or programmatic change
+    if (!userInitiatedToolChange.current) return;
+
+    // start a new chat for clarity
+    handleNewChat();
+
+    // reset the flag so subsequent state updates don't retrigger
+    userInitiatedToolChange.current = false;
+  }, [activeTool, emailLevel]); // any variant change counts as a new tool context
+
+  const selectPlainChat = () => {
+    userInitiatedToolChange.current = true;
+    setEmailLevel(null);
+    setActiveTool('none');
   };
 
-  /** ---------------- Send ------------------ */
+  const selectTextMessageTool = () => {
+    userInitiatedToolChange.current = true;
+    setEmailLevel(null);
+    setActiveTool('textMessageTool');
+  };
+
+  const selectEmailVariant = (level: EmailLevel) => {
+    userInitiatedToolChange.current = true;
+    setActiveTool('emailWriter');
+    setEmailLevel(level);
+  };
+
+  const selectRecipeExtractor = () => {
+    userInitiatedToolChange.current = true;
+    setEmailLevel(null);
+    setActiveTool('recipeExtractor');
+  };
+
+  // ---- CHAT SEND LOGIC (persists messages) ----
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (isLoading || isTranscribing || isRecording) return;
@@ -574,23 +523,14 @@ export default function Home() {
 
     if (!hasText && !hasFile) return;
 
+    if (isRecording) mediaRecorderRef.current?.stop();
+
     setIsLoading(true);
     setIsTyping(false);
 
     const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
 
-    const newUserMessage: Message = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-      role: 'user',
-      content: userMsgText,
-      created_at: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, newUserMessage]);
-    setLocalInput('');
-    clearAttachmentState();
-
-    // ensure conversation exists
+    // ensure a conversation exists
     let currentConvoId = conversationId;
     if (!currentConvoId && user) {
       const title = userMsgText.substring(0, 40) + '...';
@@ -607,19 +547,35 @@ export default function Home() {
       }
     }
 
+    // Optimistic UI add
+    const newUserMessage: Message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      role: 'user',
+      content: userMsgText,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, newUserMessage]);
+
+    // Persist user message
+    if (currentConvoId && user) {
+      await supabase.from('messages').insert({
+        conversation_id: currentConvoId,
+        role: 'user',
+        content: userMsgText,
+      });
+    }
+
+    setLocalInput('');
+    clearAttachmentState();
+
     try {
       let response;
       if (hasFile) {
-        // send FormData if a file is attached
         const formData = new FormData();
         formData.append('message', textInput);
         formData.append('file', uploadedFile as File);
-        response = await fetch('/api/chat', {
-          method: 'POST',
-          body: formData,
-        });
+        response = await fetch('/api/chat', { method: 'POST', body: formData });
       } else {
-        // simple JSON if only text
         response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -628,7 +584,6 @@ export default function Home() {
       }
 
       const data = await response.json();
-
       if (!response.ok || !data.ok) {
         throw new Error(data.error || 'Error from /api/chat');
       }
@@ -639,19 +594,35 @@ export default function Home() {
         content: data.reply,
         created_at: new Date().toISOString(),
       };
-
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Persist assistant message
+      if (currentConvoId && user) {
+        await supabase.from('messages').insert({
+          conversation_id: currentConvoId,
+          role: 'assistant',
+          content: data.reply,
+        });
+      }
     } catch (error: any) {
       console.error('chat send error:', error);
+      const errMsg = `Sorry, an error occurred: ${error?.message || 'Unknown error'}`;
       setMessages((prev) => [
         ...prev,
         {
           id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           role: 'assistant',
-          content: `Sorry, an error occurred: ${error?.message || 'Unknown error'}`,
+          content: errMsg,
           created_at: new Date().toISOString(),
         },
       ]);
+      if (currentConvoId && user) {
+        await supabase.from('messages').insert({
+          conversation_id: currentConvoId,
+          role: 'assistant',
+          content: errMsg,
+        });
+      }
     } finally {
       setIsLoading(false);
       setIsTyping(false);
@@ -659,7 +630,6 @@ export default function Home() {
     }
   };
 
-  /** ---------------- Render ------------------ */
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       {/* mobile overlay */}
@@ -1057,21 +1027,23 @@ export default function Home() {
                 <DropdownMenuContent
                   side="top"
                   align="start"
-                  className="z-50 min-w-[260px] bg-white border border-slate-200 shadow-lg rounded-xl p-1"
+                  className="min-w-[260px] bg-white border border-slate-200 shadow-lg rounded-xl p-1"
                 >
                   <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
                     Pick a Tool
                   </DropdownMenuLabel>
 
+                  {/* Plain chat */}
                   <DropdownMenuItem
-                    onClick={() => selectTool('none')}
+                    onClick={selectPlainChat}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Plain Chat {renderCheck('none')}
                   </DropdownMenuItem>
 
+                  {/* Text Message Tool */}
                   <DropdownMenuItem
-                    onClick={() => selectTool('textMessageTool')}
+                    onClick={selectTextMessageTool}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Text Message Tool {renderCheck('textMessageTool')}
@@ -1082,40 +1054,41 @@ export default function Home() {
                     Email Writer
                   </DropdownMenuLabel>
 
+                  {/* Email variants */}
                   <DropdownMenuItem
-                    onClick={() => { setEmailLevel('hs'); selectTool('emailWriter', 'hs'); }}
+                    onClick={() => selectEmailVariant('hs')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · High School
+                    Email Writer · High School {renderCheck('emailWriter', 'hs')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => { setEmailLevel('ba'); selectTool('emailWriter', 'ba'); }}
+                    onClick={() => selectEmailVariant('ba')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Bachelor
+                    Email Writer · Bachelor {renderCheck('emailWriter', 'ba')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => { setEmailLevel('trade'); selectTool('emailWriter', 'trade'); }}
+                    onClick={() => selectEmailVariant('trade')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Skilled Trade
+                    Email Writer · Skilled Trade {renderCheck('emailWriter', 'trade')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => { setEmailLevel('ms'); selectTool('emailWriter', 'ms'); }}
+                    onClick={() => selectEmailVariant('ms')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Master’s
+                    Email Writer · Master’s {renderCheck('emailWriter', 'ms')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => { setEmailLevel('phd'); selectTool('emailWriter', 'phd'); }}
+                    onClick={() => selectEmailVariant('phd')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · PhD
+                    Email Writer · PhD {renderCheck('emailWriter', 'phd')}
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="my-1 bg-slate-200" />
                   <DropdownMenuItem
-                    onClick={() => selectTool('recipeExtractor')}
+                    onClick={selectRecipeExtractor}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Ingredient Extractor {renderCheck('recipeExtractor')}
@@ -1145,10 +1118,18 @@ export default function Home() {
                   size="icon"
                   disabled={isLoading || isTranscribing}
                   onClick={handleMicClick}
-                  className={`h-8 w-8 mr-1 ${isRecording ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' : 'hover:bg-slate-100 text-slate-700'} rounded-lg`}
+                  className={`h-8 w-8 mr-1 ${
+                    isRecording
+                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                      : 'hover:bg-slate-100 text-slate-700'
+                  } rounded-lg`}
                   title={isRecording ? 'Stop recording' : 'Start recording'}
                 >
-                  {isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" strokeWidth={2} />}
+                  {isTranscribing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mic className="h-4 w-4" strokeWidth={2} />
+                  )}
                 </Button>
 
                 <Button
@@ -1156,7 +1137,11 @@ export default function Home() {
                   disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
                   className="h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 text-white rounded-lg flex items-center justify-center"
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> : <Send className="h-4 w-4" strokeWidth={2} />}
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <Send className="h-4 w-4" strokeWidth={2} />
+                  )}
                 </Button>
               </div>
             </div>
