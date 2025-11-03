@@ -1,4 +1,3 @@
-// src/app/page.tsx
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -55,7 +54,14 @@ interface Conversation {
   title?: string | null;
 }
 
-type ActiveTool = 'none' | 'textMessageTool' | 'emailWriterHS' | 'emailWriterBA' | 'emailWriterSkilled' | 'emailWriterMS' | 'emailWriterPhD' | 'ingredientExtractor';
+/** Tools */
+type ActiveTool =
+  | 'none'
+  | 'textMessageTool'
+  | 'emailWriter'
+  | 'recipeExtractor';
+
+type EmailLevel = 'hs' | 'ba' | 'trade' | 'ms' | 'phd' | null;
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -99,6 +105,7 @@ export default function Home() {
 
   // tools / files
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
+  const [emailLevel, setEmailLevel] = useState<EmailLevel>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
@@ -108,11 +115,13 @@ export default function Home() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // silence detection
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const silenceTimerRef = useRef<number | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const monitorRAFRef = useRef<number | null>(null);
 
   // ui refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -148,37 +157,35 @@ export default function Home() {
     return 'How can I help you this evening?';
   };
 
-  const toolLabel = (tool: ActiveTool) => {
-    switch (tool) {
-      case 'textMessageTool': return 'Text Message Tool';
-      case 'emailWriterHS': return 'Email Writer · High School';
-      case 'emailWriterBA': return 'Email Writer · Bachelor';
-      case 'emailWriterSkilled': return 'Email Writer · Skilled Trade';
-      case 'emailWriterMS': return 'Email Writer · Master’s';
-      case 'emailWriterPhD': return 'Email Writer · PhD';
-      case 'ingredientExtractor': return 'Ingredient Extractor';
-      default: return 'Plain Chat';
-    }
-  };
-
   const renderCheck = (tool: ActiveTool) =>
     activeTool === tool ? <Check className="ml-auto h-4 w-4" strokeWidth={2} /> : null;
+
+  const toolLabel = (tool: ActiveTool) => {
+    if (tool === 'none') return 'Plain Chat';
+    if (tool === 'textMessageTool') return 'Text Message Tool';
+    if (tool === 'emailWriter') {
+      const map: Record<NonNullable<EmailLevel>, string> = {
+        hs: 'Email Writer · High School',
+        ba: 'Email Writer · Bachelor',
+        trade: 'Email Writer · Skilled Trade',
+        ms: 'Email Writer · Master’s',
+        phd: 'Email Writer · PhD',
+      };
+      return map[emailLevel || 'hs'] || 'Email Writer';
+    }
+    if (tool === 'recipeExtractor') return 'Ingredient Extractor';
+    return 'Plain Chat';
+  };
 
   const getPlaceholderText = () => {
     if (isTranscribing) return 'Transcribing audio...';
     if (isLoading) return 'AI is thinking...';
     if (isRecording) return 'Begin speaking…';
     if (attachedFileName) return 'Describe the file or add text...';
-    switch (activeTool) {
-      case 'textMessageTool': return 'Using Text Message Tool...';
-      case 'emailWriterHS': return 'Email Writer · High School...';
-      case 'emailWriterBA': return 'Email Writer · Bachelor...';
-      case 'emailWriterSkilled': return 'Email Writer · Skilled Trade...';
-      case 'emailWriterMS': return 'Email Writer · Master’s...';
-      case 'emailWriterPhD': return 'Email Writer · PhD...';
-      case 'ingredientExtractor': return 'Describe the recipe or attach a photo...';
-      default: return 'Type your message...';
-    }
+    if (activeTool === 'textMessageTool') return 'Using Text Message Tool...';
+    if (activeTool === 'emailWriter') return toolLabel('emailWriter') + '...';
+    if (activeTool === 'recipeExtractor') return 'Using Ingredient Extractor...';
+    return 'Type your message...';
   };
 
   const fetchUnreadCount = useCallback(async () => {
@@ -195,7 +202,6 @@ export default function Home() {
       console.error('fetchUnreadCount error:', error);
       return;
     }
-
     setUnreadCount(count ?? 0);
   }, []);
 
@@ -216,10 +222,7 @@ export default function Home() {
     };
 
     run();
-
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [fetchUnreadCount]);
 
   useEffect(() => {
@@ -235,24 +238,15 @@ export default function Home() {
           table: 'notifications',
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
-          fetchUnreadCount();
-        },
+        () => { fetchUnreadCount(); },
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user, fetchUnreadCount]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  useEffect(() => { scrollToBottom(); }, [messages, isTyping]);
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
   const fetchConversations = async (userId: string) => {
     setHistoryIsLoading(true);
@@ -274,7 +268,7 @@ export default function Home() {
   const loadConversation = async (id: string) => {
     if (isLoading || renamingId === id) return;
 
-    if (isRecording) mediaRecorderRef.current?.stop();
+    if (isRecording) stopRecordingFlow();
     setIsRecording(false);
     setIsTranscribing(false);
     setIsLoading(true);
@@ -308,25 +302,13 @@ export default function Home() {
     inputRef.current?.focus();
   };
 
-  const startNewChatForTool = (tool: ActiveTool) => {
-    // switch tool and start a clean conversation to avoid confusion
-    setActiveTool(tool);
-    setMessages([]);
-    setConversationId(null);
-    setLocalInput('');
-    clearAttachmentState();
-    setIsTyping(false);
-    inputRef.current?.focus();
-  };
-
   const handleNewChat = () => {
     setMessages([]);
     setConversationId(null);
     setLocalInput('');
     setRenamingId(null);
     clearAttachmentState();
-    setActiveTool('none');
-    if (isRecording) mediaRecorderRef.current?.stop();
+    if (isRecording) stopRecordingFlow();
     setIsRecording(false);
     setIsTranscribing(false);
     inputRef.current?.focus();
@@ -344,7 +326,6 @@ export default function Home() {
       alert('Error deleting conversation.');
       return;
     }
-
     setConversations((prev) => prev.filter((c) => c.id !== id));
     if (conversationId === id) handleNewChat();
   };
@@ -356,14 +337,8 @@ export default function Home() {
 
   const handleRenameSubmit = async (e: React.FormEvent<HTMLFormElement>, id: string) => {
     e.preventDefault();
-    if (isLoading) {
-      setRenamingId(null);
-      return;
-    }
-    if (!renameValue.trim()) {
-      setRenamingId(null);
-      return;
-    }
+    if (isLoading) { setRenamingId(null); return; }
+    if (!renameValue.trim()) { setRenamingId(null); return; }
 
     const newTitle = renameValue.trim();
     const { error } = await supabase.from('conversations').update({ title: newTitle }).eq('id', id);
@@ -386,10 +361,7 @@ export default function Home() {
   };
 
   const handleCopy = useCallback((id: string, content: string) => {
-    if (!navigator.clipboard) {
-      alert('Clipboard not available.');
-      return;
-    }
+    if (!navigator.clipboard) { alert('Clipboard not available.'); return; }
     navigator.clipboard.writeText(content).then(
       () => {
         setCopiedMessageId(id);
@@ -402,6 +374,7 @@ export default function Home() {
     );
   }, []);
 
+  /** ---------------- Files ------------------ */
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -423,29 +396,82 @@ export default function Home() {
       setAttachedFileName(file.name);
       setAttachedFileMimeType(file.type);
     }
-
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
-  const removeAttachedFile = () => {
-    clearAttachmentState();
-  };
+  const removeAttachedFile = () => { clearAttachmentState(); };
 
-  // ---------- AUDIO: stop on silence, no auto-send ----------
-  const stopAllAudio = () => {
-    mediaRecorderRef.current?.stop();
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    if (audioContextRef.current) {
-      audioContextRef.current.close().catch(() => {});
+  /** ---------------- Recording with silence stop (no auto-send) ------------------ */
+  const stopMonitoring = () => {
+    if (monitorRAFRef.current) {
+      cancelAnimationFrame(monitorRAFRef.current);
+      monitorRAFRef.current = null;
     }
-    audioContextRef.current = null;
-    analyserRef.current = null;
-    sourceRef.current = null;
     if (silenceTimerRef.current) {
       window.clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
-    setIsRecording(false);
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current = null;
+    }
+    sourceRef.current = null;
+    analyserRef.current = null;
+  };
+
+  const stopRecordingFlow = () => {
+    try {
+      mediaRecorderRef.current?.stop();
+    } catch {}
+    stopMonitoring();
+  };
+
+  const startSilenceMonitor = (stream: MediaStream) => {
+    audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (!audioCtxRef.current) return;
+
+    const ctx = audioCtxRef.current;
+    sourceRef.current = ctx.createMediaStreamSource(stream);
+    analyserRef.current = ctx.createAnalyser();
+    analyserRef.current.fftSize = 2048;
+
+    sourceRef.current.connect(analyserRef.current);
+
+    const buffer = new Float32Array(analyserRef.current.fftSize);
+    const SILENCE_RMS = 0.01;          // silence threshold
+    const SILENCE_MS = 2500;           // stop after ~2.5s silence
+
+    const scheduleStop = () => {
+      if (silenceTimerRef.current) return;
+      silenceTimerRef.current = window.setTimeout(() => {
+        stopRecordingFlow(); // stops MediaRecorder; onstop -> transcribe
+      }, SILENCE_MS) as unknown as number;
+    };
+
+    const clearStop = () => {
+      if (silenceTimerRef.current) {
+        window.clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+    };
+
+    const tick = () => {
+      if (!analyserRef.current) return;
+      analyserRef.current.getFloatTimeDomainData(buffer);
+      // RMS
+      let sum = 0;
+      for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
+      const rms = Math.sqrt(sum / buffer.length);
+
+      if (rms < SILENCE_RMS) {
+        scheduleStop();
+      } else {
+        clearStop();
+      }
+      monitorRAFRef.current = requestAnimationFrame(tick);
+    };
+    tick();
   };
 
   const handleTranscribe = async (audioBlob: Blob) => {
@@ -454,11 +480,7 @@ export default function Home() {
     formData.append('file', audioBlob, 'audio.webm');
 
     try {
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-
+      const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
       const data = await response.json();
 
       if (response.ok) {
@@ -479,83 +501,33 @@ export default function Home() {
   const handleMicClick = async () => {
     if (isLoading || isTranscribing) return;
 
-    // stop if already recording
     if (isRecording) {
-      stopAllAudio();
+      stopRecordingFlow();
+      setIsRecording(false);
       return;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
       setIsRecording(true);
       audioChunksRef.current = [];
 
-      // Recorder
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         await handleTranscribe(audioBlob);
-        stopAllAudio();
+        stream.getTracks().forEach((t) => t.stop());
+        setIsRecording(false);
       };
 
       mediaRecorder.start();
-
-      // VAD: stop after ~1.8s of silence, DO NOT auto-send
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = audioContext;
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      analyserRef.current = analyser;
-
-      const source = audioContext.createMediaStreamSource(stream);
-      sourceRef.current = source;
-      source.connect(analyser);
-
-      const dataArray = new Uint8Array(analyser.fftSize);
-      const threshold = 0.008; // RMS threshold for silence
-      const silenceMs = 1800; // 1.8 seconds
-      const checkInterval = 120;
-
-      const loop = () => {
-        if (!analyserRef.current || !isRecording) return;
-        analyserRef.current.getByteTimeDomainData(dataArray);
-
-        // Compute RMS
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          const v = (dataArray[i] - 128) / 128;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / dataArray.length);
-
-        if (rms < threshold) {
-          if (!silenceTimerRef.current) {
-            silenceTimerRef.current = window.setTimeout(() => {
-              if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-                mediaRecorderRef.current.stop(); // we only stop recording, user will press send manually
-              }
-            }, silenceMs);
-          }
-        } else {
-          if (silenceTimerRef.current) {
-            window.clearTimeout(silenceTimerRef.current);
-            silenceTimerRef.current = null;
-          }
-        }
-        if (isRecording) {
-          window.setTimeout(loop, checkInterval);
-        }
-      };
-      loop();
+      startSilenceMonitor(stream);
     } catch (error) {
       console.error('mic error:', error);
       alert('Microphone access denied.');
@@ -563,6 +535,7 @@ export default function Home() {
     }
   };
 
+  /** ---------------- Textarea & UI ------------------ */
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalInput(e.target.value);
     resizeTextarea();
@@ -580,7 +553,17 @@ export default function Home() {
     setTimeout(() => setToolButtonFlash(false), 200);
   };
 
-  // ---- CHAT SEND LOGIC ----
+  /** When choosing a tool or variant, start a new chat to avoid confusion */
+  const selectTool = (tool: ActiveTool, level?: EmailLevel) => {
+    if (tool !== activeTool || (tool === 'emailWriter' && level !== emailLevel)) {
+      handleNewChat();
+    }
+    setActiveTool(tool);
+    if (tool === 'emailWriter') setEmailLevel(level ?? 'hs');
+    else setEmailLevel(null);
+  };
+
+  /** ---------------- Send ------------------ */
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (isLoading || isTranscribing || isRecording) return;
@@ -627,11 +610,16 @@ export default function Home() {
     try {
       let response;
       if (hasFile) {
+        // send FormData if a file is attached
         const formData = new FormData();
         formData.append('message', textInput);
         formData.append('file', uploadedFile as File);
-        response = await fetch('/api/chat', { method: 'POST', body: formData });
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          body: formData,
+        });
       } else {
+        // simple JSON if only text
         response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -671,6 +659,7 @@ export default function Home() {
     }
   };
 
+  /** ---------------- Render ------------------ */
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       {/* mobile overlay */}
@@ -1023,9 +1012,7 @@ export default function Home() {
                     variant="ghost"
                     size="icon"
                     disabled={isLoading}
-                    className={`hover:bg-slate-100 rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${
-                      fileButtonFlash ? 'bg-slate-200' : ''
-                    }`}
+                    className={`hover:bg-slate-100 rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${fileButtonFlash ? 'bg-slate-200' : ''}`}
                     title="Attach file or take photo"
                   >
                     <Paperclip className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700" strokeWidth={2} />
@@ -1051,53 +1038,87 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* TOOLS — back next to the input */}
+              {/* TOOL PICKER (icon-only wrench, light theme) */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     type="button"
-                    variant="outline"
-                    size="sm"
+                    variant="ghost"
+                    size="icon"
                     disabled={isLoading}
+                    className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 ${toolButtonFlash ? 'ring-2 ring-slate-200' : ''}`}
+                    title="Pick a tool"
                     onClick={handleToolButtonClick}
-                    className={`border-slate-300 text-slate-800 hover:bg-slate-100 rounded-lg px-2.5 h-9 sm:h-10 ${
-                      toolButtonFlash ? 'bg-slate-200' : ''
-                    }`}
-                    title="Choose a tool"
                   >
-                    <Wrench className="h-4 w-4 mr-1.5" />
-                    <span className="hidden sm:inline">Tools</span>
+                    <Wrench className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2} />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-white border-slate-200 shadow-lg rounded-lg">
-                  <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">Pick a tool</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-slate-200" />
-                  <DropdownMenuItem onClick={() => startNewChatForTool('none')}>
+
+                <DropdownMenuContent
+                  side="top"
+                  align="start"
+                  className="z-50 min-w-[260px] bg-white border border-slate-200 shadow-lg rounded-xl p-1"
+                >
+                  <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
+                    Pick a Tool
+                  </DropdownMenuLabel>
+
+                  <DropdownMenuItem
+                    onClick={() => selectTool('none')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
                     Plain Chat {renderCheck('none')}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => startNewChatForTool('textMessageTool')}>
+
+                  <DropdownMenuItem
+                    onClick={() => selectTool('textMessageTool')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
                     Text Message Tool {renderCheck('textMessageTool')}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-slate-200" />
-                  <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">Email Writer</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterHS')}>
-                    Email Writer · High School {renderCheck('emailWriterHS')}
+
+                  <DropdownMenuSeparator className="my-1 bg-slate-200" />
+                  <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
+                    Email Writer
+                  </DropdownMenuLabel>
+
+                  <DropdownMenuItem
+                    onClick={() => { setEmailLevel('hs'); selectTool('emailWriter', 'hs'); }}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email Writer · High School
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterBA')}>
-                    Email Writer · Bachelor {renderCheck('emailWriterBA')}
+                  <DropdownMenuItem
+                    onClick={() => { setEmailLevel('ba'); selectTool('emailWriter', 'ba'); }}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email Writer · Bachelor
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterSkilled')}>
-                    Email Writer · Skilled Trade {renderCheck('emailWriterSkilled')}
+                  <DropdownMenuItem
+                    onClick={() => { setEmailLevel('trade'); selectTool('emailWriter', 'trade'); }}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email Writer · Skilled Trade
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterMS')}>
-                    Email Writer · Master&apos;s {renderCheck('emailWriterMS')}
+                  <DropdownMenuItem
+                    onClick={() => { setEmailLevel('ms'); selectTool('emailWriter', 'ms'); }}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email Writer · Master’s
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => startNewChatForTool('emailWriterPhD')}>
-                    Email Writer · PhD {renderCheck('emailWriterPhD')}
+                  <DropdownMenuItem
+                    onClick={() => { setEmailLevel('phd'); selectTool('emailWriter', 'phd'); }}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email Writer · PhD
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-slate-200" />
-                  <DropdownMenuItem onClick={() => startNewChatForTool('ingredientExtractor')}>
-                    Ingredient Extractor {renderCheck('ingredientExtractor')}
+
+                  <DropdownMenuSeparator className="my-1 bg-slate-200" />
+                  <DropdownMenuItem
+                    onClick={() => selectTool('recipeExtractor')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Ingredient Extractor {renderCheck('recipeExtractor')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1124,18 +1145,10 @@ export default function Home() {
                   size="icon"
                   disabled={isLoading || isTranscribing}
                   onClick={handleMicClick}
-                  className={`h-8 w-8 mr-1 ${
-                    isRecording
-                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-                      : 'hover:bg-slate-100 text-slate-700'
-                  } rounded-lg`}
+                  className={`h-8 w-8 mr-1 ${isRecording ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' : 'hover:bg-slate-100 text-slate-700'} rounded-lg`}
                   title={isRecording ? 'Stop recording' : 'Start recording'}
                 >
-                  {isTranscribing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Mic className="h-4 w-4" strokeWidth={2} />
-                  )}
+                  {isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" strokeWidth={2} />}
                 </Button>
 
                 <Button
@@ -1143,11 +1156,7 @@ export default function Home() {
                   disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
                   className="h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 text-white rounded-lg flex items-center justify-center"
                 >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
-                  ) : (
-                    <Send className="h-4 w-4" strokeWidth={2} />
-                  )}
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> : <Send className="h-4 w-4" strokeWidth={2} />}
                 </Button>
               </div>
             </div>
