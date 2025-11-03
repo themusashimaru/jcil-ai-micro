@@ -136,14 +136,13 @@ export async function runModeration(
 
   // Log *violations* server-side so client RLS doesn’t matter
   if (!result.allowed) {
-    await supabaseAdmin.from("moderation_logs").insert({
-      user_id: meta?.userId ?? null,
+    try { await supabaseAdmin.from("moderation_logs").insert({ user_id: meta?.userId ?? null,
       ip: meta?.ip ?? null,
       categories: result.categories,
       reason: result.reason,
       tip: result.tip ?? null,
       text: textToCheck || null
-    }).catch(() => {});
+     }); } catch (e) {}
   }
 
   return result;
