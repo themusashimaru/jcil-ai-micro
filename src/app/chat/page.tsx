@@ -1,98 +1,133 @@
-// src/app/chat/page.tsx
 "use client";
-import React, { useState } from "react";
 
-type Bubble = { role: "user" | "assistant"; content: string };
+import React, { useEffect, useRef, useState } from "react";
+
+type Msg = { role: "system" | "user" | "assistant"; content: string };
 
 export default function ChatPage() {
-  const [msg, setMsg] = useState("");
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [input, setInput] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [chat, setChat] = useState<Bubble[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  // ── load / save simple session memory (localStorage) ─────────────
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("jcil.chat.history");
+      if (saved) setMessages(JSON.parse(saved));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("jcil.chat.history", JSON.stringify(messages));
+    } catch {}
+  }, [messages]);
 
   async function send() {
-    if (busy) return;
-    const text = msg.trim();
+    if (loading) return;
+    const text = input.trim();
     if (!text && !file) return;
 
-    setBusy(true);
+    // push user message locally first
+    const nextHistory: Msg[] = [...messages, { role: "user", content: text || "[image]" }];
+    setMessages(nextHistory);
+    setInput("");
+    setLoading(true);
 
-    let res: Response;
     try {
+      const headers: Record<string, string> = {};
+      let body: BodyInit;
+
       if (file) {
         const form = new FormData();
         form.append("message", text);
+        form.append("history", JSON.stringify(nextHistory.slice(-10))); // send last 10 turns
         form.append("file", file);
-        res = await fetch("/api/chat", { method: "POST", body: form });
+        body = form;
       } else {
-        res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text }),
+        headers["Content-Type"] = "application/json";
+        body = JSON.stringify({
+          message: text,
+          history: nextHistory.slice(-10),
         });
       }
 
-      const data = await res.json().catch(() => ({}));
-      const userBubble: Bubble = { role: "user", content: text || "(image)" };
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers,
+        body,
+      });
 
-      if (!res.ok || !data?.ok) {
-        setChat((c) => [...c, userBubble, { role: "assistant", content: `Error: ${data?.error || "API error"}` }]);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessages(h => [...h, { role: "assistant", content: data?.error || "Error" }]);
       } else {
-        setChat((c) => [...c, userBubble, { role: "assistant", content: data.reply || "(no response)" }]);
+        setMessages(h => [...h, { role: "assistant", content: data?.reply || "(no response)" }]);
       }
+    } catch (err: any) {
+      setMessages(h => [...h, { role: "assistant", content: err?.message || "Network error" }]);
     } finally {
-      setMsg("");
+      setLoading(false);
       setFile(null);
-      setBusy(false);
-      const f = document.getElementById("chat-file") as HTMLInputElement | null;
-      if (f) f.value = "";
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void send();
     }
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-4">
-      <h1 className="text-xl font-semibold">New Chat</h1>
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <h1 className="text-center text-xl font-semibold mb-6">New Chat</h1>
 
-      <div className="space-y-3">
-        {chat.map((b, i) => (
-          <div key={i} className={b.role === "user" ? "text-right" : "text-left"}>
-            <div className={`inline-block rounded px-3 py-2 ${b.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>
-              {b.content}
-            </div>
+      <div className="space-y-4">
+        {messages.length === 0 && (
+          <div className="text-sm text-gray-500">Hello! How can I assist you today?</div>
+        )}
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            className={
+              "rounded-lg p-3 text-sm " +
+              (m.role === "user"
+                ? "bg-blue-600 text-white ml-auto max-w-[80%]"
+                : "bg-gray-100 text-gray-900 mr-auto max-w-[80%]")
+            }
+          >
+            {m.content}
           </div>
         ))}
       </div>
 
-      <div className="flex gap-2 items-center">
+      <div className="mt-6 flex items-center gap-2">
         <input
-          id="chat-file"
+          ref={fileRef}
           type="file"
           accept="image/*"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="hidden"
+          className="text-sm"
         />
-        <label htmlFor="chat-file" className="cursor-pointer rounded border px-3 py-2" title="Attach image">
-          📎
-        </label>
+      </div>
 
-        <input
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
+      <div className="mt-3 flex gap-2">
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={onKeyDown}
           placeholder="Type your message…"
-          className="flex-1 rounded border px-3 py-2"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
+          className="flex-1 rounded-lg border p-3 text-sm min-h-[48px]"
         />
         <button
           onClick={send}
-          disabled={busy}
-          className="rounded bg-blue-600 text-white px-4 py-2 disabled:opacity-60"
+          disabled={loading}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
         >
-          {busy ? "Sending…" : "Send"}
+          {loading ? "…" : "Send"}
         </button>
       </div>
     </div>
