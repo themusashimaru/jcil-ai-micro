@@ -1039,7 +1039,7 @@ export default function Home() {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setActiveTool('emailWriter')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-1tranl
                   >
                     Email Writer · Bachelor
                   </DropdownMenuItem>
