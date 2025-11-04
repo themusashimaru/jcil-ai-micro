@@ -138,21 +138,21 @@ export async function POST(req: Request) {
       { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
     ];
     
-    // *** THIS IS THE SMART-SWITCHING LOGIC ***
+    // *** THIS IS THE CORRECTED SMART-SWITCHING LOGIC ***
     let modelToUse: string;
-    let userContent: any;
+    let userContent: any; // 'any' is important here
 
     if (imageBase64) {
-      // 1. IMAGE IS PRESENT: Force the vision model
+      // 1. IMAGE IS PRESENT: Force vision model and use content *array*
       modelToUse = "grok-2-vision-1212";
       userContent = [
           { type: "text", text: sanitized || "Analyze this image and provide a Christian perspective." },
           { type: "image_url", image_url: imageBase64 },
         ];
     } else {
-      // 2. TEXT-ONLY: Use the cheap/fast model (grok-4-fast-reasoning)
+      // 2. TEXT-ONLY: Use cheap/fast model and use content *string*
       modelToUse = process.env.GROK_MODEL || "grok-4-fast-reasoning";
-      userContent = [{ type: "text", text: sanitized }];
+      userContent = sanitized; // Send as a plain string, not an array
     }
       
     messages.push({ role: "user", content: userContent });
