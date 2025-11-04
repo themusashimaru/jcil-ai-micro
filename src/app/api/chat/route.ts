@@ -138,20 +138,27 @@ export async function POST(req: Request) {
       { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
     ];
     
-    const userContent = imageBase64
-      ? [
-          // *** THIS IS THE FIX ***
-          // If text is empty but an image exists, use a default prompt.
-          // This prevents an API error from an empty text part.
-          { type: "text", text: sanitized || "Analyze this image." },
+    // *** THIS IS THE NEW LOGIC ***
+    let modelToUse: string;
+    let userContent: any;
+
+    if (imageBase64) {
+      // 1. IMAGE IS PRESENT: Force the vision model
+      modelToUse = "grok-2-vision-1212";
+      userContent = [
+          { type: "text", text: sanitized || "Analyze this image and provide a Christian perspective." },
           { type: "image_url", image_url: imageBase64 },
-        ]
-      : [{ type: "text", text: sanitized }];
+        ];
+    } else {
+      // 2. TEXT-ONLY: Use the cheap/fast model (or the one from Vercel env)
+      modelToUse = process.env.GROK_MODEL || "grok-4-fast-reasoning";
+      userContent = [{ type: "text", text: sanitized }];
+    }
       
     messages.push({ role: "user", content: userContent });
 
     const body = {
-      model: process.env.GROK_MODEL || "grok-2-latest",
+      model: modelToUse,
       messages,
       temperature: 0.6,
     };
@@ -180,7 +187,9 @@ export async function POST(req: Request) {
     const data = (await res.json().catch(() => null)) as UpstreamResponse | null;
     const reply =
       data?.choices?.[0]?.message?.content || "I could not generate a response.";
+    
     return json(200, { ok: true, reply });
+    
   } catch (err: any) {
     return json(500, { ok: false, error: err?.message || "Internal error." });
   }
