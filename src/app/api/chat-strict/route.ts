@@ -112,7 +112,7 @@ type UpstreamResponse = { choices?: UpstreamChoice[] };
 export async function POST(req: Request) {
   try {
     // Soft metadata (no auth requirement)
-    const cookieStore = cookies(); // NOTE: do NOT await in Edge
+    const cookieStore = await cookies(); // NOTE: do NOT await in Edge
     const userId = cookieStore.get("sb-user-id")?.value || null;
     const ip = req.headers.get("x-forwarded-for") || undefined;
 
