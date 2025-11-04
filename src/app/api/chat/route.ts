@@ -24,7 +24,7 @@ function json(obj: unknown, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
 }
 
-// super-light local rules + optional OpenAI moderation (if OPENAI_API_KEY exists)
+// local rules + optional OpenAI moderation
 type ModResult = { allowed: true } | { allowed: false; reason: string };
 async function moderate(text: string): Promise<ModResult> {
   const quickRules: RegExp[] = [
@@ -33,13 +33,11 @@ async function moderate(text: string): Promise<ModResult> {
     /\bcredit\s*card\s*number\b/i,
     /\bsocial\s*security\s*number\b|\bssn\b/i,
   ];
-  for (const rx of quickRules) {
-    if (rx.test(text)) return { allowed: false, reason: "Content violates safety rules." };
+  for (const rx of quickRules) if (rx.test(text)) {
+    return { allowed: false, reason: "Content violates safety rules." };
   }
-
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-  if (!OPENAI_API_KEY) return { allowed: true }; // skip provider moderation if no key
-
+  if (!OPENAI_API_KEY) return { allowed: true };
   try {
     const r = await fetch("https://api.openai.com/v1/moderations", {
       method: "POST",
@@ -49,15 +47,25 @@ async function moderate(text: string): Promise<ModResult> {
     if (!r.ok) return { allowed: true };
     const j: any = await r.json();
     if (j?.results?.[0]?.flagged) return { allowed: false, reason: "Content flagged by moderation." };
-  } catch {
-    return { allowed: true };
-  }
+  } catch { /* allow on network error */ }
   return { allowed: true };
 }
 
 // accept multiple payload keys so the UI never mismatches
 function extractUserText(body: any) {
   return body?.message ?? body?.input ?? body?.text ?? body?.prompt ?? body?.q ?? "";
+}
+
+// try multiple xAI/OpenAI-compatible shapes
+function extractOutput(data: any): string {
+  return (
+    data?.choices?.[0]?.message?.content ??
+    data?.choices?.[0]?.delta?.content ??
+    data?.choices?.[0]?.text ??
+    data?.output_text ??
+    data?.content ??
+    ""
+  );
 }
 
 // quick probe
@@ -67,30 +75,21 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const url = new URL(req.url);
-    const wantStream = url.searchParams.get("stream") === "true";
     const body = await req.json().catch(() => ({}));
     const userText = sanitize(extractUserText(body));
     if (!userText) return json({ ok: false, error: "Missing message/input/text/prompt/q" }, 400);
 
-    // moderation first (OpenAI if configured)
+    // moderation
     const mod = await moderate(userText);
     if (!mod.allowed) return json({ ok: false, error: mod.reason }, 400);
 
-    // ——— xAI provider for completions ———
+    // xAI
     const XAI_API_KEY = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
-    // lock to your model; allow override via env if you set XAI_MODEL
     const XAI_MODEL = process.env.XAI_MODEL || "grok-4-fast-reasoning";
-
     if (!XAI_API_KEY) {
-      return json({
-        ok: false,
-        error: "Missing xAI key",
-        details: "Set XAI_API_KEY (or GROK_API_KEY) in Vercel → Settings → Environment Variables.",
-      }, 500);
+      return json({ ok: false, error: "Missing xAI key", details: "Set XAI_API_KEY (or GROK_API_KEY) in Vercel env." }, 500);
     }
 
-    // xAI uses OpenAI-compatible chat endpoint
     const payload = {
       model: XAI_MODEL,
       temperature: 0.3,
@@ -115,28 +114,15 @@ export async function POST(req: NextRequest) {
     }
 
     const data: any = await resp.json();
-    const output =
-      data?.choices?.[0]?.message?.content
-      ?? data?.choices?.[0]?.delta?.content
-      ?? "";
+    const output = extractOutput(data).trim();
 
-    if (wantStream) {
-      const enc = new TextEncoder();
-      const rs = new ReadableStream({
-        start(controller) {
-          controller.enqueue(enc.encode(JSON.stringify({ chunk: output })));
-          controller.close();
-        },
-      });
-      return new Response(rs, { headers: { "Content-Type": "text/event-stream" } });
-    }
+    // Always return both fields the UI may read
+    const response: any = { ok: true, answer: output || "(no response)", output: output || "(no response)" };
+    if (process.env.NODE_ENV !== "production") response.raw = data; // debug only outside production
 
-    // return fields most UIs expect
-    return json({ ok: true, answer: output, output });
+    return json(response);
   } catch (err: any) {
-    const msg = process.env.NODE_ENV === "development"
-      ? String(err?.stack || err?.message)
-      : "Internal error";
+    const msg = process.env.NODE_ENV === "development" ? String(err?.stack || err?.message) : "Internal error";
     return json({ ok: false, error: msg }, 500);
   }
 }
