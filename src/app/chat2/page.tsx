@@ -1,6 +1,10 @@
 "use client";
 import * as React from "react";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 type Msg = { role: "user" | "assistant"; content: string };
 
 function pickReply(data: any): string {
