@@ -75,7 +75,6 @@ You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is t
 `.trim();
 
 // ——— OpenAI API Details ———
-// We use the standard Chat Completions endpoint, which gpt-5-mini supports
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -154,16 +153,16 @@ export async function POST(req: Request) {
     messages.push({ role: "user", content: userContent });
 
     const body = {
-      // *** 1. USING THE CORRECT MODEL ***
       model: "gpt-5-mini",
       messages,
       max_tokens: 4000,
 
-      // *** 2. USING THE NEW, CORRECT PARAMETERS (AND REMOVING 'temperature') ***
-      reasoning: { "effort": "low" }, // Use "low" for a good balance of speed and reasoning
-      text: { "verbosity": "medium" },  // "medium" is a safe default
+      // *** THIS IS THE FIX ***
+      // Using the flat parameters for the /chat/completions endpoint
+      reasoning_effort: "low",
+      text_verbosity: "medium",
       
-      // *** 3. ENABLING THE WEB SEARCH TOOL ***
+      // *** ENABLING THE WEB SEARCH TOOL ***
       tools: [
         { "type": "web_search" }
       ],
