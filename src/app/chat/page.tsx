@@ -14,14 +14,13 @@ export default function ChatPage() {
   const [fileToSend, setFileToSend] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function fileToBase64(f: File): Promise<string> {
-    const dataUrl: string = await new Promise((resolve, reject) => {
+  function fileToBase64(f: File): Promise<string> {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = () => reject(new Error("Failed to read file"));
       reader.onload = () => resolve(String(reader.result || ""));
       reader.readAsDataURL(f);
     });
-    return dataUrl;
   }
 
   async function onSend(e: React.FormEvent) {
@@ -31,11 +30,7 @@ export default function ChatPage() {
     const text = input.trim();
     if (!text && !fileToSend) return;
 
-    const userMsg: ChatMessage = {
-      id: `u_${Date.now()}`,
-      role: "user",
-      content: text || "[image]",
-    };
+    const userMsg: ChatMessage = { id: `u_${Date.now()}`, role: "user", content: text || "[image]" };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
@@ -67,7 +62,7 @@ export default function ChatPage() {
         return;
       }
 
-      const data = await resp.json().catch(() => null);
+      const data = await resp.json();
       if (!resp.ok || !data?.ok) {
         const err = data?.error || "Unknown error from /api/chat";
         const warn: ChatMessage = {
