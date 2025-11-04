@@ -1,108 +1,100 @@
+// src/app/chat/page.tsx
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 
-export const dynamic = "force-dynamic";
-
-type Msg = { role: "user" | "assistant"; content: string };
+type Bubble = { role: "user" | "assistant"; content: string };
 
 export default function ChatPage() {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [lastRaw, setLastRaw] = useState<string>("");
+  const [msg, setMsg] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [chat, setChat] = useState<Bubble[]>([]);
+  const [busy, setBusy] = useState(false);
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
-    if (loading) return;
+  async function send() {
+    if (busy) return;
+    const text = msg.trim();
+    if (!text && !file) return;
 
-    const text = (input || "").trim();
-    if (!text) return;
+    setBusy(true);
 
-    setMessages((m) => m.concat({ role: "user", content: text }));
-    setInput("");
-    setLoading(true);
-
+    let res: Response;
     try {
-      const r = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
-        cache: "no-store"
-      });
-
-      let reply = "Sorry, no reply.";
-      if (r.ok) {
-        const j: any = await r.json();
-        setLastRaw(JSON.stringify(j));
-        reply =
-          (j && j.output) ||
-          (j && j.answer) ||
-          (j && j.content) ||
-          (j && j.text) ||
-          (j && j.message && j.message.content) ||
-          (Array.isArray(j && j.choices) && j.choices[0] && j.choices[0].message && j.choices[0].message.content) ||
-          JSON.stringify(j);
+      if (file) {
+        const form = new FormData();
+        form.append("message", text);
+        form.append("file", file);
+        res = await fetch("/api/chat", { method: "POST", body: form });
       } else {
-        reply = "Error from /api/chat: " + String(r.status);
+        res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        });
       }
 
-      setMessages((m) => m.concat({ role: "assistant", content: String(reply) }));
-    } catch (err: any) {
-      setMessages((m) => m.concat({ role: "assistant", content: "Network error: " + String(err && (err.message || err)) }));
+      const data = await res.json().catch(() => ({}));
+      const userBubble: Bubble = { role: "user", content: text || "(image)" };
+
+      if (!res.ok || !data?.ok) {
+        setChat((c) => [...c, userBubble, { role: "assistant", content: `Error: ${data?.error || "API error"}` }]);
+      } else {
+        setChat((c) => [...c, userBubble, { role: "assistant", content: data.reply || "(no response)" }]);
+      }
     } finally {
-      setLoading(false);
+      setMsg("");
+      setFile(null);
+      setBusy(false);
+      const f = document.getElementById("chat-file") as HTMLInputElement | null;
+      if (f) f.value = "";
     }
   }
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>New Chat</h1>
+    <div className="max-w-2xl mx-auto p-4 space-y-4">
+      <h1 className="text-xl font-semibold">New Chat</h1>
 
-      <div style={{ minHeight: 320, border: "1px solid #e5e7eb", borderRadius: 12, padding: 12 }}>
-        {messages.length === 0 ? (
-          <div style={{ color: "#9ca3af", fontSize: 14 }}>Start by asking a question...</div>
-        ) : (
-          messages.map((m, i) => (
-            <div key={i} style={{
-              display: "flex",
-              justifyContent: m.role === "user" ? "flex-end" : "flex-start",
-              marginBottom: 12
-            }}>
-              <div style={{
-                maxWidth: "80%",
-                padding: "8px 12px",
-                borderRadius: 12,
-                background: m.role === "user" ? "#1f2937" : "#e5e7eb",
-                color: m.role === "user" ? "#ffffff" : "#111827",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word"
-              }}>
-                {m.content}
-              </div>
+      <div className="space-y-3">
+        {chat.map((b, i) => (
+          <div key={i} className={b.role === "user" ? "text-right" : "text-left"}>
+            <div className={`inline-block rounded px-3 py-2 ${b.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100"}`}>
+              {b.content}
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
 
-      <form onSubmit={send} style={{ display: "flex", gap: 8, marginTop: 12 }}>
+      <div className="flex gap-2 items-center">
         <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          style={{ flex: 1, padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", outline: "none" }}
+          id="chat-file"
+          type="file"
+          accept="image/*"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="hidden"
+        />
+        <label htmlFor="chat-file" className="cursor-pointer rounded border px-3 py-2" title="Attach image">
+          📎
+        </label>
+
+        <input
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          placeholder="Type your message…"
+          className="flex-1 rounded border px-3 py-2"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
         />
         <button
-          disabled={loading}
-          type="submit"
-          style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #111827", background: loading ? "#6b7280" : "#111827", color: "#ffffff", cursor: loading ? "not-allowed" : "pointer" }}
+          onClick={send}
+          disabled={busy}
+          className="rounded bg-blue-600 text-white px-4 py-2 disabled:opacity-60"
         >
-          {loading ? "Sending..." : "Send"}
+          {busy ? "Sending…" : "Send"}
         </button>
-      </form>
-
-      <pre style={{ marginTop: 12, fontSize: 12, lineHeight: 1.3, background: "#f3f4f6", border: "1px solid #e5e7eb", padding: 8, borderRadius: 8, maxHeight: 180, overflow: "auto" }}>
-{lastRaw}
-      </pre>
+      </div>
     </div>
   );
 }
