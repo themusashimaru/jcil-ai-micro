@@ -3,6 +3,32 @@ import React, { useState, useEffect, useRef } from "react";
 
 type Msg = { role: "system" | "user" | "assistant"; content: string };
 
+function loadHistory(): Msg[] {
+  try {
+    const raw = localStorage.getItem("jcil.chat.history");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((m) => {
+          if (
+            m &&
+            typeof m === "object" &&
+            (m as any).content &&
+            typeof (m as any).content === "string" &&
+            (m as any).role &&
+            ["system", "user", "assistant"].includes((m as any).role)
+          ) {
+            return { role: (m as any).role as Msg["role"], content: (m as any).content as string };
+          }
+          return null;
+        })
+        .filter(Boolean) as Msg[];
+    }
+  } catch {}
+  return [];
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -12,10 +38,7 @@ export default function ChatPage() {
 
   // ── load previous thread from localStorage
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("jcil.chat.history");
-      if (saved) setMessages(JSON.parse(saved));
-    } catch {}
+    setMessages(loadHistory());
   }, []);
 
   // ── persist messages
@@ -31,7 +54,8 @@ export default function ChatPage() {
     if (!text && !file) return;
     setBusy(true);
 
-    const newMsgs = [...messages, { role: "user", content: text || "[image]" }];
+    const newMsg: Msg = { role: "user", content: text || "[image]" } as const;
+    const newMsgs: Msg[] = [...messages, newMsg];
     setMessages(newMsgs);
     setInput("");
 
@@ -53,12 +77,16 @@ export default function ChatPage() {
       }
 
       const data = await res.json().catch(() => ({}));
-      const reply = data?.reply || data?.error || "(no response)";
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      const reply = (data?.reply || data?.error || "(no response)") as string;
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: reply } as const,
+      ]);
     } catch (err: any) {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `Error: ${err.message}` },
+        { role: "assistant", content: `Error: ${err?.message ?? "Unknown error"}` } as const,
       ]);
     } finally {
       setBusy(false);
