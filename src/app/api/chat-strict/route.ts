@@ -83,7 +83,7 @@ async function readImageAsBase64(file: File | null | undefined): Promise<string 
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const userId = cookieStore.get("sb-user-id")?.value || null;
     const ip = req.headers.get("x-forwarded-for") || undefined;
 
