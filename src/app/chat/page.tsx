@@ -1,144 +1,153 @@
-'use client';
+"use client";
 
-import React, { useState } from "react";
+import * as React from "react";
 
-type ChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-};
+type Msg = { role: "user" | "assistant"; content: string };
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [fileToSend, setFileToSend] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = React.useState<Msg[]>([]);
+  const [input, setInput] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
-  function fileToDataUrl(f: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.readAsDataURL(f);
-    });
-  }
-
-  async function onSend(e: React.FormEvent) {
-    e.preventDefault();
-    if (loading) return;
-
-    const text = input.trim();
-    if (!text && !fileToSend) return;
-
-    const userMsg: ChatMessage = {
-      id: `u_${Date.now()}`,
-      role: "user",
-      content: text || "[image]",
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
+  async function sendMessage(text: string) {
     setLoading(true);
+    setError(null);
+
+    // show user message immediately
+    setMessages((m) => [...m, { role: "user", content: text }]);
 
     try {
-      let image_base64: string | undefined;
-      if (fileToSend) {
-        image_base64 = await fileToDataUrl(fileToSend);
-        setFileToSend(null);
-      }
-
-      const resp = await fetch("/api/chat", {
+      const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: text, image_base64 }),
+        headers: { "Content-Type": "application/json" },
+        // our API accepts: message | input | text | prompt | q
+        body: JSON.stringify({ message: text }),
       });
 
-      if (resp.status === 403) {
-        const data = await resp.json().catch(() => ({}));
-        const primary = data?.error || "This message violates policy.";
-        const tip = data?.tip ? `\nTip: ${data.tip}` : "";
-        const warn: ChatMessage = {
-          id: `w_${Date.now()}`,
-          role: "assistant",
-          content: `Policy: ${primary}${tip}`,
-        };
-        setMessages((prev) => [...prev, warn]);
-        setLoading(false);
+      const data = await res.json().catch(() => ({} as any));
+
+      if (!res.ok || (data && data.ok === false)) {
+        const msg = (data && (data.error || data.details)) || `HTTP ${res.status}`;
+        setError(msg);
+        setMessages((m) => [...m, { role: "assistant", content: `Sorry, an error occurred: ${msg}` }]);
         return;
       }
 
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok || !data?.ok) {
-        const err = data?.error || "Unknown error";
-        const warn: ChatMessage = {
-          id: `e_${Date.now()}`,
-          role: "assistant",
-          content: `Error: ${err}`,
-        };
-        setMessages((prev) => [...prev, warn]);
-        setLoading(false);
-        return;
-      }
+      // API may return { ok: true, answer, output } OR just { output }
+      const reply: string =
+        (data && (data.answer || data.output)) ||
+        "(no response)";
 
-      const assistant: ChatMessage = {
-        id: `a_${Date.now()}`,
-        role: "assistant",
-        content: data.reply || "",
-      };
-      setMessages((prev) => [...prev, assistant]);
-    } catch (err: any) {
-      const warn: ChatMessage = {
-        id: `e_${Date.now()}`,
-        role: "assistant",
-        content: `Error: ${err?.message || "Failed to send."}`,
-      };
-      setMessages((prev) => [...prev, warn]);
+      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+    } catch (e: any) {
+      const msg = e?.message || "Network error";
+      setError(msg);
+      setMessages((m) => [...m, { role: "assistant", content: `Sorry, an error occurred: ${msg}` }]);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="max-w-3xl mx-auto p-4 space-y-4">
-      <h1 className="text-xl font-semibold">New Chat</h1>
+    <div style={{ maxWidth: 820, margin: "0 auto", padding: "1.25rem" }}>
+      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>New Chat</h1>
+      <p style={{ color: "#666", marginBottom: 16 }}>Plain Chat</p>
 
-      <div className="space-y-2">
-        {messages.map((m) => (
-          <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}>
-            <div
-              className={
-                "inline-block rounded-md px-3 py-2 " +
-                (m.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-900")
-              }
-            >
-              {m.content}
-            </div>
-          </div>
-        ))}
+      <div
+        style={{
+          border: "1px solid #e5e7eb",
+          borderRadius: 12,
+          padding: 16,
+          minHeight: 320,
+          background: "#fff",
+        }}
+      >
+        {messages.length === 0 ? (
+          <p style={{ color: "#9ca3af" }}>Start by typing a message below.</p>
+        ) : (
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 12 }}>
+            {messages.map((m, i) => (
+              <li
+                key={i}
+                style={{
+                  display: "flex",
+                  justifyContent: m.role === "user" ? "flex-end" : "flex-start",
+                }}
+              >
+                <div
+                  style={{
+                    maxWidth: "80%",
+                    whiteSpace: "pre-wrap",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 12,
+                    padding: "10px 12px",
+                    background: m.role === "user" ? "#eef2ff" : "#f9fafb",
+                  }}
+                >
+                  {m.content}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      <form onSubmit={onSend} className="flex items-center gap-2">
+      {error && (
+        <p
+          style={{
+            marginTop: 12,
+            color: "#b91c1c",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            padding: "8px 10px",
+            borderRadius: 8,
+            fontSize: 14,
+          }}
+        >
+          {error}
+        </p>
+      )}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!input.trim() || loading) return;
+          const text = input.trim();
+          setInput("");
+          sendMessage(text);
+        }}
+        style={{ display: "flex", gap: 8, marginTop: 16 }}
+      >
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message…"
-          className="flex-1 min-w-[240px] border rounded-md px-3 py-2"
-        />
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setFileToSend(e.target.files?.[0] || null)}
-          className="text-sm"
+          placeholder="Type your message..."
+          aria-label="message"
+          style={{
+            flex: 1,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid #e5e7eb",
+            outline: "none",
+          }}
+          disabled={loading}
         />
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 text-white rounded-md px-4 py-2 disabled:opacity-50"
+          style={{
+            padding: "10px 14px",
+            borderRadius: 8,
+            border: "1px solid #111827",
+            background: loading ? "#6b7280" : "#111827",
+            color: "#fff",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
         >
-          {loading ? "..." : "Send"}
+          {loading ? "Sending…" : "Send"}
         </button>
       </form>
-    </main>
+    </div>
   );
 }
