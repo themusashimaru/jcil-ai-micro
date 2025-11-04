@@ -50,7 +50,6 @@ async function moderate(text: string): Promise<ModResult> {
     const j: any = await r.json();
     if (j?.results?.[0]?.flagged) return { allowed: false, reason: "Content flagged by moderation." };
   } catch {
-    // on moderation network errors, allow by default
     return { allowed: true };
   }
   return { allowed: true };
@@ -80,7 +79,8 @@ export async function POST(req: NextRequest) {
 
     // ——— xAI provider for completions ———
     const XAI_API_KEY = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
-    const XAI_MODEL = process.env.XAI_MODEL || "grok-2-mini"; // set to your preferred default
+    // lock to your model; allow override via env if you set XAI_MODEL
+    const XAI_MODEL = process.env.XAI_MODEL || "grok-4-fast-reasoning";
 
     if (!XAI_API_KEY) {
       return json({
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       }, 500);
     }
 
-    // xAI is OpenAI-compatible for chat completions
+    // xAI uses OpenAI-compatible chat endpoint
     const payload = {
       model: XAI_MODEL,
       temperature: 0.3,
