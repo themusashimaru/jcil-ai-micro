@@ -37,14 +37,14 @@ export default function ChatPage() {
           (typeof j.message?.content === "string" ? j.message.content : undefined) ??
           JSON.stringify(j);
       } else {
-        reply = \`Error from /api/chat: \${r.status}\`;
+        reply = `Error from /api/chat: ${r.status}`;
       }
 
       setMessages((m) => [...m, { role: "assistant", content: String(reply) }]);
     } catch (err: any) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: \`Network error: \${String(err?.message || err)}\` },
+        { role: "assistant", content: `Network error: ${String(err?.message || err)}` },
       ]);
     } finally {
       setLoading(false);
