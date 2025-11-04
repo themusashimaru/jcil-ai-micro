@@ -4,14 +4,13 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { moderateAllContent } from "@/lib/moderation";
-import { sanitizeInput } from "@/lib/sanitize";
 
-/** Small helper */
-function json(status: number, body: any) {
-  return new NextResponse(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  });
+// ---- Edge-safe sanitize (no window/DOM) ----
+function sanitizeEdge(raw: string): string {
+  // strip control chars & formatting (zero-width etc.), collapse spaces, trim, clamp length
+  const noCtrl = raw.replace(/[\u0000-\u001F\u007F]/g, "");
+  const noCf = noCtrl.replace(/\p{Cf}/gu, ""); // Unicode format chars
+  return noCf.replace(/\s+/g, " ").trim().slice(0, 4000);
 }
 
 /**
@@ -81,9 +80,16 @@ async function readImageAsBase64(file: File | null | undefined): Promise<string 
 type UpstreamChoice = { message?: { content?: string } };
 type UpstreamResponse = { choices?: UpstreamChoice[] };
 
+function json(status: number, body: any) {
+  return new NextResponse(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
+}
+
 export async function POST(req: Request) {
   try {
-    // Next 16 on Edge returns a Promise here:
+    // Next 16 on Edge returns a Promise here
     const cookieStore = await cookies();
     const userId = cookieStore.get("sb-user-id")?.value || null;
     const ip = req.headers.get("x-forwarded-for") || undefined;
@@ -107,7 +113,7 @@ export async function POST(req: Request) {
       imageBase64 = typeof body?.image_base64 === "string" ? body.image_base64 : undefined;
     }
 
-    const sanitized = sanitizeInput(text || "");
+    const sanitized = sanitizeEdge(text || "");
 
     // Moderation (text + image)
     const moderation = await moderateAllContent(sanitized, imageBase64, {
@@ -125,11 +131,10 @@ export async function POST(req: Request) {
       });
     }
 
-    // Upstream model (xAI Grok example; bring your own keys)
+    // Upstream model (xAI Grok example)
     const upstreamUrl = (process.env.GROK_API_URL?.trim() || "https://api.x.ai/v1/chat/completions");
     const upstreamKey = process.env.GROK_API_KEY;
 
-    // System + user (image optional)
     const messages: Array<{ role: "system" | "user"; content: any }> = [
       { role: "system", content: CHRISTIAN_SYSTEM_PROMPT.trim() },
     ];
