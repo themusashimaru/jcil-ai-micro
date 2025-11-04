@@ -12,8 +12,8 @@ function json(status: number, body: any, headers: Record<string, string> = {}) {
   });
 }
 
-function getOrSetDeviceId(): { id: string; setHeader?: string } {
-  const jar = headerCookies();
+async function getOrSetDeviceId(): Promise<{ id: string; setHeader?: string }> {
+  const jar = await headerCookies();
   const existing = jar.get("device_id")?.value;
   if (existing) return { id: existing };
 
@@ -32,7 +32,7 @@ function getOrSetDeviceId(): { id: string; setHeader?: string } {
 
 export async function POST(req: Request) {
   try {
-    const { id: deviceId, setHeader } = getOrSetDeviceId();
+    const { id: deviceId, setHeader } = await getOrSetDeviceId();
     const body = await req.json().catch(() => ({} as any));
     const title = String(body?.title || "New Chat").slice(0, 120);
 
