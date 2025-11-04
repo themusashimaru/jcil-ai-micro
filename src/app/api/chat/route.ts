@@ -31,17 +31,15 @@ function sanitize(text: string): string {
     .slice(0, 8000);
 }
 
-/** Edge-safe base64 encoder */
+/** Edge-safe base64 encoder (fixes TS typing; avoids .apply on Uint8Array) */
 function abToBase64(ab: ArrayBuffer): string {
-  let binary = "";
   const bytes = new Uint8Array(ab);
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    // @ts-ignore
-    binary += String.fromCharCode.apply(
-      null,
-      bytes.subarray(i, Math.min(i + chunk, bytes.length))
-    );
+  const CHUNK = 0x8000; // 32KB chunks to avoid arg limits
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    const sub = bytes.subarray(i, Math.min(i + CHUNK, bytes.length));
+    // Convert to number[] to satisfy TS and String.fromCharCode
+    binary += String.fromCharCode(...Array.from(sub));
   }
   return btoa(binary);
 }
