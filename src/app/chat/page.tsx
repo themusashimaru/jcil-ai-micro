@@ -8,17 +8,23 @@ export default function ChatPage() {
   const [messages, setMessages] = React.useState<Msg[]>([]);
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [lastApiJson, setLastApiJson] = React.useState<any>(null);
+
+  // always-visible debug so nothing is “invisible”
+  const [lastApi, setLastApi] = React.useState<{
+    ok?: boolean;
+    status?: number;
+    json?: any;
+    error?: string;
+  } | null>(null);
 
   async function sendMessage(text: string) {
     const userText = text.trim();
     if (!userText || loading) return;
 
     setLoading(true);
-    setError(null);
+    setLastApi(null);
 
-    // 1) append user, then an assistant placeholder we will replace
+    // show user + placeholder “…” that we replace
     setMessages((m) => [...m, { role: "user", content: userText }, { role: "assistant", content: "…" }]);
     setInput("");
 
@@ -26,61 +32,43 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // API accepts: message | input | text | prompt | q (we send "message")
+        // server accepts: message | input | text | prompt | q
         body: JSON.stringify({ message: userText }),
       });
 
       const data = await res.json().catch(() => ({} as any));
-      setLastApiJson(data);
+      setLastApi({ ok: data?.ok ?? res.ok, status: res.status, json: data });
 
-      if (!res.ok || data?.ok === false) {
+      // treat both {ok:true, answer/output} and {output} as success
+      const success = (data?.ok ?? res.ok) === true;
+      if (!success) {
         const msg = data?.error || data?.details || `HTTP ${res.status}`;
-        setError(msg);
-
-        // replace the last assistant placeholder with error text
-        setMessages((m) => {
-          const copy = m.slice();
-          const last = copy.length - 1;
-          if (last >= 0 && copy[last].role === "assistant") {
-            copy[last] = { role: "assistant", content: `Sorry, an error occurred: ${msg}` };
-          }
-          return copy;
-        });
+        replaceAssistant(`Sorry, an error occurred: ${msg}`);
         return;
       }
 
-      const reply: string =
+      const reply =
         (typeof data?.answer === "string" && data.answer) ||
         (typeof data?.output === "string" && data.output) ||
         "(no response)";
 
-      // 2) replace assistant placeholder with real reply
-      setMessages((m) => {
-        const copy = m.slice();
-        const last = copy.length - 1;
-        if (last >= 0 && copy[last].role === "assistant") {
-          copy[last] = { role: "assistant", content: reply };
-        } else {
-          copy.push({ role: "assistant", content: reply });
-        }
-        return copy;
-      });
+      replaceAssistant(reply);
     } catch (e: any) {
-      const msg = e?.message || "Network error";
-      setError(msg);
-      setMessages((m) => {
-        const copy = m.slice();
-        const last = copy.length - 1;
-        if (last >= 0 && copy[last].role === "assistant") {
-          copy[last] = { role: "assistant", content: `Sorry, an error occurred: ${msg}` };
-        } else {
-          copy.push({ role: "assistant", content: `Sorry, an error occurred: ${msg}` });
-        }
-        return copy;
-      });
+      setLastApi({ ok: false, error: e?.message || "Network error" });
+      replaceAssistant(`Sorry, an error occurred: ${e?.message || "Network error"}`);
     } finally {
       setLoading(false);
     }
+  }
+
+  function replaceAssistant(text: string) {
+    setMessages((m) => {
+      const copy = m.slice();
+      const i = copy.length - 1;
+      if (i >= 0 && copy[i].role === "assistant") copy[i] = { role: "assistant", content: text };
+      else copy.push({ role: "assistant", content: text });
+      return copy;
+    });
   }
 
   return (
@@ -129,49 +117,29 @@ export default function ChatPage() {
         )}
       </div>
 
-      {error && (
-        <p
-          style={{
-            marginTop: 12,
-            color: "#b91c1c",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            padding: "8px 10px",
-            borderRadius: 8,
-            fontSize: 14,
-          }}
-        >
-          {error}
-        </p>
-      )}
-
-      {/* Debug peek to confirm what API returns */}
-      {lastApiJson && (
-        <details style={{ marginTop: 8 }}>
-          <summary style={{ cursor: "pointer", color: "#4b5563" }}>Show last API JSON</summary>
-          <pre
-            style={{
-              whiteSpace: "pre-wrap",
-              overflowX: "auto",
-              background: "#f9fafb",
-              border: "1px solid #e5e7eb",
-              borderRadius: 8,
-              padding: 10,
-              fontSize: 12,
-              marginTop: 8,
-            }}
-          >
-            {JSON.stringify(lastApiJson, null, 2)}
-          </pre>
-        </details>
-      )}
+      {/* Always-visible debug so replies aren't “invisible” */}
+      <div
+        style={{
+          marginTop: 12,
+          background: "#f9fafb",
+          border: "1px dashed #d1d5db",
+          borderRadius: 8,
+          padding: 10,
+          fontSize: 12,
+          color: "#374151",
+        }}
+      >
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>Last API</div>
+        <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+{JSON.stringify(lastApi ?? { ok: null, status: null, json: null }, null, 2)}
+        </pre>
+      </div>
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          const text = input;
-          if (!text.trim() || loading) return;
-          sendMessage(text);
+          if (!input.trim() || loading) return;
+          sendMessage(input);
         }}
         style={{ display: "flex", gap: 8, marginTop: 16 }}
       >
