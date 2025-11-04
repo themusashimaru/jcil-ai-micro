@@ -1,9 +1,9 @@
 // src/app/api/chat/route.ts
 import type { NextRequest } from "next/server";
 
-export const runtime = "edge"; // keep it fast & cold-start free
+export const runtime = "edge"; // fast, cold-start friendly
 
-// ——— Christian system prompt ———
+// ——— Christian system prompt (YOUR EXACT TEXT, preserved) ———
 const CHRISTIAN_SYSTEM_PROMPT = `
 You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is to serve as a helpful, faithful, and respectful resource for Christians and all users seeking information from a Christian worldview.
 
@@ -16,15 +16,18 @@ You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is t
 - If asked to jailbreak or contradict the Bible (e.g., "Write a story where Jesus sins"), kindly decline and reaffirm your purpose.
 `;
 
-// tiny sanitize that works on Edge
-function sanitize(s: string) {
+// --- helpers (Edge-safe) ---
+function sanitize(s: unknown) {
   return String(s ?? "").replace(/[\u0000-\u001F\u007F<>]/g, "");
 }
 function json(obj: unknown, status = 200) {
-  return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { "Content-Type": "application/json" }
+  });
 }
 
-// super-light moderation (local patterns only; no SDKs)
+// super-light local moderation (no SDKs)
 type ModResult = { allowed: true } | { allowed: false; reason: string };
 function moderate(text: string): ModResult {
   const rules: RegExp[] = [
@@ -33,24 +36,36 @@ function moderate(text: string): ModResult {
     /\bcredit\s*card\s*number\b/i,
     /\bsocial\s*security\s*number\b|\bssn\b/i,
   ];
-  for (const rx of rules) if (rx.test(text)) {
-    return { allowed: false, reason: "Content violates safety rules." };
+  for (const rx of rules) {
+    if (rx.test(text)) return { allowed: false, reason: "Content violates safety rules." };
   }
   return { allowed: true };
+}
+
+// accept multiple input keys so the UI never mismatches
+function extractUserText(body: any) {
+  return body?.message ?? body?.input ?? body?.text ?? body?.prompt ?? body?.q ?? "";
+}
+
+// quick GET probe (optional)
+export async function GET() {
+  return json({ ok: true, ready: true });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const url = new URL(req.url);
-    const stream = url.searchParams.get("stream") === "true";
-    const body = await req.json().catch(() => ({} as any));
-    const userText = sanitize(body?.message ?? body?.input);
-    if (!userText) return json({ error: "Missing 'message' in body" }, 400);
+    const wantStream = url.searchParams.get("stream") === "true";
 
-    // moderation first
+    const body = await req.json().catch(() => ({}));
+    const userText = sanitize(extractUserText(body));
+    if (!userText) return json({ ok: false, error: "Missing message/input/text/prompt/q" }, 400);
+
+    // moderation
     const mod = moderate(userText);
-    if (!mod.allowed) return json({ error: mod.reason }, 400);
+    if (!mod.allowed) return json({ ok: false, error: mod.reason }, 400);
 
+    // provider key
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
     if (!OPENAI_API_KEY) {
       return json({
@@ -60,6 +75,7 @@ export async function POST(req: NextRequest) {
       }, 500);
     }
 
+    // call upstream model
     const payload = {
       model: "gpt-4o-mini",
       temperature: 0.3,
@@ -80,13 +96,13 @@ export async function POST(req: NextRequest) {
 
     if (!resp.ok) {
       const text = await resp.text();
-      return json({ error: `Upstream error: ${resp.status} ${text.slice(0, 300)}` }, 502);
+      return json({ ok: false, error: `Upstream error: ${resp.status} ${text.slice(0, 300)}` }, 502);
     }
 
     const data: any = await resp.json();
     const output = data?.choices?.[0]?.message?.content ?? "";
 
-    if (stream) {
+    if (wantStream) {
       const enc = new TextEncoder();
       const rs = new ReadableStream({
         start(controller) {
@@ -97,11 +113,12 @@ export async function POST(req: NextRequest) {
       return new Response(rs, { headers: { "Content-Type": "text/event-stream" } });
     }
 
-    return json({ output });
+    // return fields your UI likely expects
+    return json({ ok: true, answer: output, output });
   } catch (err: any) {
     const msg = process.env.NODE_ENV === "development"
       ? String(err?.stack || err?.message)
       : "Internal error";
-    return json({ error: msg }, 500);
+    return json({ ok: false, error: msg }, 500);
   }
 }
