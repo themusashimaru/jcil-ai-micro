@@ -138,7 +138,7 @@ export async function POST(req: Request) {
       { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
     ];
     
-    // *** THIS IS THE NEW LOGIC ***
+    // *** THIS IS THE SMART-SWITCHING LOGIC ***
     let modelToUse: string;
     let userContent: any;
 
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
           { type: "image_url", image_url: imageBase64 },
         ];
     } else {
-      // 2. TEXT-ONLY: Use the cheap/fast model (or the one from Vercel env)
+      // 2. TEXT-ONLY: Use the cheap/fast model (grok-4-fast-reasoning)
       modelToUse = process.env.GROK_MODEL || "grok-4-fast-reasoning";
       userContent = [{ type: "text", text: sanitized }];
     }
