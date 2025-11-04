@@ -1,4 +1,3 @@
-cat > src/app/chat/page.tsx <<'TSX'
 "use client";
 import { useState } from "react";
 
@@ -26,10 +25,9 @@ export default function ChatPage() {
         cache: "no-store",
       });
 
-      let reply = "Sorry, no reply.";
+      let reply: string = "Sorry, no reply.";
       if (r.ok) {
         const j = await r.json();
-        // Accept ANY common API shape your route might return
         reply =
           j.output ??
           j.answer ??
@@ -39,14 +37,14 @@ export default function ChatPage() {
           (typeof j.message?.content === "string" ? j.message.content : undefined) ??
           JSON.stringify(j);
       } else {
-        reply = `Error from /api/chat: ${r.status}`;
+        reply = \`Error from /api/chat: \${r.status}\`;
       }
 
       setMessages((m) => [...m, { role: "assistant", content: String(reply) }]);
     } catch (err: any) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: `Network error: ${String(err?.message || err)}` },
+        { role: "assistant", content: \`Network error: \${String(err?.message || err)}\` },
       ]);
     } finally {
       setLoading(false);
@@ -126,4 +124,3 @@ export default function ChatPage() {
     </div>
   );
 }
-TSX
