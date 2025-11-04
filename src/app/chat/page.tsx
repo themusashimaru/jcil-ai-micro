@@ -1,5 +1,4 @@
 "use client";
-
 import * as React from "react";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -8,38 +7,36 @@ export default function ChatPage() {
   const [messages, setMessages] = React.useState<Msg[]>([]);
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+  const [lastJson, setLastJson] = React.useState<any>(null);
 
   async function sendMessage(text: string) {
     const userText = text.trim();
     if (!userText || loading) return;
 
     setLoading(true);
-    // show the user message
     setMessages((m) => [...m, { role: "user", content: userText }]);
     setInput("");
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat?" + Date.now(), {
         method: "POST",
+        cache: "no-store",
         headers: { "Content-Type": "application/json" },
-        // our API accepts message | input | text | prompt | q
         body: JSON.stringify({ message: userText }),
       });
 
       const data = await res.json().catch(() => ({} as any));
+      setLastJson(data);
 
-      // treat both shapes as success; show any error text to screen
       if (!res.ok || data?.ok === false) {
         const err = data?.error || data?.details || `HTTP ${res.status}`;
         setMessages((m) => [...m, { role: "assistant", content: `Sorry, an error occurred: ${err}` }]);
         return;
       }
 
-      // accept answer OR output (either may be present depending on backend)
-      const reply: string =
+      const reply =
         (typeof data?.answer === "string" && data.answer) ||
         (typeof data?.output === "string" && data.output) ||
-        // last-ditch: try common raw shapes (xAI/OpenAI)
         (typeof data?.choices?.[0]?.message?.content === "string" && data.choices[0].message.content) ||
         (typeof data?.choices?.[0]?.text === "string" && data.choices[0].text) ||
         "(no response)";
@@ -82,6 +79,22 @@ export default function ChatPage() {
         )}
       </div>
 
+      {/* Always show the raw JSON we got back so nothing is "invisible" */}
+      <div
+        style={{
+          marginTop: 12,
+          background: "#f9fafb",
+          border: "1px dashed #d1d5db",
+          borderRadius: 8,
+          padding: 10,
+          fontSize: 12,
+          color: "#374151",
+        }}
+      >
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>Last API JSON</div>
+        <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{JSON.stringify(lastJson, null, 2)}</pre>
+      </div>
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -95,6 +108,9 @@ export default function ChatPage() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
           aria-label="message"
+          autoComplete="off"
+          id="chat-input"
+          name="chat-input"
           style={{
             flex: 1,
             padding: "10px 12px",
