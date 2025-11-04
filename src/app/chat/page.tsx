@@ -3,19 +3,31 @@ import * as React from "react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
+// Pick a reply string from any common API shape
+function pickReply(data: any): string {
+  return (
+    (typeof data?.answer === "string" && data.answer) ||
+    (typeof data?.output === "string" && data.output) ||
+    (typeof data?.content === "string" && data.content) ||
+    (typeof data?.text === "string" && data.text) ||
+    (typeof data?.choices?.[0]?.message?.content === "string" && data.choices[0].message.content) ||
+    (typeof data?.choices?.[0]?.text === "string" && data.choices[0].text) ||
+    "(no response)"
+  );
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = React.useState<Msg[]>([]);
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [lastJson, setLastJson] = React.useState<any>(null);
 
   async function sendMessage(text: string) {
     const userText = text.trim();
     if (!userText || loading) return;
 
-    setLoading(true);
     setMessages((m) => [...m, { role: "user", content: userText }]);
     setInput("");
+    setLoading(true);
 
     try {
       const res = await fetch("/api/chat?" + Date.now(), {
@@ -24,22 +36,15 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userText }),
       });
-      const data = await res.json().catch(() => ({} as any));
-      setLastJson(data);
 
-      if (!res.ok || data?.ok === false) {
-        const err = data?.error || data?.details || `HTTP ${res.status}`;
+      const json = await res.json().catch(() => ({} as any));
+      if (!res.ok || json?.ok === false) {
+        const err = json?.error || json?.details || `HTTP ${res.status}`;
         setMessages((m) => [...m, { role: "assistant", content: `Sorry, an error occurred: ${err}` }]);
         return;
       }
 
-      const reply =
-        (typeof data?.answer === "string" && data.answer) ||
-        (typeof data?.output === "string" && data.output) ||
-        (typeof data?.choices?.[0]?.message?.content === "string" && data.choices[0].message.content) ||
-        (typeof data?.choices?.[0]?.text === "string" && data.choices[0].text) ||
-        "(no response)";
-
+      const reply = pickReply(json);
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e: any) {
       setMessages((m) => [...m, { role: "assistant", content: `Network error: ${e?.message || e}` }]);
@@ -76,21 +81,6 @@ export default function ChatPage() {
             ))}
           </ul>
         )}
-      </div>
-
-      <div
-        style={{
-          marginTop: 12,
-          background: "#f9fafb",
-          border: "1px dashed #d1d5db",
-          borderRadius: 8,
-          padding: 10,
-          fontSize: 12,
-          color: "#374151",
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: 6 }}>Last API JSON</div>
-        <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{JSON.stringify(lastJson, null, 2)}</pre>
       </div>
 
       <form
