@@ -1,14 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import React, { useState } from "react";
 
-type ChatRole = "user" | "assistant";
-
-interface ChatMessage {
+type ChatMessage = {
   id: string;
-  role: ChatRole;
+  role: "user" | "assistant";
   content: string;
-}
+};
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -16,124 +14,126 @@ export default function ChatPage() {
   const [fileToSend, setFileToSend] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function sendMessage(message: string, file?: File | null): Promise<string> {
-    const formData = new FormData();
-    formData.append("message", message);
-    if (file) formData.append("file", file);
-
-    const res = await fetch("/api/chat", { method: "POST", body: formData });
-
-    // Explicit moderation handling
-    if (res.status === 403) {
-      const data = await res.json().catch(() => ({}));
-      const text =
-        data?.error ||
-        "This message violates policy and cannot be processed.";
-      const warn: ChatMessage = {
-        id: `warn_${Date.now()}`,
-        role: "assistant",
-        content: text,
-      };
-      setMessages((prev) => [...prev, warn]);
-      return "";
-    }
-
-    // Normal success / errors
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data?.ok) {
-      throw new Error(data?.error || "Unknown error");
-    }
-    return (data.reply as string) || "";
+  async function fileToBase64(f: File): Promise<string> {
+    const buf = await f.arrayBuffer();
+    const b64 = Buffer.from(buf).toString("base64");
+    return `data:${f.type || "image/*"};base64,${b64}`;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function onSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim() && !fileToSend) return;
+    if (loading) return;
 
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+    const text = input.trim();
+    if (!text && !fileToSend) return;
+
+    const userMsg: ChatMessage = {
+      id: `u_${Date.now()}`,
       role: "user",
-      content: input.trim() || (fileToSend ? "[sent image]" : ""),
+      content: text || "[image]",
     };
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
 
     try {
-      const reply = await sendMessage(userMessage.content, fileToSend);
-      if (reply) {
-        const bot: ChatMessage = {
-          id: `reply_${Date.now()}`,
-          role: "assistant",
-          content: reply,
-        };
-        setMessages((prev) => [...prev, bot]);
+      let image_base64: string | undefined;
+      if (fileToSend) {
+        image_base64 = await fileToBase64(fileToSend);
+        setFileToSend(null);
       }
-    } catch (err: any) {
-      // Only show raw message, not “Sorry, an error occurred: ...”
-      const msg = err?.message?.includes("violates policy")
-        ? err.message
-        : `Sorry, an error occurred: ${err.message}`;
-      const errMsg: ChatMessage = {
-        id: `err_${Date.now()}`,
+
+      const resp = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ message: text, image_base64 }),
+      });
+
+      if (resp.status === 403) {
+        const data = await resp.json().catch(() => ({}));
+        const primary = data?.error || "This message violates policy.";
+        const tip = data?.tip ? `\nTip: ${data.tip}` : "";
+        const warn: ChatMessage = {
+          id: `w_${Date.now()}`,
+          role: "assistant",
+          content: `Policy: ${primary}${tip}`,
+        };
+        setMessages((prev) => [...prev, warn]);
+        setLoading(false);
+        return;
+      }
+
+      const data = await resp.json();
+      if (!resp.ok || !data?.ok) {
+        const err = data?.error || "Unknown error from /api/chat";
+        const warn: ChatMessage = {
+          id: `e_${Date.now()}`,
+          role: "assistant",
+          content: `Error: ${err}`,
+        };
+        setMessages((prev) => [...prev, warn]);
+        setLoading(false);
+        return;
+      }
+
+      const assistant: ChatMessage = {
+        id: `a_${Date.now()}`,
         role: "assistant",
-        content: msg,
+        content: data.reply || "",
       };
-      setMessages((prev) => [...prev, errMsg]);
+      setMessages((prev) => [...prev, assistant]);
+    } catch (err: any) {
+      const warn: ChatMessage = {
+        id: `e_${Date.now()}`,
+        role: "assistant",
+        content: `Error: ${err?.message || "Failed to send."}`,
+      };
+      setMessages((prev) => [...prev, warn]);
     } finally {
       setLoading(false);
-      setFileToSend(null);
     }
   }
 
   return (
-    <main className="flex flex-col items-center justify-between w-full h-full">
-      <div className="max-w-3xl w-full flex flex-col p-6 space-y-3">
-        <h1 className="text-center text-2xl font-semibold mb-4">New Chat</h1>
+    <main className="max-w-3xl mx-auto p-4 space-y-4">
+      <h1 className="text-xl font-semibold">Chat</h1>
 
-        <div className="flex flex-col space-y-2 border rounded-md p-4 min-h-[400px] overflow-y-auto bg-white">
-          {messages.map((m) => {
-            const isPolicy = m.content.toLowerCase().includes("violates policy");
-            const bubbleClass =
-              m.role === "user"
-                ? "self-end bg-blue-600 text-white"
-                : isPolicy
-                ? "self-start bg-red-100 text-red-700 border border-red-300"
-                : "self-start bg-gray-100 text-gray-800";
-            return (
-              <div
-                key={m.id}
-                className={`${bubbleClass} px-3 py-2 rounded-lg max-w-[80%] whitespace-pre-wrap`}
-              >
-                {m.content}
-              </div>
-            );
-          })}
-        </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 mt-4 items-center">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 min-w-[240px] border rounded-md px-3 py-2"
-          />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setFileToSend(e.target.files?.[0] || null)}
-            className="text-sm"
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white rounded-md px-4 py-2 disabled:opacity-50"
-          >
-            {loading ? "..." : "Send"}
-          </button>
-        </form>
+      <div className="space-y-2">
+        {messages.map((m) => (
+          <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}>
+            <div
+              className={
+                "inline-block rounded-md px-3 py-2 " +
+                (m.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900")
+              }
+            >
+              {m.content}
+            </div>
+          </div>
+        ))}
       </div>
+
+      <form onSubmit={onSend} className="flex items-center gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message…"
+          className="flex-1 min-w-[240px] border rounded-md px-3 py-2"
+        />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setFileToSend(e.target.files?.[0] || null)}
+          className="text-sm"
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-600 text-white rounded-md px-4 py-2 disabled:opacity-50"
+        >
+          {loading ? "..." : "Send"}
+        </button>
+      </form>
     </main>
   );
 }
