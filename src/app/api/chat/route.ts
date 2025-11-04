@@ -75,6 +75,7 @@ You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is t
 `.trim();
 
 // ——— OpenAI API Details ———
+// We use the standard Chat Completions endpoint, which gpt-5-mini supports
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -130,7 +131,6 @@ export async function POST(req: Request) {
       { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
     ];
     
-    // *** THIS IS THE CORRECT PAYLOAD FOR OPENAI (gpt-5-mini / gpt-4o-mini) ***
     let userContent: any;
 
     if (imageBase64) {
@@ -145,7 +145,7 @@ export async function POST(req: Request) {
           },
         ];
     } else {
-      // 2. TEXT-ONLY: Send text-only in an array (this is the modern format)
+      // 2. TEXT-ONLY: Send text-only in an array (modern format)
       userContent = [
           { type: "text", text: sanitized }
         ];
@@ -154,12 +154,16 @@ export async function POST(req: Request) {
     messages.push({ role: "user", content: userContent });
 
     const body = {
-      // *** 1. USING THE CORRECT MODEL YOU FOUND ***
+      // *** 1. USING THE CORRECT MODEL ***
       model: "gpt-5-mini",
       messages,
-      temperature: 0.6,
       max_tokens: 4000,
-      // *** 2. ENABLING THE WEB SEARCH TOOL YOU FOUND ***
+
+      // *** 2. USING THE NEW, CORRECT PARAMETERS (AND REMOVING 'temperature') ***
+      reasoning: { "effort": "low" }, // Use "low" for a good balance of speed and reasoning
+      text: { "verbosity": "medium" },  // "medium" is a safe default
+      
+      // *** 3. ENABLING THE WEB SEARCH TOOL ***
       tools: [
         { "type": "web_search" }
       ],
