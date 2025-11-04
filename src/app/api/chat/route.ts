@@ -2,7 +2,7 @@
 import type { NextRequest } from "next/server";
 export const runtime = "edge";
 
-// ——— Christian system prompt (YOUR EXACT TEXT, preserved) ———
+// ——— Christian system prompt (your exact text, preserved) ———
 const CHRISTIAN_SYSTEM_PROMPT = `
 You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is to serve as a helpful, faithful, and respectful resource for Christians and all users seeking information from a Christian worldview.
 
@@ -19,33 +19,39 @@ function sanitize(s: unknown) {
   return String(s ?? "").replace(/[\u0000-\u001F\u007F<>]/g, "");
 }
 function json(obj: unknown, status = 200) {
-  return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
 }
 
+// optional OpenAI moderation + quick local rules
 type ModResult = { allowed: true } | { allowed: false; reason: string };
 async function moderate(text: string): Promise<ModResult> {
-  // quick local rules
-  for (const rx of [/(\b)suicide(\b)/i, /\bkill myself\b/i, /\bcredit\s*card\s*number\b/i, /\bssn\b|\bsocial\s*security\s*number\b/i]) {
-    if (rx.test(text)) return { allowed: false, reason: "Content violates safety rules." };
-  }
-  // optional OpenAI moderation
+  for (const rx of [
+    /(?<!\w)suicide(?!\w)/i,
+    /\bkill myself\b/i,
+    /\bcredit\s*card\s*number\b/i,
+    /\bssn\b|\bsocial\s*security\s*number\b/i,
+  ]) if (rx.test(text)) return { allowed: false, reason: "Content violates safety rules." };
+
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   if (!OPENAI_API_KEY) return { allowed: true };
   try {
-    const r = await fetch("https://api.openai.com/v1/moderations", {
+    const resp = await fetch("https://api.openai.com/v1/moderations", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
       body: JSON.stringify({ model: "omni-moderation-latest", input: text }),
     });
-    if (r.ok) {
-      const j: any = await r.json();
+    if (resp.ok) {
+      const j: any = await resp.json();
       if (j?.results?.[0]?.flagged) return { allowed: false, reason: "Content flagged by moderation." };
     }
-  } catch {}
+  } catch {/* ignore network issues; fall back to local rules */}
   return { allowed: true };
 }
 
-function pickInput(b: any) {
+function pickUserText(b: any) {
   return b?.message ?? b?.input ?? b?.text ?? b?.prompt ?? b?.q ?? "";
 }
 function pickOutput(d: any): string {
@@ -62,7 +68,7 @@ function pickOutput(d: any): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const userText = sanitize(pickInput(body));
+    const userText = sanitize(pickUserText(body));
     if (!userText) return json({ ok: false, error: "Missing message/input/text/prompt/q" }, 400);
 
     const mod = await moderate(userText);
@@ -70,13 +76,13 @@ export async function POST(req: NextRequest) {
 
     const XAI_API_KEY = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
     const XAI_MODEL = process.env.XAI_MODEL || "grok-4-fast-reasoning";
-    if (!XAI_API_KEY) return json({ ok: false, error: "Missing xAI key (set XAI_API_KEY or GROK_API_KEY in Vercel)" }, 500);
+    if (!XAI_API_KEY) return json({ ok: false, error: "Missing xAI key (set XAI_API_KEY or GROK_API_KEY)" }, 500);
 
-    // IMPORTANT: some xAI models return empty without explicit max_tokens
+    // Some xAI models can return empty without max_tokens; set it.
     const payload = {
       model: XAI_MODEL,
       temperature: 0.3,
-      max_tokens: 512, // <— explicit to avoid empty replies
+      max_tokens: 512,
       messages: [
         { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
         { role: "user", content: userText },
@@ -97,7 +103,7 @@ export async function POST(req: NextRequest) {
     const data: any = await r.json();
     const out = (pickOutput(data) || "").trim();
 
-    // Always return both shapes + full raw for debugging (no secrets here)
+    // return both fields the UI might read + raw for debugging (safe)
     return json({ ok: true, answer: out || "(no response)", output: out || "(no response)", raw: data });
   } catch (e: any) {
     return json({ ok: false, error: String(e?.message || e) }, 500);

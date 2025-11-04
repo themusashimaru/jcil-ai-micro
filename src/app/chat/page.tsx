@@ -24,7 +24,6 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userText }),
       });
-
       const data = await res.json().catch(() => ({} as any));
       setLastJson(data);
 
@@ -79,7 +78,6 @@ export default function ChatPage() {
         )}
       </div>
 
-      {/* Always show the raw JSON we got back so nothing is "invisible" */}
       <div
         style={{
           marginTop: 12,
