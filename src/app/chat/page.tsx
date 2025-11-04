@@ -14,7 +14,7 @@ export default function ChatPage() {
   const [fileToSend, setFileToSend] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  function fileToBase64(f: File): Promise<string> {
+  function fileToDataUrl(f: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = () => reject(new Error("Failed to read file"));
@@ -30,7 +30,11 @@ export default function ChatPage() {
     const text = input.trim();
     if (!text && !fileToSend) return;
 
-    const userMsg: ChatMessage = { id: `u_${Date.now()}`, role: "user", content: text || "[image]" };
+    const userMsg: ChatMessage = {
+      id: `u_${Date.now()}`,
+      role: "user",
+      content: text || "[image]",
+    };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
@@ -38,7 +42,7 @@ export default function ChatPage() {
     try {
       let image_base64: string | undefined;
       if (fileToSend) {
-        image_base64 = await fileToBase64(fileToSend);
+        image_base64 = await fileToDataUrl(fileToSend);
         setFileToSend(null);
       }
 
@@ -62,9 +66,9 @@ export default function ChatPage() {
         return;
       }
 
-      const data = await resp.json();
+      const data = await resp.json().catch(() => ({}));
       if (!resp.ok || !data?.ok) {
-        const err = data?.error || "Unknown error from /api/chat";
+        const err = data?.error || "Unknown error";
         const warn: ChatMessage = {
           id: `e_${Date.now()}`,
           role: "assistant",
@@ -95,7 +99,7 @@ export default function ChatPage() {
 
   return (
     <main className="max-w-3xl mx-auto p-4 space-y-4">
-      <h1 className="text-xl font-semibold">Chat</h1>
+      <h1 className="text-xl font-semibold">New Chat</h1>
 
       <div className="space-y-2">
         {messages.map((m) => (
@@ -103,7 +107,9 @@ export default function ChatPage() {
             <div
               className={
                 "inline-block rounded-md px-3 py-2 " +
-                (m.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900")
+                (m.role === "user"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-900")
               }
             >
               {m.content}
