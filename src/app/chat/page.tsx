@@ -3,7 +3,6 @@ import * as React from "react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-// Pick a reply string from any common API shape
 function pickReply(data: any): string {
   return (
     (typeof data?.answer === "string" && data.answer) ||
@@ -36,14 +35,12 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userText }),
       });
-
       const json = await res.json().catch(() => ({} as any));
       if (!res.ok || json?.ok === false) {
         const err = json?.error || json?.details || `HTTP ${res.status}`;
         setMessages((m) => [...m, { role: "assistant", content: `Sorry, an error occurred: ${err}` }]);
         return;
       }
-
       const reply = pickReply(json);
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e: any) {
