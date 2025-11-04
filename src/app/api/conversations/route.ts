@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 
-import { NextResponse, cookies } from "next/server";
+import { NextResponse } from "next/server";
+import { cookies as headerCookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /* small helpers */
@@ -12,14 +13,14 @@ function json(status: number, body: any, headers: Record<string, string> = {}) {
 }
 
 function getOrSetDeviceId(): { id: string; setHeader?: string } {
-  const jar = cookies();
+  const jar = headerCookies();
   const existing = jar.get("device_id")?.value;
   if (existing) return { id: existing };
 
   const id = crypto.randomUUID();
-  // set cookie via response header (since we’re in a route handler)
+  // Build a Set-Cookie header (route handlers don’t have res.cookies.set directly)
   const setHeader = [
-    "device_id=" + id,
+    `device_id=${id}`,
     "Path=/",
     "HttpOnly",
     "Secure",
