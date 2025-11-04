@@ -9,41 +9,75 @@ export default function ChatPage() {
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [lastApiJson, setLastApiJson] = React.useState<any>(null);
 
   async function sendMessage(text: string) {
+    const userText = text.trim();
+    if (!userText || loading) return;
+
     setLoading(true);
     setError(null);
 
-    // show user message immediately
-    setMessages((m) => [...m, { role: "user", content: text }]);
+    // 1) append user, then an assistant placeholder we will replace
+    setMessages((m) => [...m, { role: "user", content: userText }, { role: "assistant", content: "…" }]);
+    setInput("");
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // our API accepts: message | input | text | prompt | q
-        body: JSON.stringify({ message: text }),
+        // API accepts: message | input | text | prompt | q (we send "message")
+        body: JSON.stringify({ message: userText }),
       });
 
       const data = await res.json().catch(() => ({} as any));
+      setLastApiJson(data);
 
-      if (!res.ok || (data && data.ok === false)) {
-        const msg = (data && (data.error || data.details)) || `HTTP ${res.status}`;
+      if (!res.ok || data?.ok === false) {
+        const msg = data?.error || data?.details || `HTTP ${res.status}`;
         setError(msg);
-        setMessages((m) => [...m, { role: "assistant", content: `Sorry, an error occurred: ${msg}` }]);
+
+        // replace the last assistant placeholder with error text
+        setMessages((m) => {
+          const copy = m.slice();
+          const last = copy.length - 1;
+          if (last >= 0 && copy[last].role === "assistant") {
+            copy[last] = { role: "assistant", content: `Sorry, an error occurred: ${msg}` };
+          }
+          return copy;
+        });
         return;
       }
 
-      // API may return { ok: true, answer, output } OR just { output }
       const reply: string =
-        (data && (data.answer || data.output)) ||
+        (typeof data?.answer === "string" && data.answer) ||
+        (typeof data?.output === "string" && data.output) ||
         "(no response)";
 
-      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+      // 2) replace assistant placeholder with real reply
+      setMessages((m) => {
+        const copy = m.slice();
+        const last = copy.length - 1;
+        if (last >= 0 && copy[last].role === "assistant") {
+          copy[last] = { role: "assistant", content: reply };
+        } else {
+          copy.push({ role: "assistant", content: reply });
+        }
+        return copy;
+      });
     } catch (e: any) {
       const msg = e?.message || "Network error";
       setError(msg);
-      setMessages((m) => [...m, { role: "assistant", content: `Sorry, an error occurred: ${msg}` }]);
+      setMessages((m) => {
+        const copy = m.slice();
+        const last = copy.length - 1;
+        if (last >= 0 && copy[last].role === "assistant") {
+          copy[last] = { role: "assistant", content: `Sorry, an error occurred: ${msg}` };
+        } else {
+          copy.push({ role: "assistant", content: `Sorry, an error occurred: ${msg}` });
+        }
+        return copy;
+      });
     } finally {
       setLoading(false);
     }
@@ -59,7 +93,7 @@ export default function ChatPage() {
           border: "1px solid #e5e7eb",
           borderRadius: 12,
           padding: 16,
-          minHeight: 320,
+          minHeight: 360,
           background: "#fff",
         }}
       >
@@ -83,6 +117,8 @@ export default function ChatPage() {
                     borderRadius: 12,
                     padding: "10px 12px",
                     background: m.role === "user" ? "#eef2ff" : "#f9fafb",
+                    color: "#111827",
+                    lineHeight: 1.4,
                   }}
                 >
                   {m.content}
@@ -109,12 +145,32 @@ export default function ChatPage() {
         </p>
       )}
 
+      {/* Debug peek to confirm what API returns */}
+      {lastApiJson && (
+        <details style={{ marginTop: 8 }}>
+          <summary style={{ cursor: "pointer", color: "#4b5563" }}>Show last API JSON</summary>
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              overflowX: "auto",
+              background: "#f9fafb",
+              border: "1px solid #e5e7eb",
+              borderRadius: 8,
+              padding: 10,
+              fontSize: 12,
+              marginTop: 8,
+            }}
+          >
+            {JSON.stringify(lastApiJson, null, 2)}
+          </pre>
+        </details>
+      )}
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (!input.trim() || loading) return;
-          const text = input.trim();
-          setInput("");
+          const text = input;
+          if (!text.trim() || loading) return;
           sendMessage(text);
         }}
         style={{ display: "flex", gap: 8, marginTop: 16 }}
