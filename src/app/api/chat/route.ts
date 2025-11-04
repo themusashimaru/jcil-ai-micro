@@ -137,12 +137,17 @@ export async function POST(req: Request) {
     const messages: Array<{ role: "system" | "user"; content: any }> = [
       { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
     ];
+    
     const userContent = imageBase64
       ? [
-          { type: "text", text: sanitized },
+          // *** THIS IS THE FIX ***
+          // If text is empty but an image exists, use a default prompt.
+          // This prevents an API error from an empty text part.
+          { type: "text", text: sanitized || "Analyze this image." },
           { type: "image_url", image_url: imageBase64 },
         ]
       : [{ type: "text", text: sanitized }];
+      
     messages.push({ role: "user", content: userContent });
 
     const body = {
