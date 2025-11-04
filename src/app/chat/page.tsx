@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 
+export const dynamic = "force-dynamic";
+
 type Msg = { role: "user" | "assistant"; content: string };
 
 export default function ChatPage() {
@@ -25,14 +27,13 @@ export default function ChatPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
-        cache: "no-store",
+        cache: "no-store"
       });
 
       let reply = "Sorry, no reply.";
       if (r.ok) {
         const j: any = await r.json();
         setLastRaw(JSON.stringify(j));
-
         reply =
           (j && j.output) ||
           (j && j.answer) ||
@@ -88,43 +89,20 @@ export default function ChatPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid #d1d5db",
-            outline: "none"
-          }}
+          style={{ flex: 1, padding: "10px 12px", borderRadius: 8, border: "1px solid #d1d5db", outline: "none" }}
         />
         <button
           disabled={loading}
           type="submit"
-          style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            border: "1px solid #111827",
-            background: loading ? "#6b7280" : "#111827",
-            color: "#ffffff",
-            cursor: loading ? "not-allowed" : "pointer"
-          }}
+          style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #111827", background: loading ? "#6b7280" : "#111827", color: "#ffffff", cursor: loading ? "not-allowed" : "pointer" }}
         >
           {loading ? "Sending..." : "Send"}
         </button>
       </form>
 
-      <pre
-        style={{
-          marginTop: 12,
-          fontSize: 12,
-          lineHeight: 1.3,
-          background: "#f3f4f6",
-          border: "1px solid #e5e7eb",
-          padding: 8,
-          borderRadius: 8,
-          maxHeight: 180,
-          overflow: "auto"
-        }}
-      >{lastRaw}</pre>
+      <pre style={{ marginTop: 12, fontSize: 12, lineHeight: 1.3, background: "#f3f4f6", border: "1px solid #e5e7eb", padding: 8, borderRadius: 8, maxHeight: 180, overflow: "auto" }}>
+{lastRaw}
+      </pre>
     </div>
   );
 }
