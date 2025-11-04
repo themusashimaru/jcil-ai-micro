@@ -1,6 +1,5 @@
 "use client";
-
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 type Msg = { role: "system" | "user" | "assistant"; content: string };
 
@@ -8,16 +7,18 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
-  // ── load / save simple session memory (localStorage) ─────────────
+  // ── load previous thread from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem("jcil.chat.history");
       if (saved) setMessages(JSON.parse(saved));
     } catch {}
   }, []);
+
+  // ── persist messages
   useEffect(() => {
     try {
       localStorage.setItem("jcil.chat.history", JSON.stringify(messages));
@@ -25,86 +26,70 @@ export default function ChatPage() {
   }, [messages]);
 
   async function send() {
-    if (loading) return;
+    if (busy) return;
     const text = input.trim();
     if (!text && !file) return;
+    setBusy(true);
 
-    // push user message locally first
-    const nextHistory: Msg[] = [...messages, { role: "user", content: text || "[image]" }];
-    setMessages(nextHistory);
+    const newMsgs = [...messages, { role: "user", content: text || "[image]" }];
+    setMessages(newMsgs);
     setInput("");
-    setLoading(true);
 
     try {
-      const headers: Record<string, string> = {};
-      let body: BodyInit;
+      let res: Response;
 
       if (file) {
         const form = new FormData();
         form.append("message", text);
-        form.append("history", JSON.stringify(nextHistory.slice(-10))); // send last 10 turns
         form.append("file", file);
-        body = form;
+        form.append("history", JSON.stringify(newMsgs.slice(-10)));
+        res = await fetch("/api/chat", { method: "POST", body: form });
       } else {
-        headers["Content-Type"] = "application/json";
-        body = JSON.stringify({
-          message: text,
-          history: nextHistory.slice(-10),
+        res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, history: newMsgs.slice(-10) }),
         });
       }
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers,
-        body,
-      });
-
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setMessages(h => [...h, { role: "assistant", content: data?.error || "Error" }]);
-      } else {
-        setMessages(h => [...h, { role: "assistant", content: data?.reply || "(no response)" }]);
-      }
+      const reply = data?.reply || data?.error || "(no response)";
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch (err: any) {
-      setMessages(h => [...h, { role: "assistant", content: err?.message || "Network error" }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `Error: ${err.message}` },
+      ]);
     } finally {
-      setLoading(false);
+      setBusy(false);
       setFile(null);
       if (fileRef.current) fileRef.current.value = "";
     }
   }
 
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void send();
-    }
-  }
-
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-center text-xl font-semibold mb-6">New Chat</h1>
+    <div className="mx-auto max-w-3xl p-4 space-y-4">
+      <h1 className="text-xl font-semibold text-center">New Chat</h1>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {messages.length === 0 && (
-          <div className="text-sm text-gray-500">Hello! How can I assist you today?</div>
+          <p className="text-sm text-gray-500">Hello! How can I assist you today?</p>
         )}
         {messages.map((m, i) => (
           <div
             key={i}
-            className={
-              "rounded-lg p-3 text-sm " +
-              (m.role === "user"
+            className={`whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
+              m.role === "user"
                 ? "bg-blue-600 text-white ml-auto max-w-[80%]"
-                : "bg-gray-100 text-gray-900 mr-auto max-w-[80%]")
-            }
+                : "bg-gray-100 text-gray-900 mr-auto max-w-[80%]"
+            }`}
           >
             {m.content}
           </div>
         ))}
       </div>
 
-      <div className="mt-6 flex items-center gap-2">
+      <div className="flex items-center gap-2 pt-2">
         <input
           ref={fileRef}
           type="file"
@@ -114,20 +99,26 @@ export default function ChatPage() {
         />
       </div>
 
-      <div className="mt-3 flex gap-2">
+      <div className="flex items-center gap-2">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={onKeyDown}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
           placeholder="Type your message…"
-          className="flex-1 rounded-lg border p-3 text-sm min-h-[48px]"
+          className="flex-1 rounded border p-3 text-sm"
+          rows={1}
         />
         <button
           onClick={send}
-          disabled={loading}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+          disabled={busy}
+          className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-60"
         >
-          {loading ? "…" : "Send"}
+          {busy ? "…" : "Send"}
         </button>
       </div>
     </div>
