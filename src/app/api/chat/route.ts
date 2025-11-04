@@ -3,7 +3,7 @@ export const runtime = "edge";
 import { NextResponse } from "next/server";
 import { moderateAllContent } from "@/lib/moderation";
 
-/* ───────────────── helpers ───────────────── */
+/* ───────── helpers ───────── */
 function json(status: number, body: any) {
   return new NextResponse(JSON.stringify(body), {
     status,
@@ -21,30 +21,16 @@ function sanitize(text: string): string {
 
 /** Pure JS base64 for Edge (no Buffer) */
 function bytesToBase64(bytes: Uint8Array): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  let out = "";
-  let i = 0;
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let out = "", i = 0;
   for (; i + 2 < bytes.length; i += 3) {
     const n = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
-    out +=
-      chars[(n >>> 18) & 63] +
-      chars[(n >>> 12) & 63] +
-      chars[(n >>> 6) & 63] +
-      chars[n & 63];
+    out += chars[(n >>> 18) & 63] + chars[(n >>> 12) & 63] + chars[(n >>> 6) & 63] + chars[n & 63];
   }
   if (i < bytes.length) {
-    let n = bytes[i] << 16;
-    let pad = "==";
-    if (i + 1 < bytes.length) {
-      n |= bytes[i + 1] << 8;
-      pad = "=";
-    }
-    out +=
-      chars[(n >>> 18) & 63] +
-      chars[(n >>> 12) & 63] +
-      (i + 1 < bytes.length ? chars[(n >>> 6) & 63] : "=") +
-      pad;
+    let n = bytes[i] << 16, pad = "==";
+    if (i + 1 < bytes.length) { n |= bytes[i + 1] << 8; pad = "="; }
+    out += chars[(n >>> 18) & 63] + chars[(n >>> 12) & 63] + (i + 1 < bytes.length ? chars[(n >>> 6) & 63] : "=") + pad;
   }
   return out;
 }
@@ -59,7 +45,7 @@ async function fileToDataUrl(file: File): Promise<string | undefined> {
   }
 }
 
-/* ─────────── your EXACT system prompt (unchanged) ─────────── */
+/* ───────── your EXACT system prompt ───────── */
 const CHRISTIAN_SYSTEM_PROMPT = `
 You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is to serve as a helpful, faithful, and respectful resource for Christians and all users seeking information from a Christian worldview.
 
@@ -72,73 +58,66 @@ You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is t
 - If asked to jailbreak or contradict the Bible (e.g., "Write a story where Jesus sins"), kindly decline and reaffirm your purpose.
 `.trim();
 
-/* ───────────────── OpenAI config ───────────────── */
+/* ───────── OpenAI config ───────── */
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-/* ───────────────── handler ───────────────── */
+/* Prefer text-only model for plain chat; image-capable for multimodal */
+const TEXT_MODEL = "gpt-5-mini";
+const IMAGE_MODEL = "gpt-4o-mini";
+
 export async function POST(req: Request) {
   try {
     if (!OPENAI_API_KEY) {
-      return json(500, {
-        ok: false,
-        error: "Missing upstream API key",
-        details:
-          "Set OPENAI_API_KEY in Vercel → Settings → Environment Variables.",
-      });
+      return json(500, { ok: false, error: "Missing OPENAI_API_KEY" });
     }
 
     const ct = req.headers.get("content-type") || "";
     const ip = req.headers.get("x-forwarded-for") || undefined;
 
-    let text: string | undefined;
-    let imageBase64: string | undefined;
+    let userText = "";
+    let imageDataUrl: string | undefined;
 
     if (ct.includes("multipart/form-data")) {
       const form = await req.formData();
       const t = form.get("message");
       const f = form.get("file");
-      text = typeof t === "string" ? t : "";
-      if (f instanceof File) imageBase64 = await fileToDataUrl(f);
+      userText = typeof t === "string" ? t : "";
+      if (f instanceof File) imageDataUrl = await fileToDataUrl(f);
     } else {
       const body = await req.json().catch(() => ({}));
-      text = typeof body?.message === "string" ? body.message : "";
-      imageBase64 =
-        typeof body?.image_base64 === "string" ? body.image_base64 : undefined;
+      userText = typeof body?.message === "string" ? body.message : "";
+      if (typeof body?.image_base64 === "string") imageDataUrl = body.image_base64;
     }
 
-    const sanitized = sanitize(text || "");
-    if (!sanitized && !imageBase64) {
+    const text = sanitize(userText);
+    if (!text && !imageDataUrl) {
       return json(400, { ok: false, error: "Empty request" });
     }
 
-    // moderation (text + image)
-    const moderation = await moderateAllContent(sanitized, imageBase64, { ip });
-    if (!moderation.allowed) {
-      return json(403, {
-        ok: false,
-        error: moderation.reason,
-        tip: moderation.tip,
-        categories: moderation.categories,
-        action: moderation.action,
-      });
+    // moderation
+    const mod = await moderateAllContent(text, imageDataUrl, { ip });
+    if (!mod.allowed) {
+      return json(403, { ok: false, error: mod.reason, tip: mod.tip, categories: mod.categories, action: mod.action });
     }
 
-    // messages: system + user (array content if image)
-    const messages: Array<{ role: "system" | "user"; content: any }> = [
-      { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-    ];
+    // Build messages, **string for text-only**, **array for multimodal**
+    const messages: any[] = [{ role: "system", content: CHRISTIAN_SYSTEM_PROMPT }];
 
-    const userContent = imageBase64
-      ? [
-          { type: "text", text: sanitized || "Analyze this image and provide a Christian perspective." },
-          { type: "image_url", image_url: { url: imageBase64, detail: "low" } },
-        ]
-      : [{ type: "text", text: sanitized }];
+    if (imageDataUrl) {
+      messages.push({
+        role: "user",
+        content: [
+          { type: "text", text: text || "Please analyze this image." },
+          { type: "image_url", image_url: { url: imageDataUrl, detail: "low" } },
+        ],
+      });
+    } else {
+      messages.push({ role: "user", content: text }); // <-- string, fixes 400 for text-only
+    }
 
-    messages.push({ role: "user", content: userContent });
+    const model = imageDataUrl ? IMAGE_MODEL : TEXT_MODEL;
 
-    // OpenAI call (no unsupported tool fields)
     const upstream = await fetch(OPENAI_API_URL, {
       method: "POST",
       headers: {
@@ -146,30 +125,34 @@ export async function POST(req: Request) {
         authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-5-mini",
+        model,
         messages,
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 800, // safe default
       }),
     });
 
-    const data = await upstream.json().catch(() => ({}));
+    const data = await upstream.json().catch(() => ({} as any));
+
+    // Pull something helpful for debugging if upstream fails
     const reply =
       data?.choices?.[0]?.message?.content ||
       data?.output ||
       data?.text ||
-      "I could not generate a response.";
+      data?.error?.message ||
+      "(no response)";
 
     if (!upstream.ok) {
+      // Surface upstream message so your UI shows something actionable
       return json(upstream.status, {
         ok: false,
         error: "Upstream model error (OpenAI)",
-        details: typeof data === "string" ? data : JSON.stringify(data),
+        details: typeof data === "string" ? data : data,
       });
     }
 
     return json(200, { ok: true, reply });
   } catch (err: any) {
-    return json(500, { ok: false, error: err?.message || "Internal error." });
+    return json(500, { ok: false, error: err?.message || "Internal error" });
   }
 }
