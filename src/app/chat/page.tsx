@@ -15,9 +15,13 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
 
   async function fileToBase64(f: File): Promise<string> {
-    const buf = await f.arrayBuffer();
-    const b64 = Buffer.from(buf).toString("base64");
-    return `data:${f.type || "image/*"};base64,${b64}`;
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.readAsDataURL(f);
+    });
+    return dataUrl;
   }
 
   async function onSend(e: React.FormEvent) {
@@ -63,7 +67,7 @@ export default function ChatPage() {
         return;
       }
 
-      const data = await resp.json();
+      const data = await resp.json().catch(() => null);
       if (!resp.ok || !data?.ok) {
         const err = data?.error || "Unknown error from /api/chat";
         const warn: ChatMessage = {
