@@ -43,9 +43,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const conversation_id = String(body?.conversation_id || "");
     const role = String(body?.role || "") as Role;
-    const content = String(
-      body?.content ?? body?.text ?? body?.message ?? body?.prompt ?? ""
-    ).trim();
+    const content = String(body?.content ?? "");
 
     if (!conversation_id) return json(400, { ok: false, error: "conversation_id required" });
     if (!["user", "assistant", "system"].includes(role)) {
@@ -57,7 +55,7 @@ export async function POST(req: Request) {
 
     const { error } = await supabaseAdmin
       .from("messages")
-      .insert({ conversation_id, role, content, user_id });
+      .insert({ conversation_id, user_id, role, content });
 
     if (error) throw error;
     return json(200, { ok: true });
