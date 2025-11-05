@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { getLongTermMemory } from "@/lib/memory";
+import { getLongTermMemory, saveMemoryExtract } from "@/lib/memory";
 import OpenAI from "openai";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserIdOrGuest } from "@/lib/auth";
@@ -120,7 +120,7 @@ const userContent: any =
 // Keep types loose to avoid TS issues with union message content.
 const messages: any[] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemArr,
+  ...Array.isArray(longMemory) ? longMemory : [], ...longMemArr,
   ...historyArr,
   { role: "user", content: userContent }
 ];

@@ -24,3 +24,14 @@ export async function getLongTermMemory(
     content: String(m.content ?? '')
   }));
 }
+
+
+export async function saveMemoryExtract(user_id: string, extract: string) {
+  try {
+    const { supabaseAdmin } = await import("@/lib/supabase-admin");
+    if (!user_id || !extract || !extract.trim()) return;
+    await supabaseAdmin
+      .from("long_memory")
+      .insert({ user_id, extract: extract.trim() });
+  } catch (_) {}
+}
