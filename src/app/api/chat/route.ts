@@ -89,13 +89,12 @@ function collectArray(v: unknown): string[] {
   return Array.isArray(v) ? v : (typeof v === 'string' && v.trim()) ? [v] : [];
 }
 
-const rawImages: string[] = 
+const rawImages: string[] = [
   ...collectArray((body || {}).images),
   ...collectArray((body || {}).imageUrls),
   ...collectArray((body || {}).attachments),
   ...collectArray((body || {}).files),
-  ...collectArray((body || {}).imageUrl),
-  ...collectArray((body || {}).image_url),
+].filter(Boolean) as string[];
 ];
 
     // --- build messages for OpenAI ---
