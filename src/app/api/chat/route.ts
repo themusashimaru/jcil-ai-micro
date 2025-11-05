@@ -92,7 +92,8 @@ async function loadDbHistory(opts: { conversationId: string | null; userId: stri
   let rows: { role: string; content: string }[] = [];
 
   if (conversationId) {
-    const { data } = await supabaseServer
+    const { data } = const supabase = createClient();
+    const { data } = await supabase
       .from('messages')
       .select('role, content')
       .eq('conversation_id', conversationId)
@@ -101,7 +102,8 @@ async function loadDbHistory(opts: { conversationId: string | null; userId: stri
     rows = data || [];
   } else if (userId) {
     // Fallback: last 50 messages across user when no conversationId
-    const { data } = await supabaseServer
+    const { data } = const supabase = createClient();
+    const { data } = await supabase
       .from('messages')
       .select('role, content')
       .eq('user_id', userId)
@@ -159,7 +161,8 @@ export async function POST(req: Request) {
 
     // Optional: write assistant reply (skip if your UI already writes it to avoid duplicates)
     // if (conversationId && userId && reply) {
-    //   await supabaseServer.from('messages').insert({
+    //   const supabase = createClient();
+    const { data } = await supabase.from('messages').insert({
     //     user_id: userId,
     //     conversation_id: conversationId,
     //     role: 'assistant',
