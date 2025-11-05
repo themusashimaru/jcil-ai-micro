@@ -26,11 +26,10 @@ export async function POST(req: Request) {
   const userContent = Array.isArray(content) ? content : [content].filter(Boolean)[0];
 
   const messages: any[] = [
-{ role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-    ...historyArr,
-    ...longMemArr,
-];
-    ...(userContent ? [{ role: "user", content: userContent }] : [])
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...historyArr,
+  ...longMemArr,
+  ...(userContent ? [{ role: "user", content: userContent }] : []),
 ];
 
   // ---- end messages ----
