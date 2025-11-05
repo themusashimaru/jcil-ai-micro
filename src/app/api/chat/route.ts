@@ -24,11 +24,7 @@ type Role = "user" | "assistant" | "system";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 function json(status: number, body: any) {
-  return new NextResponse(JSON.stringify(body), {
-
-  status,
-  headers: { "content-type": "application/json" },
-});
+  
 
 async function loadMessages(conversation_id: string) {
   const { data, error } = await supabaseAdmin
