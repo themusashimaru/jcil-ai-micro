@@ -92,15 +92,18 @@ async function loadDbHistory(opts: { conversationId: string | null; userId: stri
   let rows: { role: string; content: string }[] = [];
 
   if (conversationId) {
-    const { data } = const supabase = createClient();
-    const { data } = await supabase
-      .from('messages')
-      .select('role, content')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
-      .limit(200);
-    rows = data || [];
-  } else if (userId) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("messages")
+    .select("role, content")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true })
+    .limit(200);
+
+  rows = data || [];
+}
+
+else if (userId) {
     // Fallback: last 50 messages across user when no conversationId
     const { data } = const supabase = createClient();
     const { data } = await supabase
