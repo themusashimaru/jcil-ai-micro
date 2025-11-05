@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 /* BEGIN IMAGE SUPPORT */
 type ImgPart = { type: 'input_image'; image_url: { url: string } };
 
-function collectArray(v) {
+function collectArray(v: unknown): string[] {
   return Array.isArray(v) ? v : (typeof v === 'string' && v.trim()) ? [v] : [];
 }
 
