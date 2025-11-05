@@ -89,7 +89,7 @@ function collectArray(v: unknown): string[] {
   return Array.isArray(v) ? v : (typeof v === 'string' && v.trim()) ? [v] : [];
 }
 
-const rawImages = []
+const rawImages: string[] = []
   // arrays (common frontend keys)
   .concat(collectArray((body || {}).images))
   .concat(collectArray((body || {}).imageUrls))
