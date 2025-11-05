@@ -141,8 +141,8 @@ export async function POST(req: Request) {
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: CHRISTIAN_SYSTEM_PROMPT },
-      ...dbHistory,
-      ...history, // client-sent small window (ok to include)
+      (dbHistory as any[]).map((m:any)=>({ role: (m.role==="assistant"?"assistant": m.role==="system"?"system":"user"), content: typeof m.content==="string" ? m.content : JSON.stringify(m.content ?? "") })),
+      (Array.isArray(history)? (history as any[]).map((m:any)=>({ role: (m.role==="assistant"?"assistant": m.role==="system"?"system":"user"), content: typeof m.content==="string" ? m.content : JSON.stringify(m.content ?? "") })) : []), // client-sent small window (ok to include)
       ...(shouldAppendUser ? [{ role: 'user', content: userContent as any }] : []),
     ];
 
