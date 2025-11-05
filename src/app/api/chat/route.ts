@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
+import { getLongTermMemory } from "@/lib/memory";
 import OpenAI from "openai";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserIdOrGuest } from "@/lib/auth";
@@ -101,10 +102,17 @@ export async function POST(req: Request) {
         : ({ role: "user", content: m.content } as OpenAI.ChatCompletionUserMessageParam)
     );
 
-    const messages: OpenAI.ChatCompletionMessageParam[] = [
-      { role: "system", content: CHRISTIAN_SYSTEM_PROMPT } as OpenAI.ChatCompletionSystemMessageParam,
-      ...typedHistory,
-    ];
+    const longMemory = await getLongTermMemory(supabaseAdmin, user_id, conversation_id, 50);
+
+const messages: OpenAI.ChatCompletionMessageParam[] = [
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...longMemory,
+  ...history.map(m => ({
+    role: (m.role === "assistant" ? "assistant" : "user"),
+    content: m.content
+  })),
+  { role: "user", content: userText }
+];
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
