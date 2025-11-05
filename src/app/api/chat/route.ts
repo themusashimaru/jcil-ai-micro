@@ -25,9 +25,11 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 function json(status: number, body: any) {
   return new NextResponse(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-};
+// JSON response options helper (replaces previous stray object literal)
+const jsonOpts = (status = 200) => ({
+  status,
+  headers: { "content-type": "application/json" },
+});
 
 async function loadMessages(conversation_id: string) {
   const { data, error } = await supabaseAdmin
