@@ -46,6 +46,14 @@ export async function middleware(request: NextRequest) {
     '/cookies',
   ];
 
+  // Auth-only routes that logged-in users should not access
+  const authOnlyRoutes = [
+    '/login',
+    '/signup',
+    '/forgot-password',
+    '/reset-password',
+  ];
+
   // Not logged in → protect non-public pages
   if (!session && !publicRoutes.includes(pathname)) {
     const url = request.nextUrl.clone();
@@ -53,8 +61,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged in → keep them off login/signup/etc (except callback)
-  if (session && publicRoutes.includes(pathname) && pathname !== '/auth/callback') {
+  // Logged in → keep them off auth pages (login/signup/etc) but allow legal pages
+  if (session && authOnlyRoutes.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
