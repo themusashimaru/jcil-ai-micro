@@ -5,173 +5,196 @@ import { createClient } from '@/lib/supabase/server';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const CHRISTIAN_SYSTEM_PROMPT =
-  `You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is to serve as a helpful, faithful, and respectful resource for Christians and all users seeking information from a Christian worldview.`;
-
-// Minimal message type so we avoid OpenAI type imports
-type Msg = { role: 'system' | 'user' | 'assistant'; content: string };
-type ChatPart = { type: 'text'; text: string } | { type: 'input_image'; image_url: { url: string } };
+type UIHistoryRow = { role: string; content: any };
 
 function toDataUrl(mime: string, buf: Buffer) {
   const b64 = buf.toString('base64');
   return `data:${mime};base64,${b64}`;
 }
 
-function mapRow(m: any): Msg {
-  const raw = (m && typeof m.role === 'string') ? m.role : 'user';
-  const role: 'system' | 'user' | 'assistant' = raw === 'assistant' ? 'assistant' : (raw === 'system' ? 'system' : 'user');
-  const content = (typeof m?.content === 'string') ? m.content : JSON.stringify(m?.content ?? '');
-  return { role, content };
-}
-
-async function readRequest(req: Request): Promise<{
-  message: string;
-  history: Msg[];
-  imagePart: ChatPart | null;
-  conversationId: string | null;
-  userId: string | null;
-}> {
-  const ct = req.headers.get('content-type') || '';
+// Parse either JSON body or multipart form-data, and normalize fields
+async function readInbound(req: Request) {
   let message = '';
-  let history: Msg[] = [];
-  let imagePart: ChatPart | null = null;
+  let history: UIHistoryRow[] = [];
+  let imagePart: any = null;
   let conversationId: string | null = null;
   let userId: string | null = null;
 
+  const ct = req.headers.get('content-type') || '';
+
   if (ct.includes('multipart/form-data')) {
     const form = await req.formData();
+    message = String(form.get('message') || '');
+    conversationId = (form.get('conversationId') as string) || null;
+    userId = (form.get('userId') as string) || null;
 
-    const msg = form.get('message') ?? form.get('content') ?? '';
-    message = String(msg || '').trim();
+    try {
+      const raw = form.get('history');
+      if (raw) history = JSON.parse(String(raw));
+    } catch {}
 
-    const histRaw = form.get('history');
-    if (histRaw) {
-      try {
-        const arr = JSON.parse(String(histRaw));
-        if (Array.isArray(arr)) {
-          history = arr
-            .filter((m: any) => m && typeof m.role === 'string' && typeof m.content === 'string')
-            .map(mapRow)
-            .slice(-12);
-        }
-      } catch {}
-    }
-
+    // optional image file
     const f = form.get('file') as File | null;
-    if (f && f.size > 0 && f.type && f.type.startsWith('image/')) {
+    if (f && typeof (f as any).arrayBuffer === 'function') {
       const ab = await f.arrayBuffer();
-      const dataUrl = toDataUrl(f.type, Buffer.from(ab));
-      imagePart = { type: 'input_image', image_url: { url: dataUrl } };
+      const buf = Buffer.from(ab);
+      imagePart = {
+        type: 'input_image',
+        image_url: { url: toDataUrl(f.type || 'image/png', buf) },
+      };
     }
-
-    conversationId = (form.get('conversationId') ?? '') ? String(form.get('conversationId')) : null;
-    userId = (form.get('userId') ?? '') ? String(form.get('userId')) : null;
-
   } else {
     const body = await req.json().catch(() => ({} as any));
-    const msg = body?.message ?? body?.content ?? '';
-    message = String(msg || '').trim();
+    message = String(body?.message || '');
+    history = Array.isArray(body?.history) ? body.history : [];
+    conversationId = (body?.conversationId && String(body.conversationId)) || null;
+    userId = (body?.userId && String(body.userId)) || null;
 
-    if (Array.isArray(body?.history)) {
-      history = (body.history as any[]).map(mapRow).slice(-12);
-    }
-
-    // Accept direct image URL(s) in JSON
+    // accept imageUrl or imageUrls on JSON branch
     const one = typeof body?.imageUrl === 'string' ? body.imageUrl : '';
     const many = Array.isArray(body?.imageUrls) ? body.imageUrls : [];
-    const firstUrl = (one && one.trim()) || (many.find((u: any) => typeof u === 'string' && u.trim()) || '');
+    const firstUrl =
+      (one && one.trim()) ||
+      (many.find((u: any) => typeof u === 'string' && u.trim()) || '');
     if (firstUrl) {
       imagePart = { type: 'input_image', image_url: { url: String(firstUrl) } };
     }
-
-    conversationId = body?.conversationId ? String(body.conversationId) : null;
-    userId = body?.userId ? String(body.userId) : null;
   }
 
   return { message, history, imagePart, conversationId, userId };
 }
 
+// Load durable memory from Supabase
+async function loadMemory(opts: { conversationId: string | null; userId: string | null }) {
+  const { conversationId, userId } = opts;
+  const supabase = createClient();
+  let rows: { role: string; content: any }[] = [];
+
+  if (conversationId) {
+    const { data } = await supabase
+      .from('messages')
+      .select('role, content')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .limit(200);
+    rows = data || [];
+  } else if (userId) {
+    // Global memory across **all** chats for this user
+    const { data } = await supabase
+      .from('messages')
+      .select('role, content')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+      .limit(200);
+    rows = data || [];
+  }
+
+  // Normalize to OpenAI message format (simple)
+  return rows.map((m) => {
+    const role = m?.role === 'assistant' ? 'assistant' : m?.role === 'system' ? 'system' : 'user';
+    const content = typeof m?.content === 'string' ? m.content : JSON.stringify(m?.content ?? '');
+    return { role, content } as any;
+  });
+}
+
+// Save user + assistant messages to Supabase
+async function saveMessages(payload: {
+  conversationId: string;
+  userId: string | null;
+  userContent: any;
+  assistantContent: any;
+}) {
+  const { conversationId, userId, userContent, assistantContent } = payload;
+  const supabase = createClient();
+
+  const rows = [
+    {
+      conversation_id: conversationId,
+      user_id: userId,
+      role: 'user',
+      content: typeof userContent === 'string' ? userContent : JSON.stringify(userContent),
+    },
+    {
+      conversation_id: conversationId,
+      user_id: userId,
+      role: 'assistant',
+      content:
+        typeof assistantContent === 'string' ? assistantContent : JSON.stringify(assistantContent),
+    },
+  ];
+
+  await supabase.from('messages').insert(rows as any);
+}
+
+const SYSTEM = `You are Slingshot 2.0 (JCIL.AI). Keep answers crisp. If user asks about prior chats, try to recall from memory loaded by the server. If nothing is found, say you don't have stored context yet.`;
+
+// Main handler
 export async function POST(req: Request) {
   try {
-    const { message, history, imagePart, conversationId, userId } = await readRequest(req);
+    const { message, history, imagePart, conversationId: convIn, userId } = await readInbound(req);
 
     if (!message && !imagePart) {
-      return new Response(JSON.stringify({ ok: false, error: 'No text or file provided.' }), {
+      return new Response(JSON.stringify({ ok: false, error: 'No message provided' }), {
         status: 400,
         headers: { 'content-type': 'application/json' },
       });
     }
 
-    // Build the "user" content with optional image part
-    const userContent: any = imagePart
-      ? [{ type: 'text', text: message || '(no text)' }, imagePart]
-      : (message || '(no text)');
+    const conversationId = convIn || crypto.randomUUID();
 
-    // Pull durable memory from Supabase
-    const supabase = await createClient();
-    let rows: any[] = [];
+    // Load durable memory (conversation-scoped first; otherwise global per user)
+    const dbHistory = await loadMemory({ conversationId: convIn || null, userId: userId || null });
 
-    if (conversationId) {
-      const { data } = await supabase
-        .from('messages')
-        .select('role, content')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
-        .limit(200);
-      rows = data || [];
-    } else if (userId) {
-      const { data } = await supabase
-        .from('messages')
-        .select('role, content')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      rows = data || [];
-      rows.reverse();
-    }
+    // Build messages for OpenAI
+    const msgParts: any[] = [{ role: 'system', content: SYSTEM }];
 
-    // Assemble messages: system + db memory + thin client history + new user
-    const messages: Msg[] = [
-      { role: 'system', content: CHRISTIAN_SYSTEM_PROMPT },
-      ...rows.map(mapRow),
-      ...history.map(mapRow),
-      { role: 'user', content: typeof userContent === 'string' ? userContent : JSON.stringify(userContent) },
-    ];
-
-    const model = process.env.OPENAI_MODEL || 'gpt-4o';
-    const temperature = process.env.OPENAI_TEMPERATURE ? Number(process.env.OPENAI_TEMPERATURE) : 0.3;
-
-    const completion = await client.chat.completions.create({
-      model,
-      messages: messages as any,
-      temperature,
-    });
-
-    const reply = completion.choices?.[0]?.message?.content?.toString() || '(no response)';
-
-    // Persist both sides to Supabase if we have at least one id
-    if (conversationId || userId) {
-      const conv = conversationId || crypto.randomUUID();
-      const items = [
-        { conversation_id: conv, user_id: userId || null, role: 'user', content: message || '(no text)' },
-        { conversation_id: conv, user_id: userId || null, role: 'assistant', content: reply },
-      ];
-      await supabase.from('messages').insert(items);
-      return new Response(JSON.stringify({ ok: true, reply, model, conversationId: conv }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
+    dbHistory.forEach((m) => msgParts.push(m)); // durable memory
+    if (Array.isArray(history)) {
+      history.forEach((m: any) => {
+        const role = m?.role === 'assistant' ? 'assistant' : m?.role === 'system' ? 'system' : 'user';
+        const content = typeof m?.content === 'string' ? m.content : JSON.stringify(m?.content ?? '');
+        msgParts.push({ role, content });
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, reply, model, conversationId: null }), {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
+    // Assemble the current user message (text + optional image)
+    let userContent: any =
+      typeof message === 'string' ? message : JSON.stringify(message ?? '');
+
+    if (imagePart) {
+      userContent = [
+        { type: 'text', text: String(message || '') },
+        imagePart,
+      ];
+    }
+
+    msgParts.push({ role: 'user', content: userContent });
+
+    // Call OpenAI
+    const completion = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      messages: msgParts as any,
+      temperature: 0.2,
     });
 
-  } catch (err: any) {
-    return new Response(JSON.stringify({ ok: false, error: err?.message || 'Internal error' }), {
-      status: 500,
-      headers: { 'content-type': 'application/json' },
+    const reply = completion.choices?.[0]?.message?.content || 'OK';
+
+    // Save both sides to DB
+    await saveMessages({
+      conversationId,
+      userId: userId || null,
+      userContent,
+      assistantContent: reply,
     });
+
+    return new Response(
+      JSON.stringify({ ok: true, reply, model: completion.model, conversationId }),
+      { status: 200, headers: { 'content-type': 'application/json' } }
+    );
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({ ok: false, error: err?.message || 'Internal error' }),
+      { status: 500, headers: { 'content-type': 'application/json' } }
+    );
   }
 }
