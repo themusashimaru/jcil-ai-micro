@@ -125,6 +125,18 @@ async function saveMsg(conversation_id: string, role: Role, content: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
+let conversation_id = String(body?.conversation_id || "");
+
+if (!conversation_id) {
+  const title = String(body?.title || "New Chat").slice(0, 120);
+  const { data: conv, error: convErr } = await supabaseAdmin
+    .from("conversations")
+    .insert({ title })
+    .select("id")
+    .single();
+  if (convErr) { return json(500, { ok: false, error: convErr.message }); }
+  conversation_id = conv.id;
+}
     const conversation_id = String(body?.conversation_id || "");
     const userText = String(body?.text ?? "").trim();
     // (Optional) image ignored here to keep things stable while we finish memory
@@ -171,7 +183,7 @@ export async function POST(req: Request) {
     // Save assistant reply
     await saveMsg(conversation_id, "assistant", reply);
 
-    return json(200, { ok: true, reply, model: "gpt-4o" });
+    return json(200, { ok: true, reply, model: "gpt-4o" , conversationId: conversation_id });
   } catch (err: any) {
     return json(500, { ok: false, error: err?.message || "Internal error" });
   }
