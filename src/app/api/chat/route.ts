@@ -96,7 +96,7 @@ export async function POST(req: Request) {
   
   try {
     const completion = await client.chat.completions.create({
-      model: "gpt-5-mini-2025-08-07", // ✅ GPT-5 mini (supports text/images/files)
+      model: "gpt-4o", // ✅ GPT-4o (most capable model, supports text/images/files)
       messages: fullHistory,
       temperature: 0.7,
       max_tokens: 2000,
