@@ -98,7 +98,34 @@ const rawImages: string[] = [
   ...collectArray((body || {}).image_url),
 ];
 
-    const completion = await openai.chat.completions.create({
+    // --- build messages for OpenAI ---
+const longMemArr: any[] =
+  (typeof longMemory !== 'undefined' && Array.isArray(longMemory)) ? longMemory : [];
+
+const historyArr: any[] =
+  (typeof history !== 'undefined' && Array.isArray(history))
+    ? history.map((m: any) => ({
+        role: (m.role === "assistant" ? "assistant" : "user"),
+        content: m.content
+      }))
+    : [];
+
+// imageParts should already be prepared earlier (ImgPart[]).
+// Fallbacks ensure we always provide content.
+const userContent: any =
+  (Array.isArray(imageParts) && imageParts.length)
+    ? [{ type: "text", text: userText || "(no text)" }, ...imageParts]
+    : (userText || "(no text)");
+
+// Keep types loose to avoid TS issues with union message content.
+const messages: any[] = [
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...longMemArr,
+  ...historyArr,
+  { role: "user", content: userContent }
+];
+// --- end messages ---
+const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages,
       temperature: 0.3,
