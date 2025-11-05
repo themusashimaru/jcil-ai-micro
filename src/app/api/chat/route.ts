@@ -1,10 +1,9 @@
 export const runtime = 'nodejs';
 
-import OpenAI from "openai";
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `
 You are "Slingshot 2.0," an AI assistant. You have access to the user's complete conversation history across all chats. You remember everything they've discussed with you previously and can reference past conversations naturally.
@@ -32,7 +31,7 @@ export async function POST(req: Request) {
 
   let conversationId: string | null = null;
   let message = "";
-  let history: ChatCompletionMessageParam[] = [];
+  let history: Array<{ role: "user" | "assistant"; content: string }> = [];
   let imageFile: File | null = null;
 
   // Handle multipart (file upload) OR JSON
@@ -61,7 +60,7 @@ export async function POST(req: Request) {
   // ============================================
   
   // Load GLOBAL memory (last 100 messages from ALL conversations)
-  let globalMemory: ChatCompletionMessageParam[] = [];
+  let globalMemory: Array<{ role: "user" | "assistant"; content: string }> = [];
   
   const { data: allMessages } = await supabase
     .from("messages")
@@ -81,28 +80,54 @@ export async function POST(req: Request) {
   }
 
   // ============================================
-  // 🎯 BUILD CONTEXT FOR AI
+  // 🎯 BUILD CONTEXT FOR CLAUDE
   // ============================================
   
-  // Build the user message content
+  // Build Claude messages format
+  const claudeMessages: Array<any> = [];
+  
+  // Add global memory
+  for (const msg of globalMemory) {
+    claudeMessages.push({
+      role: msg.role,
+      content: msg.content
+    });
+  }
+  
+  // Add current conversation history
+  for (const msg of history) {
+    claudeMessages.push({
+      role: msg.role,
+      content: msg.content
+    });
+  }
+  
+  // Build current user message
   let userMessageContent: any;
   
   if (imageFile) {
     // Convert image to base64
     const arrayBuffer = await imageFile.arrayBuffer();
     const base64 = Buffer.from(arrayBuffer).toString('base64');
-    const mimeType = imageFile.type || 'image/jpeg';
+    
+    // Determine media type
+    let mediaType = "image/jpeg";
+    if (imageFile.type === "image/png") mediaType = "image/png";
+    else if (imageFile.type === "image/gif") mediaType = "image/gif";
+    else if (imageFile.type === "image/webp") mediaType = "image/webp";
     
     userMessageContent = [
       {
-        type: "text",
-        text: message || "What's in this image?"
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: mediaType,
+          data: base64,
+        },
       },
       {
-        type: "image_url",
-        image_url: {
-          url: `data:${mimeType};base64,${base64}`
-        }
+        type: "text",
+        text: message || "What's in this image?"
       }
     ];
   } else {
@@ -110,36 +135,35 @@ export async function POST(req: Request) {
     userMessageContent = message;
   }
   
-  const fullHistory: ChatCompletionMessageParam[] = [
-    { role: "system", content: SYSTEM_PROMPT },
-    
-    // Add global memory (last 100 messages from all chats)
-    ...globalMemory,
-    
-    // Add current conversation history from UI (if any)
-    ...history,
-    
-    // Add current user message (with or without image)
-    { role: "user", content: userMessageContent },
-  ];
+  // Add current user message
+  claudeMessages.push({
+    role: "user",
+    content: userMessageContent
+  });
 
   // ============================================
-  // 🤖 CALL OPENAI
+  // 🤖 CALL CLAUDE HAIKU 4.5
   // ============================================
   
   let reply = "";
   
   try {
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o", // ✅ GPT-4o supports images
-      messages: fullHistory,
-      temperature: 0.7,
-      max_tokens: 2000,
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514", // 🔥 Claude Haiku 4.5 - FAST & CHEAP
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
+      messages: claudeMessages,
     });
 
-    reply = completion.choices[0].message.content || "I apologize, but I couldn't generate a response.";
+    // Extract text from response
+    const content = response.content[0];
+    if (content.type === "text") {
+      reply = content.text;
+    } else {
+      reply = "I apologize, but I couldn't generate a text response.";
+    }
   } catch (error: any) {
-    console.error("OpenAI API Error:", error);
+    console.error("Anthropic API Error:", error);
     return new Response(
       JSON.stringify({ 
         ok: false, 
