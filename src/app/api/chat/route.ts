@@ -140,11 +140,11 @@ export async function POST(req: Request) {
       : (message || '(no text)');
 
     const messages: ChatCompletionMessageParam[] = [
-      { role: 'system', content: CHRISTIAN_SYSTEM_PROMPT },
-      ...(dbHistory as any[]).map(mapRow)=>({ role: (m.role==="assistant"?"assistant": m.role==="system"?"system":"user"), content: typeof m.content==="string" ? m.content : JSON.stringify(m.content ?? "") })),
-      ...(Array.isArray(history)? (history as any[]).map((m:any)=>({ role: (m.role==="assistant"?"assistant": m.role==="system"?"system":"user"), content: typeof m.content==="string" ? m.content : JSON.stringify(m.content ?? "") })) : []), // client-sent small window (ok to include)
-      ...(shouldAppendUser ? [{ role: 'user', content: userContent as any }] : []),
-    ];
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...(dbHistory as any[]).map(mapRow),
+  ...(Array.isArray(history) ? (history as any[]).map(mapRow) : []),
+  ...(shouldAppendUser ? [{ role: "user", content: userContent as any }] : []),
+];
 
     const model = process.env.OPENAI_MODEL || 'gpt-4o';
     const temperature = process.env.OPENAI_TEMPERATURE ? Number(process.env.OPENAI_TEMPERATURE) : 0.3;
