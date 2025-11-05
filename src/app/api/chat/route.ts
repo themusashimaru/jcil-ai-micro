@@ -7,18 +7,18 @@ You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is t
 
 export async function POST(req: Request) {
   
-    // ---- canonical inputs ----
+      // ---- canonical inputs ----
   const body = (await (async () => {
-    try { return await (typeof req?.json === 'function' ? req.json() : Promise.resolve({})) } catch { return {}; }
+    try { return await (typeof req?.json === 'function' ? req.json() : Promise.resolve({})); } catch { return {}; }
   })()) || {};
   const { content, history, longMemory } = body || {};
   const userContent: any = Array.isArray(content) ? content : content;
 
   const rawImages: string[] = [
-    ...collectArray(body.images),
-    ...collectArray(body.imageUrls),
-    ...collectArray(body.attachments),
-    ...collectArray(body.files),
+    ...collectArray((body as any)?.images),
+    ...collectArray((body as any)?.imageUrls),
+    ...collectArray((body as any)?.attachments),
+    ...collectArray((body as any)?.files),
   ].filter(Boolean);
 
   const historyArr: any[] = Array.isArray(history)
@@ -29,6 +29,26 @@ export async function POST(req: Request) {
     : [];
 
   const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
+// ---- canonical inputs ----
+  const body = (await (async () => {
+    try { return await (typeof req?.json === 'function' ? req.json() : Promise.resolve({})) } catch { return {}; }
+  })()) || {};
+  const { content, history, longMemory } = body || {};
+  
+      ...collectArray(body.images),
+    ...collectArray(body.imageUrls),
+    ...collectArray(body.attachments),
+    ...collectArray(body.files),
+  ].filter(Boolean);
+
+  = Array.isArray(history)
+    ? history.map((m: any) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content
+      }))
+    : [];
+
+  = Array.isArray(longMemory) ? (longMemory as any[]) : [];
 const body = await req.json();
 // ---- build messages for OpenAI ----
   
@@ -83,7 +103,6 @@ function collectArray(v: unknown): string[] {
           role: m.role === "assistant" ? "assistant" : "user",
           content: m.content
         }))
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
 openai.chat.completions.create({
       model: "gpt-4o",
       messages,
