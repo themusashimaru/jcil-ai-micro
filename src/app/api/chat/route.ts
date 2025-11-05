@@ -182,7 +182,7 @@ const userText = String(body?.text ?? "").trim();
     // Save assistant reply
     await saveMsg(conversation_id, "assistant", reply);
 
-    return json(200, { ok: true, reply, model: "gpt-4o" , conversationId: conversation_id , conversationId: conversation_id });
+    return json(200, { ok: true, reply, model: "gpt-4o" , conversationId: conversation_id });
   } catch (err: any) {
     return json(500, { ok: false, error: err?.message || "Internal error" });
   }
