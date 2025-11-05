@@ -118,10 +118,13 @@ const userContent: any =
     : (userText || "(no text)");
 
 // Keep types loose to avoid TS issues with union message content.
-const longMemArr = Array.isArray(longMemory) ? (longMemory /** as any[] */) : [];
+
+// build once to keep types loose and support text or vision content
+const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
+
 const messages: any[] = [] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...(Array.isArray(longMemory) ? (longMemory as any[]) : []),
+  ...longMemArr,
   ...(Array.isArray(history)
       ? history.map((m: any) => ({
           role: m?.role === "assistant" ? "assistant" : "user",
