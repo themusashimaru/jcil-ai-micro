@@ -184,6 +184,3 @@ function mapRow(m:any) {
   const content = (typeof m?.content === "string") ? m.content : JSON.stringify(m?.content ?? "");
   return { role, content };
 }
-  if (role === 'system')   return { role: 'system',   content }
-  return { role: 'user', content }
-}
