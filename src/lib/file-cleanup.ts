@@ -216,7 +216,7 @@ export async function previewCleanup() {
     throw error;
   }
 
-  const totalSize = oldFiles?.reduce((sum: number, file) => sum + (file.file_size || 0), 0) || 0;
+  const totalSize = oldFiles?.reduce((sum: number, file: any) => sum + (file.file_size || 0), 0) || 0;
 
   return {
     filesToDelete: oldFiles?.length || 0,
