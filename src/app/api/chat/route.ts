@@ -141,7 +141,7 @@ export async function POST(req: Request) {
 
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: CHRISTIAN_SYSTEM_PROMPT },
-      ...(dbHistory as any[]).map((m:any)=>({ role: (m.role==="assistant"?"assistant": m.role==="system"?"system":"user"), content: typeof m.content==="string" ? m.content : JSON.stringify(m.content ?? "") })),
+      ...(dbHistory as any[]).map(mapRow)=>({ role: (m.role==="assistant"?"assistant": m.role==="system"?"system":"user"), content: typeof m.content==="string" ? m.content : JSON.stringify(m.content ?? "") })),
       ...(Array.isArray(history)? (history as any[]).map((m:any)=>({ role: (m.role==="assistant"?"assistant": m.role==="system"?"system":"user"), content: typeof m.content==="string" ? m.content : JSON.stringify(m.content ?? "") })) : []), // client-sent small window (ok to include)
       ...(shouldAppendUser ? [{ role: 'user', content: userContent as any }] : []),
     ];
@@ -177,4 +177,12 @@ export async function POST(req: Request) {
       { status: 500, headers: { 'content-type': 'application/json' } }
     );
   }
+}
+function mapRow(m:any): import("openai").ChatCompletionMessageParam {
+  const roleRaw = (m && typeof m.role === 'string') ? m.role : 'user';
+  const role = roleRaw === 'assistant' ? 'assistant' : (roleRaw === 'system' ? 'system' : 'user');
+  const content = (typeof m?.content === 'string') ? m.content : JSON.stringify(m?.content ?? '');
+  if (role === 'assistant') return { role: 'assistant', content } as import("openai").ChatCompletionAssistantMessageParam;
+  if (role === 'system')   return { role: 'system',   content } as import("openai").ChatCompletionSystemMessageParam;
+  return { role: 'user', content } as import("openai").ChatCompletionUserMessageParam;
 }
