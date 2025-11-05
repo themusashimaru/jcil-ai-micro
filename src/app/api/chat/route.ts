@@ -119,12 +119,27 @@ const userContent: any =
 
 // Keep types loose to avoid TS issues with union message content.
 const longMemArr = Array.isArray(longMemory) ? (longMemory /** as any[] */) : [];
-const messages: any[  ...longMemArr,
-] = [
+const messages: any[] = [] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...Array.isArray(longMemory) ? longMemory : [], ...longMemArr,
-  ...historyArr,
-  { role: "user", content: userContent }
+  ...(Array.isArray(longMemory) ? (longMemory as any[]) : []),
+  ...(Array.isArray(history)
+      ? history.map((m: any) => ({
+          role: m?.role === "assistant" ? "assistant" : "user",
+          content: m?.content ?? ""
+        }))
+      : []),
+  ...(Array.isArray(imageParts) && imageParts.length > 0
+      ? [{
+          role: "user",
+          content: [
+            { type: "text", text: String(userText ?? "") },
+            ...imageParts
+          ]
+        }]
+      : [{
+          role: "user",
+          content: String(userText ?? "")
+        }])
 ];
 // --- end messages ---
 const completion = await openai.chat.completions.create({
