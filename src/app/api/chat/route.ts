@@ -95,8 +95,6 @@ const rawImages: string[] = [
   ...collectArray((body || {}).attachments),
   ...collectArray((body || {}).files),
 ].filter(Boolean) as string[];
-];
-
     // --- build messages for OpenAI ---
 const historyArr: any[] =
   (typeof history !== 'undefined' && Array.isArray(history))
@@ -126,7 +124,7 @@ const completion = await
         }))
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
-];
+
 ] = 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...(Array.isArray(history)
@@ -144,7 +142,7 @@ const messages: any[] = [
         }))
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
-];
+
 // ---- end canonical messages block ----
  ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
@@ -152,7 +150,7 @@ const messages: any[] = [
         }))
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
-];
+
 ] = 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...(Array.isArray(history)
@@ -162,7 +160,6 @@ const messages: any[] = [
         }))
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
-];
 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...(Array.isArray(history)
@@ -172,7 +169,6 @@ const messages: any[] = [
         }))
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
-];
 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...(Array.isArray(history)
@@ -182,7 +178,7 @@ const messages: any[] = [
         }))
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
-];
+
 openai.chat.completions.create({
       model: "gpt-4o",
       messages,
