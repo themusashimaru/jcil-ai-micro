@@ -1,17 +1,4 @@
 
-const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
-
-const messages: any[] = [
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-
-  ...(Array.isArray(history)
-    ? (history as any[]).map((m: any) => ({
-        role: m?.role === "assistant" ? "assistant" : "user",
-        content: m?.content
-      }))
-    : []),
-  ...(userContent ? [{ role: "user", content: userContent }] : [])
-];
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
@@ -20,13 +7,16 @@ import OpenAI from "openai";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserIdOrGuest } from "@/lib/auth";
 
-// ---- system prompt (top-level) ----
+// ---- system prompt ----
 const CHRISTIAN_SYSTEM_PROMPT = `
 
 You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is to serve as a helpful, faithful, and respectful resource for Christians and all users seeking information from a Christian worldview.
 (…prompt unchanged…)
 
 `;
+// ---- end system prompt ----
+
+// ---- system prompt (top-level) ----
 // ---- end system prompt ----
 
 type Role = "user" | "assistant" | "system";
@@ -37,6 +27,7 @@ function json(status: number, body: any) {
   return new NextResponse(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" },
+};
 
 async function loadMessages(conversation_id: string) {
   const { data, error } = await supabaseAdmin
@@ -91,6 +82,35 @@ async function reuseOrCreateConversation(user_id: string, incomingId: string, ti
  * returns: { ok, reply, model, conversationId }
  */
 export async function POST(req: Request) {
+  // ---- build messages for OpenAI ----
+  const rawImages: string[]
+
+    ...collectArray((body || {}).images),
+    ...collectArray((body || {}).imageUrls),
+    ...collectArray((body || {}).attachments),
+    ...collectArray((body || {}).files),
+  ].filter(Boolean) as string[];
+
+  const historyArr: any[] = Array.isArray(history)
+    ? history.map((m: any) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content
+      }))
+    : [];
+
+  const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
+
+  const userContent = Array.isArray(content) ? content : [content].filter(Boolean)[0];
+
+  const messages: any[]
+
+    { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+    ...historyArr,
+    ...longMemArr,
+    ...(userContent ? [{ role: "user", content: userContent }] : [])
+
+  // ---- end messages ----
+
   try {
     const body = await req.json().catch(() => ({} as any));
 
@@ -105,7 +125,8 @@ function collectArray(v: unknown): string[] {
   return Array.isArray(v) ? v : (typeof v === 'string' && v.trim()) ? [v] : [];
 }
 
-const rawImages: string[] = [
+const rawImages: string[]
+
   ...collectArray((body || {}).images),
   ...collectArray((body || {}).imageUrls),
   ...collectArray((body || {}).attachments),
@@ -134,7 +155,6 @@ const userContent: any =
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
-];
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
       ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
@@ -151,7 +171,6 @@ const userContent: any =
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
-];
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
