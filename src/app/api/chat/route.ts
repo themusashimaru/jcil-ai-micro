@@ -183,7 +183,7 @@ function mapRow(m:any) {
   const role = raw === "assistant" ? "assistant" : (raw === "system" ? "system" : "user");
   const content = (typeof m?.content === "string") ? m.content : JSON.stringify(m?.content ?? "");
   return { role, content };
-}.ChatCompletionAssistantMessageParam;
-  if (role === 'system')   return { role: 'system',   content }.ChatCompletionSystemMessageParam;
-  return { role: 'user', content }.ChatCompletionUserMessageParam;
+}
+  if (role === 'system')   return { role: 'system',   content }
+  return { role: 'user', content }
 }
