@@ -106,11 +106,11 @@ export async function POST(req: Request) {
 
 const messages: OpenAI.ChatCompletionMessageParam[] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemory,
+  ...longMemory.map(m => ({ role: m.role, content: m.content } as OpenAI.ChatCompletionMessageParam)),
   ...history.map(m => ({
     role: (m.role === "assistant" ? "assistant" : "user"),
     content: m.content
-  })),
+  } as OpenAI.ChatCompletionMessageParam)),
   { role: "user", content: userText }
 ];
 
