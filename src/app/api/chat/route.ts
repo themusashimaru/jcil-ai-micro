@@ -89,7 +89,7 @@ function collectArray(v: unknown): string[] {
   return Array.isArray(v) ? v : (typeof v === 'string' && v.trim()) ? [v] : [];
 }
 
-const rawImages: string[] = [
+const rawImages: string[] = 
   ...collectArray((body || {}).images),
   ...collectArray((body || {}).imageUrls),
   ...collectArray((body || {}).attachments),
@@ -116,7 +116,22 @@ const userContent: any =
 
 // Keep types loose to avoid TS issues with union message content.
 
-
+// build once to keep types loose and support text or vision content
+// ---- end canonical messages block ----
+const completion = await 
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...(Array.isArray(history)
+      ? history.map((m: any) => ({
+          role: m.role === "assistant" ? "assistant" : "user",
+          content: m.content
+        }))
+      : []),
+  ...(userContent ? [{ role: "user", content: userContent }] : [])
+];
+] = 
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...(Array.isArray(history)
+     
 // build once to keep types loose and support text or vision content
 const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
 
@@ -131,29 +146,15 @@ const messages: any[] = [
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 ];
-
 // ---- end canonical messages block ----
-const completion = await = [
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...(Array.isArray(history)
-      ? history.map((m: any) => ({
+ ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
           content: m.content
         }))
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 ];
-] = [
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...(Array.isArray(history)
-      ? history.map((m: any) => ({
-          role: m.role === "assistant" ? "assistant" : "user",
-          content: m.content
-        }))
-      : []),
-  ...(userContent ? [{ role: "user", content: userContent }] : [])
-];
-] = [
+] = 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...(Array.isArray(history)
       ? history.map((m: any) => ({
@@ -188,19 +189,6 @@ openai.chat.completions.create({
       messages,
       temperature: 0.3,
     })
-const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
-
-const messages: any[] = [
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemArr,
-  ...(Array.isArray(history)
-      ? history.map((m: any) => ({
-          role: m.role === "assistant" ? "assistant" : "user",
-          content: m.content
-        }))
-      : []),
-  ...(userContent ? [{ role: "user", content: userContent }] : [])
-];
 ;
 
     const reply = completion.choices?.[0]?.message?.content || "(no response)";
