@@ -137,11 +137,11 @@ if (!conversation_id) {
   conversation_id = conv.id;
 }
     // removed duplicate conversation_id init
-const userText = String(body?.text ?? "").trim();
-    // (Optional) image ignored here to keep things stable while we finish memory
+const userText = String(body?.text ?? body?.content ?? body?.message ?? body?.prompt ?? "").trim();
+// (Optional) image ignored here to keep things stable while we finish memory
 
     if (!conversation_id) return json(400, { ok: false, error: "conversation_id required" });
-    if (!userText) return json(400, { ok: false, error: "text required" });
+    if (!userText) return json(400, { ok: false, error: "text required (accepted keys: text, content, message, prompt)" });
 
     // Load previous messages
     const history = await loadHistory(conversation_id);
