@@ -133,6 +133,7 @@ const messages: any[] = [] = [
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 ];
 
+
 // --- end messages ---
 const completion = await openai.chat.completions.create({
       model: "gpt-4o",
