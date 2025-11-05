@@ -139,7 +139,7 @@ export async function POST(req: Request) {
       ? [{ type: 'text', text: message || '(no text)' }, imagePart]
       : (message || '(no text)');
 
-    const messages: ChatCompletionMessageParam[] = [
+    const messages: any[] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...(dbHistory as any[]).map(mapRow),
   ...(Array.isArray(history) ? (history as any[]).map(mapRow) : []),
@@ -178,11 +178,12 @@ export async function POST(req: Request) {
     );
   }
 }
-function mapRow(m:any): import("openai").ChatCompletionMessageParam {
-  const roleRaw = (m && typeof m.role === 'string') ? m.role : 'user';
-  const role = roleRaw === 'assistant' ? 'assistant' : (roleRaw === 'system' ? 'system' : 'user');
-  const content = (typeof m?.content === 'string') ? m.content : JSON.stringify(m?.content ?? '');
-  if (role === 'assistant') return { role: 'assistant', content } as import("openai").ChatCompletionAssistantMessageParam;
+function mapRow(m:any) {
+  const raw = (m && typeof m.role === "string") ? m.role : "user";
+  const role = raw === "assistant" ? "assistant" : (raw === "system" ? "system" : "user");
+  const content = (typeof m?.content === "string") ? m.content : JSON.stringify(m?.content ?? "");
+  return { role, content };
+} as import("openai").ChatCompletionAssistantMessageParam;
   if (role === 'system')   return { role: 'system',   content } as import("openai").ChatCompletionSystemMessageParam;
   return { role: 'user', content } as import("openai").ChatCompletionUserMessageParam;
 }
