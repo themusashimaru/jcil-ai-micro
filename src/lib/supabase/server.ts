@@ -1,21 +1,9 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 
-export async function createClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (n: string) => cookieStore.get(n)?.value,
-        set: (name: string, value: string, options: CookieOptions) => {
-          try { cookieStore.set(name, value, options); } catch {}
-        },
-        remove: (name: string, options: CookieOptions) => {
-          try { cookieStore.set({ name, value: '', ...options }); } catch {}
-        },
-      },
-    }
-  );
-}
+const url = process.env.SUPABASE_URL as string;
+const service = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+
+// Server-side client (no session persistence; bypasses RLS with service role)
+export const supabaseServer = createClient(url, service, {
+  auth: { persistSession: false },
+});
