@@ -1,11 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { createServerClient, type SupabaseClient } from '@supabase/auth-helpers-nextjs';
 
-const url = process.env.SUPABASE_URL as string;
-const service = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
-
-// Server-side client (no session persistence; bypasses RLS with service role)
-export const supabaseServer = createClient(url, service, {
-  auth: { persistSession: false },
-});
-
-export { supabaseServer as createClient };
+export function createClient(): SupabaseClient {
+  const cookieStore = cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          try { cookieStore.set({ name, value, ...options }); } catch (_) {}
+        },
+        remove(name: string, options: any) {
+          try { cookieStore.set({ name, value: '', ...options }); } catch (_) {}
+        }
+      }
+    }
+  );
+}
