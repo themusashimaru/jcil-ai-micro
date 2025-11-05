@@ -7,9 +7,12 @@ You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is t
 
 export async function POST(req: Request) {
   // ---- build messages for OpenAI ----
-  const rawImages: string[] = [];
-
-  ].filter(Boolean) as string[];
+  const rawImages: string[] = [
+  ...collectArray((body || {}).images),
+  ...collectArray((body || {}).imageUrls),
+  ...collectArray((body || {}).attachments),
+  ...collectArray((body || {}).files),
+].filter(Boolean) as string[];
 
   const historyArr: any[] = Array.isArray(history)
     ? history.map((m: any) => ({
@@ -47,7 +50,6 @@ function collectArray(v: unknown): string[] {
 
 const rawImages: string[] = [];
 
-].filter(Boolean) as string[];
     // --- build messages for OpenAI ---
 const historyArr: any[];
   (typeof history !== 'undefined' && Array.isArray(history))
