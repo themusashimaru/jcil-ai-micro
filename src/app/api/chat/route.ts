@@ -11,13 +11,9 @@ export async function POST(req: Request) {
 // ---- build messages for OpenAI ----
   
 
-  const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
-
   const userContent = Array.isArray(content) ? content : [content].filter(Boolean)[0];
 
-  const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
-
-const messages: any[] = [
+  const messages: any[] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...historyArr,
   ...longMemArr,
@@ -51,13 +47,7 @@ const historyArr: any[] = Array.isArray(history)
 
     const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
 // --- build messages for OpenAI ---
-const historyArr: any[] = Array.isArray(history)
-    ? history.map((m: any) => ({
-        role: m.role === "assistant" ? "assistant" : "user",
-        content: m.content
-      }))
-    : [];
-  (typeof history !== 'undefined' && Array.isArray(history))
+(typeof history !== 'undefined' && Array.isArray(history))
     ? history.map((m: any) => ({
         role: (m.role === "assistant" ? "assistant" : "user"),
         content: m.content
@@ -75,7 +65,6 @@ const userContent: any =
 
 // build once to keep types loose and support text or vision content
 // ---- end canonical messages block ----
-      : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
@@ -83,7 +72,6 @@ const userContent: any =
           role: m.role === "assistant" ? "assistant" : "user",
           content: m.content
         }))
-      : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
 // ---- end canonical messages block ----
@@ -91,19 +79,15 @@ const userContent: any =
           role: m.role === "assistant" ? "assistant" : "user",
           content: m.content
         }))
-      : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-      : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-      : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-      : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
 openai.chat.completions.create({
