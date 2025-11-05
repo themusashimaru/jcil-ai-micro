@@ -121,7 +121,6 @@ const userContent: any =
 
 // build once to keep types loose and support text or vision content
 
-
 const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
 const messages: any[] = [] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
