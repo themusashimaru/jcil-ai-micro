@@ -67,7 +67,7 @@ async function readInbound(req: Request) {
 // Load durable memory from Supabase
 async function loadMemory(opts: { conversationId: string | null; userId: string | null }) {
   const { conversationId, userId } = opts;
-  const supabase = createClient();
+  const supabase = await createClient();
   let rows: { role: string; content: any }[] = [];
 
   if (conversationId) {
@@ -105,7 +105,7 @@ async function saveMessages(payload: {
   assistantContent: any;
 }) {
   const { conversationId, userId, userContent, assistantContent } = payload;
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const rows = [
     {
