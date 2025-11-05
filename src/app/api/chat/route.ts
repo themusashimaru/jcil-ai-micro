@@ -33,13 +33,22 @@ export async function POST(req: Request) {
   let conversationId: string | null = null;
   let message = "";
   let history: ChatCompletionMessageParam[] = [];
+  let imageFile: File | null = null;
 
   // Handle multipart (file upload) OR JSON
-  if (req.headers.get("content-type")?.includes("multipart/form-data")) {
+  const contentType = req.headers.get("content-type") || "";
+  
+  if (contentType.includes("multipart/form-data")) {
     const form = await req.formData();
     message = String(form.get("message") || "");
     history = JSON.parse(String(form.get("history") || "[]"));
     conversationId = String(form.get("conversationId") || "") || null;
+    
+    // Get the uploaded file
+    const file = form.get("file");
+    if (file && typeof file !== "string") {
+      imageFile = file as File;
+    }
   } else {
     const body = await req.json();
     message = body.message || "";
@@ -48,7 +57,7 @@ export async function POST(req: Request) {
   }
 
   // ============================================
-  // 🧠 MEMORY SYSTEM - FIXED!
+  // 🧠 MEMORY SYSTEM
   // ============================================
   
   // Load GLOBAL memory (last 100 messages from ALL conversations)
@@ -75,6 +84,32 @@ export async function POST(req: Request) {
   // 🎯 BUILD CONTEXT FOR AI
   // ============================================
   
+  // Build the user message content
+  let userMessageContent: any;
+  
+  if (imageFile) {
+    // Convert image to base64
+    const arrayBuffer = await imageFile.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    const mimeType = imageFile.type || 'image/jpeg';
+    
+    userMessageContent = [
+      {
+        type: "text",
+        text: message || "What's in this image?"
+      },
+      {
+        type: "image_url",
+        image_url: {
+          url: `data:${mimeType};base64,${base64}`
+        }
+      }
+    ];
+  } else {
+    // Text only
+    userMessageContent = message;
+  }
+  
   const fullHistory: ChatCompletionMessageParam[] = [
     { role: "system", content: SYSTEM_PROMPT },
     
@@ -84,8 +119,8 @@ export async function POST(req: Request) {
     // Add current conversation history from UI (if any)
     ...history,
     
-    // Add current user message
-    { role: "user", content: message },
+    // Add current user message (with or without image)
+    { role: "user", content: userMessageContent },
   ];
 
   // ============================================
@@ -96,7 +131,7 @@ export async function POST(req: Request) {
   
   try {
     const completion = await client.chat.completions.create({
-      model: "gpt-4o", // ✅ GPT-4o (most capable model, supports text/images/files)
+      model: "gpt-4o", // ✅ GPT-4o supports images
       messages: fullHistory,
       temperature: 0.7,
       max_tokens: 2000,
@@ -124,12 +159,17 @@ export async function POST(req: Request) {
     conversationId = crypto.randomUUID();
   }
 
+  // Save user message (with image indication if present)
+  const userMessageText = imageFile 
+    ? `[Image: ${imageFile.name}] ${message}` 
+    : message;
+
   // Save both messages
   const { error: insertError } = await supabase.from("messages").insert([
     { 
       user_id: userId, 
       role: "user", 
-      content: message, 
+      content: userMessageText, 
       conversation_id: conversationId 
     },
     { 
