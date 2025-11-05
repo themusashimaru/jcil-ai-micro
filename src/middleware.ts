@@ -42,6 +42,8 @@ export async function middleware(request: NextRequest) {
     '/forgot-password',
     '/reset-password',
     '/privacy',
+    '/terms',
+    '/cookies',
   ];
 
   // Not logged in → protect non-public pages
