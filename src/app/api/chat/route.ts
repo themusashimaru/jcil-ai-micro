@@ -120,8 +120,7 @@ const userContent: any =
 // Keep types loose to avoid TS issues with union message content.
 
 // build once to keep types loose and support text or vision content
-const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
-const messages: any[] = [] = [
+= [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...longMemArr,
   ...(Array.isArray(history)
@@ -135,7 +134,20 @@ const messages: any[] = [] = [
 
 
 // --- end messages ---
-const completion = await openai.chat.completions.create({
+const completion = await const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
+
+const messages: any[] = [] = [
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...longMemArr,
+  ...(Array.isArray(history)
+      ? history.map((m: any) => ({
+          role: m.role === "assistant" ? "assistant" : "user",
+          content: m.content
+        }))
+      : []),
+  ...(userContent ? [{ role: "user", content: userContent }] : [])
+];
+openai.chat.completions.create({
       model: "gpt-4o",
       messages,
       temperature: 0.3,
