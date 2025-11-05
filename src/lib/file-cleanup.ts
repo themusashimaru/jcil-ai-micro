@@ -1,11 +1,11 @@
 // /lib/file-cleanup.ts
-// Automatic File Cleanup System - 3 Day Retention
-
-import { createClient } from '@supabase/supabase-js';
+// ⚠️ FILE DELETION DISABLED - All files now stored permanently
+// To re-enable automatic cleanup, change CLEANUP_ENABLED to true
 
 // ===== CONFIGURATION =====
-const FILE_RETENTION_DAYS = 3; // Files older than 3 days will be deleted
-const BATCH_SIZE = 100; // Process 100 files at a time
+const CLEANUP_ENABLED = false; // ✅ SET TO FALSE - Files kept permanently
+const FILE_RETENTION_DAYS = 3; // Only applies if CLEANUP_ENABLED = true
+const BATCH_SIZE = 100;
 
 // ===== TYPES =====
 interface CleanupStats {
@@ -27,12 +27,7 @@ interface FileToClean {
 
 // ===== HELPER FUNCTIONS =====
 
-/**
- * Initialize Supabase admin client with service role
- * 🔒 CRITICAL: Validates service role key before creating client
- */
 function getSupabaseAdmin() {
-  // 🔥 FIXED: Check BEFORE using the values
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -44,6 +39,7 @@ function getSupabaseAdmin() {
     );
   }
 
+  const { createClient } = require('@supabase/supabase-js');
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
@@ -52,9 +48,6 @@ function getSupabaseAdmin() {
   });
 }
 
-/**
- * Extract storage path from Supabase URL
- */
 function extractStoragePath(fileUrl: string): string | null {
   try {
     const url = new URL(fileUrl);
@@ -66,9 +59,6 @@ function extractStoragePath(fileUrl: string): string | null {
   }
 }
 
-/**
- * Format bytes to human-readable size
- */
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -79,10 +69,6 @@ function formatBytes(bytes: number): string {
 
 // ===== MAIN CLEANUP FUNCTION =====
 
-/**
- * Clean up files older than FILE_RETENTION_DAYS
- * Deletes from storage and clears file_url from messages table
- */
 export async function cleanupOldFiles(): Promise<CleanupStats> {
   const startTime = Date.now();
   
@@ -95,10 +81,17 @@ export async function cleanupOldFiles(): Promise<CleanupStats> {
     duration: '0s',
   };
 
+  // ✅ CHECK IF CLEANUP IS ENABLED
+  if (!CLEANUP_ENABLED) {
+    console.log('⏸️ Automatic file cleanup is DISABLED - All files stored permanently');
+    stats.duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+    return stats;
+  }
+
   try {
     const supabase = getSupabaseAdmin();
 
-    // Calculate cutoff date (3 days ago)
+    // Calculate cutoff date
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - FILE_RETENTION_DAYS);
 
@@ -166,7 +159,6 @@ export async function cleanupOldFiles(): Promise<CleanupStats> {
           continue;
         }
 
-        // Track success
         stats.filesDeleted++;
         stats.messagesUpdated++;
         
@@ -185,9 +177,6 @@ export async function cleanupOldFiles(): Promise<CleanupStats> {
     stats.storageFreed = formatBytes(totalBytesFreed);
     stats.duration = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
 
-    // Log cleanup results to database
-    await logCleanup(supabase, stats);
-
     console.log('🎉 Cleanup complete:', stats);
     return stats;
 
@@ -200,11 +189,17 @@ export async function cleanupOldFiles(): Promise<CleanupStats> {
 
 // ===== PREVIEW FUNCTION (SAFE - NO DELETION) =====
 
-/**
- * Preview what files would be deleted without actually deleting them
- * Safe to run - performs no deletions
- */
 export async function previewCleanup() {
+  if (!CLEANUP_ENABLED) {
+    return {
+      filesToDelete: 0,
+      estimatedSize: '0 Bytes',
+      oldestFile: null,
+      retentionDays: FILE_RETENTION_DAYS,
+      message: 'Cleanup is disabled - all files stored permanently',
+    };
+  }
+
   const supabase = getSupabaseAdmin();
 
   const cutoffDate = new Date();
@@ -229,28 +224,4 @@ export async function previewCleanup() {
     oldestFile: oldFiles?.[0]?.created_at || null,
     retentionDays: FILE_RETENTION_DAYS,
   };
-}
-
-// ===== LOGGING =====
-
-/**
- * Log cleanup results to database for monitoring
- */
-async function logCleanup(supabase: any, stats: CleanupStats) {
-  try {
-    const { error } = await supabase.from('cleanup_logs').insert({
-      files_found: stats.filesFound,
-      files_deleted: stats.filesDeleted,
-      messages_updated: stats.messagesUpdated,
-      storage_freed: stats.storageFreed,
-      errors: stats.errors,
-      duration: stats.duration,
-    });
-
-    if (error) {
-      console.error('Failed to log cleanup:', error);
-    }
-  } catch (error) {
-    console.error('Error logging cleanup:', error);
-  }
 }
