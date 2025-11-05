@@ -120,9 +120,8 @@ const userContent: any =
 // Keep types loose to avoid TS issues with union message content.
 
 // build once to keep types loose and support text or vision content
-const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
-
-const messages: any[] = [
+const messages: any[
+  ...longMemArr,] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...longMemArr,
   ...(Array.isArray(history)
