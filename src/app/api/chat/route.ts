@@ -1,3 +1,11 @@
+const messages: any[] = [
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...longMemArr,
+
+    : []),
+  ...(userContent ? [{ role: "user", content: userContent }] : [])
+];
+
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
@@ -96,7 +104,7 @@ const rawImages: string[] = [
   ...collectArray((body || {}).files),
 ].filter(Boolean) as string[];
     // --- build messages for OpenAI ---
-const historyArr: any[] =
+const historyArr: any[];
   (typeof history !== 'undefined' && Array.isArray(history))
     ? history.map((m: any) => ({
         role: (m.role === "assistant" ? "assistant" : "user"),
@@ -118,7 +126,7 @@ const userContent: any =
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
-] = 
+];
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
       ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
@@ -135,7 +143,7 @@ const userContent: any =
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 
-] = 
+];
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
