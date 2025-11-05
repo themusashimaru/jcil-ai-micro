@@ -1,25 +1,43 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-const GUEST_ID = "00000000-0000-0000-0000-000000000000";
+/**
+ * Server-side Supabase client that reads/writes auth via Next.js cookies.
+ * Uses the public anon key (never the service role key) for user auth context.
+ */
+export async function getSupabaseServerClient() {
+  const jar = await cookies(); // Next.js 16: cookies() is async
 
-export async function getUserIdOrGuest() {
-  const cookieStore = cookies();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value;
+          return jar.get(name)?.value;
         },
-        set() {},
-        remove() {},
+        set() {
+          // no-op for API routes; mutate in route handlers if needed
+        },
+        remove() {
+          // no-op for API routes; mutate in route handlers if needed
+        },
       },
     }
   );
 
+  return supabase;
+}
+
+/**
+ * Returns the signed-in user's id, or "guest" if not authenticated.
+ */
+export async function getUserIdOrGuest(): Promise<string> {
+  const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data?.user?.id) return GUEST_ID;
-  return data.user.id;
+  if (error) {
+    // Soft-fail to guest if there's no session
+    return "guest";
+  }
+  return data?.user?.id ?? "guest";
 }
