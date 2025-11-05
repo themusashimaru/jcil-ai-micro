@@ -7,3 +7,5 @@ const service = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
 export const supabaseServer = createClient(url, service, {
   auth: { persistSession: false },
 });
+
+export { supabaseServer as createClient };
