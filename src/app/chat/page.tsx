@@ -5,24 +5,28 @@ import { useEffect, useState } from "react";
 type Msg = { role: "user" | "assistant" | "system"; content: string };
 
 export default function ChatPage() {
-  const [conversationId, setConversationId] = useState<string>("");
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Create or load a conversation id
+  // Create or load a conversation id before chat starts
   useEffect(() => {
-    const existing = localStorage.getItem("conversation_id");
-    if (existing) {
-      setConversationId(existing);
-      return;
-    }
     (async () => {
-      const res = await fetch("/api/conversations", { method: "POST" });
-      const data = await res.json();
-      if (data?.ok && data?.conversationId) {
-        localStorage.setItem("conversation_id", data.conversationId);
-        setConversationId(data.conversationId);
+      const existing = localStorage.getItem("conversation_id");
+      if (existing) {
+        setConversationId(existing);
+        return;
+      }
+      try {
+        const res = await fetch("/api/conversations", { method: "POST" });
+        const data = await res.json();
+        if (data?.ok && data?.conversationId) {
+          localStorage.setItem("conversation_id", data.conversationId);
+          setConversationId(data.conversationId);
+        }
+      } catch (err) {
+        console.error("Failed to create conversation", err);
       }
     })();
   }, []);
@@ -30,12 +34,12 @@ export default function ChatPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const text = input.trim();
-    if (!text || !conversationId || busy) return;
+    if (!text || !conversationId || busy) return; // block until ready
 
+    setBusy(true);
     const userMsg: Msg = { role: "user", content: text };
     setMessages((m) => [...m, userMsg]);
     setInput("");
-    setBusy(true);
 
     try {
       const res = await fetch("/api/chat", {
@@ -49,12 +53,11 @@ export default function ChatPage() {
         data?.choices?.[0]?.message?.content ??
         data?.error ??
         "(no response)";
-
-      setMessages((m) => [...m, { role: "assistant", content: String(replyText) }]);
+      setMessages((m) => [...m, { role: "assistant", content: replyText }]);
     } catch (err: any) {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "Sorry—there was an error reaching the server." },
+        { role: "assistant", content: "Error reaching server." },
       ]);
     } finally {
       setBusy(false);
@@ -82,13 +85,21 @@ export default function ChatPage() {
         ))}
       </div>
 
+      {!conversationId && (
+        <div className="text-gray-500 mt-4 text-sm">
+          Initializing chat session…
+        </div>
+      )}
+
       <form onSubmit={onSubmit} className="mt-6 flex gap-2">
         <input
           className="flex-1 rounded border px-3 py-2"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message…"
-          disabled={busy}
+          placeholder={
+            conversationId ? "Type your message…" : "Setting up chat…"
+          }
+          disabled={busy || !conversationId}
         />
         <button
           type="submit"
