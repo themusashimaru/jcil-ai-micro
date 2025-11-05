@@ -1,7 +1,6 @@
 export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 
-/* ==== YOUR EXACT PROMPT (unchanged) ==== */
 const CHRISTIAN_SYSTEM_PROMPT = `
 
 You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is to serve as a helpful, faithful, and respectful resource for Christians and all users seeking information from a Christian worldview.
@@ -87,7 +86,9 @@ If a user expresses thoughts of suicide, self-harm, or indicates they are in a s
 
     If the user indicates they are not in the US, state: "These resources are for the United States. If you are in another country, please tell me which country, and I will immediately find a local crisis hotline for you."
 `;
-/* ======================================= */
+
+type Role = "user" | "assistant" | "system";
+type Msg = { role: Role; content: string };
 
 function json(status: number, body: any) {
   return new NextResponse(JSON.stringify(body), {
@@ -96,44 +97,40 @@ function json(status: number, body: any) {
   });
 }
 
-type Role = "user" | "assistant" | "system";
-type Msg = { role: Role; content: string };
-
 function normalizeHistory(input: any): Msg[] {
   if (!Array.isArray(input)) return [];
   return input
-    .map((m) => ({
-      role:
-        m?.role === "user" || m?.role === "assistant" || m?.role === "system"
-          ? (m.role as Role)
-          : "user",
-      content: String(m?.content ?? ""),
-    }))
+    .map((m) => {
+      const role = m?.role;
+      const content = String(m?.content ?? "");
+      const r: Role =
+        role === "user" || role === "assistant" || role === "system"
+          ? role
+          : "user";
+      return { role: r, content };
+    })
     .filter((m) => m.content.trim().length > 0);
 }
 
-function keepLast(history: Msg[], max = 36): Msg[] {
+function keepLast(history: Msg[], max = 32): Msg[] {
   return history.length <= max ? history : history.slice(history.length - max);
 }
 
 export async function POST(req: Request) {
   try {
+    const apiKey =
+      process.env.OPENAI_API_KEY ||
+      process.env.OPENAI_API_KEY_BETA ||
+      process.env.OPENAI_API_KEY_DEFAULT;
+    if (!apiKey) return json(500, { ok: false, error: "Missing OPENAI_API_KEY" });
+
     const body = await req.json().catch(() => ({}));
-    const history = keepLast(normalizeHistory(body?.messages || []));
+    const history = keepLast(normalizeHistory(body?.messages));
 
     const messages: Msg[] = [
       { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
       ...history,
     ];
-
-    const apiKey =
-      process.env.OPENAI_API_KEY ||
-      process.env.OPENAI_API_KEY_BETA ||
-      process.env.OPENAI_API_KEY_DEFAULT;
-
-    if (!apiKey) {
-      return json(500, { ok: false, error: "Missing OPENAI_API_KEY" });
-    }
 
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -148,14 +145,22 @@ export async function POST(req: Request) {
       }),
     });
 
-    const data = await resp.json().catch(() => ({}));
+    // Try JSON first, fall back to text to avoid UI going blank
+    const rawText = await resp.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = { raw: rawText };
+    }
+
     const reply =
       data?.choices?.[0]?.message?.content ??
       data?.error?.message ??
       "(no response)";
 
     if (!resp.ok) {
-      return json(resp.status, { ok: false, error: reply, details: data || null });
+      return json(resp.status, { ok: false, error: reply, details: data });
     }
 
     return json(200, { ok: true, reply, model: "gpt-4o" });
