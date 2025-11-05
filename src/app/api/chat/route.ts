@@ -11,18 +11,6 @@ export async function POST(req: Request) {
 // ---- build messages for OpenAI ----
   
 
-  const historyArr: any[] = Array.isArray(history)
-    ? history.map((m: any) => ({
-        role: m.role === "assistant" ? "assistant" : "user",
-        content: m.content
-      }))
-    : [];= Array.isArray(history)
-    ? history.map((m: any) => ({
-        role: m.role === "assistant" ? "assistant" : "user",
-        content: m.content
-      }))
-    : [];
-
   const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
 
   const userContent = Array.isArray(content) ? content : [content].filter(Boolean)[0];
@@ -54,8 +42,15 @@ function collectArray(v: unknown): string[] {
 
   const { content, history = [], longMemory = [], images, imageUrls, attachments, files } = body || {};
 const rawImages: string[] = [];
+const historyArr: any[] = Array.isArray(history)
+  ? history.map((m: any) => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: m.content
+    }))
+  : [];
 
-    // --- build messages for OpenAI ---
+    const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
+// --- build messages for OpenAI ---
 const historyArr: any[] = Array.isArray(history)
     ? history.map((m: any) => ({
         role: m.role === "assistant" ? "assistant" : "user",
