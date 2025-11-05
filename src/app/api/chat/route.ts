@@ -89,58 +89,13 @@ function collectArray(v: unknown): string[] {
   return Array.isArray(v) ? v : (typeof v === 'string' && v.trim()) ? [v] : [];
 }
 
-const rawImages: string[] = []
-  // arrays (common frontend keys)
-  .concat(collectArray((body || {}).images))
-  .concat(collectArray((body || {}).imageUrls))
-  .concat(collectArray((body || {}).attachments))
-  .concat(collectArray((body || {}).files))
-  // singletons
-  .concat(collectArray((body || {}).imageUrl))
-  .concat(collectArray((body || {}).image_url))
-  .filter((u) => typeof u === 'string' && u.trim().length > 0);
-
-const imageParts: ImgPart[] = rawImages.map((url) => ({
-  type: 'input_image',
-  image_url: { url }
-}));
-
-// When images exist, use multi-part content for the user message; else plain text
-const userContent: any = imageParts.length
-  ? [{ type: 'text', text: userText }, ...imageParts]
-  : userText;
-/* END IMAGE SUPPORT */
-if (!userText) return json(400, { ok: false, error: "text required" });
-
-    const user_id = await getUserIdOrGuest();
-
-    const incomingId = String(body?.conversation_id || "");
-    const title = String(body?.title || "New Chat").slice(0, 120);
-    const conversation_id = await reuseOrCreateConversation(user_id, incomingId, title);
-
-    // Save user message
-    await saveMsg(conversation_id, "user", imageParts.length ? (userText + "\n[images:" + imageParts.length + "]") : userText, user_id);
-
-    // Load history for context
-    const history = await loadMessages(conversation_id);
-
-    // Strongly type messages for OpenAI SDK
-    const typedHistory: OpenAI.ChatCompletionMessageParam[] = history.map(m =>
-      m.role === "assistant"
-        ? ({ role: "assistant", content: m.content } as OpenAI.ChatCompletionAssistantMessageParam)
-        : ({ role: "user", content: m.content } as OpenAI.ChatCompletionUserMessageParam)
-    );
-
-    const longMemory = await getLongTermMemory(supabaseAdmin, user_id, conversation_id, 50);
-
-const messages: OpenAI.ChatCompletionMessageParam[] = [
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemory.map(m => ({ role: m.role, content: m.content } as OpenAI.ChatCompletionMessageParam)),
-  ...history.map(m => ({
-    role: (m.role === "assistant" ? "assistant" : "user"),
-    content: m.content
-  } as OpenAI.ChatCompletionMessageParam)),
-  { role: "user", content: userContent }
+const rawImages: string[] = [
+  ...collectArray((body || {}).images),
+  ...collectArray((body || {}).imageUrls),
+  ...collectArray((body || {}).attachments),
+  ...collectArray((body || {}).files),
+  ...collectArray((body || {}).imageUrl),
+  ...collectArray((body || {}).image_url),
 ];
 
     const completion = await openai.chat.completions.create({
