@@ -7,17 +7,36 @@ You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is t
 
 export async function POST(req: Request) {
   
-  const body = await req.json();
+    // ---- canonical inputs ----
+  const body = (await (async () => {
+    try { return await (typeof req?.json === 'function' ? req.json() : Promise.resolve({})) } catch { return {}; }
+  })()) || {};
+  const { content, history, longMemory } = body || {};
+  const userContent: any = Array.isArray(content) ? content : content;
+
+  const rawImages: string[] = [
+    ...collectArray(body.images),
+    ...collectArray(body.imageUrls),
+    ...collectArray(body.attachments),
+    ...collectArray(body.files),
+  ].filter(Boolean);
+
+  const historyArr: any[] = Array.isArray(history)
+    ? history.map((m: any) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content
+      }))
+    : [];
+
+  const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
+const body = await req.json();
 // ---- build messages for OpenAI ----
   
 
-  const userContent = Array.isArray(content) ? content : [content].filter(Boolean)[0];
-
+  
   const messages: any[] = [
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...historyArr,
   ...longMemArr,
-  ...(userContent ? [{ role: "user", content: userContent }] : []),
 ];
 
   // ---- end messages ----
@@ -37,15 +56,6 @@ function collectArray(v: unknown): string[] {
 }
 
   const { content, history = [], longMemory = [], images, imageUrls, attachments, files } = body || {};
-const rawImages: string[] = [];
-const historyArr: any[] = Array.isArray(history)
-  ? history.map((m: any) => ({
-      role: m.role === "assistant" ? "assistant" : "user",
-      content: m.content
-    }))
-  : [];
-
-    const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
 // --- build messages for OpenAI ---
 (typeof history !== 'undefined' && Array.isArray(history))
     ? history.map((m: any) => ({
@@ -56,7 +66,6 @@ const historyArr: any[] = Array.isArray(history)
 
 // imageParts should already be prepared earlier (ImgPart[]).
 // Fallbacks ensure we always provide content.
-const userContent: any =
   (Array.isArray(imageParts) && imageParts.length)
     ? [{ type: "text", text: userText || "(no text)" }, ...imageParts]
     : (userText || "(no text)");
@@ -65,31 +74,16 @@ const userContent: any =
 
 // build once to keep types loose and support text or vision content
 // ---- end canonical messages block ----
-  ...(userContent ? [{ role: "user", content: userContent }] : [])
-
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
       ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
           content: m.content
         }))
-  ...(userContent ? [{ role: "user", content: userContent }] : [])
-
 // ---- end canonical messages block ----
  ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
           content: m.content
         }))
-  ...(userContent ? [{ role: "user", content: userContent }] : [])
-
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...(userContent ? [{ role: "user", content: userContent }] : [])
-
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...(userContent ? [{ role: "user", content: userContent }] : [])
-
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...(userContent ? [{ role: "user", content: userContent }] : [])
-
 openai.chat.completions.create({
       model: "gpt-4o",
       messages,
