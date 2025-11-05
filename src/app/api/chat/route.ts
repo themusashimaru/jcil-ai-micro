@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { supabaseServer } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
