@@ -2,8 +2,8 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getUserIdOrGuest } from "@/lib/auth";
 
-/* small helpers */
 function json(status: number, body: any) {
   return new NextResponse(JSON.stringify(body), {
     status,
@@ -19,10 +19,11 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const title = String(body?.title || "New Chat").slice(0, 120);
+    const user_id = await getUserIdOrGuest();
 
     const { data, error } = await supabaseAdmin
       .from("conversations")
-      .insert({ title })
+      .insert({ title, user_id })
       .select("id")
       .single();
 

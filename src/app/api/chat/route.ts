@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
+import { getUserIdOrGuest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 function json(status: number, body: any) {
@@ -125,6 +126,9 @@ async function saveMsg(conversation_id: string, role: Role, content: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
+const user_id = await getUserIdOrGuest();
+
+const user_id = await getUserIdOrGuest();
 let conversation_id = String(body?.conversation_id || "");
 if (!conversation_id) {
   const title = String(body?.title || "New Chat").slice(0, 120);
