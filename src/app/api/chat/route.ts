@@ -108,7 +108,7 @@ export async function POST(req: Request) {
       : (message || '(no text)');
 
     // Pull durable memory from Supabase
-    const supabase = createClient();
+    const supabase = await createClient();
     let rows: any[] = [];
 
     if (conversationId) {

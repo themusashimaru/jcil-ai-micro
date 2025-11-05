@@ -2,8 +2,8 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export function createClient(): SupabaseClient {
-  const cookieStore = cookies();
+export async function createClient(): Promise<SupabaseClient> {
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -14,7 +14,6 @@ export function createClient(): SupabaseClient {
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: any) {
-          // next/headers cookies() is mutable in route handlers
           cookieStore.set({ name, value, ...options });
         },
         remove(name: string, options: any) {
