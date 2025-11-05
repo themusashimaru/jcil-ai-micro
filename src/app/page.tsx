@@ -734,41 +734,47 @@ export default function Home() {
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
-                disabled={isLoading}
-              >
-                <span className="text-sm font-medium">Legal & Policies</span>
-                <MoreVertical className="h-4 w-4 ml-auto" strokeWidth={2} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-56 bg-white border border-slate-200 shadow-lg rounded-lg"
-            >
-              <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">
-                Legal Information
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-slate-200" />
-              <DropdownMenuItem asChild>
-                <Link href="/privacy" className="cursor-pointer text-slate-700 text-sm">
-                  Privacy Policy
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/terms" className="cursor-pointer text-slate-700 text-sm">
-                  Terms of Service
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/cookies" className="cursor-pointer text-slate-700 text-sm">
-                  Cookie Policy
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button
+      variant="ghost"
+      className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
+      disabled={isLoading}
+    >
+      <span className="text-sm font-medium">Legal & Policies</span>
+      <MoreVertical className="h-4 w-4 ml-auto" strokeWidth={2} />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent
+    align="end"
+    className="w-56 bg-white border border-slate-200 shadow-lg rounded-lg"
+  >
+    <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">
+      Legal Information
+    </DropdownMenuLabel>
+    <DropdownMenuSeparator className="bg-slate-200" />
+    
+    <DropdownMenuItem 
+      className="cursor-pointer text-slate-700 text-sm"
+      onClick={() => router.push('/privacy')}
+    >
+      Privacy Policy
+    </DropdownMenuItem>
+    
+    <DropdownMenuItem 
+      className="cursor-pointer text-slate-700 text-sm"
+      onClick={() => router.push('/terms')}
+    >
+      Terms of Service
+    </DropdownMenuItem>
+    
+    <DropdownMenuItem 
+      className="cursor-pointer text-slate-700 text-sm"
+      onClick={() => router.push('/cookies')}
+    >
+      Cookie Policy
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
