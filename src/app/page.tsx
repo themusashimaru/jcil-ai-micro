@@ -734,77 +734,56 @@ export default function Home() {
           </Button>
 
           <DropdownMenu>
-  <DropdownMenuTrigger asChild>
-    <Button
-      variant="ghost"
-      className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
-      disabled={isLoading}
-    >
-      <span className="text-sm font-medium">Legal & Policies</span>
-      <MoreVertical className="h-4 w-4 ml-auto" strokeWidth={2} />
-    </Button>
-  </DropdownMenuTrigger>
-  <DropdownMenuContent
-    align="end"
-    className="w-56 bg-white border border-slate-200 shadow-lg rounded-lg"
-  >
-    <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">
-      Legal Information
-    </DropdownMenuLabel>
-    <DropdownMenuSeparator className="bg-slate-200" />
-    
-<DropdownMenu>
-  <DropdownMenuTrigger asChild>
-    <Button
-      variant="ghost"
-      className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
-      disabled={isLoading}
-    >
-      <span className="text-sm font-medium">Legal & Policies</span>
-      <MoreVertical className="h-4 w-4 ml-auto" strokeWidth={2} />
-    </Button>
-  </DropdownMenuTrigger>
-  <DropdownMenuContent
-    align="end"
-    className="w-56 bg-white border border-slate-200 shadow-lg rounded-lg"
-  >
-    <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">
-      Legal Information
-    </DropdownMenuLabel>
-    <DropdownMenuSeparator className="bg-slate-200" />
-    
-    <DropdownMenuItem 
-      className="cursor-pointer text-slate-700 text-sm"
-      onSelect={(e) => {
-        e.preventDefault();
-        router.push('/privacy');
-      }}
-    >
-      Privacy Policy
-    </DropdownMenuItem>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
+                disabled={isLoading}
+              >
+                <span className="text-sm font-medium">Legal & Policies</span>
+                <MoreVertical className="h-4 w-4 ml-auto" strokeWidth={2} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-56 bg-white border border-slate-200 shadow-lg rounded-lg"
+            >
+              <DropdownMenuLabel className="text-slate-700 text-xs font-bold uppercase">
+                Legal Information
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-slate-200" />
+              
+              <DropdownMenuItem 
+                className="cursor-pointer text-slate-700 text-sm"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  router.push('/privacy');
+                }}
+              >
+                Privacy Policy
+              </DropdownMenuItem>
 
-    <DropdownMenuItem 
-      className="cursor-pointer text-slate-700 text-sm"
-      onSelect={(e) => {
-        e.preventDefault();
-        router.push('/terms');
-      }}
-    >
-      Terms of Service
-    </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="cursor-pointer text-slate-700 text-sm"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  router.push('/terms');
+                }}
+              >
+                Terms of Service
+              </DropdownMenuItem>
 
-    <DropdownMenuItem 
-      className="cursor-pointer text-slate-700 text-sm"
-      onSelect={(e) => {
-        e.preventDefault();
-        router.push('/cookies');
-      }}
-    >
-      Cookie Policy
-    </DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>
-
+              <DropdownMenuItem 
+                className="cursor-pointer text-slate-700 text-sm"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  router.push('/cookies');
+                }}
+              >
+                Cookie Policy
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1089,7 +1068,7 @@ export default function Home() {
                     onClick={() => setActiveTool('emailWriter')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Master’s
+                    Email Writer · Master's
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setActiveTool('emailWriter')}
