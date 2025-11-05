@@ -1,11 +1,17 @@
+
+const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
+
 const messages: any[] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemArr,
 
+  ...(Array.isArray(history)
+    ? (history as any[]).map((m: any) => ({
+        role: m?.role === "assistant" ? "assistant" : "user",
+        content: m?.content
+      }))
     : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 ];
-
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
@@ -22,8 +28,6 @@ function json(status: number, body: any) {
   return new NextResponse(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" },
-  });
-}
 
 const CHRISTIAN_SYSTEM_PROMPT = `
 You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is to serve as a helpful, faithful, and respectful resource for Christians and all users seeking information from a Christian worldview.
