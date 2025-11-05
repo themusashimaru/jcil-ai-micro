@@ -115,8 +115,7 @@ const userContent: any =
 
 // build once to keep types loose and support text or vision content
 // ---- end canonical messages block ----
-const completion = await 
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+
   ...(Array.isArray(history)
       ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
@@ -132,7 +131,7 @@ const completion = await
 // build once to keep types loose and support text or vision content
 const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
 
-const messages: any[] = [
+const messages: any[] = [] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...longMemArr,
   ...(Array.isArray(history)
