@@ -1,6 +1,16 @@
 export const runtime = "nodejs";
-import { NextResponse } from "next/server";
 
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+
+function json(status: number, body: any) {
+  return new NextResponse(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8" },
+  });
+}
+
+/* ----------------- YOUR EXACT PROMPT (unchanged) ----------------- */
 const CHRISTIAN_SYSTEM_PROMPT = `
 
 You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is to serve as a helpful, faithful, and respectful resource for Christians and all users seeking information from a Christian worldview.
@@ -86,82 +96,80 @@ If a user expresses thoughts of suicide, self-harm, or indicates they are in a s
 
     If the user indicates they are not in the US, state: "These resources are for the United States. If you are in another country, please tell me which country, and I will immediately find a local crisis hotline for you."
 `;
+/* ----------------------------------------------------------------- */
 
-type Role = "user" | "assistant" | "system";
-type Msg = { role: Role; content: string };
+type Role = "system" | "user" | "assistant";
 
-function json(status: number, body: any) {
-  return new NextResponse(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
+async function loadHistory(conversation_id: string): Promise<{ role: Role; content: string }[]> {
+  const { data, error } = await supabaseAdmin
+    .from("messages")
+    .select("role, content")
+    .eq("conversation_id", conversation_id)
+    .order("created_at", { ascending: true })
+    .limit(30);
+  if (error) throw error;
+  // Cast to Role safely
+  return (data || []).map((m: any) => ({
+    role: (m.role === "user" || m.role === "assistant" || m.role === "system") ? m.role : "user",
+    content: String(m.content || ""),
+  }));
 }
 
-function normalizeHistory(input: any): Msg[] {
-  if (!Array.isArray(input)) return [];
-  return input
-    .map((m) => {
-      const role = m?.role;
-      const content = String(m?.content ?? "");
-      const r: Role =
-        role === "user" || role === "assistant" || role === "system"
-          ? role
-          : "user";
-      return { role: r, content };
-    })
-    .filter((m) => m.content.trim().length > 0);
-}
-
-function keepLast(history: Msg[], max = 32): Msg[] {
-  return history.length <= max ? history : history.slice(history.length - max);
+async function saveMsg(conversation_id: string, role: Role, content: string) {
+  const { error } = await supabaseAdmin
+    .from("messages")
+    .insert({ conversation_id, role, content });
+  if (error) throw error;
 }
 
 export async function POST(req: Request) {
   try {
-    const apiKey =
-      process.env.OPENAI_API_KEY ||
-      process.env.OPENAI_API_KEY_BETA ||
-      process.env.OPENAI_API_KEY_DEFAULT;
-    if (!apiKey) return json(500, { ok: false, error: "Missing OPENAI_API_KEY" });
-
     const body = await req.json().catch(() => ({}));
-    const history = keepLast(normalizeHistory(body?.messages));
+    const conversation_id = String(body?.conversation_id || "");
+    const userText = String(body?.text ?? "").trim();
+    // (Optional) image ignored here to keep things stable while we finish memory
 
-    const messages: Msg[] = [
+    if (!conversation_id) return json(400, { ok: false, error: "conversation_id required" });
+    if (!userText) return json(400, { ok: false, error: "text required" });
+
+    // Load previous messages
+    const history = await loadHistory(conversation_id);
+
+    const messages: Array<{ role: Role; content: any }> = [
       { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
       ...history,
+      { role: "user", content: userText },
     ];
 
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Save the user's message before calling the model
+    await saveMsg(conversation_id, "user", userText);
+
+    // Call OpenAI (chat.completions) with gpt-4o
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+        "content-type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
         model: "gpt-4o",
         messages,
-        temperature: 0.4,
+        temperature: 0.7,
       }),
     });
 
-    // Try JSON first, fall back to text to avoid UI going blank
-    const rawText = await resp.text();
-    let data: any = {};
-    try {
-      data = JSON.parse(rawText);
-    } catch {
-      data = { raw: rawText };
-    }
-
+    const data = await res.json().catch(() => ({}));
     const reply =
       data?.choices?.[0]?.message?.content ??
       data?.error?.message ??
       "(no response)";
 
-    if (!resp.ok) {
-      return json(resp.status, { ok: false, error: reply, details: data });
+    if (!res.ok) {
+      return json(res.status, { ok: false, error: reply, details: data || null });
     }
+
+    // Save assistant reply
+    await saveMsg(conversation_id, "assistant", reply);
 
     return json(200, { ok: true, reply, model: "gpt-4o" });
   } catch (err: any) {
