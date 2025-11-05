@@ -99,9 +99,6 @@ const rawImages: string[] = [
 ];
 
     // --- build messages for OpenAI ---
-const longMemArr: any[] =
-  (typeof longMemory !== 'undefined' && Array.isArray(longMemory)) ? longMemory : [];
-
 const historyArr: any[] =
   (typeof history !== 'undefined' && Array.isArray(history))
     ? history.map((m: any) => ({
@@ -122,7 +119,6 @@ const userContent: any =
 // build once to keep types loose and support text or vision content
 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemArr,
   ...(Array.isArray(history)
       ? history.map((m: any) => ({
           role: (m.role === "assistant" ? "assistant" : "user"),
@@ -136,7 +132,6 @@ const userContent: any =
 // --- end messages ---
 const completion = await = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemArr,
   ...(Array.isArray(history)
       ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
@@ -147,7 +142,6 @@ const completion = await = [
 ];
 ] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemArr,
   ...(Array.isArray(history)
       ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
@@ -158,7 +152,6 @@ const completion = await = [
 ];
 ] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemArr,
   ...(Array.isArray(history)
       ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
@@ -169,7 +162,6 @@ const completion = await = [
 ];
 
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...longMemArr,
   ...(Array.isArray(history)
       ? history.map((m: any) => ({
           role: m.role === "assistant" ? "assistant" : "user",
@@ -179,6 +171,20 @@ const completion = await = [
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 ];
 
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...(Array.isArray(history)
+      ? history.map((m: any) => ({
+          role: m.role === "assistant" ? "assistant" : "user",
+          content: m.content
+        }))
+      : []),
+  ...(userContent ? [{ role: "user", content: userContent }] : [])
+];
+openai.chat.completions.create({
+      model: "gpt-4o",
+      messages,
+      temperature: 0.3,
+    })
 const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
 
 const messages: any[] = [
@@ -192,11 +198,7 @@ const messages: any[] = [
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 ];
-openai.chat.completions.create({
-      model: "gpt-4o",
-      messages,
-      temperature: 0.3,
-    });
+;
 
     const reply = completion.choices?.[0]?.message?.content || "(no response)";
 
