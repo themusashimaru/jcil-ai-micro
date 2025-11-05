@@ -25,8 +25,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 function json(status: number, body: any) {
   return new NextResponse(JSON.stringify(body), {
-// JSON response options helper (replaces previous stray object literal)
-const jsonOpts = (status = 200) => ({
+
   status,
   headers: { "content-type": "application/json" },
 });
