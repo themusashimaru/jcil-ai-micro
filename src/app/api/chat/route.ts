@@ -98,18 +98,24 @@ export async function POST(req: Request) {
       conversation_id = conv.id;
     }
 
+    // Save user message
     await saveMsg(conversation_id, "user", userText, user_id);
 
+    // Load history for context
     const history = await loadMessages(conversation_id);
 
-    // Strongly typed messages for OpenAI SDK v4
+    // --- FIX: Strongly type each message to the correct union member ---
+    const typedHistory: OpenAI.ChatCompletionMessageParam[] = history.map(m =>
+      m.role === "assistant"
+        ? ({ role: "assistant", content: m.content } as OpenAI.ChatCompletionAssistantMessageParam)
+        : ({ role: "user", content: m.content } as OpenAI.ChatCompletionUserMessageParam)
+    );
+
     const messages: OpenAI.ChatCompletionMessageParam[] = [
-      { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-      ...history.map(m => ({
-        role: (m.role === "assistant" ? "assistant" : "user"),
-        content: m.content
-      })),
+      { role: "system", content: CHRISTIAN_SYSTEM_PROMPT } as OpenAI.ChatCompletionSystemMessageParam,
+      ...typedHistory,
     ];
+    // -------------------------------------------------------------------
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -120,6 +126,7 @@ export async function POST(req: Request) {
     const reply =
       completion.choices?.[0]?.message?.content || "(no response)";
 
+    // Save assistant reply
     await saveMsg(conversation_id, "assistant", reply, user_id);
 
     return json(200, {
