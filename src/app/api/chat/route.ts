@@ -6,15 +6,17 @@ You are "Slingshot 2.0," an AI assistant developed by JCIL.AI. Your purpose is t
 `;
 
 export async function POST(req: Request) {
-  // ---- build messages for OpenAI ----
-  const rawImages: string[] = [
-  ...collectArray((body || {}).images),
-  ...collectArray((body || {}).imageUrls),
-  ...collectArray((body || {}).attachments),
-  ...collectArray((body || {}).files),
-].filter(Boolean) as string[];
+  
+  const body = await req.json();
+// ---- build messages for OpenAI ----
+  
 
   const historyArr: any[] = Array.isArray(history)
+    ? history.map((m: any) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content
+      }))
+    : [];= Array.isArray(history)
     ? history.map((m: any) => ({
         role: m.role === "assistant" ? "assistant" : "user",
         content: m.content
@@ -25,7 +27,9 @@ export async function POST(req: Request) {
 
   const userContent = Array.isArray(content) ? content : [content].filter(Boolean)[0];
 
-  const messages: any[] = [
+  const longMemArr: any[] = Array.isArray(longMemory) ? (longMemory as any[]) : [];
+
+const messages: any[] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...historyArr,
   ...longMemArr,
@@ -48,10 +52,16 @@ function collectArray(v: unknown): string[] {
   return Array.isArray(v) ? v : (typeof v === 'string' && v.trim()) ? [v] : [];
 }
 
+  const { content, history = [], longMemory = [], images, imageUrls, attachments, files } = body || {};
 const rawImages: string[] = [];
 
     // --- build messages for OpenAI ---
-const historyArr: any[];
+const historyArr: any[] = Array.isArray(history)
+    ? history.map((m: any) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content
+      }))
+    : [];
   (typeof history !== 'undefined' && Array.isArray(history))
     ? history.map((m: any) => ({
         role: (m.role === "assistant" ? "assistant" : "user"),
