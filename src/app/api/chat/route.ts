@@ -183,7 +183,7 @@ function mapRow(m:any) {
   const role = raw === "assistant" ? "assistant" : (raw === "system" ? "system" : "user");
   const content = (typeof m?.content === "string") ? m.content : JSON.stringify(m?.content ?? "");
   return { role, content };
-} as import("openai").ChatCompletionAssistantMessageParam;
-  if (role === 'system')   return { role: 'system',   content } as import("openai").ChatCompletionSystemMessageParam;
-  return { role: 'user', content } as import("openai").ChatCompletionUserMessageParam;
+}.ChatCompletionAssistantMessageParam;
+  if (role === 'system')   return { role: 'system',   content }.ChatCompletionSystemMessageParam;
+  return { role: 'user', content }.ChatCompletionUserMessageParam;
 }
