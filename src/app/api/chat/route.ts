@@ -118,7 +118,9 @@ const userContent: any =
     : (userText || "(no text)");
 
 // Keep types loose to avoid TS issues with union message content.
-const messages: any[] = [
+const longMemArr = Array.isArray(longMemory) ? (longMemory /** as any[] */) : [];
+const messages: any[  ...longMemArr,
+] = [
   { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
   ...Array.isArray(longMemory) ? longMemory : [], ...longMemArr,
   ...historyArr,
