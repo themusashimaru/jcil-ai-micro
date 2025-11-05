@@ -755,21 +755,21 @@ export default function Home() {
     
     <DropdownMenuItem 
       className="cursor-pointer text-slate-700 text-sm"
-      onClick={() => router.push('/privacy')}
+      onClick={() => window.location.href = '/privacy'}
     >
       Privacy Policy
     </DropdownMenuItem>
     
     <DropdownMenuItem 
       className="cursor-pointer text-slate-700 text-sm"
-      onClick={() => router.push('/terms')}
+      onClick={() => window.location.href = '/terms'}
     >
       Terms of Service
     </DropdownMenuItem>
     
     <DropdownMenuItem 
       className="cursor-pointer text-slate-700 text-sm"
-      onClick={() => router.push('/cookies')}
+      onClick={() => window.location.href = '/cookies'}
     >
       Cookie Policy
     </DropdownMenuItem>
