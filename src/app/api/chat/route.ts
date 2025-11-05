@@ -105,7 +105,7 @@ async function loadDbHistory(opts: { conversationId: string | null; userId: stri
 
 else if (userId) {
     // Fallback: last 50 messages across user when no conversationId
-    const { data } = const supabase = createClient();
+    const supabase = createClient();
     const { data } = await supabase
       .from('messages')
       .select('role, content')
