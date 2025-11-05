@@ -101,9 +101,14 @@ export async function POST(req: Request) {
     await saveMsg(conversation_id, "user", userText, user_id);
 
     const history = await loadMessages(conversation_id);
-    const messages = [
+
+    // Strongly typed messages for OpenAI SDK v4
+    const messages: OpenAI.ChatCompletionMessageParam[] = [
       { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-      ...history.map(m => ({ role: m.role as "user" | "assistant", content: m.content })),
+      ...history.map(m => ({
+        role: (m.role === "assistant" ? "assistant" : "user"),
+        content: m.content
+      })),
     ];
 
     const completion = await openai.chat.completions.create({
