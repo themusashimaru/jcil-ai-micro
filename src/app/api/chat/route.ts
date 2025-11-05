@@ -132,26 +132,6 @@ const messages: any[] = [
         }))
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
-];= [
-  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
-  ...(Array.isArray(history)
-      ? history.map((m: any) => ({
-          role: m?.role === "assistant" ? "assistant" : "user",
-          content: m?.content ?? ""
-        }))
-      : []),
-  ...(Array.isArray(imageParts) && imageParts.length > 0
-      ? [{
-          role: "user",
-          content: [
-            { type: "text", text: String(userText ?? "") },
-            ...imageParts
-          ]
-        }]
-      : [{
-          role: "user",
-          content: String(userText ?? "")
-        }])
 ];
 // --- end messages ---
 const completion = await openai.chat.completions.create({
