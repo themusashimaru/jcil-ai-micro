@@ -145,6 +145,17 @@ const completion = await = [
       : []),
   ...(userContent ? [{ role: "user", content: userContent }] : [])
 ];
+] = [
+  { role: "system", content: CHRISTIAN_SYSTEM_PROMPT },
+  ...longMemArr,
+  ...(Array.isArray(history)
+      ? history.map((m: any) => ({
+          role: m.role === "assistant" ? "assistant" : "user",
+          content: m.content
+        }))
+      : []),
+  ...(userContent ? [{ role: "user", content: userContent }] : [])
+];
 const longMemArr = Array.isArray(longMemory) ? (longMemory as any[]) : [];
 
 const messages: any[] = [] = [
