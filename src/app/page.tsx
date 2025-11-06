@@ -43,6 +43,7 @@ import {
   Search,
   Share2,
   LogOut,
+  Zap,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -936,6 +937,17 @@ export default function Home() {
 
         {/* sidebar footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
+          {/* Upgrade Plan Button */}
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-white bg-blue-900 hover:bg-blue-950 transition-all rounded-lg font-medium shadow-sm hover:shadow-md"
+            onClick={() => router.push('/settings')}
+            disabled={isLoading}
+          >
+            <Zap className="h-5 w-5 mr-2" strokeWidth={2} />
+            <span className="text-sm">Upgrade Plan</span>
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

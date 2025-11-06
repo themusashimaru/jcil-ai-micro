@@ -8,13 +8,20 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Eye, EyeOff, Trash2, Key, User, LogOut, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Trash2, Key, User, LogOut, CheckCircle, AlertTriangle, CreditCard, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SettingsPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
+  // Subscription State
+  const [subscriptionTier, setSubscriptionTier] = useState('free');
+  const [dailyLimit, setDailyLimit] = useState(5);
+  const [usageToday, setUsageToday] = useState(0);
+  const [subscriptionStatus, setSubscriptionStatus] = useState('inactive');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
   // Change Password State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -46,7 +53,81 @@ export default function SettingsPage() {
       return;
     }
     setUser(user);
+
+    // Get subscription info
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('subscription_tier, daily_message_limit, subscription_status')
+      .eq('id', user.id)
+      .single();
+
+    if (profile) {
+      setSubscriptionTier(profile.subscription_tier || 'free');
+      setDailyLimit(profile.daily_message_limit || 5);
+      setSubscriptionStatus(profile.subscription_status || 'inactive');
+    }
+
+    // Get today's usage
+    const { data: usage } = await supabase
+      .from('daily_usage')
+      .select('message_count')
+      .eq('user_id', user.id)
+      .eq('usage_date', new Date().toISOString().split('T')[0])
+      .single();
+
+    if (usage) {
+      setUsageToday(usage.message_count || 0);
+    }
+
     setLoading(false);
+  };
+
+  const handleUpgrade = async (tier: 'basic' | 'pro' | 'executive') => {
+    setCheckoutLoading(true);
+
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Failed to create checkout session');
+        setCheckoutLoading(false);
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to start checkout');
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setCheckoutLoading(true);
+
+    try {
+      const response = await fetch('/api/stripe/portal', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Failed to open customer portal');
+        setCheckoutLoading(false);
+      }
+    } catch (error) {
+      console.error('Portal error:', error);
+      alert('Failed to open customer portal');
+      setCheckoutLoading(false);
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -178,6 +259,134 @@ export default function SettingsPage() {
                 <label className="text-sm font-medium text-slate-700">Sign In Method</label>
                 <p className="text-base text-slate-900 mt-1 capitalize">
                   {user.app_metadata.provider === 'email' ? 'Email & Password' : user.app_metadata.provider}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Subscription Card */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <CreditCard className="h-5 w-5" />
+              Subscription & Usage
+            </CardTitle>
+            <CardDescription className="text-slate-600">
+              Manage your subscription plan and view usage
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Current Plan */}
+            <div>
+              <label className="text-sm font-medium text-slate-700">Current Plan</label>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="text-2xl font-bold text-blue-900 capitalize">
+                  {subscriptionTier}
+                </span>
+                {subscriptionTier !== 'free' && (
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    subscriptionStatus === 'active' ? 'bg-green-100 text-green-700' :
+                    subscriptionStatus === 'past_due' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-slate-100 text-slate-700'
+                  }`}>
+                    {subscriptionStatus}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Usage Stats */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-sm font-medium text-slate-700">Daily Messages</label>
+                <span className="text-sm text-slate-600">
+                  {usageToday} / {dailyLimit} used today
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full ${
+                    (usageToday / dailyLimit) * 100 >= 90 ? 'bg-red-500' :
+                    (usageToday / dailyLimit) * 100 >= 70 ? 'bg-yellow-500' :
+                    'bg-blue-900'
+                  }`}
+                  style={{ width: `${Math.min((usageToday / dailyLimit) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Pricing Plans */}
+            {subscriptionTier === 'free' && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-slate-900">Upgrade Your Plan</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Basic */}
+                  <div className="border border-slate-200 rounded-lg p-4 space-y-2 hover:border-blue-900 transition-all">
+                    <div className="font-bold text-slate-900">Basic</div>
+                    <div className="text-2xl font-bold text-blue-900">$20<span className="text-sm text-slate-600">/mo</span></div>
+                    <div className="text-sm text-slate-600">30 messages/day</div>
+                    <Button
+                      onClick={() => handleUpgrade('basic')}
+                      disabled={checkoutLoading}
+                      className="w-full bg-blue-900 hover:bg-blue-950 text-white rounded-lg"
+                      size="sm"
+                    >
+                      {checkoutLoading ? 'Loading...' : 'Upgrade'}
+                    </Button>
+                  </div>
+
+                  {/* Pro */}
+                  <div className="border-2 border-blue-900 rounded-lg p-4 space-y-2 relative">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-900 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      Popular
+                    </div>
+                    <div className="font-bold text-slate-900">Pro</div>
+                    <div className="text-2xl font-bold text-blue-900">$60<span className="text-sm text-slate-600">/mo</span></div>
+                    <div className="text-sm text-slate-600">100 messages/day</div>
+                    <Button
+                      onClick={() => handleUpgrade('pro')}
+                      disabled={checkoutLoading}
+                      className="w-full bg-blue-900 hover:bg-blue-950 text-white rounded-lg"
+                      size="sm"
+                    >
+                      {checkoutLoading ? 'Loading...' : 'Upgrade'}
+                    </Button>
+                  </div>
+
+                  {/* Executive */}
+                  <div className="border border-slate-200 rounded-lg p-4 space-y-2 hover:border-blue-900 transition-all">
+                    <div className="font-bold text-slate-900 flex items-center gap-1">
+                      Executive <Zap className="h-4 w-4 text-yellow-500" />
+                    </div>
+                    <div className="text-2xl font-bold text-blue-900">$99<span className="text-sm text-slate-600">/mo</span></div>
+                    <div className="text-sm text-slate-600">200 messages/day</div>
+                    <Button
+                      onClick={() => handleUpgrade('executive')}
+                      disabled={checkoutLoading}
+                      className="w-full bg-blue-900 hover:bg-blue-950 text-white rounded-lg"
+                      size="sm"
+                    >
+                      {checkoutLoading ? 'Loading...' : 'Upgrade'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Manage Subscription */}
+            {subscriptionTier !== 'free' && (
+              <div>
+                <Button
+                  onClick={handleManageSubscription}
+                  disabled={checkoutLoading}
+                  variant="outline"
+                  className="w-full border-slate-300 hover:bg-slate-100"
+                >
+                  {checkoutLoading ? 'Loading...' : 'Manage Subscription'}
+                </Button>
+                <p className="text-xs text-slate-500 mt-2 text-center">
+                  Update payment method, cancel subscription, or view billing history
                 </p>
               </div>
             )}

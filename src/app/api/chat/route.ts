@@ -196,6 +196,60 @@ export async function POST(req: Request) {
   }
 
   // ============================================
+  // 🎯 GET USER SUBSCRIPTION TIER & CHECK DAILY LIMIT
+  // ============================================
+  let userTier = 'free'; // Default to free tier
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('subscription_tier, daily_message_limit, monthly_price')
+    .eq('id', userId)
+    .single();
+
+  if (profile?.subscription_tier) {
+    userTier = profile.subscription_tier;
+  }
+
+  console.log(`👤 User ${userId} tier: ${userTier}`);
+
+  // ============================================
+  // 📊 CHECK DAILY MESSAGE LIMIT
+  // ============================================
+  const { data: limitCheck, error: limitError } = await supabase
+    .rpc('check_daily_limit', { p_user_id: userId });
+
+  if (limitError) {
+    console.error('Error checking daily limit:', limitError);
+    // Continue anyway (fail open)
+  } else if (limitCheck && limitCheck.length > 0) {
+    const { has_remaining, current_count, daily_limit, tier } = limitCheck[0];
+
+    console.log(`📊 Daily usage: ${current_count}/${daily_limit} for tier: ${tier}`);
+
+    if (!has_remaining) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: `Daily message limit reached (${daily_limit} messages per day for ${tier} tier). Upgrade your plan or try again tomorrow.`,
+          limitExceeded: true,
+          currentUsage: current_count,
+          dailyLimit: daily_limit,
+          tier: tier
+        }),
+        {
+          status: 429,
+          headers: {
+            "content-type": "application/json",
+            "X-RateLimit-Limit": String(daily_limit),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": new Date(new Date().setHours(24,0,0,0)).toISOString()
+          }
+        }
+      );
+    }
+  }
+
+  // ============================================
   // ⚡ CHECK RATE LIMIT
   // ============================================
   if (!checkRateLimit(userId)) {
@@ -373,8 +427,31 @@ export async function POST(req: Request) {
   });
 
   // ============================================
-  // 🤖 CALL CLAUDE HAIKU 4.5
+  // 🤖 CALL CLAUDE (Model based on tier)
   // ============================================
+
+  // 🎯 TIER-BASED MODEL SELECTION
+  // FREE (5/day) → Haiku 4 (cheapest)
+  // BASIC ($20/mo, 30/day) → Haiku 4.5 (better)
+  // PRO ($60/mo, 100/day) → Haiku 4.5 (same as basic, more messages)
+  // EXECUTIVE ($99/mo, 200/day) → Haiku 4.5 (TODO: upgrade to Sonnet 4 if needed)
+
+  let modelName: string;
+
+  switch (userTier) {
+    case 'free':
+      modelName = 'claude-haiku-4-20250514'; // Cheapest
+      break;
+    case 'basic':
+    case 'pro':
+    case 'executive':
+      modelName = 'claude-haiku-4.5-20250514'; // Better model for paying users
+      break;
+    default:
+      modelName = 'claude-haiku-4-20250514'; // Fallback to cheapest
+  }
+
+  console.log(`🤖 Using model: ${modelName} for tier: ${userTier}`);
 
   // Combine main system prompt with tool-specific prompt
   let combinedSystemPrompt = SYSTEM_PROMPT;
@@ -392,7 +469,7 @@ export async function POST(req: Request) {
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514", // 🔥 Claude Sonnet 4 - FAST & SMART
+      model: modelName, // 🎯 Dynamic model based on user tier
       max_tokens: 4096,
       // 💰 PROMPT CACHING - Saves up to 90% on API costs!
       // Cache the system prompt since it never changes
@@ -441,23 +518,39 @@ export async function POST(req: Request) {
 
   // Save both messages
   const { error: insertError } = await supabase.from("messages").insert([
-    { 
-      user_id: userId, 
-      role: "user", 
-      content: userMessageText, 
-      conversation_id: conversationId 
+    {
+      user_id: userId,
+      role: "user",
+      content: userMessageText,
+      conversation_id: conversationId
     },
-    { 
-      user_id: userId, 
-      role: "assistant", 
-      content: reply, 
-      conversation_id: conversationId 
+    {
+      user_id: userId,
+      role: "assistant",
+      content: reply,
+      conversation_id: conversationId
     },
   ]);
 
   if (insertError) {
     console.error("Database insert error:", insertError);
     // Still return the reply even if save fails
+  }
+
+  // ============================================
+  // 📈 INCREMENT DAILY USAGE COUNT
+  // ============================================
+  const { error: usageError } = await supabase
+    .rpc('increment_message_count', {
+      p_user_id: userId,
+      p_token_count: 0 // TODO: Track actual token usage from response.usage
+    });
+
+  if (usageError) {
+    console.error("Failed to increment usage count:", usageError);
+    // Don't fail the request, just log the error
+  } else {
+    console.log(`✅ Daily usage incremented for user ${userId}`);
   }
 
   return new Response(
