@@ -915,33 +915,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* SPIRITUAL TOOLS */}
-        <div className="bg-gradient-to-r from-blue-50 to-slate-50 px-6 py-4 space-y-2 border-t border-slate-200">
-          <h3 className="text-xs font-bold uppercase tracking-tight text-blue-900 mb-3">
-            ✨ Spiritual Tools
-          </h3>
-          <Button
-            variant="outline"
-            className="w-full justify-start text-blue-900 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all rounded-lg"
-            onClick={() => router.push('/devotional')}
-            disabled={isLoading}
-          >
-            <span className="text-sm font-medium">Daily Devotional</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start text-blue-900 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all rounded-lg"
-            onClick={() => {
-              setActiveTool('deep-bible-research');
-              handleNewChat();
-              setIsSidebarOpen(false);
-            }}
-            disabled={isLoading}
-          >
-            <span className="text-sm font-medium">Deep Bible Research</span>
-          </Button>
-        </div>
-
         {/* sidebar footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
           <Button
@@ -1167,6 +1140,29 @@ export default function Home() {
             onSubmit={handleFormSubmit}
             className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
           >
+            {/* Spiritual Tools - Cool Buttons Above Input */}
+            <div className="mb-3 sm:mb-4 flex flex-wrap gap-2 sm:gap-3">
+              <Button
+                type="button"
+                onClick={() => router.push('/devotional')}
+                disabled={isLoading}
+                className="flex-1 min-w-[140px] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200 py-2 sm:py-3"
+              >
+                <span className="text-xs sm:text-sm">📖 Daily Devotional</span>
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setActiveTool('deep-bible-research');
+                  handleNewChat();
+                }}
+                disabled={isLoading}
+                className="flex-1 min-w-[140px] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200 py-2 sm:py-3"
+              >
+                <span className="text-xs sm:text-sm">📚 Bible Research</span>
+              </Button>
+            </div>
+
             {attachedFileName && (
               <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
                 <div className="flex items-center gap-2 truncate">
