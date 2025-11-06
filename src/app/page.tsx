@@ -467,10 +467,17 @@ export default function Home() {
   };
 
   const handleTextareaKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    // Only allow Enter to submit on desktop (not mobile)
+    // On mobile, Enter should create new line, only Send button submits
+    if (event.key === 'Enter' && !event.shiftKey && !isMobileDevice()) {
       event.preventDefault();
       handleFormSubmit();
     }
+  };
+
+  // Helper function to detect mobile devices
+  const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   };
 
   const handleToolButtonClick = () => {
