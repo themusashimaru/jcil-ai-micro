@@ -36,30 +36,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🗺️ Google Places search for:', query, location ? `near ${location.latitude},${location.longitude}` : '(text-only)');
+    console.log('🗺️ Google Places (NEW API) search for:', query, location ? `near ${location.latitude},${location.longitude}` : '(text-only)');
 
-    // Step 1: Text Search to find places
-    let textSearchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}`;
+    // Use NEW Google Places API (Text Search)
+    const searchUrl = 'https://places.googleapis.com/v1/places:searchText';
 
-    // Add location parameters if available
+    const requestBody: any = {
+      textQuery: query,
+      maxResultCount: 5,
+      languageCode: 'en',
+    };
+
+    // Add location bias if coordinates provided
     if (location && location.latitude && location.longitude) {
-      textSearchUrl += `&location=${location.latitude},${location.longitude}&radius=5000`;
+      requestBody.locationBias = {
+        circle: {
+          center: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+          },
+          radius: 5000.0, // 5km radius
+        },
+      };
     }
 
-    textSearchUrl += `&key=${googleApiKey}`;
+    console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
 
-    const textSearchResponse = await fetch(textSearchUrl);
+    const textSearchResponse = await fetch(searchUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': googleApiKey,
+        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.priceLevel,places.currentOpeningHours',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
     const textSearchData = await textSearchResponse.json();
 
-    if (textSearchData.status !== 'OK' && textSearchData.status !== 'ZERO_RESULTS') {
-      console.error('Google Places error:', textSearchData.status);
+    console.log('📥 Response status:', textSearchResponse.status);
+    console.log('📥 Response data:', JSON.stringify(textSearchData, null, 2));
+
+    if (!textSearchResponse.ok) {
+      console.error('Google Places NEW API error:', textSearchData);
       return NextResponse.json(
-        { error: `Google Places API error: ${textSearchData.status}` },
-        { status: 500 }
+        { error: `Google Places API error: ${textSearchData.error?.message || 'Unknown error'}` },
+        { status: textSearchResponse.status }
       );
     }
 
-    if (!textSearchData.results || textSearchData.results.length === 0) {
+    if (!textSearchData.places || textSearchData.places.length === 0) {
+      console.log('⚠️ No businesses found for query:', query);
       return NextResponse.json({
         ok: true,
         businesses: [],
@@ -67,39 +94,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Step 2: Get details for top 5 places
-    const topPlaces = textSearchData.results.slice(0, 5);
-    const detailedBusinesses = await Promise.all(
-      topPlaces.map(async (place: any) => {
-        try {
-          const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,formatted_phone_number,website,opening_hours,rating,user_ratings_total,price_level&key=${googleApiKey}`;
-
-          const detailsResponse = await fetch(detailsUrl);
-          const detailsData = await detailsResponse.json();
-
-          if (detailsData.status === 'OK' && detailsData.result) {
-            const result = detailsData.result;
-            return {
-              name: result.name,
-              address: result.formatted_address,
-              phone: result.formatted_phone_number || null,
-              website: result.website || null,
-              rating: result.rating || null,
-              total_ratings: result.user_ratings_total || null,
-              price_level: result.price_level || null,
-              open_now: result.opening_hours?.open_now || null,
-            };
-          }
-          return null;
-        } catch (error) {
-          console.error('Error fetching place details:', error);
-          return null;
-        }
-      })
-    );
-
-    // Filter out any null results
-    const businesses = detailedBusinesses.filter(b => b !== null);
+    // Format results from NEW API
+    const businesses = textSearchData.places.map((place: any) => ({
+      name: place.displayName?.text || 'Unknown',
+      address: place.formattedAddress || null,
+      phone: place.nationalPhoneNumber || null,
+      website: place.websiteUri || null,
+      rating: place.rating || null,
+      total_ratings: place.userRatingCount || null,
+      price_level: place.priceLevel || null,
+      open_now: place.currentOpeningHours?.openNow || null,
+    }));
 
     console.log(`✅ Found ${businesses.length} businesses`);
 

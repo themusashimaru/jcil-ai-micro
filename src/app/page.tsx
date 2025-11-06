@@ -954,6 +954,8 @@ export default function Home() {
 
         // Route to appropriate search API
         if (isLocationQuery && (userLocation || hasCityMention)) {
+          console.log('🍕 Calling Google Places with location:', userLocation);
+
           // Use Google Places API for local business searches
           const localSearchResponse = await fetch('/api/local-search', {
             method: 'POST',
@@ -965,6 +967,8 @@ export default function Home() {
           });
 
           const localSearchData = await localSearchResponse.json();
+
+          console.log('🗺️ Google Places response:', localSearchData);
 
           // Remove temp messages
           setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-search-') && !m.id.startsWith('temp-location-')));
@@ -983,7 +987,14 @@ export default function Home() {
 
             assistantText = `Here are the closest places I found:\n\n${businessList}`;
           } else {
-            assistantText = "I couldn't find any specific businesses nearby. Try being more specific with your search or check if location services are enabled.";
+            // More helpful error message
+            if (localSearchData.error) {
+              assistantText = `Error searching for businesses: ${localSearchData.error}`;
+            } else if (!userLocation && !hasCityMention) {
+              assistantText = "📍 I need your location to find nearby businesses. Please enable location services or specify a city (e.g., 'pizza in Boston').";
+            } else {
+              assistantText = `I couldn't find any "${textInput}" nearby. Try:\n- Being more specific (e.g., "Italian restaurants")\n- Checking if location services are enabled\n- Adding your city name to the search`;
+            }
           }
         } else {
           // Use Brave Search for news/general searches
