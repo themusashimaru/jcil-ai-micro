@@ -92,10 +92,16 @@ export default function NewsPage() {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      // Scroll to element with offset for perfect alignment
-      const yOffset = -20; // 20px from top for perfect visibility
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
+      // Get the exact position of the element
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - 80; // 80px from top for perfect visibility
+
+      // Scroll to the exact position
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+
       setShowTOC(false);
     }
   };

@@ -234,56 +234,92 @@ export async function GET(request: NextRequest) {
       .filter((text) => text)
       .join('\n\n---\n\n');
 
-    // Generate PhD-level analysis with LIVE web searches
+    // Also fetch real-time web search results using Brave Search API for maximum freshness
+    let webSearchContext = '';
+    const braveApiKey = process.env.BRAVE_SEARCH_API_KEY;
+
+    if (braveApiKey) {
+      console.log('🔍 [CRON] Fetching real-time web search results...');
+      try {
+        const searchQueries = [
+          'breaking news politics today',
+          'stock market today dow nasdaq',
+          'international news today',
+          'technology news today',
+          'oil prices today',
+        ];
+
+        const searchResults = await Promise.all(
+          searchQueries.map(async (query) => {
+            try {
+              const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10&freshness=24h`;
+              const response = await fetch(url, {
+                headers: { 'X-Subscription-Token': braveApiKey },
+              });
+              const data = await response.json();
+
+              if (data.web?.results) {
+                const results = data.web.results.slice(0, 5).map((r: any) =>
+                  `- ${r.title}\n  ${r.description || ''}\n  (${r.url})`
+                ).join('\n\n');
+                return `**Search: "${query}"**\n${results}`;
+              }
+              return '';
+            } catch (err) {
+              console.error(`Search error for "${query}":`, err);
+              return '';
+            }
+          })
+        );
+
+        webSearchContext = searchResults.filter(r => r).join('\n\n---\n\n');
+        console.log('✅ [CRON] Web search results fetched');
+      } catch (error) {
+        console.error('❌ [CRON] Web search failed:', error);
+      }
+    }
+
+    // Generate PhD-level analysis with LIVE news data
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5 with web search
+      model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5
       max_tokens: 8192,
-      thinking: {
-        type: 'enabled',
-        budget_tokens: 5000,
-      },
       system: NEWS_SUMMARY_SYSTEM_PROMPT,
       messages: [
         {
           role: 'user',
-          content: `You have access to LIVE WEB SEARCH capabilities. Use them to find the ABSOLUTE LATEST breaking news and developments from the past few hours.
+          content: `I have compiled the ABSOLUTE LATEST breaking news and web search results from the past 24 hours. Analyze this LIVE data and generate a comprehensive PhD-level intelligence report.
 
-I've provided some initial breaking news headlines below as context, but you MUST perform your own LIVE web searches to get the most current intel:
+## LIVE BREAKING NEWS (Past Few Hours)
 
 ${liveNewsContext}
 
+${webSearchContext ? `\n## REAL-TIME WEB SEARCH RESULTS (Last 24 Hours)\n\n${webSearchContext}\n` : ''}
+
 ---
 
-**YOUR TASK:** Generate a comprehensive PhD-level intelligence report with the MOST UP-TO-DATE information available.
+**YOUR TASK:** Generate a comprehensive PhD-level intelligence report covering ALL 10 sections below.
 
-**CRITICAL:** For EACH of the 10 sections below, you MUST:
-1. Perform LIVE web searches to find breaking news from the past few hours
-2. Search for specific market data, percentages, vote counts, and current prices
-3. Find the latest developments, announcements, and breaking stories
-4. Verify and cross-reference information from multiple sources
+**CRITICAL REQUIREMENTS:**
+- Use ONLY the breaking news and web search results provided above (they are from the past 24 hours)
+- Include TODAY'S DATE (${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}) in your analysis
+- Reference SPECIFIC headlines, sources, and data points from the news above
+- Include CURRENT market data, stock prices, and percentages from the breaking news
+- Write 2-4 FULL PARAGRAPHS per section (not bullet points)
 
 **SECTIONS TO COVER:**
 
-1. **Breaking News & Politics** - Search for latest political developments, votes, announcements
-2. **Markets & Financial Intelligence** - Search current stock prices, market movements, Fed news
-3. **International Affairs & Geopolitics** - Search latest global conflicts, diplomatic developments
-4. **National Security & Defense** - Search Pentagon announcements, military actions, border news
-5. **Tech & Big Tech Tyranny** - Search latest tech censorship, AI developments, policy changes
-6. **Energy & Resources** - Search current oil/gas prices, OPEC decisions, pipeline news
-7. **Christian Persecution & Religious Liberty** - Search religious freedom cases, persecution reports
-8. **Culture War & Education** - Search school board decisions, DEI policies, parental rights
-9. **China Threat Assessment** - Search CCP military actions, Taiwan news, economic warfare
-10. **Middle East & Iran** - Search Iran nuclear program, terrorism, regional conflicts
+1. **Breaking News & Politics**
+2. **Markets & Financial Intelligence**
+3. **International Affairs & Geopolitics**
+4. **National Security & Defense**
+5. **Tech & Big Tech Tyranny**
+6. **Energy & Resources**
+7. **Christian Persecution & Religious Liberty**
+8. **Culture War & Education**
+9. **China Threat Assessment**
+10. **Middle East & Iran**
 
-**WRITING REQUIREMENTS:**
-- Write 2-4 FULL PARAGRAPHS per section (not bullet points)
-- Include SPECIFIC data: percentages, dollar amounts, vote counts, stock prices, dates, times
-- Reference REAL breaking news from your web searches
-- Provide strategic analysis and implications
-- Conservative Christian perspective
-- PhD-level quality like a prestigious think tank
-
-Use your LIVE web search to ensure this is the MOST CURRENT intelligence report possible!`,
+Write in the style of a senior intelligence analyst. This must be CURRENT, RENOWNED PhD-level quality based on the LIVE news data provided above.`,
         },
       ],
     });
