@@ -168,11 +168,6 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // web search
-  const [isSearching, setIsSearching] = useState(false);
-
-  // fact checking
-  const [isFactChecking, setIsFactChecking] = useState(false);
 
   // ui refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -610,169 +605,6 @@ export default function Home() {
     }
   };
 
-  // --------- WEB SEARCH ----------
-  const handleWebSearch = async () => {
-    if (!user || isLoading || isSearching) return;
-
-    const query = prompt('🔍 Enter your search query:');
-    if (!query || !query.trim()) return;
-
-    setIsSearching(true);
-    setIsLoading(true);
-
-    try {
-      // Add user's search query to chat
-      const userMessage: Message = {
-        id: `temp-${Date.now()}`,
-        role: 'user',
-        content: `🔍 Search: ${query}`,
-        created_at: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, userMessage]);
-
-      // Call web search API
-      const response = await fetch('/api/web-search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.interpretation) {
-        // Add Claude's interpretation to chat
-        const assistantMessage: Message = {
-          id: `temp-${Date.now()}-assistant`,
-          role: 'assistant',
-          content: data.interpretation,
-          created_at: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-
-        // Save to database if we have a conversation
-        if (conversationId) {
-          await saveSearchToDatabase(query, data.interpretation);
-        }
-      } else {
-        alert(data.error || 'Search failed');
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      alert('Failed to perform web search');
-    } finally {
-      setIsSearching(false);
-      setIsLoading(false);
-    }
-  };
-
-  const saveSearchToDatabase = async (query: string, interpretation: string) => {
-    if (!conversationId || !user) return;
-
-    try {
-      // Save user search message
-      await supabase.from('messages').insert({
-        conversation_id: conversationId,
-        user_id: user.id,
-        role: 'user',
-        content: `🔍 Search: ${query}`,
-      });
-
-      // Save assistant interpretation
-      await supabase.from('messages').insert({
-        conversation_id: conversationId,
-        user_id: user.id,
-        role: 'assistant',
-        content: interpretation,
-      });
-
-      // Refresh messages
-      await loadConversation(conversationId);
-    } catch (error) {
-      console.error('Error saving search to database:', error);
-    }
-  };
-
-  // --------- FACT CHECK ----------
-  const handleFactCheck = async () => {
-    if (!user || isLoading || isFactChecking) return;
-
-    const claim = prompt('✅ Enter a claim to fact-check:');
-    if (!claim || !claim.trim()) return;
-
-    setIsFactChecking(true);
-    setIsLoading(true);
-
-    try {
-      // Add user's fact-check request to chat
-      const userMessage: Message = {
-        id: `temp-${Date.now()}`,
-        role: 'user',
-        content: `✅ Fact-Check: ${claim}`,
-        created_at: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, userMessage]);
-
-      // Call fact-check API (Perplexity + Christian filter)
-      const response = await fetch('/api/fact-check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ claim }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.analysis) {
-        // Add analysis to chat
-        const assistantMessage: Message = {
-          id: `temp-${Date.now()}-assistant`,
-          role: 'assistant',
-          content: data.analysis,
-          created_at: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, assistantMessage]);
-
-        // Save to database if we have a conversation
-        if (conversationId) {
-          await saveFactCheckToDatabase(claim, data.analysis);
-        }
-      } else {
-        alert(data.error || 'Fact-check failed');
-      }
-    } catch (error) {
-      console.error('Fact-check error:', error);
-      alert('Failed to perform fact-check');
-    } finally {
-      setIsFactChecking(false);
-      setIsLoading(false);
-    }
-  };
-
-  const saveFactCheckToDatabase = async (claim: string, analysis: string) => {
-    if (!conversationId || !user) return;
-
-    try {
-      // Save user fact-check request
-      await supabase.from('messages').insert({
-        conversation_id: conversationId,
-        user_id: user.id,
-        role: 'user',
-        content: `✅ Fact-Check: ${claim}`,
-      });
-
-      // Save assistant analysis
-      await supabase.from('messages').insert({
-        conversation_id: conversationId,
-        user_id: user.id,
-        role: 'assistant',
-        content: analysis,
-      });
-
-      // Refresh messages
-      await loadConversation(conversationId);
-    } catch (error) {
-      console.error('Error saving fact-check to database:', error);
-    }
-  };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setLocalInput(e.target.value);
@@ -930,6 +762,29 @@ export default function Home() {
     setLocalInput('');
     clearAttachmentState();
 
+    // ============================================
+    // 🎯 INTELLIGENT INTENT DETECTION
+    // ============================================
+    // Detect if user wants web search or fact-checking
+    const lowerText = textInput.toLowerCase();
+
+    // Web Search Intent Patterns
+    const searchPatterns = [
+      /\b(search|google|look up|find|what'?s happening|latest news|current|recent|today'?s)\b/i,
+      /\b(who is|what is|where is|when did|how did)\b.*\b(now|today|currently|recently|latest)\b/i,
+      /\b(news about|updates on|information on)\b/i
+    ];
+
+    // Fact-Check Intent Patterns
+    const factCheckPatterns = [
+      /\b(fact.?check|verify|is (it|this) true|check if|validate)\b/i,
+      /\b(true or false|real or fake|debunk|hoax)\b/i,
+      /\b(did .+ really|is it accurate|confirm)\b/i
+    ];
+
+    const isSearchIntent = searchPatterns.some(pattern => pattern.test(lowerText));
+    const isFactCheckIntent = factCheckPatterns.some(pattern => pattern.test(lowerText));
+
     // persist user message with user_id
     const { error: insertUserErr } = await supabase.from('messages').insert({
       user_id: user.id,                    // ✅ include user_id
@@ -949,30 +804,78 @@ export default function Home() {
     }
 
     try {
-      // call your chat API
-      let response: Response;
-      if (hasFile) {
-        const formData = new FormData();
-        formData.append('message', textInput);
-        formData.append('file', uploadedFile as File);
-        formData.append('toolType', activeTool);
-        response = await fetch('/api/chat', { method: 'POST', body: formData });
-      } else {
-        response = await fetch('/api/chat', {
+      let assistantText = '';
+
+      // ============================================
+      // 🌐 ROUTE 1: WEB SEARCH (Brave + Claude)
+      // ============================================
+      if (isSearchIntent && hasText) {
+        console.log('🔍 Detected search intent, routing to Brave Search API...');
+
+        const searchResponse = await fetch('/api/web-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: textInput, toolType: activeTool }),
+          body: JSON.stringify({ query: textInput }),
         });
+
+        const searchData = await searchResponse.json();
+
+        if (searchResponse.ok && searchData.interpretation) {
+          assistantText = searchData.interpretation;
+        } else {
+          throw new Error(searchData.error || 'Web search failed');
+        }
+      }
+      // ============================================
+      // ✅ ROUTE 2: FACT-CHECK (Perplexity + Christian Filter)
+      // ============================================
+      else if (isFactCheckIntent && hasText) {
+        console.log('✅ Detected fact-check intent, routing to Perplexity API...');
+
+        const factCheckResponse = await fetch('/api/fact-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ claim: textInput }),
+        });
+
+        const factCheckData = await factCheckResponse.json();
+
+        if (factCheckResponse.ok && factCheckData.analysis) {
+          assistantText = factCheckData.analysis;
+        } else {
+          throw new Error(factCheckData.error || 'Fact-check failed');
+        }
+      }
+      // ============================================
+      // 💬 ROUTE 3: NORMAL CHAT (Claude Haiku)
+      // ============================================
+      else {
+        let response: Response;
+        if (hasFile) {
+          const formData = new FormData();
+          formData.append('message', textInput);
+          formData.append('file', uploadedFile as File);
+          formData.append('toolType', activeTool);
+          response = await fetch('/api/chat', { method: 'POST', body: formData });
+        } else {
+          response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: textInput, toolType: activeTool }),
+          });
+        }
+
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || 'Error from /api/chat');
+        }
+
+        assistantText = data.reply ?? '';
       }
 
-      const data = await response.json();
-      if (!response.ok || !data.ok) {
-        throw new Error(data.error || 'Error from /api/chat');
-      }
-
-      const assistantText: string = data.reply ?? '';
-
-      // show assistant reply
+      // ============================================
+      // 💾 SHOW & SAVE ASSISTANT REPLY
+      // ============================================
       const assistantMessage: Message = {
         id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
         role: 'assistant',
@@ -1746,32 +1649,6 @@ export default function Home() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* web search button */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={isLoading || isSearching}
-                onClick={handleWebSearch}
-                className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400"
-                title="Search the web"
-              >
-                {isSearching ? <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} /> : <Search className="h-5 w-5" strokeWidth={2} />}
-              </Button>
-
-              {/* fact check button */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={isLoading || isFactChecking}
-                onClick={handleFactCheck}
-                className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-400"
-                title="Fact-check a claim"
-              >
-                {isFactChecking ? <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} /> : <CheckCircle className="h-5 w-5" strokeWidth={2} />}
-              </Button>
 
               {/* mic + text + send */}
               <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">

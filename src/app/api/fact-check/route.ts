@@ -91,9 +91,9 @@ Be thorough and objective.`,
 
     console.log('✅ Perplexity fact-check complete, applying Christian filter...');
 
-    // Run through Claude with Christian worldview filter
+    // Run through Claude Haiku with Christian worldview filter
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 4096,
       system: `You are a Christian conservative AI assistant that analyzes fact-checks through a biblical worldview lens.
 
