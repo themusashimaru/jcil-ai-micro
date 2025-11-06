@@ -234,42 +234,56 @@ export async function GET(request: NextRequest) {
       .filter((text) => text)
       .join('\n\n---\n\n');
 
-    // Generate PhD-level analysis with LIVE news data
+    // Generate PhD-level analysis with LIVE web searches
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5
+      model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5 with web search
       max_tokens: 8192,
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 5000,
+      },
       system: NEWS_SUMMARY_SYSTEM_PROMPT,
       messages: [
         {
           role: 'user',
-          content: `I have fetched the LATEST BREAKING NEWS from the past few hours across all major categories. Your task is to analyze this LIVE data and generate a comprehensive PhD-level intelligence report.
+          content: `You have access to LIVE WEB SEARCH capabilities. Use them to find the ABSOLUTE LATEST breaking news and developments from the past few hours.
+
+I've provided some initial breaking news headlines below as context, but you MUST perform your own LIVE web searches to get the most current intel:
 
 ${liveNewsContext}
 
 ---
 
-Based on the LIVE breaking news above, generate a comprehensive PhD-level intelligence report covering:
+**YOUR TASK:** Generate a comprehensive PhD-level intelligence report with the MOST UP-TO-DATE information available.
 
-1. **Breaking News & Politics** - Analyze recent developments
-2. **Markets & Financial Intelligence** - Current market movements and analysis
-3. **International Affairs & Geopolitics** - Latest global developments
-4. **National Security & Defense** - Recent security and military news
-5. **Tech & Big Tech Tyranny** - Latest tech and censorship news
-6. **Energy & Resources** - Current energy market developments
-7. **Christian Persecution & Religious Liberty** - Latest religious freedom issues
-8. **Culture War & Education** - Recent cultural and education battles
-9. **China Threat Assessment** - Latest CCP activities
-10. **Middle East & Iran** - Recent Middle East developments
+**CRITICAL:** For EACH of the 10 sections below, you MUST:
+1. Perform LIVE web searches to find breaking news from the past few hours
+2. Search for specific market data, percentages, vote counts, and current prices
+3. Find the latest developments, announcements, and breaking stories
+4. Verify and cross-reference information from multiple sources
 
-For each section:
-- Write 2-4 FULL PARAGRAPHS (not bullet points)
-- Reference specific headlines from the breaking news above
-- Include analysis, implications, and strategic insights
-- Use specific data points, percentages, and names
-- Connect events to broader patterns
-- Provide conservative Christian perspective
+**SECTIONS TO COVER:**
 
-Write in the style of a senior intelligence analyst at a prestigious think tank. This must be RENOWNED, PhD-level quality using REAL breaking news from the past few hours.`,
+1. **Breaking News & Politics** - Search for latest political developments, votes, announcements
+2. **Markets & Financial Intelligence** - Search current stock prices, market movements, Fed news
+3. **International Affairs & Geopolitics** - Search latest global conflicts, diplomatic developments
+4. **National Security & Defense** - Search Pentagon announcements, military actions, border news
+5. **Tech & Big Tech Tyranny** - Search latest tech censorship, AI developments, policy changes
+6. **Energy & Resources** - Search current oil/gas prices, OPEC decisions, pipeline news
+7. **Christian Persecution & Religious Liberty** - Search religious freedom cases, persecution reports
+8. **Culture War & Education** - Search school board decisions, DEI policies, parental rights
+9. **China Threat Assessment** - Search CCP military actions, Taiwan news, economic warfare
+10. **Middle East & Iran** - Search Iran nuclear program, terrorism, regional conflicts
+
+**WRITING REQUIREMENTS:**
+- Write 2-4 FULL PARAGRAPHS per section (not bullet points)
+- Include SPECIFIC data: percentages, dollar amounts, vote counts, stock prices, dates, times
+- Reference REAL breaking news from your web searches
+- Provide strategic analysis and implications
+- Conservative Christian perspective
+- PhD-level quality like a prestigious think tank
+
+Use your LIVE web search to ensure this is the MOST CURRENT intelligence report possible!`,
         },
       ],
     });
