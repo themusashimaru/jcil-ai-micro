@@ -41,6 +41,7 @@ import {
   Menu,
   Send,
   Search,
+  Share2,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -417,6 +418,26 @@ export default function Home() {
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'JCIL.AI Slingshot 2.0',
+      text: 'Check out Slingshot 2.0 - A Christian Conservative AI assistant powered by Claude',
+      url: window.location.origin,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('Share cancelled or failed:', err);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.origin);
+      alert('Link copied to clipboard!');
+    }
   };
 
   const handleCopy = useCallback((id: string, content: string) => {
@@ -911,6 +932,16 @@ export default function Home() {
             )}
           </Button>
 
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
+            onClick={handleShare}
+            disabled={isLoading}
+          >
+            <Share2 className="h-5 w-5 mr-2" strokeWidth={2} />
+            <span className="text-sm font-medium">Share App</span>
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -1109,6 +1140,29 @@ export default function Home() {
             onSubmit={handleFormSubmit}
             className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
           >
+            {/* Spiritual Tools - Cool Buttons Above Input */}
+            <div className="mb-3 sm:mb-4 flex flex-wrap gap-2 sm:gap-3">
+              <Button
+                type="button"
+                onClick={() => router.push('/devotional')}
+                disabled={isLoading}
+                className="flex-1 min-w-[140px] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200 py-2 sm:py-3"
+              >
+                <span className="text-xs sm:text-sm">📖 Daily Devotional</span>
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setActiveTool('deep-bible-research');
+                  handleNewChat();
+                }}
+                disabled={isLoading}
+                className="flex-1 min-w-[140px] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200 py-2 sm:py-3"
+              >
+                <span className="text-xs sm:text-sm">📚 Bible Research</span>
+              </Button>
+            </div>
+
             {attachedFileName && (
               <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
                 <div className="flex items-center gap-2 truncate">
@@ -1352,6 +1406,12 @@ export default function Home() {
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Coding Assistant {renderCheck('coding-assistant')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleToolSelection('deep-bible-research')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Deep Bible Research {renderCheck('deep-bible-research')}
                   </DropdownMenuItem>
 
                   {/* ==================== PRACTICAL TOOLS ==================== */}
