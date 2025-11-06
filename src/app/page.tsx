@@ -686,7 +686,7 @@ export default function Home() {
       });
 
       // Refresh messages
-      await fetchMessages(conversationId);
+      await loadConversation(conversationId);
     } catch (error) {
       console.error('Error saving search to database:', error);
     }
@@ -768,7 +768,7 @@ export default function Home() {
       });
 
       // Refresh messages
-      await fetchMessages(conversationId);
+      await loadConversation(conversationId);
     } catch (error) {
       console.error('Error saving fact-check to database:', error);
     }
