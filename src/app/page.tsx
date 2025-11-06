@@ -44,6 +44,7 @@ import {
   Share2,
   LogOut,
   Zap,
+  Moon,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -133,6 +134,9 @@ export default function Home() {
   const [subscriptionTier, setSubscriptionTier] = useState('free');
   const [dailyLimit, setDailyLimit] = useState(5);
   const [usageToday, setUsageToday] = useState(0);
+
+  // dim mode (subtle grey filter)
+  const [dimMode, setDimMode] = useState(false);
 
   // chat
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -305,6 +309,17 @@ export default function Home() {
 
   useEffect(() => { scrollToBottom(); }, [messages, isTyping]);
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // Load dim mode preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('dimMode');
+    if (saved === 'true') setDimMode(true);
+  }, []);
+
+  // Save dim mode preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('dimMode', String(dimMode));
+  }, [dimMode]);
 
   // Auto-resize textarea when localInput changes (for mic transcription AND typing)
   useEffect(() => {
@@ -823,7 +838,14 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
+    <div
+      className="flex h-screen bg-white overflow-hidden transition-all duration-300"
+      style={dimMode ? {
+        filter: 'brightness(0.92) contrast(0.95)',
+        backgroundColor: '#f8f8f8'
+      } : {}
+      }
+    >
       {/* mobile overlay */}
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
@@ -840,6 +862,16 @@ export default function Home() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700">Chat History</h2>
             <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-slate-100 rounded-lg"
+                onClick={() => setDimMode(!dimMode)}
+                disabled={isLoading}
+                title={dimMode ? "Disable Dim Mode" : "Enable Dim Mode"}
+              >
+                <Moon className={`h-5 w-5 ${dimMode ? 'text-slate-900' : 'text-slate-500'}`} strokeWidth={2} />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -1147,7 +1179,7 @@ export default function Home() {
             {isLoading && messages.length === 0 ? (
               <div className="text-center text-slate-500 text-sm">Loading messages...</div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full space-y-6">
+              <div className="flex flex-col items-center justify-center h-full space-y-6 -mt-12 sm:-mt-8">
                 <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center">
                   <img
                     src="/jcil-ai-logo.png"
@@ -1167,7 +1199,7 @@ export default function Home() {
                     }}
                   />
                 </div>
-                <h2 className="text-lg sm:text-xl font-semibold text-blue-900">slingshot 2.0</h2>
+                <h2 className="text-lg sm:text-xl font-semibold text-blue-900">Slingshot 2.0</h2>
                 <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
                   {getTimeBasedGreeting()}
                 </p>
@@ -1304,10 +1336,10 @@ export default function Home() {
                     variant="ghost"
                     size="icon"
                     disabled={isLoading}
-                    className={`hover:bg-slate-100 rounded-lg h-9 w-9 sm:h-10 sm:w-10 ${fileButtonFlash ? 'bg-slate-200' : ''}`}
+                    className={`hover:bg-slate-100 rounded-lg h-10 w-10 sm:h-11 sm:w-11 ${fileButtonFlash ? 'bg-slate-200' : ''}`}
                     title="Attach file or take photo"
                   >
-                    <Paperclip className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700" strokeWidth={2} />
+                    <Paperclip className="h-5 w-5 text-slate-700" strokeWidth={2} />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -1338,11 +1370,11 @@ export default function Home() {
                     variant="ghost"
                     size="icon"
                     disabled={isLoading}
-                    className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 ${toolButtonFlash ? 'ring-2 ring-slate-200' : ''}`}
+                    className={`h-10 w-10 sm:h-11 sm:w-11 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 ${toolButtonFlash ? 'ring-2 ring-slate-200' : ''}`}
                     title="Pick a tool"
                     onClick={handleToolButtonClick}
                   >
-                    <Wrench className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2} />
+                    <Wrench className="h-5 w-5" strokeWidth={2} />
                   </Button>
                 </DropdownMenuTrigger>
 
@@ -1542,7 +1574,7 @@ export default function Home() {
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck
-                  className="flex-1 resize-none min-h-[40px] sm:min-h-[44px] max-h-[120px] sm:max-h-[150px] text-xs sm:text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none px-3 sm:px-4 py-2.5 sm:py-3 text-slate-900"
+                  className="flex-1 resize-none min-h-[48px] sm:min-h-[52px] max-h-[140px] sm:max-h-[160px] text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none px-3 sm:px-4 py-3 sm:py-3.5 text-slate-900"
                   rows={1}
                   onKeyDown={handleTextareaKeyDown}
                 />
@@ -1553,22 +1585,22 @@ export default function Home() {
                   size="icon"
                   disabled={isLoading || isTranscribing}
                   onClick={handleMicClick}
-                  className={`h-8 w-8 mr-1 ${
+                  className={`h-9 w-9 sm:h-10 sm:w-10 mr-1 ${
                     isRecording
                       ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
                       : 'hover:bg-slate-100 text-slate-700'
                   } rounded-lg`}
                   title={isRecording ? 'Stop recording' : 'Start recording'}
                 >
-                  {isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" strokeWidth={2} />}
+                  {isTranscribing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" strokeWidth={2} />}
                 </Button>
 
                 <Button
                   type="submit"
                   disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
-                  className="h-8 w-8 sm:h-9 sm:w-9 mr-1.5 bg-blue-900 hover:bg-blue-950 text-white rounded-lg flex items-center justify-center"
+                  className="h-9 w-9 sm:h-10 sm:w-10 mr-1.5 bg-blue-900 hover:bg-blue-950 text-white rounded-lg flex items-center justify-center"
                 >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> : <Send className="h-4 w-4" strokeWidth={2} />}
+                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} /> : <Send className="h-5 w-5" strokeWidth={2} />}
                 </Button>
               </div>
             </div>
