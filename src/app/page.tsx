@@ -820,12 +820,23 @@ export default function Home() {
       if (isSearchIntent && hasText) {
         console.log('🔍 Detected search intent, routing to Brave Search API...');
 
-        // Detect if this is a location-based query
+        // Detect if this is a location-based query (check first!)
         const locationPatterns = [
           /\b(nearest|closest|best|near me|around me|nearby)\b/i,
           /\b(restaurants?|barber|shops?|stores?|hotels?|places?)\s+(near|nearby|around|in)\b/i
         ];
         const isLocationQuery = locationPatterns.some(pattern => pattern.test(lowerText));
+
+        // Add temp message for web searches (non-location)
+        if (!isLocationQuery) {
+          const searchMsg: Message = {
+            id: `temp-search-${Date.now()}`,
+            role: 'assistant',
+            content: '🔍 Checking news sources and verifying information...',
+            created_at: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, searchMsg]);
+        }
 
         // Get user's location if it's a location query (with permission)
         let userLocation = null;
@@ -857,6 +868,33 @@ export default function Home() {
               longitude: position.coords.longitude
             };
             console.log('📍 Location detected:', userLocation);
+
+            // Reverse geocode to get city name
+            try {
+              const geocodeResponse = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?` +
+                `lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`
+              );
+              const geocodeData = await geocodeResponse.json();
+              const city = geocodeData.address?.city ||
+                          geocodeData.address?.town ||
+                          geocodeData.address?.village ||
+                          geocodeData.address?.county ||
+                          'your area';
+              const state = geocodeData.address?.state || '';
+              const locationName = state ? `${city}, ${state}` : city;
+
+              // Update temp message with location name
+              setMessages((prev) =>
+                prev.map(m => m.id === tempMsg.id
+                  ? {...m, content: `📍 Searching for ${textInput.toLowerCase()} near **${locationName}**...`}
+                  : m
+                )
+              );
+            } catch (geoError) {
+              console.log('Geocoding error:', geoError);
+              // Continue with coordinates only
+            }
 
             // Remove temp message
             setMessages((prev) => prev.filter(m => m.id !== tempMsg.id));
@@ -890,6 +928,9 @@ export default function Home() {
 
         const searchData = await searchResponse.json();
 
+        // Remove temp messages
+        setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-search-') && !m.id.startsWith('temp-location-')));
+
         if (searchResponse.ok && searchData.interpretation) {
           assistantText = searchData.interpretation;
         } else {
@@ -902,6 +943,15 @@ export default function Home() {
       else if (isFactCheckIntent && hasText) {
         console.log('✅ Detected fact-check intent, routing to Perplexity API...');
 
+        // Add temp message for fact-checking
+        const factCheckMsg: Message = {
+          id: `temp-factcheck-${Date.now()}`,
+          role: 'assistant',
+          content: '✅ Running claim through Perplexity and verifying sources...',
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, factCheckMsg]);
+
         const factCheckResponse = await fetch('/api/fact-check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -909,6 +959,9 @@ export default function Home() {
         });
 
         const factCheckData = await factCheckResponse.json();
+
+        // Remove temp message
+        setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-factcheck-')));
 
         if (factCheckResponse.ok && factCheckData.analysis) {
           assistantText = factCheckData.analysis;
