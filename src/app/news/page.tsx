@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { ArrowLeft, RefreshCw, Share2, Loader2, List } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Share2, Loader2, List, ChevronDown } from 'lucide-react';
 
 export default function NewsPage() {
   const router = useRouter();
@@ -115,16 +115,6 @@ export default function NewsPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowTOC(!showTOC)}
-                disabled={isLoading || sections.length === 0}
-                className="text-slate-600 hover:text-slate-900 hover:bg-slate-200"
-                title="Table of Contents"
-              >
-                <List className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
                 onClick={fetchNewsSummary}
                 disabled={isRefreshing}
                 className="text-slate-600 hover:text-slate-900 hover:bg-slate-200"
@@ -144,6 +134,26 @@ export default function NewsPage() {
               </Button>
             </div>
           </div>
+
+          {/* Navigate to Topics Button - Prominent */}
+          {!isLoading && sections.length > 0 && (
+            <div className="relative mb-4">
+              <Button
+                onClick={() => setShowTOC(!showTOC)}
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 text-base shadow-lg"
+              >
+                <List className="h-5 w-5 mr-2" />
+                {showTOC ? 'Hide Topics' : 'Navigate to Topics'}
+                <ChevronDown className={`h-5 w-5 ml-2 transition-transform ${showTOC ? 'rotate-180' : 'animate-bounce'}`} />
+              </Button>
+              {!showTOC && (
+                <div className="absolute -top-8 right-4 flex items-center gap-1 text-red-600 font-bold text-sm animate-pulse">
+                  <span>Click Here!</span>
+                  <ChevronDown className="h-4 w-4" />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Newspaper Header */}
           <div className="border-b-4 border-blue-900 pb-4 mb-6 bg-white rounded-t-lg px-6 pt-6 shadow-md">
