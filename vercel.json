@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/generate-news",
-      "schedule": "*/30 * * * *"
+      "path": "/api/cron/generate-devotional",
+      "schedule": "0 0 * * *"
     }
   ]
 }
