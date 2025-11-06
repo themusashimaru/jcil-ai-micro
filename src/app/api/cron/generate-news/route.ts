@@ -143,7 +143,7 @@ Generate a LEGENDARY intelligence report that Christians will SHARE and REFERENC
 
 /**
  * Cron endpoint - called every 30 minutes by Vercel Cron
- * Generates and caches news summary for all users
+ * Fetches LIVE breaking news and generates PhD-level analysis
  */
 export async function GET(request: NextRequest) {
   try {
@@ -156,9 +156,85 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const timestampKey = get30MinTimestampKey();
 
-    console.log('🤖 [CRON] Generating news summary for:', timestampKey);
+    console.log('🤖 [CRON] Fetching LIVE news for:', timestampKey);
 
-    // Generate new news summary with Sonnet 4.5
+    // Fetch live breaking news from NewsAPI
+    const newsApiKey = process.env.NEWS_API_KEY;
+    if (!newsApiKey) {
+      console.error('❌ NEWS_API_KEY not configured');
+      return NextResponse.json(
+        { ok: false, error: 'NewsAPI key not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Fetch breaking news for each category
+    const categories = [
+      { name: 'Politics', query: 'US politics Trump Biden Congress Supreme Court' },
+      { name: 'Markets', query: 'stock market Dow S&P NASDAQ Bitcoin Fed interest rates' },
+      { name: 'International', query: 'geopolitics international Ukraine Russia China Taiwan' },
+      { name: 'Defense', query: 'military defense Pentagon national security border' },
+      { name: 'Tech', query: 'big tech AI censorship Google Facebook Twitter' },
+      { name: 'Energy', query: 'oil gas energy OPEC petroleum pipeline' },
+      { name: 'Christian', query: 'Christian persecution religious freedom church' },
+      { name: 'Culture', query: 'woke DEI education parental rights' },
+      { name: 'China', query: 'China CCP Taiwan military expansion' },
+      { name: 'Middle East', query: 'Iran Israel Hamas terrorism Middle East' },
+    ];
+
+    console.log('📡 [CRON] Fetching live news from NewsAPI...');
+
+    const newsResults = await Promise.all(
+      categories.map(async (cat) => {
+        try {
+          const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(cat.query)}&sortBy=publishedAt&language=en&pageSize=10&apiKey=${newsApiKey}`;
+          const response = await fetch(url);
+          const data = await response.json();
+
+          if (data.status === 'ok' && data.articles) {
+            const headlines = data.articles
+              .slice(0, 10)
+              .map((article: any) => ({
+                title: article.title,
+                description: article.description,
+                source: article.source.name,
+                publishedAt: article.publishedAt,
+                url: article.url,
+              }));
+
+            return {
+              category: cat.name,
+              articles: headlines,
+            };
+          }
+          return { category: cat.name, articles: [] };
+        } catch (error) {
+          console.error(`Error fetching ${cat.name}:`, error);
+          return { category: cat.name, articles: [] };
+        }
+      })
+    );
+
+    console.log('✅ [CRON] Live news fetched, generating PhD analysis...');
+
+    // Compile news into structured format for Claude
+    const liveNewsContext = newsResults
+      .map((result) => {
+        if (result.articles.length === 0) return '';
+
+        const articleList = result.articles
+          .map(
+            (a: { title: string; description: string; source: string; publishedAt: string; url: string }, i: number) =>
+              `${i + 1}. [${a.source}] ${a.title}\n   ${a.description || 'No description'}\n   Published: ${new Date(a.publishedAt).toLocaleString()}`
+          )
+          .join('\n\n');
+
+        return `## ${result.category.toUpperCase()} - BREAKING NEWS\n\n${articleList}`;
+      })
+      .filter((text) => text)
+      .join('\n\n---\n\n');
+
+    // Generate PhD-level analysis with LIVE news data
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5
       max_tokens: 8192,
@@ -166,34 +242,34 @@ export async function GET(request: NextRequest) {
       messages: [
         {
           role: 'user',
-          content: `Generate a comprehensive PhD-level intelligence report for conservative Christians.
+          content: `I have fetched the LATEST BREAKING NEWS from the past few hours across all major categories. Your task is to analyze this LIVE data and generate a comprehensive PhD-level intelligence report.
 
-Cover the following categories with 2-4 FULL PARAGRAPHS each (NOT bullet points):
+${liveNewsContext}
 
-1. Breaking News & Politics
-2. Markets & Financial Intelligence (DETAILED stock, commodity, currency analysis)
-3. International Affairs & Geopolitics
-4. National Security & Defense
-5. Intelligence & Espionage
-6. Tech & Big Tech Tyranny
-7. Energy & Resources
-8. Christian Persecution & Religious Liberty
-9. Culture War & Education
-10. China Threat Assessment
-11. Russia & Eastern Europe
-12. Middle East & Iran
+---
 
-For MARKETS section specifically, include:
-- Major index performance (Dow, S&P, NASDAQ) with percentage changes
-- Notable individual stock movers with tickers and percentages
-- Treasury yields and Fed policy analysis
-- Commodities (oil, gold, silver) with price movements
-- Currency markets (dollar index, Bitcoin)
-- Economic data releases and their implications
+Based on the LIVE breaking news above, generate a comprehensive PhD-level intelligence report covering:
 
-Use FULL PARAGRAPHS with analytical depth. Include specific numbers, percentages, company names, and strategic analysis.
+1. **Breaking News & Politics** - Analyze recent developments
+2. **Markets & Financial Intelligence** - Current market movements and analysis
+3. **International Affairs & Geopolitics** - Latest global developments
+4. **National Security & Defense** - Recent security and military news
+5. **Tech & Big Tech Tyranny** - Latest tech and censorship news
+6. **Energy & Resources** - Current energy market developments
+7. **Christian Persecution & Religious Liberty** - Latest religious freedom issues
+8. **Culture War & Education** - Recent cultural and education battles
+9. **China Threat Assessment** - Latest CCP activities
+10. **Middle East & Iran** - Recent Middle East developments
 
-Write like a senior analyst at a prestigious think tank. This should be RENOWNED quality.`,
+For each section:
+- Write 2-4 FULL PARAGRAPHS (not bullet points)
+- Reference specific headlines from the breaking news above
+- Include analysis, implications, and strategic insights
+- Use specific data points, percentages, and names
+- Connect events to broader patterns
+- Provide conservative Christian perspective
+
+Write in the style of a senior intelligence analyst at a prestigious think tank. This must be RENOWNED, PhD-level quality using REAL breaking news from the past few hours.`,
         },
       ],
     });
@@ -229,12 +305,13 @@ Write like a senior analyst at a prestigious think tank. This should be RENOWNED
       );
     }
 
-    console.log('✅ [CRON] News summary generated and cached:', timestampKey);
+    console.log('✅ [CRON] PhD news analysis generated and cached:', timestampKey);
 
     return NextResponse.json({
       ok: true,
       timestamp: timestampKey,
-      message: 'News summary generated successfully',
+      message: 'Live news summary generated successfully',
+      articlesProcessed: newsResults.reduce((sum, r) => sum + r.articles.length, 0),
     });
   } catch (error: any) {
     console.error('❌ [CRON] News generation error:', error);
