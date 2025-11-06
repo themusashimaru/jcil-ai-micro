@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
+import ReactMarkdown from 'react-markdown';
 
 import { createClient } from '@/lib/supabase/browser';
 import { formatMessageTime } from '@/lib/format-date';
@@ -828,16 +829,51 @@ export default function Home() {
         let userLocation = null;
         if (isLocationQuery && typeof navigator !== 'undefined' && navigator.geolocation) {
           try {
+            // Show temporary message while getting location
+            const tempMsg: Message = {
+              id: `temp-location-${Date.now()}`,
+              role: 'assistant',
+              content: '📍 Requesting your location for nearby results...',
+              created_at: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, tempMsg]);
+
             const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+              navigator.geolocation.getCurrentPosition(
+                resolve,
+                reject,
+                {
+                  timeout: 10000,
+                  enableHighAccuracy: true,
+                  maximumAge: 0
+                }
+              );
             });
+
             userLocation = {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude
             };
             console.log('📍 Location detected:', userLocation);
-          } catch (error) {
-            console.log('📍 Location permission denied or unavailable');
+
+            // Remove temp message
+            setMessages((prev) => prev.filter(m => m.id !== tempMsg.id));
+          } catch (error: any) {
+            console.log('📍 Location error:', error);
+            // Remove temp message
+            setMessages((prev) => prev.filter(m => m.id.startsWith('temp-location-')));
+
+            // Add error message
+            const errorMsg: Message = {
+              id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+              role: 'assistant',
+              content: '📍 Unable to access your location. Please enable location services in your browser settings, or try including your city/address in your search.',
+              created_at: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, errorMsg]);
+            setIsLoading(false);
+            setIsTyping(false);
+            return;
           }
         }
 
@@ -1343,8 +1379,8 @@ export default function Home() {
                         {msg.content}
                       </div>
                     ) : (
-                      <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
-                        {msg.content}
+                      <div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-em:text-slate-600 prose-em:italic prose-strong:font-bold prose-strong:text-slate-900 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
                       </div>
                     )}
 
