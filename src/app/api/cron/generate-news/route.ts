@@ -224,7 +224,7 @@ export async function GET(request: NextRequest) {
 
         const articleList = result.articles
           .map(
-            (a, i) =>
+            (a: { title: string; description: string; source: string; publishedAt: string; url: string }, i: number) =>
               `${i + 1}. [${a.source}] ${a.title}\n   ${a.description || 'No description'}\n   Published: ${new Date(a.publishedAt).toLocaleString()}`
           )
           .join('\n\n');
