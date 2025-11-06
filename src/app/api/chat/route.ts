@@ -440,15 +440,15 @@ export async function POST(req: Request) {
 
   switch (userTier) {
     case 'free':
-      modelName = 'claude-haiku-4-20250514'; // Cheapest
+      modelName = 'claude-haiku-4-5-20251001'; // Fast and affordable for free tier
       break;
     case 'basic':
     case 'pro':
     case 'executive':
-      modelName = 'claude-haiku-4.5-20250514'; // Better model for paying users
+      modelName = 'claude-haiku-4-5-20251001'; // Same model, but higher daily limits
       break;
     default:
-      modelName = 'claude-haiku-4-20250514'; // Fallback to cheapest
+      modelName = 'claude-haiku-4-5-20251001'; // Fallback
   }
 
   console.log(`🤖 Using model: ${modelName} for tier: ${userTier}`);
