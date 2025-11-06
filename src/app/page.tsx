@@ -45,6 +45,7 @@ import {
   LogOut,
   Zap,
   Moon,
+  CheckCircle,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -169,6 +170,9 @@ export default function Home() {
 
   // web search
   const [isSearching, setIsSearching] = useState(false);
+
+  // fact checking
+  const [isFactChecking, setIsFactChecking] = useState(false);
 
   // ui refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -685,6 +689,88 @@ export default function Home() {
       await fetchMessages(conversationId);
     } catch (error) {
       console.error('Error saving search to database:', error);
+    }
+  };
+
+  // --------- FACT CHECK ----------
+  const handleFactCheck = async () => {
+    if (!user || isLoading || isFactChecking) return;
+
+    const claim = prompt('✅ Enter a claim to fact-check:');
+    if (!claim || !claim.trim()) return;
+
+    setIsFactChecking(true);
+    setIsLoading(true);
+
+    try {
+      // Add user's fact-check request to chat
+      const userMessage: Message = {
+        id: `temp-${Date.now()}`,
+        role: 'user',
+        content: `✅ Fact-Check: ${claim}`,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, userMessage]);
+
+      // Call fact-check API (Perplexity + Christian filter)
+      const response = await fetch('/api/fact-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ claim }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.analysis) {
+        // Add analysis to chat
+        const assistantMessage: Message = {
+          id: `temp-${Date.now()}-assistant`,
+          role: 'assistant',
+          content: data.analysis,
+          created_at: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+
+        // Save to database if we have a conversation
+        if (conversationId) {
+          await saveFactCheckToDatabase(claim, data.analysis);
+        }
+      } else {
+        alert(data.error || 'Fact-check failed');
+      }
+    } catch (error) {
+      console.error('Fact-check error:', error);
+      alert('Failed to perform fact-check');
+    } finally {
+      setIsFactChecking(false);
+      setIsLoading(false);
+    }
+  };
+
+  const saveFactCheckToDatabase = async (claim: string, analysis: string) => {
+    if (!conversationId || !user) return;
+
+    try {
+      // Save user fact-check request
+      await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        user_id: user.id,
+        role: 'user',
+        content: `✅ Fact-Check: ${claim}`,
+      });
+
+      // Save assistant analysis
+      await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        user_id: user.id,
+        role: 'assistant',
+        content: analysis,
+      });
+
+      // Refresh messages
+      await fetchMessages(conversationId);
+    } catch (error) {
+      console.error('Error saving fact-check to database:', error);
     }
   };
 
@@ -1672,6 +1758,19 @@ export default function Home() {
                 title="Search the web"
               >
                 {isSearching ? <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} /> : <Search className="h-5 w-5" strokeWidth={2} />}
+              </Button>
+
+              {/* fact check button */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={isLoading || isFactChecking}
+                onClick={handleFactCheck}
+                className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-400"
+                title="Fact-check a claim"
+              >
+                {isFactChecking ? <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} /> : <CheckCircle className="h-5 w-5" strokeWidth={2} />}
               </Button>
 
               {/* mic + text + send */}
