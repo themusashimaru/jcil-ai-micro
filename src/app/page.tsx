@@ -534,7 +534,7 @@ export default function Home() {
 
   const removeAttachedFile = () => { clearAttachmentState(); };
 
-  // --------- AUDIO (unchanged behavior: manual send after transcript) ----------
+  // --------- AUDIO (auto-send after transcription) ----------
   const handleTranscribe = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     const formData = new FormData();
@@ -544,15 +544,23 @@ export default function Home() {
       const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
       const data = await response.json();
       if (response.ok) {
-        setLocalInput((prev) => (prev + ' ' + data.text).trim());
-        // useEffect will handle textarea resize automatically
+        const transcribedText = (localInput + ' ' + data.text).trim();
+        setLocalInput(transcribedText);
+        // Auto-submit after transcription completes
+        setIsTranscribing(false);
+        audioChunksRef.current = [];
+        // Small delay to ensure state updates, then auto-submit
+        setTimeout(() => {
+          handleFormSubmit();
+        }, 100);
       } else {
         alert(`Transcription failed: ${data.error || 'Unknown error'}`);
+        setIsTranscribing(false);
+        audioChunksRef.current = [];
       }
     } catch (error) {
       console.error('Error transcribing audio:', error);
       alert('Failed to transcribe audio.');
-    } finally {
       setIsTranscribing(false);
       audioChunksRef.current = [];
     }
@@ -841,8 +849,8 @@ export default function Home() {
     <div
       className="flex h-screen bg-white overflow-hidden transition-all duration-300"
       style={dimMode ? {
-        filter: 'brightness(0.92) contrast(0.95)',
-        backgroundColor: '#f8f8f8'
+        filter: 'brightness(0.88) contrast(0.93)',
+        backgroundColor: '#f5f5f5'
       } : {}
       }
     >
@@ -862,16 +870,6 @@ export default function Home() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700">Chat History</h2>
             <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hover:bg-slate-100 rounded-lg"
-                onClick={() => setDimMode(!dimMode)}
-                disabled={isLoading}
-                title={dimMode ? "Disable Dim Mode" : "Enable Dim Mode"}
-              >
-                <Moon className={`h-5 w-5 ${dimMode ? 'text-slate-900' : 'text-slate-500'}`} strokeWidth={2} />
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -1135,9 +1133,19 @@ export default function Home() {
                 >
                   <Menu className="h-6 w-6 text-slate-700" strokeWidth={2} />
                 </Button>
+                {/* Dim Mode Button - visible on all screens */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-slate-100 rounded-lg"
+                  onClick={() => setDimMode(!dimMode)}
+                  disabled={isLoading}
+                  title={dimMode ? "Disable Dim Mode" : "Enable Dim Mode"}
+                >
+                  <Moon className={`h-5 w-5 ${dimMode ? 'text-slate-900' : 'text-slate-500'}`} strokeWidth={2} />
+                </Button>
                 {/* Desktop spacer to balance right side buttons */}
                 <div className="hidden lg:flex items-center gap-2">
-                  <div className="w-10 h-10" />
                   <div className="w-10 h-10" />
                 </div>
               </div>
@@ -1202,6 +1210,9 @@ export default function Home() {
                 <h2 className="text-lg sm:text-xl font-semibold text-blue-900">Slingshot 2.0</h2>
                 <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
                   {getTimeBasedGreeting()}
+                </p>
+                <p className="text-blue-600 text-xs italic font-medium mt-2">
+                  ✨ Chat memory enabled - I remember our conversations
                 </p>
               </div>
             ) : (
