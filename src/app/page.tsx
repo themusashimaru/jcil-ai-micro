@@ -1164,31 +1164,31 @@ export default function Home() {
             onSubmit={handleFormSubmit}
             className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
           >
-            {/* Spiritual Tools - Clean Buttons Above Input */}
-            <div className="mb-3 sm:mb-4 flex flex-wrap gap-2 sm:gap-3">
+            {/* Spiritual Tools - Modern Sharp Buttons */}
+            <div className="mb-4 sm:mb-5 flex flex-wrap gap-3">
               <Button
                 type="button"
                 onClick={() => router.push('/devotional')}
                 disabled={isLoading}
-                className="flex-1 min-w-[140px] bg-blue-900 hover:bg-blue-950 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
+                className="flex-1 min-w-[140px] h-12 bg-blue-900 hover:bg-blue-950 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <span className="text-xs sm:text-sm">DAILY DEVOTIONAL</span>
+                <span className="text-sm tracking-wide">DAILY DEVOTIONAL</span>
               </Button>
               <Button
                 type="button"
                 onClick={() => handleToolSelection('deep-bible-research')}
                 disabled={isLoading}
-                className="flex-1 min-w-[140px] bg-blue-900 hover:bg-blue-950 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
+                className="flex-1 min-w-[140px] h-12 bg-blue-900 hover:bg-blue-950 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <span className="text-xs sm:text-sm">BIBLE RESEARCH</span>
+                <span className="text-sm tracking-wide">BIBLE RESEARCH</span>
               </Button>
               <Button
                 type="button"
                 onClick={() => router.push('/news')}
                 disabled={isLoading}
-                className="flex-1 min-w-[140px] bg-blue-900 hover:bg-blue-950 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
+                className="flex-1 min-w-[140px] h-12 bg-blue-900 hover:bg-blue-950 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
               >
-                <span className="text-xs sm:text-sm">NEWS SUMMARY</span>
+                <span className="text-sm tracking-wide">NEWS SUMMARY</span>
               </Button>
             </div>
 
