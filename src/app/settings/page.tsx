@@ -125,14 +125,14 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen bg-slate-50 py-12 px-4">
+      <div className="max-w-3xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-start justify-between mb-2">
+          <div className="space-y-3">
             <Link
               href="/"
-              className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-2"
+              className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back to Chat
@@ -142,7 +142,7 @@ export default function SettingsPage() {
           <Button
             onClick={handleSignOut}
             variant="outline"
-            className="border-slate-300 hover:bg-slate-100"
+            className="border-slate-300 hover:bg-slate-100 mt-8"
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out
@@ -152,11 +152,11 @@ export default function SettingsPage() {
         {/* Account Info Card */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-slate-900">
               <User className="h-5 w-5" />
               Account Information
             </CardTitle>
-            <CardDescription>Your account details</CardDescription>
+            <CardDescription className="text-slate-600">Your account details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -188,11 +188,11 @@ export default function SettingsPage() {
         {user?.app_metadata?.provider === 'email' && (
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-slate-900">
                 <Key className="h-5 w-5" />
                 Change Password
               </CardTitle>
-              <CardDescription>Update your password to keep your account secure</CardDescription>
+              <CardDescription className="text-slate-600">Update your password to keep your account secure</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleChangePassword} className="space-y-4">
@@ -298,7 +298,7 @@ export default function SettingsPage() {
               <AlertTriangle className="h-5 w-5" />
               Danger Zone
             </CardTitle>
-            <CardDescription>Permanently delete your account and all data</CardDescription>
+            <CardDescription className="text-slate-600">Permanently delete your account and all data</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {!showDeleteConfirm ? (
