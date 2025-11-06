@@ -96,9 +96,9 @@ export default function InstallPrompt() {
         <div className="flex items-start gap-3">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <img 
-              src="/jcil-ai-logo.png" 
-              alt="JCIL.AI" 
+            <img
+              src="/jcil-ai-logo.png"
+              alt="Slingshot"
               className="w-12 h-12 rounded-lg object-contain"
               onError={(e) => {
                 // Fallback if logo doesn't load
@@ -111,10 +111,10 @@ export default function InstallPrompt() {
           {/* Content */}
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-slate-900 text-sm mb-1">
-              Add JCIL.AI to Home Screen
+              Add Slingshot to Home Screen
             </h3>
             <p className="text-xs text-slate-600 mb-3">
-              Install our app for quick access and a better experience!
+              Install Slingshot for quick access and a better experience!
             </p>
 
             {/* Buttons */}
