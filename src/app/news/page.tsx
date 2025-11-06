@@ -92,7 +92,10 @@ export default function NewsPage() {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Scroll to element with offset for perfect alignment
+      const yOffset = -20; // 20px from top for perfect visibility
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
       setShowTOC(false);
     }
   };
@@ -137,21 +140,14 @@ export default function NewsPage() {
 
           {/* Navigate to Topics Button - Prominent */}
           {!isLoading && sections.length > 0 && (
-            <div className="relative mb-4">
+            <div className="mb-4">
               <Button
                 onClick={() => setShowTOC(!showTOC)}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 text-base shadow-lg"
+                className="w-full bg-[#001f3f] hover:bg-[#001a35] text-white font-bold py-4 text-base shadow-lg"
               >
                 <List className="h-5 w-5 mr-2" />
                 {showTOC ? 'Hide Topics' : 'Navigate to Topics'}
-                <ChevronDown className={`h-5 w-5 ml-2 transition-transform ${showTOC ? 'rotate-180' : 'animate-bounce'}`} />
               </Button>
-              {!showTOC && (
-                <div className="absolute -top-8 right-4 flex items-center gap-1 text-red-600 font-bold text-sm animate-pulse">
-                  <span>Click Here!</span>
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-              )}
             </div>
           )}
 
@@ -175,9 +171,9 @@ export default function NewsPage() {
 
           {/* Table of Contents */}
           {showTOC && sections.length > 0 && (
-            <Card className="mb-6 shadow-lg border-blue-200 bg-blue-50">
+            <Card className="mb-6 shadow-lg border-slate-300 bg-slate-100">
               <CardContent className="p-4 sm:p-6">
-                <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                   <List className="h-5 w-5" />
                   Jump to Section
                 </h3>
@@ -186,7 +182,7 @@ export default function NewsPage() {
                     <button
                       key={section.id}
                       onClick={() => scrollToSection(section.id)}
-                      className="text-left px-4 py-2 bg-white hover:bg-blue-100 rounded-lg text-sm font-medium text-slate-700 hover:text-blue-900 transition-colors border border-blue-200 hover:border-blue-400"
+                      className="text-left px-4 py-3 bg-[#001f3f] hover:bg-[#001a35] rounded-lg text-sm font-bold text-white transition-colors shadow-md"
                     >
                       {section.title}
                     </button>
