@@ -7,6 +7,43 @@ import { createClient } from "@/lib/supabase/server";
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ============================================
+// ⚡ RATE LIMITING
+// ============================================
+// In-memory rate limiter: 40 messages per minute per user
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT_MAX = 40; // Max requests per minute
+const RATE_LIMIT_WINDOW = 60 * 1000; // 60 seconds in milliseconds
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const userRequests = rateLimitMap.get(userId) || [];
+
+  // Filter out requests older than 1 minute
+  const recentRequests = userRequests.filter(timestamp => now - timestamp < RATE_LIMIT_WINDOW);
+
+  // Check if user has exceeded rate limit
+  if (recentRequests.length >= RATE_LIMIT_MAX) {
+    return false; // Rate limit exceeded
+  }
+
+  // Add current request timestamp
+  recentRequests.push(now);
+  rateLimitMap.set(userId, recentRequests);
+
+  // Cleanup: Remove entries older than 2 minutes to prevent memory leaks
+  if (rateLimitMap.size > 1000) { // Safety check
+    for (const [uid, timestamps] of rateLimitMap.entries()) {
+      const validTimestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW * 2);
+      if (validTimestamps.length === 0) {
+        rateLimitMap.delete(uid);
+      }
+    }
+  }
+
+  return true; // Within rate limit
+}
+
 /**
  * == System Prompt for Slingshot 2.0 (JCIL.AI) ==
  * Robust Christian Conservative AI with security protections against prompt injection.
@@ -154,6 +191,26 @@ export async function POST(req: Request) {
     return new Response(
       JSON.stringify({ ok: false, error: "Authentication required" }),
       { status: 401, headers: { "content-type": "application/json" } }
+    );
+  }
+
+  // ============================================
+  // ⚡ CHECK RATE LIMIT
+  // ============================================
+  if (!checkRateLimit(userId)) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "Rate limit exceeded. Please wait a moment before sending another message. (Limit: 40 messages per minute)",
+        rateLimit: true
+      }),
+      {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "Retry-After": "60" // Suggest retry after 60 seconds
+        }
+      }
     );
   }
 
