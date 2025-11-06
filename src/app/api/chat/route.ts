@@ -275,9 +275,17 @@ export async function POST(req: Request) {
   
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514", // 🔥 Claude Haiku 4.5 - FAST & CHEAP
+      model: "claude-sonnet-4-20250514", // 🔥 Claude Sonnet 4 - FAST & SMART
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      // 💰 PROMPT CACHING - Saves up to 90% on API costs!
+      // Cache the system prompt since it never changes
+      system: [
+        {
+          type: "text",
+          text: SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" }
+        }
+      ],
       messages: claudeMessages,
     });
 
