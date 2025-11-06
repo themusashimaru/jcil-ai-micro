@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
+import { getToolSystemPrompt, type ToolType } from "@/lib/tools-config";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -218,16 +219,18 @@ export async function POST(req: Request) {
   let message = "";
   let history: Array<{ role: "user" | "assistant"; content: string }> = [];
   let imageFile: File | null = null;
+  let toolType: ToolType = 'none';
 
   // Handle multipart (file upload) OR JSON
   const contentType = req.headers.get("content-type") || "";
-  
+
   if (contentType.includes("multipart/form-data")) {
     const form = await req.formData();
     message = String(form.get("message") || "");
     history = JSON.parse(String(form.get("history") || "[]"));
     conversationId = String(form.get("conversationId") || "") || null;
-    
+    toolType = (String(form.get("toolType") || "none")) as ToolType;
+
     // Get the uploaded file
     const file = form.get("file");
     if (file && typeof file !== "string") {
@@ -238,6 +241,7 @@ export async function POST(req: Request) {
     message = body.message || "";
     history = body.history || [];
     conversationId = body.conversationId || null;
+    toolType = (body.toolType || 'none') as ToolType;
   }
 
   // ============================================
@@ -367,9 +371,15 @@ export async function POST(req: Request) {
   // ============================================
   // 🤖 CALL CLAUDE HAIKU 4.5
   // ============================================
-  
+
+  // Combine main system prompt with tool-specific prompt
+  const toolPrompt = getToolSystemPrompt(toolType);
+  const combinedSystemPrompt = toolPrompt
+    ? `${SYSTEM_PROMPT}\n\n# 🛠️ SPECIALIZED TOOL MODE\n\n${toolPrompt}`
+    : SYSTEM_PROMPT;
+
   let reply = "";
-  
+
   try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514", // 🔥 Claude Sonnet 4 - FAST & SMART
@@ -379,7 +389,7 @@ export async function POST(req: Request) {
       system: [
         {
           type: "text",
-          text: SYSTEM_PROMPT,
+          text: combinedSystemPrompt,
           cache_control: { type: "ephemeral" }
         }
       ],

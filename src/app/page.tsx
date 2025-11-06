@@ -7,6 +7,7 @@ import { type User as SupabaseUser } from '@supabase/supabase-js';
 
 import { createClient } from '@/lib/supabase/browser';
 import { formatMessageTime } from '@/lib/format-date';
+import { type ToolType, TOOLS_CONFIG, getToolsByCategory } from '@/lib/tools-config';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,8 +65,6 @@ interface Conversation {
   title?: string | null;
   user_id?: string;
 }
-
-type ActiveTool = 'none' | 'textMessageTool' | 'emailWriter' | 'recipeExtractor';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -145,7 +144,7 @@ export default function Home() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   // tools / files
-  const [activeTool, setActiveTool] = useState<ActiveTool>('none');
+  const [activeTool, setActiveTool] = useState<ToolType>('none');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
@@ -190,14 +189,12 @@ export default function Home() {
     return 'How can I help you this evening?';
   };
 
-  const renderCheck = (tool: ActiveTool) =>
+  const renderCheck = (tool: ToolType) =>
     activeTool === tool ? <Check className="ml-auto h-4 w-4" strokeWidth={2} /> : null;
 
-  const toolLabel = (tool: ActiveTool) => {
-    if (tool === 'textMessageTool') return 'Text Message Tool';
-    if (tool === 'emailWriter') return 'Email Writer';
-    if (tool === 'recipeExtractor') return 'Ingredient Extractor';
-    return 'Plain Chat';
+  const toolLabel = () => {
+    const tool = TOOLS_CONFIG[activeTool];
+    return tool?.name || 'Plain Chat';
   };
 
   const getPlaceholderText = () => {
@@ -205,9 +202,10 @@ export default function Home() {
     if (isLoading) return 'AI is thinking...';
     if (isRecording) return 'Begin speaking…';
     if (attachedFileName) return 'Describe the file or add text...';
-    if (activeTool === 'textMessageTool') return 'Using Text Message Tool...';
-    if (activeTool === 'emailWriter') return 'Using Email Writer...';
-    if (activeTool === 'recipeExtractor') return 'Using Ingredient Extractor...';
+    if (activeTool !== 'none') {
+      const tool = TOOLS_CONFIG[activeTool];
+      return `Using ${tool?.name || 'tool'}...`;
+    }
     return 'Type your message...';
   };
 
@@ -640,12 +638,13 @@ export default function Home() {
         const formData = new FormData();
         formData.append('message', textInput);
         formData.append('file', uploadedFile as File);
+        formData.append('toolType', activeTool);
         response = await fetch('/api/chat', { method: 'POST', body: formData });
       } else {
         response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: textInput }),
+          body: JSON.stringify({ message: textInput, toolType: activeTool }),
         });
       }
 
@@ -949,7 +948,7 @@ export default function Home() {
               </Button>
               <div className="flex-1 text-center">
                 <CardTitle className="text-lg sm:text-xl font-semibold text-blue-900">New Chat</CardTitle>
-                <div className="text-xs text-slate-500 mt-1">{toolLabel(activeTool)}</div>
+                <div className="text-xs text-slate-500 mt-1">{toolLabel()}</div>
               </div>
               <div className="w-10 lg:hidden" />
             </div>
@@ -1134,10 +1133,10 @@ export default function Home() {
                 <DropdownMenuContent
                   side="top"
                   align="start"
-                  className="min-w-[260px] bg-white border border-slate-200 shadow-lg rounded-xl p-1"
+                  className="min-w-[280px] max-h-[500px] overflow-y-auto bg-white border border-slate-200 shadow-lg rounded-xl p-1"
                 >
                   <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
-                    Pick a Tool
+                    🛠️ AI Tools
                   </DropdownMenuLabel>
 
                   <DropdownMenuItem
@@ -1147,55 +1146,165 @@ export default function Home() {
                     Plain Chat {renderCheck('none')}
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem
-                    onClick={() => setActiveTool('textMessageTool')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
-                  >
-                    Text Message Tool {renderCheck('textMessageTool')}
-                  </DropdownMenuItem>
-
+                  {/* ==================== WRITING TOOLS ==================== */}
                   <DropdownMenuSeparator className="my-1 bg-slate-200" />
                   <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
-                    Email Writer
+                    📝 Writing Tools
+                  </DropdownMenuLabel>
+
+                  {/* Email Writer */}
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('email-high-school')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email · High School {renderCheck('email-high-school')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('email-bachelors')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email · Bachelor's {renderCheck('email-bachelors')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('email-masters')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email · Master's {renderCheck('email-masters')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('email-executive')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email · Executive {renderCheck('email-executive')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('email-phd')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Email · PhD {renderCheck('email-phd')}
+                  </DropdownMenuItem>
+
+                  {/* Essay Writer */}
+                  <div className="h-1"></div>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('essay-high-school')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Essay · High School {renderCheck('essay-high-school')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('essay-bachelors')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Essay · Bachelor's {renderCheck('essay-bachelors')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('essay-masters')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Essay · Master's {renderCheck('essay-masters')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('essay-executive')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Essay · Executive {renderCheck('essay-executive')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('essay-phd')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Essay · PhD {renderCheck('essay-phd')}
+                  </DropdownMenuItem>
+
+                  {/* Text Message Writer */}
+                  <div className="h-1"></div>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('text-message-casual')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Text Message · Casual {renderCheck('text-message-casual')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('text-message-professional')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Text Message · Professional {renderCheck('text-message-professional')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('text-message-formal')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Text Message · Formal {renderCheck('text-message-formal')}
+                  </DropdownMenuItem>
+
+                  {/* ==================== PROFESSIONAL TOOLS ==================== */}
+                  <DropdownMenuSeparator className="my-1 bg-slate-200" />
+                  <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
+                    💼 Professional
                   </DropdownMenuLabel>
 
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('emailWriter')}
+                    onClick={() => setActiveTool('resume-writer')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · High School
+                    Resume Writer (ATS) {renderCheck('resume-writer')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('emailWriter')}
+                    onClick={() => setActiveTool('document-summary')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Bachelor
+                    Document Summary {renderCheck('document-summary')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('emailWriter')}
+                    onClick={() => setActiveTool('data-analysis')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Skilled Trade
+                    Data Analysis {renderCheck('data-analysis')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('emailWriter')}
+                    onClick={() => setActiveTool('business-strategy')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Email Writer · Master's
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setActiveTool('emailWriter')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
-                  >
-                    Email Writer · PhD
+                    Business Strategy {renderCheck('business-strategy')}
                   </DropdownMenuItem>
 
+                  {/* ==================== AI ASSISTANTS ==================== */}
                   <DropdownMenuSeparator className="my-1 bg-slate-200" />
+                  <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
+                    🤖 AI Assistants
+                  </DropdownMenuLabel>
+
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('recipeExtractor')}
+                    onClick={() => setActiveTool('apologetics-helper')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
-                    Ingredient Extractor {renderCheck('recipeExtractor')}
+                    Apologetics Helper {renderCheck('apologetics-helper')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('coding-assistant')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Coding Assistant {renderCheck('coding-assistant')}
+                  </DropdownMenuItem>
+
+                  {/* ==================== PRACTICAL TOOLS ==================== */}
+                  <DropdownMenuSeparator className="my-1 bg-slate-200" />
+                  <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
+                    🌿 Practical Tools
+                  </DropdownMenuLabel>
+
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('plant-identifier')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Plant Identifier {renderCheck('plant-identifier')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setActiveTool('ingredient-extractor')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Ingredient Extractor {renderCheck('ingredient-extractor')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
