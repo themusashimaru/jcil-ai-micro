@@ -129,6 +129,11 @@ export default function Home() {
   // auth
   const [user, setUser] = useState<SupabaseUser | null>(null);
 
+  // subscription & usage
+  const [subscriptionTier, setSubscriptionTier] = useState('free');
+  const [dailyLimit, setDailyLimit] = useState(5);
+  const [usageToday, setUsageToday] = useState(0);
+
   // chat
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -245,6 +250,30 @@ export default function Home() {
       if (currentUser) {
         await fetchConversations(currentUser.id);
         await fetchUnreadCount();
+
+        // Fetch subscription info
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('subscription_tier, daily_message_limit')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (profile) {
+          setSubscriptionTier(profile.subscription_tier || 'free');
+          setDailyLimit(profile.daily_message_limit || 5);
+        }
+
+        // Fetch today's usage
+        const { data: usage } = await supabase
+          .from('daily_usage')
+          .select('message_count')
+          .eq('user_id', currentUser.id)
+          .eq('usage_date', new Date().toISOString().split('T')[0])
+          .single();
+
+        if (usage) {
+          setUsageToday(usage.message_count || 0);
+        }
       } else {
         setHistoryIsLoading(false);
       }
@@ -937,6 +966,29 @@ export default function Home() {
 
         {/* sidebar footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
+          {/* Usage Gauge */}
+          <div className="space-y-2 pb-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-600 font-medium">Today's Usage</span>
+              <span className="text-slate-700 font-semibold">{usageToday}/{dailyLimit}</span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  usageToday >= dailyLimit
+                    ? 'bg-red-500'
+                    : usageToday / dailyLimit > 0.8
+                      ? 'bg-yellow-500'
+                      : 'bg-blue-600'
+                }`}
+                style={{ width: `${Math.min((usageToday / dailyLimit) * 100, 100)}%` }}
+              />
+            </div>
+            <div className="text-[10px] text-slate-500 text-center uppercase tracking-wide font-medium">
+              {subscriptionTier.toUpperCase()} PLAN
+            </div>
+          </div>
+
           {/* Upgrade Plan Button */}
           <Button
             variant="ghost"
@@ -1059,7 +1111,7 @@ export default function Home() {
               </div>
 
               {/* Center - Title */}
-              <div className="flex-1 text-center">
+              <div className="flex-1 flex flex-col items-center justify-center">
                 <CardTitle className="text-lg sm:text-xl font-semibold text-blue-900">New Chat</CardTitle>
                 <div className="text-xs text-slate-500 mt-1">{toolLabel()}</div>
               </div>
