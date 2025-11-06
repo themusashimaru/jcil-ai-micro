@@ -1,17 +1,10 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
-/**
- * Daily Devotional API
- *
- * Generates a new devotional once per day at midnight.
- * All users see the same devotional for that day.
- */
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const DEVOTIONAL_SYSTEM_PROMPT = `You are a Christian devotional writer creating daily devotionals for believers.
 
@@ -48,34 +41,41 @@ Structure each devotional as follows:
 
 **Remember:** Ground everything in Scripture. Be encouraging. Point people to Christ.`;
 
+/**
+ * Cron endpoint - called daily at midnight by Vercel Cron
+ * Generates the daily devotional for the entire site
+ */
 export async function GET(request: NextRequest) {
   try {
+    // Verify cron secret to prevent unauthorized access
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = await createClient();
-
-    // Get today's date (UTC) as identifier
     const today = new Date();
-    const dateKey = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const dateKey = today.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Check if we already have today's devotional
-    const { data: existingDevotional, error: fetchError } = await supabase
+    console.log('🙏 [CRON] Generating daily devotional for:', dateKey);
+
+    // Check if devotional already exists for today
+    const { data: existing } = await supabase
       .from('daily_devotionals')
-      .select('*')
+      .select('date_key')
       .eq('date_key', dateKey)
       .single();
 
-    if (existingDevotional && !fetchError) {
-      // Return existing devotional
+    if (existing) {
+      console.log('✅ [CRON] Devotional already exists for today');
       return NextResponse.json({
         ok: true,
-        devotional: existingDevotional.content,
-        date: existingDevotional.date_key,
-        cached: true,
+        message: 'Devotional already exists for today',
+        date: dateKey,
       });
     }
 
-    // Generate new devotional using Claude
-    console.log('Generating new devotional for:', dateKey);
-
+    // Generate new devotional using Sonnet 4.5
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5 for high-quality devotionals
       max_tokens: 2000,
@@ -83,7 +83,12 @@ export async function GET(request: NextRequest) {
       messages: [
         {
           role: 'user',
-          content: `Create today's daily devotional for ${today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Make it fresh, relevant, and encouraging.`,
+          content: `Create today's daily devotional for ${today.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}. Make it fresh, relevant, and encouraging for believers.`,
         },
       ],
     });
@@ -103,22 +108,34 @@ export async function GET(request: NextRequest) {
       });
 
     if (insertError) {
-      console.error('Error storing devotional:', insertError);
-      // Still return the devotional even if storage fails
+      console.error('❌ [CRON] Error storing devotional:', insertError);
+      return NextResponse.json(
+        { ok: false, error: 'Failed to store devotional' },
+        { status: 500 }
+      );
     }
+
+    // Delete old devotionals (keep only last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    await supabase
+      .from('daily_devotionals')
+      .delete()
+      .lt('date_key', thirtyDaysAgo);
+
+    console.log('✅ [CRON] Devotional generated and stored successfully');
 
     return NextResponse.json({
       ok: true,
-      devotional: devotionalContent,
+      message: 'Daily devotional generated successfully',
       date: dateKey,
-      cached: false,
     });
   } catch (error: any) {
-    console.error('Error generating devotional:', error);
+    console.error('❌ [CRON] Devotional generation error:', error);
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message || 'Failed to generate devotional',
+        error: 'Failed to generate devotional',
+        details: error?.message || 'Unknown error',
       },
       { status: 500 }
     );

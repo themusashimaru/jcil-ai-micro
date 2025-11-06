@@ -777,7 +777,9 @@ export default function Home() {
       /\b(nearest|closest|best|top rated|around me|near me|nearby)\b/i, // location-based
       /\b(who is|what is|where is|when did|how did)\b.*\b(now|today|currently|recently|latest|2025)\b/i,
       /\b(news about|updates on|information on|status of)\b/i,
-      /\b(restaurants?|barber|shops?|stores?|hotels?|places?)\s+(near|nearby|around|in)\b/i // local business
+      /\b(restaurant|barber|barbershop|shop|store|hotel|cafe|coffee|gym|salon|spa|dentist|doctor|hospital|pharmacy|gas station|bank|atm|pizza|food)\b/i, // local business keywords
+      /(closest|nearest|near me|around me|nearby|close by)\s+(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food)/i, // closest + business
+      /(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food)\s+(near|nearby|around|close to|closest to|nearest to)\s+(me|here)/i // business + near me
     ];
 
     // Fact-Check Intent Patterns (for Perplexity API)

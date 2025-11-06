@@ -73,9 +73,11 @@ export async function POST(request: NextRequest) {
 
     // Detect if this is a LOCAL/PRACTICAL query (restaurants, shops, services, etc.)
     const localQueryPatterns = [
-      /\b(restaurant|barber|shop|store|hotel|cafe|coffee|gym|salon|spa|dentist|doctor|hospital|pharmacy|gas station|bank|atm)\b/i,
-      /\b(nearest|closest|best|near me|around me|nearby)\b/i,
+      /\b(restaurant|barber|barbershop|shop|store|hotel|cafe|coffee|gym|salon|spa|dentist|doctor|hospital|pharmacy|gas station|bank|atm|pizza|food)\b/i,
+      /\b(nearest|closest|best|near me|around me|nearby|close by)\b/i,
       /\b(where can i|where to|how do i get|directions to)\b/i,
+      /(closest|nearest|near me)\s+(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|pizza)/i,
+      /(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|pizza)\s+(near|nearby|around|close to|closest to|nearest to)\s+(me|here)/i
     ];
 
     const isLocalQuery = localQueryPatterns.some(pattern => pattern.test(query));
