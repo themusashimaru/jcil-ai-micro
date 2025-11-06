@@ -70,17 +70,53 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-const TypingIndicator = () => (
-  <div className="flex items-start space-x-2 justify-start">
-    <div className="p-3 max-w-xs lg:max-w-md">
-      <div className="flex space-x-2">
-        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+// Christian-themed loading messages with professional academic flair
+const LOADING_MESSAGES = [
+  "Seeking wisdom from Scripture...",
+  "Consulting the ancient texts...",
+  "Processing through a biblical lens...",
+  "Analyzing with discernment...",
+  "Searching the Scriptures...",
+  "Filtering through Christian principles...",
+  "Examining with theological care...",
+  "Rendering a thoughtful response...",
+  "Compiling biblical insights...",
+  "Synthesizing scriptural wisdom...",
+  "Meditating on your question...",
+  "Applying faith-based reasoning...",
+  "Cross-referencing sacred texts...",
+  "Constructing a faithful answer...",
+  "Parsing with divine guidance...",
+];
+
+const TypingIndicator = () => {
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 2000); // Change message every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-start space-x-3 justify-start">
+      <div className="p-3 max-w-xs lg:max-w-2xl">
+        <div className="flex items-center space-x-3">
+          <div className="flex space-x-2">
+            <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <span className="text-sm text-slate-600 italic animate-pulse">
+            {LOADING_MESSAGES[messageIndex]}
+          </span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const supabase = createClient();
 
