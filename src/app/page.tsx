@@ -39,6 +39,7 @@ import {
   ClipboardCopy,
   Menu,
   Send,
+  Search,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -138,6 +139,7 @@ export default function Home() {
   const [historyIsLoading, setHistoryIsLoading] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // notifications
   const [unreadCount, setUnreadCount] = useState(0);
@@ -392,6 +394,27 @@ export default function Home() {
     setRenameValue('');
   };
 
+  const generateTitle = async (convId: string) => {
+    try {
+      const response = await fetch('/api/generate-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convId }),
+      });
+
+      const data = await response.json();
+      if (data.ok && data.title) {
+        // Update the conversation title in local state
+        setConversations((prev) =>
+          prev.map((c) => (c.id === convId ? { ...c, title: data.title } : c))
+        );
+      }
+    } catch (error) {
+      console.error('Error generating title:', error);
+      // Silently fail - title generation is not critical
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/login');
@@ -527,6 +550,17 @@ export default function Home() {
   };
 
   // ---- CHAT SEND LOGIC (writes user_id on every insert) ----
+  // Filter conversations based on search query
+  const filteredConversations = conversations.filter((convo) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    const title = (convo.title || '').toLowerCase();
+    const date = new Date(convo.created_at).toLocaleString().toLowerCase();
+
+    return title.includes(query) || date.includes(query);
+  });
+
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (isLoading || isTranscribing || isRecording) return;
@@ -642,6 +676,12 @@ export default function Home() {
         console.error('insert assistant message error:', insertAsstErr);
       }
 
+      // Generate smart title after first exchange (user message + assistant response)
+      // Only generate if this is the first assistant response (2 messages total)
+      if (messages.length <= 1 && currentConvoId) {
+        generateTitle(currentConvoId);
+      }
+
     } catch (error: any) {
       console.error('chat send error:', error);
       setMessages((prev) => [
@@ -689,6 +729,29 @@ export default function Home() {
               </Button>
             </div>
           </div>
+
+          {/* Search bar */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" strokeWidth={2} />
+            <Input
+              type="text"
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 h-9 border-slate-300 focus:border-blue-900 rounded-lg text-sm"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 hover:bg-slate-100 rounded-lg"
+                onClick={() => setSearchQuery('')}
+              >
+                <XIcon className="h-3 w-3 text-slate-500" strokeWidth={2} />
+              </Button>
+            )}
+          </div>
+
           <Button
             className="w-full bg-blue-900 hover:bg-blue-950 text-white rounded-lg transition-all shadow-sm"
             onClick={handleNewChat}
@@ -702,8 +765,8 @@ export default function Home() {
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
           {historyIsLoading ? (
             <div className="p-4 text-center text-slate-500 text-sm">Loading chats...</div>
-          ) : conversations.length > 0 ? (
-            conversations.map((convo) => (
+          ) : filteredConversations.length > 0 ? (
+            filteredConversations.map((convo) => (
               <div key={convo.id} className="flex items-center group">
                 {renamingId === convo.id ? (
                   <form className="flex-1" onSubmit={(e) => handleRenameSubmit(e, convo.id)}>
@@ -759,6 +822,8 @@ export default function Home() {
                 </DropdownMenu>
               </div>
             ))
+          ) : searchQuery ? (
+            <div className="p-4 text-center text-slate-500 text-sm">No conversations found matching "{searchQuery}"</div>
           ) : (
             <div className="p-4 text-center text-slate-500 text-sm">No history yet.</div>
           )}
