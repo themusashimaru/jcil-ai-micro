@@ -167,6 +167,9 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  // web search
+  const [isSearching, setIsSearching] = useState(false);
+
   // ui refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -600,6 +603,88 @@ export default function Home() {
       console.error('mic error:', error);
       alert('Microphone access denied.');
       setIsRecording(false);
+    }
+  };
+
+  // --------- WEB SEARCH ----------
+  const handleWebSearch = async () => {
+    if (!user || isLoading || isSearching) return;
+
+    const query = prompt('🔍 Enter your search query:');
+    if (!query || !query.trim()) return;
+
+    setIsSearching(true);
+    setIsLoading(true);
+
+    try {
+      // Add user's search query to chat
+      const userMessage: Message = {
+        id: `temp-${Date.now()}`,
+        role: 'user',
+        content: `🔍 Search: ${query}`,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, userMessage]);
+
+      // Call web search API
+      const response = await fetch('/api/web-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.interpretation) {
+        // Add Claude's interpretation to chat
+        const assistantMessage: Message = {
+          id: `temp-${Date.now()}-assistant`,
+          role: 'assistant',
+          content: data.interpretation,
+          created_at: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+
+        // Save to database if we have a conversation
+        if (conversationId) {
+          await saveSearchToDatabase(query, data.interpretation);
+        }
+      } else {
+        alert(data.error || 'Search failed');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      alert('Failed to perform web search');
+    } finally {
+      setIsSearching(false);
+      setIsLoading(false);
+    }
+  };
+
+  const saveSearchToDatabase = async (query: string, interpretation: string) => {
+    if (!conversationId || !user) return;
+
+    try {
+      // Save user search message
+      await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        user_id: user.id,
+        role: 'user',
+        content: `🔍 Search: ${query}`,
+      });
+
+      // Save assistant interpretation
+      await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        user_id: user.id,
+        role: 'assistant',
+        content: interpretation,
+      });
+
+      // Refresh messages
+      await fetchMessages(conversationId);
+    } catch (error) {
+      console.error('Error saving search to database:', error);
     }
   };
 
@@ -1575,6 +1660,19 @@ export default function Home() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* web search button */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={isLoading || isSearching}
+                onClick={handleWebSearch}
+                className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400"
+                title="Search the web"
+              >
+                {isSearching ? <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} /> : <Search className="h-5 w-5" strokeWidth={2} />}
+              </Button>
 
               {/* mic + text + send */}
               <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
