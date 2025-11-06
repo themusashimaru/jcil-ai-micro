@@ -1208,12 +1208,14 @@ export default function Home() {
                   />
                 </div>
                 <h2 className="text-lg sm:text-xl font-semibold text-blue-900">Slingshot 2.0</h2>
-                <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
-                  {getTimeBasedGreeting()}
-                </p>
-                <p className="text-blue-600 text-xs italic font-medium mt-2">
-                  ✨ Chat memory enabled - I remember our conversations
-                </p>
+                <div className="space-y-1">
+                  <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
+                    {getTimeBasedGreeting()}
+                  </p>
+                  <p className="text-blue-600 text-xs italic font-medium text-center">
+                    ✨ Chat memory enabled - I can recall our conversations
+                  </p>
+                </div>
               </div>
             ) : (
               messages.map((msg) => (

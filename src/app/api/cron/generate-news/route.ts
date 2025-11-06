@@ -115,18 +115,6 @@ Generate RENOWNED, PROFESSIONAL-GRADE intelligence reports that rival The Econom
 - Reference verified sources inline
 - Connect to broader geopolitical/economic/cultural patterns
 
-**EXAMPLE (Financial Intelligence):**
-
-## MARKETS & FINANCIAL INTELLIGENCE
-
-U.S. equity markets posted significant gains Tuesday as the S&P 500 climbed 1.2% to close at 4,892, with tech stocks leading the rally following better-than-expected earnings from Nvidia (NVDA +7.3%) and Microsoft (MSFT +4.1%). The NASDAQ Composite surged 1.8%, while the Dow Jones Industrial Average added 245 points (+0.7%). Sector analysis reveals strong performance in semiconductors (SOX Index +3.2%) and cloud computing, driven by investor optimism around artificial intelligence monetization. Trading volume exceeded daily averages by 15%, suggesting institutional conviction behind the move.
-
-Treasury markets experienced notable volatility as the 10-year yield fell 8 basis points to 4.12% amid speculation that Federal Reserve officials may signal a pause in rate hikes at the upcoming FOMC meeting. This dovish pivot speculation follows three consecutive months of cooling inflation data, with December's CPI print coming in at 3.1% year-over-year, down from November's 3.2%. Fed funds futures now price in a 72% probability of rate cuts beginning in June, a dramatic shift from just two weeks ago. The dollar index (DXY) weakened 0.6% to 102.3 as rate expectations moderate, while gold rallied $18 to $2,063 per ounce on safe-haven demand.
-
-Oil markets remain under pressure despite geopolitical tensions, with WTI crude falling $1.85 to $71.20 per barrel as U.S. inventory data showed larger-than-expected builds and Chinese economic data disappointed. Brent crude settled at $76.80, down $1.60. However, energy analysts warn that Houthi attacks on Red Sea shipping could tighten global supply chains and create upward price pressure in coming weeks. Natural gas futures collapsed 4.3% on mild winter weather forecasts and record U.S. production levels. Independent energy strategist Dan Dicker notes that domestic producers are maintaining disciplined capital allocation despite price weakness, positioning the sector for potential upside if geopolitical risks materialize.
-
-Bitcoin extended its recent surge, breaking through $48,000 resistance (+5.8% in 24 hours) as SEC approval of spot Bitcoin ETFs continues to drive institutional adoption. BlackRock's iShares Bitcoin Trust (IBIT) saw $420 million in inflows yesterday alone, while Fidelity's offering pulled in $285 million. Total ETF inflows since launch now exceed $8.2 billion, validating long-term holder theses about mainstream acceptance. However, crypto analysts caution that the April halving event is now fully priced in, and leverage in the system remains elevated with funding rates at multi-month highs.
-
 **TONE:**
 - **Authoritative & Sophisticated:** Write like a senior intelligence analyst
 - **Data-Rich:** Specific numbers, percentages, names, dates
@@ -153,59 +141,107 @@ Peter Zeihan (geopolitics), Dan Dicker (energy), Gordon Chang (China), Victor Da
 
 Generate a LEGENDARY intelligence report that Christians will SHARE and REFERENCE. This must be PhD-level quality that builds your reputation as THE conservative Christian news source.`;
 
+/**
+ * Cron endpoint - called every 30 minutes by Vercel Cron
+ * Generates and caches news summary for all users
+ */
 export async function GET(request: NextRequest) {
   try {
+    // Verify cron secret to prevent unauthorized access
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = await createClient();
     const timestampKey = get30MinTimestampKey();
 
-    // Fetch cached summary for this 30-minute window
-    const { data: existingSummary } = await supabase
-      .from('daily_news_summaries')
-      .select('*')
-      .eq('timestamp_key', timestampKey)
-      .single();
+    console.log('🤖 [CRON] Generating news summary for:', timestampKey);
 
-    if (existingSummary) {
-      return NextResponse.json({
-        ok: true,
-        summary: existingSummary.content,
-        timestamp: existingSummary.timestamp_key,
-        cached: true,
-      });
+    // Generate new news summary with Sonnet 4.5
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5
+      max_tokens: 8192,
+      system: NEWS_SUMMARY_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: `Generate a comprehensive PhD-level intelligence report for conservative Christians.
+
+Cover the following categories with 2-4 FULL PARAGRAPHS each (NOT bullet points):
+
+1. Breaking News & Politics
+2. Markets & Financial Intelligence (DETAILED stock, commodity, currency analysis)
+3. International Affairs & Geopolitics
+4. National Security & Defense
+5. Intelligence & Espionage
+6. Tech & Big Tech Tyranny
+7. Energy & Resources
+8. Christian Persecution & Religious Liberty
+9. Culture War & Education
+10. China Threat Assessment
+11. Russia & Eastern Europe
+12. Middle East & Iran
+
+For MARKETS section specifically, include:
+- Major index performance (Dow, S&P, NASDAQ) with percentage changes
+- Notable individual stock movers with tickers and percentages
+- Treasury yields and Fed policy analysis
+- Commodities (oil, gold, silver) with price movements
+- Currency markets (dollar index, Bitcoin)
+- Economic data releases and their implications
+
+Use FULL PARAGRAPHS with analytical depth. Include specific numbers, percentages, company names, and strategic analysis.
+
+Write like a senior analyst at a prestigious think tank. This should be RENOWNED quality.`,
+        },
+      ],
+    });
+
+    const summaryContent = response.content[0];
+    if (summaryContent.type !== 'text') {
+      throw new Error('Invalid response type from Claude');
     }
 
-    // No summary for current window - fetch most recent one
-    const { data: latestSummary } = await supabase
-      .from('daily_news_summaries')
-      .select('*')
-      .order('generated_at', { ascending: false })
-      .limit(1)
-      .single();
+    const newsSummary = summaryContent.text;
 
-    if (latestSummary) {
-      return NextResponse.json({
-        ok: true,
-        summary: latestSummary.content,
-        timestamp: latestSummary.timestamp_key,
-        cached: true,
-        stale: true, // Indicate this is from a previous window
+    // Delete old summaries (keep only last 48 hours)
+    const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    await supabase
+      .from('daily_news_summaries')
+      .delete()
+      .lt('generated_at', twoDaysAgo);
+
+    // Store in database
+    const { error: insertError } = await supabase
+      .from('daily_news_summaries')
+      .insert({
+        timestamp_key: timestampKey,
+        content: { summary: newsSummary, generated_at: new Date().toISOString() },
+        generated_at: new Date().toISOString(),
       });
+
+    if (insertError) {
+      console.error('❌ [CRON] Database insert error:', insertError);
+      return NextResponse.json(
+        { ok: false, error: 'Failed to store summary' },
+        { status: 500 }
+      );
     }
 
-    // No summaries at all - return error (cron hasn't run yet)
-    return NextResponse.json(
-      {
-        ok: false,
-        error: 'No news summary available yet. Please try again in a few minutes.',
-      },
-      { status: 404 }
-    );
+    console.log('✅ [CRON] News summary generated and cached:', timestampKey);
+
+    return NextResponse.json({
+      ok: true,
+      timestamp: timestampKey,
+      message: 'News summary generated successfully',
+    });
   } catch (error: any) {
-    console.error('News summary fetch error:', error);
+    console.error('❌ [CRON] News generation error:', error);
     return NextResponse.json(
       {
         ok: false,
-        error: 'Failed to fetch news summary',
+        error: 'Failed to generate news summary',
         details: error?.message || 'Unknown error',
       },
       { status: 500 }
