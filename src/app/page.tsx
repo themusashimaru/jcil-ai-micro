@@ -43,8 +43,6 @@ import {
   Search,
   Share2,
   LogOut,
-  Moon,
-  Sun,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -168,32 +166,11 @@ export default function Home() {
   const [fileButtonFlash, setFileButtonFlash] = useState(false);
   const [toolButtonFlash, setToolButtonFlash] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Token usage tracking (placeholder - implement real tracking in backend)
   const [tokensUsed, setTokensUsed] = useState(45000);
   const dailyTokenLimit = 100000;
   const tokenPercentage = (tokensUsed / dailyTokenLimit) * 100;
-
-  // Load dark mode preference from localStorage on mount
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-    setIsDarkMode(savedDarkMode);
-    if (savedDarkMode) {
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    const newDarkMode = !isDarkMode;
-    setIsDarkMode(newDarkMode);
-    localStorage.setItem('darkMode', String(newDarkMode));
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1047,12 +1024,12 @@ export default function Home() {
       </aside>
 
       {/* main chat area */}
-      <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white dark:bg-slate-900 overflow-hidden">
-        <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg sm:rounded-xl">
+      <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
+        <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
           {/* header */}
-          <CardHeader className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
+          <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
             <div className="flex items-center justify-between">
-              {/* Left side - Mobile menu, dark mode toggle, OR desktop spacer */}
+              {/* Left side - Mobile menu OR desktop spacer */}
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -1062,29 +1039,17 @@ export default function Home() {
                 >
                   <Menu className="h-6 w-6 text-slate-700" strokeWidth={2} />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hover:bg-slate-100 rounded-lg"
-                  onClick={toggleDarkMode}
-                  title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                >
-                  {isDarkMode ? (
-                    <Sun className="h-5 w-5 text-slate-700" strokeWidth={2} />
-                  ) : (
-                    <Moon className="h-5 w-5 text-slate-700" strokeWidth={2} />
-                  )}
-                </Button>
                 {/* Desktop spacer to balance right side buttons */}
                 <div className="hidden lg:flex items-center gap-2">
+                  <div className="w-10 h-10" />
                   <div className="w-10 h-10" />
                 </div>
               </div>
 
               {/* Center - Title */}
               <div className="flex-1 text-center">
-                <CardTitle className="text-lg sm:text-xl font-semibold text-blue-900 dark:text-blue-400">New Chat</CardTitle>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{toolLabel()}</div>
+                <CardTitle className="text-lg sm:text-xl font-semibold text-blue-900">New Chat</CardTitle>
+                <div className="text-xs text-slate-500 mt-1">{toolLabel()}</div>
               </div>
 
               {/* Right side - Share and Logout */}
@@ -1114,9 +1079,9 @@ export default function Home() {
           </CardHeader>
 
           {/* messages */}
-          <CardContent className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-white dark:bg-slate-800">
+          <CardContent className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-white">
             {isLoading && messages.length === 0 ? (
-              <div className="text-center text-slate-500 dark:text-slate-400 text-sm">Loading messages...</div>
+              <div className="text-center text-slate-500 text-sm">Loading messages...</div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full space-y-6">
                 <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 flex items-center justify-center">
@@ -1131,15 +1096,15 @@ export default function Home() {
                       if (parent && !parent.querySelector('.logo-fallback')) {
                         const fallback = document.createElement('div');
                         fallback.className =
-                          'logo-fallback w-full h-full bg-blue-900 dark:bg-blue-800 rounded-lg flex items-center justify-center text-white text-4xl font-bold';
+                          'logo-fallback w-full h-full bg-blue-900 rounded-lg flex items-center justify-center text-white text-4xl font-bold';
                         fallback.textContent = 'JCIL';
                         parent.appendChild(fallback);
                       }
                     }}
                   />
                 </div>
-                <h2 className="text-lg sm:text-xl font-semibold text-blue-900 dark:text-blue-400">slingshot 2.0</h2>
-                <p className="text-slate-700 dark:text-slate-300 text-base sm:text-lg md:text-xl font-medium text-center px-4">
+                <h2 className="text-lg sm:text-xl font-semibold text-blue-900">slingshot 2.0</h2>
+                <p className="text-slate-700 text-base sm:text-lg md:text-xl font-medium text-center px-4">
                   {getTimeBasedGreeting()}
                 </p>
               </div>
@@ -1159,17 +1124,17 @@ export default function Home() {
                     }`}
                   >
                     {msg.role === 'user' ? (
-                      <div className="bg-blue-900 dark:bg-blue-700 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-sm">
+                      <div className="bg-blue-900 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-sm">
                         {msg.content}
                       </div>
                     ) : (
-                      <div className="text-slate-700 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
+                      <div className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
                         {msg.content}
                       </div>
                     )}
 
                     {msg.created_at && (
-                      <div className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 mt-1 px-1">
+                      <div className="text-[10px] sm:text-xs text-slate-400 mt-1 px-1">
                         {formatMessageTime(msg.created_at)}
                       </div>
                     )}
@@ -1200,7 +1165,7 @@ export default function Home() {
           {/* input bar */}
           <form
             onSubmit={handleFormSubmit}
-            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-b-lg sm:rounded-b-xl"
+            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
           >
             {/* Spiritual Tools - Modern Sharp Buttons */}
             <div className="mb-3 sm:mb-4 flex flex-wrap gap-2">
