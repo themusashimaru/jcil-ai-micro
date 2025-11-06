@@ -197,17 +197,7 @@ export default function NewsPage() {
                 <p className="text-slate-500 text-sm mt-2">PhD-Level Intelligence Report in Progress</p>
               </div>
             ) : (
-              <div className="prose prose-slate max-w-none
-                prose-headings:font-serif prose-headings:text-blue-900
-                prose-h1:text-3xl prose-h1:font-extrabold prose-h1:border-b-4 prose-h1:border-blue-900 prose-h1:pb-4 prose-h1:mb-6 prose-h1:mt-8 first:prose-h1:mt-0
-                prose-h2:text-2xl prose-h2:font-extrabold prose-h2:border-b-3 prose-h2:border-blue-700 prose-h2:pb-3 prose-h2:mb-6 prose-h2:mt-10 first:prose-h2:mt-0 prose-h2:text-blue-900 prose-h2:bg-blue-50 prose-h2:px-4 prose-h2:py-2 prose-h2:rounded-t-lg prose-h2:-mx-4
-                prose-h3:text-xl prose-h3:font-bold prose-h3:text-slate-900 prose-h3:mb-4 prose-h3:mt-6
-                prose-p:text-slate-900 prose-p:leading-loose prose-p:text-base prose-p:mb-5
-                prose-strong:text-slate-950 prose-strong:font-extrabold
-                prose-ul:my-4 prose-li:text-slate-900 prose-li:my-2
-                prose-a:text-blue-700 prose-a:underline hover:prose-a:text-blue-900
-                prose-blockquote:border-l-4 prose-blockquote:border-blue-900 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-slate-800 prose-blockquote:bg-blue-50 prose-blockquote:py-2
-                prose-code:text-blue-800 prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-semibold">
+              <div className="text-slate-900">
                 <ReactMarkdown
                   components={{
                     h2: ({ node, children, ...props }) => {
@@ -215,11 +205,46 @@ export default function NewsPage() {
                       const index = sections.findIndex((s) => s.title === text);
                       const id = index !== -1 ? sections[index].id : undefined;
                       return (
-                        <h2 id={id} {...props}>
+                        <h2 id={id} className="text-2xl font-extrabold text-blue-900 bg-blue-50 px-4 py-3 mt-10 mb-6 first:mt-0 rounded-lg border-b-4 border-blue-700" {...props}>
                           {children}
                         </h2>
                       );
                     },
+                    h3: ({ node, children, ...props }) => (
+                      <h3 className="text-xl font-bold text-slate-900 mt-6 mb-4" {...props}>
+                        {children}
+                      </h3>
+                    ),
+                    p: ({ node, children, ...props }) => (
+                      <p className="text-base text-slate-900 leading-loose mb-5" {...props}>
+                        {children}
+                      </p>
+                    ),
+                    strong: ({ node, children, ...props }) => (
+                      <strong className="font-extrabold text-slate-950" {...props}>
+                        {children}
+                      </strong>
+                    ),
+                    a: ({ node, children, ...props }) => (
+                      <a className="text-blue-700 underline hover:text-blue-900" {...props}>
+                        {children}
+                      </a>
+                    ),
+                    ul: ({ node, children, ...props }) => (
+                      <ul className="my-4 list-disc list-inside text-slate-900" {...props}>
+                        {children}
+                      </ul>
+                    ),
+                    li: ({ node, children, ...props }) => (
+                      <li className="my-2 text-slate-900" {...props}>
+                        {children}
+                      </li>
+                    ),
+                    blockquote: ({ node, children, ...props }) => (
+                      <blockquote className="border-l-4 border-blue-900 pl-4 py-2 my-4 italic text-slate-800 bg-blue-50" {...props}>
+                        {children}
+                      </blockquote>
+                    ),
                   }}
                 >
                   {summary}
