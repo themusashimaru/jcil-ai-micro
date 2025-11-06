@@ -2,52 +2,86 @@
 
 ## Overview
 
-JCIL.AI Slingshot 2.0 now supports multiple subscription tiers with different Claude models to optimize costs while providing value to paid users.
+JCIL.AI Slingshot 2.0 now supports multiple subscription tiers with daily message limits and different Claude models to optimize costs while providing value to paid users.
 
 ## Tier Structure
 
 ### 🆓 FREE TIER
+- **Price:** $0/month
+- **Daily Limit:** 5 messages per day
 - **Model:** Claude Haiku 4 (`claude-haiku-4-20250514`)
-- **Pricing:** $0.25/MTok input, $1.25/MTok output
+- **API Cost:** $0.25/MTok input, $1.25/MTok output
 - **Features:**
   - Full chat functionality
   - Image uploads (vision)
   - All AI tools
-  - 40 messages per minute rate limit
+  - 40 messages per minute burst rate limit
 
-### 💎 PAID TIER
+### 📘 BASIC TIER
+- **Price:** $20/month
+- **Daily Limit:** 30 messages per day
 - **Model:** Claude Haiku 4.5 (`claude-haiku-4.5-20250514`)
-- **Pricing:** $1/MTok input, $5/MTok output
+- **API Cost:** $1/MTok input, $5/MTok output
 - **Features:**
   - All free tier features
   - Newer, faster Haiku 4.5 model
   - Better performance and quality
-  - Same rate limits (can be adjusted)
+  - 6x more messages than free
+
+### 🚀 PRO TIER
+- **Price:** $60/month
+- **Daily Limit:** 100 messages per day
+- **Model:** Claude Haiku 4.5 (`claude-haiku-4.5-20250514`)
+- **API Cost:** $1/MTok input, $5/MTok output
+- **Features:**
+  - All basic tier features
+  - 20x more messages than free
+  - Best for power users
+
+### 💼 EXECUTIVE TIER
+- **Price:** $99/month
+- **Daily Limit:** 200 messages per day
+- **Model:** Claude Haiku 4.5 (`claude-haiku-4.5-20250514`)
+- **API Cost:** $1/MTok input, $5/MTok output
+- **Features:**
+  - All pro tier features
+  - 40x more messages than free
+  - Premium support (coming soon)
+  - **Note:** Can be upgraded to Sonnet 4 if needed
 
 ## Cost Comparison
 
 **Free Tier (Haiku 4):**
 - 4x cheaper than Haiku 4.5
 - 12x cheaper than Sonnet 4
+- Perfect for casual users
 
-**Paid Tier (Haiku 4.5):**
+**Paid Tiers (Haiku 4.5):**
 - 3x cheaper than Sonnet 4
+- Better quality than Haiku 4
 - Still affordable for scaled usage
 
 ## Database Setup
 
-1. Run the SQL migration:
+### Step 1: Initial Setup (if not done already)
 ```bash
 # In Supabase SQL Editor, run:
 add-subscription-tier.sql
 ```
 
+### Step 2: Add Daily Limits and New Tiers
+```bash
+# In Supabase SQL Editor, run:
+update-subscription-tiers-with-limits.sql
+```
+
 This will:
-- Create `user_profiles` table
-- Add `subscription_tier` column (free, paid, premium)
-- Set up Row Level Security policies
-- Auto-create profiles for new users (defaults to 'free')
-- Backfill existing users as 'free'
+- Create `user_profiles` table with tier and pricing info
+- Add `daily_usage` table to track message counts per day
+- Set up functions for limit checking and usage tracking
+- Auto-create profiles for new users (defaults to 'free', 5 messages/day)
+- Backfill existing users as 'free' tier
+- Set up automatic daily reset (records are dated)
 
 ## Managing User Tiers
 
@@ -56,52 +90,166 @@ This will:
 1. Go to Supabase Dashboard → Table Editor
 2. Open `user_profiles` table
 3. Find user by `id` (UUID from auth.users)
-4. Update `subscription_tier` to `'paid'`
+4. Update `subscription_tier` and `daily_message_limit`:
+   - **free:** tier='free', limit=5, price=0
+   - **basic:** tier='basic', limit=30, price=20
+   - **pro:** tier='pro', limit=100, price=60
+   - **executive:** tier='executive', limit=200, price=99
 
 ### Via SQL
 
 ```sql
--- Upgrade a user to paid tier
+-- Upgrade user to BASIC tier ($20/mo, 30 messages/day)
 UPDATE public.user_profiles
-SET subscription_tier = 'paid', updated_at = NOW()
+SET subscription_tier = 'basic',
+    daily_message_limit = 30,
+    monthly_price = 20,
+    updated_at = NOW()
 WHERE id = 'USER_UUID_HERE';
 
--- Downgrade a user to free tier
+-- Upgrade user to PRO tier ($60/mo, 100 messages/day)
 UPDATE public.user_profiles
-SET subscription_tier = 'free', updated_at = NOW()
+SET subscription_tier = 'pro',
+    daily_message_limit = 100,
+    monthly_price = 60,
+    updated_at = NOW()
 WHERE id = 'USER_UUID_HERE';
 
--- View all paid users
-SELECT id, subscription_tier, created_at, updated_at
+-- Upgrade user to EXECUTIVE tier ($99/mo, 200 messages/day)
+UPDATE public.user_profiles
+SET subscription_tier = 'executive',
+    daily_message_limit = 200,
+    monthly_price = 99,
+    updated_at = NOW()
+WHERE id = 'USER_UUID_HERE';
+
+-- Downgrade user to FREE tier
+UPDATE public.user_profiles
+SET subscription_tier = 'free',
+    daily_message_limit = 5,
+    monthly_price = 0,
+    updated_at = NOW()
+WHERE id = 'USER_UUID_HERE';
+
+-- View all users by tier
+SELECT subscription_tier, COUNT(*) as user_count, SUM(monthly_price) as monthly_revenue
 FROM public.user_profiles
-WHERE subscription_tier = 'paid';
+GROUP BY subscription_tier
+ORDER BY monthly_price DESC;
+
+-- View today's usage for a user
+SELECT u.subscription_tier, u.daily_message_limit,
+       COALESCE(d.message_count, 0) as used_today,
+       u.daily_message_limit - COALESCE(d.message_count, 0) as remaining
+FROM public.user_profiles u
+LEFT JOIN public.daily_usage d ON d.user_id = u.id AND d.usage_date = CURRENT_DATE
+WHERE u.id = 'USER_UUID_HERE';
 ```
 
 ## Testing the System
 
-### Test Free Tier (Default)
+### Test Free Tier (Default - 5 messages/day)
 1. Create a new user account
 2. Send a chat message
-3. Check server logs: Should see `🤖 Using model: claude-haiku-4-20250514 for tier: free`
+3. Check server logs for:
+   - `👤 User {id} tier: free`
+   - `📊 Daily usage: 1/5 for tier: free`
+   - `🤖 Using model: claude-haiku-4-20250514 for tier: free`
+   - `✅ Daily usage incremented for user {id}`
+4. Send 4 more messages (total 5)
+5. Try sending a 6th message - should get limit error:
+   ```json
+   {
+     "ok": false,
+     "error": "Daily message limit reached (5 messages per day for free tier). Upgrade your plan or try again tomorrow.",
+     "limitExceeded": true
+   }
+   ```
 
-### Test Paid Tier
+### Test Basic Tier (30 messages/day)
 1. Upgrade user in Supabase:
    ```sql
    UPDATE public.user_profiles
-   SET subscription_tier = 'paid'
+   SET subscription_tier = 'basic', daily_message_limit = 30, monthly_price = 20
    WHERE id = 'YOUR_USER_ID';
    ```
 2. Send a chat message
-3. Check server logs: Should see `🤖 Using model: claude-haiku-4.5-20250514 for tier: paid`
+3. Check server logs: Should see `🤖 Using model: claude-haiku-4.5-20250514 for tier: basic`
+4. Verify you can send 30 messages total
+
+### Test Pro Tier (100 messages/day)
+1. Upgrade to pro tier
+2. Verify daily limit is 100 messages
+3. Model should still be Haiku 4.5
+
+### Test Executive Tier (200 messages/day)
+1. Upgrade to executive tier
+2. Verify daily limit is 200 messages
+3. Model should be Haiku 4.5 (can upgrade to Sonnet 4 later if needed)
+
+## Daily Limit Reset
+
+**How it works:**
+- Daily limits are tracked by date (CURRENT_DATE in database)
+- Each user has one row per day in `daily_usage` table
+- When a new day starts (midnight), new usage records are created automatically
+- Old records are kept for 90 days for analytics, then deleted by cleanup function
+
+**Manual reset for testing:**
+```sql
+-- Reset a user's daily count (delete today's record)
+DELETE FROM public.daily_usage
+WHERE user_id = 'USER_UUID_HERE'
+  AND usage_date = CURRENT_DATE;
+
+-- Clear all old usage records (90+ days old)
+SELECT public.cleanup_old_usage();
+```
+
+## Monitoring & Analytics
+
+```sql
+-- View top users by message count today
+SELECT u.email, p.subscription_tier, d.message_count, p.daily_message_limit
+FROM public.daily_usage d
+JOIN auth.users u ON u.id = d.user_id
+JOIN public.user_profiles p ON p.id = d.user_id
+WHERE d.usage_date = CURRENT_DATE
+ORDER BY d.message_count DESC
+LIMIT 20;
+
+-- Revenue report by tier
+SELECT subscription_tier,
+       COUNT(*) as users,
+       SUM(monthly_price) as monthly_revenue,
+       SUM(daily_message_limit) as total_daily_capacity
+FROM public.user_profiles
+WHERE subscription_tier != 'free'
+GROUP BY subscription_tier
+ORDER BY monthly_revenue DESC;
+
+-- Daily usage stats
+SELECT
+  p.subscription_tier,
+  COUNT(DISTINCT d.user_id) as active_users,
+  SUM(d.message_count) as total_messages,
+  AVG(d.message_count) as avg_messages_per_user
+FROM public.daily_usage d
+JOIN public.user_profiles p ON p.id = d.user_id
+WHERE d.usage_date = CURRENT_DATE
+GROUP BY p.subscription_tier;
+```
 
 ## Future Enhancements
 
 - [ ] Self-service tier upgrades (Stripe integration)
-- [ ] Different rate limits per tier
+- [ ] Token-based limits (instead of message count)
 - [ ] Usage analytics dashboard
 - [ ] Admin panel for tier management
 - [ ] Email notifications on tier changes
 - [ ] Trial periods for paid tier
+- [ ] Rollover unused messages (bonus feature)
+- [ ] Upgrade Executive tier to Sonnet 4
 
 ## API Changes
 
