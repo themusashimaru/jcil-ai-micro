@@ -196,6 +196,23 @@ export async function POST(req: Request) {
   }
 
   // ============================================
+  // 🎯 GET USER SUBSCRIPTION TIER
+  // ============================================
+  let userTier = 'free'; // Default to free tier
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('subscription_tier')
+    .eq('id', userId)
+    .single();
+
+  if (profile?.subscription_tier) {
+    userTier = profile.subscription_tier;
+  }
+
+  console.log(`👤 User ${userId} tier: ${userTier}`);
+
+  // ============================================
   // ⚡ CHECK RATE LIMIT
   // ============================================
   if (!checkRateLimit(userId)) {
@@ -373,8 +390,17 @@ export async function POST(req: Request) {
   });
 
   // ============================================
-  // 🤖 CALL CLAUDE HAIKU 4.5
+  // 🤖 CALL CLAUDE (Model based on tier)
   // ============================================
+
+  // 🎯 TIER-BASED MODEL SELECTION
+  // FREE TIER → Haiku 4 (cheaper, older)
+  // PAID TIER → Haiku 4.5 (better, newer)
+  const modelName = userTier === 'free'
+    ? 'claude-haiku-4-20250514'      // FREE: Haiku 4
+    : 'claude-haiku-4.5-20250514';   // PAID: Haiku 4.5
+
+  console.log(`🤖 Using model: ${modelName} for tier: ${userTier}`);
 
   // Combine main system prompt with tool-specific prompt
   let combinedSystemPrompt = SYSTEM_PROMPT;
@@ -392,7 +418,7 @@ export async function POST(req: Request) {
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514", // 🔥 Claude Sonnet 4 - FAST & SMART
+      model: modelName, // 🎯 Dynamic model based on user tier
       max_tokens: 4096,
       // 💰 PROMPT CACHING - Saves up to 90% on API costs!
       // Cache the system prompt since it never changes
