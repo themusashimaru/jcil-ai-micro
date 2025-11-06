@@ -1,9 +1,11 @@
 export const runtime = 'nodejs';
 
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
  * == System Prompt for Slingshot 2.0 (JCIL.AI) ==
@@ -179,6 +181,44 @@ export async function POST(req: Request) {
     message = body.message || "";
     history = body.history || [];
     conversationId = body.conversationId || null;
+  }
+
+  // ============================================
+  // 🛡️ CONTENT MODERATION (OpenAI)
+  // ============================================
+
+  // Moderate user input for harmful content BEFORE processing
+  if (message && message.trim()) {
+    try {
+      const moderation = await openai.moderations.create({
+        model: "omni-moderation-latest",
+        input: message,
+      });
+
+      const result = moderation.results[0];
+
+      if (result.flagged) {
+        // Log which categories were flagged (for monitoring)
+        const flaggedCategories = Object.entries(result.categories)
+          .filter(([_, flagged]) => flagged)
+          .map(([category]) => category);
+
+        console.warn(`Content moderation flagged: ${flaggedCategories.join(', ')}`);
+
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: "Your message contains content that violates our content policy. Please rephrase your question in a respectful manner.",
+            moderation: true
+          }),
+          { status: 400, headers: { "content-type": "application/json" } }
+        );
+      }
+    } catch (moderationError) {
+      // If moderation API fails, log but don't block the request
+      // (Fail open for better UX, but log for monitoring)
+      console.error("Moderation API error:", moderationError);
+    }
   }
 
   // ============================================
