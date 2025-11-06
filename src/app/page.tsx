@@ -42,6 +42,7 @@ import {
   Send,
   Search,
   Share2,
+  LogOut,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -932,16 +933,6 @@ export default function Home() {
             )}
           </Button>
 
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
-            onClick={handleShare}
-            disabled={isLoading}
-          >
-            <Share2 className="h-5 w-5 mr-2" strokeWidth={2} />
-            <span className="text-sm font-medium">Share App</span>
-          </Button>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -1047,7 +1038,28 @@ export default function Home() {
                 <CardTitle className="text-lg sm:text-xl font-semibold text-blue-900">New Chat</CardTitle>
                 <div className="text-xs text-slate-500 mt-1">{toolLabel()}</div>
               </div>
-              <div className="w-10 lg:hidden" />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-slate-100 rounded-lg"
+                  onClick={handleShare}
+                  disabled={isLoading}
+                  title="Share App"
+                >
+                  <Share2 className="h-5 w-5 text-slate-700" strokeWidth={2} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-slate-100 rounded-lg"
+                  onClick={handleSignOut}
+                  disabled={isLoading}
+                  title="Sign Out"
+                >
+                  <LogOut className="h-5 w-5 text-slate-700" strokeWidth={2} />
+                </Button>
+              </div>
             </div>
           </CardHeader>
 
@@ -1140,26 +1152,25 @@ export default function Home() {
             onSubmit={handleFormSubmit}
             className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
           >
-            {/* Spiritual Tools - Cool Buttons Above Input */}
+            {/* Spiritual Tools - Clean Buttons Above Input */}
             <div className="mb-3 sm:mb-4 flex flex-wrap gap-2 sm:gap-3">
               <Button
                 type="button"
                 onClick={() => router.push('/devotional')}
                 disabled={isLoading}
-                className="flex-1 min-w-[140px] bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200 py-2 sm:py-3"
+                variant="outline"
+                className="flex-1 min-w-[140px] border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-900 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
               >
-                <span className="text-xs sm:text-sm">📖 Daily Devotional</span>
+                <span className="text-xs sm:text-sm">DAILY DEVOTIONAL</span>
               </Button>
               <Button
                 type="button"
-                onClick={() => {
-                  setActiveTool('deep-bible-research');
-                  handleNewChat();
-                }}
+                onClick={() => handleToolSelection('deep-bible-research')}
                 disabled={isLoading}
-                className="flex-1 min-w-[140px] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all duration-200 py-2 sm:py-3"
+                variant="outline"
+                className="flex-1 min-w-[140px] border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-900 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
               >
-                <span className="text-xs sm:text-sm">📚 Bible Research</span>
+                <span className="text-xs sm:text-sm">BIBLE RESEARCH</span>
               </Button>
             </div>
 
