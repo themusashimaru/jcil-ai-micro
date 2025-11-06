@@ -547,6 +547,72 @@ export default function Home() {
     setTimeout(() => setToolButtonFlash(false), 200);
   };
 
+  // ---- TOOL WORKSPACE CREATION ----
+  const handleToolSelection = async (toolType: ToolType) => {
+    if (!user) {
+      alert('Please sign in to use tools.');
+      return;
+    }
+
+    // If selecting "none" (Plain Chat), just set the tool
+    if (toolType === 'none') {
+      setActiveTool('none');
+      return;
+    }
+
+    // Get tool configuration
+    const toolConfig = TOOLS_CONFIG[toolType];
+    if (!toolConfig) {
+      console.error('Tool configuration not found:', toolType);
+      return;
+    }
+
+    // Create a new conversation for this tool workspace
+    const { data: newConvo, error: convError } = await supabase
+      .from('conversations')
+      .insert({
+        user_id: user.id,
+        title: toolConfig.name, // Use tool name as conversation title
+      })
+      .select('id, created_at, title, user_id')
+      .single();
+
+    if (convError || !newConvo) {
+      console.error('Error creating tool workspace:', convError);
+      alert('Failed to create tool workspace.');
+      return;
+    }
+
+    // Clear current messages and set up new workspace
+    setMessages([]);
+    setConversationId(newConvo.id);
+    setConversations((prev) => [newConvo, ...prev]);
+    setActiveTool(toolType);
+    setIsSidebarOpen(false); // Close sidebar on mobile
+
+    // Add welcome message from AI
+    if (toolConfig.welcomeMessage) {
+      const welcomeMsg: Message = {
+        id: `welcome_${Date.now()}`,
+        role: 'assistant',
+        content: toolConfig.welcomeMessage,
+        created_at: new Date().toISOString(),
+      };
+      setMessages([welcomeMsg]);
+
+      // Persist welcome message to database
+      await supabase.from('messages').insert({
+        user_id: user.id,
+        conversation_id: newConvo.id,
+        role: 'assistant',
+        content: toolConfig.welcomeMessage,
+      });
+    }
+
+    // Focus input field
+    inputRef.current?.focus();
+  };
+
   // ---- CHAT SEND LOGIC (writes user_id on every insert) ----
   // Filter conversations based on search query
   const filteredConversations = conversations.filter((convo) => {
@@ -1140,7 +1206,7 @@ export default function Home() {
                   </DropdownMenuLabel>
 
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('none')}
+                    onClick={() => handleToolSelection('none')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Plain Chat {renderCheck('none')}
@@ -1154,31 +1220,31 @@ export default function Home() {
 
                   {/* Email Writer */}
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('email-high-school')}
+                    onClick={() => handleToolSelection('email-high-school')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Email · High School {renderCheck('email-high-school')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('email-bachelors')}
+                    onClick={() => handleToolSelection('email-bachelors')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Email · Bachelor's {renderCheck('email-bachelors')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('email-masters')}
+                    onClick={() => handleToolSelection('email-masters')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Email · Master's {renderCheck('email-masters')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('email-executive')}
+                    onClick={() => handleToolSelection('email-executive')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Email · Executive {renderCheck('email-executive')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('email-phd')}
+                    onClick={() => handleToolSelection('email-phd')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Email · PhD {renderCheck('email-phd')}
@@ -1187,31 +1253,31 @@ export default function Home() {
                   {/* Essay Writer */}
                   <div className="h-1"></div>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('essay-high-school')}
+                    onClick={() => handleToolSelection('essay-high-school')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Essay · High School {renderCheck('essay-high-school')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('essay-bachelors')}
+                    onClick={() => handleToolSelection('essay-bachelors')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Essay · Bachelor's {renderCheck('essay-bachelors')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('essay-masters')}
+                    onClick={() => handleToolSelection('essay-masters')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Essay · Master's {renderCheck('essay-masters')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('essay-executive')}
+                    onClick={() => handleToolSelection('essay-executive')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Essay · Executive {renderCheck('essay-executive')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('essay-phd')}
+                    onClick={() => handleToolSelection('essay-phd')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Essay · PhD {renderCheck('essay-phd')}
@@ -1220,19 +1286,19 @@ export default function Home() {
                   {/* Text Message Writer */}
                   <div className="h-1"></div>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('text-message-casual')}
+                    onClick={() => handleToolSelection('text-message-casual')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Text Message · Casual {renderCheck('text-message-casual')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('text-message-professional')}
+                    onClick={() => handleToolSelection('text-message-professional')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Text Message · Professional {renderCheck('text-message-professional')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('text-message-formal')}
+                    onClick={() => handleToolSelection('text-message-formal')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Text Message · Formal {renderCheck('text-message-formal')}
@@ -1245,25 +1311,25 @@ export default function Home() {
                   </DropdownMenuLabel>
 
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('resume-writer')}
+                    onClick={() => handleToolSelection('resume-writer')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Resume Writer (ATS) {renderCheck('resume-writer')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('document-summary')}
+                    onClick={() => handleToolSelection('document-summary')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Document Summary {renderCheck('document-summary')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('data-analysis')}
+                    onClick={() => handleToolSelection('data-analysis')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Data Analysis {renderCheck('data-analysis')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('business-strategy')}
+                    onClick={() => handleToolSelection('business-strategy')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Business Strategy {renderCheck('business-strategy')}
@@ -1276,13 +1342,13 @@ export default function Home() {
                   </DropdownMenuLabel>
 
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('apologetics-helper')}
+                    onClick={() => handleToolSelection('apologetics-helper')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Apologetics Helper {renderCheck('apologetics-helper')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('coding-assistant')}
+                    onClick={() => handleToolSelection('coding-assistant')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Coding Assistant {renderCheck('coding-assistant')}
@@ -1295,13 +1361,13 @@ export default function Home() {
                   </DropdownMenuLabel>
 
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('plant-identifier')}
+                    onClick={() => handleToolSelection('plant-identifier')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Plant Identifier {renderCheck('plant-identifier')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setActiveTool('ingredient-extractor')}
+                    onClick={() => handleToolSelection('ingredient-extractor')}
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Ingredient Extractor {renderCheck('ingredient-extractor')}
