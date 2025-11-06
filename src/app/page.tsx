@@ -777,9 +777,10 @@ export default function Home() {
       /\b(nearest|closest|best|top rated|around me|near me|nearby)\b/i, // location-based
       /\b(who is|what is|where is|when did|how did)\b.*\b(now|today|currently|recently|latest|2025)\b/i,
       /\b(news about|updates on|information on|status of)\b/i,
-      /\b(restaurant|barber|barbershop|shop|store|hotel|cafe|coffee|gym|salon|spa|dentist|doctor|hospital|pharmacy|gas station|bank|atm|pizza|food)\b/i, // local business keywords
-      /(closest|nearest|near me|around me|nearby|close by)\s+(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food)/i, // closest + business
-      /(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food)\s+(near|nearby|around|close to|closest to|nearest to)\s+(me|here)/i // business + near me
+      /\b(restaurant|barber|barbershop|shop|store|hotel|cafe|coffee|gym|salon|spa|dentist|doctor|hospital|pharmacy|gas station|bank|atm|pizza|food|nail|nails|hair|massage)\b/i, // local business keywords
+      /(closest|nearest|near me|around me|nearby|close by)\s+(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food|nail|nails|hair)/i, // closest + business
+      /(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food|nail|nails|hair)\s+(near|nearby|around|close to|closest to|nearest to|in)\s+(me|here)/i, // business + near me
+      /\b(places?|businesses?|spots?)\s+(in|near|around)\b/i // "places in marblehead"
     ];
 
     // Fact-Check Intent Patterns (for Perplexity API)
@@ -790,8 +791,33 @@ export default function Home() {
       /\b(prove|disprove|evidence for|evidence against)\b/i
     ];
 
+    // Air Quality / Pollen Intent Patterns (Google Air Quality API)
+    const airQualityPatterns = [
+      /\b(air quality|air pollution|aqi|pollution level|smog)\b/i,
+      /\b(pollen|pollen count|allergy|allergies|hay fever)\b/i,
+      /\b(is (the )?air (safe|clean|good|bad|unhealthy))\b/i,
+      /\b(should i wear a mask|safe to go outside)\b/i
+    ];
+
+    // Directions / Navigation Intent Patterns (Google Directions API)
+    const directionsPatterns = [
+      /\b(directions? to|how (do i|to) get to|route to|navigate to|drive to|walk to)\b/i,
+      /\b(show me the way|take me to|guide me to)\b/i,
+      /\b(how far is|distance to|how long (does it take|will it take) to get to)\b/i
+    ];
+
+    // Time Zone Intent Patterns (Google Time Zone API)
+    const timezonePatterns = [
+      /\b(what time is it in|time in|current time in)\b/i,
+      /\b(time ?zone|timezone)\b/i,
+      /\b(what('?s| is) the time (in|at))\b/i
+    ];
+
     const isSearchIntent = searchPatterns.some(pattern => pattern.test(lowerText));
-    const isFactCheckIntent = !isSearchIntent && factCheckPatterns.some(pattern => pattern.test(lowerText)); // Fact-check only if not search
+    const isFactCheckIntent = !isSearchIntent && factCheckPatterns.some(pattern => pattern.test(lowerText));
+    const isAirQualityIntent = !isSearchIntent && !isFactCheckIntent && airQualityPatterns.some(pattern => pattern.test(lowerText));
+    const isDirectionsIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && directionsPatterns.some(pattern => pattern.test(lowerText));
+    const isTimezoneIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && !isDirectionsIntent && timezonePatterns.some(pattern => pattern.test(lowerText));
 
     // persist user message with user_id
     const { error: insertUserErr } = await supabase.from('messages').insert({
@@ -822,10 +848,19 @@ export default function Home() {
 
         // Detect if this is a location-based query (check first!)
         const locationPatterns = [
-          /\b(nearest|closest|best|near me|around me|nearby)\b/i,
-          /\b(restaurants?|barber|shops?|stores?|hotels?|places?)\s+(near|nearby|around|in)\b/i
+          /\b(nearest|closest|best|near me|around me|nearby|close by)\b/i,
+          /\b(restaurants?|barber|barbershops?|shops?|stores?|hotels?|places?|businesses?|spots?|salons?|spas?|dentists?|doctors?|cafes?|gyms?|nail|nails|hair|pizza|food)\s+(near|nearby|around|in|close to)\b/i,
+          /\b(where|find|show me|looking for)\s+(restaurants?|barber|shops?|stores?|places?|salons?|nail|nails|pizza)\b/i,
+          /\b(pizza|food|coffee|cafe|barber|salon|nail|nails|hair|gym|dentist|doctor|pharmacy|gas|bank|atm|hotel|restaurant)\s+(places?|shops?|stores?|in|near|around)\b/i
         ];
         const isLocationQuery = locationPatterns.some(pattern => pattern.test(lowerText));
+
+        console.log('🔍 Search query:', textInput);
+        console.log('🎯 Location query detected:', isLocationQuery);
+
+        // Check if user explicitly mentioned a city/location (skip geolocation if so)
+        const hasCityMention = /\b(in|near|around)\s+[A-Z][a-z]+/i.test(textInput);
+        console.log('🏙️ City mentioned in query:', hasCityMention);
 
         // Add temp message for web searches (non-location)
         if (!isLocationQuery) {
@@ -840,7 +875,7 @@ export default function Home() {
 
         // Get user's location if it's a location query (with permission)
         let userLocation = null;
-        if (isLocationQuery && typeof navigator !== 'undefined' && navigator.geolocation) {
+        if (isLocationQuery && !hasCityMention && typeof navigator !== 'undefined' && navigator.geolocation) {
           try {
             // Show temporary message while getting location
             const tempMsg: Message = {
@@ -918,14 +953,14 @@ export default function Home() {
         }
 
         // Route to appropriate search API
-        if (isLocationQuery && userLocation) {
+        if (isLocationQuery && (userLocation || hasCityMention)) {
           // Use Google Places API for local business searches
           const localSearchResponse = await fetch('/api/local-search', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               query: textInput,
-              location: userLocation
+              location: userLocation // can be null if city is mentioned in query
             }),
           });
 
@@ -1006,7 +1041,166 @@ export default function Home() {
         }
       }
       // ============================================
-      // 💬 ROUTE 3: NORMAL CHAT (Claude Haiku)
+      // 🌬️ ROUTE 3: AIR QUALITY (Google Air Quality API)
+      // ============================================
+      else if (isAirQualityIntent && hasText) {
+        console.log('🌬️ Detected air quality intent, routing to Google Air Quality API...');
+
+        // Get user's location
+        let userLocation = null;
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          try {
+            const tempMsg: Message = {
+              id: `temp-air-${Date.now()}`,
+              role: 'assistant',
+              content: '🌬️ Getting air quality and pollen data for your area...',
+              created_at: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, tempMsg]);
+
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                timeout: 10000,
+                enableHighAccuracy: true,
+                maximumAge: 0
+              });
+            });
+
+            userLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            };
+
+            const airQualityResponse = await fetch('/api/google-air-quality', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ location: userLocation }),
+            });
+
+            const airQualityData = await airQualityResponse.json();
+
+            setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-air-')));
+
+            if (airQualityResponse.ok && airQualityData.airQuality) {
+              const aqi = airQualityData.airQuality.indexes?.[0];
+              let response = `**Air Quality in ${airQualityData.location}**\n\n`;
+
+              if (aqi) {
+                response += `**AQI**: ${aqi.aqi} - ${aqi.category || 'Unknown'}\n`;
+                response += `**Health**: ${aqi.dominantPollutant ? `Dominant pollutant: ${aqi.dominantPollutant}` : 'Data unavailable'}\n\n`;
+              }
+
+              // Add pollen data if available
+              if (airQualityData.airQuality.pollens) {
+                response += `**Pollen Levels**:\n`;
+                airQualityData.airQuality.pollens.forEach((pollen: any) => {
+                  response += `- ${pollen.displayName}: ${pollen.indexInfo?.category || 'N/A'}\n`;
+                });
+              }
+
+              assistantText = response;
+            } else {
+              assistantText = "Unable to fetch air quality data. Please try again later.";
+            }
+          } catch (error: any) {
+            setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-air-')));
+            assistantText = "📍 Unable to access your location. Please enable location services in your browser settings.";
+          }
+        } else {
+          assistantText = "Location services are not available in your browser.";
+        }
+      }
+      // ============================================
+      // 🚗 ROUTE 4: DIRECTIONS (Google Directions API)
+      // ============================================
+      else if (isDirectionsIntent && hasText) {
+        console.log('🚗 Detected directions intent, routing to Google Directions API...');
+
+        const tempMsg: Message = {
+          id: `temp-directions-${Date.now()}`,
+          role: 'assistant',
+          content: '🚗 Calculating route...',
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, tempMsg]);
+
+        // Extract origin and destination from query
+        // For now, we'll use "current location" as origin if user says "how do I get to X"
+        let origin = 'current location';
+        let destination = textInput.replace(/^(how (do i|to) get to|directions? to|route to|navigate to|drive to|walk to)\s*/i, '').trim();
+
+        // Get user's current location for origin
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+            });
+            origin = `${position.coords.latitude},${position.coords.longitude}`;
+          } catch (error) {
+            console.log('Could not get current location for directions');
+          }
+        }
+
+        const directionsResponse = await fetch('/api/google-directions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin, destination }),
+        });
+
+        const directionsData = await directionsResponse.json();
+
+        setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-directions-')));
+
+        if (directionsResponse.ok && directionsData.directions) {
+          const dir = directionsData.directions;
+          let response = `**Route to ${dir.end_address}**\n\n`;
+          response += `**Distance**: ${dir.distance}\n`;
+          response += `**Duration**: ${dir.duration}\n\n`;
+          response += `**Directions**:\n`;
+          dir.steps.forEach((step: any, i: number) => {
+            response += `${i + 1}. ${step.instruction} (${step.distance})\n`;
+          });
+          assistantText = response;
+        } else {
+          assistantText = "Unable to calculate directions. Please try a different destination.";
+        }
+      }
+      // ============================================
+      // 🕐 ROUTE 5: TIME ZONE (Google Time Zone API)
+      // ============================================
+      else if (isTimezoneIntent && hasText) {
+        console.log('🕐 Detected timezone intent, routing to Google Time Zone API...');
+
+        const tempMsg: Message = {
+          id: `temp-timezone-${Date.now()}`,
+          role: 'assistant',
+          content: '🕐 Looking up time zone...',
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, tempMsg]);
+
+        // Extract location name from query
+        const locationName = textInput.replace(/^(what time is it in|time in|current time in|what('?s| is) the time (in|at))\s*/i, '').trim();
+
+        const timezoneResponse = await fetch('/api/google-timezone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ locationName }),
+        });
+
+        const timezoneData = await timezoneResponse.json();
+
+        setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-timezone-')));
+
+        if (timezoneResponse.ok && timezoneData.timezone) {
+          const tz = timezoneData.timezone;
+          assistantText = `**Time in ${locationName}**\n\n🕐 ${tz.formattedTime}\n📅 ${tz.formattedDate}\n🌍 ${tz.name} (UTC${tz.utcOffset >= 0 ? '+' : ''}${tz.utcOffset})`;
+        } else {
+          assistantText = "Unable to find time zone for that location. Please try a different city or country.";
+        }
+      }
+      // ============================================
+      // 💬 ROUTE 6: NORMAL CHAT (Claude Haiku)
       // ============================================
       else {
         let response: Response;
