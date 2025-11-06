@@ -1400,14 +1400,6 @@ export default function Home() {
               >
                 <span className="text-xs tracking-wide">BIBLE RESEARCH</span>
               </Button>
-              <Button
-                type="button"
-                onClick={() => router.push('/news')}
-                disabled={isLoading}
-                className="flex-1 min-w-[120px] h-9 bg-blue-900 hover:bg-blue-950 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                <span className="text-xs tracking-wide">NEWS SUMMARY</span>
-              </Button>
             </div>
 
             {attachedFileName && (
