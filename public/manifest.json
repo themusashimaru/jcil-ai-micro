@@ -1,7 +1,7 @@
 {
-  "name": "JCIL.AI",
-  "short_name": "JCIL.AI",
-  "description": "Christian AI Assistant",
+  "name": "Slingshot",
+  "short_name": "Slingshot",
+  "description": "Christian AI Assistant - Slingshot 2.0",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

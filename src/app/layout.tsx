@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "JCIL.AI - Christian AI Assistant",
   description: "AI-powered chat assistant with biblical filtering and faith-based insights.",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "JCIL.AI" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Slingshot" },
   icons: {
     icon: [
       { url: "/favicon.png" }, // favicon
@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="JCIL.AI" />
+        <meta name="apple-mobile-web-app-title" content="Slingshot" />
         <link rel="apple-touch-icon" href="/jcil-ai-logo.png" />
         <link rel="icon" href="/favicon.png" sizes="32x32" type="image/png" />
       </head>
