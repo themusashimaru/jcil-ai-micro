@@ -678,7 +678,7 @@ export default function Home() {
 
       // Generate smart title after first exchange (user message + assistant response)
       // Only generate if this is the first assistant response (2 messages total)
-      if (messages.length <= 1) {
+      if (messages.length <= 1 && currentConvoId) {
         generateTitle(currentConvoId);
       }
 
