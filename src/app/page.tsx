@@ -917,24 +917,60 @@ export default function Home() {
           }
         }
 
-        const searchResponse = await fetch('/api/web-search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: textInput,
-            location: userLocation
-          }),
-        });
+        // Route to appropriate search API
+        if (isLocationQuery && userLocation) {
+          // Use Google Places API for local business searches
+          const localSearchResponse = await fetch('/api/local-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: textInput,
+              location: userLocation
+            }),
+          });
 
-        const searchData = await searchResponse.json();
+          const localSearchData = await localSearchResponse.json();
 
-        // Remove temp messages
-        setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-search-') && !m.id.startsWith('temp-location-')));
+          // Remove temp messages
+          setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-search-') && !m.id.startsWith('temp-location-')));
 
-        if (searchResponse.ok && searchData.interpretation) {
-          assistantText = searchData.interpretation;
+          if (localSearchResponse.ok && localSearchData.businesses && localSearchData.businesses.length > 0) {
+            // Format businesses into a nice response
+            const businessList = localSearchData.businesses.map((b: any, i: number) => {
+              let info = `**${b.name}**\n`;
+              info += b.address ? `${b.address}\n` : '';
+              if (b.phone) info += `📞 ${b.phone}\n`;
+              if (b.website) info += `[Visit Website](${b.website})\n`;
+              if (b.rating) info += `⭐ ${b.rating}/5 (${b.total_ratings || 0} reviews)\n`;
+              if (b.open_now !== null) info += b.open_now ? '🟢 Open now\n' : '🔴 Closed\n';
+              return info;
+            }).join('\n---\n\n');
+
+            assistantText = `Here are the closest places I found:\n\n${businessList}`;
+          } else {
+            assistantText = "I couldn't find any specific businesses nearby. Try being more specific with your search or check if location services are enabled.";
+          }
         } else {
-          throw new Error(searchData.error || 'Web search failed');
+          // Use Brave Search for news/general searches
+          const searchResponse = await fetch('/api/web-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: textInput,
+              location: userLocation
+            }),
+          });
+
+          const searchData = await searchResponse.json();
+
+          // Remove temp messages
+          setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-search-') && !m.id.startsWith('temp-location-')));
+
+          if (searchResponse.ok && searchData.interpretation) {
+            assistantText = searchData.interpretation;
+          } else {
+            throw new Error(searchData.error || 'Web search failed');
+          }
         }
       }
       // ============================================
