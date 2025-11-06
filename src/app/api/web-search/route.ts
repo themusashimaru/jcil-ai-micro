@@ -17,10 +17,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { query } = await request.json();
+    const { query, location } = await request.json();
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json({ error: 'Invalid query' }, { status: 400 });
+    }
+
+    // Append location to query if provided
+    let searchQuery = query;
+    if (location && location.latitude && location.longitude) {
+      searchQuery = `${query} near ${location.latitude},${location.longitude}`;
+      console.log('📍 Location-enhanced search query:', searchQuery);
     }
 
     // Fetch web search results from Brave Search API
@@ -33,9 +40,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🔍 Searching the web for:', query);
+    console.log('🔍 Searching the web for:', searchQuery);
 
-    const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=10&freshness=7d`;
+    const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=10&freshness=7d`;
     const searchResponse = await fetch(searchUrl, {
       headers: {
         'X-Subscription-Token': braveApiKey,
