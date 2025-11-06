@@ -244,6 +244,10 @@ export async function POST(req: Request) {
     toolType = (body.toolType || 'none') as ToolType;
   }
 
+  // Debug logging
+  console.log('🛠️ Tool Type Received:', toolType);
+  console.log('📝 Message:', message.substring(0, 50));
+
   // ============================================
   // 🛡️ CONTENT MODERATION (OpenAI)
   // ============================================
@@ -373,10 +377,16 @@ export async function POST(req: Request) {
   // ============================================
 
   // Combine main system prompt with tool-specific prompt
-  const toolPrompt = getToolSystemPrompt(toolType);
-  const combinedSystemPrompt = toolPrompt
-    ? `${SYSTEM_PROMPT}\n\n# 🛠️ SPECIALIZED TOOL MODE\n\n${toolPrompt}`
-    : SYSTEM_PROMPT;
+  let combinedSystemPrompt = SYSTEM_PROMPT;
+  try {
+    const toolPrompt = getToolSystemPrompt(toolType);
+    if (toolPrompt) {
+      combinedSystemPrompt = `${SYSTEM_PROMPT}\n\n# 🛠️ SPECIALIZED TOOL MODE\n\n${toolPrompt}`;
+    }
+  } catch (toolError) {
+    console.error('Error getting tool system prompt:', toolError, 'toolType:', toolType);
+    // Continue with base system prompt if tool prompt fails
+  }
 
   let reply = "";
 
