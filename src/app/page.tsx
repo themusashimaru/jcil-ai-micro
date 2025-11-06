@@ -73,7 +73,6 @@ const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 // Christian-themed loading messages with professional academic flair
 const LOADING_MESSAGES = [
   "Seeking wisdom from Scripture...",
-  "Consulting the ancient texts...",
   "Processing through a biblical lens...",
   "Analyzing with discernment...",
   "Searching the Scriptures...",
@@ -87,6 +86,7 @@ const LOADING_MESSAGES = [
   "Cross-referencing sacred texts...",
   "Constructing a faithful answer...",
   "Parsing with divine guidance...",
+  "Rejecting wokeness, embracing truth...",
 ];
 
 const TypingIndicator = () => {
@@ -545,7 +545,7 @@ export default function Home() {
     if (isRecording) mediaRecorderRef.current?.stop();
 
     setIsLoading(true);
-    setIsTyping(false);
+    setIsTyping(true); // Show typing indicator while AI responds
 
     const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
 
