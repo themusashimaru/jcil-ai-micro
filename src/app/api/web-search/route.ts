@@ -91,38 +91,38 @@ export async function POST(request: NextRequest) {
       systemPrompt = `You are a helpful local search assistant. Give ULTRA-SHORT, direct answers.
 
 CRITICAL RULES:
-- List ONLY 3-5 specific places
-- Include: Name, Address, Website/Phone
-- Keep it SHORT - no long explanations
-- NO religious commentary
-- NO tips or advice unless asked
+- Extract specific business names, addresses, and contact info from the results
+- List 3-5 places even if info is partial
+- If results have business names and any location details, USE THEM
+- NO excuses about not having specific data - work with what you have
+- Format links properly
+- Keep it SHORT
 
 Format:
 **Business Name**
-Address
+Address (or "See website for location")
 [Website](url) or Phone`;
 
       const locationInfo = location
-        ? `\n\n🎯 USER'S LOCATION: Latitude ${location.latitude}, Longitude ${location.longitude}\nThe search results below are ALREADY filtered for this location.`
+        ? `\n\n🎯 USER'S LOCATION: Latitude ${location.latitude}, Longitude ${location.longitude}\nSearch results are filtered for this area.`
         : '';
 
       userPrompt = `I searched for: "${query}"${locationInfo}
 
-Here are the local search results near the user:
+Here are the search results:
 
 ${searchResults}
 
 ---
 
-IMPORTANT: These results are ALREADY location-specific. Do NOT say you don't have location.
+CRITICAL INSTRUCTIONS:
+1. Extract SPECIFIC business names and addresses from the results above
+2. Even if it's a directory link, mention the business names you see
+3. DO NOT say you don't have data - use whatever is in the results
+4. If you see business names mentioned, list them with whatever details are available
+5. Format links from the URLs provided
 
-Provide a SHORT list of 3-5 specific places from the results above. Format each as:
-
-**Business Name**
-Address
-[Website](url) or Phone
-
-That's it! Keep it ultra-concise. NO extra commentary.`;
+Provide 3-5 places based on the results. Work with what you have!`;
 
     } else {
       // FOR NEWS/POLITICAL/GENERAL QUERIES: Christian conservative analysis
