@@ -223,7 +223,7 @@ export default function SettingsPage() {
           <Button
             onClick={handleSignOut}
             variant="outline"
-            className="border-slate-300 hover:bg-slate-100 mt-8"
+            className="border-slate-300 hover:bg-slate-100 mt-0 sm:mt-8"
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out
