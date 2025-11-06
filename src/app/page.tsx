@@ -768,22 +768,27 @@ export default function Home() {
     // Detect if user wants web search or fact-checking
     const lowerText = textInput.toLowerCase();
 
-    // Web Search Intent Patterns
+    // Web Search Intent Patterns (for Brave Search API)
     const searchPatterns = [
-      /\b(search|google|look up|find|what'?s happening|latest news|current|recent|today'?s)\b/i,
-      /\b(who is|what is|where is|when did|how did)\b.*\b(now|today|currently|recently|latest)\b/i,
-      /\b(news about|updates on|information on)\b/i
+      /\b(search|google|look up|find|show me|tell me about)\b/i,
+      /\b(what'?s|whats)\s+(happening|going on|new|breaking|the latest)\b/i,
+      /\b(breaking news|latest news|news today|current events|today'?s news)\b/i,
+      /\b(nearest|closest|best|top rated|around me|near me|nearby)\b/i, // location-based
+      /\b(who is|what is|where is|when did|how did)\b.*\b(now|today|currently|recently|latest|2025)\b/i,
+      /\b(news about|updates on|information on|status of)\b/i,
+      /\b(restaurants?|barber|shops?|stores?|hotels?|places?)\s+(near|nearby|around|in)\b/i // local business
     ];
 
-    // Fact-Check Intent Patterns
+    // Fact-Check Intent Patterns (for Perplexity API)
     const factCheckPatterns = [
-      /\b(fact.?check|verify|is (it|this) true|check if|validate)\b/i,
-      /\b(true or false|real or fake|debunk|hoax)\b/i,
-      /\b(did .+ really|is it accurate|confirm)\b/i
+      /\b(fact.?check|verify|is (it|this) true|check if|validate|confirm)\b/i,
+      /\b(true or false|real or fake|debunk|hoax|myth)\b/i,
+      /\b(did .+ really|is it accurate|is that correct)\b/i,
+      /\b(prove|disprove|evidence for|evidence against)\b/i
     ];
 
     const isSearchIntent = searchPatterns.some(pattern => pattern.test(lowerText));
-    const isFactCheckIntent = factCheckPatterns.some(pattern => pattern.test(lowerText));
+    const isFactCheckIntent = !isSearchIntent && factCheckPatterns.some(pattern => pattern.test(lowerText)); // Fact-check only if not search
 
     // persist user message with user_id
     const { error: insertUserErr } = await supabase.from('messages').insert({
@@ -812,10 +817,37 @@ export default function Home() {
       if (isSearchIntent && hasText) {
         console.log('🔍 Detected search intent, routing to Brave Search API...');
 
+        // Detect if this is a location-based query
+        const locationPatterns = [
+          /\b(nearest|closest|best|near me|around me|nearby)\b/i,
+          /\b(restaurants?|barber|shops?|stores?|hotels?|places?)\s+(near|nearby|around|in)\b/i
+        ];
+        const isLocationQuery = locationPatterns.some(pattern => pattern.test(lowerText));
+
+        // Get user's location if it's a location query (with permission)
+        let userLocation = null;
+        if (isLocationQuery && typeof navigator !== 'undefined' && navigator.geolocation) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+            });
+            userLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            };
+            console.log('📍 Location detected:', userLocation);
+          } catch (error) {
+            console.log('📍 Location permission denied or unavailable');
+          }
+        }
+
         const searchResponse = await fetch('/api/web-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: textInput }),
+          body: JSON.stringify({
+            query: textInput,
+            location: userLocation
+          }),
         });
 
         const searchData = await searchResponse.json();

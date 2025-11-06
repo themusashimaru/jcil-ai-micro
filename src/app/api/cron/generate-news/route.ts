@@ -234,6 +234,10 @@ export async function GET(request: NextRequest) {
       .filter((text) => text)
       .join('\n\n---\n\n');
 
+    // Get current date/year for fresh queries
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+
     // Also fetch real-time web search results using Brave Search API for maximum freshness
     let webSearchContext = '';
     const braveApiKey = process.env.BRAVE_SEARCH_API_KEY;
@@ -242,11 +246,11 @@ export async function GET(request: NextRequest) {
       console.log('🔍 [CRON] Fetching real-time web search results...');
       try {
         const searchQueries = [
-          'breaking news politics today',
-          'stock market today dow nasdaq',
-          'international news today',
-          'technology news today',
-          'oil prices today',
+          `breaking news politics ${currentYear}`,
+          `stock market today dow nasdaq ${currentYear}`,
+          `international news ${currentYear}`,
+          `technology news ${currentYear}`,
+          `oil prices today ${currentYear}`,
         ];
 
         const searchResults = await Promise.all(
@@ -280,28 +284,38 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate PhD-level analysis with LIVE news data
+    const formattedDate = currentDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5
+      model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5 for News
       max_tokens: 8192,
       system: NEWS_SUMMARY_SYSTEM_PROMPT,
       messages: [
         {
           role: 'user',
-          content: `I have compiled the ABSOLUTE LATEST breaking news and web search results from the past 24 hours. Analyze this LIVE data and generate a comprehensive PhD-level intelligence report.
+          content: `🚨 CRITICAL: We are currently in the year ${currentYear}. Today's date is ${formattedDate}.
 
-## LIVE BREAKING NEWS (Past Few Hours)
+I have compiled the ABSOLUTE LATEST breaking news and web search results from the past 24 hours. Analyze this LIVE data and generate a comprehensive PhD-level intelligence report.
+
+## LIVE BREAKING NEWS (Past Few Hours - ${formattedDate})
 
 ${liveNewsContext}
 
-${webSearchContext ? `\n## REAL-TIME WEB SEARCH RESULTS (Last 24 Hours)\n\n${webSearchContext}\n` : ''}
+${webSearchContext ? `\n## REAL-TIME WEB SEARCH RESULTS (Last 24 Hours - ${currentYear})\n\n${webSearchContext}\n` : ''}
 
 ---
 
 **YOUR TASK:** Generate a comprehensive PhD-level intelligence report covering ALL 10 sections below.
 
 **CRITICAL REQUIREMENTS:**
+- ⚠️ CURRENT YEAR IS ${currentYear} - Do NOT reference 2024 or earlier as "current"
+- TODAY'S DATE is ${formattedDate} - Reference this in your opening
 - Use ONLY the breaking news and web search results provided above (they are from the past 24 hours)
-- Include TODAY'S DATE (${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}) in your analysis
 - Reference SPECIFIC headlines, sources, and data points from the news above
 - Include CURRENT market data, stock prices, and percentages from the breaking news
 - Write 2-4 FULL PARAGRAPHS per section (not bullet points)
