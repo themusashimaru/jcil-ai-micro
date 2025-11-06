@@ -102,15 +102,21 @@ Format:
 Address
 [Website](url) or Phone`;
 
-      userPrompt = `I searched for: "${query}"
+      const locationInfo = location
+        ? `\n\n🎯 USER'S LOCATION: Latitude ${location.latitude}, Longitude ${location.longitude}\nThe search results below are ALREADY filtered for this location.`
+        : '';
 
-Here are the local search results:
+      userPrompt = `I searched for: "${query}"${locationInfo}
+
+Here are the local search results near the user:
 
 ${searchResults}
 
 ---
 
-Provide a SHORT list of 3-5 specific places. Format each as:
+IMPORTANT: These results are ALREADY location-specific. Do NOT say you don't have location.
+
+Provide a SHORT list of 3-5 specific places from the results above. Format each as:
 
 **Business Name**
 Address
