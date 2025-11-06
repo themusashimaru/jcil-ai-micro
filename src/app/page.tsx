@@ -269,6 +269,11 @@ export default function Home() {
   useEffect(() => { scrollToBottom(); }, [messages, isTyping]);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
+  // Auto-resize textarea when localInput changes (for mic transcription AND typing)
+  useEffect(() => {
+    resizeTextarea();
+  }, [localInput]);
+
   const fetchConversations = async (userId: string) => {
     setHistoryIsLoading(true);
     const { data, error } = await supabase
@@ -447,7 +452,7 @@ export default function Home() {
       const data = await response.json();
       if (response.ok) {
         setLocalInput((prev) => (prev + ' ' + data.text).trim());
-        setTimeout(resizeTextarea, 0);
+        // useEffect will handle textarea resize automatically
       } else {
         alert(`Transcription failed: ${data.error || 'Unknown error'}`);
       }
