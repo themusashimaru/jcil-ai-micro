@@ -5,6 +5,7 @@ This guide covers setting up your Supabase database for JCIL.AI Slingshot 2.0.
 ## Table of Contents
 1. [Add Database Indexes](#add-database-indexes) (Performance Optimization)
 2. [Create Daily Devotionals Table](#create-daily-devotionals-table) (New Feature)
+3. [Create Daily News Summaries Table](#create-daily-news-summaries-table) (New Feature)
 
 ---
 
@@ -195,3 +196,108 @@ DELETE FROM daily_devotionals WHERE date_key = '2025-01-15';
 
 ## Questions?
 The daily devotionals table is a simple, efficient way to provide community-wide spiritual content. It's designed to be maintenance-free and automatically managed.
+
+---
+
+# Create Daily News Summaries Table
+
+## Quick Start: Add Daily News Summaries Table
+
+### Step 1: Open Supabase SQL Editor
+1. Go to your Supabase Dashboard
+2. Navigate to **SQL Editor** (left sidebar)
+3. Click **New Query**
+
+### Step 2: Run the Table Creation Script
+1. Open the file `daily-news-summaries-table.sql` in this repository
+2. Copy the entire SQL script
+3. Paste it into the Supabase SQL Editor
+4. Click **RUN** (or press `Ctrl+Enter`)
+
+### Step 3: Verify Table Was Created
+Run this query to confirm:
+```sql
+SELECT * FROM daily_news_summaries LIMIT 1;
+```
+
+You should see an empty table with these columns:
+- `id` (UUID, primary key)
+- `timestamp_key` (TEXT, unique - format: YYYY-MM-DD-HH-MM)
+- `content` (JSONB - structured news data)
+- `generated_at` (TIMESTAMPTZ)
+- `created_at` (TIMESTAMPTZ)
+
+---
+
+## What This Table Does
+
+### Daily News Summary Feature
+- **Conservative Christian Perspective:** News summaries from a center-right, biblical worldview
+- **Updated Every 30 Minutes:** Fresh news every half hour using Claude Sonnet 4.5
+- **10 Major Categories:**
+  1. U.S. Breaking News
+  2. International News
+  3. Economics & Business
+  4. National Defense
+  5. International Espionage
+  6. Christian Persecution Worldwide
+  7. China (Adversarial Summary)
+  8. Russia (Adversarial Summary)
+  9. Iran (Adversarial Summary)
+  10. North Korea (Adversarial Summary)
+- **Verified Sources:** Fox News, WSJ, AP, Reuters, Christian Post, National Review, etc.
+- **Digital Newspaper Format:** Clean, readable layout like traditional newspapers
+
+### Purpose
+Help believers stay informed without being overwhelmed by 24/7 news saturation. Provides curated, factual summaries with conservative Christian framing.
+
+### Performance & Storage
+- **30-Minute Caching:** Summaries cached for 30 minutes, all users see same content
+- **Automatic Cleanup:** Optional cleanup of summaries older than 7 days
+- **JSONB Storage:** Structured data for efficient querying
+- **AI-Generated:** Claude Sonnet 4.5 analyzes and summarizes verified sources
+
+### Data Structure
+```json
+{
+  "generated_at": "2025-01-15T14:30:00Z",
+  "summary": "**U.S. BREAKING NEWS**\n• Headline: Summary...\n\n**INTERNATIONAL NEWS**\n• Headline: Summary..."
+}
+```
+
+---
+
+## Troubleshooting
+
+### "Table already exists" error
+✅ **This is fine!** The script uses `IF NOT EXISTS` to be safe.
+
+### News not generating
+1. Check your `ANTHROPIC_API_KEY` environment variable in Vercel
+2. Verify the table was created (see Step 3 above)
+3. Check the `/api/news-summary` route logs for errors
+4. Ensure Claude Sonnet 4.5 model is available
+
+### Need to reset news summaries?
+```sql
+-- Delete all news summaries (they will regenerate on next visit)
+TRUNCATE TABLE daily_news_summaries;
+
+-- Or delete just one timestamp
+DELETE FROM daily_news_summaries WHERE timestamp_key = '2025-01-15-14-30';
+
+-- Cleanup old summaries (keep only last 7 days)
+DELETE FROM daily_news_summaries
+WHERE generated_at < NOW() - INTERVAL '7 days';
+```
+
+### Share functionality
+- **Native Share:** Works on iOS, Android, modern desktop browsers
+- **URL Sharing:** Users can share direct link to news page
+- **Clipboard Fallback:** Automatically copies link if native share unavailable
+- **PDF Export:** (Future feature - coming soon)
+
+---
+
+## Questions?
+The daily news summaries table provides believers with fact-based news from a conservative Christian perspective, helping reduce unhealthy news consumption while staying informed.

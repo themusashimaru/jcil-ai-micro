@@ -1158,8 +1158,7 @@ export default function Home() {
                 type="button"
                 onClick={() => router.push('/devotional')}
                 disabled={isLoading}
-                variant="outline"
-                className="flex-1 min-w-[140px] border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-900 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
+                className="flex-1 min-w-[140px] bg-blue-900 hover:bg-blue-950 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
               >
                 <span className="text-xs sm:text-sm">DAILY DEVOTIONAL</span>
               </Button>
@@ -1167,10 +1166,17 @@ export default function Home() {
                 type="button"
                 onClick={() => handleToolSelection('deep-bible-research')}
                 disabled={isLoading}
-                variant="outline"
-                className="flex-1 min-w-[140px] border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-900 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
+                className="flex-1 min-w-[140px] bg-blue-900 hover:bg-blue-950 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
               >
                 <span className="text-xs sm:text-sm">BIBLE RESEARCH</span>
+              </Button>
+              <Button
+                type="button"
+                onClick={() => router.push('/news')}
+                disabled={isLoading}
+                className="flex-1 min-w-[140px] bg-blue-900 hover:bg-blue-950 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 py-2.5 sm:py-3"
+              >
+                <span className="text-xs sm:text-sm">NEWS SUMMARY</span>
               </Button>
             </div>
 
