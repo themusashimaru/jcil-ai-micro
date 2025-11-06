@@ -1,4 +1,14 @@
-# Database Optimization Setup
+# Database Setup
+
+This guide covers setting up your Supabase database for JCIL.AI Slingshot 2.0.
+
+## Table of Contents
+1. [Add Database Indexes](#add-database-indexes) (Performance Optimization)
+2. [Create Daily Devotionals Table](#create-daily-devotionals-table) (New Feature)
+
+---
+
+# Add Database Indexes
 
 ## Quick Start: Add Indexes to Supabase
 
@@ -102,3 +112,86 @@ DROP INDEX IF EXISTS idx_messages_conversation_user;
 
 ## Questions?
 These indexes are standard PostgreSQL best practices for this query pattern. They're safe to add and will significantly improve performance as your user base grows.
+
+---
+
+# Create Daily Devotionals Table
+
+## Quick Start: Add Daily Devotionals Table
+
+### Step 1: Open Supabase SQL Editor
+1. Go to your Supabase Dashboard
+2. Navigate to **SQL Editor** (left sidebar)
+3. Click **New Query**
+
+### Step 2: Run the Table Creation Script
+1. Open the file `daily-devotionals-table.sql` in this repository
+2. Copy the entire SQL script
+3. Paste it into the Supabase SQL Editor
+4. Click **RUN** (or press `Ctrl+Enter`)
+
+### Step 3: Verify Table Was Created
+Run this query to confirm:
+```sql
+SELECT * FROM daily_devotionals LIMIT 1;
+```
+
+You should see an empty table with these columns:
+- `id` (UUID, primary key)
+- `date_key` (TEXT, unique - format: YYYY-MM-DD)
+- `content` (TEXT - markdown content)
+- `generated_at` (TIMESTAMPTZ)
+- `created_at` (TIMESTAMPTZ)
+
+---
+
+## What This Table Does
+
+### Daily Devotional Feature
+- **Community Experience:** All users see the same devotional each day
+- **Generated Once:** Each devotional is created once at midnight (UTC) and cached
+- **Automatic Creation:** When a user visits `/devotional`, the system checks if today's devotional exists. If not, it generates it using Claude AI.
+- **Rich Content:** Devotionals include Scripture passage, reflection, application, and prayer
+
+### Performance & Storage
+- **Efficient Caching:** After first generation, all subsequent requests return cached content
+- **Automatic Indexing:** Date lookups are extremely fast due to index
+- **Low Storage:** Text-only content, very small database footprint
+- **No Manual Work:** Devotionals generate automatically, no admin intervention needed
+
+### Data Structure
+```sql
+{
+  "id": "uuid-here",
+  "date_key": "2025-01-15",
+  "content": "# Walking in Faith\n\n**Scripture:** ...",
+  "generated_at": "2025-01-15T00:00:12Z",
+  "created_at": "2025-01-15T00:00:12Z"
+}
+```
+
+---
+
+## Troubleshooting
+
+### "Table already exists" error
+✅ **This is fine!** The script uses `IF NOT EXISTS` to be safe.
+
+### Devotional not generating
+1. Check your `ANTHROPIC_API_KEY` environment variable in Vercel
+2. Verify the table was created (see Step 3 above)
+3. Check the `/api/devotional` route logs for errors
+
+### Need to reset devotionals?
+```sql
+-- Delete all devotionals (they will regenerate on next visit)
+TRUNCATE TABLE daily_devotionals;
+
+-- Or delete just one day
+DELETE FROM daily_devotionals WHERE date_key = '2025-01-15';
+```
+
+---
+
+## Questions?
+The daily devotionals table is a simple, efficient way to provide community-wide spiritual content. It's designed to be maintenance-free and automatically managed.

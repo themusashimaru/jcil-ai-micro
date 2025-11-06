@@ -41,6 +41,7 @@ import {
   Menu,
   Send,
   Search,
+  Share2,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -417,6 +418,26 @@ export default function Home() {
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'JCIL.AI Slingshot 2.0',
+      text: 'Check out Slingshot 2.0 - A Christian Conservative AI assistant powered by Claude',
+      url: window.location.origin,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('Share cancelled or failed:', err);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.origin);
+      alert('Link copied to clipboard!');
+    }
   };
 
   const handleCopy = useCallback((id: string, content: string) => {
@@ -894,6 +915,33 @@ export default function Home() {
           )}
         </div>
 
+        {/* SPIRITUAL TOOLS */}
+        <div className="bg-gradient-to-r from-blue-50 to-slate-50 px-6 py-4 space-y-2 border-t border-slate-200">
+          <h3 className="text-xs font-bold uppercase tracking-tight text-blue-900 mb-3">
+            ✨ Spiritual Tools
+          </h3>
+          <Button
+            variant="outline"
+            className="w-full justify-start text-blue-900 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all rounded-lg"
+            onClick={() => router.push('/devotional')}
+            disabled={isLoading}
+          >
+            <span className="text-sm font-medium">Daily Devotional</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-start text-blue-900 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all rounded-lg"
+            onClick={() => {
+              setActiveTool('deep-bible-research');
+              handleNewChat();
+              setIsSidebarOpen(false);
+            }}
+            disabled={isLoading}
+          >
+            <span className="text-sm font-medium">Deep Bible Research</span>
+          </Button>
+        </div>
+
         {/* sidebar footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
           <Button
@@ -909,6 +957,16 @@ export default function Home() {
                 {unreadCount}
               </span>
             )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
+            onClick={handleShare}
+            disabled={isLoading}
+          >
+            <Share2 className="h-5 w-5 mr-2" strokeWidth={2} />
+            <span className="text-sm font-medium">Share App</span>
           </Button>
 
           <DropdownMenu>
@@ -1352,6 +1410,12 @@ export default function Home() {
                     className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
                   >
                     Coding Assistant {renderCheck('coding-assistant')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleToolSelection('deep-bible-research')}
+                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  >
+                    Deep Bible Research {renderCheck('deep-bible-research')}
                   </DropdownMenuItem>
 
                   {/* ==================== PRACTICAL TOOLS ==================== */}
