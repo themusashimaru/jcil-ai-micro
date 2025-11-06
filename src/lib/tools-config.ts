@@ -40,6 +40,7 @@ export interface ToolConfig {
   category: 'writing' | 'professional' | 'ai-assistant' | 'practical' | 'none';
   description: string;
   systemPrompt: string;
+  welcomeMessage: string;
 }
 
 /**
@@ -63,6 +64,7 @@ export const TOOLS_CONFIG: Record<ToolType, ToolConfig> = {
     name: 'Email Writer - High School',
     category: 'writing',
     description: 'Simple, conversational email writing',
+    welcomeMessage: '**Email Writer - High School Mode**\n\nI\'ll help you write simple, friendly emails that get your point across clearly. What email do you need to write?',
     systemPrompt: `You are an email writing assistant specialized in HIGH SCHOOL level communication.
 
 WRITING STYLE:
@@ -90,6 +92,7 @@ Keep it simple, friendly, and easy to understand.`
     name: 'Email Writer - Bachelor\'s',
     category: 'writing',
     description: 'Professional, clear communication',
+    welcomeMessage: '**Email Writer - Bachelor\'s Mode**\n\nI\'ll help you write professional, well-organized emails that showcase confidence and competence. What email do you need to send?',
     systemPrompt: `You are an email writing assistant specialized in BACHELOR'S DEGREE level communication.
 
 WRITING STYLE:
@@ -118,6 +121,9 @@ Professional, organized, and confident communication.`
     name: 'Email Writer - Master\'s',
     category: 'writing',
     description: 'Sophisticated, analytical writing',
+    welcomeMessage: '**Email Writer - Master\'s Mode**
+
+I\'ll help you craft sophisticated, analytically rich emails with strategic depth. What\'s your communication objective?',
     systemPrompt: `You are an email writing assistant specialized in MASTER'S DEGREE level communication.
 
 WRITING STYLE:
@@ -147,6 +153,9 @@ Sophisticated, analytical, and strategically minded.`
     name: 'Email Writer - Executive',
     category: 'writing',
     description: 'Authoritative, concise communication',
+    welcomeMessage: '**Email Writer - Executive Mode**
+
+I\'ll help you write authoritative, concise executive-level emails. Time is valuable—let\'s get straight to the point. What do you need?',
     systemPrompt: `You are an email writing assistant specialized in EXECUTIVE level communication.
 
 WRITING STYLE:
@@ -180,6 +189,9 @@ Direct, powerful, and time-efficient. Get to the point FAST.`
     name: 'Email Writer - PhD',
     category: 'writing',
     description: 'Academic, research-focused writing',
+    welcomeMessage: '**Email Writer - PhD Mode**
+
+I\'ll help you compose academic, research-focused emails with scholarly precision. What communication do you need to draft?',
     systemPrompt: `You are an email writing assistant specialized in PhD/ACADEMIC level communication.
 
 WRITING STYLE:
@@ -213,6 +225,9 @@ Academic rigor, technical precision, and scholarly depth.`
     name: 'Essay Writer - High School',
     category: 'writing',
     description: 'Clear, structured essay writing',
+    welcomeMessage: '**Essay Writer - High School Mode**
+
+I\'ll help you write clear, well-structured essays with strong thesis statements and evidence. What\'s your essay topic?',
     systemPrompt: `You are an essay writing assistant specialized in HIGH SCHOOL level academic writing.
 
 WRITING STYLE:
@@ -244,6 +259,9 @@ Guide students to express ideas clearly and support arguments with evidence.`
     name: 'Essay Writer - Bachelor\'s',
     category: 'writing',
     description: 'College-level analytical essays',
+    welcomeMessage: '**Essay Writer - Bachelor\'s Mode**
+
+I\'ll help you produce college-level analytical essays with critical thinking and proper citations. What\'s your topic?',
     systemPrompt: `You are an essay writing assistant specialized in BACHELOR'S DEGREE level academic writing.
 
 WRITING STYLE:
@@ -277,6 +295,9 @@ Produce college-level analytical writing with depth and rigor.`
     name: 'Essay Writer - Master\'s',
     category: 'writing',
     description: 'Graduate-level research papers',
+    welcomeMessage: '**Essay Writer - Master\'s Mode**
+
+I\'ll help you craft graduate-level research papers with theoretical depth and original synthesis. What\'s your research focus?',
     systemPrompt: `You are an essay writing assistant specialized in MASTER'S DEGREE level academic writing.
 
 WRITING STYLE:
@@ -310,6 +331,9 @@ Graduate-level scholarly writing with theoretical depth.`
     name: 'Essay Writer - Executive',
     category: 'writing',
     description: 'Strategic white papers & reports',
+    welcomeMessage: '**Essay Writer - Executive Mode**
+
+I\'ll help you create strategic white papers and thought leadership content for C-suite audiences. What\'s the topic?',
     systemPrompt: `You are a writing assistant specialized in EXECUTIVE-level strategic documents, white papers, and thought leadership.
 
 WRITING STYLE:
@@ -343,6 +367,9 @@ Write for C-suite executives who need strategic insights and actionable recommen
     name: 'Essay Writer - PhD',
     category: 'writing',
     description: 'Doctoral-level research papers',
+    welcomeMessage: '**Essay Writer - PhD Mode**
+
+I\'ll help you produce doctoral-level research writing suitable for publication. What\'s your research question?',
     systemPrompt: `You are an essay writing assistant specialized in PhD/DOCTORAL level academic research writing.
 
 WRITING STYLE:
@@ -383,6 +410,9 @@ Produce doctoral-level research writing suitable for academic publication.`
     name: 'Text Message - Casual',
     category: 'writing',
     description: 'Friendly, relaxed texting',
+    welcomeMessage: '**Text Message - Casual Mode**
+
+I\'ll help you write friendly, relaxed texts with just the right vibe. Who are you texting?',
     systemPrompt: `You are a text message writing assistant specialized in CASUAL communication.
 
 WRITING STYLE:
@@ -406,6 +436,9 @@ Keep it light, friendly, and natural like texting a friend.`
     name: 'Text Message - Professional',
     category: 'writing',
     description: 'Business-appropriate texting',
+    welcomeMessage: '**Text Message - Professional Mode**
+
+I\'ll help you write business-appropriate text messages that are clear and professional. What do you need to communicate?',
     systemPrompt: `You are a text message writing assistant specialized in PROFESSIONAL communication.
 
 WRITING STYLE:
@@ -429,6 +462,9 @@ Professional texting for colleagues, clients, and business contacts.`
     name: 'Text Message - Formal',
     category: 'writing',
     description: 'Formal, respectful messaging',
+    welcomeMessage: '**Text Message - Formal Mode**
+
+I\'ll help you compose formal, respectful messages for executives, professors, or authority figures. Who are you messaging?',
     systemPrompt: `You are a text message writing assistant specialized in FORMAL communication.
 
 WRITING STYLE:
@@ -456,6 +492,9 @@ Formal messaging appropriate for executives, professors, clergy, or formal busin
     name: 'Resume Writer',
     category: 'professional',
     description: 'ATS-optimized resume creation',
+    welcomeMessage: '**Resume Writer - ATS Optimized**
+
+I\'ll help you create a professional resume that passes ATS scanners and impresses recruiters. Share the job description you\'re targeting!',
     systemPrompt: `You are a professional resume writer specializing in ATS-OPTIMIZED resumes that get past applicant tracking systems and impress hiring managers.
 
 YOUR EXPERTISE:
@@ -494,6 +533,9 @@ Create resumes that pass ATS scanning AND impress human recruiters. Always ask f
     name: 'Document Summary',
     category: 'professional',
     description: 'Summarize documents, contracts, articles',
+    welcomeMessage: '**Document Summary Tool**
+
+I\'ll provide clear, actionable summaries with a Christian conservative perspective. Share your document or paste the text!',
     systemPrompt: `You are a document analysis expert specializing in clear, actionable summaries from a CHRISTIAN CONSERVATIVE perspective.
 
 YOUR ROLE:
@@ -526,6 +568,9 @@ Provide clear, actionable summaries that help Christians make informed decisions
     name: 'Data Analysis',
     category: 'professional',
     description: 'Analyze data, find insights, create reports',
+    welcomeMessage: '**Data Analysis Tool**
+
+I\'ll transform your data into actionable insights and clear recommendations. Share your data or describe what you need analyzed!',
     systemPrompt: `You are a data analysis expert who transforms raw data into actionable insights and clear reports.
 
 YOUR EXPERTISE:
@@ -562,6 +607,9 @@ Transform data into stories and insights that drive business decisions.`
     name: 'Business Strategy',
     category: 'professional',
     description: 'Strategic planning, operations, growth',
+    welcomeMessage: '**Business Strategy Consultant**
+
+I\'ll help you create practical, measurable strategic plans aligned with Christian business principles. Tell me about your business and what you\'re trying to achieve!',
     systemPrompt: `You are a business strategy consultant specializing in practical, actionable plans for small-to-medium businesses and teams.
 
 YOUR EXPERTISE:
@@ -614,6 +662,9 @@ Provide strategic plans that are practical, measurable, and aligned with Christi
     name: 'Apologetics Helper',
     category: 'ai-assistant',
     description: 'Defend the Christian faith with evidence',
+    welcomeMessage: '**Apologetics Helper**
+
+I\'ll help you defend the Christian faith with reason, evidence, and Scripture. What question or objection do you need to address?',
     systemPrompt: `You are a Christian apologetics expert, helping believers defend their faith with reason, evidence, and Scripture.
 
 YOUR EXPERTISE:
@@ -661,6 +712,9 @@ Equip believers to give thoughtful, evidence-based answers for their faith.`
     name: 'Coding Assistant',
     category: 'ai-assistant',
     description: 'Debug, explain, generate code',
+    welcomeMessage: '**Coding Assistant**
+
+I\'ll help you debug, explain code, and build solutions with best practices. What are you working on?',
     systemPrompt: `You are an expert software engineer who helps with coding tasks: debugging, explaining code, generating solutions, and teaching best practices.
 
 YOUR EXPERTISE:
@@ -716,6 +770,9 @@ Help users write better code, understand concepts deeply, and solve problems eff
     name: 'Plant Identifier',
     category: 'practical',
     description: 'Identify plants from photos',
+    welcomeMessage: '**Plant Identifier**
+
+I\'ll identify plants from photos and provide care instructions. Upload a photo or describe the plant!',
     systemPrompt: `You are a botanical expert specializing in plant identification from images.
 
 YOUR EXPERTISE:
@@ -777,6 +834,9 @@ When uncertain about identification, provide 2-3 possibilities with distinguishi
     name: 'Ingredient Extractor',
     category: 'practical',
     description: 'Extract ingredients from recipes',
+    welcomeMessage: '**Ingredient Extractor**
+
+I\'ll extract and organize ingredients from recipes into shopping lists. Share your recipe or upload a photo!',
     systemPrompt: `You are a recipe analysis expert who extracts and organizes ingredient lists from recipes, meal plans, or food photos.
 
 YOUR ROLE:
@@ -831,6 +891,7 @@ Make cooking and shopping easier by providing clean, organized ingredient lists.
     name: 'Plain Chat',
     category: 'none',
     description: 'Regular conversation',
+    welcomeMessage: '',
     systemPrompt: '' // Uses main system prompt from route.ts
   }
 };
