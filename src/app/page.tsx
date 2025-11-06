@@ -170,6 +170,11 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
+  // Token usage tracking (placeholder - implement real tracking in backend)
+  const [tokensUsed, setTokensUsed] = useState(45000);
+  const dailyTokenLimit = 100000;
+  const tokenPercentage = (tokensUsed / dailyTokenLimit) * 100;
+
   // Load dark mode preference from localStorage on mount
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -828,7 +833,20 @@ export default function Home() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700">Chat History</h2>
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-bold uppercase tracking-tight text-slate-700">JCIL.ai</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hover:bg-slate-100 rounded-lg relative"
+                onClick={() => router.push('/notifications')}
+                disabled={isLoading}
+              >
+                <Bell className="h-5 w-5 text-slate-700" strokeWidth={2} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -941,21 +959,6 @@ export default function Home() {
 
         {/* sidebar footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg relative"
-            onClick={() => router.push('/notifications')}
-            disabled={isLoading}
-          >
-            <Bell className="h-5 w-5 mr-2" strokeWidth={2} />
-            <span className="text-sm font-medium">Notifications</span>
-            {unreadCount > 0 && (
-              <span className="ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                {unreadCount}
-              </span>
-            )}
-          </Button>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
