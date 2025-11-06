@@ -777,9 +777,10 @@ export default function Home() {
       /\b(nearest|closest|best|top rated|around me|near me|nearby)\b/i, // location-based
       /\b(who is|what is|where is|when did|how did)\b.*\b(now|today|currently|recently|latest|2025)\b/i,
       /\b(news about|updates on|information on|status of)\b/i,
-      /\b(restaurant|barber|barbershop|shop|store|hotel|cafe|coffee|gym|salon|spa|dentist|doctor|hospital|pharmacy|gas station|bank|atm|pizza|food)\b/i, // local business keywords
-      /(closest|nearest|near me|around me|nearby|close by)\s+(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food)/i, // closest + business
-      /(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food)\s+(near|nearby|around|close to|closest to|nearest to)\s+(me|here)/i // business + near me
+      /\b(restaurant|barber|barbershop|shop|store|hotel|cafe|coffee|gym|salon|spa|dentist|doctor|hospital|pharmacy|gas station|bank|atm|pizza|food|nail|nails|hair|massage)\b/i, // local business keywords
+      /(closest|nearest|near me|around me|nearby|close by)\s+(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food|nail|nails|hair)/i, // closest + business
+      /(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food|nail|nails|hair)\s+(near|nearby|around|close to|closest to|nearest to|in)\s+(me|here)/i, // business + near me
+      /\b(places?|businesses?|spots?)\s+(in|near|around)\b/i // "places in marblehead"
     ];
 
     // Fact-Check Intent Patterns (for Perplexity API)
@@ -822,10 +823,19 @@ export default function Home() {
 
         // Detect if this is a location-based query (check first!)
         const locationPatterns = [
-          /\b(nearest|closest|best|near me|around me|nearby)\b/i,
-          /\b(restaurants?|barber|shops?|stores?|hotels?|places?)\s+(near|nearby|around|in)\b/i
+          /\b(nearest|closest|best|near me|around me|nearby|close by)\b/i,
+          /\b(restaurants?|barber|barbershops?|shops?|stores?|hotels?|places?|businesses?|spots?|salons?|spas?|dentists?|doctors?|cafes?|gyms?|nail|nails|hair|pizza|food)\s+(near|nearby|around|in|close to)\b/i,
+          /\b(where|find|show me|looking for)\s+(restaurants?|barber|shops?|stores?|places?|salons?|nail|nails|pizza)\b/i,
+          /\b(pizza|food|coffee|cafe|barber|salon|nail|nails|hair|gym|dentist|doctor|pharmacy|gas|bank|atm|hotel|restaurant)\s+(places?|shops?|stores?|in|near|around)\b/i
         ];
         const isLocationQuery = locationPatterns.some(pattern => pattern.test(lowerText));
+
+        console.log('🔍 Search query:', textInput);
+        console.log('🎯 Location query detected:', isLocationQuery);
+
+        // Check if user explicitly mentioned a city/location (skip geolocation if so)
+        const hasCityMention = /\b(in|near|around)\s+[A-Z][a-z]+/i.test(textInput);
+        console.log('🏙️ City mentioned in query:', hasCityMention);
 
         // Add temp message for web searches (non-location)
         if (!isLocationQuery) {
@@ -840,7 +850,7 @@ export default function Home() {
 
         // Get user's location if it's a location query (with permission)
         let userLocation = null;
-        if (isLocationQuery && typeof navigator !== 'undefined' && navigator.geolocation) {
+        if (isLocationQuery && !hasCityMention && typeof navigator !== 'undefined' && navigator.geolocation) {
           try {
             // Show temporary message while getting location
             const tempMsg: Message = {
@@ -918,14 +928,14 @@ export default function Home() {
         }
 
         // Route to appropriate search API
-        if (isLocationQuery && userLocation) {
+        if (isLocationQuery && (userLocation || hasCityMention)) {
           // Use Google Places API for local business searches
           const localSearchResponse = await fetch('/api/local-search', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               query: textInput,
-              location: userLocation
+              location: userLocation // can be null if city is mentioned in query
             }),
           });
 

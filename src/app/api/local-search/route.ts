@@ -24,9 +24,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid query' }, { status: 400 });
     }
 
-    if (!location || !location.latitude || !location.longitude) {
-      return NextResponse.json({ error: 'Location required for local search' }, { status: 400 });
-    }
+    // Location is optional - if not provided, Google Places will use query text only
+    // (e.g., "pizza places in marblehead ma" doesn't need coordinates)
 
     const googleApiKey = process.env.GOOGLE_PLACES_API_KEY;
 
@@ -37,10 +36,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🗺️ Google Places search for:', query, 'near', location);
+    console.log('🗺️ Google Places search for:', query, location ? `near ${location.latitude},${location.longitude}` : '(text-only)');
 
     // Step 1: Text Search to find places
-    const textSearchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${location.latitude},${location.longitude}&radius=5000&key=${googleApiKey}`;
+    let textSearchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}`;
+
+    // Add location parameters if available
+    if (location && location.latitude && location.longitude) {
+      textSearchUrl += `&location=${location.latitude},${location.longitude}&radius=5000`;
+    }
+
+    textSearchUrl += `&key=${googleApiKey}`;
 
     const textSearchResponse = await fetch(textSearchUrl);
     const textSearchData = await textSearchResponse.json();
