@@ -75,15 +75,15 @@ export default function NewsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-between mb-4">
             <Button
               variant="ghost"
               onClick={() => router.push('/')}
-              className="text-slate-300 hover:text-white hover:bg-slate-800"
+              className="text-slate-600 hover:text-slate-900 hover:bg-slate-200"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Chat
@@ -94,7 +94,7 @@ export default function NewsPage() {
                 size="icon"
                 onClick={fetchNewsSummary}
                 disabled={isRefreshing}
-                className="text-slate-300 hover:text-white hover:bg-slate-800"
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-200"
                 title="Refresh News"
               >
                 <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -104,7 +104,7 @@ export default function NewsPage() {
                 size="icon"
                 onClick={handleShare}
                 disabled={isLoading}
-                className="text-slate-300 hover:text-white hover:bg-slate-800"
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-200"
                 title="Share"
               >
                 <Share2 className="h-5 w-5" />
@@ -113,42 +113,45 @@ export default function NewsPage() {
           </div>
 
           {/* Newspaper Header */}
-          <div className="border-b-4 border-red-600 pb-4 mb-6 bg-slate-800 rounded-t-lg px-6 pt-6">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-white text-center mb-2">
-              THE JCIL REPORT
+          <div className="border-b-4 border-blue-900 pb-4 mb-6 bg-white rounded-t-lg px-6 pt-6 shadow-md">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-blue-900 text-center mb-2">
+              THE SLINGSHOT REPORT
             </h1>
-            <p className="text-center text-red-500 text-sm sm:text-base font-bold tracking-wider">
-              CONSERVATIVE CHRISTIAN ANALYSIS
+            <p className="text-center text-red-600 text-sm sm:text-base font-bold tracking-wider">
+              CONSERVATIVE CHRISTIAN INTELLIGENCE
             </p>
             {timestamp && (
-              <p className="text-center text-slate-400 text-xs sm:text-sm mt-2">
+              <p className="text-center text-slate-600 text-xs sm:text-sm mt-2">
                 {formatTimestamp(timestamp)}
               </p>
             )}
+            <p className="text-center text-blue-700 text-xs mt-1 font-semibold">
+              ⚡ Updated Every 30 Minutes • Live Breaking News Analysis
+            </p>
           </div>
         </div>
 
         {/* Content */}
-        <Card className="shadow-2xl border-slate-700 bg-slate-800">
-          <CardContent className="p-6 sm:p-8 md:p-12">
+        <Card className="shadow-lg border-slate-200 bg-white">
+          <CardContent className="p-6 sm:p-8 md:p-10">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="h-12 w-12 text-red-500 animate-spin mb-4" />
-                <p className="text-slate-200 text-lg font-semibold">Analyzing Global Developments...</p>
-                <p className="text-slate-400 text-sm mt-2">PhD-Level Intelligence Report in Progress</p>
+                <Loader2 className="h-12 w-12 text-blue-900 animate-spin mb-4" />
+                <p className="text-slate-700 text-lg font-semibold">Fetching Breaking News...</p>
+                <p className="text-slate-500 text-sm mt-2">PhD-Level Intelligence Report in Progress</p>
               </div>
             ) : (
-              <div className="prose prose-invert prose-slate max-w-none
-                prose-headings:font-serif prose-headings:text-red-500
-                prose-h1:text-4xl prose-h1:font-bold prose-h1:border-b-2 prose-h1:border-red-600 prose-h1:pb-3 prose-h1:mb-6
-                prose-h2:text-3xl prose-h2:font-bold prose-h2:border-b prose-h2:border-slate-600 prose-h2:pb-2 prose-h2:mb-4 prose-h2:mt-10 first:prose-h2:mt-0
-                prose-h3:text-xl prose-h3:font-semibold prose-h3:text-slate-300 prose-h3:mb-3 prose-h3:mt-6
-                prose-p:text-slate-200 prose-p:leading-relaxed prose-p:text-base prose-p:mb-4
-                prose-strong:text-white prose-strong:font-bold
-                prose-ul:my-4 prose-li:text-slate-200 prose-li:my-2
-                prose-a:text-red-400 prose-a:no-underline hover:prose-a:text-red-300
-                prose-blockquote:border-l-4 prose-blockquote:border-red-600 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-slate-300
-                prose-code:text-red-400 prose-code:bg-slate-900 prose-code:px-1 prose-code:rounded">
+              <div className="prose prose-slate max-w-none
+                prose-headings:font-serif prose-headings:text-blue-900
+                prose-h1:text-3xl prose-h1:font-bold prose-h1:border-b-2 prose-h1:border-blue-900 prose-h1:pb-3 prose-h1:mb-6 prose-h1:mt-8 first:prose-h1:mt-0
+                prose-h2:text-2xl prose-h2:font-bold prose-h2:border-b-2 prose-h2:border-slate-300 prose-h2:pb-3 prose-h2:mb-5 prose-h2:mt-10 first:prose-h2:mt-0 prose-h2:text-blue-800
+                prose-h3:text-lg prose-h3:font-semibold prose-h3:text-slate-700 prose-h3:mb-3 prose-h3:mt-5
+                prose-p:text-slate-700 prose-p:leading-loose prose-p:text-base prose-p:mb-5
+                prose-strong:text-slate-900 prose-strong:font-bold
+                prose-ul:my-4 prose-li:text-slate-700 prose-li:my-2
+                prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800
+                prose-blockquote:border-l-4 prose-blockquote:border-blue-900 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-slate-600 prose-blockquote:bg-blue-50 prose-blockquote:py-2
+                prose-code:text-blue-700 prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm">
                 <ReactMarkdown>{summary}</ReactMarkdown>
               </div>
             )}
@@ -156,10 +159,12 @@ export default function NewsPage() {
         </Card>
 
         {/* Footer Note */}
-        <div className="mt-6 text-center text-xs text-slate-400">
-          <p className="font-semibold">Intelligence Report • Updated Every 30 Minutes • Powered by Claude Sonnet 4.5</p>
-          <p className="mt-1">Sources: Fox News, Newsmax, WSJ, Bloomberg, Reuters, AP, The Epoch Times, Zero Hedge, National Review, Christian Post, and verified independent analysts</p>
-          <p className="mt-2 text-red-500 font-bold">🔥 TRUTH. ANALYSIS. CONVICTION. 🔥</p>
+        <div className="mt-6 text-center text-xs text-slate-600 bg-white rounded-lg py-4 px-6 shadow-sm">
+          <p className="font-semibold text-blue-900 text-sm">📰 Intelligence Report • Updated Every 30 Minutes • Powered by Claude Sonnet 4.5</p>
+          <p className="mt-2 text-slate-600 leading-relaxed">
+            <span className="font-semibold text-slate-700">Sources:</span> NewsAPI (Live Breaking News), Fox News, Newsmax, WSJ, Bloomberg, Reuters, AP, The Epoch Times, Zero Hedge, National Review, Christian Post, and verified independent analysts
+          </p>
+          <p className="mt-3 text-red-600 font-bold text-sm">🔥 TRUTH. ANALYSIS. CONVICTION. 🔥</p>
         </div>
       </div>
     </div>
