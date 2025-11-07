@@ -2164,7 +2164,7 @@ export default function Home() {
           {/* input bar */}
           <form
             onSubmit={handleFormSubmit}
-            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-gradient-to-b from-white to-slate-50 rounded-b-lg sm:rounded-b-xl shadow-inner"
+            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-gradient-to-b from-white to-slate-50 rounded-t-3xl rounded-b-lg sm:rounded-b-xl shadow-inner"
           >
             {attachedFileName && (
               <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
@@ -2202,7 +2202,7 @@ export default function Home() {
               className="hidden"
             />
 
-            {/* Textarea - Bigger, Rounded, Mobile-Friendly */}
+            {/* Textarea - Bigger, Rounded, Mobile-Friendly, No Border */}
             <div className="mb-3">
               <Textarea
                 ref={inputRef}
@@ -2213,7 +2213,7 @@ export default function Home() {
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck
-                className="w-full resize-none min-h-[80px] sm:min-h-[100px] max-h-[200px] sm:max-h-[240px] text-sm sm:text-base leading-relaxed overflow-y-auto bg-white border border-slate-300 focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-2xl px-4 py-3 text-slate-900 transition-all"
+                className="w-full resize-none min-h-[80px] sm:min-h-[100px] max-h-[200px] sm:max-h-[240px] text-sm sm:text-base leading-relaxed overflow-y-auto bg-transparent border-0 focus:ring-0 focus:outline-none rounded-2xl px-4 py-3 text-slate-900 transition-all"
                 rows={3}
                 onKeyDown={handleTextareaKeyDown}
               />
@@ -2456,28 +2456,28 @@ export default function Home() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              </div>
 
-                {/* Mic - Clean icon only, hide when typing, red icon when recording */}
+              {/* Right side - Mic and Send buttons */}
+              <div className="flex items-center gap-2">
+                {/* Mic - Hide when typing, red box when recording */}
                 {localInput.trim() === '' && (
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon"
                     onClick={handleMic}
                     disabled={isLoading}
-                    className="hover:bg-slate-100 rounded-lg h-10 w-10 sm:h-11 sm:w-11"
+                    className={`h-10 w-10 sm:h-11 sm:w-11 rounded-lg flex items-center justify-center transition-all ${
+                      isRecording
+                        ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                        : 'bg-transparent hover:bg-slate-100 text-slate-700'
+                    }`}
                     title={isRecording ? "Recording..." : "Voice input"}
                   >
-                    <Mic
-                      className={`h-5 w-5 ${isRecording ? 'text-red-600 animate-pulse' : 'text-slate-700'}`}
-                      strokeWidth={2}
-                    />
+                    <Mic className="h-5 w-5" strokeWidth={2} />
                   </Button>
                 )}
-              </div>
 
-              {/* Send Button - Right side with invisible bg that turns blue when typing */}
-              <div>
+                {/* Send Button - Invisible bg that turns blue when typing */}
                 <Button
                   type="submit"
                   disabled={isLoading || (!localInput.trim() && !attachedFileName)}
