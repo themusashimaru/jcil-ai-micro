@@ -226,6 +226,7 @@ export default function Home() {
   const [isListening, setIsListening] = useState(false); // for intelligent "Listening..." state
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingStartTimeRef = useRef<number>(0);
 
 
   // ui refs
@@ -596,14 +597,81 @@ export default function Home() {
 
   const removeAttachedFile = () => { clearAttachmentState(); };
 
-  // --------- AUDIO (manual send, no auto-submit) ----------
+  // --------- AUDIO VALIDATION & TRANSCRIPTION ----------
+  const validateAudio = async (audioBlob: Blob): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+          // Check if audio has any sound (check amplitude)
+          const channelData = audioBuffer.getChannelData(0);
+          let maxAmplitude = 0;
+
+          for (let i = 0; i < channelData.length; i++) {
+            const amplitude = Math.abs(channelData[i]);
+            if (amplitude > maxAmplitude) maxAmplitude = amplitude;
+          }
+
+          console.log('🎤 Audio validation:');
+          console.log('  - Duration:', audioBuffer.duration, 'seconds');
+          console.log('  - Max amplitude:', maxAmplitude);
+          console.log('  - Sample rate:', audioBuffer.sampleRate, 'Hz');
+          console.log('  - Channels:', audioBuffer.numberOfChannels);
+
+          // If max amplitude is too low, audio is silent
+          if (maxAmplitude < 0.01) {
+            console.error('🎤 ❌ SILENT AUDIO DETECTED! Max amplitude:', maxAmplitude);
+            resolve(false);
+            return;
+          }
+
+          // If duration is too short, might be a glitch
+          if (audioBuffer.duration < 0.5) {
+            console.error('🎤 ❌ AUDIO TOO SHORT! Duration:', audioBuffer.duration);
+            resolve(false);
+            return;
+          }
+
+          console.log('🎤 ✅ Audio validation passed!');
+          resolve(true);
+        } catch (error) {
+          console.error('🎤 Audio validation error:', error);
+          resolve(false);
+        }
+      };
+
+      reader.onerror = () => {
+        console.error('🎤 Failed to read audio blob');
+        resolve(false);
+      };
+
+      reader.readAsArrayBuffer(audioBlob);
+    });
+  };
+
   const handleTranscribe = async (audioBlob: Blob) => {
     setIsTranscribing(true);
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
 
     console.log('🎤 Audio blob size:', audioBlob.size, 'bytes');
     console.log('🎤 Audio blob type:', audioBlob.type);
+
+    // CRITICAL: Validate audio before sending to OpenAI
+    const isValid = await validateAudio(audioBlob);
+
+    if (!isValid) {
+      alert('⚠️ MICROPHONE ISSUE DETECTED!\n\nYour microphone is not recording any sound. This causes OpenAI Whisper to hallucinate random text like "thank you" or Chinese characters.\n\nPlease:\n1. Check microphone permissions\n2. Ensure microphone is not muted\n3. Try a different browser\n4. Speak louder and closer to mic');
+      setIsTranscribing(false);
+      audioChunksRef.current = [];
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
 
     try {
       const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
@@ -612,7 +680,6 @@ export default function Home() {
       console.log('🎤 Transcription response:', data);
 
       if (response.ok) {
-        // FIX: Use only the transcribed text, show it to user before sending
         const transcribedText = data.text?.trim() || '';
         console.log('🎤 Transcribed text:', transcribedText);
 
@@ -627,8 +694,7 @@ export default function Home() {
         setIsTranscribing(false);
         audioChunksRef.current = [];
 
-        // DON'T auto-submit - let user review and click send
-        // This allows them to see what was transcribed
+        // Let user review before sending
         inputRef.current?.focus();
       } else {
         console.error('🎤 Transcription error:', data.error);
@@ -649,6 +715,20 @@ export default function Home() {
 
     if (isRecording) {
       console.log('🎤 Stopping recording...');
+
+      // Check if user recorded for at least 1 second
+      const recordingDuration = (Date.now() - recordingStartTimeRef.current) / 1000;
+      console.log('🎤 Recording duration:', recordingDuration, 'seconds');
+
+      if (recordingDuration < 1.0) {
+        alert('⚠️ Recording too short!\n\nPlease record for at least 1 second.\nTap mic, speak clearly, then tap mic again.');
+        mediaRecorderRef.current?.stop();
+        setIsRecording(false);
+        setIsListening(false);
+        audioChunksRef.current = [];
+        return;
+      }
+
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
       setIsListening(false);
@@ -669,6 +749,7 @@ export default function Home() {
       setIsRecording(true);
       setIsListening(false);
       audioChunksRef.current = [];
+      recordingStartTimeRef.current = Date.now(); // Track when recording started
 
       // After 1.5 seconds, change placeholder to "Listening..."
       const listeningTimeout = setTimeout(() => {
