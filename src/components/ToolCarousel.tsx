@@ -27,37 +27,37 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
       label: 'DAILY DEVOTIONAL',
       toolType: 'devotional',
       icon: <BookOpen className="h-4 w-4" />,
-      gradient: 'from-blue-900 to-blue-800'
+      gradient: 'from-blue-900 to-blue-800' // Dark navy blue
     },
     {
       label: 'BIBLE RESEARCH',
       toolType: 'deep-bible-research',
       icon: <BookOpen className="h-4 w-4" />,
-      gradient: 'from-purple-900 to-purple-800'
+      gradient: 'from-blue-900 to-blue-800' // Dark navy blue
     },
     {
       label: 'APOLOGETICS',
       toolType: 'apologetics-helper',
       icon: <Shield className="h-4 w-4" />,
-      gradient: 'from-red-900 to-red-800'
+      gradient: 'from-blue-900 to-blue-800' // Dark navy blue
     },
     {
       label: 'CODING ASSISTANT',
       toolType: 'coding-assistant',
       icon: <Code className="h-4 w-4" />,
-      gradient: 'from-green-900 to-green-800'
+      gradient: 'from-blue-900 to-blue-800' // Dark navy blue
     },
     {
       label: 'DATA ANALYSIS',
       toolType: 'data-analysis',
       icon: <BarChart className="h-4 w-4" />,
-      gradient: 'from-cyan-900 to-cyan-800'
+      gradient: 'from-blue-900 to-blue-800' // Dark navy blue
     },
     {
       label: 'BUSINESS STRATEGY',
       toolType: 'business-strategy',
       icon: <Briefcase className="h-4 w-4" />,
-      gradient: 'from-amber-900 to-amber-800'
+      gradient: 'from-blue-900 to-blue-800' // Dark navy blue
     }
   ];
 
@@ -81,7 +81,7 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
   };
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto px-8">
+    <div className="relative w-full max-w-4xl mx-auto px-8 bg-white">
       {/* Left Arrow */}
       <button
         onClick={() => scroll('left')}
@@ -95,7 +95,7 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
       {/* Scrollable Container */}
       <div
         ref={scrollContainerRef}
-        className="overflow-x-auto scrollbar-hide flex gap-3 py-2 px-4 scroll-smooth"
+        className="overflow-x-auto scrollbar-hide flex gap-3 py-2 px-4 scroll-smooth bg-white"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
