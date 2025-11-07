@@ -570,10 +570,34 @@ export async function POST(req: Request) {
 
   // Combine main system prompt with tool-specific prompt
   let combinedSystemPrompt = SYSTEM_PROMPT;
+
+  // Add web search limitation notice for free tier
+  if (userTier === 'free') {
+    combinedSystemPrompt = `${SYSTEM_PROMPT}
+
+# ⚠️ FREE TIER LIMITATION - WEB SEARCH
+
+You are operating on the FREE tier. Live web search is NOT available.
+
+**If the user asks a question that requires current/live information:**
+- Politely explain: "I apologize, but live web search is not available on the free tier. To access real-time web search and stay up-to-date with current events, please upgrade to the Pro plan ($12/month with 14 days free trial)."
+- You may provide general knowledge from your training data if applicable
+- Always be helpful and polite about the limitation
+- NEVER say there's an "error" - frame it as a feature upgrade opportunity
+
+Examples of questions requiring web search:
+- "What's the current news about..."
+- "What's the latest..."
+- "Find me recent information on..."
+- "Search for..."
+- "What's happening with..."
+`;
+  }
+
   try {
     const toolPrompt = getToolSystemPrompt(toolType);
     if (toolPrompt) {
-      combinedSystemPrompt = `${SYSTEM_PROMPT}\n\n# 🛠️ SPECIALIZED TOOL MODE\n\n${toolPrompt}`;
+      combinedSystemPrompt = `${combinedSystemPrompt}\n\n# 🛠️ SPECIALIZED TOOL MODE\n\n${toolPrompt}`;
     }
   } catch (toolError) {
     console.error('Error getting tool system prompt:', toolError, 'toolType:', toolType);
@@ -611,18 +635,27 @@ export async function POST(req: Request) {
       };
     });
 
+    // Build provider options - only enable web search for paid tiers
+    const providerOptions: any = {
+      xai: {}
+    };
+
+    // 🔥 Enable live web search only for paid tiers (basic, pro, premium, executive)
+    if (userTier !== 'free') {
+      providerOptions.xai.searchParameters = {
+        mode: 'auto', // Grok automatically decides when to search web/X/news
+        returnCitations: true, // Get source URLs automatically
+      };
+      console.log('🌐 Web search ENABLED for paid tier:', userTier);
+    } else {
+      console.log('🚫 Web search DISABLED for free tier');
+    }
+
     const response = await generateText({
       model: xai(modelName), // 🎯 Using Grok for all tiers
       system: combinedSystemPrompt,
       messages: aiSdkMessages,
-      providerOptions: {
-        xai: {
-          searchParameters: {
-            mode: 'auto', // 🔥 Grok automatically decides when to search web/X/news
-            returnCitations: true, // 📚 Get source URLs automatically
-          },
-        },
-      },
+      providerOptions,
     });
 
     // Extract text from response
