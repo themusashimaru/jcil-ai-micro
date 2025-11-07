@@ -1883,17 +1883,6 @@ export default function Home() {
             </span>
           </Button>
 
-          {/* Settings Button */}
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
-            onClick={() => router.push('/settings')}
-            disabled={isLoading}
-          >
-            <Settings className="h-4 w-4 mr-2" strokeWidth={2} />
-            <span className="text-sm font-medium">Settings</span>
-          </Button>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -1946,32 +1935,23 @@ export default function Home() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg px-4 py-3"
-                disabled={isLoading}
-              >
-                <div className="flex-1 text-left overflow-hidden">
-                  <div className="text-sm font-medium text-slate-900 truncate">
-                    {user?.email || 'Loading...'}
-                  </div>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="w-56 bg-white border border-slate-200 shadow-lg rounded-lg"
-            >
-              <DropdownMenuItem
-                onClick={handleSignOut}
-                className="text-slate-700 cursor-pointer text-sm"
-              >
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Sign Out Button */}
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
+            onClick={handleSignOut}
+            disabled={isLoading}
+          >
+            <LogOut className="h-4 w-4 mr-2" strokeWidth={2} />
+            <span className="text-sm font-medium">Sign Out</span>
+          </Button>
+
+          {/* User Email Display */}
+          <div className="w-full px-4 py-3 text-left">
+            <div className="text-sm font-medium text-slate-900 truncate">
+              {user?.email || 'Loading...'}
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -2030,11 +2010,11 @@ export default function Home() {
                   variant="ghost"
                   size="icon"
                   className="hover:bg-slate-100 rounded-lg"
-                  onClick={handleSignOut}
+                  onClick={() => router.push('/settings')}
                   disabled={isLoading}
-                  title="Sign Out"
+                  title="Settings"
                 >
-                  <LogOut className="h-5 w-5 text-slate-700" strokeWidth={2} />
+                  <Settings className="h-5 w-5 text-slate-700" strokeWidth={2} />
                 </Button>
               </div>
             </div>
