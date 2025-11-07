@@ -77,7 +77,7 @@ export default function LandingPage() {
       name: 'Pro',
       price: '$12',
       period: '/month',
-      messages: 'Unlimited messages',
+      messages: 'No daily message cap',
       model: 'Haiku 4.5',
       features: [
         'Everything in Free',
@@ -94,7 +94,7 @@ export default function LandingPage() {
       name: 'Premium',
       price: '$30',
       period: '/month',
-      messages: 'Unlimited messages',
+      messages: 'No daily message cap',
       model: 'Sonnet 4',
       features: [
         'Everything in Pro',
@@ -111,13 +111,13 @@ export default function LandingPage() {
       name: 'Executive',
       price: '$150',
       period: '/month',
-      messages: 'Unlimited messages',
+      messages: 'No daily message cap',
       model: 'Sonnet 4+',
       features: [
         'Everything in Premium',
         'Most powerful AI available',
         'Custom feature requests',
-        'Unlimited exports',
+        'Premium exports',
         'VIP support & training',
         'Early access to new tools',
       ],

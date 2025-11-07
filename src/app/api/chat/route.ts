@@ -233,7 +233,7 @@ export async function POST(req: Request) {
   // ============================================
   // 📊 CHECK DAILY MESSAGE LIMIT (FREE TIER ONLY)
   // ============================================
-  // Only enforce daily limits for free tier - paid plans have unlimited daily messages
+  // Only enforce daily limits for free tier - paid plans have no daily cap
   if (userTier === 'free') {
     const { data: limitCheck, error: limitError } = await supabase
       .rpc('check_daily_limit', { p_user_id: userId });
@@ -250,7 +250,7 @@ export async function POST(req: Request) {
         return new Response(
           JSON.stringify({
             ok: false,
-            error: `Daily message limit reached (${daily_limit} messages per day for ${tier} tier). Upgrade to Pro for unlimited messages!`,
+            error: `Daily message limit reached (${daily_limit} messages per day for ${tier} tier). Upgrade to remove daily limits!`,
             limitExceeded: true,
             currentUsage: current_count,
             dailyLimit: daily_limit,
@@ -269,7 +269,7 @@ export async function POST(req: Request) {
       }
     }
   } else {
-    console.log(`💎 Paid tier (${userTier}) - unlimited daily messages`);
+    console.log(`💎 Paid tier (${userTier}) - no daily message cap`);
   }
 
   // ============================================

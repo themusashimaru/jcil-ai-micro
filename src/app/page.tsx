@@ -1874,7 +1874,7 @@ export default function Home() {
               />
             </div>
             <div className="text-[10px] text-slate-500 text-center uppercase tracking-wide font-medium">
-              {subscriptionTier.toUpperCase()} PLAN {subscriptionTier !== 'free' && '• UNLIMITED'}
+              {subscriptionTier.toUpperCase()} PLAN
             </div>
           </div>
 

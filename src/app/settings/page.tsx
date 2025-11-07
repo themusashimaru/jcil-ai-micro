@@ -325,7 +325,7 @@ export default function SettingsPage() {
                   <div className="border border-slate-200 rounded-lg p-4 space-y-2 hover:border-blue-900 transition-all">
                     <div className="font-bold text-slate-900">Pro</div>
                     <div className="text-2xl font-bold text-blue-900">$12<span className="text-sm text-slate-600">/mo</span></div>
-                    <div className="text-xs text-slate-600 mb-2">Unlimited messages</div>
+                    <div className="text-xs text-slate-600 mb-2">No daily message cap</div>
                     <div className="text-xs text-slate-700 space-y-1">
                       <div>✓ Tools up to Bachelor's</div>
                       <div>✓ Real-time search</div>
@@ -348,7 +348,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="font-bold text-slate-900">Premium</div>
                     <div className="text-2xl font-bold text-blue-900">$30<span className="text-sm text-slate-600">/mo</span></div>
-                    <div className="text-xs text-slate-600 mb-2">Unlimited messages</div>
+                    <div className="text-xs text-slate-600 mb-2">No daily message cap</div>
                     <div className="text-xs text-slate-700 space-y-1">
                       <div>✓ Master's & PhD tools</div>
                       <div>✓ Cascading AI models</div>
@@ -370,7 +370,7 @@ export default function SettingsPage() {
                       Executive <Zap className="h-4 w-4 text-yellow-500" />
                     </div>
                     <div className="text-2xl font-bold text-blue-900">$150<span className="text-sm text-slate-600">/mo</span></div>
-                    <div className="text-xs text-slate-600 mb-2">Unlimited messages</div>
+                    <div className="text-xs text-slate-600 mb-2">No daily message cap</div>
                     <div className="text-xs text-slate-700 space-y-1">
                       <div>✓ Everything in Premium</div>
                       <div>✓ Priority support</div>
