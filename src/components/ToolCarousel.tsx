@@ -87,7 +87,7 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
             type="button"
             onClick={() => handleButtonClick(tool)}
             disabled={isLoading}
-            className={`flex-shrink-0 min-w-[160px] h-12 bg-gradient-to-r ${tool.gradient} hover:opacity-90 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2`}
+            className={`flex-shrink-0 min-w-[160px] h-12 bg-gradient-to-r ${tool.gradient} hover:opacity-90 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2`}
           >
             {tool.icon}
             <span className="text-xs tracking-wider">{tool.label}</span>
