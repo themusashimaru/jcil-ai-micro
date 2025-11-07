@@ -133,47 +133,47 @@ const TypingIndicator = ({ isPractical = false }: { isPractical?: boolean }) => 
 // Business List Component - renders with clickable phone/website
 const BusinessList = ({ businesses }: { businesses: any[] }) => {
   return (
-    <div className="space-y-4">
-      <p className="text-slate-700 font-medium">Here are the closest places I found:</p>
+    <div className="space-y-3">
+      <p className="text-slate-700 font-semibold mb-4">Here are the closest places I found:</p>
       {businesses.map((b: any, i: number) => (
-        <div key={i} className="border-b border-slate-200 pb-3 last:border-0">
-          <div className="font-bold text-slate-900">{b.name}</div>
-          {b.address && <div className="text-sm text-slate-600">{b.address}</div>}
-          {b.phone && (
-            <div className="text-sm">
-              📞{' '}
+        <div key={i} className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="font-bold text-slate-900 text-base mb-1">{b.name}</div>
+          {b.address && <div className="text-sm text-slate-600 mb-2">{b.address}</div>}
+
+          <div className="flex flex-wrap gap-2 mb-2">
+            {b.phone && (
               <button
                 onClick={() => {
                   const phoneDigits = b.phone.replace(/\D/g, '');
                   window.location.href = `tel:${phoneDigits}`;
                 }}
-                className="text-blue-600 underline hover:text-blue-800 cursor-pointer bg-transparent border-none p-0 font-inherit"
+                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-all"
               >
-                {b.phone}
+                📞 {b.phone}
               </button>
-            </div>
-          )}
-          {b.website && (
-            <div className="text-sm">
-              🌐{' '}
+            )}
+            {b.website && (
               <button
                 onClick={() => window.open(b.website, '_blank')}
-                className="text-blue-600 underline hover:text-blue-800 cursor-pointer bg-transparent border-none p-0 font-inherit"
+                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-all"
               >
-                Visit Website
+                🌐 Visit Website
               </button>
-            </div>
-          )}
-          {b.rating && (
-            <div className="text-sm text-slate-600">
-              ⭐ {b.rating}/5 ({b.total_ratings || 0} reviews)
-            </div>
-          )}
-          {b.open_now !== null && (
-            <div className="text-sm">
-              {b.open_now ? '🟢 Open now' : '🔴 Closed'}
-            </div>
-          )}
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-3 text-sm text-slate-600">
+            {b.rating && (
+              <span className="inline-flex items-center gap-1">
+                ⭐ <span className="font-semibold text-slate-900">{b.rating}</span>/5 <span className="text-slate-500">({b.total_ratings || 0})</span>
+              </span>
+            )}
+            {b.open_now !== null && (
+              <span className={`inline-flex items-center gap-1 font-medium ${b.open_now ? 'text-green-600' : 'text-red-600'}`}>
+                {b.open_now ? '🟢 Open now' : '🔴 Closed'}
+              </span>
+            )}
+          </div>
         </div>
       ))}
     </div>
@@ -1678,7 +1678,7 @@ export default function Home() {
           </CardHeader>
 
           {/* messages */}
-          <CardContent className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-white">
+          <CardContent className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-white relative">
             {isLoading && messages.length === 0 ? (
               <div className="text-center text-slate-500 text-sm">Loading messages...</div>
             ) : messages.length === 0 ? (
@@ -1783,12 +1783,15 @@ export default function Home() {
             )}
             {isTyping && <TypingIndicator isPractical={isPracticalQuery} />}
             <div ref={messagesEndRef} />
+
+            {/* Bottom fade gradient for depth */}
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
           </CardContent>
 
           {/* input bar */}
           <form
             onSubmit={handleFormSubmit}
-            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
+            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-gradient-to-b from-white to-slate-50 rounded-b-lg sm:rounded-b-xl shadow-inner"
           >
             {/* Spiritual Tools - Modern Sharp Buttons */}
             <div className="mb-3 sm:mb-4 flex flex-wrap gap-3">
