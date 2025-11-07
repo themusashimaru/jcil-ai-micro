@@ -238,7 +238,7 @@ export default function AdminDashboard() {
         {/* Revenue Breakdown */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Revenue by Tier</CardTitle>
+            <CardTitle className="text-slate-900">Revenue by Tier</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -273,7 +273,7 @@ export default function AdminDashboard() {
           {/* API Costs */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-slate-900">
                 <Zap className="h-5 w-5 mr-2 text-orange-500" />
                 API Costs
               </CardTitle>
@@ -311,7 +311,7 @@ export default function AdminDashboard() {
           {/* Token Usage */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-slate-900">
                 <Activity className="h-5 w-5 mr-2 text-purple-500" />
                 Token Usage
               </CardTitle>
