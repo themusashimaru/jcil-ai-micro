@@ -2099,11 +2099,11 @@ export default function Home() {
                   disabled={isLoading}
                   className={`h-9 w-9 sm:h-10 sm:w-10 mr-1 rounded-lg ${
                     isRecording
-                      ? 'bg-red-600 hover:bg-red-700 animate-pulse'
-                      : 'bg-slate-100 hover:bg-slate-200'
+                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                      : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
                   }`}
                 >
-                  <Mic className="h-5 w-5" />
+                  <Mic className="h-5 w-5" strokeWidth={2} />
                 </Button>
 
                 <Button
