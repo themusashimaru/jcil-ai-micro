@@ -473,11 +473,33 @@ export async function POST(req: Request) {
   let reply = "";
 
   try {
-    // Convert claudeMessages to AI SDK format (it should handle automatically)
-    const aiSdkMessages = claudeMessages.map((msg: any) => ({
-      role: msg.role,
-      content: msg.content
-    }));
+    // Convert claudeMessages to AI SDK format
+    const aiSdkMessages = claudeMessages.map((msg: any) => {
+      // Handle image content conversion from Claude format to AI SDK format
+      if (Array.isArray(msg.content)) {
+        const convertedContent = msg.content.map((item: any) => {
+          if (item.type === 'image' && item.source) {
+            // Convert Claude's nested image format to AI SDK format
+            // Claude: { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: '...' } }
+            // AI SDK: { type: 'image', image: 'data:image/jpeg;base64,...' }
+            return {
+              type: 'image',
+              image: `data:${item.source.media_type};base64,${item.source.data}`
+            };
+          }
+          return item; // Keep text items as-is
+        });
+        return {
+          role: msg.role,
+          content: convertedContent
+        };
+      }
+      // Text-only messages
+      return {
+        role: msg.role,
+        content: msg.content
+      };
+    });
 
     const response = await generateText({
       model: xai(modelName), // 🎯 Using Grok for all tiers
