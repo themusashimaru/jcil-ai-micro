@@ -1963,8 +1963,8 @@ export default function Home() {
             {isTyping && <TypingIndicator isPractical={isPracticalQuery} />}
             <div ref={messagesEndRef} />
 
-            {/* Bottom fade gradient for depth */}
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
+            {/* Bottom fade gradient for depth - REDUCED to not hide messages */}
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/60 to-transparent pointer-events-none" />
           </CardContent>
 
           {/* input bar */}
