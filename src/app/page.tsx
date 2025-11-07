@@ -211,7 +211,7 @@ const HACKER_MESSAGES = [
   "⚠️ Nice try, script kiddie...",
   "🚫 Malicious activity identified...",
   "🚨 Unauthorized access attempt...",
-  "⛔ Error 403: Forbidden by God...",
+  "⛔ Error 403: Protected by Higher Authority...",
   "🚨 Security threat neutralized...",
 ];
 
