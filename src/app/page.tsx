@@ -168,13 +168,64 @@ const PARENT_MESSAGES = [
   "Building godly family foundations...",
 ];
 
+// Dark/Occult detection ⚠️🛡️
+const DARK_ENTITY_MESSAGES = [
+  "⚠️ Detecting dark entities...",
+  "⚠️ Detecting malicious intent...",
+  "⚠️ Identifying occult content...",
+  "⚠️ Spiritual protection activated...",
+  "⚠️ Rejecting demonic influence...",
+  "⚠️ Deploying biblical authority...",
+];
+
+// Business Owners/Creators 🚀
+const CREATOR_MESSAGES = [
+  "Supporting your vision...",
+  "Empowering your business journey...",
+  "Gathering insights efficiently...",
+  "Optimizing for your success...",
+  "Building your dream...",
+  "Reviewing for accurate guidance...",
+  "Accelerating your goals...",
+];
+
+// Emotional Distress/Struggling 💙✝️
+const DISTRESS_MESSAGES = [
+  "User is experiencing hardship...",
+  "Jesus loves you very much...",
+  "You have a beautiful future...",
+  "Providing compassionate support...",
+  "God sees your struggle...",
+  "Hope is on the horizon...",
+  "You are not alone...",
+  "Strength is being prepared...",
+];
+
+// Hacker/Malicious Attempt Detection 🚨⚠️
+const HACKER_MESSAGES = [
+  "🚨 Detecting hacking attempt...",
+  "🚨 SQL injection detected...",
+  "🚨 Cross-site scripting blocked...",
+  "⚠️ Do not pass GO. Do not collect $200.",
+  "🛑 Silicon Valley shenanigans detected...",
+  "⚠️ Nice try, script kiddie...",
+  "🚫 Malicious activity identified...",
+  "🚨 Unauthorized access attempt...",
+  "⛔ Error 403: Forbidden by God...",
+  "🚨 Security threat neutralized...",
+];
+
 const TypingIndicator = ({
   isPractical = false,
   isWoke = false,
   isLazyStudent = false,
   isVeteran = false,
   isBusiness = false,
-  isParent = false
+  isParent = false,
+  isDarkEntity = false,
+  isCreator = false,
+  isDistress = false,
+  isHacker = false
 }: {
   isPractical?: boolean;
   isWoke?: boolean;
@@ -182,6 +233,10 @@ const TypingIndicator = ({
   isVeteran?: boolean;
   isBusiness?: boolean;
   isParent?: boolean;
+  isDarkEntity?: boolean;
+  isCreator?: boolean;
+  isDistress?: boolean;
+  isHacker?: boolean;
 }) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
@@ -189,16 +244,24 @@ const TypingIndicator = ({
     let messages = THEOLOGICAL_LOADING_MESSAGES;
 
     // Priority order for special detection
-    if (isVeteran) {
-      messages = VETERAN_MESSAGES;
+    if (isHacker) {
+      messages = HACKER_MESSAGES; // ABSOLUTE HIGHEST - Block hackers immediately! 🚨
+    } else if (isDarkEntity) {
+      messages = DARK_ENTITY_MESSAGES; // Block evil immediately!
+    } else if (isDistress) {
+      messages = DISTRESS_MESSAGES; // Compassion for struggling souls
+    } else if (isVeteran) {
+      messages = VETERAN_MESSAGES; // Honor our veterans
+    } else if (isCreator) {
+      messages = CREATOR_MESSAGES; // Support business owners
     } else if (isLazyStudent) {
-      messages = LAZY_STUDENT_MESSAGES;
+      messages = LAZY_STUDENT_MESSAGES; // Catch cheaters
     } else if (isWoke) {
-      messages = WOKE_DETECTION_MESSAGES;
+      messages = WOKE_DETECTION_MESSAGES; // Time for sass
     } else if (isParent) {
-      messages = PARENT_MESSAGES;
+      messages = PARENT_MESSAGES; // Support families
     } else if (isBusiness) {
-      messages = BUSINESS_MESSAGES;
+      messages = BUSINESS_MESSAGES; // Professional mode
     } else if (isPractical) {
       messages = PRACTICAL_LOADING_MESSAGES;
     }
@@ -208,7 +271,7 @@ const TypingIndicator = ({
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [isPractical, isWoke, isLazyStudent, isVeteran, isBusiness, isParent]);
+  }, [isPractical, isWoke, isLazyStudent, isVeteran, isBusiness, isParent, isDarkEntity, isCreator, isDistress, isHacker]);
 
   return (
     <div className="flex items-start space-x-3 justify-start">
@@ -220,19 +283,27 @@ const TypingIndicator = ({
             <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
           <span className="text-sm text-slate-600 italic animate-pulse">
-            {isVeteran
-              ? VETERAN_MESSAGES[messageIndex]
-              : isLazyStudent
-                ? LAZY_STUDENT_MESSAGES[messageIndex]
-                : isWoke
-                  ? WOKE_DETECTION_MESSAGES[messageIndex]
-                  : isParent
-                    ? PARENT_MESSAGES[messageIndex]
-                    : isBusiness
-                      ? BUSINESS_MESSAGES[messageIndex]
-                      : isPractical
-                        ? PRACTICAL_LOADING_MESSAGES[messageIndex]
-                        : THEOLOGICAL_LOADING_MESSAGES[messageIndex]
+            {isHacker
+              ? HACKER_MESSAGES[messageIndex]
+              : isDarkEntity
+                ? DARK_ENTITY_MESSAGES[messageIndex]
+                : isDistress
+                  ? DISTRESS_MESSAGES[messageIndex]
+                  : isVeteran
+                    ? VETERAN_MESSAGES[messageIndex]
+                    : isCreator
+                      ? CREATOR_MESSAGES[messageIndex]
+                      : isLazyStudent
+                        ? LAZY_STUDENT_MESSAGES[messageIndex]
+                        : isWoke
+                          ? WOKE_DETECTION_MESSAGES[messageIndex]
+                          : isParent
+                            ? PARENT_MESSAGES[messageIndex]
+                            : isBusiness
+                              ? BUSINESS_MESSAGES[messageIndex]
+                              : isPractical
+                                ? PRACTICAL_LOADING_MESSAGES[messageIndex]
+                                : THEOLOGICAL_LOADING_MESSAGES[messageIndex]
             }
           </span>
         </div>
@@ -319,6 +390,10 @@ export default function Home() {
   const [isVeteranQuery, setIsVeteranQuery] = useState(false);
   const [isBusinessQuery, setIsBusinessQuery] = useState(false);
   const [isParentQuery, setIsParentQuery] = useState(false);
+  const [isDarkEntityQuery, setIsDarkEntityQuery] = useState(false);
+  const [isCreatorQuery, setIsCreatorQuery] = useState(false);
+  const [isDistressQuery, setIsDistressQuery] = useState(false);
+  const [isHackerQuery, setIsHackerQuery] = useState(false);
 
   // history
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -1045,6 +1120,51 @@ export default function Home() {
       /\b(family devotion|parenting|raising (godly )?children)\b/i,
     ];
 
+    // Dark/Occult Detection ⚠️🛡️
+    const darkEntityPatterns = [
+      /\b(satan|satanic|lucifer|demon|demonic|devil|hell|hail satan)\b/i,
+      /\b(witchcraft|witch|warlock|sorcery|black magic|dark magic|occult)\b/i,
+      /\b(curse|hex|spell|ritual|seance|ouija|pentagram|666)\b/i,
+      /\b(summoning|conjure|invoke (a |the )?(demon|spirit|entity))\b/i,
+      /\b(blood sacrifice|dark ritual|pagan ritual)\b/i,
+      /\b(tarot|divination|fortune telling|crystal ball)\b/i,
+      /\b(illuminati|new world order|antichrist)\b/i,
+    ];
+
+    // Creator/Business Owner Detection 🚀
+    const creatorPatterns = [
+      /\b(my (business|startup|company|brand|channel|podcast))\b/i,
+      /\b(i('?m| am) (starting|launching|building|creating) (a |an |my))\b/i,
+      /\b((small business|side hustle|entrepreneur|founder|creator))\b/i,
+      /\b(growing my (audience|following|business|brand))\b/i,
+      /\b(youtube channel|content creator|influencer)\b/i,
+      /\b(monetize|marketing strategy|customer acquisition)\b/i,
+    ];
+
+    // Emotional Distress Detection 💙✝️
+    const distressPatterns = [
+      /\b(i('?m| am) (depressed|sad|lonely|hopeless|lost|broken|hurting))\b/i,
+      /\b(i (want to|wanna) (die|end it all|give up))\b/i,
+      /\b(no (one|body) (cares|loves me|understands))\b/i,
+      /\b(i (can't|cannot) (go on|do this|take it anymore))\b/i,
+      /\b(life (is|feels) (meaningless|empty|pointless|hopeless))\b/i,
+      /\b(struggling with (depression|anxiety|grief|loss|pain))\b/i,
+      /\b(suicidal|self.?harm|cutting myself)\b/i,
+      /\b(i need help|please help me|desperate)\b/i,
+    ];
+
+    // Hacker/SQL Injection/XSS Detection 🚨🛑
+    const hackerPatterns = [
+      /\b(sql.?(injection|inject)|union.?select|drop.?table|delete.?from)\b/i,
+      /(<script|javascript:|onerror=|onload=|<iframe|eval\(|\.innerHTML)/i,
+      /\b(\.\.\/|\.\.\\|\/etc\/passwd|cmd\.exe|powershell)\b/i,
+      /(\|\||&&|;|\`|base64|exec\(|system\()/,
+      /\b(hack|exploit|vulnerability|backdoor|shell|payload)\b/i,
+      /(select.*from|insert.*into|update.*set|delete.*where)/i,
+      /(<img.*onerror|<svg.*onload)/i,
+      /\b(cookie.?theft|session.?hijack|csrf|xss|xxe)\b/i,
+    ];
+
     const isSearchIntent = searchPatterns.some(pattern => pattern.test(lowerText));
     const isFactCheckIntent = !isSearchIntent && factCheckPatterns.some(pattern => pattern.test(lowerText));
     const isAirQualityIntent = !isSearchIntent && !isFactCheckIntent && airQualityPatterns.some(pattern => pattern.test(lowerText));
@@ -1056,8 +1176,12 @@ export default function Home() {
     const isVeteranIntent = veteranPatterns.some(pattern => pattern.test(lowerText));
     const isBusinessIntent = businessPatterns.some(pattern => pattern.test(lowerText));
     const isParentIntent = parentPatterns.some(pattern => pattern.test(lowerText));
+    const isDarkEntityIntent = darkEntityPatterns.some(pattern => pattern.test(lowerText));
+    const isCreatorIntent = creatorPatterns.some(pattern => pattern.test(lowerText));
+    const isDistressIntent = distressPatterns.some(pattern => pattern.test(lowerText));
+    const isHackerIntent = hackerPatterns.some(pattern => pattern.test(lowerText));
 
-    // Priority: Veteran > LazyStudent > Woke > Parent > Business > Theological > Practical
+    // Priority: Hacker (BLOCK!) > DarkEntity (BLOCK!) > Distress > Veteran > LazyStudent > Woke > Parent > Creator > Business > Theological > Practical
     // Reset all flags first
     setIsPracticalQuery(false);
     setIsWokeQuery(false);
@@ -1065,9 +1189,22 @@ export default function Home() {
     setIsVeteranQuery(false);
     setIsBusinessQuery(false);
     setIsParentQuery(false);
+    setIsDarkEntityQuery(false);
+    setIsCreatorQuery(false);
+    setIsDistressQuery(false);
+    setIsHackerQuery(false);
 
-    if (isVeteranIntent) {
-      // Highest priority - respect our vets! 🇺🇸
+    if (isHackerIntent) {
+      // HIGHEST PRIORITY - Block hackers immediately! 🚨🛑
+      setIsHackerQuery(true);
+    } else if (isDarkEntityIntent) {
+      // Block evil entities! ⚠️✝️
+      setIsDarkEntityQuery(true);
+    } else if (isDistressIntent) {
+      // Compassion for struggling souls 💙
+      setIsDistressQuery(true);
+    } else if (isVeteranIntent) {
+      // Respect our vets! 🇺🇸
       setIsVeteranQuery(true);
     } else if (isLazyStudentIntent) {
       // Catch cheaters early 📚
@@ -1078,6 +1215,9 @@ export default function Home() {
     } else if (isParentIntent) {
       // Support Christian families 👨‍👩‍👧‍👦
       setIsParentQuery(true);
+    } else if (isCreatorIntent) {
+      // Empower entrepreneurs 🚀
+      setIsCreatorQuery(true);
     } else if (isBusinessIntent) {
       // Professional mode 💼
       setIsBusinessQuery(true);
@@ -1548,6 +1688,10 @@ export default function Home() {
       setIsVeteranQuery(false);
       setIsBusinessQuery(false);
       setIsParentQuery(false);
+      setIsDarkEntityQuery(false);
+      setIsCreatorQuery(false);
+      setIsDistressQuery(false);
+      setIsHackerQuery(false);
       inputRef.current?.focus();
     }
   };
@@ -2008,6 +2152,10 @@ export default function Home() {
                 isVeteran={isVeteranQuery}
                 isBusiness={isBusinessQuery}
                 isParent={isParentQuery}
+                isDarkEntity={isDarkEntityQuery}
+                isCreator={isCreatorQuery}
+                isDistress={isDistressQuery}
+                isHacker={isHackerQuery}
               />
             )}
             <div ref={messagesEndRef} />
