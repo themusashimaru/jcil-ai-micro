@@ -882,14 +882,28 @@ export default function Home() {
       /\b(what('?s| is) the time (in|at))\b/i
     ];
 
+    // Theological / Biblical Intent Patterns (for biblical loading messages)
+    const theologicalPatterns = [
+      /\b(bible|scripture|biblical|gospel|jesus|christ|god|lord|holy spirit|salvation)\b/i,
+      /\b(prayer|pray|worship|faith|believe|christian|christianity)\b/i,
+      /\b(sin|repent|forgive|forgiveness|grace|mercy|redemption)\b/i,
+      /\b(heaven|hell|eternal|afterlife|resurrection)\b/i,
+      /\b(theology|doctrine|covenant|testament|prophet|apostle)\b/i,
+      /\b(what does (the )?bible say|according to scripture|biblically)\b/i,
+      /\b(spiritual|soul|spirit|divine|sacred|holy)\b/i,
+      /\b(sermon|preach|pastor|church|ministry)\b/i,
+    ];
+
     const isSearchIntent = searchPatterns.some(pattern => pattern.test(lowerText));
     const isFactCheckIntent = !isSearchIntent && factCheckPatterns.some(pattern => pattern.test(lowerText));
     const isAirQualityIntent = !isSearchIntent && !isFactCheckIntent && airQualityPatterns.some(pattern => pattern.test(lowerText));
     const isDirectionsIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && directionsPatterns.some(pattern => pattern.test(lowerText));
     const isTimezoneIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && !isDirectionsIntent && timezonePatterns.some(pattern => pattern.test(lowerText));
+    const isTheologicalIntent = theologicalPatterns.some(pattern => pattern.test(lowerText));
 
-    // Set whether this is a practical query (business, weather, directions, etc.) or theological
-    const isPractical = isSearchIntent || isFactCheckIntent || isAirQualityIntent || isDirectionsIntent || isTimezoneIntent;
+    // Flip the logic: Most queries are practical (show computing messages)
+    // Only theological queries show biblical messages
+    const isPractical = !isTheologicalIntent; // Everything is practical UNLESS it's theological
     setIsPracticalQuery(isPractical);
 
     // persist user message with user_id
