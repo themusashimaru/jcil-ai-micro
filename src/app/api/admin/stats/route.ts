@@ -95,15 +95,18 @@ export async function GET(request: Request) {
     // ====================
     // REVENUE STATS
     // ====================
-    const revenueByTier = Object.entries(tierCounts).map(([tier, count]) => ({
-      tier,
-      count: count as number,
-      monthlyRevenue: (count as number) * (PRICING[tier as keyof typeof PRICING] || 0),
-    }));
+    // Always show ALL tiers, even if they have 0 users
+    const allTiers = ['free', 'basic', 'pro', 'premium', 'executive'];
+    const revenueByTier = allTiers.map(tier => {
+      const count = tierCounts[tier] || 0;
+      return {
+        tier,
+        count,
+        monthlyRevenue: count * (PRICING[tier as keyof typeof PRICING] || 0),
+      };
+    });
 
-    const totalMonthlyRevenue = revenueByTier.length > 0
-      ? revenueByTier.reduce((sum, tier) => sum + tier.monthlyRevenue, 0)
-      : 0;
+    const totalMonthlyRevenue = revenueByTier.reduce((sum, tier) => sum + tier.monthlyRevenue, 0);
 
     // ====================
     // USAGE STATS
