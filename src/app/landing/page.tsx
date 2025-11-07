@@ -163,7 +163,7 @@ export default function LandingPage() {
               fact-checking, and deep Bible research - all rooted in Scripture and Truth.
             </p>
             <p className="text-lg text-yellow-400 mb-8 font-semibold">
-              Powered by JCIL.ai
+              Built by JCIL.ai
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
