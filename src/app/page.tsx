@@ -220,7 +220,12 @@ export default function Home() {
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
 
-  // recording - DELETED, will rebuild from scratch
+  // ============================================
+  // MIC RECORDING - REBUILT FROM SCRATCH
+  // ============================================
+  const [isRecording, setIsRecording] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
 
   // ui refs
@@ -595,8 +600,62 @@ export default function Home() {
 
   // --------- AUDIO VALIDATION & TRANSCRIPTION ----------
   // ============================================
-  // MIC HANDLERS - DELETED, WILL REBUILD
+  // MIC HANDLER - ULTRA SIMPLE, MOBILE FIRST
   // ============================================
+  const handleMic = async () => {
+    if (isRecording) {
+      // Stop recording
+      recorderRef.current?.stop();
+      return;
+    }
+
+    try {
+      // Start recording
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
+
+        // Determine filename from mime type
+        let filename = 'audio.webm';
+        if (recorder.mimeType.includes('mp4')) filename = 'audio.m4a';
+        else if (recorder.mimeType.includes('ogg')) filename = 'audio.ogg';
+
+        // Send to transcription
+        const formData = new FormData();
+        formData.append('file', blob, filename);
+
+        try {
+          const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+          const data = await res.json();
+
+          if (data.text) {
+            setLocalInput(data.text.trim());
+            inputRef.current?.focus();
+          } else {
+            alert('No speech detected');
+          }
+        } catch (err) {
+          alert('Transcription failed');
+        }
+
+        stream.getTracks().forEach(t => t.stop());
+        setIsRecording(false);
+      };
+
+      setIsRecording(true);
+      recorder.start();
+    } catch (err) {
+      alert('Microphone access denied');
+    }
+  };
 
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -2035,7 +2094,19 @@ export default function Home() {
                   onKeyDown={handleTextareaKeyDown}
                 />
 
-                {/* MIC BUTTON REMOVED - WILL REBUILD */}
+                {/* MIC BUTTON - REBUILT SIMPLE */}
+                <Button
+                  type="button"
+                  onClick={handleMic}
+                  disabled={isLoading}
+                  className={`h-9 w-9 sm:h-10 sm:w-10 mr-1 rounded-lg ${
+                    isRecording
+                      ? 'bg-red-600 hover:bg-red-700 animate-pulse'
+                      : 'bg-slate-100 hover:bg-slate-200'
+                  }`}
+                >
+                  <Mic className="h-5 w-5" />
+                </Button>
 
                 <Button
                   type="submit"
