@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, BookOpen, Shield, Code, BarChart, Briefcase, Mail, MessageSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, BookOpen, Shield, Code, BarChart, Briefcase } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ToolType } from '@/lib/tools-config';
 
@@ -58,12 +58,6 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
       toolType: 'business-strategy',
       icon: <Briefcase className="h-4 w-4" />,
       gradient: 'from-amber-900 to-amber-800'
-    },
-    {
-      label: 'EMAIL WRITER',
-      toolType: 'email-executive',
-      icon: <Mail className="h-4 w-4" />,
-      gradient: 'from-indigo-900 to-indigo-800'
     }
   ];
 

@@ -2322,24 +2322,30 @@ export default function Home() {
                   >
                     Email · Bachelor's {renderCheck('email-bachelors')}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleToolSelection('email-masters')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
-                  >
-                    Email · Master's {renderCheck('email-masters')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleToolSelection('email-executive')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
-                  >
-                    Email · Executive {renderCheck('email-executive')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleToolSelection('email-phd')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
-                  >
-                    Email · PhD {renderCheck('email-phd')}
-                  </DropdownMenuItem>
+
+                  {/* Master's, Executive, and PhD tools only for Premium ($30) and Executive tiers */}
+                  {(subscriptionTier === 'pro' || subscriptionTier === 'premium' || subscriptionTier === 'executive') && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => handleToolSelection('email-masters')}
+                        className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                      >
+                        Email · Master's {renderCheck('email-masters')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleToolSelection('email-executive')}
+                        className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                      >
+                        Email · Executive {renderCheck('email-executive')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleToolSelection('email-phd')}
+                        className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                      >
+                        Email · PhD {renderCheck('email-phd')}
+                      </DropdownMenuItem>
+                    </>
+                  )}
 
                   {/* Essay Writer */}
                   <div className="h-1"></div>
@@ -2355,24 +2361,30 @@ export default function Home() {
                   >
                     Essay · Bachelor's {renderCheck('essay-bachelors')}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleToolSelection('essay-masters')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
-                  >
-                    Essay · Master's {renderCheck('essay-masters')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleToolSelection('essay-executive')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
-                  >
-                    Essay · Executive {renderCheck('essay-executive')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleToolSelection('essay-phd')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
-                  >
-                    Essay · PhD {renderCheck('essay-phd')}
-                  </DropdownMenuItem>
+
+                  {/* Master's, Executive, and PhD tools only for Premium ($30) and Executive tiers */}
+                  {(subscriptionTier === 'pro' || subscriptionTier === 'premium' || subscriptionTier === 'executive') && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => handleToolSelection('essay-masters')}
+                        className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                      >
+                        Essay · Master's {renderCheck('essay-masters')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleToolSelection('essay-executive')}
+                        className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                      >
+                        Essay · Executive {renderCheck('essay-executive')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleToolSelection('essay-phd')}
+                        className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                      >
+                        Essay · PhD {renderCheck('essay-phd')}
+                      </DropdownMenuItem>
+                    </>
+                  )}
 
                   {/* Text Message Writer */}
                   <div className="h-1"></div>
