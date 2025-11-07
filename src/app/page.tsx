@@ -223,6 +223,7 @@ export default function Home() {
   // recording
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isListening, setIsListening] = useState(false); // for intelligent "Listening..." state
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -277,6 +278,7 @@ export default function Home() {
   const getPlaceholderText = () => {
     if (isTranscribing) return 'Transcribing audio...';
     if (isLoading) return 'AI is thinking...';
+    if (isRecording && isListening) return 'Listening…';
     if (isRecording) return 'Begin speaking…';
     if (attachedFileName) return 'Describe the file or add text...';
     if (activeTool !== 'none') {
@@ -604,7 +606,8 @@ export default function Home() {
       const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
       const data = await response.json();
       if (response.ok) {
-        const transcribedText = (localInput + ' ' + data.text).trim();
+        // FIX: Use only the transcribed text, don't concatenate with existing input
+        const transcribedText = data.text.trim();
         setLocalInput(transcribedText);
         // Auto-submit after transcription completes
         setIsTranscribing(false);
@@ -632,13 +635,20 @@ export default function Home() {
     if (isRecording) {
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
+      setIsListening(false);
       return;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsRecording(true);
+      setIsListening(false);
       audioChunksRef.current = [];
+
+      // After 1.5 seconds, change placeholder to "Listening..."
+      const listeningTimeout = setTimeout(() => {
+        setIsListening(true);
+      }, 1500);
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = mediaRecorder;
@@ -650,6 +660,8 @@ export default function Home() {
       };
 
       mediaRecorder.onstop = async () => {
+        clearTimeout(listeningTimeout);
+        setIsListening(false);
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         await handleTranscribe(audioBlob);
         stream.getTracks().forEach((t) => t.stop());
@@ -660,6 +672,7 @@ export default function Home() {
       console.error('mic error:', error);
       alert('Microphone access denied.');
       setIsRecording(false);
+      setIsListening(false);
     }
   };
 
@@ -786,24 +799,25 @@ export default function Home() {
     setIsLoading(true);
     setIsTyping(true); // Show typing indicator while AI responds
 
-    const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
+    // CRITICAL FIX: Wrap entire async flow in try-finally to prevent stuck loading state
+    try {
+      const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
 
-    // ensure conversation exists (with user_id)
-    let currentConvoId = conversationId;
-    if (!currentConvoId) {
-      const title = userMsgText.substring(0, 40) + '...';
-      const { data: newConvo, error: convError } = await supabase
-        .from('conversations')
-        .insert({ user_id: user.id, title })  // ✅ include user_id
-        .select('id, created_at, title, user_id')
-        .single();
+      // ensure conversation exists (with user_id)
+      let currentConvoId = conversationId;
+      if (!currentConvoId) {
+        const title = userMsgText.substring(0, 40) + '...';
+        const { data: newConvo, error: convError } = await supabase
+          .from('conversations')
+          .insert({ user_id: user.id, title })  // ✅ include user_id
+          .select('id, created_at, title, user_id')
+          .single();
 
-      if (convError) {
-        console.error('conversation insert error:', convError);
-        setIsLoading(false);
-        alert('Failed to start a conversation.');
-        return;
-      }
+        if (convError) {
+          console.error('conversation insert error:', convError);
+          alert('Failed to start a conversation.');
+          return;
+        }
       currentConvoId = newConvo.id;
       setConversationId(newConvo.id);
       setConversations((prev) => [newConvo, ...prev]);
@@ -890,7 +904,6 @@ export default function Home() {
 
     if (insertUserErr) {
       console.error('insert user message error:', insertUserErr);
-      setIsLoading(false);
       setMessages((prev) => [
         ...prev,
         { id: `err_${Date.now()}`, role: 'assistant', content: 'Error saving your message.' },
@@ -898,8 +911,7 @@ export default function Home() {
       return;
     }
 
-    try {
-      let assistantText = '';
+    let assistantText = '';
 
       // ============================================
       // 🌐 ROUTE 1: WEB SEARCH (Brave + Claude)
