@@ -148,7 +148,7 @@ export default function CookiePolicy() {
                 and database provider uses cookies to manage user sessions and authentication
               </li>
               <li className="leading-relaxed">
-                <strong className="text-slate-900">Anthropic (Claude AI):</strong> When
+                <strong className="text-slate-900">XAI (Grok):</strong> When
                 processing your AI requests
               </li>
             </ul>
@@ -169,12 +169,12 @@ export default function CookiePolicy() {
               </li>
               <li className="leading-relaxed">
                 <a
-                  href="https://www.anthropic.com/privacy"
+                  href="https://x.ai/privacy"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-900 underline hover:text-blue-700"
                 >
-                  Anthropic Privacy Policy
+                  XAI Privacy Policy
                 </a>
               </li>
             </ul>
