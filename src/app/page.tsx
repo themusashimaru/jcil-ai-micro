@@ -666,8 +666,20 @@ export default function Home() {
     // Skip validation - let the transcription service handle it
     // Validation was too aggressive and blocking good audio
 
+    // CRITICAL FIX: Determine correct filename based on blob mime type
+    let filename = 'audio.webm';
+    if (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a')) {
+      filename = 'audio.m4a';
+    } else if (audioBlob.type.includes('ogg')) {
+      filename = 'audio.ogg';
+    } else if (audioBlob.type.includes('wav')) {
+      filename = 'audio.wav';
+    }
+
+    console.log('🎤 Using filename:', filename, 'for type:', audioBlob.type);
+
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('file', audioBlob, filename);
 
     try {
       const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
