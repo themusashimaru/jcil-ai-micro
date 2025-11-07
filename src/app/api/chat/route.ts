@@ -231,40 +231,45 @@ export async function POST(req: Request) {
   console.log(`👤 User ${userId} tier: ${userTier}`);
 
   // ============================================
-  // 📊 CHECK DAILY MESSAGE LIMIT
+  // 📊 CHECK DAILY MESSAGE LIMIT (FREE TIER ONLY)
   // ============================================
-  const { data: limitCheck, error: limitError } = await supabase
-    .rpc('check_daily_limit', { p_user_id: userId });
+  // Only enforce daily limits for free tier - paid plans have no daily cap
+  if (userTier === 'free') {
+    const { data: limitCheck, error: limitError } = await supabase
+      .rpc('check_daily_limit', { p_user_id: userId });
 
-  if (limitError) {
-    console.error('Error checking daily limit:', limitError);
-    // Continue anyway (fail open)
-  } else if (limitCheck && limitCheck.length > 0) {
-    const { has_remaining, current_count, daily_limit, tier } = limitCheck[0];
+    if (limitError) {
+      console.error('Error checking daily limit:', limitError);
+      // Continue anyway (fail open)
+    } else if (limitCheck && limitCheck.length > 0) {
+      const { has_remaining, current_count, daily_limit, tier } = limitCheck[0];
 
-    console.log(`📊 Daily usage: ${current_count}/${daily_limit} for tier: ${tier}`);
+      console.log(`📊 Daily usage: ${current_count}/${daily_limit} for tier: ${tier}`);
 
-    if (!has_remaining) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: `Daily message limit reached (${daily_limit} messages per day for ${tier} tier). Upgrade your plan or try again tomorrow.`,
-          limitExceeded: true,
-          currentUsage: current_count,
-          dailyLimit: daily_limit,
-          tier: tier
-        }),
-        {
-          status: 429,
-          headers: {
-            "content-type": "application/json",
-            "X-RateLimit-Limit": String(daily_limit),
-            "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Reset": new Date(new Date().setHours(24,0,0,0)).toISOString()
+      if (!has_remaining) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: `Daily message limit reached (${daily_limit} messages per day for ${tier} tier). Upgrade to remove daily limits!`,
+            limitExceeded: true,
+            currentUsage: current_count,
+            dailyLimit: daily_limit,
+            tier: tier
+          }),
+          {
+            status: 429,
+            headers: {
+              "content-type": "application/json",
+              "X-RateLimit-Limit": String(daily_limit),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": new Date(new Date().setHours(24,0,0,0)).toISOString()
+            }
           }
-        }
-      );
+        );
+      }
     }
+  } else {
+    console.log(`💎 Paid tier (${userTier}) - no daily message cap`);
   }
 
   // ============================================

@@ -17,7 +17,7 @@ export default function SettingsPage() {
 
   // Subscription State
   const [subscriptionTier, setSubscriptionTier] = useState('free');
-  const [dailyLimit, setDailyLimit] = useState(5);
+  const [dailyLimit, setDailyLimit] = useState(10);
   const [usageToday, setUsageToday] = useState(0);
   const [subscriptionStatus, setSubscriptionStatus] = useState('inactive');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -63,7 +63,7 @@ export default function SettingsPage() {
 
     if (profile) {
       setSubscriptionTier(profile.subscription_tier || 'free');
-      setDailyLimit(profile.daily_message_limit || 5);
+      setDailyLimit(profile.daily_message_limit || 10);
       setSubscriptionStatus(profile.subscription_status || 'inactive');
     }
 
@@ -82,7 +82,7 @@ export default function SettingsPage() {
     setLoading(false);
   };
 
-  const handleUpgrade = async (tier: 'basic' | 'pro' | 'executive') => {
+  const handleUpgrade = async (tier: 'pro' | 'premium' | 'executive') => {
     setCheckoutLoading(true);
 
     try {
@@ -321,29 +321,16 @@ export default function SettingsPage() {
               <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-slate-900">Upgrade Your Plan</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* Basic */}
-                  <div className="border border-slate-200 rounded-lg p-4 space-y-2 hover:border-blue-900 transition-all">
-                    <div className="font-bold text-slate-900">Basic</div>
-                    <div className="text-2xl font-bold text-blue-900">$20<span className="text-sm text-slate-600">/mo</span></div>
-                    <div className="text-sm text-slate-600">30 messages/day</div>
-                    <Button
-                      onClick={() => handleUpgrade('basic')}
-                      disabled={checkoutLoading}
-                      className="w-full bg-blue-900 hover:bg-blue-950 text-white rounded-lg"
-                      size="sm"
-                    >
-                      {checkoutLoading ? 'Loading...' : 'Upgrade'}
-                    </Button>
-                  </div>
-
                   {/* Pro */}
-                  <div className="border-2 border-blue-900 rounded-lg p-4 space-y-2 relative">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-900 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                      Popular
-                    </div>
+                  <div className="border border-slate-200 rounded-lg p-4 space-y-2 hover:border-blue-900 transition-all">
                     <div className="font-bold text-slate-900">Pro</div>
-                    <div className="text-2xl font-bold text-blue-900">$60<span className="text-sm text-slate-600">/mo</span></div>
-                    <div className="text-sm text-slate-600">100 messages/day</div>
+                    <div className="text-2xl font-bold text-blue-900">$12<span className="text-sm text-slate-600">/mo</span></div>
+                    <div className="text-xs text-slate-600 mb-2">No daily message cap</div>
+                    <div className="text-xs text-slate-700 space-y-1">
+                      <div>✓ Tools up to Bachelor's</div>
+                      <div>✓ Real-time search</div>
+                      <div>✓ Conversation memory</div>
+                    </div>
                     <Button
                       onClick={() => handleUpgrade('pro')}
                       disabled={checkoutLoading}
@@ -354,13 +341,41 @@ export default function SettingsPage() {
                     </Button>
                   </div>
 
+                  {/* Premium */}
+                  <div className="border-2 border-yellow-500 rounded-lg p-4 space-y-2 relative shadow-lg">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-500 to-yellow-400 text-blue-900 px-3 py-1 rounded-full text-xs font-black">
+                      BEST VALUE
+                    </div>
+                    <div className="font-bold text-slate-900">Premium</div>
+                    <div className="text-2xl font-bold text-blue-900">$30<span className="text-sm text-slate-600">/mo</span></div>
+                    <div className="text-xs text-slate-600 mb-2">No daily message cap</div>
+                    <div className="text-xs text-slate-700 space-y-1">
+                      <div>✓ Master's & PhD tools</div>
+                      <div>✓ Cascading AI models</div>
+                      <div>✓ Advanced research</div>
+                    </div>
+                    <Button
+                      onClick={() => handleUpgrade('premium')}
+                      disabled={checkoutLoading}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-600 hover:to-yellow-500 text-blue-900 font-bold rounded-lg"
+                      size="sm"
+                    >
+                      {checkoutLoading ? 'Loading...' : 'Get Premium'}
+                    </Button>
+                  </div>
+
                   {/* Executive */}
                   <div className="border border-slate-200 rounded-lg p-4 space-y-2 hover:border-blue-900 transition-all">
                     <div className="font-bold text-slate-900 flex items-center gap-1">
                       Executive <Zap className="h-4 w-4 text-yellow-500" />
                     </div>
-                    <div className="text-2xl font-bold text-blue-900">$99<span className="text-sm text-slate-600">/mo</span></div>
-                    <div className="text-sm text-slate-600">200 messages/day</div>
+                    <div className="text-2xl font-bold text-blue-900">$150<span className="text-sm text-slate-600">/mo</span></div>
+                    <div className="text-xs text-slate-600 mb-2">No daily message cap</div>
+                    <div className="text-xs text-slate-700 space-y-1">
+                      <div>✓ Everything in Premium</div>
+                      <div>✓ Priority support</div>
+                      <div>✓ Custom features</div>
+                    </div>
                     <Button
                       onClick={() => handleUpgrade('executive')}
                       disabled={checkoutLoading}
