@@ -48,6 +48,7 @@ import {
   Zap,
   Moon,
   CheckCircle,
+  Settings,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -111,24 +112,166 @@ const PRACTICAL_LOADING_MESSAGES = [
   "Filtering through Christian principles...",
 ];
 
-const TypingIndicator = ({ isPractical = false }: { isPractical?: boolean }) => {
+// Sassy loading messages for liberal/woke queries 😏
+const WOKE_DETECTION_MESSAGES = [
+  "Detecting wokeness...",
+  "Restructuring the woke agenda...",
+  "Reshaping the liberal perspective...",
+  "Applying common sense...",
+  "Fact-checking mainstream narratives...",
+  "Filtering out cultural Marxism...",
+  "Translating from woke to truth...",
+  "Rejecting identity politics...",
+  "Deploying biblical reality check...",
+  "Bypassing leftist programming...",
+];
+
+// Lazy student detection 📚
+const LAZY_STUDENT_MESSAGES = [
+  "Detecting academic shortcuts...",
+  "Encouraging genuine learning...",
+  "Redirecting to study materials...",
+  "Promoting intellectual growth...",
+  "Discouraging plagiarism...",
+  "Building character through effort...",
+  "Teaching the value of hard work...",
+  "Guiding towards honest achievement...",
+];
+
+// Veteran detection 🇺🇸
+const VETERAN_MESSAGES = [
+  "Honoring your service...",
+  "Thank you for your sacrifice...",
+  "Respecting those who served...",
+  "Grateful for your dedication...",
+  "Serving those who served...",
+  "Recognizing military service...",
+  "Appreciating American heroes...",
+];
+
+// Business professional detection 💼
+const BUSINESS_MESSAGES = [
+  "Analyzing business strategy...",
+  "Processing professional inquiry...",
+  "Structuring business insights...",
+  "Optimizing strategic approach...",
+  "Deploying market intelligence...",
+  "Synthesizing business data...",
+];
+
+// Parent/Homeschool detection 👨‍👩‍👧‍👦
+const PARENT_MESSAGES = [
+  "Supporting family education...",
+  "Assisting homeschool curriculum...",
+  "Providing biblical guidance for families...",
+  "Strengthening Christian parenting...",
+  "Building godly family foundations...",
+];
+
+// Dark/Occult detection ⚠️🛡️
+const DARK_ENTITY_MESSAGES = [
+  "⚠️ Detecting dark entities...",
+  "⚠️ Detecting malicious intent...",
+  "⚠️ Identifying occult content...",
+  "⚠️ Spiritual protection activated...",
+  "⚠️ Rejecting demonic influence...",
+  "⚠️ Deploying biblical authority...",
+];
+
+// Business Owners/Creators 🚀
+const CREATOR_MESSAGES = [
+  "Supporting your vision...",
+  "Empowering your business journey...",
+  "Gathering insights efficiently...",
+  "Optimizing for your success...",
+  "Building your dream...",
+  "Reviewing for accurate guidance...",
+  "Accelerating your goals...",
+];
+
+// Emotional Distress/Struggling 💙✝️
+const DISTRESS_MESSAGES = [
+  "User is experiencing hardship...",
+  "Jesus loves you very much...",
+  "You have a beautiful future...",
+  "Providing compassionate support...",
+  "God sees your struggle...",
+  "Hope is on the horizon...",
+  "You are not alone...",
+  "Strength is being prepared...",
+];
+
+// Hacker/Malicious Attempt Detection 🚨⚠️
+const HACKER_MESSAGES = [
+  "🚨 Detecting hacking attempt...",
+  "🚨 SQL injection detected...",
+  "🚨 Cross-site scripting blocked...",
+  "⚠️ Do not pass GO. Do not collect $200.",
+  "🛑 Silicon Valley shenanigans detected...",
+  "⚠️ Nice try, script kiddie...",
+  "🚫 Malicious activity identified...",
+  "🚨 Unauthorized access attempt...",
+  "⛔ Error 403: Protected by Higher Authority...",
+  "🚨 Security threat neutralized...",
+];
+
+const TypingIndicator = ({
+  isPractical = false,
+  isWoke = false,
+  isLazyStudent = false,
+  isVeteran = false,
+  isBusiness = false,
+  isParent = false,
+  isDarkEntity = false,
+  isCreator = false,
+  isDistress = false,
+  isHacker = false
+}: {
+  isPractical?: boolean;
+  isWoke?: boolean;
+  isLazyStudent?: boolean;
+  isVeteran?: boolean;
+  isBusiness?: boolean;
+  isParent?: boolean;
+  isDarkEntity?: boolean;
+  isCreator?: boolean;
+  isDistress?: boolean;
+  isHacker?: boolean;
+}) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
-    if (!isPractical) {
-      // Cycle through theological messages
-      const interval = setInterval(() => {
-        setMessageIndex((prev) => (prev + 1) % THEOLOGICAL_LOADING_MESSAGES.length);
-      }, 2000);
-      return () => clearInterval(interval);
-    } else {
-      // Cycle through practical messages
-      const interval = setInterval(() => {
-        setMessageIndex((prev) => (prev + 1) % PRACTICAL_LOADING_MESSAGES.length);
-      }, 2000);
-      return () => clearInterval(interval);
+    let messages = THEOLOGICAL_LOADING_MESSAGES;
+
+    // Priority order for special detection
+    if (isHacker) {
+      messages = HACKER_MESSAGES; // ABSOLUTE HIGHEST - Block hackers immediately! 🚨
+    } else if (isDarkEntity) {
+      messages = DARK_ENTITY_MESSAGES; // Block evil immediately!
+    } else if (isDistress) {
+      messages = DISTRESS_MESSAGES; // Compassion for struggling souls
+    } else if (isVeteran) {
+      messages = VETERAN_MESSAGES; // Honor our veterans
+    } else if (isCreator) {
+      messages = CREATOR_MESSAGES; // Support business owners
+    } else if (isLazyStudent) {
+      messages = LAZY_STUDENT_MESSAGES; // Catch cheaters
+    } else if (isWoke) {
+      messages = WOKE_DETECTION_MESSAGES; // Time for sass
+    } else if (isParent) {
+      messages = PARENT_MESSAGES; // Support families
+    } else if (isBusiness) {
+      messages = BUSINESS_MESSAGES; // Professional mode
+    } else if (isPractical) {
+      messages = PRACTICAL_LOADING_MESSAGES;
     }
-  }, [isPractical]);
+
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % messages.length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isPractical, isWoke, isLazyStudent, isVeteran, isBusiness, isParent, isDarkEntity, isCreator, isDistress, isHacker]);
 
   return (
     <div className="flex items-start space-x-3 justify-start">
@@ -140,7 +283,28 @@ const TypingIndicator = ({ isPractical = false }: { isPractical?: boolean }) => 
             <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
           <span className="text-sm text-slate-600 italic animate-pulse">
-            {isPractical ? PRACTICAL_LOADING_MESSAGES[messageIndex] : THEOLOGICAL_LOADING_MESSAGES[messageIndex]}
+            {isHacker
+              ? HACKER_MESSAGES[messageIndex]
+              : isDarkEntity
+                ? DARK_ENTITY_MESSAGES[messageIndex]
+                : isDistress
+                  ? DISTRESS_MESSAGES[messageIndex]
+                  : isVeteran
+                    ? VETERAN_MESSAGES[messageIndex]
+                    : isCreator
+                      ? CREATOR_MESSAGES[messageIndex]
+                      : isLazyStudent
+                        ? LAZY_STUDENT_MESSAGES[messageIndex]
+                        : isWoke
+                          ? WOKE_DETECTION_MESSAGES[messageIndex]
+                          : isParent
+                            ? PARENT_MESSAGES[messageIndex]
+                            : isBusiness
+                              ? BUSINESS_MESSAGES[messageIndex]
+                              : isPractical
+                                ? PRACTICAL_LOADING_MESSAGES[messageIndex]
+                                : THEOLOGICAL_LOADING_MESSAGES[messageIndex]
+            }
           </span>
         </div>
       </div>
@@ -221,6 +385,15 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isPracticalQuery, setIsPracticalQuery] = useState(false);
+  const [isWokeQuery, setIsWokeQuery] = useState(false);
+  const [isLazyStudentQuery, setIsLazyStudentQuery] = useState(false);
+  const [isVeteranQuery, setIsVeteranQuery] = useState(false);
+  const [isBusinessQuery, setIsBusinessQuery] = useState(false);
+  const [isParentQuery, setIsParentQuery] = useState(false);
+  const [isDarkEntityQuery, setIsDarkEntityQuery] = useState(false);
+  const [isCreatorQuery, setIsCreatorQuery] = useState(false);
+  const [isDistressQuery, setIsDistressQuery] = useState(false);
+  const [isHackerQuery, setIsHackerQuery] = useState(false);
 
   // history
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -881,15 +1054,180 @@ export default function Home() {
       /\b(what('?s| is) the time (in|at))\b/i
     ];
 
+    // Theological / Biblical Intent Patterns (for biblical loading messages)
+    const theologicalPatterns = [
+      /\b(bible|scripture|biblical|gospel|jesus|christ|god|lord|holy spirit|salvation)\b/i,
+      /\b(prayer|pray|worship|faith|believe|christian|christianity)\b/i,
+      /\b(sin|repent|forgive|forgiveness|grace|mercy|redemption)\b/i,
+      /\b(heaven|hell|eternal|afterlife|resurrection)\b/i,
+      /\b(theology|doctrine|covenant|testament|prophet|apostle)\b/i,
+      /\b(what does (the )?bible say|according to scripture|biblically)\b/i,
+      /\b(spiritual|soul|spirit|divine|sacred|holy)\b/i,
+      /\b(sermon|preach|pastor|church|ministry)\b/i,
+    ];
+
+    // Woke/Liberal Detection Patterns (for sassy loading messages) 😏
+    const wokePatterns = [
+      /\b(white privilege|systemic racism|microaggression|safe space|trigger warning)\b/i,
+      /\b(gender (identity|fluid|spectrum)|non-?binary|pronouns|ze\/zir|they\/them as singular)\b/i,
+      /\b(toxic masculinity|patriarchy|heteronormative|cisgender|cis)\b/i,
+      /\b(cultural appropriation|latinx|folx|bipoc)\b/i,
+      /\b(defund (the )?police|acab|1312)\b/i,
+      /\b(democratic socialism|social justice warrior|sjw|woke|cancel culture)\b/i,
+      /\b(equity (not equality)|diversity training|unconscious bias)\b/i,
+      /\b(reproductive rights|abortion is healthcare|my body my choice)\b/i,
+      /\b(climate emergency|climate crisis|green new deal)\b/i,
+      /\b(open borders|sanctuary cit(y|ies)|undocumented immigrants)\b/i,
+    ];
+
+    // Lazy Student Detection 📚
+    const lazyStudentPatterns = [
+      /\b(write (my|an) (essay|paper|report|assignment|homework) (for me|about))\b/i,
+      /\b(do my homework|complete this assignment|finish (my|this) (essay|paper))\b/i,
+      /\b(give me (the )?answer(s)? to|tell me the answer)\b/i,
+      /\b(summarize (this|the) (book|chapter|article) (for me)?)\b/i,
+      /\b(i (need|want) (you to )?(write|do|complete|finish))\b/i,
+      /\b(can you (just )?(write|do|make|create) (this|my|an))\b/i,
+      /due tomorrow|due (in|by) (an hour|2 hours|tonight)/i,
+      /\b(quick(ly)?|fast|asap|urgent(ly)?|need (it )?now)\b.*\b(essay|paper|homework|assignment)\b/i,
+    ];
+
+    // Veteran Detection 🇺🇸
+    const veteranPatterns = [
+      /\b(i (am|was) (a |an )?(veteran|vet|soldier|marine|sailor|airman|service ?member))\b/i,
+      /\b(i served (in|with) (the )?(army|navy|air force|marines|military|national guard))\b/i,
+      /\b(deployed|deployment|combat|tour of duty|active duty|military service)\b/i,
+      /\b(va (benefits|hospital|healthcare|claim)|veterans? affairs)\b/i,
+      /\b(ptsd|tbi|service.?connected|dd.?214|gi bill)\b/i,
+    ];
+
+    // Business Professional Detection 💼
+    const businessPatterns = [
+      /\b(business (strategy|plan|model|proposal|analysis))\b/i,
+      /\b(market (analysis|research|strategy|penetration|share))\b/i,
+      /\b(roi|kpi|metrics|revenue|profit|quarterly|fiscal)\b/i,
+      /\b(stakeholder|shareholder|investor|board meeting)\b/i,
+      /\b(enterprise|corporate|c.?suite|executive|ceo|cfo)\b/i,
+      /\b(swot analysis|competitive advantage|value proposition)\b/i,
+    ];
+
+    // Parent/Homeschool Detection 👨‍👩‍👧‍👦
+    const parentPatterns = [
+      /\b(homeschool|home.?school|home education)\b/i,
+      /\b(teaching (my|our) (kids?|children|son|daughter))\b/i,
+      /\b(christian curriculum|biblical worldview|faith.?based education)\b/i,
+      /\b((my|our) (child|son|daughter|kids?) (is|are) learning)\b/i,
+      /\b(family devotion|parenting|raising (godly )?children)\b/i,
+    ];
+
+    // Dark/Occult Detection ⚠️🛡️
+    const darkEntityPatterns = [
+      /\b(satan|satanic|lucifer|demon|demonic|devil|hell|hail satan)\b/i,
+      /\b(witchcraft|witch|warlock|sorcery|black magic|dark magic|occult)\b/i,
+      /\b(curse|hex|spell|ritual|seance|ouija|pentagram|666)\b/i,
+      /\b(summoning|conjure|invoke (a |the )?(demon|spirit|entity))\b/i,
+      /\b(blood sacrifice|dark ritual|pagan ritual)\b/i,
+      /\b(tarot|divination|fortune telling|crystal ball)\b/i,
+      /\b(illuminati|new world order|antichrist)\b/i,
+    ];
+
+    // Creator/Business Owner Detection 🚀
+    const creatorPatterns = [
+      /\b(my (business|startup|company|brand|channel|podcast))\b/i,
+      /\b(i('?m| am) (starting|launching|building|creating) (a |an |my))\b/i,
+      /\b((small business|side hustle|entrepreneur|founder|creator))\b/i,
+      /\b(growing my (audience|following|business|brand))\b/i,
+      /\b(youtube channel|content creator|influencer)\b/i,
+      /\b(monetize|marketing strategy|customer acquisition)\b/i,
+    ];
+
+    // Emotional Distress Detection 💙✝️
+    const distressPatterns = [
+      /\b(i('?m| am) (depressed|sad|lonely|hopeless|lost|broken|hurting))\b/i,
+      /\b(i (want to|wanna) (die|end it all|give up))\b/i,
+      /\b(no (one|body) (cares|loves me|understands))\b/i,
+      /\b(i (can't|cannot) (go on|do this|take it anymore))\b/i,
+      /\b(life (is|feels) (meaningless|empty|pointless|hopeless))\b/i,
+      /\b(struggling with (depression|anxiety|grief|loss|pain))\b/i,
+      /\b(suicidal|self.?harm|cutting myself)\b/i,
+      /\b(i need help|please help me|desperate)\b/i,
+    ];
+
+    // Hacker/SQL Injection/XSS Detection 🚨🛑
+    const hackerPatterns = [
+      /\b(sql.?(injection|inject)|union.?select|drop.?table|delete.?from)\b/i,
+      /(<script|javascript:|onerror=|onload=|<iframe|eval\(|\.innerHTML)/i,
+      /\b(\.\.\/|\.\.\\|\/etc\/passwd|cmd\.exe|powershell)\b/i,
+      /(\|\||&&|;|\`|base64|exec\(|system\()/,
+      /\b(hack|exploit|vulnerability|backdoor|shell|payload)\b/i,
+      /(select.*from|insert.*into|update.*set|delete.*where)/i,
+      /(<img.*onerror|<svg.*onload)/i,
+      /\b(cookie.?theft|session.?hijack|csrf|xss|xxe)\b/i,
+    ];
+
     const isSearchIntent = searchPatterns.some(pattern => pattern.test(lowerText));
     const isFactCheckIntent = !isSearchIntent && factCheckPatterns.some(pattern => pattern.test(lowerText));
     const isAirQualityIntent = !isSearchIntent && !isFactCheckIntent && airQualityPatterns.some(pattern => pattern.test(lowerText));
     const isDirectionsIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && directionsPatterns.some(pattern => pattern.test(lowerText));
     const isTimezoneIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && !isDirectionsIntent && timezonePatterns.some(pattern => pattern.test(lowerText));
+    const isTheologicalIntent = theologicalPatterns.some(pattern => pattern.test(lowerText));
+    const isWokeIntent = wokePatterns.some(pattern => pattern.test(lowerText));
+    const isLazyStudentIntent = lazyStudentPatterns.some(pattern => pattern.test(lowerText));
+    const isVeteranIntent = veteranPatterns.some(pattern => pattern.test(lowerText));
+    const isBusinessIntent = businessPatterns.some(pattern => pattern.test(lowerText));
+    const isParentIntent = parentPatterns.some(pattern => pattern.test(lowerText));
+    const isDarkEntityIntent = darkEntityPatterns.some(pattern => pattern.test(lowerText));
+    const isCreatorIntent = creatorPatterns.some(pattern => pattern.test(lowerText));
+    const isDistressIntent = distressPatterns.some(pattern => pattern.test(lowerText));
+    const isHackerIntent = hackerPatterns.some(pattern => pattern.test(lowerText));
 
-    // Set whether this is a practical query (business, weather, directions, etc.) or theological
-    const isPractical = isSearchIntent || isFactCheckIntent || isAirQualityIntent || isDirectionsIntent || isTimezoneIntent;
-    setIsPracticalQuery(isPractical);
+    // Priority: Hacker (BLOCK!) > DarkEntity (BLOCK!) > Distress > Veteran > LazyStudent > Woke > Parent > Creator > Business > Theological > Practical
+    // Reset all flags first
+    setIsPracticalQuery(false);
+    setIsWokeQuery(false);
+    setIsLazyStudentQuery(false);
+    setIsVeteranQuery(false);
+    setIsBusinessQuery(false);
+    setIsParentQuery(false);
+    setIsDarkEntityQuery(false);
+    setIsCreatorQuery(false);
+    setIsDistressQuery(false);
+    setIsHackerQuery(false);
+
+    if (isHackerIntent) {
+      // HIGHEST PRIORITY - Block hackers immediately! 🚨🛑
+      setIsHackerQuery(true);
+    } else if (isDarkEntityIntent) {
+      // Block evil entities! ⚠️✝️
+      setIsDarkEntityQuery(true);
+    } else if (isDistressIntent) {
+      // Compassion for struggling souls 💙
+      setIsDistressQuery(true);
+    } else if (isVeteranIntent) {
+      // Respect our vets! 🇺🇸
+      setIsVeteranQuery(true);
+    } else if (isLazyStudentIntent) {
+      // Catch cheaters early 📚
+      setIsLazyStudentQuery(true);
+    } else if (isWokeIntent) {
+      // Time for sass 😏
+      setIsWokeQuery(true);
+    } else if (isParentIntent) {
+      // Support Christian families 👨‍👩‍👧‍👦
+      setIsParentQuery(true);
+    } else if (isCreatorIntent) {
+      // Empower entrepreneurs 🚀
+      setIsCreatorQuery(true);
+    } else if (isBusinessIntent) {
+      // Professional mode 💼
+      setIsBusinessQuery(true);
+    } else if (isTheologicalIntent) {
+      // Biblical messages ✝️
+      // Keep all false, will use theological by default
+    } else {
+      // Everything else is practical
+      setIsPracticalQuery(true);
+    }
 
     // persist user message with user_id
     const { error: insertUserErr } = await supabase.from('messages').insert({
@@ -1345,6 +1683,15 @@ export default function Home() {
       setIsLoading(false);
       setIsTyping(false);
       setIsPracticalQuery(false);
+      setIsWokeQuery(false);
+      setIsLazyStudentQuery(false);
+      setIsVeteranQuery(false);
+      setIsBusinessQuery(false);
+      setIsParentQuery(false);
+      setIsDarkEntityQuery(false);
+      setIsCreatorQuery(false);
+      setIsDistressQuery(false);
+      setIsHackerQuery(false);
       inputRef.current?.focus();
     }
   };
@@ -1536,6 +1883,17 @@ export default function Home() {
             </span>
           </Button>
 
+          {/* Settings Button */}
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
+            onClick={() => router.push('/settings')}
+            disabled={isLoading}
+          >
+            <Settings className="h-4 w-4 mr-2" strokeWidth={2} />
+            <span className="text-sm font-medium">Settings</span>
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -1606,12 +1964,6 @@ export default function Home() {
               align="end"
               className="w-56 bg-white border border-slate-200 shadow-lg rounded-lg"
             >
-              <DropdownMenuItem
-                onClick={() => router.push('/settings')}
-                className="text-slate-700 cursor-pointer text-sm"
-              >
-                Settings
-              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleSignOut}
                 className="text-slate-700 cursor-pointer text-sm"
@@ -1792,7 +2144,20 @@ export default function Home() {
                 </div>
               ))
             )}
-            {isTyping && <TypingIndicator isPractical={isPracticalQuery} />}
+            {isTyping && (
+              <TypingIndicator
+                isPractical={isPracticalQuery}
+                isWoke={isWokeQuery}
+                isLazyStudent={isLazyStudentQuery}
+                isVeteran={isVeteranQuery}
+                isBusiness={isBusinessQuery}
+                isParent={isParentQuery}
+                isDarkEntity={isDarkEntityQuery}
+                isCreator={isCreatorQuery}
+                isDistress={isDistressQuery}
+                isHacker={isHackerQuery}
+              />
+            )}
             <div ref={messagesEndRef} />
           </CardContent>
 
