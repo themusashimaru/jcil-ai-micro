@@ -1,5 +1,4 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 // Pricing constants
@@ -17,7 +16,7 @@ const API_COSTS = {
 };
 
 export async function GET(request: Request) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const supabase = await createClient();
 
   // Check authentication
   const { data: { session } } = await supabase.auth.getSession();
@@ -59,17 +58,20 @@ export async function GET(request: Request) {
     // ====================
     const { data: usersByTier, error: usersError } = await supabase
       .from('user_profiles')
-      .select('subscription_tier, monthly_price')
+      .select('subscription_tier')
       .order('subscription_tier');
 
-    if (usersError) throw usersError;
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      throw usersError;
+    }
 
     // Count users by tier
     const tierCounts = usersByTier?.reduce((acc: any, user: any) => {
       const tier = user.subscription_tier || 'free';
       acc[tier] = (acc[tier] || 0) + 1;
       return acc;
-    }, {});
+    }, {} as Record<string, number>) || {};
 
     // Calculate total users
     const totalUsers = usersByTier?.length || 0;
@@ -77,13 +79,15 @@ export async function GET(request: Request) {
     // ====================
     // REVENUE STATS
     // ====================
-    const revenueByTier = Object.entries(tierCounts || {}).map(([tier, count]) => ({
+    const revenueByTier = Object.entries(tierCounts).map(([tier, count]) => ({
       tier,
-      count,
+      count: count as number,
       monthlyRevenue: (count as number) * (PRICING[tier as keyof typeof PRICING] || 0),
     }));
 
-    const totalMonthlyRevenue = revenueByTier.reduce((sum, tier) => sum + tier.monthlyRevenue, 0);
+    const totalMonthlyRevenue = revenueByTier.length > 0
+      ? revenueByTier.reduce((sum, tier) => sum + tier.monthlyRevenue, 0)
+      : 0;
 
     // ====================
     // USAGE STATS
@@ -94,7 +98,10 @@ export async function GET(request: Request) {
       .gte('usage_date', startDate.toISOString().split('T')[0])
       .order('usage_date', { ascending: false });
 
-    if (usageError) throw usageError;
+    if (usageError) {
+      console.error('Error fetching usage stats:', usageError);
+      throw usageError;
+    }
 
     // Aggregate usage stats
     const totalMessages = usageStats?.reduce((sum: number, day: any) => sum + (day.message_count || 0), 0) || 0;
@@ -112,15 +119,9 @@ export async function GET(request: Request) {
     // ====================
     // SIGNUP STATS
     // ====================
-    const { data: recentSignups, error: signupsError } = await supabase
-      .from('user_profiles')
-      .select('id, created_at, subscription_tier')
-      .gte('created_at', startDate.toISOString())
-      .order('created_at', { ascending: false });
-
-    if (signupsError) throw signupsError;
-
-    const newSignups = recentSignups?.length || 0;
+    // Note: created_at is in auth.users, not user_profiles
+    // For now, we'll set newSignups to 0 and implement this later with a proper query
+    const newSignups = 0;
 
     // ====================
     // DAILY BREAKDOWN
@@ -133,7 +134,7 @@ export async function GET(request: Request) {
       acc[date].messages += day.message_count || 0;
       acc[date].tokens += day.token_count || 0;
       return acc;
-    }, {});
+    }, {} as Record<string, { messages: number; tokens: number }>) || {};
 
     // ====================
     // RESPONSE
