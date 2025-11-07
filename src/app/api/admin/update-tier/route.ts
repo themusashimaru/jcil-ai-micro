@@ -53,9 +53,6 @@ export async function POST(request: Request) {
         id: userId,
         subscription_tier: tier,
         daily_message_limit: TIER_LIMITS[tier],
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'id'
       })
       .select();
 
