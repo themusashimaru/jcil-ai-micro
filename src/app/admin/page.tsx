@@ -63,6 +63,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [managingUser, setManagingUser] = useState<User | null>(null);
+  const [selectedTier, setSelectedTier] = useState<string>('');
 
   const fetchStats = async () => {
     try {
@@ -106,6 +108,36 @@ export default function AdminDashboard() {
     } finally {
       setUsersLoading(false);
     }
+  };
+
+  const updateUserTier = async (userId: string, newTier: string) => {
+    try {
+      const response = await fetch('/api/admin/update-tier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, tier: newTier }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user tier');
+      }
+
+      // Refresh users list
+      await fetchUsers();
+      await fetchStats();
+
+      // Close the modal
+      setManagingUser(null);
+      setSelectedTier('');
+    } catch (err: any) {
+      console.error('Failed to update user tier:', err);
+      alert('Failed to update user tier: ' + err.message);
+    }
+  };
+
+  const handleManageUser = (user: User) => {
+    setManagingUser(user);
+    setSelectedTier(user.subscription_tier);
   };
 
   // Filter users based on search query
@@ -494,7 +526,7 @@ export default function AdminDashboard() {
                               variant="outline"
                               size="sm"
                               className="text-xs"
-                              onClick={() => {/* TODO: Implement tier management */}}
+                              onClick={() => handleManageUser(user)}
                             >
                               Manage
                             </Button>
@@ -526,6 +558,62 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Tier Management Modal */}
+      {managingUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Manage User Subscription</h3>
+
+            <div className="mb-4">
+              <p className="text-sm text-slate-600 mb-1">User Email:</p>
+              <p className="font-semibold text-slate-900">{managingUser.email}</p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-slate-600 mb-1">Current Tier:</p>
+              <p className="font-semibold text-slate-900 capitalize">{managingUser.subscription_tier}</p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                New Subscription Tier:
+              </label>
+              <select
+                value={selectedTier}
+                onChange={(e) => setSelectedTier(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="free">Free - $0/month</option>
+                <option value="basic">Basic - $12/month</option>
+                <option value="pro">Pro - $12/month</option>
+                <option value="premium">Premium - $30/month</option>
+                <option value="executive">Executive - $150/month</option>
+              </select>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setManagingUser(null);
+                  setSelectedTier('');
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => updateUserTier(managingUser.id, selectedTier)}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={selectedTier === managingUser.subscription_tier}
+              >
+                Update Tier
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
