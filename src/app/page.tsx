@@ -2054,6 +2054,26 @@ export default function Home() {
                     ✨ Chat memory enabled - I can recall our conversations
                   </p>
                 </div>
+
+                {/* Spiritual Tools - Centered Buttons */}
+                <div className="flex flex-wrap gap-3 justify-center mt-6">
+                  <Button
+                    type="button"
+                    onClick={() => router.push('/devotional')}
+                    disabled={isLoading}
+                    className="flex-1 min-w-[140px] max-w-[180px] h-10 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                  >
+                    <span className="text-xs tracking-wider">DAILY DEVOTIONAL</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => handleToolSelection('deep-bible-research')}
+                    disabled={isLoading}
+                    className="flex-1 min-w-[140px] max-w-[180px] h-10 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                  >
+                    <span className="text-xs tracking-wider">BIBLE RESEARCH</span>
+                  </Button>
+                </div>
               </div>
             ) : (
               messages.map((msg) => (
@@ -2146,26 +2166,6 @@ export default function Home() {
             onSubmit={handleFormSubmit}
             className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-gradient-to-b from-white to-slate-50 rounded-b-lg sm:rounded-b-xl shadow-inner"
           >
-            {/* Spiritual Tools - Modern Sharp Buttons */}
-            <div className="mb-3 sm:mb-4 flex flex-wrap gap-3">
-              <Button
-                type="button"
-                onClick={() => router.push('/devotional')}
-                disabled={isLoading}
-                className="flex-1 min-w-[120px] h-10 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-              >
-                <span className="text-xs tracking-wider">DAILY DEVOTIONAL</span>
-              </Button>
-              <Button
-                type="button"
-                onClick={() => handleToolSelection('deep-bible-research')}
-                disabled={isLoading}
-                className="flex-1 min-w-[120px] h-10 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-              >
-                <span className="text-xs tracking-wider">BIBLE RESEARCH</span>
-              </Button>
-            </div>
-
             {attachedFileName && (
               <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
                 <div className="flex items-center gap-2 truncate">
@@ -2185,88 +2185,107 @@ export default function Home() {
               </div>
             )}
 
-            <div className="flex items-center space-x-2">
-              {/* file inputs (hidden) */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept={ALLOWED_FILE_EXTENSIONS.join(',')}
-                className="hidden"
+            {/* file inputs (hidden) */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept={ALLOWED_FILE_EXTENSIONS.join(',')}
+              className="hidden"
+            />
+            <input
+              type="file"
+              ref={cameraInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+            />
+
+            {/* Textarea - Bigger, Rounded, Mobile-Friendly */}
+            <div className="mb-3">
+              <Textarea
+                ref={inputRef}
+                value={localInput}
+                onChange={handleTextareaChange}
+                placeholder={getPlaceholderText()}
+                disabled={isLoading}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck
+                className="w-full resize-none min-h-[80px] sm:min-h-[100px] max-h-[200px] sm:max-h-[240px] text-sm sm:text-base leading-relaxed overflow-y-auto bg-white border border-slate-300 focus:border-blue-900 focus:ring-2 focus:ring-blue-100 rounded-2xl px-4 py-3 text-slate-900 transition-all"
+                rows={3}
+                onKeyDown={handleTextareaKeyDown}
               />
-              <input
-                type="file"
-                ref={cameraInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-              />
+            </div>
 
-              {/* attach */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={isLoading}
-                    className={`hover:bg-slate-100 rounded-lg h-10 w-10 sm:h-11 sm:w-11 ${fileButtonFlash ? 'bg-slate-200' : ''}`}
-                    title="Attach file or take photo"
+            {/* Buttons Row - All below textarea */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1">
+                {/* Paperclip - Clean icon only */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={isLoading}
+                      className={`hover:bg-slate-100 rounded-lg h-10 w-10 sm:h-11 sm:w-11 ${fileButtonFlash ? 'bg-slate-200' : ''}`}
+                      title="Attach file or take photo"
+                    >
+                      <Paperclip className="h-5 w-5 text-slate-700" strokeWidth={2} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    side="top"
+                    align="start"
+                    className="bg-white border border-slate-200 shadow-lg rounded-lg"
                   >
-                    <Paperclip className="h-5 w-5 text-slate-700" strokeWidth={2} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  side="top"
-                  align="start"
-                  className="bg-white border border-slate-200 shadow-lg rounded-lg"
-                >
-                  <DropdownMenuItem
-                    onSelect={() => cameraInputRef.current?.click()}
-                    className="text-slate-700 text-sm cursor-pointer"
-                  >
-                    Take Photo
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => fileInputRef.current?.click()}
-                    className="text-slate-700 text-sm cursor-pointer"
-                  >
-                    Choose File
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuItem
+                      onSelect={() => cameraInputRef.current?.click()}
+                      className="text-slate-700 text-sm cursor-pointer"
+                    >
+                      Take Photo
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => fileInputRef.current?.click()}
+                      className="text-slate-700 text-sm cursor-pointer"
+                    >
+                      Choose File
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
-              {/* tool picker (icon-only wrench) */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={isLoading}
-                    className={`h-10 w-10 sm:h-11 sm:w-11 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 ${toolButtonFlash ? 'ring-2 ring-slate-200' : ''}`}
-                    title="Pick a tool"
-                    onClick={handleToolButtonClick}
-                  >
-                    <Wrench className="h-5 w-5" strokeWidth={2} />
-                  </Button>
-                </DropdownMenuTrigger>
+                {/* Wrench - Clean icon only */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={isLoading}
+                      className={`hover:bg-slate-100 rounded-lg h-10 w-10 sm:h-11 sm:w-11 ${toolButtonFlash ? 'bg-slate-200' : ''}`}
+                      title="Pick a tool"
+                      onClick={handleToolButtonClick}
+                    >
+                      <Wrench className="h-5 w-5 text-slate-700" strokeWidth={2} />
+                    </Button>
+                  </DropdownMenuTrigger>
 
-                <DropdownMenuContent
-                  side="top"
-                  align="start"
-                  className="min-w-[280px] max-h-[500px] overflow-y-auto bg-white border border-slate-200 shadow-lg rounded-xl p-1"
-                >
-                  <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
-                    🛠️ AI Tools
-                  </DropdownMenuLabel>
-
-                  <DropdownMenuItem
-                    onClick={() => handleToolSelection('none')}
-                    className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                  <DropdownMenuContent
+                    side="top"
+                    align="start"
+                    className="min-w-[280px] max-h-[500px] overflow-y-auto bg-white border border-slate-200 shadow-lg rounded-xl p-1"
                   >
-                    Plain Chat {renderCheck('none')}
+                    <DropdownMenuLabel className="text-[11px] font-bold uppercase tracking-wide text-slate-700 px-2 py-1">
+                      🛠️ AI Tools
+                    </DropdownMenuLabel>
+
+                    <DropdownMenuItem
+                      onClick={() => handleToolSelection('none')}
+                      className="text-slate-900 text-sm cursor-pointer rounded-lg px-2 py-2 data-[highlighted]:bg-slate-100"
+                    >
+                      Plain Chat {renderCheck('none')}
                   </DropdownMenuItem>
 
                   {/* ==================== WRITING TOOLS ==================== */}
@@ -2438,42 +2457,42 @@ export default function Home() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* mic + text + send */}
-              <div className="flex-1 relative flex items-center border border-slate-300 rounded-xl bg-white focus-within:border-blue-900 transition-all">
-                <Textarea
-                  ref={inputRef}
-                  value={localInput}
-                  onChange={handleTextareaChange}
-                  placeholder={getPlaceholderText()}
-                  disabled={isLoading}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck
-                  className="flex-1 resize-none min-h-[48px] sm:min-h-[52px] max-h-[140px] sm:max-h-[160px] text-sm leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none px-3 sm:px-4 py-3 sm:py-3.5 text-slate-900"
-                  rows={1}
-                  onKeyDown={handleTextareaKeyDown}
-                />
+                {/* Mic - Clean icon only, hide when typing, red icon when recording */}
+                {localInput.trim() === '' && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleMic}
+                    disabled={isLoading}
+                    className="hover:bg-slate-100 rounded-lg h-10 w-10 sm:h-11 sm:w-11"
+                    title={isRecording ? "Recording..." : "Voice input"}
+                  >
+                    <Mic
+                      className={`h-5 w-5 ${isRecording ? 'text-red-600 animate-pulse' : 'text-slate-700'}`}
+                      strokeWidth={2}
+                    />
+                  </Button>
+                )}
+              </div>
 
-                {/* MIC BUTTON - REBUILT SIMPLE */}
-                <Button
-                  type="button"
-                  onClick={handleMic}
-                  disabled={isLoading}
-                  className={`h-9 w-9 sm:h-10 sm:w-10 mr-1 rounded-lg ${
-                    isRecording
-                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-                      : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-                  }`}
-                >
-                  <Mic className="h-5 w-5" strokeWidth={2} />
-                </Button>
-
+              {/* Send Button - Right side with invisible bg that turns blue when typing */}
+              <div>
                 <Button
                   type="submit"
                   disabled={isLoading || (!localInput.trim() && !attachedFileName)}
-                  className="h-9 w-9 sm:h-10 sm:w-10 mr-1.5 bg-blue-900 hover:bg-blue-950 text-white rounded-lg flex items-center justify-center"
+                  className={`h-10 w-10 sm:h-11 sm:w-11 rounded-lg flex items-center justify-center transition-all ${
+                    localInput.trim() || attachedFileName
+                      ? 'bg-blue-900 hover:bg-blue-950 text-white'
+                      : 'bg-transparent hover:bg-slate-100 text-slate-400'
+                  }`}
+                  title="Send message"
                 >
-                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} /> : <Send className="h-5 w-5" strokeWidth={2} />}
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} />
+                  ) : (
+                    <Send className="h-5 w-5" strokeWidth={2} />
+                  )}
                 </Button>
               </div>
             </div>
