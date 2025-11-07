@@ -48,6 +48,7 @@ import {
   Zap,
   Moon,
   CheckCircle,
+  Settings,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -1536,6 +1537,17 @@ export default function Home() {
             </span>
           </Button>
 
+          {/* Settings Button */}
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-slate-900 hover:bg-slate-100 transition-all rounded-lg"
+            onClick={() => router.push('/settings')}
+            disabled={isLoading}
+          >
+            <Settings className="h-4 w-4 mr-2" strokeWidth={2} />
+            <span className="text-sm font-medium">Settings</span>
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -1606,12 +1618,6 @@ export default function Home() {
               align="end"
               className="w-56 bg-white border border-slate-200 shadow-lg rounded-lg"
             >
-              <DropdownMenuItem
-                onClick={() => router.push('/settings')}
-                className="text-slate-700 cursor-pointer text-sm"
-              >
-                Settings
-              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleSignOut}
                 className="text-slate-700 cursor-pointer text-sm"
