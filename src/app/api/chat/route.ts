@@ -2,6 +2,8 @@ export const runtime = 'nodejs';
 
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 import { createClient } from "@/lib/supabase/server";
 import { getToolSystemPrompt, type ToolType } from "@/lib/tools-config";
 
@@ -442,29 +444,17 @@ export async function POST(req: Request) {
   });
 
   // ============================================
-  // 🤖 CALL CLAUDE (Model based on tier)
+  // 🤖 CALL GROK (Model based on tier)
   // ============================================
 
   // 🎯 TIER-BASED MODEL SELECTION
-  // FREE (5/day) → Haiku 4 (cheapest)
-  // BASIC ($20/mo, 30/day) → Haiku 4.5 (better)
-  // PRO ($60/mo, 100/day) → Haiku 4.5 (same as basic, more messages)
-  // EXECUTIVE ($99/mo, 200/day) → Haiku 4.5 (TODO: upgrade to Sonnet 4 if needed)
+  // ALL TIERS → grok-4-fast-reasoning (fast, affordable, powerful)
+  // FREE (5/day) → grok-4-fast-reasoning
+  // BASIC ($20/mo, 30/day) → grok-4-fast-reasoning
+  // PRO ($60/mo, 100/day) → grok-4-fast-reasoning
+  // EXECUTIVE ($99/mo, 200/day) → grok-4-fast-reasoning
 
-  let modelName: string;
-
-  switch (userTier) {
-    case 'free':
-      modelName = 'claude-haiku-4-5-20251001'; // Fast and affordable for free tier
-      break;
-    case 'basic':
-    case 'pro':
-    case 'executive':
-      modelName = 'claude-haiku-4-5-20251001'; // Same model, but higher daily limits
-      break;
-    default:
-      modelName = 'claude-haiku-4-5-20251001'; // Fallback
-  }
+  const modelName = 'grok-4-fast-reasoning'; // Same model for all tiers, different message limits
 
   console.log(`🤖 Using model: ${modelName} for tier: ${userTier}`);
 
@@ -483,33 +473,26 @@ export async function POST(req: Request) {
   let reply = "";
 
   try {
-    const response = await anthropic.messages.create({
-      model: modelName, // 🎯 Dynamic model based on user tier
-      max_tokens: 4096,
-      // 💰 PROMPT CACHING - Saves up to 90% on API costs!
-      // Cache the system prompt since it never changes
-      system: [
-        {
-          type: "text",
-          text: combinedSystemPrompt,
-          cache_control: { type: "ephemeral" }
-        }
-      ],
-      messages: claudeMessages,
+    // Convert claudeMessages to AI SDK format (it should handle automatically)
+    const aiSdkMessages = claudeMessages.map((msg: any) => ({
+      role: msg.role,
+      content: msg.content
+    }));
+
+    const response = await generateText({
+      model: xai(modelName), // 🎯 Using Grok for all tiers
+      system: combinedSystemPrompt,
+      messages: aiSdkMessages,
     });
 
     // Extract text from response
-    const content = response.content[0];
-    if (content.type === "text") {
-      reply = content.text;
-    } else {
-      reply = "I apologize, but I couldn't generate a text response.";
-    }
+    reply = response.text || "I apologize, but I couldn't generate a text response.";
+
   } catch (error: any) {
-    console.error("Anthropic API Error:", error);
+    console.error("xAI API Error:", error);
     return new Response(
-      JSON.stringify({ 
-        ok: false, 
+      JSON.stringify({
+        ok: false,
         error: "Failed to generate response",
         details: error?.message || "Unknown error"
       }),
