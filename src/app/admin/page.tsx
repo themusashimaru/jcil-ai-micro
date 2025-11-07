@@ -126,7 +126,11 @@ export default function AdminDashboard() {
               <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
               <p className="text-slate-600 mt-1">JCIL.AI Command Center</p>
             </div>
-            <Button variant="ghost" onClick={() => router.push('/')}>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/')}
+              className="border-slate-300 text-slate-700 hover:bg-slate-50"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Chat
             </Button>
@@ -338,10 +342,15 @@ export default function AdminDashboard() {
         </div>
 
         {/* Date Range Info */}
-        <div className="text-center text-sm text-slate-500">
-          <Calendar className="h-4 w-4 inline mr-2" />
-          Data from {new Date(stats.dateRange.start).toLocaleDateString()} to{' '}
-          {new Date(stats.dateRange.end).toLocaleDateString()}
+        <div className="text-center">
+          <div className="text-sm text-slate-500">
+            <Calendar className="h-4 w-4 inline mr-2" />
+            Showing data from {new Date(stats.dateRange.start).toLocaleDateString()} to{' '}
+            {new Date(stats.dateRange.end).toLocaleDateString()}
+          </div>
+          <div className="text-xs text-slate-400 mt-1">
+            Usage stats (messages, tokens, costs) are filtered by period. User counts and revenue show current totals.
+          </div>
         </div>
       </div>
     </div>

@@ -53,6 +53,8 @@ export async function GET(request: Request) {
 
     const startDate = ranges[period as keyof typeof ranges] || ranges.monthly;
 
+    console.log(`Admin stats: period=${period}, startDate=${startDate.toISOString().split('T')[0]}, endDate=${now.toISOString().split('T')[0]}`);
+
     // ====================
     // USER STATS
     // ====================
@@ -104,8 +106,10 @@ export async function GET(request: Request) {
     }
 
     // Aggregate usage stats
+    console.log(`Found ${usageStats?.length || 0} days of usage data for period ${period}`);
     const totalMessages = usageStats?.reduce((sum: number, day: any) => sum + (day.message_count || 0), 0) || 0;
     const totalTokens = usageStats?.reduce((sum: number, day: any) => sum + (day.token_count || 0), 0) || 0;
+    console.log(`Period ${period}: ${totalMessages} messages, ${totalTokens} tokens`);
 
     // Estimate input/output tokens (assume 40/60 split based on typical usage)
     const estimatedInputTokens = Math.floor(totalTokens * 0.4);
