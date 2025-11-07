@@ -629,7 +629,7 @@ export default function Home() {
           console.log('  - Channels:', audioBuffer.numberOfChannels);
 
           // If max amplitude is too low, audio is silent
-          if (maxAmplitude < 0.01) {
+          if (maxAmplitude < 0.002) {
             console.error('🎤 ❌ SILENT AUDIO DETECTED! Max amplitude:', maxAmplitude);
             resolve(false);
             return;
@@ -669,7 +669,7 @@ export default function Home() {
     const isValid = await validateAudio(audioBlob);
 
     if (!isValid) {
-      alert('⚠️ MICROPHONE ISSUE DETECTED!\n\nYour microphone is not recording any sound. This causes OpenAI Whisper to hallucinate random text like "thank you" or Chinese characters.\n\nPlease:\n1. Check microphone permissions\n2. Ensure microphone is not muted\n3. Try a different browser\n4. Speak louder and closer to mic');
+      alert('⚠️ MICROPHONE ISSUE\n\nNo audio detected. Please:\n\n1. Check microphone permissions\n2. Ensure microphone is not muted\n3. Speak louder and closer to mic\n4. Try a different browser if issue persists');
       setIsTranscribing(false);
       audioChunksRef.current = [];
       return;
