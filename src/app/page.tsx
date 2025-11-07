@@ -1710,10 +1710,18 @@ export default function Home() {
                                   rel={isWebLink ? 'noopener noreferrer' : undefined}
                                   className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
                                   onClick={(e) => {
-                                    // For tel links and web links, just let them work normally
-                                    if (isTelLink || isWebLink) {
+                                    // Handle tel links explicitly
+                                    if (isTelLink && props.href) {
+                                      e.preventDefault();
                                       e.stopPropagation();
-                                      // Don't preventDefault - let the browser handle tel: and http: links
+                                      console.log('📞 Calling:', props.href);
+                                      window.location.href = props.href;
+                                      return false;
+                                    }
+
+                                    // For web links, just stop propagation
+                                    if (isWebLink) {
+                                      e.stopPropagation();
                                     }
                                   }}
                                 />
