@@ -51,6 +51,7 @@ import {
   Moon,
   CheckCircle,
   Settings,
+  Shield,
 } from 'lucide-react';
 
 interface MessageRow {
@@ -376,6 +377,7 @@ export default function Home() {
   const [subscriptionTier, setSubscriptionTier] = useState('free');
   const [dailyLimit, setDailyLimit] = useState(10);
   const [usageToday, setUsageToday] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // dim mode (subtle grey filter)
   const [dimMode, setDimMode] = useState(false);
@@ -512,13 +514,14 @@ export default function Home() {
         // Fetch subscription info
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('subscription_tier, daily_message_limit')
+          .select('subscription_tier, daily_message_limit, is_admin')
           .eq('id', currentUser.id)
           .single();
 
         if (profile) {
           setSubscriptionTier(profile.subscription_tier || 'free');
           setDailyLimit(profile.daily_message_limit || 10);
+          setIsAdmin(profile.is_admin || false);
         }
 
         // Fetch today's usage
@@ -1976,6 +1979,19 @@ export default function Home() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Admin Panel Button (only for admins) */}
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-blue-900 hover:bg-blue-50 transition-all rounded-lg font-semibold"
+              onClick={() => router.push('/admin')}
+              disabled={isLoading}
+            >
+              <Shield className="h-4 w-4 mr-2" strokeWidth={2.5} />
+              <span className="text-sm font-medium">Admin Panel</span>
+            </Button>
+          )}
 
           {/* Sign Out Button */}
           <Button
