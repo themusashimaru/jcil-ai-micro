@@ -1,10 +1,9 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const DEVOTIONAL_SYSTEM_PROMPT = `You are a Christian devotional writer creating daily devotionals for believers.
 
@@ -75,28 +74,19 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Generate new devotional using Sonnet 4.5
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929', // Sonnet 4.5 for high-quality devotionals
-      max_tokens: 2000,
+    // Generate new devotional using Grok 4 Fast Reasoning
+    const response = await generateText({
+      model: xai('grok-4-fast-reasoning'),
       system: DEVOTIONAL_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Create today's daily devotional for ${today.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}. Make it fresh, relevant, and encouraging for believers.`,
-        },
-      ],
+      prompt: `Create today's daily devotional for ${today.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })}. Make it fresh, relevant, and encouraging for believers.`,
     });
 
-    const devotionalContent =
-      response.content[0].type === 'text'
-        ? response.content[0].text
-        : 'Error generating devotional.';
+    const devotionalContent = response.text || 'Error generating devotional.';
 
     // Store in database
     const { error: insertError } = await supabase
