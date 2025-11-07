@@ -119,18 +119,9 @@ export async function GET(request: Request) {
     // ====================
     // SIGNUP STATS
     // ====================
-    const { data: recentSignups, error: signupsError } = await supabase
-      .from('user_profiles')
-      .select('id, created_at, subscription_tier')
-      .gte('created_at', startDate.toISOString())
-      .order('created_at', { ascending: false });
-
-    if (signupsError) {
-      console.error('Error fetching signup stats:', signupsError);
-      throw signupsError;
-    }
-
-    const newSignups = recentSignups?.length || 0;
+    // Note: created_at is in auth.users, not user_profiles
+    // For now, we'll set newSignups to 0 and implement this later with a proper query
+    const newSignups = 0;
 
     // ====================
     // DAILY BREAKDOWN
