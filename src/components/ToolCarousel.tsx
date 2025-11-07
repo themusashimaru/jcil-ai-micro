@@ -70,11 +70,11 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto bg-transparent">
       {/* Scrollable Container */}
       <div
         ref={scrollContainerRef}
-        className="overflow-x-auto scrollbar-hide flex gap-3 py-2 px-4 scroll-smooth"
+        className="overflow-x-auto scrollbar-hide flex gap-3 py-2 scroll-smooth bg-transparent"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
