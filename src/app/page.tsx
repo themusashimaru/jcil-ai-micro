@@ -993,12 +993,12 @@ export default function Home() {
               // Make phone number clickable with tel: link
               if (b.phone) {
                 const phoneDigits = b.phone.replace(/\D/g, ''); // Remove non-digits for tel link
-                info += `📞 <a href="tel:${phoneDigits}" class="text-blue-600 underline hover:text-blue-800">${b.phone}</a>\n`;
+                info += `📞 <button onclick="window.location.href='tel:${phoneDigits}'; return false;" style="background:none;border:none;padding:0;color:#2563eb;text-decoration:underline;cursor:pointer;font:inherit;">${b.phone}</button>\n`;
               }
 
               // Always show website if available, make it clickable
               if (b.website) {
-                info += `🌐 <a href="${b.website}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline hover:text-blue-800">Visit Website</a>\n`;
+                info += `🌐 <button onclick="window.open('${b.website}', '_blank'); return false;" style="background:none;border:none;padding:0;color:#2563eb;text-decoration:underline;cursor:pointer;font:inherit;">Visit Website</button>\n`;
               }
 
               if (b.rating) info += `⭐ ${b.rating}/5 (${b.total_ratings || 0} reviews)\n`;
