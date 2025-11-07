@@ -28,6 +28,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import UpgradeModal from '@/components/UpgradeModal';
 
 import {
   MoreVertical,
@@ -433,6 +434,10 @@ export default function Home() {
   const [tokensUsed, setTokensUsed] = useState(45000);
   const dailyTokenLimit = 100000;
   const tokenPercentage = (tokensUsed / dailyTokenLimit) * 100;
+
+  // Upgrade Modal State
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeModalData, setUpgradeModalData] = useState<any>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1633,11 +1638,24 @@ export default function Home() {
         }
 
         const data = await response.json();
+
+        // Check if this is a limit exceeded error with upgrade prompt
         if (!response.ok || !data.ok) {
+          // If there's an upgrade prompt in the error response (free tier limit hit)
+          if (data.upgradePrompt) {
+            setUpgradeModalData(data.upgradePrompt);
+            setShowUpgradeModal(true);
+          }
           throw new Error(data.error || 'Error from /api/chat');
         }
 
         assistantText = data.reply ?? '';
+
+        // Check if successful response includes upgrade prompt (paid tier periodic upgrade)
+        if (data.upgradePrompt) {
+          setUpgradeModalData(data.upgradePrompt);
+          setShowUpgradeModal(true);
+        }
       }
 
       // ============================================
@@ -2507,6 +2525,22 @@ export default function Home() {
           </form>
         </Card>
       </main>
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && upgradeModalData && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          title={upgradeModalData.title}
+          description={upgradeModalData.description}
+          features={upgradeModalData.features}
+          price={upgradeModalData.price}
+          paymentLink={upgradeModalData.paymentLink}
+          fromTier={upgradeModalData.fromTier}
+          toTier={upgradeModalData.toTier}
+          highlightText={upgradeModalData.highlightText}
+        />
+      )}
     </div>
   );
 }
