@@ -29,40 +29,59 @@ const UPGRADE_PATHS: Record<string, { nextTier: string; paymentLink: string; pri
 };
 
 // ============================================
-// ⚡ RATE LIMITING
+// 📊 DAILY MESSAGE LIMITS BY TIER
 // ============================================
-// In-memory rate limiter: 40 messages per minute per user
-const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_MAX = 40; // Max requests per minute
-const RATE_LIMIT_WINDOW = 60 * 1000; // 60 seconds in milliseconds
+const DAILY_LIMITS: Record<string, number> = {
+  'free': 10,
+  'basic': 80,
+  'pro': 80, // Same as basic
+  'premium': 200,
+  'executive': 1500
+};
 
-function checkRateLimit(userId: string): boolean {
+// ============================================
+// ⚡ RATE LIMITING (Dual-layer protection)
+// ============================================
+// In-memory rate limiter with two limits:
+// 1. Rapid-fire protection: 10 messages per minute
+// 2. Hourly protection: 60 messages per hour
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT_HOUR_MAX = 60; // Max requests per hour
+const RATE_LIMIT_HOUR_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
+const RATE_LIMIT_MINUTE_MAX = 10; // Max requests per minute (rapid-fire protection)
+const RATE_LIMIT_MINUTE_WINDOW = 60 * 1000; // 1 minute in milliseconds
+
+function checkRateLimit(userId: string): { allowed: boolean; limitType?: 'minute' | 'hour' } {
   const now = Date.now();
   const userRequests = rateLimitMap.get(userId) || [];
 
-  // Filter out requests older than 1 minute
-  const recentRequests = userRequests.filter(timestamp => now - timestamp < RATE_LIMIT_WINDOW);
+  // Check 1: Rapid-fire protection (10 per minute)
+  const requestsLastMinute = userRequests.filter(timestamp => now - timestamp < RATE_LIMIT_MINUTE_WINDOW);
+  if (requestsLastMinute.length >= RATE_LIMIT_MINUTE_MAX) {
+    return { allowed: false, limitType: 'minute' }; // Rapid-fire limit exceeded
+  }
 
-  // Check if user has exceeded rate limit
-  if (recentRequests.length >= RATE_LIMIT_MAX) {
-    return false; // Rate limit exceeded
+  // Check 2: Hourly protection (60 per hour)
+  const requestsLastHour = userRequests.filter(timestamp => now - timestamp < RATE_LIMIT_HOUR_WINDOW);
+  if (requestsLastHour.length >= RATE_LIMIT_HOUR_MAX) {
+    return { allowed: false, limitType: 'hour' }; // Hourly limit exceeded
   }
 
   // Add current request timestamp
-  recentRequests.push(now);
-  rateLimitMap.set(userId, recentRequests);
+  requestsLastHour.push(now);
+  rateLimitMap.set(userId, requestsLastHour);
 
-  // Cleanup: Remove entries older than 2 minutes to prevent memory leaks
+  // Cleanup: Remove entries older than 2 hours to prevent memory leaks
   if (rateLimitMap.size > 1000) { // Safety check
     for (const [uid, timestamps] of rateLimitMap.entries()) {
-      const validTimestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_WINDOW * 2);
+      const validTimestamps = timestamps.filter(ts => now - ts < RATE_LIMIT_HOUR_WINDOW * 2);
       if (validTimestamps.length === 0) {
         rateLimitMap.delete(uid);
       }
     }
   }
 
-  return true; // Within rate limit
+  return { allowed: true }; // Within rate limits
 }
 
 /**
@@ -249,63 +268,80 @@ export async function POST(req: Request) {
   console.log(`👤 User ${userId} tier: ${userTier}`);
 
   // ============================================
-  // 📊 CHECK DAILY MESSAGE LIMIT (FREE TIER ONLY)
+  // 📊 CHECK DAILY MESSAGE LIMIT (ALL TIERS)
   // ============================================
-  // Only enforce daily limits for free tier - paid plans have no daily cap
-  if (userTier === 'free') {
-    const { data: limitCheck, error: limitError } = await supabase
-      .rpc('check_daily_limit', { p_user_id: userId });
+  // Enforce daily limits for all tiers to control costs
+  const { data: limitCheck, error: limitError } = await supabase
+    .rpc('check_daily_limit', { p_user_id: userId });
 
-    if (limitError) {
-      console.error('Error checking daily limit:', limitError);
-      // Continue anyway (fail open)
-    } else if (limitCheck && limitCheck.length > 0) {
-      const { has_remaining, current_count, daily_limit, tier } = limitCheck[0];
+  if (limitError) {
+    console.error('Error checking daily limit:', limitError);
+    // Continue anyway (fail open)
+  } else if (limitCheck && limitCheck.length > 0) {
+    const { has_remaining, current_count, daily_limit, tier } = limitCheck[0];
 
-      console.log(`📊 Daily usage: ${current_count}/${daily_limit} for tier: ${tier}`);
+    console.log(`📊 Daily usage: ${current_count}/${daily_limit} for tier: ${tier}`);
 
-      if (!has_remaining) {
-        const upgradeInfo = UPGRADE_PATHS[tier];
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error: `Daily message limit reached (${daily_limit} messages per day for ${tier} tier). Upgrade to remove daily limits!`,
-            limitExceeded: true,
-            currentUsage: current_count,
-            dailyLimit: daily_limit,
-            tier: tier,
-            // Include upgrade prompt data
-            upgradePrompt: upgradeInfo ? {
-              title: 'Upgrade to Pro Plan',
-              description: 'Remove daily message limits and unlock unlimited conversations.',
-              features: [
-                'Unlimited daily messages',
-                'Real-time web search',
-                'Tools up to Bachelor\'s level',
-                'Voice-to-text',
-                'Prayer journal & News analysis'
-              ],
-              price: upgradeInfo.price,
-              paymentLink: upgradeInfo.paymentLink,
-              fromTier: tier,
-              toTier: upgradeInfo.nextTier,
-              highlightText: '14 Days Free Trial'
-            } : undefined
-          }),
-          {
-            status: 429,
-            headers: {
-              "content-type": "application/json",
-              "X-RateLimit-Limit": String(daily_limit),
-              "X-RateLimit-Remaining": "0",
-              "X-RateLimit-Reset": new Date(new Date().setHours(24,0,0,0)).toISOString()
-            }
+    if (!has_remaining) {
+      const upgradeInfo = UPGRADE_PATHS[tier];
+
+      // Tier-specific friendly messages
+      const tierMessages: Record<string, string> = {
+        'free': `You've reached your daily limit of ${daily_limit} messages on the Free plan. 🎯 Want unlimited conversations? Upgrade to unlock more!`,
+        'basic': `You've used all ${daily_limit} messages for today on the Basic plan! 📈 Need more? Consider upgrading to Premium for ${DAILY_LIMITS['premium']} messages per day.`,
+        'pro': `You've used all ${daily_limit} messages for today on the Pro plan! 📈 Need more? Consider upgrading to Premium for ${DAILY_LIMITS['premium']} messages per day.`,
+        'premium': `Wow, you've hit ${daily_limit} messages today on Premium! 🚀 That's impressive usage. Consider upgrading to Executive for up to ${DAILY_LIMITS['executive']} messages per day.`,
+        'executive': `You've reached the ${daily_limit} message limit on the Executive plan! 💼 That's some serious productivity. Your limit resets tomorrow!`
+      };
+
+      const errorMessage = tierMessages[tier] || `Daily message limit reached (${daily_limit} messages per day). Your limit resets tomorrow!`;
+
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: errorMessage,
+          limitExceeded: true,
+          currentUsage: current_count,
+          dailyLimit: daily_limit,
+          tier: tier,
+          // Include upgrade prompt data if available
+          upgradePrompt: upgradeInfo ? {
+            title: tier === 'free' ? 'Upgrade to Pro Plan' : `Upgrade to ${upgradeInfo.nextTier.charAt(0).toUpperCase() + upgradeInfo.nextTier.slice(1)} Plan`,
+            description: tier === 'free'
+              ? 'Get more messages and unlock powerful features with Pro.'
+              : `Unlock ${DAILY_LIMITS[upgradeInfo.nextTier]} messages per day and premium features.`,
+            features: tier === 'free'
+              ? [
+                  `${DAILY_LIMITS['pro']} daily messages`,
+                  'Real-time web search',
+                  'Tools up to Bachelor\'s level',
+                  'Voice-to-text',
+                  'Prayer journal & News analysis'
+                ]
+              : [
+                  `${DAILY_LIMITS[upgradeInfo.nextTier]} daily messages`,
+                  'Advanced AI tools',
+                  'Priority support',
+                  'Exclusive features'
+                ],
+            price: upgradeInfo.price,
+            paymentLink: upgradeInfo.paymentLink,
+            fromTier: tier,
+            toTier: upgradeInfo.nextTier,
+            highlightText: '14 Days Free Trial'
+          } : undefined
+        }),
+        {
+          status: 429,
+          headers: {
+            "content-type": "application/json",
+            "X-RateLimit-Limit": String(daily_limit),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": new Date(new Date().setHours(24,0,0,0)).toISOString()
           }
-        );
-      }
+        }
+      );
     }
-  } else {
-    console.log(`💎 Paid tier (${userTier}) - no daily message cap`);
   }
 
   // ============================================
@@ -379,18 +415,26 @@ export async function POST(req: Request) {
   // ============================================
   // ⚡ CHECK RATE LIMIT
   // ============================================
-  if (!checkRateLimit(userId)) {
+  const rateLimitCheck = checkRateLimit(userId);
+  if (!rateLimitCheck.allowed) {
+    const errorMessage = rateLimitCheck.limitType === 'minute'
+      ? "Whoa there! 🛑 Looks like you're sending messages really fast. Please slow down a bit - take a breather and try again in a minute!"
+      : "Hey there! You're moving pretty fast 🚀 We limit requests to 60 messages per hour to keep everything running smoothly. Take a quick break and you'll be back in action soon!";
+
+    const retryAfter = rateLimitCheck.limitType === 'minute' ? "60" : "300";
+
     return new Response(
       JSON.stringify({
         ok: false,
-        error: "Rate limit exceeded. Please wait a moment before sending another message. (Limit: 40 messages per minute)",
-        rateLimit: true
+        error: errorMessage,
+        rateLimit: true,
+        limitType: rateLimitCheck.limitType
       }),
       {
         status: 429,
         headers: {
           "content-type": "application/json",
-          "Retry-After": "60" // Suggest retry after 60 seconds
+          "Retry-After": retryAfter
         }
       }
     );
@@ -605,6 +649,7 @@ Examples of questions requiring web search:
   }
 
   let reply = "";
+  let totalTokens = 0; // Track token usage for this request
 
   try {
     // Convert claudeMessages to AI SDK format
@@ -660,6 +705,10 @@ Examples of questions requiring web search:
 
     // Extract text from response
     reply = response.text || "I apologize, but I couldn't generate a text response.";
+
+    // Extract token usage from response
+    totalTokens = response.usage?.totalTokens || 0;
+    console.log(`📊 Token usage - Total: ${totalTokens} tokens`);
 
     // Log citations if available (for debugging/monitoring)
     if (response.sources && response.sources.length > 0) {
@@ -719,7 +768,7 @@ Examples of questions requiring web search:
   const { error: usageError } = await supabase
     .rpc('increment_message_count', {
       p_user_id: userId,
-      p_token_count: 0 // TODO: Track actual token usage from response.usage
+      p_token_count: totalTokens // Track actual token usage from response.usage
     });
 
   if (usageError) {
