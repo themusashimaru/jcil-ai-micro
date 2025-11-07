@@ -72,6 +72,8 @@ export default function LandingPage() {
         'Scripture tools for all',
       ],
       cta: 'Start Free',
+      paymentLink: null, // Free tier - go to signup
+      showFreeTrial: false,
       popular: false,
     },
     {
@@ -89,7 +91,9 @@ export default function LandingPage() {
         'Prayer journal',
         'News analysis',
       ],
-      cta: 'Get Pro',
+      cta: 'Get Pro - 14 Days Free',
+      paymentLink: 'https://buy.stripe.com/5kQaEW4Ouadpcoe7gC0gw00',
+      showFreeTrial: true,
       popular: false,
     },
     {
@@ -107,7 +111,9 @@ export default function LandingPage() {
         'Fact-checking (Perplexity)',
         'Priority support',
       ],
-      cta: 'Get Premium',
+      cta: 'Get Premium - 14 Days Free',
+      paymentLink: 'https://buy.stripe.com/9B63cu4Ou4T5dsiasO0gw01',
+      showFreeTrial: true,
       popular: true,
     },
     {
@@ -125,7 +131,9 @@ export default function LandingPage() {
         'VIP support & training',
         'Early access to new tools',
       ],
-      cta: 'Get Executive',
+      cta: 'Get Executive - 14 Days Free',
+      paymentLink: 'https://buy.stripe.com/7sYfZg4OufxJdsieJ40gw02',
+      showFreeTrial: true,
       popular: false,
     },
   ];
@@ -457,6 +465,14 @@ export default function LandingPage() {
 
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-bold text-slate-900 mb-2">{tier.name}</h3>
+                  {tier.showFreeTrial && (
+                    <div className="mb-2">
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-full">
+                        <Zap className="h-3 w-3" />
+                        14 Days Free Trial
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-baseline justify-center mb-2">
                     <span className="text-4xl font-black text-blue-900">{tier.price}</span>
                     <span className="text-slate-600 ml-1">{tier.period}</span>
@@ -476,7 +492,13 @@ export default function LandingPage() {
                 </ul>
 
                 <Button
-                  onClick={() => router.push('/signup')}
+                  onClick={() => {
+                    if (tier.paymentLink) {
+                      window.location.href = tier.paymentLink;
+                    } else {
+                      router.push('/signup');
+                    }
+                  }}
                   className={`w-full ${
                     tier.popular
                       ? 'bg-yellow-500 hover:bg-yellow-600 text-blue-900 shadow-lg'

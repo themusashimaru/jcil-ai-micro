@@ -11,6 +11,24 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ============================================
+// 💳 STRIPE PAYMENT LINKS FOR UPGRADES
+// ============================================
+const PAYMENT_LINKS = {
+  FREE_TO_PRO: 'https://buy.stripe.com/5kQaEW4Ouadpcoe7gC0gw00',      // Free → $12/month Pro
+  PRO_TO_PREMIUM: 'https://buy.stripe.com/9B63cu4Ou4T5dsiasO0gw01',  // $12 → $30/month Premium
+  PREMIUM_TO_EXECUTIVE: 'https://buy.stripe.com/7sYfZg4OufxJdsieJ40gw02' // $30 → Executive
+};
+
+// Map tier names to their upgrade paths
+const UPGRADE_PATHS: Record<string, { nextTier: string; paymentLink: string; price: string; } | null> = {
+  'free': { nextTier: 'basic', paymentLink: PAYMENT_LINKS.FREE_TO_PRO, price: '$12' },
+  'basic': { nextTier: 'pro', paymentLink: PAYMENT_LINKS.PRO_TO_PREMIUM, price: '$30' },
+  'pro': { nextTier: 'premium', paymentLink: PAYMENT_LINKS.PREMIUM_TO_EXECUTIVE, price: '$150' },
+  'premium': null, // No upgrade path (already at second-highest)
+  'executive': null // No upgrade path (top tier)
+};
+
+// ============================================
 // ⚡ RATE LIMITING
 // ============================================
 // In-memory rate limiter: 40 messages per minute per user
@@ -247,6 +265,7 @@ export async function POST(req: Request) {
       console.log(`📊 Daily usage: ${current_count}/${daily_limit} for tier: ${tier}`);
 
       if (!has_remaining) {
+        const upgradeInfo = UPGRADE_PATHS[tier];
         return new Response(
           JSON.stringify({
             ok: false,
@@ -254,7 +273,24 @@ export async function POST(req: Request) {
             limitExceeded: true,
             currentUsage: current_count,
             dailyLimit: daily_limit,
-            tier: tier
+            tier: tier,
+            // Include upgrade prompt data
+            upgradePrompt: upgradeInfo ? {
+              title: 'Upgrade to Pro Plan',
+              description: 'Remove daily message limits and unlock unlimited conversations.',
+              features: [
+                'Unlimited daily messages',
+                'Real-time web search',
+                'Tools up to Bachelor\'s level',
+                'Voice-to-text',
+                'Prayer journal & News analysis'
+              ],
+              price: upgradeInfo.price,
+              paymentLink: upgradeInfo.paymentLink,
+              fromTier: tier,
+              toTier: upgradeInfo.nextTier,
+              highlightText: '14 Days Free Trial'
+            } : undefined
           }),
           {
             status: 429,
@@ -270,6 +306,74 @@ export async function POST(req: Request) {
     }
   } else {
     console.log(`💎 Paid tier (${userTier}) - no daily message cap`);
+  }
+
+  // ============================================
+  // 📈 CHECK IF PAID USER SHOULD SEE UPGRADE PROMPT
+  // ============================================
+  // For paid tiers (basic, pro), check if we should show upgrade prompt (max twice/month)
+  let upgradePromptData = null;
+
+  if (userTier !== 'free' && userTier !== 'executive') {
+    const upgradeInfo = UPGRADE_PATHS[userTier];
+
+    if (upgradeInfo) {
+      // Check if we should show upgrade prompt (max 2 times per month)
+      const { data: shouldShow } = await supabase
+        .rpc('should_show_upgrade_prompt', {
+          p_user_id: userId,
+          p_from_tier: userTier,
+          p_to_tier: upgradeInfo.nextTier
+        });
+
+      if (shouldShow) {
+        // Record that we're showing this prompt
+        await supabase.rpc('record_upgrade_prompt', {
+          p_user_id: userId,
+          p_from_tier: userTier,
+          p_to_tier: upgradeInfo.nextTier
+        });
+
+        // Prepare upgrade prompt data to include in response
+        const tierDisplayNames: Record<string, string> = {
+          'basic': 'Pro',
+          'pro': 'Premium',
+          'premium': 'Executive'
+        };
+
+        const tierFeatures: Record<string, string[]> = {
+          'basic': [ // Pro → Premium upgrade features
+            'Everything in Pro',
+            'Master\'s & PhD level tools',
+            'Cascading AI models',
+            'Advanced research writing',
+            'Fact-checking (Perplexity)',
+            'Priority support'
+          ],
+          'pro': [ // Premium → Executive upgrade features
+            'Everything in Premium',
+            'Most powerful AI available',
+            'Custom feature requests',
+            'Premium exports',
+            'VIP support & training',
+            'Early access to new tools'
+          ]
+        };
+
+        upgradePromptData = {
+          title: `Upgrade to ${tierDisplayNames[upgradeInfo.nextTier] || upgradeInfo.nextTier}`,
+          description: `Get even more power with our ${tierDisplayNames[upgradeInfo.nextTier]} plan.`,
+          features: tierFeatures[userTier] || [],
+          price: upgradeInfo.price,
+          paymentLink: upgradeInfo.paymentLink,
+          fromTier: userTier,
+          toTier: upgradeInfo.nextTier,
+          highlightText: '14 Days Free Trial'
+        };
+
+        console.log(`💎 Showing upgrade prompt: ${userTier} → ${upgradeInfo.nextTier}`);
+      }
+    }
   }
 
   // ============================================
@@ -593,7 +697,13 @@ export async function POST(req: Request) {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, reply, conversationId }),
+    JSON.stringify({
+      ok: true,
+      reply,
+      conversationId,
+      // Include upgrade prompt if applicable (for paid users)
+      upgradePrompt: upgradePromptData
+    }),
     { status: 200, headers: { "content-type": "application/json" } }
   );
 }
