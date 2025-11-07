@@ -63,6 +63,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usersError, setUsersError] = useState<string | null>(null);
   const [managingUser, setManagingUser] = useState<User | null>(null);
   const [selectedTier, setSelectedTier] = useState<string>('');
 
@@ -94,10 +95,12 @@ export default function AdminDashboard() {
   const fetchUsers = async () => {
     try {
       setUsersLoading(true);
+      setUsersError(null);
       const response = await fetch('/api/admin/users');
 
       if (!response.ok) {
-        throw new Error('Failed to fetch users');
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to fetch users');
       }
 
       const data = await response.json();
@@ -105,6 +108,7 @@ export default function AdminDashboard() {
       setFilteredUsers(data.users);
     } catch (err: any) {
       console.error('Failed to load users:', err);
+      setUsersError(err.message);
     } finally {
       setUsersLoading(false);
     }
@@ -434,20 +438,20 @@ export default function AdminDashboard() {
         {/* User Management Table */}
         <Card className="mb-8">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center text-slate-900">
                 <UserCog className="h-5 w-5 mr-2 text-blue-600" />
                 User Management
               </CardTitle>
-              <div className="flex items-center gap-2">
-                <div className="relative">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-initial">
                   <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
                   <Input
                     type="text"
                     placeholder="Search users..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-64"
+                    className="pl-10 w-full sm:w-64"
                   />
                 </div>
                 <Button
@@ -455,6 +459,7 @@ export default function AdminDashboard() {
                   size="sm"
                   onClick={fetchUsers}
                   disabled={usersLoading}
+                  className="flex-shrink-0"
                 >
                   <RefreshCw className={`h-4 w-4 ${usersLoading ? 'animate-spin' : ''}`} />
                 </Button>
@@ -462,7 +467,24 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            {usersLoading ? (
+            {usersError ? (
+              <div className="text-center py-8">
+                <div className="text-red-600 font-semibold mb-2">Error loading users</div>
+                <div className="text-sm text-slate-600 mb-4">{usersError}</div>
+                <div className="text-xs text-slate-500 bg-slate-50 p-4 rounded-lg max-w-2xl mx-auto text-left">
+                  <p className="font-semibold mb-2">💡 Did you run the SQL setup?</p>
+                  <p>Make sure you ran the <code className="bg-white px-2 py-1 rounded">add-admin-user-management.sql</code> file in your Supabase SQL Editor.</p>
+                  <p className="mt-2">This creates the <code className="bg-white px-2 py-1 rounded">get_all_users_for_admin()</code> function needed to fetch user data.</p>
+                </div>
+                <Button
+                  onClick={fetchUsers}
+                  className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+              </div>
+            ) : usersLoading ? (
               <div className="text-center py-8 text-slate-500">
                 <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
                 Loading users...
