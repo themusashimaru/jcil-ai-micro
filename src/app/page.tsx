@@ -372,7 +372,7 @@ export default function Home() {
 
   // subscription & usage
   const [subscriptionTier, setSubscriptionTier] = useState('free');
-  const [dailyLimit, setDailyLimit] = useState(5);
+  const [dailyLimit, setDailyLimit] = useState(10);
   const [usageToday, setUsageToday] = useState(0);
 
   // dim mode (subtle grey filter)
@@ -514,7 +514,7 @@ export default function Home() {
 
         if (profile) {
           setSubscriptionTier(profile.subscription_tier || 'free');
-          setDailyLimit(profile.daily_message_limit || 5);
+          setDailyLimit(profile.daily_message_limit || 10);
         }
 
         // Fetch today's usage
@@ -1851,22 +1851,30 @@ export default function Home() {
           <div className="space-y-2 pb-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-600 font-medium">Today's Usage</span>
-              <span className="text-slate-700 font-semibold">{usageToday}/{dailyLimit}</span>
+              <span className="text-slate-700 font-semibold">
+                {subscriptionTier === 'free' ? `${usageToday}/${dailyLimit}` : `${usageToday} messages`}
+              </span>
             </div>
             <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
               <div
                 className={`h-full transition-all duration-500 rounded-full ${
-                  usageToday >= dailyLimit
-                    ? 'bg-red-500'
-                    : usageToday / dailyLimit > 0.8
-                      ? 'bg-yellow-500'
-                      : 'bg-blue-600'
+                  subscriptionTier === 'free'
+                    ? (usageToday >= dailyLimit
+                        ? 'bg-red-500'
+                        : usageToday / dailyLimit > 0.8
+                          ? 'bg-yellow-500'
+                          : 'bg-blue-600')
+                    : 'bg-gradient-to-r from-blue-600 to-blue-500'
                 }`}
-                style={{ width: `${Math.min((usageToday / dailyLimit) * 100, 100)}%` }}
+                style={{
+                  width: subscriptionTier === 'free'
+                    ? `${Math.min((usageToday / dailyLimit) * 100, 100)}%`
+                    : `${Math.min(usageToday * 2, 100)}%` // Grows slowly for visual feedback
+                }}
               />
             </div>
             <div className="text-[10px] text-slate-500 text-center uppercase tracking-wide font-medium">
-              {subscriptionTier.toUpperCase()} PLAN
+              {subscriptionTier.toUpperCase()} PLAN {subscriptionTier !== 'free' && '• UNLIMITED'}
             </div>
           </div>
 

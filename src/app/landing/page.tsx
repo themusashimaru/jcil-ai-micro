@@ -10,19 +10,19 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: <Search className="h-8 w-8" />,
-      title: 'Real-Time Search',
-      description: 'Instant access to current events, news, and information. Get up-to-date answers with live web search integrated directly into every conversation.',
-    },
-    {
       icon: <Brain className="h-8 w-8" />,
       title: 'Conversation Memory',
       description: 'Full chat history recall across all conversations. The AI remembers everything you\'ve discussed, building deeper understanding over time.',
     },
     {
+      icon: <Search className="h-8 w-8" />,
+      title: 'Real-Time Search',
+      description: 'Instant access to current events, news, and information. Get up-to-date answers with live web search integrated directly into every conversation. (Pro+)',
+    },
+    {
       icon: <CheckCircle className="h-8 w-8" />,
       title: 'Fact Checking',
-      description: 'Integrated Perplexity fact-checking within every chat. Verify claims, check sources, and get the truth - all in real-time.',
+      description: 'Integrated Perplexity fact-checking within every chat. Verify claims, check sources, and get the truth - all in real-time. (Premium+)',
     },
     {
       icon: <BookOpen className="h-8 w-8" />,
@@ -61,63 +61,65 @@ export default function LandingPage() {
       name: 'Free',
       price: '$0',
       period: '/month',
-      messages: '5 messages/day',
+      messages: '10 messages/day',
       model: 'Haiku 4',
       features: [
         'Basic chat access',
-        'Real-time search',
         'Conversation memory',
         'Daily devotionals',
-        'Bible search',
+        'Bible search & study',
+        'Scripture tools for all',
       ],
       cta: 'Start Free',
       popular: false,
     },
     {
-      name: 'Basic',
-      price: '$20',
+      name: 'Pro',
+      price: '$12',
       period: '/month',
-      messages: '30 messages/day',
+      messages: 'Unlimited messages',
       model: 'Haiku 4.5',
       features: [
         'Everything in Free',
-        'Advanced AI model',
-        'Fact-checking (Perplexity)',
+        'Real-time web search',
+        'Tools up to Bachelor\'s level',
+        'Voice-to-text',
         'Prayer journal',
         'News analysis',
-        'Voice-to-text',
       ],
-      cta: 'Get Started',
-      popular: true,
-    },
-    {
-      name: 'Pro',
-      price: '$60',
-      period: '/month',
-      messages: '100 messages/day',
-      model: 'Haiku 4.5',
-      features: [
-        'Everything in Basic',
-        'Apologetics training',
-        'Priority responses',
-        'Export transcripts',
-        'Priority support',
-      ],
-      cta: 'Go Pro',
+      cta: 'Get Pro',
       popular: false,
     },
     {
-      name: 'Executive',
-      price: '$99',
+      name: 'Premium',
+      price: '$30',
       period: '/month',
-      messages: '200 messages/day',
+      messages: 'Unlimited messages',
       model: 'Sonnet 4',
       features: [
         'Everything in Pro',
-        'Most powerful AI',
+        'Master\'s & PhD level tools',
+        'Cascading AI models',
+        'Advanced research writing',
+        'Fact-checking (Perplexity)',
+        'Priority support',
+      ],
+      cta: 'Get Premium',
+      popular: true,
+    },
+    {
+      name: 'Executive',
+      price: '$150',
+      period: '/month',
+      messages: 'Unlimited messages',
+      model: 'Sonnet 4+',
+      features: [
+        'Everything in Premium',
+        'Most powerful AI available',
+        'Custom feature requests',
         'Unlimited exports',
-        'Custom features',
-        'VIP support',
+        'VIP support & training',
+        'Early access to new tools',
       ],
       cta: 'Get Executive',
       popular: false,
@@ -166,7 +168,7 @@ export default function LandingPage() {
                 size="lg"
                 className="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold text-lg px-8 py-6 rounded-xl shadow-2xl hover:shadow-yellow-500/50 transition-all duration-300 hover:scale-105"
               >
-                Start Free - 5 Messages/Day
+                Start Free - 10 Messages/Day
                 <Zap className="ml-2 h-5 w-5" />
               </Button>
               <Button
