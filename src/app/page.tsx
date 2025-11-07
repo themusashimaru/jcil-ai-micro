@@ -220,12 +220,7 @@ export default function Home() {
   const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
   const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
 
-  // recording
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordingStartTimeRef = useRef<number>(0);
+  // recording - DELETED, will rebuild from scratch
 
 
   // ui refs
@@ -276,9 +271,7 @@ export default function Home() {
   };
 
   const getPlaceholderText = () => {
-    if (isTranscribing) return 'Transcribing audio...';
     if (isLoading) return 'AI is thinking...';
-    if (isRecording) return 'Recording... tap to stop';
     if (attachedFileName) return 'Describe the file or add text...';
     if (activeTool !== 'none') {
       const tool = TOOLS_CONFIG[activeTool];
@@ -601,195 +594,9 @@ export default function Home() {
   const removeAttachedFile = () => { clearAttachmentState(); };
 
   // --------- AUDIO VALIDATION & TRANSCRIPTION ----------
-  const validateAudio = async (audioBlob: Blob): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const reader = new FileReader();
-
-      reader.onload = async (e) => {
-        try {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-          // Check if audio has any sound (check amplitude)
-          const channelData = audioBuffer.getChannelData(0);
-          let maxAmplitude = 0;
-
-          for (let i = 0; i < channelData.length; i++) {
-            const amplitude = Math.abs(channelData[i]);
-            if (amplitude > maxAmplitude) maxAmplitude = amplitude;
-          }
-
-          console.log('🎤 Audio validation:');
-          console.log('  - Duration:', audioBuffer.duration, 'seconds');
-          console.log('  - Max amplitude:', maxAmplitude);
-          console.log('  - Sample rate:', audioBuffer.sampleRate, 'Hz');
-          console.log('  - Channels:', audioBuffer.numberOfChannels);
-
-          // If max amplitude is too low, audio is silent
-          if (maxAmplitude < 0.002) {
-            console.error('🎤 ❌ SILENT AUDIO DETECTED! Max amplitude:', maxAmplitude);
-            resolve(false);
-            return;
-          }
-
-          // If duration is too short, might be a glitch
-          if (audioBuffer.duration < 0.5) {
-            console.error('🎤 ❌ AUDIO TOO SHORT! Duration:', audioBuffer.duration);
-            resolve(false);
-            return;
-          }
-
-          console.log('🎤 ✅ Audio validation passed!');
-          resolve(true);
-        } catch (error) {
-          console.error('🎤 Audio validation error:', error);
-          resolve(false);
-        }
-      };
-
-      reader.onerror = () => {
-        console.error('🎤 Failed to read audio blob');
-        resolve(false);
-      };
-
-      reader.readAsArrayBuffer(audioBlob);
-    });
-  };
-
-  const handleTranscribe = async (audioBlob: Blob) => {
-    setIsTranscribing(true);
-
-    console.log('🎤 Audio blob size:', audioBlob.size, 'bytes');
-    console.log('🎤 Audio blob type:', audioBlob.type);
-
-    // Skip validation - let the transcription service handle it
-    // Validation was too aggressive and blocking good audio
-
-    // CRITICAL FIX: Determine correct filename based on blob mime type
-    let filename = 'audio.webm';
-    if (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a')) {
-      filename = 'audio.m4a';
-    } else if (audioBlob.type.includes('ogg')) {
-      filename = 'audio.ogg';
-    } else if (audioBlob.type.includes('wav')) {
-      filename = 'audio.wav';
-    }
-
-    console.log('🎤 Using filename:', filename, 'for type:', audioBlob.type);
-
-    const formData = new FormData();
-    formData.append('file', audioBlob, filename);
-
-    try {
-      const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
-      const data = await response.json();
-
-      console.log('🎤 Transcription response:', data);
-
-      if (response.ok) {
-        const transcribedText = data.text?.trim() || '';
-        console.log('🎤 Transcribed text:', transcribedText);
-
-        if (!transcribedText) {
-          alert('No speech detected. Please try again and speak clearly.');
-          setIsTranscribing(false);
-          audioChunksRef.current = [];
-          return;
-        }
-
-        setLocalInput(transcribedText);
-        setIsTranscribing(false);
-        audioChunksRef.current = [];
-
-        // Let user review before sending
-        inputRef.current?.focus();
-      } else {
-        console.error('🎤 Transcription error:', data.error);
-        alert(`Transcription failed: ${data.error || 'Unknown error'}`);
-        setIsTranscribing(false);
-        audioChunksRef.current = [];
-      }
-    } catch (error) {
-      console.error('🎤 Error transcribing audio:', error);
-      alert('Failed to transcribe audio. Check console for details.');
-      setIsTranscribing(false);
-      audioChunksRef.current = [];
-    }
-  };
-
-  const handleMicClick = async () => {
-    if (isLoading || isTranscribing) return;
-
-    if (isRecording) {
-      console.log('🎤 Stopping recording...');
-
-      // Check if user recorded for at least 1 second
-      const recordingDuration = (Date.now() - recordingStartTimeRef.current) / 1000;
-      console.log('🎤 Recording duration:', recordingDuration, 'seconds');
-
-      if (recordingDuration < 1.0) {
-        alert('⚠️ Recording too short!\n\nPlease record for at least 1 second.\nTap mic, speak clearly, then tap mic again.');
-        mediaRecorderRef.current?.stop();
-        setIsRecording(false);
-        audioChunksRef.current = [];
-        return;
-      }
-
-      mediaRecorderRef.current?.stop();
-      setIsRecording(false);
-      return;
-    }
-
-    try {
-      console.log('🎤 Requesting microphone access...');
-
-      // SIMPLE APPROACH - Let browser choose best settings
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      console.log('🎤 Microphone access granted');
-      setIsRecording(true);
-      audioChunksRef.current = [];
-      recordingStartTimeRef.current = Date.now();
-
-      // Let browser choose the best mime type automatically
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      console.log('🎤 MediaRecorder mime type:', mediaRecorder.mimeType);
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          console.log('🎤 Audio chunk received:', event.data.size, 'bytes');
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        console.log('🎤 Recording stopped, total chunks:', audioChunksRef.current.length);
-
-        // Use the actual mimeType from the MediaRecorder
-        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        console.log('🎤 Final audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type);
-
-        if (audioBlob.size === 0) {
-          alert('No audio recorded. Please try again.');
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-
-        await handleTranscribe(audioBlob);
-        stream.getTracks().forEach((t) => t.stop());
-      };
-
-      console.log('🎤 Starting recording...');
-      mediaRecorder.start(1000); // Collect every 1 second
-    } catch (error: any) {
-      console.error('🎤 Microphone error:', error);
-      alert(`Microphone error: ${error.message || 'Access denied'}`);
-      setIsRecording(false);
-    }
-  };
+  // ============================================
+  // MIC HANDLERS - DELETED, WILL REBUILD
+  // ============================================
 
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -2228,25 +2035,11 @@ export default function Home() {
                   onKeyDown={handleTextareaKeyDown}
                 />
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  disabled={isLoading || isTranscribing}
-                  onClick={handleMicClick}
-                  className={`h-9 w-9 sm:h-10 sm:w-10 mr-1 ${
-                    isRecording
-                      ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-                      : 'hover:bg-slate-100 text-slate-700'
-                  } rounded-lg`}
-                  title={isRecording ? 'Stop recording' : 'Start recording'}
-                >
-                  {isTranscribing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" strokeWidth={2} />}
-                </Button>
+                {/* MIC BUTTON REMOVED - WILL REBUILD */}
 
                 <Button
                   type="submit"
-                  disabled={isLoading || isTranscribing || (!localInput.trim() && !attachedFileName)}
+                  disabled={isLoading || (!localInput.trim() && !attachedFileName)}
                   className="h-9 w-9 sm:h-10 sm:w-10 mr-1.5 bg-blue-900 hover:bg-blue-950 text-white rounded-lg flex items-center justify-center"
                 >
                   {isLoading ? <Loader2 className="h-5 w-5 animate-spin" strokeWidth={2} /> : <Send className="h-5 w-5" strokeWidth={2} />}
