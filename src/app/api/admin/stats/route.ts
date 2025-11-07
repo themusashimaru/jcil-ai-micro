@@ -41,17 +41,31 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || 'monthly'; // daily, monthly, quarterly, half, yearly
 
-    // Calculate date ranges
+    // Calculate fiscal period date ranges (calendar year based)
     const now = new Date();
-    const ranges = {
-      daily: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
-      monthly: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-      quarterly: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-      half: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
-      yearly: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+    const currentQuarter = Math.floor(currentMonth / 3); // 0-3 (Q1-Q4)
+    const currentHalf = Math.floor(currentMonth / 6); // 0-1 (H1-H2)
+
+    const ranges: Record<string, Date> = {
+      // Today only
+      daily: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+
+      // First day of current month
+      monthly: new Date(currentYear, currentMonth, 1),
+
+      // First day of current quarter (Jan/Apr/Jul/Oct)
+      quarterly: new Date(currentYear, currentQuarter * 3, 1),
+
+      // First day of current half (Jan or Jul)
+      half: new Date(currentYear, currentHalf * 6, 1),
+
+      // First day of current year
+      yearly: new Date(currentYear, 0, 1),
     };
 
-    const startDate = ranges[period as keyof typeof ranges] || ranges.monthly;
+    const startDate = ranges[period] || ranges.monthly;
 
     console.log(`Admin stats: period=${period}, startDate=${startDate.toISOString().split('T')[0]}, endDate=${now.toISOString().split('T')[0]}`);
 

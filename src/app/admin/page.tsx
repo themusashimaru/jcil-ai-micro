@@ -137,16 +137,22 @@ export default function AdminDashboard() {
           </div>
 
           {/* Period Selector */}
-          <div className="flex gap-2 mt-6">
-            {(['daily', 'monthly', 'quarterly', 'half', 'yearly'] as const).map((p) => (
+          <div className="flex gap-2 mt-6 flex-wrap">
+            {([
+              { key: 'daily', label: 'Today' },
+              { key: 'monthly', label: 'This Month' },
+              { key: 'quarterly', label: 'This Quarter' },
+              { key: 'half', label: 'This Half' },
+              { key: 'yearly', label: 'This Year' }
+            ] as const).map((p) => (
               <Button
-                key={p}
-                variant={period === p ? 'default' : 'outline'}
+                key={p.key}
+                variant={period === p.key ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setPeriod(p)}
-                className={period === p ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                onClick={() => setPeriod(p.key)}
+                className={period === p.key ? 'bg-blue-600 hover:bg-blue-700' : ''}
               >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
+                {p.label}
               </Button>
             ))}
             <Button
@@ -349,7 +355,9 @@ export default function AdminDashboard() {
             {new Date(stats.dateRange.end).toLocaleDateString()}
           </div>
           <div className="text-xs text-slate-400 mt-1">
-            Usage stats (messages, tokens, costs) are filtered by period. User counts and revenue show current totals.
+            Usage stats (messages, tokens, costs) are filtered by fiscal period. User counts and revenue show current totals.
+            <br />
+            Fiscal year: January 1 - December 31
           </div>
         </div>
       </div>
