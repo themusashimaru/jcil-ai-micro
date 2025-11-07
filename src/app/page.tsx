@@ -2098,7 +2098,7 @@ export default function Home() {
                 </div>
 
                 {/* Tool Carousel */}
-                <div className="w-full mt-8">
+                <div className="w-full mt-8 bg-white">
                   <ToolCarousel
                     onToolSelect={handleToolSelection}
                     isLoading={isLoading}
