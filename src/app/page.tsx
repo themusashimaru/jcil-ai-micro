@@ -96,20 +96,38 @@ const THEOLOGICAL_LOADING_MESSAGES = [
   "Rejecting wokeness, embracing truth...",
 ];
 
-// Simple loading message for practical queries (business, weather, directions, etc.)
-const PRACTICAL_LOADING_MESSAGE = "Processing...";
+// Practical loading messages for searches, trends, news, etc.
+const PRACTICAL_LOADING_MESSAGES = [
+  "Analyzing your question...",
+  "Processing information...",
+  "Structuring research...",
+  "Locating relevant data...",
+  "Filtering results...",
+  "Compiling findings...",
+  "Synthesizing information...",
+  "Organizing insights...",
+  "Cross-referencing sources...",
+  "Applying biblical wisdom...",
+  "Filtering through Christian principles...",
+];
 
 const TypingIndicator = ({ isPractical = false }: { isPractical?: boolean }) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
-    if (isPractical) return; // Don't cycle messages for practical queries
-
-    const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % THEOLOGICAL_LOADING_MESSAGES.length);
-    }, 2000); // Change message every 2 seconds
-
-    return () => clearInterval(interval);
+    if (!isPractical) {
+      // Cycle through theological messages
+      const interval = setInterval(() => {
+        setMessageIndex((prev) => (prev + 1) % THEOLOGICAL_LOADING_MESSAGES.length);
+      }, 2000);
+      return () => clearInterval(interval);
+    } else {
+      // Cycle through practical messages
+      const interval = setInterval(() => {
+        setMessageIndex((prev) => (prev + 1) % PRACTICAL_LOADING_MESSAGES.length);
+      }, 2000);
+      return () => clearInterval(interval);
+    }
   }, [isPractical]);
 
   return (
@@ -122,7 +140,7 @@ const TypingIndicator = ({ isPractical = false }: { isPractical?: boolean }) => 
             <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
           <span className="text-sm text-slate-600 italic animate-pulse">
-            {isPractical ? PRACTICAL_LOADING_MESSAGE : THEOLOGICAL_LOADING_MESSAGES[messageIndex]}
+            {isPractical ? PRACTICAL_LOADING_MESSAGES[messageIndex] : THEOLOGICAL_LOADING_MESSAGES[messageIndex]}
           </span>
         </div>
       </div>
@@ -1505,7 +1523,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Upgrade Plan Button */}
+          {/* Upgrade/Manage Plan Button */}
           <Button
             variant="ghost"
             className="w-full justify-start text-white bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 transition-all rounded-xl font-semibold shadow-lg hover:shadow-xl"
@@ -1513,7 +1531,9 @@ export default function Home() {
             disabled={isLoading}
           >
             <Zap className="h-5 w-5 mr-2" strokeWidth={2.5} />
-            <span className="text-sm">Upgrade Plan</span>
+            <span className="text-sm">
+              {subscriptionTier === 'free' ? 'Upgrade Plan' : 'Manage Plan'}
+            </span>
           </Button>
 
           <DropdownMenu>
