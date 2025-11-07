@@ -1,17 +1,41 @@
 {
-  "name": "Slingshot",
+  "name": "JCIL.AI Slingshot 2.0",
   "short_name": "Slingshot",
-  "description": "Christian AI Assistant - Slingshot 2.0",
+  "description": "Christian Conservative AI Assistant - Biblical wisdom meets modern AI",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/jcil-ai-logo.png",
-      "sizes": "any",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/jcil-ai-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle", "education"],
+  "shortcuts": [
+    {
+      "name": "New Chat",
+      "short_name": "Chat",
+      "description": "Start a new conversation",
+      "url": "/",
+      "icons": [{ "src": "/jcil-ai-logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Daily Devotional",
+      "short_name": "Devotional",
+      "description": "Read today's devotional",
+      "url": "/devotional",
+      "icons": [{ "src": "/jcil-ai-logo.png", "sizes": "192x192" }]
     }
   ]
 }

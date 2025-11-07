@@ -91,15 +91,15 @@ export default function InstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-4">
-        <div className="flex items-start gap-3">
+    <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm animate-in slide-in-from-bottom-5 duration-500">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-5 backdrop-blur-sm">
+        <div className="flex items-start gap-4">
           {/* Logo */}
           <div className="flex-shrink-0">
             <img
               src="/jcil-ai-logo.png"
               alt="Slingshot"
-              className="w-12 h-12 rounded-lg object-contain"
+              className="w-14 h-14 rounded-xl object-contain shadow-md"
               onError={(e) => {
                 // Fallback if logo doesn't load
                 const target = e.target as HTMLImageElement;
@@ -110,36 +110,36 @@ export default function InstallPrompt() {
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-900 text-sm mb-1">
+            <h3 className="font-bold text-slate-900 text-base mb-1">
               Add Slingshot to Home Screen
             </h3>
-            <p className="text-xs text-slate-600 mb-3">
-              Install Slingshot for quick access and a better experience!
+            <p className="text-sm text-slate-600 mb-4">
+              Install for quick access and a better experience!
             </p>
 
             {/* Buttons */}
             <div className="flex gap-2">
-              <Button 
-                onClick={handleInstallClick} 
-                className="flex-1 bg-blue-900 hover:bg-blue-950 text-white text-sm h-9"
+              <Button
+                onClick={handleInstallClick}
+                className="flex-1 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white text-sm h-10 rounded-xl shadow-lg hover:shadow-xl font-semibold transform hover:scale-105 transition-all"
               >
-                <Download className="w-4 h-4 mr-1" />
+                <Download className="w-4 h-4 mr-2" />
                 Install App
               </Button>
-              <Button 
-                onClick={handleDismiss} 
-                variant="ghost" 
-                className="text-slate-600 hover:bg-slate-100 text-sm h-9 px-3"
+              <Button
+                onClick={handleDismiss}
+                variant="ghost"
+                className="text-slate-600 hover:bg-slate-100 text-sm h-10 px-4 rounded-xl font-medium"
               >
-                Maybe Later
+                Later
               </Button>
             </div>
           </div>
 
           {/* Close Button */}
-          <button 
-            onClick={handleDismiss} 
-            className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
+          <button
+            onClick={handleDismiss}
+            className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors hover:bg-slate-100 rounded-lg p-1"
             aria-label="Dismiss install prompt"
           >
             <X className="w-5 h-5" />
