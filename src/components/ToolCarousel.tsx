@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, BookOpen, Shield, Code, BarChart, Briefcase } from 'lucide-react';
+import { BookOpen, Shield, Code, BarChart, Briefcase } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ToolType } from '@/lib/tools-config';
 
@@ -61,17 +61,6 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
     }
   ];
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 200;
-      const newScrollPosition = scrollContainerRef.current.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
-      scrollContainerRef.current.scrollTo({
-        left: newScrollPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
-
   const handleButtonClick = (tool: ToolButton) => {
     if (tool.toolType === 'devotional') {
       router.push('/devotional');
@@ -81,21 +70,11 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
   };
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto px-8 bg-white">
-      {/* Left Arrow */}
-      <button
-        onClick={() => scroll('left')}
-        disabled={isLoading}
-        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 disabled:opacity-50 transition-all hover:scale-110"
-        aria-label="Scroll left"
-      >
-        <ChevronLeft className="h-5 w-5 text-slate-700" />
-      </button>
-
+    <div className="w-full max-w-4xl mx-auto">
       {/* Scrollable Container */}
       <div
         ref={scrollContainerRef}
-        className="overflow-x-auto scrollbar-hide flex gap-3 py-2 px-4 scroll-smooth bg-white"
+        className="overflow-x-auto scrollbar-hide flex gap-3 py-2 px-4 scroll-smooth"
         style={{
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -115,16 +94,6 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
           </Button>
         ))}
       </div>
-
-      {/* Right Arrow */}
-      <button
-        onClick={() => scroll('right')}
-        disabled={isLoading}
-        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-2 disabled:opacity-50 transition-all hover:scale-110"
-        aria-label="Scroll right"
-      >
-        <ChevronRight className="h-5 w-5 text-slate-700" />
-      </button>
 
       {/* Hide scrollbar CSS */}
       <style jsx>{`
