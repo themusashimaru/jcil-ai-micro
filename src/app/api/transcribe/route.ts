@@ -40,7 +40,8 @@ export async function POST(req: NextRequest) {
 
     // convert to blob/buffer for OpenAI
     const fileArrayBuffer = await file.arrayBuffer();
-    const fileBlob = new Blob([fileArrayBuffer], { type: file.type || "audio/webm" });
+    const fileType = file.type || "audio/webm";
+    const fileBlob = new Blob([fileArrayBuffer], { type: fileType });
 
     console.log('🎤 [Server] Received audio file:');
     console.log('  - Size:', fileBlob.size, 'bytes');
@@ -55,11 +56,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Determine correct file extension based on mime type (critical for mobile!)
+    let filename = "audio.webm";
+    if (fileType.includes("mp4") || fileType.includes("m4a")) {
+      filename = "audio.m4a";
+    } else if (fileType.includes("ogg")) {
+      filename = "audio.ogg";
+    } else if (fileType.includes("wav")) {
+      filename = "audio.wav";
+    }
+
+    console.log('🎤 [Server] Using filename:', filename);
+
     // now build form-data for OpenAI
     const openaiForm = new FormData();
-    openaiForm.append("file", fileBlob, "audio.webm");
+    openaiForm.append("file", fileBlob, filename);
     openaiForm.append("model", "whisper-1");
     openaiForm.append("language", "en"); // Force English for better accuracy
+    openaiForm.append("temperature", "0"); // Lower temperature = more accurate, less hallucination
 
     console.log('🎤 [Server] Sending to OpenAI Whisper API...');
 

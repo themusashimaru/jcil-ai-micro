@@ -742,11 +742,20 @@ export default function Home() {
 
     try {
       console.log('🎤 Requesting microphone access...');
+
+      // Detect if mobile device
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      console.log('🎤 Mobile device:', isMobile);
+      console.log('🎤 iOS device:', isIOS);
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          // Mobile-specific: use higher sample rate for better quality
+          sampleRate: isMobile ? 44100 : 48000,
         }
       });
 
@@ -761,20 +770,37 @@ export default function Home() {
         setIsListening(true);
       }, 1500);
 
-      // Try webm first, fallback to other formats if needed
-      let mimeType = 'audio/webm';
-      if (!MediaRecorder.isTypeSupported('audio/webm')) {
-        console.log('⚠️ audio/webm not supported, trying alternatives...');
-        if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          mimeType = 'audio/mp4';
-        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
-          mimeType = 'audio/ogg';
-        } else {
-          mimeType = ''; // Let browser choose
+      // CRITICAL FIX FOR MOBILE: Try multiple formats in priority order
+      let mimeType = '';
+
+      if (isIOS) {
+        // iOS Safari: ONLY supports mp4
+        console.log('🎤 iOS detected - forcing audio/mp4');
+        mimeType = 'audio/mp4';
+      } else {
+        // Android/Desktop: Try webm first, then fallback
+        const formats = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/ogg;codecs=opus',
+          'audio/ogg'
+        ];
+
+        for (const format of formats) {
+          if (MediaRecorder.isTypeSupported(format)) {
+            mimeType = format;
+            console.log('🎤 Using mime type:', mimeType);
+            break;
+          }
+        }
+
+        if (!mimeType) {
+          console.log('🎤 ⚠️ No supported format found, using browser default');
         }
       }
 
-      console.log('🎤 Using mime type:', mimeType || 'browser default');
+      console.log('🎤 Final mime type:', mimeType || 'browser default');
 
       const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = mediaRecorder;
@@ -806,7 +832,9 @@ export default function Home() {
       };
 
       console.log('🎤 Starting recording...');
-      mediaRecorder.start(1000); // Collect data every 1 second
+      // Mobile Safari: Use shorter timeslice for better reliability
+      const timeslice = isMobile ? 500 : 1000;
+      mediaRecorder.start(timeslice);
     } catch (error: any) {
       console.error('🎤 Microphone error:', error);
       alert(`Microphone error: ${error.message || 'Access denied'}`);
@@ -1935,8 +1963,8 @@ export default function Home() {
             {isTyping && <TypingIndicator isPractical={isPracticalQuery} />}
             <div ref={messagesEndRef} />
 
-            {/* Bottom fade gradient for depth */}
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
+            {/* Bottom fade gradient for depth - REDUCED to not hide messages */}
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/60 to-transparent pointer-events-none" />
           </CardContent>
 
           {/* input bar */}
