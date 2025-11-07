@@ -978,8 +978,18 @@ export default function Home() {
             const businessList = localSearchData.businesses.map((b: any, i: number) => {
               let info = `**${b.name}**\n`;
               info += b.address ? `${b.address}\n` : '';
-              if (b.phone) info += `📞 ${b.phone}\n`;
-              if (b.website) info += `[Visit Website](${b.website})\n`;
+
+              // Make phone number clickable with tel: link
+              if (b.phone) {
+                const phoneDigits = b.phone.replace(/\D/g, ''); // Remove non-digits for tel link
+                info += `📞 [${b.phone}](tel:${phoneDigits})\n`;
+              }
+
+              // Always show website if available, make it clickable
+              if (b.website) {
+                info += `🌐 [Visit Website](${b.website})\n`;
+              }
+
               if (b.rating) info += `⭐ ${b.rating}/5 (${b.total_ratings || 0} reviews)\n`;
               if (b.open_now !== null) info += b.open_now ? '🟢 Open now\n' : '🔴 Closed\n';
               return info;
