@@ -2202,7 +2202,7 @@ export default function Home() {
               className="hidden"
             />
 
-            {/* Textarea - Bigger, Rounded, Mobile-Friendly, No Border */}
+            {/* Textarea - Bigger, Rounded, Mobile-Friendly, No Border Ever */}
             <div className="mb-3">
               <Textarea
                 ref={inputRef}
@@ -2213,7 +2213,7 @@ export default function Home() {
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck
-                className="w-full resize-none min-h-[80px] sm:min-h-[100px] max-h-[200px] sm:max-h-[240px] text-sm sm:text-base leading-relaxed overflow-y-auto bg-transparent border-0 focus:ring-0 focus:outline-none rounded-2xl px-4 py-3 text-slate-900 transition-all"
+                className="w-full resize-none min-h-[80px] sm:min-h-[100px] max-h-[200px] sm:max-h-[240px] text-sm sm:text-base leading-relaxed overflow-y-auto bg-transparent !border-0 !ring-0 !outline-none focus:!border-0 focus:!ring-0 focus:!outline-none focus-visible:!ring-0 focus-visible:!outline-none shadow-none focus:shadow-none rounded-2xl px-4 py-3 text-slate-900"
                 rows={3}
                 onKeyDown={handleTextareaKeyDown}
               />
