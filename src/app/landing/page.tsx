@@ -22,7 +22,7 @@ export default function LandingPage() {
     {
       icon: <CheckCircle className="h-8 w-8" />,
       title: 'Fact Checking',
-      description: 'Integrated Perplexity fact-checking within every chat. Verify claims, check sources, and get the truth—all in real-time.',
+      description: 'Integrated Perplexity fact-checking within every chat. Verify claims, check sources, and get the truth - all in real-time.',
     },
     {
       icon: <BookOpen className="h-8 w-8" />,
@@ -154,7 +154,7 @@ export default function LandingPage() {
 
             <p className="text-xl sm:text-2xl text-blue-100 mb-4 max-w-3xl mx-auto font-light">
               Your Conservative Christian AI Assistant with real-time search, conversation memory,
-              fact-checking, and deep Bible research—all rooted in Scripture and Truth.
+              fact-checking, and deep Bible research - all rooted in Scripture and Truth.
             </p>
             <p className="text-lg text-yellow-400 mb-8 font-semibold">
               Powered by JCIL.ai
@@ -229,38 +229,43 @@ export default function LandingPage() {
 
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl border-2 border-blue-200">
               <h3 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-6">
-                Finally, An AI That Understands You
+                Biblical Filtering System
               </h3>
+              <p className="text-slate-700 mb-6 font-medium">
+                AI is not God - it's a tool. Slingshot 2.0 doesn't replace your pastor, teacher, or counselor.
+                It's designed to supplement your spiritual journey while always encouraging you to seek guidance
+                from Scripture and local church leadership.
+              </p>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <div className="mt-1 p-1 bg-blue-600 rounded-full">
                     <Check className="h-4 w-4 text-white" />
                   </div>
-                  <p className="text-slate-800 font-medium">Real-time search & fact-checking with Perplexity integration</p>
+                  <p className="text-slate-800 font-medium">Proprietary Biblical filtering on every response</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="mt-1 p-1 bg-blue-600 rounded-full">
                     <Check className="h-4 w-4 text-white" />
                   </div>
-                  <p className="text-slate-800 font-medium">Full conversation memory—AI remembers everything</p>
+                  <p className="text-slate-800 font-medium">Real-time search & fact-checking with Perplexity</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="mt-1 p-1 bg-blue-600 rounded-full">
                     <Check className="h-4 w-4 text-white" />
                   </div>
-                  <p className="text-slate-800 font-medium">Rooted in Scripture, never contradicts God's Word</p>
+                  <p className="text-slate-800 font-medium">Full conversation memory across all chats</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 p-1 bg-blue-600 rounded-full">
+                    <Check className="h-4 w-4 text-white" />
+                  </div>
+                  <p className="text-slate-800 font-medium">Encourages local pastoral and scriptural guidance</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="mt-1 p-1 bg-blue-600 rounded-full">
                     <Check className="h-4 w-4 text-white" />
                   </div>
                   <p className="text-slate-800 font-medium">Conservative values built into every response</p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 p-1 bg-blue-600 rounded-full">
-                    <Check className="h-4 w-4 text-white" />
-                  </div>
-                  <p className="text-slate-800 font-medium">PhD-level Biblical scholarship and theology</p>
                 </div>
               </div>
             </div>
@@ -276,7 +281,7 @@ export default function LandingPage() {
               Real-Time Intelligence Meets Biblical Truth
             </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Live search, conversation memory, fact-checking, and deep Bible research—all in one powerful platform
+              Live search, conversation memory, fact-checking, and deep Bible research - all in one powerful platform
             </p>
           </div>
 
@@ -359,61 +364,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-16 sm:py-24 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4">
-              Trusted by Christians Nationwide
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="p-6 bg-white">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-yellow-500 text-xl">★</span>
-                ))}
-              </div>
-              <p className="text-slate-700 mb-4 italic">
-                "This AI helped me win debates in my college philosophy class. The apologetics
-                training is incredible—it's like having a theology professor in my pocket."
-              </p>
-              <p className="font-semibold text-slate-900">— John M.</p>
-              <p className="text-sm text-slate-600">Seminary Student</p>
-            </Card>
-
-            <Card className="p-6 bg-white">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-yellow-500 text-xl">★</span>
-                ))}
-              </div>
-              <p className="text-slate-700 mb-4 italic">
-                "Finally, an AI that doesn't push leftist propaganda! My kids can use this
-                safely. The Bible research is better than any commentary I own."
-              </p>
-              <p className="font-semibold text-slate-900">— Sarah K.</p>
-              <p className="text-sm text-slate-600">Homeschool Mom</p>
-            </Card>
-
-            <Card className="p-6 bg-white">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-yellow-500 text-xl">★</span>
-                ))}
-              </div>
-              <p className="text-slate-700 mb-4 italic">
-                "The daily devotionals are Spirit-led and doctrinally sound. I use the Bible
-                research feature for sermon prep every week. Absolute game-changer."
-              </p>
-              <p className="font-semibold text-slate-900">— Pastor Mike T.</p>
-              <p className="text-sm text-slate-600">Lead Pastor</p>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* Final CTA Section */}
       <section className="py-16 sm:py-24 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-950 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -455,13 +405,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <h3 className="text-white font-bold text-lg mb-4">About</h3>
-              <p className="text-sm">
-                Built by Christians who believe AI should serve God's kingdom, not woke ideology.
-              </p>
-            </div>
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
             <div>
               <h3 className="text-white font-bold text-lg mb-4">Quick Links</h3>
               <ul className="space-y-2 text-sm">
@@ -472,7 +416,9 @@ export default function LandingPage() {
             </div>
             <div>
               <h3 className="text-white font-bold text-lg mb-4">Contact</h3>
-              <p className="text-sm">Questions? We're here to help.</p>
+              <p className="text-sm">
+                <a href="mailto:info@jcil.ai" className="hover:text-white transition">info@jcil.ai</a>
+              </p>
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 text-center text-sm">
