@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Check, BookOpen, Heart, Newspaper, Mic, Shield, Sparkles, Zap, Clock, Users } from 'lucide-react';
+import { Check, BookOpen, Heart, Newspaper, Mic, Shield, Sparkles, Zap, Clock, Users, Search, Brain, CheckCircle, Globe } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function LandingPage() {
@@ -10,19 +10,24 @@ export default function LandingPage() {
 
   const features = [
     {
+      icon: <Search className="h-8 w-8" />,
+      title: 'Real-Time Search',
+      description: 'Instant access to current events, news, and information. Get up-to-date answers with live web search integrated directly into every conversation.',
+    },
+    {
+      icon: <Brain className="h-8 w-8" />,
+      title: 'Conversation Memory',
+      description: 'Full chat history recall across all conversations. The AI remembers everything you\'ve discussed, building deeper understanding over time.',
+    },
+    {
+      icon: <CheckCircle className="h-8 w-8" />,
+      title: 'Fact Checking',
+      description: 'Integrated Perplexity fact-checking within every chat. Verify claims, check sources, and get the truth—all in real-time.',
+    },
+    {
       icon: <BookOpen className="h-8 w-8" />,
       title: 'Deep Bible Research',
       description: 'PhD-level biblical scholarship at your fingertips. Search Scripture, cross-reference verses, and get theological insights.',
-    },
-    {
-      icon: <Heart className="h-8 w-8" />,
-      title: 'Prayer Journal',
-      description: 'Track your prayers and see God\'s faithfulness. AI-powered insights show answered prayers and build your testimony.',
-    },
-    {
-      icon: <Sparkles className="h-8 w-8" />,
-      title: 'Daily Devotionals',
-      description: 'Fresh, Spirit-led devotionals every day. Start your morning with Scripture-based encouragement and Biblical truth.',
     },
     {
       icon: <Mic className="h-8 w-8" />,
@@ -33,6 +38,16 @@ export default function LandingPage() {
       icon: <Newspaper className="h-8 w-8" />,
       title: 'News Analysis',
       description: 'Cut through media bias with Biblical perspective. Analyze headlines through the lens of Scripture and conservative values.',
+    },
+    {
+      icon: <Heart className="h-8 w-8" />,
+      title: 'Prayer Journal',
+      description: 'Track your prayers and see God\'s faithfulness. AI-powered insights show answered prayers and build your testimony.',
+    },
+    {
+      icon: <Sparkles className="h-8 w-8" />,
+      title: 'Daily Devotionals',
+      description: 'Fresh, Spirit-led devotionals every day. Start your morning with Scripture-based encouragement and Biblical truth.',
     },
     {
       icon: <Shield className="h-8 w-8" />,
@@ -50,9 +65,10 @@ export default function LandingPage() {
       model: 'Haiku 4',
       features: [
         'Basic chat access',
+        'Real-time search',
+        'Conversation memory',
         'Daily devotionals',
         'Bible search',
-        'Community support',
       ],
       cta: 'Start Free',
       popular: false,
@@ -66,9 +82,10 @@ export default function LandingPage() {
       features: [
         'Everything in Free',
         'Advanced AI model',
+        'Fact-checking (Perplexity)',
         'Prayer journal',
         'News analysis',
-        'Email support',
+        'Voice-to-text',
       ],
       cta: 'Get Started',
       popular: true,
@@ -127,15 +144,20 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight mb-6">
-              Biblical Wisdom Meets
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
-                AI Intelligence
+                Slingshot 2.0
+              </span>
+              <span className="text-3xl sm:text-4xl md:text-5xl block mt-2">
+                Biblical AI with Real-Time Intelligence
               </span>
             </h1>
 
-            <p className="text-xl sm:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto font-light">
-              Your Conservative Christian AI Assistant for deep Bible research, daily devotionals,
-              prayer tracking, and intelligent answers—all rooted in Scripture and Truth.
+            <p className="text-xl sm:text-2xl text-blue-100 mb-4 max-w-3xl mx-auto font-light">
+              Your Conservative Christian AI Assistant with real-time search, conversation memory,
+              fact-checking, and deep Bible research—all rooted in Scripture and Truth.
+            </p>
+            <p className="text-lg text-yellow-400 mb-8 font-semibold">
+              Powered by JCIL.ai
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
@@ -214,6 +236,18 @@ export default function LandingPage() {
                   <div className="mt-1 p-1 bg-blue-600 rounded-full">
                     <Check className="h-4 w-4 text-white" />
                   </div>
+                  <p className="text-slate-800 font-medium">Real-time search & fact-checking with Perplexity integration</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 p-1 bg-blue-600 rounded-full">
+                    <Check className="h-4 w-4 text-white" />
+                  </div>
+                  <p className="text-slate-800 font-medium">Full conversation memory—AI remembers everything</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 p-1 bg-blue-600 rounded-full">
+                    <Check className="h-4 w-4 text-white" />
+                  </div>
                   <p className="text-slate-800 font-medium">Rooted in Scripture, never contradicts God's Word</p>
                 </div>
                 <div className="flex items-start gap-3">
@@ -228,12 +262,6 @@ export default function LandingPage() {
                   </div>
                   <p className="text-slate-800 font-medium">PhD-level Biblical scholarship and theology</p>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 p-1 bg-blue-600 rounded-full">
-                    <Check className="h-4 w-4 text-white" />
-                  </div>
-                  <p className="text-slate-800 font-medium">Helps you defend your faith with confidence</p>
-                </div>
               </div>
             </div>
           </div>
@@ -245,10 +273,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4">
-              Powerful Features for Your Faith Journey
+              Real-Time Intelligence Meets Biblical Truth
             </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Everything you need to grow spiritually, defend truth, and stay grounded in Scripture
+              Live search, conversation memory, fact-checking, and deep Bible research—all in one powerful platform
             </p>
           </div>
 
@@ -448,7 +476,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 text-center text-sm">
-            <p>© {new Date().getFullYear()} Your AI Assistant. Built for Christians, By Christians.</p>
+            <p>© {new Date().getFullYear()} Slingshot 2.0 by JCIL.ai. Built for Christians, By Christians.</p>
           </div>
         </div>
       </footer>
