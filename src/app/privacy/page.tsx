@@ -39,7 +39,7 @@ export default function PrivacyPolicy() {
 
           <div className="rounded-lg border-2 border-blue-900 bg-blue-50 p-5">
             <p className="text-sm font-semibold text-blue-900 leading-relaxed">
-              JCIL.AI slingshot 2.0 is powered by Claude AI (Anthropic), providing
+              JCIL.AI Slingshot 2.0 is powered by XAI (Grok), providing
               intelligent AI assistance through a Christian perspective. Our service
               applies biblically-aligned content filtering to ensure responses reflect
               Christian values and principles.
@@ -94,7 +94,7 @@ export default function PrivacyPolicy() {
                 retrieving your chat history
               </li>
               <li className="leading-relaxed">
-                Process your prompts and uploaded files through Claude AI to generate
+                Process your prompts and uploaded files through XAI (Grok) to generate
                 intelligent, biblically-aligned responses
               </li>
               <li className="leading-relaxed">
@@ -131,9 +131,9 @@ export default function PrivacyPolicy() {
                 obligated to protect your data.
               </li>
               <li className="leading-relaxed">
-                <strong className="text-slate-900">AI Provider - Anthropic (Claude):</strong> To provide
+                <strong className="text-slate-900">AI Provider - XAI (Grok):</strong> To provide
                 AI-generated responses, your prompts and uploaded content are
-                transmitted to Anthropic's Claude AI. Your content is processed
+                transmitted to XAI's Grok AI. Your content is processed
                 through our Christian content filtering system to ensure biblical
                 alignment. While we select providers with strong privacy practices,
                 we recommend avoiding sharing highly sensitive personal information

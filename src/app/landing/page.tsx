@@ -62,7 +62,8 @@ export default function LandingPage() {
       price: '$0',
       period: '/month',
       messages: '10 messages/day',
-      model: 'Haiku 4',
+      model: 'Slingshot 2.0',
+      poweredBy: 'Powered by XAI',
       features: [
         'Basic chat access',
         'Conversation memory',
@@ -78,7 +79,8 @@ export default function LandingPage() {
       price: '$12',
       period: '/month',
       messages: 'No daily message cap',
-      model: 'Haiku 4.5',
+      model: 'Slingshot 2.0',
+      poweredBy: 'Powered by XAI',
       features: [
         'Everything in Free',
         'Real-time web search',
@@ -95,7 +97,8 @@ export default function LandingPage() {
       price: '$30',
       period: '/month',
       messages: 'No daily message cap',
-      model: 'Sonnet 4',
+      model: 'Slingshot 2.0',
+      poweredBy: 'Powered by XAI',
       features: [
         'Everything in Pro',
         'Master\'s & PhD level tools',
@@ -112,7 +115,8 @@ export default function LandingPage() {
       price: '$150',
       period: '/month',
       messages: 'No daily message cap',
-      model: 'Sonnet 4+',
+      model: 'Slingshot 2.0',
+      poweredBy: 'Powered by XAI',
       features: [
         'Everything in Premium',
         'Most powerful AI available',
@@ -458,7 +462,8 @@ export default function LandingPage() {
                     <span className="text-slate-600 ml-1">{tier.period}</span>
                   </div>
                   <p className="text-sm font-semibold text-blue-600">{tier.messages}</p>
-                  <p className="text-xs text-slate-500 mt-1">{tier.model}</p>
+                  <p className="text-xs font-bold text-slate-700 mt-2">{tier.model}</p>
+                  <p className="text-xs text-slate-500">{tier.poweredBy}</p>
                 </div>
 
                 <ul className="space-y-3 mb-6">

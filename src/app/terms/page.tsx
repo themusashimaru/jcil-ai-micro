@@ -39,8 +39,8 @@ export default function TermsOfService() {
 
           <div className="rounded-lg border-2 border-blue-900 bg-blue-50 p-5">
             <p className="text-sm font-semibold text-blue-900 leading-relaxed">
-              JCIL.AI slingshot 2.0 is a faith-based AI service powered by Claude AI
-              (Anthropic) that applies Christian content filtering to ensure biblical
+              JCIL.AI Slingshot 2.0 is a faith-based AI service powered by XAI
+              (Grok) that applies Christian content filtering to ensure biblical
               alignment. By using this Service, you acknowledge and agree to receive
               AI responses filtered through a Christian perspective.
             </p>
@@ -64,13 +64,13 @@ export default function TermsOfService() {
               2. Description of Service
             </h3>
             <p className="mb-3 leading-relaxed">
-              JCIL.AI slingshot 2.0 is an artificial intelligence chat service powered
-              by Claude AI (Anthropic) that provides AI-generated responses filtered
+              JCIL.AI Slingshot 2.0 is an artificial intelligence chat service powered
+              by XAI (Grok) that provides AI-generated responses filtered
               through a Christian content filtering system. Our Service:
             </p>
             <ul className="space-y-2 ml-5 list-disc">
               <li className="leading-relaxed">
-                Utilizes Claude AI technology from Anthropic to provide intelligent responses
+                Utilizes XAI (Grok) technology to provide intelligent responses
               </li>
               <li className="leading-relaxed">
                 Applies biblical principles and Christian values to all AI responses
@@ -179,7 +179,7 @@ export default function TermsOfService() {
                 and display your User Content solely to provide and improve the Service
               </li>
               <li className="leading-relaxed">
-                The right to transmit your User Content to Anthropic (Claude AI) for processing
+                The right to transmit your User Content to XAI (Grok) for processing
               </li>
               <li className="leading-relaxed">
                 The right to analyze your User Content to improve our Christian content
@@ -261,7 +261,7 @@ export default function TermsOfService() {
               8. Third-Party Services
             </h3>
             <p className="leading-relaxed">
-              Our Service utilizes third-party providers including Anthropic (Claude AI)
+              Our Service utilizes third-party providers including XAI (Grok)
               and Supabase (database and authentication). Your use of the Service is
               subject to these third parties' terms and privacy policies. We are not
               responsible for the actions, content, or privacy practices of these
