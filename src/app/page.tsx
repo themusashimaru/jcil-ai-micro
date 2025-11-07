@@ -1699,20 +1699,26 @@ export default function Home() {
                       <div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-em:text-slate-600 prose-em:italic prose-strong:font-bold prose-strong:text-slate-900 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800">
                         <ReactMarkdown
                           components={{
-                            a: ({ node, ...props }) => (
-                              <a
-                                {...props}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
-                                onClick={(e) => {
-                                  // Ensure links work properly
-                                  if (props.href?.startsWith('http') || props.href?.startsWith('tel:')) {
-                                    e.stopPropagation();
-                                  }
-                                }}
-                              />
-                            ),
+                            a: ({ node, ...props }) => {
+                              const isTelLink = props.href?.startsWith('tel:');
+                              const isWebLink = props.href?.startsWith('http');
+
+                              return (
+                                <a
+                                  {...props}
+                                  target={isWebLink ? '_blank' : undefined}
+                                  rel={isWebLink ? 'noopener noreferrer' : undefined}
+                                  className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
+                                  onClick={(e) => {
+                                    // For tel links and web links, just let them work normally
+                                    if (isTelLink || isWebLink) {
+                                      e.stopPropagation();
+                                      // Don't preventDefault - let the browser handle tel: and http: links
+                                    }
+                                  }}
+                                />
+                              );
+                            },
                           }}
                         >
                           {msg.content}
