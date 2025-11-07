@@ -605,6 +605,7 @@ Examples of questions requiring web search:
   }
 
   let reply = "";
+  let totalTokens = 0; // Track token usage for this request
 
   try {
     // Convert claudeMessages to AI SDK format
@@ -660,6 +661,10 @@ Examples of questions requiring web search:
 
     // Extract text from response
     reply = response.text || "I apologize, but I couldn't generate a text response.";
+
+    // Extract token usage from response
+    totalTokens = response.usage?.totalTokens || 0;
+    console.log(`📊 Token usage - Prompt: ${response.usage?.promptTokens || 0}, Completion: ${response.usage?.completionTokens || 0}, Total: ${totalTokens}`);
 
     // Log citations if available (for debugging/monitoring)
     if (response.sources && response.sources.length > 0) {
@@ -719,7 +724,7 @@ Examples of questions requiring web search:
   const { error: usageError } = await supabase
     .rpc('increment_message_count', {
       p_user_id: userId,
-      p_token_count: 0 // TODO: Track actual token usage from response.usage
+      p_token_count: totalTokens // Track actual token usage from response.usage
     });
 
   if (usageError) {

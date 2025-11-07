@@ -431,10 +431,8 @@ export default function Home() {
   const [toolButtonFlash, setToolButtonFlash] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Token usage tracking (placeholder - implement real tracking in backend)
-  const [tokensUsed, setTokensUsed] = useState(45000);
-  const dailyTokenLimit = 100000;
-  const tokenPercentage = (tokensUsed / dailyTokenLimit) * 100;
+  // Token usage tracking
+  const [tokensUsedToday, setTokensUsedToday] = useState(0);
 
   // Upgrade Modal State
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -526,7 +524,7 @@ export default function Home() {
         // Fetch today's usage
         const { data: usageData, error: usageError } = await supabase
           .from('daily_usage')
-          .select('message_count')
+          .select('message_count, token_count')
           .eq('user_id', currentUser.id)
           .eq('usage_date', new Date().toISOString().split('T')[0])
           .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 rows
@@ -534,10 +532,13 @@ export default function Home() {
         if (usageError) {
           console.error('Error fetching daily usage:', usageError);
           setUsageToday(0); // Default to 0 if error
+          setTokensUsedToday(0);
         } else if (usageData) {
           setUsageToday(usageData.message_count || 0);
+          setTokensUsedToday(usageData.token_count || 0);
         } else {
           setUsageToday(0); // No usage record for today yet
+          setTokensUsedToday(0);
         }
       } else {
         setHistoryIsLoading(false);
@@ -1866,35 +1867,49 @@ export default function Home() {
 
         {/* sidebar footer */}
         <div className="bg-white px-6 py-4 space-y-3 border-t border-slate-200">
-          {/* Usage Gauge */}
+          {/* Usage Display */}
           <div className="space-y-2 pb-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-600 font-medium">Today's Usage</span>
-              <span className="text-slate-700 font-semibold">
-                {subscriptionTier === 'free' ? `${usageToday}/${dailyLimit}` : `${usageToday} messages`}
-              </span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-              <div
-                className={`h-full transition-all duration-500 rounded-full ${
-                  subscriptionTier === 'free'
-                    ? (usageToday >= dailyLimit
+            {subscriptionTier === 'free' ? (
+              // FREE TIER: Show message count with progress bar
+              <>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-600 font-medium">Today's Usage</span>
+                  <span className="text-slate-700 font-semibold">
+                    {usageToday}/{dailyLimit}
+                  </span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 rounded-full ${
+                      usageToday >= dailyLimit
                         ? 'bg-red-500'
                         : usageToday / dailyLimit > 0.8
                           ? 'bg-yellow-500'
-                          : 'bg-blue-600')
-                    : 'bg-gradient-to-r from-blue-600 to-blue-500'
-                }`}
-                style={{
-                  width: subscriptionTier === 'free'
-                    ? `${Math.min((usageToday / dailyLimit) * 100, 100)}%`
-                    : `${Math.min(usageToday * 2, 100)}%` // Grows slowly for visual feedback
-                }}
-              />
-            </div>
-            <div className="text-[10px] text-slate-500 text-center uppercase tracking-wide font-medium">
-              {subscriptionTier.toUpperCase()} PLAN
-            </div>
+                          : 'bg-blue-600'
+                    }`}
+                    style={{
+                      width: `${Math.min((usageToday / dailyLimit) * 100, 100)}%`
+                    }}
+                  />
+                </div>
+                <div className="text-[10px] text-slate-500 text-center uppercase tracking-wide font-medium">
+                  {subscriptionTier.toUpperCase()} PLAN
+                </div>
+              </>
+            ) : (
+              // PAID TIERS: Show token count without progress bar
+              <>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-600 font-medium">Today's Usage</span>
+                  <span className="text-slate-700 font-semibold">
+                    {tokensUsedToday.toLocaleString()} tokens
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 text-center uppercase tracking-wide font-medium mt-1">
+                  {subscriptionTier.toUpperCase()} PLAN • NO DAILY LIMIT
+                </div>
+              </>
+            )}
           </div>
 
           {/* Upgrade/Manage Plan Button */}
