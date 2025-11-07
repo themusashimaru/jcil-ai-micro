@@ -331,15 +331,20 @@ export default function Home() {
         }
 
         // Fetch today's usage
-        const { data: usage } = await supabase
+        const { data: usageData, error: usageError } = await supabase
           .from('daily_usage')
           .select('message_count')
           .eq('user_id', currentUser.id)
           .eq('usage_date', new Date().toISOString().split('T')[0])
-          .single();
+          .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 rows
 
-        if (usage) {
-          setUsageToday(usage.message_count || 0);
+        if (usageError) {
+          console.error('Error fetching daily usage:', usageError);
+          setUsageToday(0); // Default to 0 if error
+        } else if (usageData) {
+          setUsageToday(usageData.message_count || 0);
+        } else {
+          setUsageToday(0); // No usage record for today yet
         }
       } else {
         setHistoryIsLoading(false);
