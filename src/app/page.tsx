@@ -223,7 +223,6 @@ export default function Home() {
   // recording
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [isListening, setIsListening] = useState(false); // for intelligent "Listening..." state
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingStartTimeRef = useRef<number>(0);
@@ -279,8 +278,7 @@ export default function Home() {
   const getPlaceholderText = () => {
     if (isTranscribing) return 'Transcribing audio...';
     if (isLoading) return 'AI is thinking...';
-    if (isRecording && isListening) return 'Listening…';
-    if (isRecording) return 'Begin speaking…';
+    if (isRecording) return 'Recording... tap to stop';
     if (attachedFileName) return 'Describe the file or add text...';
     if (activeTool !== 'none') {
       const tool = TOOLS_CONFIG[activeTool];
@@ -722,14 +720,12 @@ export default function Home() {
         alert('⚠️ Recording too short!\n\nPlease record for at least 1 second.\nTap mic, speak clearly, then tap mic again.');
         mediaRecorderRef.current?.stop();
         setIsRecording(false);
-        setIsListening(false);
         audioChunksRef.current = [];
         return;
       }
 
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
-      setIsListening(false);
       return;
     }
 
@@ -754,14 +750,8 @@ export default function Home() {
 
       console.log('🎤 Microphone access granted');
       setIsRecording(true);
-      setIsListening(false);
       audioChunksRef.current = [];
       recordingStartTimeRef.current = Date.now(); // Track when recording started
-
-      // After 1.5 seconds, change placeholder to "Listening..."
-      const listeningTimeout = setTimeout(() => {
-        setIsListening(true);
-      }, 1500);
 
       // CRITICAL FIX FOR MOBILE: Try multiple formats in priority order
       let mimeType = '';
@@ -806,9 +796,6 @@ export default function Home() {
       };
 
       mediaRecorder.onstop = async () => {
-        clearTimeout(listeningTimeout);
-        setIsListening(false);
-
         console.log('🎤 Recording stopped, total chunks:', audioChunksRef.current.length);
 
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
@@ -832,7 +819,6 @@ export default function Home() {
       console.error('🎤 Microphone error:', error);
       alert(`Microphone error: ${error.message || 'Access denied'}`);
       setIsRecording(false);
-      setIsListening(false);
     }
   };
 
