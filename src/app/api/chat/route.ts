@@ -708,7 +708,7 @@ Examples of questions requiring web search:
 
     // Extract token usage from response
     totalTokens = response.usage?.totalTokens || 0;
-    console.log(`📊 Token usage - Prompt: ${response.usage?.promptTokens || 0}, Completion: ${response.usage?.completionTokens || 0}, Total: ${totalTokens}`);
+    console.log(`📊 Token usage - Total: ${totalTokens} tokens`);
 
     // Log citations if available (for debugging/monitoring)
     if (response.sources && response.sources.length > 0) {
