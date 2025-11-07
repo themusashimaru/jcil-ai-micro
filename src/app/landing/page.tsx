@@ -146,7 +146,7 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight mb-6">
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200 pb-2">
                 Slingshot 2.0
               </span>
               <span className="text-3xl sm:text-4xl md:text-5xl block mt-2">
