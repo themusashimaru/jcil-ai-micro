@@ -1413,7 +1413,7 @@ export default function Home() {
           </div>
 
           <Button
-            className="w-full bg-blue-900 hover:bg-blue-950 text-white rounded-lg transition-all shadow-sm"
+            className="w-full bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white rounded-xl transition-all shadow-lg hover:shadow-xl font-semibold"
             onClick={handleNewChat}
             disabled={isLoading}
           >
@@ -1517,11 +1517,11 @@ export default function Home() {
           {/* Upgrade Plan Button */}
           <Button
             variant="ghost"
-            className="w-full justify-start text-white bg-blue-900 hover:bg-blue-950 transition-all rounded-lg font-medium shadow-sm hover:shadow-md"
+            className="w-full justify-start text-white bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 transition-all rounded-xl font-semibold shadow-lg hover:shadow-xl"
             onClick={() => router.push('/settings')}
             disabled={isLoading}
           >
-            <Zap className="h-5 w-5 mr-2" strokeWidth={2} />
+            <Zap className="h-5 w-5 mr-2" strokeWidth={2.5} />
             <span className="text-sm">Upgrade Plan</span>
           </Button>
 
@@ -1614,7 +1614,7 @@ export default function Home() {
 
       {/* main chat area */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
-        <Card className="w-full h-full flex flex-col shadow-sm sm:shadow-lg bg-white border-slate-200 rounded-lg sm:rounded-xl">
+        <Card className="w-full h-full flex flex-col shadow-xl sm:shadow-2xl bg-white border-slate-200 rounded-lg sm:rounded-2xl">
           {/* header */}
           <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
             <div className="flex items-center justify-between">
@@ -1728,7 +1728,7 @@ export default function Home() {
                     }`}
                   >
                     {msg.role === 'user' ? (
-                      <div className="bg-blue-900 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-sm">
+                      <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-lg">
                         {msg.content}
                       </div>
                     ) : (
@@ -1791,22 +1791,22 @@ export default function Home() {
             className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5 border-t border-slate-200 bg-white rounded-b-lg sm:rounded-b-xl"
           >
             {/* Spiritual Tools - Modern Sharp Buttons */}
-            <div className="mb-3 sm:mb-4 flex flex-wrap gap-2">
+            <div className="mb-3 sm:mb-4 flex flex-wrap gap-3">
               <Button
                 type="button"
                 onClick={() => router.push('/devotional')}
                 disabled={isLoading}
-                className="flex-1 min-w-[120px] h-9 bg-blue-900 hover:bg-blue-950 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                className="flex-1 min-w-[120px] h-10 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
               >
-                <span className="text-xs tracking-wide">DAILY DEVOTIONAL</span>
+                <span className="text-xs tracking-wider">DAILY DEVOTIONAL</span>
               </Button>
               <Button
                 type="button"
                 onClick={() => handleToolSelection('deep-bible-research')}
                 disabled={isLoading}
-                className="flex-1 min-w-[120px] h-9 bg-blue-900 hover:bg-blue-950 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                className="flex-1 min-w-[120px] h-10 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
               >
-                <span className="text-xs tracking-wide">BIBLE RESEARCH</span>
+                <span className="text-xs tracking-wider">BIBLE RESEARCH</span>
               </Button>
             </div>
 
