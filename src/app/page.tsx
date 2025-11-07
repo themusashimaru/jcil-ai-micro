@@ -29,6 +29,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UpgradeModal from '@/components/UpgradeModal';
+import ToolCarousel from '@/components/ToolCarousel';
 
 import {
   MoreVertical,
@@ -2081,24 +2082,12 @@ export default function Home() {
                   </p>
                 </div>
 
-                {/* Spiritual Tools - Centered Buttons */}
-                <div className="flex flex-wrap gap-3 justify-center mt-6">
-                  <Button
-                    type="button"
-                    onClick={() => router.push('/devotional')}
-                    disabled={isLoading}
-                    className="flex-1 min-w-[140px] max-w-[180px] h-10 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                  >
-                    <span className="text-xs tracking-wider">DAILY DEVOTIONAL</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => handleToolSelection('deep-bible-research')}
-                    disabled={isLoading}
-                    className="flex-1 min-w-[140px] max-w-[180px] h-10 bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-                  >
-                    <span className="text-xs tracking-wider">BIBLE RESEARCH</span>
-                  </Button>
+                {/* Tool Carousel */}
+                <div className="w-full mt-8">
+                  <ToolCarousel
+                    onToolSelect={handleToolSelection}
+                    isLoading={isLoading}
+                  />
                 </div>
               </div>
             ) : (
