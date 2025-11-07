@@ -46,22 +46,30 @@ export async function POST(request: Request) {
     }
 
     // Update user's subscription tier and daily message limit
+    // Use upsert to handle both new and existing profiles
     const { data, error } = await supabase
       .from('user_profiles')
-      .update({
+      .upsert({
+        id: userId,
         subscription_tier: tier,
         daily_message_limit: TIER_LIMITS[tier],
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'id'
       })
-      .eq('id', userId);
+      .select();
 
     if (error) {
       console.error('Error updating user tier:', error);
       throw error;
     }
 
+    console.log('✅ User tier updated:', { userId, tier, data });
+
     return NextResponse.json({
       success: true,
       message: `User tier updated to ${tier}`,
+      data: data,
     });
   } catch (error: any) {
     console.error('Admin update tier error:', error);

@@ -129,7 +129,13 @@ export default function AdminDashboard() {
         throw new Error(errorData.error || 'Failed to update user tier');
       }
 
-      // Refresh users list
+      const result = await response.json();
+      console.log('Update result:', result);
+
+      // Small delay to ensure DB has updated
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Refresh users list and stats
       await fetchUsers();
       await fetchStats();
 
