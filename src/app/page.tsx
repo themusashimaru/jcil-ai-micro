@@ -665,15 +665,8 @@ export default function Home() {
     console.log('🎤 Audio blob size:', audioBlob.size, 'bytes');
     console.log('🎤 Audio blob type:', audioBlob.type);
 
-    // CRITICAL: Validate audio before sending to OpenAI
-    const isValid = await validateAudio(audioBlob);
-
-    if (!isValid) {
-      alert('⚠️ MICROPHONE ISSUE\n\nNo audio detected. Please:\n\n1. Check microphone permissions\n2. Ensure microphone is not muted\n3. Speak louder and closer to mic\n4. Try a different browser if issue persists');
-      setIsTranscribing(false);
-      audioChunksRef.current = [];
-      return;
-    }
+    // Skip validation - let the transcription service handle it
+    // Validation was too aggressive and blocking good audio
 
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
