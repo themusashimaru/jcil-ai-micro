@@ -411,9 +411,8 @@ export default function Home() {
     if (isLoading || renamingId === id) return;
     if (!user) return;
 
-    if (isRecording) mediaRecorderRef.current?.stop();
+    if (isRecording) recorderRef.current?.stop();
     setIsRecording(false);
-    setIsTranscribing(false);
     setIsLoading(true);
     setMessages([]);
     setRenamingId(null);
@@ -455,9 +454,8 @@ export default function Home() {
     setRenamingId(null);
     clearAttachmentState();
     setActiveTool('none');
-    if (isRecording) mediaRecorderRef.current?.stop();
+    if (isRecording) recorderRef.current?.stop();
     setIsRecording(false);
-    setIsTranscribing(false);
     inputRef.current?.focus();
     setIsTyping(false);
     setIsSidebarOpen(false);
@@ -762,7 +760,7 @@ export default function Home() {
 
   const handleFormSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
-    if (isLoading || isTranscribing || isRecording) return;
+    if (isLoading || isRecording) return;
 
     // must be signed in to write rows under RLS
     if (!user) {
@@ -775,7 +773,7 @@ export default function Home() {
     const hasText = textInput.length > 0;
 
     if (!hasText && !hasFile) return;
-    if (isRecording) mediaRecorderRef.current?.stop();
+    if (isRecording) recorderRef.current?.stop();
 
     setIsLoading(true);
     setIsTyping(true); // Show typing indicator while AI responds
@@ -2085,7 +2083,7 @@ export default function Home() {
                   value={localInput}
                   onChange={handleTextareaChange}
                   placeholder={getPlaceholderText()}
-                  disabled={isLoading || isTranscribing}
+                  disabled={isLoading}
                   autoComplete="off"
                   autoCorrect="off"
                   spellCheck
