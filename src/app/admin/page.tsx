@@ -126,23 +126,33 @@ export default function AdminDashboard() {
               <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
               <p className="text-slate-600 mt-1">JCIL.AI Command Center</p>
             </div>
-            <Button variant="ghost" onClick={() => router.push('/')}>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/')}
+              className="border-slate-300 text-slate-700 hover:bg-slate-50"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Chat
             </Button>
           </div>
 
           {/* Period Selector */}
-          <div className="flex gap-2 mt-6">
-            {(['daily', 'monthly', 'quarterly', 'half', 'yearly'] as const).map((p) => (
+          <div className="flex gap-2 mt-6 flex-wrap">
+            {([
+              { key: 'daily', label: 'Today' },
+              { key: 'monthly', label: 'This Month' },
+              { key: 'quarterly', label: 'This Quarter' },
+              { key: 'half', label: 'This Half' },
+              { key: 'yearly', label: 'This Year' }
+            ] as const).map((p) => (
               <Button
-                key={p}
-                variant={period === p ? 'default' : 'outline'}
+                key={p.key}
+                variant={period === p.key ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setPeriod(p)}
-                className={period === p ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                onClick={() => setPeriod(p.key)}
+                className={period === p.key ? 'bg-blue-600 hover:bg-blue-700' : ''}
               >
-                {p.charAt(0).toUpperCase() + p.slice(1)}
+                {p.label}
               </Button>
             ))}
             <Button
@@ -228,7 +238,7 @@ export default function AdminDashboard() {
         {/* Revenue Breakdown */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Revenue by Tier</CardTitle>
+            <CardTitle className="text-slate-900">Revenue by Tier</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -263,7 +273,7 @@ export default function AdminDashboard() {
           {/* API Costs */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-slate-900">
                 <Zap className="h-5 w-5 mr-2 text-orange-500" />
                 API Costs
               </CardTitle>
@@ -301,7 +311,7 @@ export default function AdminDashboard() {
           {/* Token Usage */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-slate-900">
                 <Activity className="h-5 w-5 mr-2 text-purple-500" />
                 Token Usage
               </CardTitle>
@@ -338,10 +348,17 @@ export default function AdminDashboard() {
         </div>
 
         {/* Date Range Info */}
-        <div className="text-center text-sm text-slate-500">
-          <Calendar className="h-4 w-4 inline mr-2" />
-          Data from {new Date(stats.dateRange.start).toLocaleDateString()} to{' '}
-          {new Date(stats.dateRange.end).toLocaleDateString()}
+        <div className="text-center">
+          <div className="text-sm text-slate-500">
+            <Calendar className="h-4 w-4 inline mr-2" />
+            Showing data from {new Date(stats.dateRange.start).toLocaleDateString()} to{' '}
+            {new Date(stats.dateRange.end).toLocaleDateString()}
+          </div>
+          <div className="text-xs text-slate-400 mt-1">
+            Usage stats (messages, tokens, costs) are filtered by fiscal period. User counts and revenue show current totals.
+            <br />
+            Fiscal year: January 1 - December 31
+          </div>
         </div>
       </div>
     </div>
