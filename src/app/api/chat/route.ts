@@ -505,10 +505,23 @@ export async function POST(req: Request) {
       model: xai(modelName), // 🎯 Using Grok for all tiers
       system: combinedSystemPrompt,
       messages: aiSdkMessages,
+      providerOptions: {
+        xai: {
+          searchParameters: {
+            mode: 'auto', // 🔥 Grok automatically decides when to search web/X/news
+            returnCitations: true, // 📚 Get source URLs automatically
+          },
+        },
+      },
     });
 
     // Extract text from response
     reply = response.text || "I apologize, but I couldn't generate a text response.";
+
+    // Log citations if available (for debugging/monitoring)
+    if (response.sources && response.sources.length > 0) {
+      console.log('🔍 Grok used Live Search - Citations:', response.sources);
+    }
 
   } catch (error: any) {
     console.error("xAI API Error:", error);
