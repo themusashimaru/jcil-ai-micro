@@ -744,61 +744,19 @@ export default function Home() {
     try {
       console.log('🎤 Requesting microphone access...');
 
-      // Detect if mobile device
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      console.log('🎤 Mobile device:', isMobile);
-      console.log('🎤 iOS device:', isIOS);
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          // Mobile-specific: use higher sample rate for better quality
-          sampleRate: isMobile ? 44100 : 48000,
-        }
-      });
+      // SIMPLE APPROACH - Let browser choose best settings
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       console.log('🎤 Microphone access granted');
       setIsRecording(true);
       audioChunksRef.current = [];
-      recordingStartTimeRef.current = Date.now(); // Track when recording started
+      recordingStartTimeRef.current = Date.now();
 
-      // CRITICAL FIX FOR MOBILE: Try multiple formats in priority order
-      let mimeType = '';
-
-      if (isIOS) {
-        // iOS Safari: ONLY supports mp4
-        console.log('🎤 iOS detected - forcing audio/mp4');
-        mimeType = 'audio/mp4';
-      } else {
-        // Android/Desktop: Try webm first, then fallback
-        const formats = [
-          'audio/webm;codecs=opus',
-          'audio/webm',
-          'audio/mp4',
-          'audio/ogg;codecs=opus',
-          'audio/ogg'
-        ];
-
-        for (const format of formats) {
-          if (MediaRecorder.isTypeSupported(format)) {
-            mimeType = format;
-            console.log('🎤 Using mime type:', mimeType);
-            break;
-          }
-        }
-
-        if (!mimeType) {
-          console.log('🎤 ⚠️ No supported format found, using browser default');
-        }
-      }
-
-      console.log('🎤 Final mime type:', mimeType || 'browser default');
-
-      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      // Let browser choose the best mime type automatically
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
+
+      console.log('🎤 MediaRecorder mime type:', mediaRecorder.mimeType);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -810,7 +768,8 @@ export default function Home() {
       mediaRecorder.onstop = async () => {
         console.log('🎤 Recording stopped, total chunks:', audioChunksRef.current.length);
 
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
+        // Use the actual mimeType from the MediaRecorder
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         console.log('🎤 Final audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type);
 
         if (audioBlob.size === 0) {
@@ -824,9 +783,7 @@ export default function Home() {
       };
 
       console.log('🎤 Starting recording...');
-      // Mobile Safari: Use shorter timeslice for better reliability
-      const timeslice = isMobile ? 500 : 1000;
-      mediaRecorder.start(timeslice);
+      mediaRecorder.start(1000); // Collect every 1 second
     } catch (error: any) {
       console.error('🎤 Microphone error:', error);
       alert(`Microphone error: ${error.message || 'Access denied'}`);
