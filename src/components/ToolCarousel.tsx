@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Shield, Code, BarChart, Briefcase } from 'lucide-react';
+import { BookOpen, Shield, Code, BarChart, Briefcase, Cross } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ToolType } from '@/lib/tools-config';
 
@@ -26,7 +26,7 @@ export default function ToolCarousel({ onToolSelect, isLoading }: ToolCarouselPr
     {
       label: 'DAILY DEVOTIONAL',
       toolType: 'devotional',
-      icon: <BookOpen className="h-4 w-4" />,
+      icon: <Cross className="h-4 w-4" />,
       gradient: 'from-blue-900 to-blue-800' // Dark navy blue
     },
     {
