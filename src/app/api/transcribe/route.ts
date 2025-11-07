@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Missing OPENAI_API_KEY. Add it in Vercel to use the mic / transcription.",
+          error: "Transcription service unavailable. Please contact support.",
         },
         { status: 500 }
       );
@@ -73,9 +73,9 @@ export async function POST(req: NextRequest) {
     openaiForm.append("file", fileBlob, filename);
     openaiForm.append("model", "whisper-1");
     openaiForm.append("language", "en"); // Force English for better accuracy
-    openaiForm.append("temperature", "0"); // Lower temperature = more accurate, less hallucination
+    openaiForm.append("temperature", "0"); // Maximum accuracy setting
 
-    console.log('🎤 [Server] Sending to OpenAI Whisper API...');
+    console.log('🎤 [Server] Sending to transcription service...');
 
     const openaiRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
       method: "POST",
@@ -87,9 +87,9 @@ export async function POST(req: NextRequest) {
 
     if (!openaiRes.ok) {
       const errText = await openaiRes.text();
-      console.error("🎤 [Server] OpenAI whisper error:", errText);
+      console.error("🎤 [Server] Transcription service error:", errText);
       return NextResponse.json(
-        { ok: false, error: "OpenAI transcription failed.", details: errText },
+        { ok: false, error: "Transcription failed. Please try again.", details: errText },
         { status: 500 }
       );
     }
@@ -116,6 +116,6 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     route: "/api/transcribe",
-    needs: "OPENAI_API_KEY",
+    status: "Transcription service ready",
   });
 }
