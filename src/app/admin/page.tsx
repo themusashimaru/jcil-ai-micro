@@ -6,8 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Users, DollarSign, TrendingUp, Zap,
-  Calendar, ArrowLeft, RefreshCw, Activity
+  Calendar, ArrowLeft, RefreshCw, Activity,
+  Search, UserCog, Mail, Clock
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+
+interface User {
+  id: string;
+  email: string;
+  subscription_tier: string;
+  daily_message_count: number;
+  daily_message_limit: number;
+  daily_token_count: number;
+  last_active: string;
+  created_at: string;
+}
 
 interface AdminStats {
   period: string;
@@ -43,8 +56,12 @@ interface AdminStats {
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [period, setPeriod] = useState<'daily' | 'monthly' | 'quarterly' | 'half' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStats = async () => {
@@ -72,8 +89,44 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      setUsersLoading(true);
+      const response = await fetch('/api/admin/users');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+
+      const data = await response.json();
+      setUsers(data.users);
+      setFilteredUsers(data.users);
+    } catch (err: any) {
+      console.error('Failed to load users:', err);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  // Filter users based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredUsers(users);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredUsers(
+        users.filter(
+          (user) =>
+            user.email.toLowerCase().includes(query) ||
+            user.subscription_tier.toLowerCase().includes(query)
+        )
+      );
+    }
+  }, [searchQuery, users]);
+
   useEffect(() => {
     fetchStats();
+    fetchUsers();
   }, [period]);
 
   if (loading && !stats) {
@@ -345,6 +398,119 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* User Management Table */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center text-slate-900">
+                <UserCog className="h-5 w-5 mr-2 text-blue-600" />
+                User Management
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search users..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 w-64"
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchUsers}
+                  disabled={usersLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${usersLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {usersLoading ? (
+              <div className="text-center py-8 text-slate-500">
+                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
+                Loading users...
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                {searchQuery ? 'No users found matching your search' : 'No users yet'}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                        <Mail className="h-4 w-4 inline mr-1" />
+                        Email
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Tier</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Today's Usage</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Tokens</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                        <Clock className="h-4 w-4 inline mr-1" />
+                        Last Active
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Joined</th>
+                      <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((user) => {
+                      const tierColorMap: Record<string, string> = {
+                        free: 'bg-slate-100 text-slate-700',
+                        basic: 'bg-blue-100 text-blue-700',
+                        pro: 'bg-blue-200 text-blue-800',
+                        premium: 'bg-purple-100 text-purple-700',
+                        executive: 'bg-amber-100 text-amber-700',
+                      };
+
+                      return (
+                        <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="py-3 px-4 text-sm text-slate-900">{user.email}</td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold uppercase ${tierColorMap[user.subscription_tier] || tierColorMap.free}`}>
+                              {user.subscription_tier}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center text-sm text-slate-700">
+                            {user.daily_message_count} / {user.daily_message_limit}
+                          </td>
+                          <td className="py-3 px-4 text-center text-sm text-slate-700">
+                            {user.daily_token_count.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-600">
+                            {new Date(user.last_active).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-600">
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => {/* TODO: Implement tier management */}}
+                            >
+                              Manage
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="mt-4 text-sm text-slate-500 text-center">
+              Showing {filteredUsers.length} of {users.length} users
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Date Range Info */}
         <div className="text-center">
