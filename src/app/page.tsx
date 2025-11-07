@@ -76,8 +76,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-// Christian-themed loading messages with professional academic flair
-const LOADING_MESSAGES = [
+// Christian-themed loading messages for theological/chat queries
+const THEOLOGICAL_LOADING_MESSAGES = [
   "Seeking wisdom from Scripture...",
   "Processing through a biblical lens...",
   "Analyzing with discernment...",
@@ -95,16 +95,21 @@ const LOADING_MESSAGES = [
   "Rejecting wokeness, embracing truth...",
 ];
 
-const TypingIndicator = () => {
+// Simple loading message for practical queries (business, weather, directions, etc.)
+const PRACTICAL_LOADING_MESSAGE = "Processing...";
+
+const TypingIndicator = ({ isPractical = false }: { isPractical?: boolean }) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
+    if (isPractical) return; // Don't cycle messages for practical queries
+
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+      setMessageIndex((prev) => (prev + 1) % THEOLOGICAL_LOADING_MESSAGES.length);
     }, 2000); // Change message every 2 seconds
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isPractical]);
 
   return (
     <div className="flex items-start space-x-3 justify-start">
@@ -116,7 +121,7 @@ const TypingIndicator = () => {
             <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
           <span className="text-sm text-slate-600 italic animate-pulse">
-            {LOADING_MESSAGES[messageIndex]}
+            {isPractical ? PRACTICAL_LOADING_MESSAGE : THEOLOGICAL_LOADING_MESSAGES[messageIndex]}
           </span>
         </div>
       </div>
@@ -146,6 +151,7 @@ export default function Home() {
   const [localInput, setLocalInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isPracticalQuery, setIsPracticalQuery] = useState(false);
 
   // history
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -819,6 +825,10 @@ export default function Home() {
     const isDirectionsIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && directionsPatterns.some(pattern => pattern.test(lowerText));
     const isTimezoneIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && !isDirectionsIntent && timezonePatterns.some(pattern => pattern.test(lowerText));
 
+    // Set whether this is a practical query (business, weather, directions, etc.) or theological
+    const isPractical = isSearchIntent || isFactCheckIntent || isAirQualityIntent || isDirectionsIntent || isTimezoneIntent;
+    setIsPracticalQuery(isPractical);
+
     // persist user message with user_id
     const { error: insertUserErr } = await supabase.from('messages').insert({
       user_id: user.id,                    // ✅ include user_id
@@ -1289,6 +1299,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
       setIsTyping(false);
+      setIsPracticalQuery(false);
       inputRef.current?.focus();
     }
   };
@@ -1686,7 +1697,26 @@ export default function Home() {
                       </div>
                     ) : (
                       <div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-em:text-slate-600 prose-em:italic prose-strong:font-bold prose-strong:text-slate-900 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        <ReactMarkdown
+                          components={{
+                            a: ({ node, ...props }) => (
+                              <a
+                                {...props}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
+                                onClick={(e) => {
+                                  // Ensure links work properly
+                                  if (props.href?.startsWith('http') || props.href?.startsWith('tel:')) {
+                                    e.stopPropagation();
+                                  }
+                                }}
+                              />
+                            ),
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
                       </div>
                     )}
 
@@ -1715,7 +1745,7 @@ export default function Home() {
                 </div>
               ))
             )}
-            {isTyping && <TypingIndicator />}
+            {isTyping && <TypingIndicator isPractical={isPracticalQuery} />}
             <div ref={messagesEndRef} />
           </CardContent>
 
