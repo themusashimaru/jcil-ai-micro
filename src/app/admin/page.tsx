@@ -127,9 +127,8 @@ export default function AdminDashboard() {
               <p className="text-slate-600 mt-1">JCIL.AI Command Center</p>
             </div>
             <Button
-              variant="outline"
               onClick={() => router.push('/')}
-              className="border-slate-300 text-slate-700 hover:bg-slate-50"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Chat
