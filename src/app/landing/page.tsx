@@ -146,7 +146,7 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight mb-6">
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-200 pb-2">
                 Slingshot 2.0
               </span>
               <span className="text-3xl sm:text-4xl md:text-5xl block mt-2">
@@ -406,6 +406,19 @@ export default function LandingPage() {
                 "Other AI tools enable cheating. We actively prevent it. That's the difference."
               </p>
             </div>
+          </div>
+
+          {/* CTA Button */}
+          <div className="mt-12 text-center">
+            <Button
+              onClick={() => router.push('/signup')}
+              size="lg"
+              className="bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white font-bold text-xl px-12 py-8 rounded-2xl shadow-2xl hover:shadow-blue-900/50 transition-all duration-300 hover:scale-105"
+            >
+              Experience the Chat Now - FREE
+              <Zap className="ml-3 h-6 w-6" />
+            </Button>
+            <p className="mt-4 text-sm text-slate-500">No credit card required • 10 free messages daily</p>
           </div>
         </div>
       </section>
