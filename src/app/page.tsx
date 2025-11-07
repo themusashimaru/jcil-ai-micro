@@ -112,24 +112,37 @@ const PRACTICAL_LOADING_MESSAGES = [
   "Filtering through Christian principles...",
 ];
 
-const TypingIndicator = ({ isPractical = false }: { isPractical?: boolean }) => {
+// Sassy loading messages for liberal/woke queries 😏
+const WOKE_DETECTION_MESSAGES = [
+  "Detecting wokeness...",
+  "Restructuring the woke agenda...",
+  "Reshaping the liberal perspective...",
+  "Applying common sense...",
+  "Fact-checking mainstream narratives...",
+  "Filtering out cultural Marxism...",
+  "Translating from woke to truth...",
+  "Rejecting identity politics...",
+  "Deploying biblical reality check...",
+  "Bypassing leftist programming...",
+];
+
+const TypingIndicator = ({ isPractical = false, isWoke = false }: { isPractical?: boolean; isWoke?: boolean }) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
-    if (!isPractical) {
-      // Cycle through theological messages
-      const interval = setInterval(() => {
-        setMessageIndex((prev) => (prev + 1) % THEOLOGICAL_LOADING_MESSAGES.length);
-      }, 2000);
-      return () => clearInterval(interval);
-    } else {
-      // Cycle through practical messages
-      const interval = setInterval(() => {
-        setMessageIndex((prev) => (prev + 1) % PRACTICAL_LOADING_MESSAGES.length);
-      }, 2000);
-      return () => clearInterval(interval);
+    let messages = THEOLOGICAL_LOADING_MESSAGES;
+    if (isWoke) {
+      messages = WOKE_DETECTION_MESSAGES;
+    } else if (isPractical) {
+      messages = PRACTICAL_LOADING_MESSAGES;
     }
-  }, [isPractical]);
+
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % messages.length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isPractical, isWoke]);
 
   return (
     <div className="flex items-start space-x-3 justify-start">
@@ -141,7 +154,12 @@ const TypingIndicator = ({ isPractical = false }: { isPractical?: boolean }) => 
             <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
           <span className="text-sm text-slate-600 italic animate-pulse">
-            {isPractical ? PRACTICAL_LOADING_MESSAGES[messageIndex] : THEOLOGICAL_LOADING_MESSAGES[messageIndex]}
+            {isWoke
+              ? WOKE_DETECTION_MESSAGES[messageIndex]
+              : isPractical
+                ? PRACTICAL_LOADING_MESSAGES[messageIndex]
+                : THEOLOGICAL_LOADING_MESSAGES[messageIndex]
+            }
           </span>
         </div>
       </div>
@@ -222,6 +240,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isPracticalQuery, setIsPracticalQuery] = useState(false);
+  const [isWokeQuery, setIsWokeQuery] = useState(false);
 
   // history
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -894,17 +913,41 @@ export default function Home() {
       /\b(sermon|preach|pastor|church|ministry)\b/i,
     ];
 
+    // Woke/Liberal Detection Patterns (for sassy loading messages) 😏
+    const wokePatterns = [
+      /\b(white privilege|systemic racism|microaggression|safe space|trigger warning)\b/i,
+      /\b(gender (identity|fluid|spectrum)|non-?binary|pronouns|ze\/zir|they\/them as singular)\b/i,
+      /\b(toxic masculinity|patriarchy|heteronormative|cisgender|cis)\b/i,
+      /\b(cultural appropriation|latinx|folx|bipoc)\b/i,
+      /\b(defund (the )?police|acab|1312)\b/i,
+      /\b(democratic socialism|social justice warrior|sjw|woke|cancel culture)\b/i,
+      /\b(equity (not equality)|diversity training|unconscious bias)\b/i,
+      /\b(reproductive rights|abortion is healthcare|my body my choice)\b/i,
+      /\b(climate emergency|climate crisis|green new deal)\b/i,
+      /\b(open borders|sanctuary cit(y|ies)|undocumented immigrants)\b/i,
+    ];
+
     const isSearchIntent = searchPatterns.some(pattern => pattern.test(lowerText));
     const isFactCheckIntent = !isSearchIntent && factCheckPatterns.some(pattern => pattern.test(lowerText));
     const isAirQualityIntent = !isSearchIntent && !isFactCheckIntent && airQualityPatterns.some(pattern => pattern.test(lowerText));
     const isDirectionsIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && directionsPatterns.some(pattern => pattern.test(lowerText));
     const isTimezoneIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && !isDirectionsIntent && timezonePatterns.some(pattern => pattern.test(lowerText));
     const isTheologicalIntent = theologicalPatterns.some(pattern => pattern.test(lowerText));
+    const isWokeIntent = wokePatterns.some(pattern => pattern.test(lowerText));
 
-    // Flip the logic: Most queries are practical (show computing messages)
-    // Only theological queries show biblical messages
-    const isPractical = !isTheologicalIntent; // Everything is practical UNLESS it's theological
-    setIsPracticalQuery(isPractical);
+    // Priority: Woke > Theological > Practical
+    // Woke detection trumps everything for that sassy response 😎
+    if (isWokeIntent) {
+      setIsPracticalQuery(false);
+      setIsWokeQuery(true);
+    } else if (isTheologicalIntent) {
+      setIsPracticalQuery(false);
+      setIsWokeQuery(false);
+    } else {
+      // Everything else is practical
+      setIsPracticalQuery(true);
+      setIsWokeQuery(false);
+    }
 
     // persist user message with user_id
     const { error: insertUserErr } = await supabase.from('messages').insert({
@@ -1360,6 +1403,7 @@ export default function Home() {
       setIsLoading(false);
       setIsTyping(false);
       setIsPracticalQuery(false);
+      setIsWokeQuery(false);
       inputRef.current?.focus();
     }
   };
@@ -1812,7 +1856,7 @@ export default function Home() {
                 </div>
               ))
             )}
-            {isTyping && <TypingIndicator isPractical={isPracticalQuery} />}
+            {isTyping && <TypingIndicator isPractical={isPracticalQuery} isWoke={isWokeQuery} />}
             <div ref={messagesEndRef} />
           </CardContent>
 
