@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
     openaiForm.append("model", "whisper-1");
     openaiForm.append("language", "en"); // Force English for better accuracy
     openaiForm.append("temperature", "0"); // Maximum accuracy setting
+    openaiForm.append("prompt", "The user is speaking clearly in English. Transcribe exactly what they say."); // Help guide transcription
 
     console.log('🎤 [Server] Sending to transcription service...');
 
