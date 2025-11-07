@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
 
 // Routes allowed for logged-out users
   const publicRoutes = [
+    '/landing',
     '/login',
     '/signup',
     '/auth/callback',
