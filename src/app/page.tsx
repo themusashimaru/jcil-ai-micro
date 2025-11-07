@@ -596,34 +596,49 @@ export default function Home() {
 
   const removeAttachedFile = () => { clearAttachmentState(); };
 
-  // --------- AUDIO (auto-send after transcription) ----------
+  // --------- AUDIO (manual send, no auto-submit) ----------
   const handleTranscribe = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
 
+    console.log('🎤 Audio blob size:', audioBlob.size, 'bytes');
+    console.log('🎤 Audio blob type:', audioBlob.type);
+
     try {
       const response = await fetch('/api/transcribe', { method: 'POST', body: formData });
       const data = await response.json();
+
+      console.log('🎤 Transcription response:', data);
+
       if (response.ok) {
-        // FIX: Use only the transcribed text, don't concatenate with existing input
-        const transcribedText = data.text.trim();
+        // FIX: Use only the transcribed text, show it to user before sending
+        const transcribedText = data.text?.trim() || '';
+        console.log('🎤 Transcribed text:', transcribedText);
+
+        if (!transcribedText) {
+          alert('No speech detected. Please try again and speak clearly.');
+          setIsTranscribing(false);
+          audioChunksRef.current = [];
+          return;
+        }
+
         setLocalInput(transcribedText);
-        // Auto-submit after transcription completes
         setIsTranscribing(false);
         audioChunksRef.current = [];
-        // Small delay to ensure state updates, then auto-submit
-        setTimeout(() => {
-          handleFormSubmit();
-        }, 100);
+
+        // DON'T auto-submit - let user review and click send
+        // This allows them to see what was transcribed
+        inputRef.current?.focus();
       } else {
+        console.error('🎤 Transcription error:', data.error);
         alert(`Transcription failed: ${data.error || 'Unknown error'}`);
         setIsTranscribing(false);
         audioChunksRef.current = [];
       }
     } catch (error) {
-      console.error('Error transcribing audio:', error);
-      alert('Failed to transcribe audio.');
+      console.error('🎤 Error transcribing audio:', error);
+      alert('Failed to transcribe audio. Check console for details.');
       setIsTranscribing(false);
       audioChunksRef.current = [];
     }
@@ -633,6 +648,7 @@ export default function Home() {
     if (isLoading || isTranscribing) return;
 
     if (isRecording) {
+      console.log('🎤 Stopping recording...');
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
       setIsListening(false);
@@ -640,7 +656,16 @@ export default function Home() {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('🎤 Requesting microphone access...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
+      });
+
+      console.log('🎤 Microphone access granted');
       setIsRecording(true);
       setIsListening(false);
       audioChunksRef.current = [];
@@ -650,11 +675,27 @@ export default function Home() {
         setIsListening(true);
       }, 1500);
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      // Try webm first, fallback to other formats if needed
+      let mimeType = 'audio/webm';
+      if (!MediaRecorder.isTypeSupported('audio/webm')) {
+        console.log('⚠️ audio/webm not supported, trying alternatives...');
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+        } else {
+          mimeType = ''; // Let browser choose
+        }
+      }
+
+      console.log('🎤 Using mime type:', mimeType || 'browser default');
+
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
+          console.log('🎤 Audio chunk received:', event.data.size, 'bytes');
           audioChunksRef.current.push(event.data);
         }
       };
@@ -662,15 +703,27 @@ export default function Home() {
       mediaRecorder.onstop = async () => {
         clearTimeout(listeningTimeout);
         setIsListening(false);
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+
+        console.log('🎤 Recording stopped, total chunks:', audioChunksRef.current.length);
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' });
+        console.log('🎤 Final audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type);
+
+        if (audioBlob.size === 0) {
+          alert('No audio recorded. Please try again.');
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
         await handleTranscribe(audioBlob);
         stream.getTracks().forEach((t) => t.stop());
       };
 
-      mediaRecorder.start();
-    } catch (error) {
-      console.error('mic error:', error);
-      alert('Microphone access denied.');
+      console.log('🎤 Starting recording...');
+      mediaRecorder.start(1000); // Collect data every 1 second
+    } catch (error: any) {
+      console.error('🎤 Microphone error:', error);
+      alert(`Microphone error: ${error.message || 'Access denied'}`);
       setIsRecording(false);
       setIsListening(false);
     }
