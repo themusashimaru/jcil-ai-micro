@@ -201,7 +201,7 @@ export default function LandingPage() {
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6">
                 Tired of AI That Pushes
-                <span className="text-red-600"> Woke Ideology?</span>
+                <span className="text-red-600"> Misaligned Ideology?</span>
               </h2>
               <p className="text-lg text-slate-600 mb-6">
                 Most AI assistants promote leftist narratives, contradict Scripture, and undermine
@@ -299,8 +299,119 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Academic Integrity & Guardrails Section */}
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4">
+              We Don't Just Deliver Answers -<br />We Help You Course Correct
+            </h2>
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+              Built-in guardrails to promote genuine learning, academic integrity, and pastoral responsibility
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Students */}
+            <Card className="p-8 bg-gradient-to-br from-blue-50 to-white border-2 border-blue-200 hover:shadow-xl transition-all">
+              <div className="text-blue-600 mb-4">
+                <BookOpen className="h-12 w-12" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-4">For Students</h3>
+              <p className="text-slate-600 mb-4">
+                We detect academic shortcuts and redirect you toward genuine learning. Instead of just giving answers, we:
+              </p>
+              <ul className="space-y-2 text-sm text-slate-700">
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Guide you through problem-solving processes</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Encourage diligent work and critical thinking</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Detect plagiarism attempts and redirect to study</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Promote intellectual growth over shortcuts</span>
+                </li>
+              </ul>
+            </Card>
+
+            {/* Pastors */}
+            <Card className="p-8 bg-gradient-to-br from-yellow-50 to-white border-2 border-yellow-400 hover:shadow-xl transition-all">
+              <div className="text-yellow-600 mb-4">
+                <Heart className="h-12 w-12" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-4">For Pastors</h3>
+              <p className="text-slate-600 mb-4">
+                We respect the sacred calling of sermon preparation. We won't write your sermon, but we'll help you prepare:
+              </p>
+              <ul className="space-y-2 text-sm text-slate-700">
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Outline sermon structure and flow</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Provide relevant Scripture references</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Explain historical and cultural context</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Honor Holy Spirit-led preparation process</span>
+                </li>
+              </ul>
+            </Card>
+
+            {/* Teachers */}
+            <Card className="p-8 bg-gradient-to-br from-green-50 to-white border-2 border-green-200 hover:shadow-xl transition-all">
+              <div className="text-green-600 mb-4">
+                <Users className="h-12 w-12" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-4">For Teachers</h3>
+              <p className="text-slate-600 mb-4">
+                Want your students using AI? Choose us - we're designed with academic integrity at our core:
+              </p>
+              <ul className="space-y-2 text-sm text-slate-700">
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Detects and redirects shortcut attempts</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Encourages original thinking and research</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Serves as a study partner, not a cheat tool</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Promotes genuine learning outcomes</span>
+                </li>
+              </ul>
+            </Card>
+          </div>
+
+          <div className="mt-12 text-center">
+            <div className="inline-block bg-blue-100 border-2 border-blue-300 rounded-xl p-6 max-w-3xl">
+              <p className="text-lg text-blue-900 font-semibold">
+                "Other AI tools enable cheating. We actively prevent it. That's the difference."
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
-      <section id="pricing" className="py-16 sm:py-24 bg-white">
+      <section id="pricing" className="py-16 sm:py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4">
