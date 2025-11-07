@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 
 import { createClient } from '@/lib/supabase/browser';
 import { formatMessageTime } from '@/lib/format-date';
@@ -992,12 +993,12 @@ export default function Home() {
               // Make phone number clickable with tel: link
               if (b.phone) {
                 const phoneDigits = b.phone.replace(/\D/g, ''); // Remove non-digits for tel link
-                info += `📞 [${b.phone}](tel:${phoneDigits})\n`;
+                info += `📞 <a href="tel:${phoneDigits}" class="text-blue-600 underline hover:text-blue-800">${b.phone}</a>\n`;
               }
 
               // Always show website if available, make it clickable
               if (b.website) {
-                info += `🌐 [Visit Website](${b.website})\n`;
+                info += `🌐 <a href="${b.website}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline hover:text-blue-800">Visit Website</a>\n`;
               }
 
               if (b.rating) info += `⭐ ${b.rating}/5 (${b.total_ratings || 0} reviews)\n`;
@@ -1698,36 +1699,7 @@ export default function Home() {
                     ) : (
                       <div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-em:text-slate-600 prose-em:italic prose-strong:font-bold prose-strong:text-slate-900 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800">
                         <ReactMarkdown
-                          components={{
-                            a: ({ node, ...props }) => {
-                              const isTelLink = props.href?.startsWith('tel:');
-                              const isWebLink = props.href?.startsWith('http');
-
-                              return (
-                                <a
-                                  {...props}
-                                  target={isWebLink ? '_blank' : undefined}
-                                  rel={isWebLink ? 'noopener noreferrer' : undefined}
-                                  className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
-                                  onClick={(e) => {
-                                    // Handle tel links explicitly
-                                    if (isTelLink && props.href) {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      console.log('📞 Calling:', props.href);
-                                      window.location.href = props.href;
-                                      return false;
-                                    }
-
-                                    // For web links, just stop propagation
-                                    if (isWebLink) {
-                                      e.stopPropagation();
-                                    }
-                                  }}
-                                />
-                              );
-                            },
-                          }}
+                          rehypePlugins={[rehypeRaw]}
                         >
                           {msg.content}
                         </ReactMarkdown>
