@@ -1526,7 +1526,7 @@ export default function Home() {
           {/* Upgrade/Manage Plan Button */}
           <Button
             variant="ghost"
-            className="w-full justify-start text-white bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 transition-all rounded-xl font-semibold shadow-lg hover:shadow-xl"
+            className="w-full justify-center text-white bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 transition-all rounded-xl font-semibold shadow-lg hover:shadow-xl"
             onClick={() => router.push('/settings')}
             disabled={isLoading}
           >
