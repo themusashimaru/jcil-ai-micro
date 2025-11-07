@@ -126,13 +126,79 @@ const WOKE_DETECTION_MESSAGES = [
   "Bypassing leftist programming...",
 ];
 
-const TypingIndicator = ({ isPractical = false, isWoke = false }: { isPractical?: boolean; isWoke?: boolean }) => {
+// Lazy student detection 📚
+const LAZY_STUDENT_MESSAGES = [
+  "Detecting academic shortcuts...",
+  "Encouraging genuine learning...",
+  "Redirecting to study materials...",
+  "Promoting intellectual growth...",
+  "Discouraging plagiarism...",
+  "Building character through effort...",
+  "Teaching the value of hard work...",
+  "Guiding towards honest achievement...",
+];
+
+// Veteran detection 🇺🇸
+const VETERAN_MESSAGES = [
+  "Honoring your service...",
+  "Thank you for your sacrifice...",
+  "Respecting those who served...",
+  "Grateful for your dedication...",
+  "Serving those who served...",
+  "Recognizing military service...",
+  "Appreciating American heroes...",
+];
+
+// Business professional detection 💼
+const BUSINESS_MESSAGES = [
+  "Analyzing business strategy...",
+  "Processing professional inquiry...",
+  "Structuring business insights...",
+  "Optimizing strategic approach...",
+  "Deploying market intelligence...",
+  "Synthesizing business data...",
+];
+
+// Parent/Homeschool detection 👨‍👩‍👧‍👦
+const PARENT_MESSAGES = [
+  "Supporting family education...",
+  "Assisting homeschool curriculum...",
+  "Providing biblical guidance for families...",
+  "Strengthening Christian parenting...",
+  "Building godly family foundations...",
+];
+
+const TypingIndicator = ({
+  isPractical = false,
+  isWoke = false,
+  isLazyStudent = false,
+  isVeteran = false,
+  isBusiness = false,
+  isParent = false
+}: {
+  isPractical?: boolean;
+  isWoke?: boolean;
+  isLazyStudent?: boolean;
+  isVeteran?: boolean;
+  isBusiness?: boolean;
+  isParent?: boolean;
+}) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
     let messages = THEOLOGICAL_LOADING_MESSAGES;
-    if (isWoke) {
+
+    // Priority order for special detection
+    if (isVeteran) {
+      messages = VETERAN_MESSAGES;
+    } else if (isLazyStudent) {
+      messages = LAZY_STUDENT_MESSAGES;
+    } else if (isWoke) {
       messages = WOKE_DETECTION_MESSAGES;
+    } else if (isParent) {
+      messages = PARENT_MESSAGES;
+    } else if (isBusiness) {
+      messages = BUSINESS_MESSAGES;
     } else if (isPractical) {
       messages = PRACTICAL_LOADING_MESSAGES;
     }
@@ -142,7 +208,7 @@ const TypingIndicator = ({ isPractical = false, isWoke = false }: { isPractical?
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [isPractical, isWoke]);
+  }, [isPractical, isWoke, isLazyStudent, isVeteran, isBusiness, isParent]);
 
   return (
     <div className="flex items-start space-x-3 justify-start">
@@ -154,11 +220,19 @@ const TypingIndicator = ({ isPractical = false, isWoke = false }: { isPractical?
             <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
           <span className="text-sm text-slate-600 italic animate-pulse">
-            {isWoke
-              ? WOKE_DETECTION_MESSAGES[messageIndex]
-              : isPractical
-                ? PRACTICAL_LOADING_MESSAGES[messageIndex]
-                : THEOLOGICAL_LOADING_MESSAGES[messageIndex]
+            {isVeteran
+              ? VETERAN_MESSAGES[messageIndex]
+              : isLazyStudent
+                ? LAZY_STUDENT_MESSAGES[messageIndex]
+                : isWoke
+                  ? WOKE_DETECTION_MESSAGES[messageIndex]
+                  : isParent
+                    ? PARENT_MESSAGES[messageIndex]
+                    : isBusiness
+                      ? BUSINESS_MESSAGES[messageIndex]
+                      : isPractical
+                        ? PRACTICAL_LOADING_MESSAGES[messageIndex]
+                        : THEOLOGICAL_LOADING_MESSAGES[messageIndex]
             }
           </span>
         </div>
@@ -241,6 +315,10 @@ export default function Home() {
   const [isTyping, setIsTyping] = useState(false);
   const [isPracticalQuery, setIsPracticalQuery] = useState(false);
   const [isWokeQuery, setIsWokeQuery] = useState(false);
+  const [isLazyStudentQuery, setIsLazyStudentQuery] = useState(false);
+  const [isVeteranQuery, setIsVeteranQuery] = useState(false);
+  const [isBusinessQuery, setIsBusinessQuery] = useState(false);
+  const [isParentQuery, setIsParentQuery] = useState(false);
 
   // history
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -927,6 +1005,46 @@ export default function Home() {
       /\b(open borders|sanctuary cit(y|ies)|undocumented immigrants)\b/i,
     ];
 
+    // Lazy Student Detection 📚
+    const lazyStudentPatterns = [
+      /\b(write (my|an) (essay|paper|report|assignment|homework) (for me|about))\b/i,
+      /\b(do my homework|complete this assignment|finish (my|this) (essay|paper))\b/i,
+      /\b(give me (the )?answer(s)? to|tell me the answer)\b/i,
+      /\b(summarize (this|the) (book|chapter|article) (for me)?)\b/i,
+      /\b(i (need|want) (you to )?(write|do|complete|finish))\b/i,
+      /\b(can you (just )?(write|do|make|create) (this|my|an))\b/i,
+      /due tomorrow|due (in|by) (an hour|2 hours|tonight)/i,
+      /\b(quick(ly)?|fast|asap|urgent(ly)?|need (it )?now)\b.*\b(essay|paper|homework|assignment)\b/i,
+    ];
+
+    // Veteran Detection 🇺🇸
+    const veteranPatterns = [
+      /\b(i (am|was) (a |an )?(veteran|vet|soldier|marine|sailor|airman|service ?member))\b/i,
+      /\b(i served (in|with) (the )?(army|navy|air force|marines|military|national guard))\b/i,
+      /\b(deployed|deployment|combat|tour of duty|active duty|military service)\b/i,
+      /\b(va (benefits|hospital|healthcare|claim)|veterans? affairs)\b/i,
+      /\b(ptsd|tbi|service.?connected|dd.?214|gi bill)\b/i,
+    ];
+
+    // Business Professional Detection 💼
+    const businessPatterns = [
+      /\b(business (strategy|plan|model|proposal|analysis))\b/i,
+      /\b(market (analysis|research|strategy|penetration|share))\b/i,
+      /\b(roi|kpi|metrics|revenue|profit|quarterly|fiscal)\b/i,
+      /\b(stakeholder|shareholder|investor|board meeting)\b/i,
+      /\b(enterprise|corporate|c.?suite|executive|ceo|cfo)\b/i,
+      /\b(swot analysis|competitive advantage|value proposition)\b/i,
+    ];
+
+    // Parent/Homeschool Detection 👨‍👩‍👧‍👦
+    const parentPatterns = [
+      /\b(homeschool|home.?school|home education)\b/i,
+      /\b(teaching (my|our) (kids?|children|son|daughter))\b/i,
+      /\b(christian curriculum|biblical worldview|faith.?based education)\b/i,
+      /\b((my|our) (child|son|daughter|kids?) (is|are) learning)\b/i,
+      /\b(family devotion|parenting|raising (godly )?children)\b/i,
+    ];
+
     const isSearchIntent = searchPatterns.some(pattern => pattern.test(lowerText));
     const isFactCheckIntent = !isSearchIntent && factCheckPatterns.some(pattern => pattern.test(lowerText));
     const isAirQualityIntent = !isSearchIntent && !isFactCheckIntent && airQualityPatterns.some(pattern => pattern.test(lowerText));
@@ -934,19 +1052,41 @@ export default function Home() {
     const isTimezoneIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && !isDirectionsIntent && timezonePatterns.some(pattern => pattern.test(lowerText));
     const isTheologicalIntent = theologicalPatterns.some(pattern => pattern.test(lowerText));
     const isWokeIntent = wokePatterns.some(pattern => pattern.test(lowerText));
+    const isLazyStudentIntent = lazyStudentPatterns.some(pattern => pattern.test(lowerText));
+    const isVeteranIntent = veteranPatterns.some(pattern => pattern.test(lowerText));
+    const isBusinessIntent = businessPatterns.some(pattern => pattern.test(lowerText));
+    const isParentIntent = parentPatterns.some(pattern => pattern.test(lowerText));
 
-    // Priority: Woke > Theological > Practical
-    // Woke detection trumps everything for that sassy response 😎
-    if (isWokeIntent) {
-      setIsPracticalQuery(false);
+    // Priority: Veteran > LazyStudent > Woke > Parent > Business > Theological > Practical
+    // Reset all flags first
+    setIsPracticalQuery(false);
+    setIsWokeQuery(false);
+    setIsLazyStudentQuery(false);
+    setIsVeteranQuery(false);
+    setIsBusinessQuery(false);
+    setIsParentQuery(false);
+
+    if (isVeteranIntent) {
+      // Highest priority - respect our vets! 🇺🇸
+      setIsVeteranQuery(true);
+    } else if (isLazyStudentIntent) {
+      // Catch cheaters early 📚
+      setIsLazyStudentQuery(true);
+    } else if (isWokeIntent) {
+      // Time for sass 😏
       setIsWokeQuery(true);
+    } else if (isParentIntent) {
+      // Support Christian families 👨‍👩‍👧‍👦
+      setIsParentQuery(true);
+    } else if (isBusinessIntent) {
+      // Professional mode 💼
+      setIsBusinessQuery(true);
     } else if (isTheologicalIntent) {
-      setIsPracticalQuery(false);
-      setIsWokeQuery(false);
+      // Biblical messages ✝️
+      // Keep all false, will use theological by default
     } else {
       // Everything else is practical
       setIsPracticalQuery(true);
-      setIsWokeQuery(false);
     }
 
     // persist user message with user_id
@@ -1404,6 +1544,10 @@ export default function Home() {
       setIsTyping(false);
       setIsPracticalQuery(false);
       setIsWokeQuery(false);
+      setIsLazyStudentQuery(false);
+      setIsVeteranQuery(false);
+      setIsBusinessQuery(false);
+      setIsParentQuery(false);
       inputRef.current?.focus();
     }
   };
@@ -1856,7 +2000,16 @@ export default function Home() {
                 </div>
               ))
             )}
-            {isTyping && <TypingIndicator isPractical={isPracticalQuery} isWoke={isWokeQuery} />}
+            {isTyping && (
+              <TypingIndicator
+                isPractical={isPracticalQuery}
+                isWoke={isWokeQuery}
+                isLazyStudent={isLazyStudentQuery}
+                isVeteran={isVeteranQuery}
+                isBusiness={isBusinessQuery}
+                isParent={isParentQuery}
+              />
+            )}
             <div ref={messagesEndRef} />
           </CardContent>
 
