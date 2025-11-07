@@ -130,6 +130,56 @@ const TypingIndicator = ({ isPractical = false }: { isPractical?: boolean }) => 
   );
 };
 
+// Business List Component - renders with clickable phone/website
+const BusinessList = ({ businesses }: { businesses: any[] }) => {
+  return (
+    <div className="space-y-4">
+      <p className="text-slate-700 font-medium">Here are the closest places I found:</p>
+      {businesses.map((b: any, i: number) => (
+        <div key={i} className="border-b border-slate-200 pb-3 last:border-0">
+          <div className="font-bold text-slate-900">{b.name}</div>
+          {b.address && <div className="text-sm text-slate-600">{b.address}</div>}
+          {b.phone && (
+            <div className="text-sm">
+              📞{' '}
+              <button
+                onClick={() => {
+                  const phoneDigits = b.phone.replace(/\D/g, '');
+                  window.location.href = `tel:${phoneDigits}`;
+                }}
+                className="text-blue-600 underline hover:text-blue-800 cursor-pointer bg-transparent border-none p-0 font-inherit"
+              >
+                {b.phone}
+              </button>
+            </div>
+          )}
+          {b.website && (
+            <div className="text-sm">
+              🌐{' '}
+              <button
+                onClick={() => window.open(b.website, '_blank')}
+                className="text-blue-600 underline hover:text-blue-800 cursor-pointer bg-transparent border-none p-0 font-inherit"
+              >
+                Visit Website
+              </button>
+            </div>
+          )}
+          {b.rating && (
+            <div className="text-sm text-slate-600">
+              ⭐ {b.rating}/5 ({b.total_ratings || 0} reviews)
+            </div>
+          )}
+          {b.open_now !== null && (
+            <div className="text-sm">
+              {b.open_now ? '🟢 Open now' : '🔴 Closed'}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const supabase = createClient();
 
 export default function Home() {
@@ -985,28 +1035,13 @@ export default function Home() {
           setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-search-') && !m.id.startsWith('temp-location-')));
 
           if (localSearchResponse.ok && localSearchData.businesses && localSearchData.businesses.length > 0) {
-            // Format businesses into a nice response
-            const businessList = localSearchData.businesses.map((b: any, i: number) => {
-              let info = `**${b.name}**\n`;
-              info += b.address ? `${b.address}\n` : '';
+            // Store businesses as JSON in the message for special rendering
+            const businessData = {
+              type: 'business_list',
+              businesses: localSearchData.businesses
+            };
 
-              // Make phone number clickable with tel: link
-              if (b.phone) {
-                const phoneDigits = b.phone.replace(/\D/g, ''); // Remove non-digits for tel link
-                info += `📞 <button onclick="window.location.href='tel:${phoneDigits}'; return false;" style="background:none;border:none;padding:0;color:#2563eb;text-decoration:underline;cursor:pointer;font:inherit;">${b.phone}</button>\n`;
-              }
-
-              // Always show website if available, make it clickable
-              if (b.website) {
-                info += `🌐 <button onclick="window.open('${b.website}', '_blank'); return false;" style="background:none;border:none;padding:0;color:#2563eb;text-decoration:underline;cursor:pointer;font:inherit;">Visit Website</button>\n`;
-              }
-
-              if (b.rating) info += `⭐ ${b.rating}/5 (${b.total_ratings || 0} reviews)\n`;
-              if (b.open_now !== null) info += b.open_now ? '🟢 Open now\n' : '🔴 Closed\n';
-              return info;
-            }).join('\n---\n\n');
-
-            assistantText = `Here are the closest places I found:\n\n${businessList}`;
+            assistantText = JSON.stringify(businessData);
           } else {
             // More helpful error message
             if (localSearchData.error) {
@@ -1697,12 +1732,27 @@ export default function Home() {
                         {msg.content}
                       </div>
                     ) : (
-                      <div className="text-slate-700 text-sm leading-relaxed prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-em:text-slate-600 prose-em:italic prose-strong:font-bold prose-strong:text-slate-900 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800">
-                        <ReactMarkdown
-                          rehypePlugins={[rehypeRaw]}
-                        >
-                          {msg.content}
-                        </ReactMarkdown>
+                      <div className="text-slate-700 text-sm leading-relaxed">
+                        {(() => {
+                          // Check if this is a business list
+                          try {
+                            const parsed = JSON.parse(msg.content);
+                            if (parsed.type === 'business_list' && parsed.businesses) {
+                              return <BusinessList businesses={parsed.businesses} />;
+                            }
+                          } catch (e) {
+                            // Not JSON, render as markdown
+                          }
+
+                          // Default: render as markdown
+                          return (
+                            <div className="prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-em:text-slate-600 prose-em:italic prose-strong:font-bold prose-strong:text-slate-900 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800">
+                              <ReactMarkdown rehypePlugins={[rehypeRaw]}>
+                                {msg.content}
+                              </ReactMarkdown>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
 
