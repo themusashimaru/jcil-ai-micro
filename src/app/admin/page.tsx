@@ -329,29 +329,62 @@ export default function AdminDashboard() {
             <CardTitle className="text-slate-900">Revenue by Tier</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {stats.revenue.byTier.map((tier) => (
-                <div key={tier.tier} className="flex items-center">
-                  <div className="w-32 font-medium text-slate-700 capitalize">
-                    {tier.tier}
-                  </div>
-                  <div className="flex-1 mx-4">
-                    <div className="h-8 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full bg-gradient-to-r ${tierColors[tier.tier]} flex items-center justify-end px-3 text-white text-sm font-semibold transition-all duration-500`}
-                        style={{
-                          width: `${(tier.monthlyRevenue / stats.revenue.monthlyRecurring) * 100}%`,
-                        }}
-                      >
-                        {tier.count > 0 && `${tier.count} users`}
+            <div className="space-y-6">
+              {stats.revenue.byTier.map((tier) => {
+                const percentage = stats.revenue.monthlyRecurring > 0
+                  ? (tier.monthlyRevenue / stats.revenue.monthlyRecurring) * 100
+                  : 0;
+                const showTextInside = percentage > 15; // Only show text inside if bar is wide enough
+                const isFree = tier.monthlyRevenue === 0;
+
+                return (
+                  <div key={tier.tier}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-slate-900 capitalize w-24">
+                          {tier.tier}
+                        </span>
+                        <span className="text-sm text-slate-600">
+                          {tier.count} {tier.count === 1 ? 'user' : 'users'}
+                        </span>
                       </div>
+                      <span className={`font-bold text-lg ${isFree ? 'text-slate-500' : 'text-slate-900'}`}>
+                        ${tier.monthlyRevenue.toLocaleString()}
+                        {isFree && ' (Free)'}
+                      </span>
+                    </div>
+                    <div className="relative h-10 bg-slate-100 rounded-lg overflow-hidden">
+                      {isFree ? (
+                        <div className="h-full flex items-center px-3">
+                          <span className="text-slate-500 text-sm font-medium">
+                            Free tier - no revenue
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div
+                            className={`h-full bg-gradient-to-r ${tierColors[tier.tier]} transition-all duration-500 rounded-lg flex items-center ${showTextInside ? 'justify-end px-4' : ''}`}
+                            style={{
+                              width: `${Math.max(percentage, 2)}%`,
+                            }}
+                          >
+                            {showTextInside && (
+                              <span className="text-white text-sm font-semibold">
+                                {percentage.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                          {!showTextInside && (
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-600 text-xs font-medium">
+                              {percentage.toFixed(1)}%
+                            </span>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
-                  <div className="w-24 text-right font-bold text-slate-900">
-                    ${tier.monthlyRevenue.toLocaleString()}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
