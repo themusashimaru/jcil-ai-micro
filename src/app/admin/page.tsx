@@ -66,6 +66,7 @@ export default function AdminDashboard() {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [managingUser, setManagingUser] = useState<User | null>(null);
   const [selectedTier, setSelectedTier] = useState<string>('');
+  const [isUpdatingTier, setIsUpdatingTier] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -116,6 +117,7 @@ export default function AdminDashboard() {
 
   const updateUserTier = async (userId: string, newTier: string) => {
     try {
+      setIsUpdatingTier(true);
       const response = await fetch('/api/admin/update-tier', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -123,7 +125,8 @@ export default function AdminDashboard() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update user tier');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user tier');
       }
 
       // Refresh users list
@@ -133,9 +136,13 @@ export default function AdminDashboard() {
       // Close the modal
       setManagingUser(null);
       setSelectedTier('');
+
+      alert('✅ User tier updated successfully!');
     } catch (err: any) {
       console.error('Failed to update user tier:', err);
-      alert('Failed to update user tier: ' + err.message);
+      alert('❌ Failed to update user tier: ' + err.message);
+    } finally {
+      setIsUpdatingTier(false);
     }
   };
 
@@ -637,13 +644,14 @@ export default function AdminDashboard() {
               <select
                 value={selectedTier}
                 onChange={(e) => setSelectedTier(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isUpdatingTier}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               >
-                <option value="free">Free - $0/month</option>
-                <option value="basic">Basic - $12/month</option>
-                <option value="pro">Pro - $12/month</option>
-                <option value="premium">Premium - $30/month</option>
-                <option value="executive">Executive - $150/month</option>
+                <option value="free" className="text-slate-900">Free - $0/month</option>
+                <option value="basic" className="text-slate-900">Basic - $12/month</option>
+                <option value="pro" className="text-slate-900">Pro - $12/month</option>
+                <option value="premium" className="text-slate-900">Premium - $30/month</option>
+                <option value="executive" className="text-slate-900">Executive - $150/month</option>
               </select>
             </div>
 
@@ -655,15 +663,23 @@ export default function AdminDashboard() {
                 }}
                 variant="outline"
                 className="flex-1"
+                disabled={isUpdatingTier}
               >
                 Cancel
               </Button>
               <Button
                 onClick={() => updateUserTier(managingUser.id, selectedTier)}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={selectedTier === managingUser.subscription_tier}
+                disabled={selectedTier === managingUser.subscription_tier || isUpdatingTier}
               >
-                Update Tier
+                {isUpdatingTier ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Tier'
+                )}
               </Button>
             </div>
           </div>
