@@ -71,7 +71,7 @@ interface AdminStats {
   };
 }
 
-type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity';
+type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity' | 'moderation';
 
 // Helper function to format time ago
 function getTimeAgo(timestamp: string): string {
@@ -133,6 +133,23 @@ export default function AdminDashboard() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isLoadingConversationDetail, setIsLoadingConversationDetail] = useState(false);
+
+  // Moderation tab state
+  const [moderatedUsers, setModeratedUsers] = useState<any[]>([]);
+  const [filteredModeratedUsers, setFilteredModeratedUsers] = useState<any[]>([]);
+  const [selectedModeratedUser, setSelectedModeratedUser] = useState<any>(null);
+  const [modUserSearchQuery, setModUserSearchQuery] = useState('');
+  const [modUserLetterFilter, setModUserLetterFilter] = useState<string>('all');
+  const [modConversations, setModConversations] = useState<any[]>([]);
+  const [filteredModConversations, setFilteredModConversations] = useState<any[]>([]);
+  const [selectedModConversation, setSelectedModConversation] = useState<any>(null);
+  const [modDateFilter, setModDateFilter] = useState<'all' | 'today' | '7days' | '30days' | 'custom'>('all');
+  const [modCustomStartDate, setModCustomStartDate] = useState('');
+  const [modCustomEndDate, setModCustomEndDate] = useState('');
+  const [modStatusFilter, setModStatusFilter] = useState<'all' | 'suspended' | 'banned'>('all');
+  const [isLoadingModUsers, setIsLoadingModUsers] = useState(false);
+  const [isLoadingModConversations, setIsLoadingModConversations] = useState(false);
+  const [isLoadingModConversationDetail, setIsLoadingModConversationDetail] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -672,6 +689,7 @@ Generated: ${new Date().toISOString()}
                 { id: 'notifications', label: 'Notifications', icon: Mail },
                 { id: 'reports', label: 'Reports', icon: BarChart3 },
                 { id: 'activity', label: 'Activity', icon: Activity },
+                { id: 'moderation', label: 'Moderation', icon: Shield },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
