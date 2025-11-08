@@ -36,65 +36,33 @@ export async function GET(request: Request) {
     // Fetch all users
     const { data: authData } = await admin.auth.admin.listUsers();
     const users = authData?.users || [];
+    const emailMap = new Map(users.map(u => [u.id, u.email || 'Unknown']));
 
-    // If no userId specified, return list of users with conversation counts
-    if (!userId) {
-      // Get all conversations
-      const { data: allConversations } = await admin
-        .from('conversations')
-        .select('user_id');
-
-      // Count conversations per user
-      const conversationCounts = new Map<string, number>();
-      (allConversations || []).forEach(conv => {
-        conversationCounts.set(
-          conv.user_id,
-          (conversationCounts.get(conv.user_id) || 0) + 1
-        );
-      });
-
-      // Build user list with conversation counts
-      const userList = users
-        .map(u => ({
-          user_id: u.id,
-          user_email: u.email || 'Unknown',
-          conversation_count: conversationCounts.get(u.id) || 0,
-          created_at: u.created_at,
-        }))
-        .filter(u => u.conversation_count > 0) // Only show users with conversations
-        .sort((a, b) => a.user_email.localeCompare(b.user_email)); // Alphabetical
-
-      return NextResponse.json({
-        users: userList,
-        total: userList.length,
-      });
-    }
-
-    // If userId specified, return that user's conversations
-    const { data: conversations } = await admin
+    // Fetch conversations
+    let query = admin
       .from('conversations')
       .select('id, title, created_at, user_id')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-    if (!conversations || conversations.length === 0) {
-      return NextResponse.json({
-        user_email: users.find(u => u.id === userId)?.email || 'Unknown',
-        conversations: [],
-        total: 0
-      });
+    if (userId) {
+      query = query.eq('user_id', userId);
     }
 
-    // Enrich conversations with message info
+    const { data: conversations } = await query;
+
+    if (!conversations || conversations.length === 0) {
+      return NextResponse.json({ conversations: [], total: 0 });
+    }
+
+    // Enrich conversations
     const enriched = await Promise.all(
       conversations.map(async (conv) => {
-        // Get message count
         const { count } = await admin
           .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('conversation_id', conv.id);
 
-        // Get latest message
         const { data: latest } = await admin
           .from('messages')
           .select('content, created_at, role')
@@ -103,11 +71,23 @@ export async function GET(request: Request) {
           .limit(1)
           .maybeSingle();
 
+        // Count attachments
+        const { count: attachmentCount } = await admin
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conv.id)
+          .not('file_url', 'is', null);
+
         return {
           id: conv.id,
           title: conv.title,
           created_at: new Date(conv.created_at).toISOString(),
+          updated_at: new Date(conv.created_at).toISOString(), // Use created_at as updated_at
+          user_id: conv.user_id,
+          user_email: emailMap.get(conv.user_id) || 'Unknown',
+          user_tier: 'free',
           message_count: count || 0,
+          attachment_count: attachmentCount || 0,
           latest_message: latest ? {
             content: latest.content?.substring(0, 150) || '',
             created_at: new Date(latest.created_at).toISOString(),
@@ -117,8 +97,10 @@ export async function GET(request: Request) {
       })
     );
 
+    // Sort by user email alphabetically
+    enriched.sort((a, b) => a.user_email.localeCompare(b.user_email));
+
     return NextResponse.json({
-      user_email: users.find(u => u.id === userId)?.email || 'Unknown',
       conversations: enriched,
       total: enriched.length,
     });

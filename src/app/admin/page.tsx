@@ -118,12 +118,9 @@ export default function AdminDashboard() {
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
 
   // Conversation viewer state
-  const [conversationUsers, setConversationUsers] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [userConversations, setUserConversations] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [conversationSearch, setConversationSearch] = useState('');
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isLoadingConversationDetail, setIsLoadingConversationDetail] = useState(false);
 
@@ -277,37 +274,19 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchConversationUsers = async () => {
-    try {
-      setIsLoadingUsers(true);
-      const response = await fetch('/api/admin/conversations');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-
-      const data = await response.json();
-      setConversationUsers(data.users || []);
-    } catch (err: any) {
-      console.error('Failed to fetch conversation users:', err);
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-
-  const fetchUserConversations = async (userId: string) => {
+  const fetchConversations = async () => {
     try {
       setIsLoadingConversations(true);
-      const response = await fetch(`/api/admin/conversations?userId=${userId}`);
+      const response = await fetch('/api/admin/conversations');
 
       if (!response.ok) {
         throw new Error('Failed to fetch conversations');
       }
 
       const data = await response.json();
-      setUserConversations(data.conversations || []);
+      setConversations(data.conversations || []);
     } catch (err: any) {
-      console.error('Failed to fetch user conversations:', err);
+      console.error('Failed to fetch conversations:', err);
     } finally {
       setIsLoadingConversations(false);
     }
@@ -361,13 +340,10 @@ export default function AdminDashboard() {
     fetchUsers();
   }, [period]);
 
-  // Fetch users when activity tab is opened
+  // Fetch conversations when activity tab is opened
   useEffect(() => {
     if (activeTab === 'activity') {
-      fetchConversationUsers();
-      setSelectedUser(null);
-      setUserConversations([]);
-      setSelectedConversation(null);
+      fetchConversations();
     }
   }, [activeTab]);
 
