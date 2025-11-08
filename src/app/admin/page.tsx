@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import {
   Users, DollarSign, TrendingUp, Zap,
   Calendar, ArrowLeft, RefreshCw, Activity,
-  Search, UserCog, Mail, Clock, BarChart3, LineChart
+  Search, UserCog, Mail, Clock, BarChart3, LineChart,
+  FileText, Download
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -72,6 +73,22 @@ interface AdminStats {
 
 type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity';
 
+// Helper function to format time ago
+function getTimeAgo(timestamp: string): string {
+  const now = new Date();
+  const then = new Date(timestamp);
+  const seconds = Math.floor((now.getTime() - then.getTime()) / 1000);
+
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return then.toLocaleDateString();
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -87,6 +104,17 @@ export default function AdminDashboard() {
   const [managingUser, setManagingUser] = useState<User | null>(null);
   const [selectedTier, setSelectedTier] = useState<string>('');
   const [isUpdatingTier, setIsUpdatingTier] = useState(false);
+
+  // Notification state
+  const [notificationTitle, setNotificationTitle] = useState('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationTier, setNotificationTier] = useState<string>('all');
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
+
+  // Activity feed state
+  const [activities, setActivities] = useState<any[]>([]);
+  const [activityStats, setActivityStats] = useState({ activeNow: 0, totalActivities: 0 });
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -181,6 +209,63 @@ export default function AdminDashboard() {
     setSelectedTier(user.subscription_tier);
   };
 
+  const sendNotification = async () => {
+    if (!notificationTitle.trim() || !notificationMessage.trim()) {
+      alert('❌ Please fill in both title and message');
+      return;
+    }
+
+    try {
+      setIsSendingNotification(true);
+      const response = await fetch('/api/admin/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: notificationTitle,
+          message: notificationMessage,
+          tierFilter: notificationTier,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send notification');
+      }
+
+      const result = await response.json();
+      alert(`✅ Notification sent successfully to ${result.sentCount} users!`);
+
+      // Clear form
+      setNotificationTitle('');
+      setNotificationMessage('');
+      setNotificationTier('all');
+    } catch (err: any) {
+      console.error('Failed to send notification:', err);
+      alert(`❌ Failed to send notification: ${err.message}`);
+    } finally {
+      setIsSendingNotification(false);
+    }
+  };
+
+  const fetchActivity = async () => {
+    try {
+      setIsLoadingActivity(true);
+      const response = await fetch('/api/admin/activity');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity');
+      }
+
+      const data = await response.json();
+      setActivities(data.activities || []);
+      setActivityStats(data.stats || { activeNow: 0, totalActivities: 0 });
+    } catch (err: any) {
+      console.error('Failed to fetch activity:', err);
+    } finally {
+      setIsLoadingActivity(false);
+    }
+  };
+
   // Filter users based on search query
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -201,6 +286,20 @@ export default function AdminDashboard() {
     fetchStats();
     fetchUsers();
   }, [period]);
+
+  // Fetch activity when activity tab is opened and set up auto-refresh
+  useEffect(() => {
+    if (activeTab === 'activity') {
+      fetchActivity();
+
+      // Auto-refresh every 30 seconds
+      const interval = setInterval(() => {
+        fetchActivity();
+      }, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   if (loading && !stats) {
     return (
@@ -772,21 +871,111 @@ export default function AdminDashboard() {
 
         {/* Notifications Tab */}
         {activeTab === 'notifications' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center text-slate-900">
-                <Mail className="h-5 w-5 mr-2 text-blue-600" />
-                Send Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Mail className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600 mb-4">Push notification system coming soon!</p>
-                <p className="text-sm text-slate-500">Send messages to users filtered by tier</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="max-w-2xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-slate-900">
+                  <Mail className="h-5 w-5 mr-2 text-blue-600" />
+                  Send Notifications to Users
+                </CardTitle>
+                <p className="text-sm text-slate-600 mt-2">
+                  Send announcements, updates, or messages to your users. Filter by subscription tier.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Target Audience */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Target Audience
+                  </label>
+                  <select
+                    value={notificationTier}
+                    onChange={(e) => setNotificationTier(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
+                  >
+                    <option value="all">All Users ({users.length} users)</option>
+                    <option value="free">Free Tier ({users.filter(u => u.subscription_tier === 'free').length} users)</option>
+                    <option value="basic">Basic Tier ({users.filter(u => u.subscription_tier === 'basic').length} users)</option>
+                    <option value="pro">Pro Tier ({users.filter(u => u.subscription_tier === 'pro').length} users)</option>
+                    <option value="executive">Executive Tier ({users.filter(u => u.subscription_tier === 'executive').length} users)</option>
+                  </select>
+                </div>
+
+                {/* Notification Title */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Notification Title
+                  </label>
+                  <Input
+                    type="text"
+                    value={notificationTitle}
+                    onChange={(e) => setNotificationTitle(e.target.value)}
+                    placeholder="e.g., New Features Released!"
+                    className="w-full"
+                    maxLength={100}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">{notificationTitle.length}/100 characters</p>
+                </div>
+
+                {/* Notification Message */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Message
+                  </label>
+                  <textarea
+                    value={notificationMessage}
+                    onChange={(e) => setNotificationMessage(e.target.value)}
+                    placeholder="Write your message here..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white min-h-[150px]"
+                    maxLength={500}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">{notificationMessage.length}/500 characters</p>
+                </div>
+
+                {/* Preview */}
+                {(notificationTitle || notificationMessage) && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-xs font-semibold text-blue-900 mb-2">Preview:</p>
+                    {notificationTitle && <p className="font-semibold text-blue-900 mb-1">{notificationTitle}</p>}
+                    {notificationMessage && <p className="text-sm text-blue-800">{notificationMessage}</p>}
+                  </div>
+                )}
+
+                {/* Send Button */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      setNotificationTitle('');
+                      setNotificationMessage('');
+                      setNotificationTier('all');
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={isSendingNotification}
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    onClick={sendNotification}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={isSendingNotification || !notificationTitle.trim() || !notificationMessage.trim()}
+                  >
+                    {isSendingNotification ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Send Notification
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Reports Tab */}
@@ -797,12 +986,95 @@ export default function AdminDashboard() {
                 <BarChart3 className="h-5 w-5 mr-2 text-green-600" />
                 Export Reports
               </CardTitle>
+              <p className="text-sm text-slate-600 mt-2">
+                Download comprehensive reports of your user data and statistics
+              </p>
             </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <BarChart3 className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600 mb-4">Export functionality coming soon!</p>
-                <p className="text-sm text-slate-500">Download CSV/PDF reports of all your data</p>
+            <CardContent className="space-y-6">
+              {/* CSV Export */}
+              <div className="border border-slate-200 rounded-lg p-6 hover:border-blue-300 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <FileText className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900">CSV Export</h3>
+                        <p className="text-sm text-slate-500">Spreadsheet format</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-4">
+                      Download a CSV file containing all user data including emails, subscription tiers,
+                      message counts, token usage, and activity dates. Perfect for importing into
+                      Excel or Google Sheets.
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                      <span className="px-2 py-1 bg-slate-100 rounded">Email addresses</span>
+                      <span className="px-2 py-1 bg-slate-100 rounded">Subscription tiers</span>
+                      <span className="px-2 py-1 bg-slate-100 rounded">Usage statistics</span>
+                      <span className="px-2 py-1 bg-slate-100 rounded">Activity dates</span>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => window.open('/api/admin/export/csv', '_blank')}
+                    className="ml-4 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download CSV
+                  </Button>
+                </div>
+              </div>
+
+              {/* PDF Export */}
+              <div className="border border-slate-200 rounded-lg p-6 hover:border-blue-300 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-red-100 rounded-lg">
+                        <FileText className="h-6 w-6 text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900">PDF Report</h3>
+                        <p className="text-sm text-slate-500">Professional document</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-4">
+                      Generate a comprehensive PDF report with dashboard statistics, revenue breakdowns,
+                      user distribution charts, and detailed user listings. Includes formatted tables
+                      and professional styling ready for presentations or archiving.
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                      <span className="px-2 py-1 bg-slate-100 rounded">Dashboard stats</span>
+                      <span className="px-2 py-1 bg-slate-100 rounded">Revenue analysis</span>
+                      <span className="px-2 py-1 bg-slate-100 rounded">User breakdown</span>
+                      <span className="px-2 py-1 bg-slate-100 rounded">Print-ready</span>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => window.open('/api/admin/export/pdf', '_blank')}
+                    className="ml-4 bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate PDF
+                  </Button>
+                </div>
+              </div>
+
+              {/* Info Card */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Clock className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900 mb-1">Export Information</p>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Exports include data for all {users.length} users in the system</li>
+                      <li>• CSV files can be opened in Excel, Google Sheets, or any spreadsheet application</li>
+                      <li>• PDF reports will automatically open in a new tab with a print dialog</li>
+                      <li>• All exports reflect real-time data at the moment of generation</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -810,21 +1082,154 @@ export default function AdminDashboard() {
 
         {/* Activity Tab */}
         {activeTab === 'activity' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center text-slate-900">
-                <Activity className="h-5 w-5 mr-2 text-purple-600" />
-                Real-Time Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600 mb-4">Real-time activity feed coming soon!</p>
-                <p className="text-sm text-slate-500">See who's using the app right now</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            {/* Active Users Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-600">Active Now</p>
+                      <p className="text-3xl font-bold text-green-600 mt-1">{activityStats.activeNow}</p>
+                    </div>
+                    <div className="p-3 bg-green-100 rounded-full">
+                      <Activity className="h-6 w-6 text-green-600" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">Users active in last hour</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-600">Recent Events</p>
+                      <p className="text-3xl font-bold text-blue-600 mt-1">{activityStats.totalActivities}</p>
+                    </div>
+                    <div className="p-3 bg-blue-100 rounded-full">
+                      <Clock className="h-6 w-6 text-blue-600" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">Activities in last 24 hours</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-600">Auto-Refresh</p>
+                      <p className="text-3xl font-bold text-purple-600 mt-1">30s</p>
+                    </div>
+                    <div className="p-3 bg-purple-100 rounded-full">
+                      <RefreshCw className="h-6 w-6 text-purple-600 animate-spin" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">Updates automatically</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Activity Feed */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center text-slate-900">
+                    <Activity className="h-5 w-5 mr-2 text-purple-600" />
+                    Activity Feed
+                  </CardTitle>
+                  <Button
+                    onClick={fetchActivity}
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoadingActivity}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingActivity ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingActivity && activities.length === 0 ? (
+                  <div className="text-center py-12">
+                    <RefreshCw className="h-12 w-12 text-slate-400 animate-spin mx-auto mb-4" />
+                    <p className="text-slate-600">Loading activity...</p>
+                  </div>
+                ) : activities.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-600 mb-2">No recent activity</p>
+                    <p className="text-sm text-slate-500">Activity will appear here as users interact with the app</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {activities.map((activity) => {
+                      const timeAgo = getTimeAgo(activity.timestamp);
+                      const getTierColor = (tier: string) => {
+                        switch (tier) {
+                          case 'free': return 'bg-slate-100 text-slate-700';
+                          case 'basic': return 'bg-blue-100 text-blue-700';
+                          case 'pro': return 'bg-yellow-100 text-yellow-700';
+                          case 'executive': return 'bg-purple-100 text-purple-700';
+                          default: return 'bg-slate-100 text-slate-700';
+                        }
+                      };
+
+                      return (
+                        <div key={activity.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
+                          {/* Icon */}
+                          <div className={`p-2 rounded-full flex-shrink-0 ${
+                            activity.type === 'activity' ? 'bg-green-100' :
+                            activity.type === 'signup' ? 'bg-blue-100' :
+                            activity.type === 'high_usage' ? 'bg-orange-100' :
+                            'bg-slate-100'
+                          }`}>
+                            {activity.type === 'activity' && <Activity className="h-5 w-5 text-green-600" />}
+                            {activity.type === 'signup' && <Users className="h-5 w-5 text-blue-600" />}
+                            {activity.type === 'high_usage' && <Zap className="h-5 w-5 text-orange-600" />}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-900 truncate">
+                                  {activity.user.email}
+                                </p>
+                                <p className="text-sm text-slate-600 mt-1">
+                                  {activity.type === 'activity' && (
+                                    <>
+                                      Active session • {activity.details.messages} messages • {activity.details.tokens.toLocaleString()} tokens
+                                    </>
+                                  )}
+                                  {activity.type === 'signup' && (
+                                    <>New user signup</>
+                                  )}
+                                  {activity.type === 'high_usage' && (
+                                    <>High usage alert • {activity.details.percent}% of daily limit ({activity.details.usage}/{activity.details.limit})</>
+                                  )}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTierColor(activity.user.tier)}`}>
+                                  {activity.user.tier}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {timeAgo}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Date Range Info - Only on Overview Tab */}
