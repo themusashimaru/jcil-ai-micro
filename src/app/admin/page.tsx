@@ -126,7 +126,9 @@ export default function AdminDashboard() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update user tier');
+        console.error('Server error response:', errorData);
+        const errorDetails = `${errorData.error}\nDetails: ${errorData.details || 'none'}\nCode: ${errorData.code || 'none'}\nHint: ${errorData.hint || 'none'}`;
+        throw new Error(errorDetails);
       }
 
       const result = await response.json();
@@ -146,7 +148,9 @@ export default function AdminDashboard() {
       alert('✅ User tier updated successfully!');
     } catch (err: any) {
       console.error('Failed to update user tier:', err);
-      alert('❌ Failed to update user tier: ' + err.message);
+      // Try to get detailed error from response
+      const errorMsg = err.message || 'Unknown error';
+      alert(`❌ Failed to update user tier: ${errorMsg}\n\nCheck console for details.`);
     } finally {
       setIsUpdatingTier(false);
     }
