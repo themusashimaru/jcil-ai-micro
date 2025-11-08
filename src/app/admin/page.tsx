@@ -1966,7 +1966,7 @@ Generated: ${new Date().toISOString()}
               {/* Conversation Detail Viewer */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-4">
                     <CardTitle className="flex items-center text-slate-900">
                       {selectedConversation ? (
                         <>
@@ -1981,14 +1981,28 @@ Generated: ${new Date().toISOString()}
                       )}
                     </CardTitle>
                     {selectedConversation && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-col items-end gap-2 min-w-[160px]">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleEmailReport(
+                            selectedConversation.conversation.id,
+                            selectedConversation.conversation.user_email,
+                            selectedConversation.conversation.title
+                          )}
+                          className="bg-purple-600 hover:bg-purple-700 text-white w-full"
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email Report
+                        </Button>
+
                         {/* Moderation Dropdown */}
-                        <div className="relative">
+                        <div className="relative w-full">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setShowModerationMenu(!showModerationMenu)}
-                            className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+                            className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 w-full"
                           >
                             <Shield className="h-4 w-4 mr-2" />
                             Moderate
@@ -2081,34 +2095,24 @@ Generated: ${new Date().toISOString()}
                           )}
                         </div>
 
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => handleEmailReport(
-                            selectedConversation.conversation.id,
-                            selectedConversation.conversation.user_email,
-                            selectedConversation.conversation.title
-                          )}
-                          className="bg-purple-600 hover:bg-purple-700"
-                        >
-                          <Mail className="h-4 w-4 mr-2" />
-                          Email Report
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(`/api/admin/conversations/${selectedConversation.conversation.id}/export`, '_blank')}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Export
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setSelectedConversation(null)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2 w-full">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(`/api/admin/conversations/${selectedConversation.conversation.id}/export`, '_blank')}
+                            className="flex-1"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setSelectedConversation(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2525,7 +2529,7 @@ Generated: ${new Date().toISOString()}
               {/* Conversation Detail with Lift/Unban Buttons */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between gap-4">
                     <CardTitle className="flex items-center text-slate-900">
                       {selectedModConversation ? (
                         <><MessageSquare className="h-5 w-5 mr-2 text-purple-600" />Conversation Details</>
@@ -2534,7 +2538,7 @@ Generated: ${new Date().toISOString()}
                       )}
                     </CardTitle>
                     {selectedModConversation && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-col items-end gap-2 min-w-[160px]">
                         {selectedModeratedUser?.is_suspended && !selectedModeratedUser?.is_banned && (
                           <Button
                             size="sm"
@@ -2544,7 +2548,7 @@ Generated: ${new Date().toISOString()}
                                 handleModerateUser(selectedModeratedUser.id, 'lift');
                               }
                             }}
-                            className="bg-green-600 hover:bg-green-700 text-white"
+                            className="bg-green-600 hover:bg-green-700 text-white w-full"
                           >
                             Lift Suspension
                           </Button>
@@ -2558,17 +2562,19 @@ Generated: ${new Date().toISOString()}
                                 handleModerateUser(selectedModeratedUser.id, 'unban');
                               }
                             }}
-                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                            className="bg-orange-600 hover:bg-orange-700 text-white w-full"
                           >
                             Unban User
                           </Button>
                         )}
-                        <Button size="sm" variant="outline" onClick={() => window.open(`/api/admin/conversations/${selectedModConversation.conversation.id}/export`, '_blank')}>
-                          <Download className="h-4 w-4 mr-2" />Export
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setSelectedModConversation(null)}>
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2 w-full">
+                          <Button size="sm" variant="outline" onClick={() => window.open(`/api/admin/conversations/${selectedModConversation.conversation.id}/export`, '_blank')} className="flex-1">
+                            <Download className="h-4 w-4 mr-2" />Export
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setSelectedModConversation(null)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
