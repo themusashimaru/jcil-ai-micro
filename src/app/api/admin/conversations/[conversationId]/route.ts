@@ -87,20 +87,19 @@ export async function GET(
       throw messagesError;
     }
 
-    // STEP 4: Try to get attachments (table may or may not exist)
-    let attachments: any[] = [];
-    const { data: attachmentsData, error: attachmentsError } = await supabase
-      .from('attachments')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-
-    // Don't throw error if attachments table doesn't exist, just log it
-    if (attachmentsError) {
-      console.warn('Could not fetch attachments (table may not exist):', attachmentsError.message);
-    } else {
-      attachments = attachmentsData || [];
-    }
+    // STEP 4: Extract attachments from messages (attachments are stored in messages table)
+    const attachments = (messages || [])
+      .filter(m => m.file_url)
+      .map(m => ({
+        id: m.id,
+        message_id: m.id,
+        conversation_id: conversationId,
+        file_url: m.file_url,
+        file_type: m.file_type,
+        file_size: m.file_size,
+        created_at: m.created_at,
+        role: m.role,
+      }));
 
     return NextResponse.json({
       conversation: {
