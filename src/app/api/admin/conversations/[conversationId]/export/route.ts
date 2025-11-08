@@ -47,6 +47,11 @@ export async function GET(
       return new NextResponse('Conversation not found', { status: 404 });
     }
 
+    // Extract user profile (Supabase returns it as an array even with .single())
+    const userProfile = Array.isArray(conversation.user_profiles)
+      ? conversation.user_profiles[0]
+      : conversation.user_profiles;
+
     // Get all messages
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
@@ -267,7 +272,7 @@ export async function GET(
       </div>
       <div class="metadata-item">
         <div class="metadata-label">User Email</div>
-        <div class="metadata-value">${conversation.user_profiles?.email || 'Unknown'}</div>
+        <div class="metadata-value">${userProfile?.email || 'Unknown'}</div>
       </div>
       <div class="metadata-item">
         <div class="metadata-label">User ID</div>
@@ -275,7 +280,7 @@ export async function GET(
       </div>
       <div class="metadata-item">
         <div class="metadata-label">Subscription Tier</div>
-        <div class="metadata-value">${conversation.user_profiles?.subscription_tier || 'free'}</div>
+        <div class="metadata-value">${userProfile?.subscription_tier || 'free'}</div>
       </div>
       <div class="metadata-item">
         <div class="metadata-label">Conversation Started</div>
