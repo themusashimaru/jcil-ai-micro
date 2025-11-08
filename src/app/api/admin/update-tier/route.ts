@@ -98,7 +98,13 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Admin update tier error:', error);
     return NextResponse.json(
-      { error: 'Failed to update user tier', details: error.message },
+      {
+        error: 'Failed to update user tier',
+        details: error.message,
+        fullError: JSON.stringify(error),
+        code: error.code,
+        hint: error.hint
+      },
       { status: 500 }
     );
   }
