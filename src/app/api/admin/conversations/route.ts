@@ -23,6 +23,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -46,24 +47,56 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
   }
 
+  // Create service role client to access auth.users directly (bypasses RLS)
+  const supabaseAdmin = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+
   try {
     // Parse query parameters from the request URL
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId'); // Optional: filter by specific user
     const searchQuery = searchParams.get('search') || ''; // Optional: search filter
 
-    // STEP 1: Fetch all users with their emails using our secure database function
-    // Note: We can't directly query auth.users from the client, so we use a
-    // SECURITY DEFINER function that has permission to access that table
-    const { data: allUsers, error: usersError } = await supabase
-      .rpc('get_all_users_for_admin');
+    // STEP 1: Fetch all users directly from auth.users using service role client
+    // This bypasses PostgREST and RPC completely
+    const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
 
-    if (usersError) {
-      console.error('Error fetching users:', usersError);
-      throw usersError;
+    if (authUsersError) {
+      console.error('Error fetching auth users:', authUsersError);
+      throw authUsersError;
     }
 
-    // STEP 2: Create a lookup Map for fast user email/tier resolution
+    // STEP 2: Fetch user_profiles to get subscription tiers
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('id, subscription_tier');
+
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      throw profilesError;
+    }
+
+    // Create profile lookup map
+    const profileMap = new Map(
+      (profiles || []).map((p: any) => [p.id, p.subscription_tier])
+    );
+
+    // Combine auth users with their tiers
+    const allUsers = (authUsers?.users || []).map((u: any) => ({
+      id: u.id,
+      email: u.email,
+      subscription_tier: profileMap.get(u.id) || 'free'
+    }));
+
+    // STEP 3: Create a lookup Map for fast user email/tier resolution
     // Why Map? O(1) lookup performance vs O(n) with array.find()
     // Structure: Map<user_id, { email, tier }>
     const userLookup = new Map(
