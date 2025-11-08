@@ -1,74 +1,83 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ conversationId: string }> }
 ) {
-  const supabase = await createClient();
-
-  // Check authentication
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check if user is admin
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('is_admin')
-    .eq('id', session.user.id)
-    .single();
-
-  if (!profile?.is_admin) {
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-  }
-
   try {
+    const supabase = await createClient();
+
+    // Check authentication
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('is_admin')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile?.is_admin) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    }
+
     const { conversationId } = await params;
 
-    // Get conversation details
-    const { data: conversation, error: convError } = await supabase
+    // Create service role client
+    const admin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Get conversation
+    const { data: conversation, error: convError } = await admin
       .from('conversations')
-      .select(`
-        id,
-        title,
-        created_at,
-        updated_at,
-        user_id,
-        user_profiles!inner(email, subscription_tier, created_at)
-      `)
+      .select('id, title, created_at, user_id')
       .eq('id', conversationId)
       .single();
 
-    if (convError) throw convError;
-    if (!conversation) {
+    if (convError || !conversation) {
       return new NextResponse('Conversation not found', { status: 404 });
     }
 
-    // Extract user profile (Supabase returns it as an array even with .single())
-    const userProfile = Array.isArray(conversation.user_profiles)
-      ? conversation.user_profiles[0]
-      : conversation.user_profiles;
+    // Get user email and tier
+    const { data: authData } = await admin.auth.admin.listUsers();
+    const user = authData?.users?.find(u => u.id === conversation.user_id);
+    const userEmail = user?.email || 'Unknown';
+
+    // Get user tier
+    const { data: userProfile } = await admin
+      .from('user_profiles')
+      .select('subscription_tier')
+      .eq('id', conversation.user_id)
+      .single();
+    const userTier = userProfile?.subscription_tier || 'free';
 
     // Get all messages
-    const { data: messages, error: messagesError } = await supabase
+    const { data: messages, error: messagesError } = await admin
       .from('messages')
-      .select('*')
+      .select('id, role, content, created_at, file_url, file_type, file_size')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
     if (messagesError) throw messagesError;
 
-    // Get all attachments
-    const { data: attachments, error: attachmentsError } = await supabase
-      .from('attachments')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-
-    if (attachmentsError) throw attachmentsError;
+    // Extract attachments from messages
+    const attachments = (messages || [])
+      .filter(m => m.file_url)
+      .map(m => ({
+        id: m.id,
+        file_url: m.file_url,
+        file_type: m.file_type,
+        file_size: m.file_size,
+        created_at: m.created_at,
+      }));
 
     const exportDate = new Date().toLocaleString('en-US', {
       year: 'numeric',
@@ -272,7 +281,7 @@ export async function GET(
       </div>
       <div class="metadata-item">
         <div class="metadata-label">User Email</div>
-        <div class="metadata-value">${userProfile?.email || 'Unknown'}</div>
+        <div class="metadata-value">${userEmail}</div>
       </div>
       <div class="metadata-item">
         <div class="metadata-label">User ID</div>
@@ -280,7 +289,7 @@ export async function GET(
       </div>
       <div class="metadata-item">
         <div class="metadata-label">Subscription Tier</div>
-        <div class="metadata-value">${userProfile?.subscription_tier || 'free'}</div>
+        <div class="metadata-value">${userTier}</div>
       </div>
       <div class="metadata-item">
         <div class="metadata-label">Conversation Started</div>
@@ -330,12 +339,16 @@ export async function GET(
           hour: '2-digit',
           minute: '2-digit',
         });
+        const fileName = att.file_url ? att.file_url.split('/').pop() : 'Unknown file';
         return `
         <div class="attachment-item">
           <div>
-            <div class="attachment-name">${att.file_name || 'Unknown file'}</div>
+            <div class="attachment-name">📎 ${fileName}</div>
             <div class="attachment-meta">
               Type: ${att.file_type || 'Unknown'} • Size: ${att.file_size ? (att.file_size / 1024).toFixed(2) + ' KB' : 'Unknown'}
+            </div>
+            <div class="attachment-meta" style="margin-top: 4px; font-size: 11px;">
+              <a href="${att.file_url}" target="_blank" style="color: #2563eb;">${att.file_url}</a>
             </div>
           </div>
           <div class="attachment-meta">${attDate}</div>
@@ -370,9 +383,9 @@ export async function GET(
       },
     });
   } catch (error: any) {
-    console.error('Conversation export error:', error);
+    console.error('[CONVERSATION_EXPORT] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to export conversation', details: error.message },
+      { error: 'Failed to export conversation', details: error.message, stack: error.stack },
       { status: 500 }
     );
   }
