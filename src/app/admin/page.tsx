@@ -659,8 +659,7 @@ export default function AdminDashboard() {
               >
                 <option value="free" className="text-slate-900">Free - $0/month</option>
                 <option value="basic" className="text-slate-900">Basic - $12/month</option>
-                <option value="pro" className="text-slate-900">Pro - $12/month</option>
-                <option value="premium" className="text-slate-900">Premium - $30/month</option>
+                <option value="pro" className="text-slate-900">Pro - $30/month</option>
                 <option value="executive" className="text-slate-900">Executive - $150/month</option>
               </select>
             </div>

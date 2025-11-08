@@ -1,13 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-const VALID_TIERS = ['free', 'basic', 'pro', 'premium', 'executive'];
+const VALID_TIERS = ['free', 'basic', 'pro', 'executive'];
 
 const TIER_LIMITS: Record<string, number> = {
   free: 10,
   basic: 100,
-  pro: 100,
-  premium: 500,
+  pro: 500,
   executive: 2000,
 };
 

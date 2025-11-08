@@ -5,8 +5,7 @@ import { NextResponse } from 'next/server';
 const PRICING = {
   free: 0,
   basic: 12,
-  pro: 12,
-  premium: 30,
+  pro: 30,
   executive: 150,
 };
 
@@ -96,7 +95,7 @@ export async function GET(request: Request) {
     // REVENUE STATS
     // ====================
     // Always show ALL tiers, even if they have 0 users
-    const allTiers = ['free', 'basic', 'pro', 'premium', 'executive'];
+    const allTiers = ['free', 'basic', 'pro', 'executive'];
     const revenueByTier = allTiers.map(tier => {
       const count = tierCounts[tier] || 0;
       return {
