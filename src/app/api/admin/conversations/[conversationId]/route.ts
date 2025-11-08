@@ -6,115 +6,58 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ conversationId: string }> }
 ) {
-  const supabase = await createClient();
-
-  // Check authentication
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check if user is admin
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('is_admin')
-    .eq('id', session.user.id)
-    .single();
-
-  if (!profile?.is_admin) {
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-  }
-
-  // Create service role client to access auth.users directly
-  const supabaseAdmin = createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    }
-  );
-
   try {
+    const supabase = await createClient();
+
+    // Check authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('is_admin')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile?.is_admin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { conversationId } = await params;
 
-    // STEP 1: Fetch all users directly from auth.users (bypasses RPC)
-    const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
-
-    if (authUsersError) {
-      console.error('Error fetching auth users:', authUsersError);
-      throw authUsersError;
-    }
-
-    // STEP 2: Fetch user_profiles to get subscription tiers
-    const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from('user_profiles')
-      .select('id, subscription_tier, created_at');
-
-    if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
-      throw profilesError;
-    }
-
-    // Create profile lookup map
-    const profileMap = new Map(
-      (profiles || []).map((p: any) => [p.id, { tier: p.subscription_tier, created_at: p.created_at }])
+    // Create service role client
+    const admin = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Create lookup map for user details
-    const userLookup = new Map(
-      (authUsers?.users || []).map((u: any) => [u.id, {
-        email: u.email,
-        tier: profileMap.get(u.id)?.tier || 'free',
-        created_at: profileMap.get(u.id)?.created_at || u.created_at
-      }])
-    );
-
-    // STEP 2: Get conversation details (without trying to join email from user_profiles)
-    const { data: conversation, error: convError } = await supabase
+    // Get conversation
+    const { data: conversation, error: convError } = await admin
       .from('conversations')
-      .select(`
-        id,
-        title,
-        created_at,
-        updated_at,
-        user_id
-      `)
+      .select('id, title, created_at, updated_at, user_id')
       .eq('id', conversationId)
       .single();
 
-    if (convError) {
-      console.error('Error fetching conversation:', convError);
-      throw convError;
-    }
-
-    if (!conversation) {
+    if (convError || !conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    // Get user details from lookup map
-    const userDetails = (userLookup.get(conversation.user_id) || {
-      email: 'Unknown',
-      tier: 'free',
-      created_at: null
-    }) as { email: string; tier: string; created_at: string | null };
+    // Get user email
+    const { data: authData } = await admin.auth.admin.listUsers();
+    const user = authData?.users?.find(u => u.id === conversation.user_id);
+    const userEmail = user?.email || 'Unknown';
 
-    // STEP 3: Get all messages for this conversation
-    const { data: messages, error: messagesError } = await supabase
+    // Get all messages
+    const { data: messages } = await admin
       .from('messages')
-      .select('*')
+      .select('id, role, content, created_at, file_url, file_type, file_size')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
-    if (messagesError) {
-      console.error('Error fetching messages:', messagesError);
-      throw messagesError;
-    }
-
-    // STEP 4: Extract attachments from messages (attachments are stored in messages table)
+    // Extract attachments from messages
     const attachments = (messages || [])
       .filter(m => m.file_url)
       .map(m => ({
@@ -135,12 +78,11 @@ export async function GET(
         created_at: conversation.created_at,
         updated_at: conversation.updated_at,
         user_id: conversation.user_id,
-        user_email: userDetails.email,
-        user_tier: userDetails.tier,
-        user_joined: userDetails.created_at,
+        user_email: userEmail,
+        user_tier: 'free',
       },
       messages: messages || [],
-      attachments: attachments,
+      attachments,
       stats: {
         total_messages: messages?.length || 0,
         user_messages: messages?.filter(m => m.role === 'user').length || 0,
@@ -148,10 +90,15 @@ export async function GET(
         total_attachments: attachments.length,
       },
     });
+
   } catch (error: any) {
-    console.error('Conversation detail error:', error);
+    console.error('[CONVERSATION_DETAIL] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch conversation details', details: error.message },
+      {
+        error: 'Failed to fetch conversation',
+        details: error.message,
+        stack: error.stack
+      },
       { status: 500 }
     );
   }
