@@ -70,8 +70,11 @@ interface AdminStats {
   };
 }
 
+type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity';
+
 export default function AdminDashboard() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -287,13 +290,48 @@ export default function AdminDashboard() {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
+
+          {/* Tab Navigation */}
+          <div className="mt-6 border-b border-slate-200">
+            <div className="flex space-x-8">
+              {[
+                { id: 'overview', label: 'Overview', icon: TrendingUp },
+                { id: 'users', label: 'Users', icon: Users },
+                { id: 'notifications', label: 'Notifications', icon: Mail },
+                { id: 'reports', label: 'Reports', icon: BarChart3 },
+                { id: 'activity', label: 'Activity', icon: Activity },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as TabType)}
+                    className={`
+                      flex items-center gap-2 pb-3 px-1 border-b-2 font-medium text-sm transition-colors
+                      ${isActive
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                      }
+                    `}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Top Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <>
+            {/* Top Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total Users */}
           <Card className="border-l-4 border-l-blue-600">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -596,9 +634,12 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+          </>
+        )}
 
-        {/* User Management Table */}
-        <Card className="mb-8">
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <Card className="mb-8">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center text-slate-900">
@@ -727,20 +768,80 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+        )}
 
-        {/* Date Range Info */}
-        <div className="text-center">
-          <div className="text-sm text-slate-500">
-            <Calendar className="h-4 w-4 inline mr-2" />
-            Showing data from {new Date(stats.dateRange.start).toLocaleDateString()} to{' '}
-            {new Date(stats.dateRange.end).toLocaleDateString()}
+        {/* Notifications Tab */}
+        {activeTab === 'notifications' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-slate-900">
+                <Mail className="h-5 w-5 mr-2 text-blue-600" />
+                Send Notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <Mail className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600 mb-4">Push notification system coming soon!</p>
+                <p className="text-sm text-slate-500">Send messages to users filtered by tier</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Reports Tab */}
+        {activeTab === 'reports' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-slate-900">
+                <BarChart3 className="h-5 w-5 mr-2 text-green-600" />
+                Export Reports
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <BarChart3 className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600 mb-4">Export functionality coming soon!</p>
+                <p className="text-sm text-slate-500">Download CSV/PDF reports of all your data</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Activity Tab */}
+        {activeTab === 'activity' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-slate-900">
+                <Activity className="h-5 w-5 mr-2 text-purple-600" />
+                Real-Time Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600 mb-4">Real-time activity feed coming soon!</p>
+                <p className="text-sm text-slate-500">See who's using the app right now</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Date Range Info - Only on Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="text-center mt-8">
+            <div className="text-sm text-slate-500">
+              <Calendar className="h-4 w-4 inline mr-2" />
+              Showing data from {new Date(stats.dateRange.start).toLocaleDateString()} to{' '}
+              {new Date(stats.dateRange.end).toLocaleDateString()}
+            </div>
+            <div className="text-xs text-slate-400 mt-1">
+              Usage stats (messages, tokens, costs) are filtered by fiscal period. User counts and revenue show current totals.
+              <br />
+              Fiscal year: January 1 - December 31
+            </div>
           </div>
-          <div className="text-xs text-slate-400 mt-1">
-            Usage stats (messages, tokens, costs) are filtered by fiscal period. User counts and revenue show current totals.
-            <br />
-            Fiscal year: January 1 - December 31
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Tier Management Modal */}
