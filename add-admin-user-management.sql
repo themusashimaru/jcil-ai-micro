@@ -3,6 +3,9 @@
 -- ============================================
 -- This creates a secure function to fetch all users with their emails
 
+-- Drop the old function first (if it exists)
+DROP FUNCTION IF EXISTS public.get_all_users_for_admin();
+
 -- Function to get all users with their details for admin panel
 CREATE OR REPLACE FUNCTION public.get_all_users_for_admin()
 RETURNS TABLE(
