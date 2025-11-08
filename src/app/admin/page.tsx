@@ -71,7 +71,7 @@ interface AdminStats {
   };
 }
 
-type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity' | 'moderation' | 'safety';
+type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity' | 'moderation' | 'safety' | 'iam';
 
 // Helper function to format time ago
 function getTimeAgo(timestamp: string): string {
@@ -167,6 +167,14 @@ export default function AdminDashboard() {
   const [generalNotifications, setGeneralNotifications] = useState(0);
   const [adminNotifications, setAdminNotifications] = useState(0);
   const [cyberAlerts, setCyberAlerts] = useState(0);
+
+  // IAM (Identity & Access Management) state
+  const [iamUsers, setIamUsers] = useState<any[]>([]);
+  const [filteredIamUsers, setFilteredIamUsers] = useState<any[]>([]);
+  const [iamSearchQuery, setIamSearchQuery] = useState('');
+  const [iamRoleFilter, setIamRoleFilter] = useState<'all' | 'admin' | 'moderator' | 'cyber_analyst'>('all');
+  const [isLoadingIam, setIsLoadingIam] = useState(false);
+  const [selectedIamUser, setSelectedIamUser] = useState<any>(null);
 
   const fetchStats = async () => {
     try {
@@ -521,6 +529,49 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchIamUsers = async () => {
+    try {
+      setIsLoadingIam(true);
+      const response = await fetch('/api/admin/iam/users');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch IAM users');
+      }
+
+      const data = await response.json();
+      setIamUsers(data.users || []);
+      setFilteredIamUsers(data.users || []);
+    } catch (err: any) {
+      console.error('Failed to fetch IAM users:', err);
+    } finally {
+      setIsLoadingIam(false);
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, role: string, value: boolean) => {
+    try {
+      const response = await fetch('/api/admin/iam/update-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, role, value }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update role');
+      }
+
+      const result = await response.json();
+      alert(`✅ ${result.message}`);
+
+      // Refresh IAM users
+      fetchIamUsers();
+    } catch (error: any) {
+      console.error('Role update error:', error);
+      alert(`❌ Failed to update role: ${error.message}`);
+    }
+  };
+
   const handleModerateUser = async (userId: string, action: string, duration?: string) => {
     const reason = prompt(`Reason for ${action}ing this user (optional):`);
 
@@ -673,6 +724,8 @@ Generated: ${new Date().toISOString()}
       fetchModeratedUsers();
     } else if (activeTab === 'safety') {
       fetchSafetyLogs();
+    } else if (activeTab === 'iam') {
+      fetchIamUsers();
     }
   }, [activeTab]);
 
@@ -871,6 +924,30 @@ Generated: ${new Date().toISOString()}
     setFilteredSafetyLogs(filtered);
   }, [safetySeverityFilter, safetyCategoryFilter, safetyReviewedFilter, safetyDateFilter, safetyCustomStartDate, safetyCustomEndDate, safetyLogs]);
 
+  // Filter IAM users by role and search query
+  useEffect(() => {
+    let filtered = iamUsers;
+
+    // Filter by role
+    if (iamRoleFilter === 'admin') {
+      filtered = filtered.filter(user => user.is_admin);
+    } else if (iamRoleFilter === 'moderator') {
+      filtered = filtered.filter(user => user.is_moderator);
+    } else if (iamRoleFilter === 'cyber_analyst') {
+      filtered = filtered.filter(user => user.is_cyber_analyst);
+    }
+
+    // Filter by search query (email)
+    if (iamSearchQuery.trim()) {
+      const query = iamSearchQuery.toLowerCase();
+      filtered = filtered.filter(user =>
+        user.email?.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredIamUsers(filtered);
+  }, [iamRoleFilter, iamSearchQuery, iamUsers]);
+
   if (loading && !stats) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -938,8 +1015,7 @@ Generated: ${new Date().toISOString()}
 
               {/* Admin Panel Button with Notifications Bell */}
               <Button
-                variant="outline"
-                className="border-slate-300 text-slate-700 hover:bg-slate-50 relative"
+                className="bg-white border-2 border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 relative"
               >
                 <Bell className="h-4 w-4 mr-2" />
                 Admin
@@ -1007,6 +1083,7 @@ Generated: ${new Date().toISOString()}
                 { id: 'activity', label: 'Activity', icon: Activity },
                 { id: 'moderation', label: 'Moderation', icon: Shield },
                 { id: 'safety', label: 'Safety Threats', icon: AlertTriangle },
+                { id: 'iam', label: 'IAM / Roles', icon: UserCog },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -3298,6 +3375,247 @@ adminactivities@jcil.ai`);
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* IAM Tab */}
+        {activeTab === 'iam' && (
+          <div className="space-y-6">
+            {/* Info Banner */}
+            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-lg">
+              <div className="flex items-start gap-3">
+                <UserCog className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-900 mb-1">Identity & Access Management (IAM)</h3>
+                  <p className="text-sm text-blue-800">
+                    Assign administrative roles to users. Admins have full platform access, Moderators can review flagged content, and Cyber Analysts can access security monitoring.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Role Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="border-l-4 border-l-purple-600">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Admins</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {iamUsers.filter(u => u.is_admin).length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-green-600">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Moderators</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {iamUsers.filter(u => u.is_moderator).length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-red-600">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Cyber Analysts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {iamUsers.filter(u => u.is_cyber_analyst).length}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* User Role Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-slate-900">
+                  <UserCog className="h-5 w-5 mr-2 text-blue-600" />
+                  User Roles & Permissions
+                </CardTitle>
+
+                {/* Search and Filters */}
+                <div className="mt-4 space-y-4">
+                  <div className="flex gap-3">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                      <Input
+                        type="text"
+                        placeholder="Search by email..."
+                        value={iamSearchQuery}
+                        onChange={(e) => setIamSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Role Filter Buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={iamRoleFilter === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setIamRoleFilter('all')}
+                      className={iamRoleFilter === 'all' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                    >
+                      All Users
+                    </Button>
+                    <Button
+                      variant={iamRoleFilter === 'admin' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setIamRoleFilter('admin')}
+                      className={iamRoleFilter === 'admin' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                    >
+                      Admins Only
+                    </Button>
+                    <Button
+                      variant={iamRoleFilter === 'moderator' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setIamRoleFilter('moderator')}
+                      className={iamRoleFilter === 'moderator' ? 'bg-green-600 hover:bg-green-700' : ''}
+                    >
+                      Moderators Only
+                    </Button>
+                    <Button
+                      variant={iamRoleFilter === 'cyber_analyst' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setIamRoleFilter('cyber_analyst')}
+                      className={iamRoleFilter === 'cyber_analyst' ? 'bg-red-600 hover:bg-red-700' : ''}
+                    >
+                      Cyber Analysts Only
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                {isLoadingIam ? (
+                  <div className="text-center py-12">
+                    <RefreshCw className="h-8 w-8 text-blue-600 animate-spin mx-auto mb-4" />
+                    <p className="text-slate-600">Loading users...</p>
+                  </div>
+                ) : filteredIamUsers.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <p className="text-slate-600 mb-2">No users found</p>
+                    <p className="text-sm text-slate-500">Try adjusting your filters</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Email</th>
+                          <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Admin</th>
+                          <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Moderator</th>
+                          <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Cyber Analyst</th>
+                          <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Tier</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredIamUsers.map((user) => (
+                          <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 text-sm text-slate-900">{user.email}</td>
+                            <td className="py-3 px-4 text-center">
+                              <input
+                                type="checkbox"
+                                checked={user.is_admin || false}
+                                onChange={(e) => handleUpdateRole(user.id, 'is_admin', e.target.checked)}
+                                className="h-4 w-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500"
+                              />
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <input
+                                type="checkbox"
+                                checked={user.is_moderator || false}
+                                onChange={(e) => handleUpdateRole(user.id, 'is_moderator', e.target.checked)}
+                                className="h-4 w-4 text-green-600 rounded border-slate-300 focus:ring-green-500"
+                              />
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <input
+                                type="checkbox"
+                                checked={user.is_cyber_analyst || false}
+                                onChange={(e) => handleUpdateRole(user.id, 'is_cyber_analyst', e.target.checked)}
+                                className="h-4 w-4 text-red-600 rounded border-slate-300 focus:ring-red-500"
+                              />
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                user.subscription_tier === 'executive' ? 'bg-amber-100 text-amber-800' :
+                                user.subscription_tier === 'premium' ? 'bg-purple-100 text-purple-800' :
+                                user.subscription_tier === 'pro' ? 'bg-blue-100 text-blue-800' :
+                                'bg-slate-100 text-slate-800'
+                              }`}>
+                                {user.subscription_tier || 'free'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Role Descriptions */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="bg-purple-50">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium text-purple-900 flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-xs text-purple-800 space-y-1">
+                    <li>• Full platform access</li>
+                    <li>• User & subscription management</li>
+                    <li>• Financial dashboard</li>
+                    <li>• IAM role assignment</li>
+                    <li>• All moderation & security tools</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-green-50">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium text-green-900 flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Moderator
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-xs text-green-800 space-y-1">
+                    <li>• Review flagged content</li>
+                    <li>• Safety threats monitoring</li>
+                    <li>• User moderation actions</li>
+                    <li>• Activity monitoring</li>
+                    <li>• Limited admin access</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-red-50">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium text-red-900 flex items-center gap-2">
+                    <ShieldAlert className="h-4 w-4" />
+                    Cyber Analyst
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-xs text-red-800 space-y-1">
+                    <li>• Security Command Center access</li>
+                    <li>• Threat monitoring & analysis</li>
+                    <li>• IP intelligence management</li>
+                    <li>• Security event review</li>
+                    <li>• Incident response tools</li>
+                  </ul>
                 </CardContent>
               </Card>
             </div>
