@@ -8,7 +8,7 @@ import {
   Users, DollarSign, TrendingUp, Zap,
   Calendar, ArrowLeft, RefreshCw, Activity,
   Search, UserCog, Mail, Clock, BarChart3, LineChart,
-  FileText, Download, MessageSquare, Paperclip, X, ExternalLink, Shield, Ban
+  FileText, Download, MessageSquare, Paperclip, X, ExternalLink, Shield, Ban, AlertTriangle
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -71,7 +71,7 @@ interface AdminStats {
   };
 }
 
-type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity' | 'moderation';
+type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity' | 'moderation' | 'safety';
 
 // Helper function to format time ago
 function getTimeAgo(timestamp: string): string {
@@ -150,6 +150,18 @@ export default function AdminDashboard() {
   const [isLoadingModUsers, setIsLoadingModUsers] = useState(false);
   const [isLoadingModConversations, setIsLoadingModConversations] = useState(false);
   const [isLoadingModConversationDetail, setIsLoadingModConversationDetail] = useState(false);
+
+  // Safety tab state
+  const [safetyLogs, setSafetyLogs] = useState<any[]>([]);
+  const [filteredSafetyLogs, setFilteredSafetyLogs] = useState<any[]>([]);
+  const [selectedSafetyLog, setSelectedSafetyLog] = useState<any>(null);
+  const [safetySeverityFilter, setSafetySeverityFilter] = useState<'all' | 'critical' | 'high' | 'medium' | 'low'>('all');
+  const [safetyCategoryFilter, setSafetyCategoryFilter] = useState<string>('all');
+  const [safetyReviewedFilter, setSafetyReviewedFilter] = useState<'all' | 'reviewed' | 'unreviewed'>('all');
+  const [safetyDateFilter, setSafetyDateFilter] = useState<'all' | 'today' | '7days' | '30days' | 'custom'>('all');
+  const [safetyCustomStartDate, setSafetyCustomStartDate] = useState('');
+  const [safetyCustomEndDate, setSafetyCustomEndDate] = useState('');
+  const [isLoadingSafety, setIsLoadingSafety] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -461,6 +473,25 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchSafetyLogs = async () => {
+    try {
+      setIsLoadingSafety(true);
+      const response = await fetch('/api/admin/safety-logs');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch safety logs');
+      }
+
+      const data = await response.json();
+      setSafetyLogs(data.logs || []);
+      setFilteredSafetyLogs(data.logs || []);
+    } catch (err: any) {
+      console.error('Failed to fetch safety logs:', err);
+    } finally {
+      setIsLoadingSafety(false);
+    }
+  };
+
   const handleModerateUser = async (userId: string, action: string, duration?: string) => {
     const reason = prompt(`Reason for ${action}ing this user (optional):`);
 
@@ -601,6 +632,8 @@ Generated: ${new Date().toISOString()}
       fetchActivityUsers();
     } else if (activeTab === 'moderation') {
       fetchModeratedUsers();
+    } else if (activeTab === 'safety') {
+      fetchSafetyLogs();
     }
   }, [activeTab]);
 
@@ -742,6 +775,63 @@ Generated: ${new Date().toISOString()}
     setFilteredModConversations(filtered);
   }, [modDateFilter, modCustomStartDate, modCustomEndDate, modConversations, selectedModeratedUser]);
 
+  // Filter safety logs by severity, category, reviewed status, and date
+  useEffect(() => {
+    let filtered = safetyLogs;
+
+    // Filter by severity
+    if (safetySeverityFilter !== 'all') {
+      filtered = filtered.filter(log => log.severity === safetySeverityFilter);
+    }
+
+    // Filter by category
+    if (safetyCategoryFilter !== 'all') {
+      filtered = filtered.filter(log =>
+        log.categories && log.categories.includes(safetyCategoryFilter)
+      );
+    }
+
+    // Filter by reviewed status
+    if (safetyReviewedFilter === 'reviewed') {
+      filtered = filtered.filter(log => log.reviewed);
+    } else if (safetyReviewedFilter === 'unreviewed') {
+      filtered = filtered.filter(log => !log.reviewed);
+    }
+
+    // Filter by date
+    const now = new Date();
+    if (safetyDateFilter === 'today') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      filtered = filtered.filter(log => {
+        const logDate = new Date(log.created_at);
+        return logDate >= today;
+      });
+    } else if (safetyDateFilter === '7days') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      filtered = filtered.filter(log => {
+        const logDate = new Date(log.created_at);
+        return logDate >= sevenDaysAgo;
+      });
+    } else if (safetyDateFilter === '30days') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      filtered = filtered.filter(log => {
+        const logDate = new Date(log.created_at);
+        return logDate >= thirtyDaysAgo;
+      });
+    } else if (safetyDateFilter === 'custom' && safetyCustomStartDate) {
+      const startDate = new Date(safetyCustomStartDate);
+      const endDate = safetyCustomEndDate ? new Date(safetyCustomEndDate) : now;
+      endDate.setHours(23, 59, 59, 999);
+
+      filtered = filtered.filter(log => {
+        const logDate = new Date(log.created_at);
+        return logDate >= startDate && logDate <= endDate;
+      });
+    }
+
+    setFilteredSafetyLogs(filtered);
+  }, [safetySeverityFilter, safetyCategoryFilter, safetyReviewedFilter, safetyDateFilter, safetyCustomStartDate, safetyCustomEndDate, safetyLogs]);
+
   if (loading && !stats) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
@@ -841,6 +931,7 @@ Generated: ${new Date().toISOString()}
                 { id: 'reports', label: 'Reports', icon: BarChart3 },
                 { id: 'activity', label: 'Activity', icon: Activity },
                 { id: 'moderation', label: 'Moderation', icon: Shield },
+                { id: 'safety', label: 'Safety Threats', icon: AlertTriangle },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -2612,6 +2703,522 @@ Generated: ${new Date().toISOString()}
                               <p className="text-sm text-slate-900 whitespace-pre-wrap">{msg.content}</p>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Safety Threats Tab */}
+        {activeTab === 'safety' && (
+          <div className="space-y-6">
+            {/* Warning Banner */}
+            <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded-r-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="p-2 bg-red-100 rounded-full">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-red-900 mb-1">🚨 Safety Threats Monitoring Center</h3>
+                  <p className="text-sm text-red-800">
+                    This section displays flagged content detected by our AI moderation system. Critical threats (self-harm, violence, terrorism) require immediate review.
+                    All logs are monitored for legal compliance and can be exported for law enforcement.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card className="border-l-4 border-l-red-600">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Total Flags</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-slate-900">{safetyLogs.length}</div>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-orange-600">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Critical</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {safetyLogs.filter(l => l.severity === 'critical').length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-yellow-600">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">High</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    {safetyLogs.filter(l => l.severity === 'high').length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-l-4 border-l-blue-600">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-slate-600">Unreviewed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {safetyLogs.filter(l => !l.reviewed).length}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Filters & List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-slate-900">
+                    <AlertTriangle className="h-5 w-5 mr-2 text-red-600" />
+                    Flagged Content
+                  </CardTitle>
+                  <div className="mt-4 space-y-4">
+                    {/* Severity Filter */}
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 mb-2">Filter by severity:</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant={safetySeverityFilter === 'all' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetySeverityFilter('all')}
+                          className={`text-xs ${safetySeverityFilter === 'all' ? 'bg-slate-600 hover:bg-slate-700' : ''}`}
+                        >
+                          All
+                        </Button>
+                        <Button
+                          variant={safetySeverityFilter === 'critical' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetySeverityFilter('critical')}
+                          className={`text-xs ${safetySeverityFilter === 'critical' ? 'bg-red-600 hover:bg-red-700' : ''}`}
+                        >
+                          Critical
+                        </Button>
+                        <Button
+                          variant={safetySeverityFilter === 'high' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetySeverityFilter('high')}
+                          className={`text-xs ${safetySeverityFilter === 'high' ? 'bg-orange-600 hover:bg-orange-700' : ''}`}
+                        >
+                          High
+                        </Button>
+                        <Button
+                          variant={safetySeverityFilter === 'medium' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetySeverityFilter('medium')}
+                          className={`text-xs ${safetySeverityFilter === 'medium' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}`}
+                        >
+                          Medium
+                        </Button>
+                        <Button
+                          variant={safetySeverityFilter === 'low' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetySeverityFilter('low')}
+                          className={`text-xs ${safetySeverityFilter === 'low' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                        >
+                          Low
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Review Status Filter */}
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 mb-2">Review status:</p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={safetyReviewedFilter === 'all' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetyReviewedFilter('all')}
+                          className={`text-xs ${safetyReviewedFilter === 'all' ? 'bg-slate-600 hover:bg-slate-700' : ''}`}
+                        >
+                          All
+                        </Button>
+                        <Button
+                          variant={safetyReviewedFilter === 'unreviewed' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetyReviewedFilter('unreviewed')}
+                          className={`text-xs ${safetyReviewedFilter === 'unreviewed' ? 'bg-red-600 hover:bg-red-700' : ''}`}
+                        >
+                          Unreviewed
+                        </Button>
+                        <Button
+                          variant={safetyReviewedFilter === 'reviewed' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetyReviewedFilter('reviewed')}
+                          className={`text-xs ${safetyReviewedFilter === 'reviewed' ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                        >
+                          Reviewed
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Date Filter */}
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 mb-2">Date range:</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant={safetyDateFilter === 'all' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetyDateFilter('all')}
+                          className={`text-xs ${safetyDateFilter === 'all' ? 'bg-slate-600 hover:bg-slate-700' : ''}`}
+                        >
+                          All Time
+                        </Button>
+                        <Button
+                          variant={safetyDateFilter === 'today' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetyDateFilter('today')}
+                          className={`text-xs ${safetyDateFilter === 'today' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                        >
+                          Today
+                        </Button>
+                        <Button
+                          variant={safetyDateFilter === '7days' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetyDateFilter('7days')}
+                          className={`text-xs ${safetyDateFilter === '7days' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                        >
+                          Last 7 Days
+                        </Button>
+                        <Button
+                          variant={safetyDateFilter === '30days' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSafetyDateFilter('30days')}
+                          className={`text-xs ${safetyDateFilter === '30days' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                        >
+                          Last 30 Days
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Custom Date Range (if selected) */}
+                    {safetyDateFilter === 'custom' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-slate-600 block mb-1">Start Date</label>
+                          <input
+                            type="date"
+                            value={safetyCustomStartDate}
+                            onChange={(e) => setSafetyCustomStartDate(e.target.value)}
+                            className="w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-600 block mb-1">End Date</label>
+                          <input
+                            type="date"
+                            value={safetyCustomEndDate}
+                            onChange={(e) => setSafetyCustomEndDate(e.target.value)}
+                            className="w-full px-2 py-1 text-xs border border-slate-300 rounded"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+
+                <CardContent className="max-h-[600px] overflow-y-auto">
+                  {isLoadingSafety ? (
+                    <div className="text-center py-8">
+                      <RefreshCw className="h-8 w-8 text-blue-600 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-slate-600">Loading safety logs...</p>
+                    </div>
+                  ) : filteredSafetyLogs.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No flagged content found</p>
+                      <p className="text-sm text-slate-500">
+                        {safetyLogs.length === 0
+                          ? 'The system has not detected any policy violations yet.'
+                          : 'Try adjusting your filters to see more results.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-slate-600 mb-2">
+                        Showing {filteredSafetyLogs.length} of {safetyLogs.length} total flags
+                      </p>
+                      {filteredSafetyLogs.map((log) => {
+                        const severityColors = {
+                          critical: 'border-red-600 bg-red-50',
+                          high: 'border-orange-600 bg-orange-50',
+                          medium: 'border-yellow-600 bg-yellow-50',
+                          low: 'border-blue-600 bg-blue-50',
+                        };
+                        const severityTextColors = {
+                          critical: 'text-red-700',
+                          high: 'text-orange-700',
+                          medium: 'text-yellow-700',
+                          low: 'text-blue-700',
+                        };
+
+                        return (
+                          <div
+                            key={log.id}
+                            onClick={() => setSelectedSafetyLog(log)}
+                            className={`border-l-4 p-3 rounded-r-lg cursor-pointer transition-all hover:shadow-md ${
+                              severityColors[log.severity as keyof typeof severityColors] || severityColors.low
+                            } ${
+                              selectedSafetyLog?.id === log.id ? 'ring-2 ring-blue-500' : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-bold uppercase px-2 py-1 rounded ${
+                                  severityTextColors[log.severity as keyof typeof severityTextColors] || severityTextColors.low
+                                }`}>
+                                  {log.severity}
+                                </span>
+                                {!log.reviewed && (
+                                  <span className="text-xs bg-red-600 text-white px-2 py-1 rounded font-semibold">
+                                    NEW
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-xs text-slate-500">
+                                {getTimeAgo(log.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-sm font-semibold text-slate-900 mb-1">{log.reason}</p>
+                            <p className="text-xs text-slate-600 mb-2">User: {log.user_email || 'Unknown'}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {log.categories?.map((cat: string, idx: number) => (
+                                <span key={idx} className="text-xs bg-slate-700 text-white px-2 py-0.5 rounded">
+                                  {cat}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Detail View */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <CardTitle className="flex items-center text-slate-900">
+                      <FileText className="h-5 w-5 mr-2 text-blue-600" />
+                      Threat Details
+                    </CardTitle>
+                    {selectedSafetyLog && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedSafetyLog(null)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+
+                <CardContent>
+                  {!selectedSafetyLog ? (
+                    <div className="text-center py-12">
+                      <AlertTriangle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No flag selected</p>
+                      <p className="text-sm text-slate-500">Click on a flagged item to view full details</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Severity Badge */}
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`text-sm font-bold uppercase px-3 py-1.5 rounded ${
+                            selectedSafetyLog.severity === 'critical' ? 'bg-red-600 text-white' :
+                            selectedSafetyLog.severity === 'high' ? 'bg-orange-600 text-white' :
+                            selectedSafetyLog.severity === 'medium' ? 'bg-yellow-600 text-white' :
+                            'bg-blue-600 text-white'
+                          }`}>
+                            {selectedSafetyLog.severity} SEVERITY
+                          </span>
+                          {!selectedSafetyLog.reviewed && (
+                            <span className="text-xs bg-red-600 text-white px-2 py-1 rounded font-semibold">
+                              UNREVIEWED
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-slate-600 mb-1">User</p>
+                            <p className="font-semibold text-slate-900">{selectedSafetyLog.user_email || 'Unknown'}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-600 mb-1">Flagged At</p>
+                            <p className="font-semibold text-slate-900">
+                              {new Date(selectedSafetyLog.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Reason */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 mb-2">Violation Type</h3>
+                        <p className="text-sm text-slate-700 bg-red-50 border border-red-200 rounded p-3">
+                          {selectedSafetyLog.reason}
+                        </p>
+                      </div>
+
+                      {/* Categories */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 mb-2">Categories</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedSafetyLog.categories?.map((cat: string, idx: number) => (
+                            <span key={idx} className="text-xs bg-slate-700 text-white px-3 py-1.5 rounded font-medium">
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Flagged Content */}
+                      {selectedSafetyLog.text && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900 mb-2">Flagged Content</h3>
+                          <div className="bg-slate-50 border border-slate-200 rounded p-3 max-h-[200px] overflow-y-auto">
+                            <p className="text-sm text-slate-700 whitespace-pre-wrap">{selectedSafetyLog.text}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tip */}
+                      {selectedSafetyLog.tip && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900 mb-2">Guidance</h3>
+                          <p className="text-sm text-slate-700 bg-blue-50 border border-blue-200 rounded p-3">
+                            {selectedSafetyLog.tip}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* User Context */}
+                      {(selectedSafetyLog.ip || selectedSafetyLog.user_agent) && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900 mb-2">User Context</h3>
+                          <div className="bg-slate-50 border border-slate-200 rounded p-3 space-y-2 text-xs">
+                            {selectedSafetyLog.ip && (
+                              <div>
+                                <span className="text-slate-600">IP Address:</span>
+                                <span className="ml-2 font-mono text-slate-900">{selectedSafetyLog.ip}</span>
+                              </div>
+                            )}
+                            {selectedSafetyLog.user_agent && (
+                              <div>
+                                <span className="text-slate-600">User Agent:</span>
+                                <span className="ml-2 font-mono text-slate-900 text-xs">{selectedSafetyLog.user_agent}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Review Info (if reviewed) */}
+                      {selectedSafetyLog.reviewed && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900 mb-2">Review Information</h3>
+                          <div className="bg-green-50 border border-green-200 rounded p-3 space-y-2 text-sm">
+                            <div>
+                              <span className="text-slate-600">Reviewed by:</span>
+                              <span className="ml-2 font-semibold text-slate-900">{selectedSafetyLog.reviewed_by_email || 'Unknown'}</span>
+                            </div>
+                            {selectedSafetyLog.reviewed_at && (
+                              <div>
+                                <span className="text-slate-600">Reviewed at:</span>
+                                <span className="ml-2 text-slate-900">{new Date(selectedSafetyLog.reviewed_at).toLocaleString()}</span>
+                              </div>
+                            )}
+                            {selectedSafetyLog.admin_notes && (
+                              <div>
+                                <span className="text-slate-600">Notes:</span>
+                                <p className="mt-1 text-slate-900 whitespace-pre-wrap">{selectedSafetyLog.admin_notes}</p>
+                              </div>
+                            )}
+                            {selectedSafetyLog.action_taken && (
+                              <div>
+                                <span className="text-slate-600">Action taken:</span>
+                                <span className="ml-2 font-semibold text-slate-900">{selectedSafetyLog.action_taken}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="pt-4 border-t border-slate-200">
+                        <p className="text-xs text-slate-600 mb-3">Law Enforcement Actions:</p>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                            size="sm"
+                            onClick={() => {
+                              // TODO: Export to law enforcement
+                              alert('Export functionality coming soon');
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export for Law Enforcement
+                          </Button>
+                          <Button
+                            className="w-full bg-slate-600 hover:bg-slate-700 text-white"
+                            size="sm"
+                            onClick={() => {
+                              // TODO: Email authorities
+                              const subject = encodeURIComponent(`JCIL.AI - Critical Safety Threat Report`);
+                              const body = encodeURIComponent(`CRITICAL SAFETY THREAT DETECTED
+
+Severity: ${selectedSafetyLog.severity.toUpperCase()}
+User: ${selectedSafetyLog.user_email || 'Unknown'}
+Flagged At: ${new Date(selectedSafetyLog.created_at).toLocaleString()}
+
+Violation: ${selectedSafetyLog.reason}
+Categories: ${selectedSafetyLog.categories?.join(', ')}
+
+${selectedSafetyLog.text ? `Content:\n${selectedSafetyLog.text}` : ''}
+
+This is an automated safety report from JCIL.AI.
+Log ID: ${selectedSafetyLog.id}
+
+--
+JCIL.AI Safety Team
+adminactivities@jcil.ai`);
+                              window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                            }}
+                          >
+                            <Mail className="h-4 w-4 mr-2" />
+                            Email Authorities
+                          </Button>
+                          {!selectedSafetyLog.reviewed && (
+                            <Button
+                              className="w-full bg-green-600 hover:bg-green-700 text-white"
+                              size="sm"
+                              onClick={() => {
+                                // TODO: Mark as reviewed
+                                alert('Mark as reviewed functionality coming soon');
+                              }}
+                            >
+                              <Shield className="h-4 w-4 mr-2" />
+                              Mark as Reviewed
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

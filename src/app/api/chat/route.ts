@@ -6,6 +6,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { createClient } from "@/lib/supabase/server";
 import { getToolSystemPrompt, type ToolType } from "@/lib/tools-config";
+import { runModeration } from "@/lib/moderation";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -474,32 +475,38 @@ export async function POST(req: Request) {
   console.log('📝 Message:', message.substring(0, 50));
 
   // ============================================
-  // 🛡️ CONTENT MODERATION (OpenAI)
+  // 🛡️ CONTENT MODERATION (OpenAI + Database Logging)
   // ============================================
 
   // Moderate user input for harmful content BEFORE processing
   if (message && message.trim()) {
     try {
-      const moderation = await openai.moderations.create({
-        model: "omni-moderation-latest",
-        input: message,
-      });
+      // Extract IP address and user agent for logging
+      const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ||
+                 req.headers.get('x-real-ip') ||
+                 'unknown';
+      const userAgent = req.headers.get('user-agent') || 'unknown';
 
-      const result = moderation.results[0];
+      // Run comprehensive moderation check (includes database logging)
+      const moderationResult = await runModeration(
+        message,
+        null, // No image moderation for text
+        {
+          userId,
+          ip
+        }
+      );
 
-      if (result.flagged) {
-        // Log which categories were flagged (for monitoring)
-        const flaggedCategories = Object.entries(result.categories)
-          .filter(([_, flagged]) => flagged)
-          .map(([category]) => category);
-
-        console.warn(`Content moderation flagged: ${flaggedCategories.join(', ')}`);
+      if (!moderationResult.allowed) {
+        console.warn(`🚨 Content flagged: ${moderationResult.categories.join(', ')} - ${moderationResult.reason}`);
 
         return new Response(
           JSON.stringify({
             ok: false,
-            error: "Your message contains content that violates our content policy. Please rephrase your question in a respectful manner.",
-            moderation: true
+            error: moderationResult.reason,
+            tip: moderationResult.tip,
+            moderation: true,
+            categories: moderationResult.categories
           }),
           { status: 400, headers: { "content-type": "application/json" } }
         );

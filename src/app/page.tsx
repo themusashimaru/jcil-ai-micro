@@ -1651,7 +1651,14 @@ export default function Home() {
             setUpgradeModalData(data.upgradePrompt);
             setShowUpgradeModal(true);
           }
-          throw new Error(data.error || 'Error from /api/chat');
+          // Pass moderation data if present
+          const error = new Error(data.error || 'Error from /api/chat') as any;
+          if (data.moderation) {
+            error.moderation = true;
+            error.tip = data.tip;
+            error.categories = data.categories;
+          }
+          throw error;
         }
 
         assistantText = data.reply ?? '';
@@ -1693,12 +1700,20 @@ export default function Home() {
 
     } catch (error: any) {
       console.error('chat send error:', error);
+      // Format error message based on type
+      let errorMessage = `Sorry, an error occurred: ${error?.message || 'Unknown error'}`;
+
+      // Enhanced error for moderation violations
+      if (error?.moderation && error?.tip) {
+        errorMessage = `🛡️ **Content Moderation**\n\n${error.message}\n\n💡 **Tip:** ${error.tip}`;
+      }
+
       setMessages((prev) => [
         ...prev,
         {
           id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
           role: 'assistant',
-          content: `Sorry, an error occurred: ${error?.message || 'Unknown error'}`,
+          content: errorMessage,
           created_at: new Date().toISOString(),
         },
       ]);
