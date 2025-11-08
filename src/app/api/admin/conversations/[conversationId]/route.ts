@@ -51,6 +51,11 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
+    // Extract user profile (Supabase returns it as an array even with .single())
+    const userProfile = Array.isArray(conversation.user_profiles)
+      ? conversation.user_profiles[0]
+      : conversation.user_profiles;
+
     // Get all messages for this conversation
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
@@ -82,9 +87,9 @@ export async function GET(
         created_at: conversation.created_at,
         updated_at: conversation.updated_at,
         user_id: conversation.user_id,
-        user_email: conversation.user_profiles?.email || 'Unknown',
-        user_tier: conversation.user_profiles?.subscription_tier || 'free',
-        user_joined: conversation.user_profiles?.created_at,
+        user_email: userProfile?.email || 'Unknown',
+        user_tier: userProfile?.subscription_tier || 'free',
+        user_joined: userProfile?.created_at,
       },
       messages: messages || [],
       attachments: attachments || [],

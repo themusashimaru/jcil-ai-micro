@@ -56,6 +56,11 @@ export async function GET(request: Request) {
     // For each conversation, get message count and latest message
     const conversationsWithDetails = await Promise.all(
       (conversations || []).map(async (conv) => {
+        // Extract user profile (Supabase returns it as an array even with .single())
+        const userProfile = Array.isArray(conv.user_profiles)
+          ? conv.user_profiles[0]
+          : conv.user_profiles;
+
         // Get message count
         const { count } = await supabase
           .from('messages')
@@ -83,8 +88,8 @@ export async function GET(request: Request) {
           created_at: conv.created_at,
           updated_at: conv.updated_at,
           user_id: conv.user_id,
-          user_email: conv.user_profiles?.email || 'Unknown',
-          user_tier: conv.user_profiles?.subscription_tier || 'free',
+          user_email: userProfile?.email || 'Unknown',
+          user_tier: userProfile?.subscription_tier || 'free',
           message_count: count || 0,
           attachment_count: attachmentCount || 0,
           latest_message: latestMessage ? {
