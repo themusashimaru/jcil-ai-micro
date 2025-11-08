@@ -7,9 +7,26 @@ import { Button } from '@/components/ui/button';
 import {
   Users, DollarSign, TrendingUp, Zap,
   Calendar, ArrowLeft, RefreshCw, Activity,
-  Search, UserCog, Mail, Clock
+  Search, UserCog, Mail, Clock, BarChart3, LineChart
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import {
+  LineChart as RechartsLineChart,
+  BarChart as RechartsBarChart,
+  AreaChart,
+  Line,
+  Bar,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 
 interface User {
   id: string;
@@ -481,6 +498,101 @@ export default function AdminDashboard() {
                   </span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts & Visualizations */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Revenue vs Costs Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-slate-900">
+                <LineChart className="h-5 w-5 mr-2 text-green-600" />
+                Revenue & Profit
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <RechartsLineChart data={[
+                  { name: 'Free', revenue: 0, cost: 0 },
+                  { name: 'Basic', revenue: stats.revenue.byTier.find(t => t.tier === 'basic')?.monthlyRevenue || 0, cost: 0 },
+                  { name: 'Pro', revenue: stats.revenue.byTier.find(t => t.tier === 'pro')?.monthlyRevenue || 0, cost: 0 },
+                  { name: 'Executive', revenue: stats.revenue.byTier.find(t => t.tier === 'executive')?.monthlyRevenue || 0, cost: 0 },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="name" stroke="#64748b" />
+                  <YAxis stroke="#64748b" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} name="Revenue ($)" />
+                </RechartsLineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* User Distribution Pie Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-slate-900">
+                <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
+                User Distribution by Tier
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={stats.revenue.byTier.filter(t => t.count > 0)}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ tier, count }) => `${tier}: ${count}`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {stats.revenue.byTier.map((entry, index) => {
+                      const colors = ['#94a3b8', '#60a5fa', '#8b5cf6', '#f59e0b'];
+                      return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                    })}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Token Usage Trend */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center text-slate-900">
+                <Activity className="h-5 w-5 mr-2 text-purple-600" />
+                Performance Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={[
+                  { name: 'Messages', value: stats.usage.totalMessages },
+                  { name: 'Tokens (K)', value: Math.round(stats.usage.totalTokens / 1000) },
+                  { name: 'Revenue ($)', value: stats.revenue.monthlyRecurring },
+                  { name: 'Costs ($)', value: stats.costs.totalApiCost },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="name" stroke="#64748b" />
+                  <YAxis stroke="#64748b" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                  />
+                  <Area type="monotone" dataKey="value" stroke="#8b5cf6" fill="#c4b5fd" />
+                </AreaChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
