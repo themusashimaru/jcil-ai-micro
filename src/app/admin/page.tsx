@@ -277,8 +277,7 @@ export default function AdminDashboard() {
   const fetchConversations = async () => {
     try {
       setIsLoadingConversations(true);
-      const url = `/api/admin/conversations${conversationSearch ? `?search=${encodeURIComponent(conversationSearch)}` : ''}`;
-      const response = await fetch(url);
+      const response = await fetch('/api/admin/conversations');
 
       if (!response.ok) {
         throw new Error('Failed to fetch conversations');
@@ -341,22 +340,12 @@ export default function AdminDashboard() {
     fetchUsers();
   }, [period]);
 
-  // Fetch activity when activity tab is opened and set up auto-refresh
+  // Fetch conversations when activity tab is opened
   useEffect(() => {
     if (activeTab === 'activity') {
       fetchConversations();
     }
   }, [activeTab]);
-
-  // Fetch conversations when search changes
-  useEffect(() => {
-    if (activeTab === 'activity') {
-      const timer = setTimeout(() => {
-        fetchConversations();
-      }, 300); // Debounce search
-      return () => clearTimeout(timer);
-    }
-  }, [conversationSearch]);
 
   if (loading && !stats) {
     return (

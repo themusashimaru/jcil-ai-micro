@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Create service role client (bypasses RLS)
+    // Create service role client
     const admin = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -33,11 +33,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
-    // Fetch all users with auth.admin
+    // Fetch all users
     const { data: authData } = await admin.auth.admin.listUsers();
     const users = authData?.users || [];
-
-    // Create email lookup
     const emailMap = new Map(users.map(u => [u.id, u.email || 'Unknown']));
 
     // Fetch conversations
@@ -51,37 +49,20 @@ export async function GET(request: Request) {
       query = query.eq('user_id', userId);
     }
 
-    const { data: conversations, error: convError } = await query;
-
-    console.log('[CONVERSATIONS] Query result:', {
-      count: conversations?.length,
-      error: convError,
-      hasData: !!conversations
-    });
-
-    if (convError) {
-      console.error('[CONVERSATIONS] Query error:', convError);
-      return NextResponse.json({
-        error: 'Failed to fetch conversations',
-        details: convError.message
-      }, { status: 500 });
-    }
+    const { data: conversations } = await query;
 
     if (!conversations || conversations.length === 0) {
-      console.log('[CONVERSATIONS] No conversations found');
       return NextResponse.json({ conversations: [], total: 0 });
     }
 
     // Enrich conversations
     const enriched = await Promise.all(
       conversations.map(async (conv) => {
-        // Get message count
         const { count } = await admin
           .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('conversation_id', conv.id);
 
-        // Get latest message
         const { data: latest } = await admin
           .from('messages')
           .select('content, created_at, role')
@@ -90,22 +71,34 @@ export async function GET(request: Request) {
           .limit(1)
           .maybeSingle();
 
+        // Count attachments
+        const { count: attachmentCount } = await admin
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', conv.id)
+          .not('file_url', 'is', null);
+
         return {
           id: conv.id,
           title: conv.title,
-          created_at: conv.created_at,
+          created_at: new Date(conv.created_at).toISOString(),
+          updated_at: new Date(conv.created_at).toISOString(), // Use created_at as updated_at
           user_id: conv.user_id,
           user_email: emailMap.get(conv.user_id) || 'Unknown',
           user_tier: 'free',
           message_count: count || 0,
+          attachment_count: attachmentCount || 0,
           latest_message: latest ? {
             content: latest.content?.substring(0, 150) || '',
-            created_at: latest.created_at,
+            created_at: new Date(latest.created_at).toISOString(),
             role: latest.role,
           } : null,
         };
       })
     );
+
+    // Sort by user email alphabetically
+    enriched.sort((a, b) => a.user_email.localeCompare(b.user_email));
 
     return NextResponse.json({
       conversations: enriched,
@@ -118,7 +111,6 @@ export async function GET(request: Request) {
       {
         error: 'Failed to fetch conversations',
         details: error.message,
-        stack: error.stack
       },
       { status: 500 }
     );
