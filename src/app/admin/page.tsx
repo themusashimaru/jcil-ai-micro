@@ -391,6 +391,76 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchModeratedUsers = async () => {
+    try {
+      setIsLoadingModUsers(true);
+      const response = await fetch('/api/admin/users');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+
+      const data = await response.json();
+      const allUsers = data.users || [];
+
+      // Filter for only suspended or banned users
+      const moderatedOnly = allUsers.filter((user: any) =>
+        user.is_suspended || user.is_banned
+      );
+
+      setModeratedUsers(moderatedOnly);
+      setFilteredModeratedUsers(moderatedOnly);
+    } catch (err: any) {
+      console.error('Failed to fetch moderated users:', err);
+    } finally {
+      setIsLoadingModUsers(false);
+    }
+  };
+
+  const fetchModUserConversations = async (userId: string) => {
+    try {
+      setIsLoadingModConversations(true);
+      const response = await fetch(`/api/admin/conversations?userId=${userId}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversations');
+      }
+
+      const data = await response.json();
+      const convs = data.conversations || [];
+      setModConversations(convs);
+      setFilteredModConversations(convs);
+      setModDateFilter('all');
+      setModCustomStartDate('');
+      setModCustomEndDate('');
+    } catch (err: any) {
+      console.error('Failed to fetch conversations:', err);
+    } finally {
+      setIsLoadingModConversations(false);
+    }
+  };
+
+  const fetchModConversationDetail = async (conversationId: string) => {
+    try {
+      setIsLoadingModConversationDetail(true);
+      const response = await fetch(`/api/admin/conversations/${conversationId}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[MOD] Error response:', errorText);
+        throw new Error(`Failed to fetch conversation details: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setSelectedModConversation(data);
+    } catch (err: any) {
+      console.error('[MOD] Failed to fetch conversation details:', err);
+      alert(`Failed to load conversation: ${err.message}`);
+    } finally {
+      setIsLoadingModConversationDetail(false);
+    }
+  };
+
   const handleModerateUser = async (userId: string, action: string, duration?: string) => {
     const reason = prompt(`Reason for ${action}ing this user (optional):`);
 
@@ -414,8 +484,15 @@ export default function AdminDashboard() {
       const result = await response.json();
       alert(`✅ ${result.message}`);
 
-      // Refresh the conversation data to show updated status
-      if (selectedConversation) {
+      // Refresh data based on current context
+      if (activeTab === 'moderation') {
+        fetchModeratedUsers();
+        if (selectedModeratedUser) {
+          setSelectedModeratedUser(null);
+          setModConversations([]);
+          setSelectedModConversation(null);
+        }
+      } else if (selectedConversation) {
         fetchConversationDetail(selectedConversation.conversation.id);
       }
     } catch (error: any) {
@@ -522,6 +599,8 @@ Generated: ${new Date().toISOString()}
   useEffect(() => {
     if (activeTab === 'activity') {
       fetchActivityUsers();
+    } else if (activeTab === 'moderation') {
+      fetchModeratedUsers();
     }
   }, [activeTab]);
 
@@ -590,6 +669,78 @@ Generated: ${new Date().toISOString()}
 
     setFilteredConversations(filtered);
   }, [dateFilter, customStartDate, customEndDate, conversations, selectedUser]);
+
+  // Filter moderated users by status, letter, and search
+  useEffect(() => {
+    let filtered = moderatedUsers;
+
+    // Filter by status (all/suspended/banned)
+    if (modStatusFilter === 'suspended') {
+      filtered = filtered.filter(user => user.is_suspended && !user.is_banned);
+    } else if (modStatusFilter === 'banned') {
+      filtered = filtered.filter(user => user.is_banned);
+    }
+
+    // Apply letter filter
+    if (modUserLetterFilter !== 'all') {
+      filtered = filtered.filter(user =>
+        user.email.toLowerCase().startsWith(modUserLetterFilter.toLowerCase())
+      );
+    }
+
+    // Apply search query
+    if (modUserSearchQuery.trim()) {
+      const query = modUserSearchQuery.toLowerCase();
+      filtered = filtered.filter(user =>
+        user.email.toLowerCase().includes(query) ||
+        user.id.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredModeratedUsers(filtered);
+  }, [modStatusFilter, modUserLetterFilter, modUserSearchQuery, moderatedUsers]);
+
+  // Filter moderated conversations by date
+  useEffect(() => {
+    if (!selectedModeratedUser) {
+      setFilteredModConversations([]);
+      return;
+    }
+
+    let filtered = modConversations;
+    const now = new Date();
+
+    if (modDateFilter === 'today') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      filtered = modConversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= today;
+      });
+    } else if (modDateFilter === '7days') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      filtered = modConversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= sevenDaysAgo;
+      });
+    } else if (modDateFilter === '30days') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      filtered = modConversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= thirtyDaysAgo;
+      });
+    } else if (modDateFilter === 'custom' && modCustomStartDate) {
+      const startDate = new Date(modCustomStartDate);
+      const endDate = modCustomEndDate ? new Date(modCustomEndDate) : now;
+      endDate.setHours(23, 59, 59, 999);
+
+      filtered = modConversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= startDate && convDate <= endDate;
+      });
+    }
+
+    setFilteredModConversations(filtered);
+  }, [modDateFilter, modCustomStartDate, modCustomEndDate, modConversations, selectedModeratedUser]);
 
   if (loading && !stats) {
     return (
@@ -2057,6 +2208,406 @@ Generated: ${new Date().toISOString()}
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Moderation Tab - Suspended & Banned Users */}
+        {activeTab === 'moderation' && (
+          <div className="space-y-6">
+            {/* Warning Banner */}
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="p-2 bg-red-100 rounded-full">
+                    <Shield className="h-5 w-5 text-red-600" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-red-900 mb-1">🚨 User Moderation Center</h3>
+                  <p className="text-sm text-red-800">
+                    This section shows suspended and banned users. All moderation actions are logged for compliance and audit purposes.
+                    Exercise caution when lifting suspensions or unbanning users.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Moderated Users List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-slate-900">
+                    <Shield className="h-5 w-5 mr-2 text-red-600" />
+                    Moderated Users
+                  </CardTitle>
+                  <div className="mt-4 space-y-4">
+                    {/* Status Filter */}
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 mb-2">Filter by status:</p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant={modStatusFilter === 'all' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setModStatusFilter('all')}
+                          className={`text-xs ${modStatusFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
+                        >
+                          All
+                        </Button>
+                        <Button
+                          variant={modStatusFilter === 'suspended' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setModStatusFilter('suspended')}
+                          className={`text-xs ${modStatusFilter === 'suspended' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}`}
+                        >
+                          Suspended
+                        </Button>
+                        <Button
+                          variant={modStatusFilter === 'banned' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setModStatusFilter('banned')}
+                          className={`text-xs ${modStatusFilter === 'banned' ? 'bg-red-600 hover:bg-red-700' : ''}`}
+                        >
+                          Banned
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Search Box */}
+                    <div className="relative">
+                      <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                      <Input
+                        type="text"
+                        placeholder="Search by email or user ID..."
+                        value={modUserSearchQuery}
+                        onChange={(e) => setModUserSearchQuery(e.target.value)}
+                        className="pl-10 w-full"
+                      />
+                    </div>
+
+                    {/* Letter Filter */}
+                    <div className="border-t border-slate-200 pt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="text-sm font-medium text-slate-700">Filter by letter:</p>
+                        <Button
+                          variant={modUserLetterFilter === 'all' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setModUserLetterFilter('all')}
+                          className={`text-xs px-2 h-7 ${modUserLetterFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                        >
+                          All
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map((letter) => {
+                          const userCount = moderatedUsers.filter(u => u.email.toLowerCase().startsWith(letter.toLowerCase())).length;
+                          return (
+                            <Button
+                              key={letter}
+                              variant={modUserLetterFilter === letter ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setModUserLetterFilter(letter)}
+                              disabled={userCount === 0}
+                              className={`text-xs px-2 h-7 min-w-[32px] ${
+                                modUserLetterFilter === letter
+                                  ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                  : userCount === 0
+                                  ? 'opacity-30 cursor-not-allowed'
+                                  : ''
+                              }`}
+                              title={`${userCount} user${userCount !== 1 ? 's' : ''}`}
+                            >
+                              {letter}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Showing {filteredModeratedUsers.length} of {moderatedUsers.length} moderated users
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingModUsers ? (
+                    <div className="text-center py-12">
+                      <RefreshCw className="h-8 w-8 text-slate-400 animate-spin mx-auto mb-2" />
+                      <p className="text-slate-600">Loading moderated users...</p>
+                    </div>
+                  ) : filteredModeratedUsers.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Shield className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No moderated users</p>
+                      <p className="text-sm text-slate-500">
+                        {modUserSearchQuery || modUserLetterFilter !== 'all' || modStatusFilter !== 'all'
+                          ? 'No users match your filters'
+                          : 'No suspended or banned users at this time'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                      {filteredModeratedUsers.map((user) => {
+                        const getStatusBadge = () => {
+                          if (user.is_banned) {
+                            return <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">BANNED</span>;
+                          }
+                          if (user.is_suspended) {
+                            const expiryDate = user.suspended_until ? new Date(user.suspended_until) : null;
+                            const isExpired = expiryDate && expiryDate < new Date();
+                            if (isExpired) {
+                              return <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">EXPIRED</span>;
+                            }
+                            return <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">SUSPENDED</span>;
+                          }
+                          return null;
+                        };
+
+                        return (
+                          <div
+                            key={user.id}
+                            onClick={() => {
+                              setSelectedModeratedUser(user);
+                              setSelectedModConversation(null);
+                              fetchModUserConversations(user.id);
+                            }}
+                            className={`p-3 border rounded-lg cursor-pointer transition-all hover:border-red-300 hover:bg-red-50 ${
+                              selectedModeratedUser?.id === user.id
+                                ? 'border-red-500 bg-red-50'
+                                : 'border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-900 truncate">
+                                  {user.email}
+                                </p>
+                                {user.is_suspended && user.suspended_until && (
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    Until: {new Date(user.suspended_until).toLocaleString()}
+                                  </p>
+                                )}
+                              </div>
+                              {getStatusBadge()}
+                            </div>
+                            {(user.suspension_reason || user.ban_reason) && (
+                              <p className="text-xs text-slate-600 mb-2 line-clamp-2">
+                                Reason: {user.suspension_reason || user.ban_reason}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* User's Conversations - Same as Activity tab */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center text-slate-900">
+                      {selectedModeratedUser ? (
+                        <>
+                          <MessageSquare className="h-5 w-5 mr-2 text-purple-600" />
+                          {selectedModeratedUser.email}'s Conversations
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare className="h-5 w-5 mr-2 text-slate-400" />
+                          Select a User
+                        </>
+                      )}
+                    </CardTitle>
+                    {selectedModeratedUser && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedModeratedUser(null);
+                          setModConversations([]);
+                          setFilteredModConversations([]);
+                          setSelectedModConversation(null);
+                          setModDateFilter('all');
+                          setModCustomStartDate('');
+                          setModCustomEndDate('');
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Date Filter - Same as Activity tab */}
+                  {selectedModeratedUser && (
+                    <div className="mt-4 space-y-3">
+                      <div className="border-t border-slate-200 pt-4">
+                        <p className="text-sm font-medium text-slate-700 mb-2">Filter by date:</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant={modDateFilter === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setModDateFilter('all')} className={`text-xs ${modDateFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}>All Time</Button>
+                          <Button variant={modDateFilter === 'today' ? 'default' : 'outline'} size="sm" onClick={() => setModDateFilter('today')} className={`text-xs ${modDateFilter === 'today' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}>Today</Button>
+                          <Button variant={modDateFilter === '7days' ? 'default' : 'outline'} size="sm" onClick={() => setModDateFilter('7days')} className={`text-xs ${modDateFilter === '7days' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}>Last 7 Days</Button>
+                          <Button variant={modDateFilter === '30days' ? 'default' : 'outline'} size="sm" onClick={() => setModDateFilter('30days')} className={`text-xs ${modDateFilter === '30days' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}>Last 30 Days</Button>
+                          <Button variant={modDateFilter === 'custom' ? 'default' : 'outline'} size="sm" onClick={() => setModDateFilter('custom')} className={`text-xs ${modDateFilter === 'custom' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}>Custom Range</Button>
+                        </div>
+
+                        {modDateFilter === 'custom' && (
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-xs text-slate-600 mb-1 block">Start Date</label>
+                              <Input type="date" value={modCustomStartDate} onChange={(e) => setModCustomStartDate(e.target.value)} className="text-xs" />
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-600 mb-1 block">End Date</label>
+                              <Input type="date" value={modCustomEndDate} onChange={(e) => setModCustomEndDate(e.target.value)} className="text-xs" />
+                            </div>
+                          </div>
+                        )}
+
+                        <p className="text-xs text-slate-500 mt-2">
+                          Showing {filteredModConversations.length} of {modConversations.length} conversations
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {!selectedModeratedUser ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No user selected</p>
+                      <p className="text-sm text-slate-500">Select a moderated user to view their conversations</p>
+                    </div>
+                  ) : isLoadingModConversations ? (
+                    <div className="text-center py-12">
+                      <RefreshCw className="h-8 w-8 text-slate-400 animate-spin mx-auto mb-2" />
+                      <p className="text-slate-600">Loading conversations...</p>
+                    </div>
+                  ) : filteredModConversations.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No conversations found</p>
+                      <p className="text-sm text-slate-500">
+                        {modDateFilter !== 'all' ? 'No conversations in this date range' : 'This user has no conversations yet'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                      {filteredModConversations.map((conv) => (
+                        <div
+                          key={conv.id}
+                          onClick={() => fetchModConversationDetail(conv.id)}
+                          className={`p-3 border rounded-lg cursor-pointer transition-all hover:border-purple-300 hover:bg-purple-50 ${
+                            selectedModConversation?.conversation?.id === conv.id
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-slate-200'
+                          }`}
+                        >
+                          <p className="text-sm font-semibold text-slate-900 truncate mb-2">
+                            {conv.title || 'Untitled conversation'}
+                          </p>
+                          <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{conv.message_count}</span>
+                            <span className="flex items-center gap-1"><Paperclip className="h-3 w-3" />{conv.attachment_count}</span>
+                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(conv.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Conversation Detail with Lift/Unban Buttons */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center text-slate-900">
+                      {selectedModConversation ? (
+                        <><MessageSquare className="h-5 w-5 mr-2 text-purple-600" />Conversation Details</>
+                      ) : (
+                        <><MessageSquare className="h-5 w-5 mr-2 text-slate-400" />Select a Conversation</>
+                      )}
+                    </CardTitle>
+                    {selectedModConversation && (
+                      <div className="flex gap-2">
+                        {selectedModeratedUser?.is_suspended && !selectedModeratedUser?.is_banned && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => {
+                              if (confirm(`Lift suspension for ${selectedModeratedUser.email}?`)) {
+                                handleModerateUser(selectedModeratedUser.id, 'lift');
+                              }
+                            }}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            Lift Suspension
+                          </Button>
+                        )}
+                        {selectedModeratedUser?.is_banned && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => {
+                              if (confirm(`⚠️ Unban ${selectedModeratedUser.email}? They will regain full access.`)) {
+                                handleModerateUser(selectedModeratedUser.id, 'unban');
+                              }
+                            }}
+                            className="bg-orange-600 hover:bg-orange-700"
+                          >
+                            Unban User
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => window.open(`/api/admin/conversations/${selectedModConversation.conversation.id}/export`, '_blank')}>
+                          <Download className="h-4 w-4 mr-2" />Export
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setSelectedModConversation(null)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingModConversationDetail ? (
+                    <div className="text-center py-12">
+                      <RefreshCw className="h-8 w-8 text-slate-400 animate-spin mx-auto mb-2" />
+                      <p className="text-slate-600">Loading conversation...</p>
+                    </div>
+                  ) : !selectedModConversation ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No conversation selected</p>
+                      <p className="text-sm text-slate-500">Click on a conversation to view full details</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div><p className="text-slate-600 mb-1">User</p><p className="font-semibold text-slate-900">{selectedModConversation.conversation.user_email}</p></div>
+                          <div><p className="text-slate-600 mb-1">Messages</p><p className="font-semibold text-slate-900">{selectedModConversation.stats.total_messages}</p></div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 mb-3">Messages</h3>
+                        <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                          {selectedModConversation.messages.map((msg: any, idx: number) => (
+                            <div key={msg.id} className={`p-3 rounded-lg ${msg.role === 'user' ? 'bg-blue-50 border border-blue-200' : 'bg-slate-50 border border-slate-200'}`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold uppercase text-slate-600">{msg.role}</span>
+                                <span className="text-xs text-slate-500">{new Date(msg.created_at).toLocaleString()}</span>
+                              </div>
+                              <p className="text-sm text-slate-900 whitespace-pre-wrap">{msg.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
