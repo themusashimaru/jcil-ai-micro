@@ -119,8 +119,9 @@ export default function AdminDashboard() {
 
   // Conversation viewer state
   const [conversations, setConversations] = useState<any[]>([]);
+  const [filteredConversations, setFilteredConversations] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
-  const [conversationSearch, setConversationSearch] = useState('');
+  const [conversationLetterFilter, setConversationLetterFilter] = useState<string>('all');
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isLoadingConversationDetail, setIsLoadingConversationDetail] = useState(false);
 
@@ -294,17 +295,23 @@ export default function AdminDashboard() {
 
   const fetchConversationDetail = async (conversationId: string) => {
     try {
+      console.log('[ADMIN] Fetching conversation detail for:', conversationId);
       setIsLoadingConversationDetail(true);
       const response = await fetch(`/api/admin/conversations/${conversationId}`);
 
+      console.log('[ADMIN] Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to fetch conversation details');
+        const errorText = await response.text();
+        console.error('[ADMIN] Error response:', errorText);
+        throw new Error(`Failed to fetch conversation details: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('[ADMIN] Conversation data:', data);
       setSelectedConversation(data);
     } catch (err: any) {
-      console.error('Failed to fetch conversation details:', err);
+      console.error('[ADMIN] Failed to fetch conversation details:', err);
       alert(`Failed to load conversation: ${err.message}`);
     } finally {
       setIsLoadingConversationDetail(false);
@@ -346,6 +353,19 @@ export default function AdminDashboard() {
       fetchConversations();
     }
   }, [activeTab]);
+
+  // Filter conversations by letter
+  useEffect(() => {
+    if (conversationLetterFilter === 'all') {
+      setFilteredConversations(conversations);
+    } else {
+      setFilteredConversations(
+        conversations.filter(conv =>
+          conv.user_email.toLowerCase().startsWith(conversationLetterFilter.toLowerCase())
+        )
+      );
+    }
+  }, [conversationLetterFilter, conversations]);
 
   if (loading && !stats) {
     return (
@@ -1260,21 +1280,49 @@ export default function AdminDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center text-slate-900">
                     <MessageSquare className="h-5 w-5 mr-2 text-purple-600" />
-                    All Conversations
+                    User Conversations
                   </CardTitle>
                   <div className="mt-4">
-                    <div className="relative">
-                      <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-                      <Input
-                        type="text"
-                        placeholder="Search by email, title, or content..."
-                        value={conversationSearch}
-                        onChange={(e) => setConversationSearch(e.target.value)}
-                        className="pl-10"
-                      />
+                    {/* Letter Filter */}
+                    <div className="border-t border-slate-200 pt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="text-sm font-medium text-slate-700">Filter by user:</p>
+                        <Button
+                          variant={conversationLetterFilter === 'all' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setConversationLetterFilter('all')}
+                          className={`text-xs px-2 h-7 ${conversationLetterFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                        >
+                          All
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map((letter) => {
+                          const convCount = conversations.filter(c => c.user_email.toLowerCase().startsWith(letter.toLowerCase())).length;
+                          return (
+                            <Button
+                              key={letter}
+                              variant={conversationLetterFilter === letter ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setConversationLetterFilter(letter)}
+                              disabled={convCount === 0}
+                              className={`text-xs px-2 h-7 min-w-[32px] ${
+                                conversationLetterFilter === letter
+                                  ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                  : convCount === 0
+                                  ? 'opacity-30 cursor-not-allowed'
+                                  : ''
+                              }`}
+                              title={`${convCount} conversation${convCount !== 1 ? 's' : ''}`}
+                            >
+                              {letter}
+                            </Button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">
-                      {conversations.length} conversation{conversations.length !== 1 ? 's' : ''} found
+                    <p className="text-xs text-slate-500 mt-3">
+                      Showing {filteredConversations.length} of {conversations.length} conversations
                     </p>
                   </div>
                 </CardHeader>
@@ -1284,17 +1332,17 @@ export default function AdminDashboard() {
                       <RefreshCw className="h-8 w-8 text-slate-400 animate-spin mx-auto mb-2" />
                       <p className="text-slate-600">Loading conversations...</p>
                     </div>
-                  ) : conversations.length === 0 ? (
+                  ) : filteredConversations.length === 0 ? (
                     <div className="text-center py-12">
                       <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                       <p className="text-slate-600 mb-2">No conversations found</p>
                       <p className="text-sm text-slate-500">
-                        {conversationSearch ? 'Try a different search term' : 'No conversations in the system yet'}
+                        {conversationLetterFilter !== 'all' ? 'No users starting with this letter' : 'No conversations in the system yet'}
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                      {conversations.map((conv) => {
+                      {filteredConversations.map((conv) => {
                         const getTierColor = (tier: string) => {
                           switch (tier) {
                             case 'free': return 'bg-slate-100 text-slate-700';
