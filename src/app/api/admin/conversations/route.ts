@@ -65,24 +65,30 @@ export async function GET(request: Request) {
     const userId = searchParams.get('userId'); // Optional: filter by specific user
     const searchQuery = searchParams.get('search') || ''; // Optional: search filter
 
+    console.log('[CONVERSATIONS] Starting fetch...');
+
     // STEP 1: Fetch all users directly from auth.users using service role client
     // This bypasses PostgREST and RPC completely
+    console.log('[CONVERSATIONS] Fetching auth users...');
     const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
 
     if (authUsersError) {
-      console.error('Error fetching auth users:', authUsersError);
+      console.error('[CONVERSATIONS] Error fetching auth users:', authUsersError);
       throw authUsersError;
     }
+    console.log(`[CONVERSATIONS] Fetched ${authUsers?.users?.length || 0} auth users`);
 
     // STEP 2: Fetch user_profiles to get subscription tiers
+    console.log('[CONVERSATIONS] Fetching profiles...');
     const { data: profiles, error: profilesError } = await supabaseAdmin
       .from('user_profiles')
       .select('id, subscription_tier');
 
     if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
+      console.error('[CONVERSATIONS] Error fetching profiles:', profilesError);
       throw profilesError;
     }
+    console.log(`[CONVERSATIONS] Fetched ${profiles?.length || 0} profiles`);
 
     // Create profile lookup map
     const profileMap = new Map(
@@ -123,18 +129,21 @@ export async function GET(request: Request) {
       conversationsQuery = conversationsQuery.eq('user_id', userId);
     }
 
+    console.log('[CONVERSATIONS] Fetching conversations...');
     const { data: conversations, error: convsError } = await conversationsQuery;
 
     if (convsError) {
-      console.error('Error fetching conversations:', convsError);
+      console.error('[CONVERSATIONS] Error fetching conversations:', convsError);
       throw convsError;
     }
+    console.log(`[CONVERSATIONS] Fetched ${conversations?.length || 0} conversations`);
 
     // STEP 4: Enrich each conversation with additional details
     // For each conversation, we need to:
     // 1. Get the user email/tier from our lookup map
     // 2. Count the total messages in the conversation
     // 3. Fetch the latest message for preview
+    console.log('[CONVERSATIONS] Enriching conversations with details...');
     const conversationsWithDetails = await Promise.all(
       (conversations || []).map(async (conv) => {
         // Lookup user details from the Map we created earlier
@@ -174,6 +183,7 @@ export async function GET(request: Request) {
         };
       })
     );
+    console.log(`[CONVERSATIONS] Enriched ${conversationsWithDetails.length} conversations`);
 
     // STEP 5: Apply client-side search filtering if search query was provided
     // We filter on: user email, conversation title, or message content
@@ -185,16 +195,19 @@ export async function GET(request: Request) {
         conv.title?.toLowerCase().includes(query) ||
         conv.latest_message?.content?.toLowerCase().includes(query)
       );
+      console.log(`[CONVERSATIONS] Filtered to ${filteredConversations.length} conversations`);
     }
 
+    console.log('[CONVERSATIONS] Returning response...');
     return NextResponse.json({
       conversations: filteredConversations,
       total: filteredConversations.length,
     });
   } catch (error: any) {
-    console.error('Conversations fetch error:', error);
+    console.error('[CONVERSATIONS] ERROR:', error);
+    console.error('[CONVERSATIONS] Stack:', error.stack);
     return NextResponse.json(
-      { error: 'Failed to fetch conversations', details: error.message },
+      { error: 'Failed to fetch conversations', details: error.message, stack: error.stack },
       { status: 500 }
     );
   }
