@@ -1,3 +1,27 @@
+/**
+ * ADMIN CONVERSATIONS API ROUTE
+ *
+ * Purpose: Fetch all conversations with enriched user details for admin panel
+ *
+ * Why this is complex:
+ * - User emails are stored in auth.users (not directly accessible)
+ * - We need to join data from multiple tables: conversations, messages, auth.users
+ * - We use a SECURITY DEFINER function to safely access auth.users
+ *
+ * Flow:
+ * 1. Verify admin authentication
+ * 2. Fetch all users via secure RPC function (gets emails from auth.users)
+ * 3. Create lookup Map for fast user email/tier resolution
+ * 4. Fetch conversations from database
+ * 5. Enrich each conversation with user details, message count, latest message
+ * 6. Apply optional search filtering
+ * 7. Return JSON response
+ *
+ * Query Parameters:
+ * - userId (optional): Filter conversations by specific user
+ * - search (optional): Search by email, title, or message content
+ */
+
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
@@ -23,11 +47,14 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Parse query parameters from the request URL
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const searchQuery = searchParams.get('search') || '';
+    const userId = searchParams.get('userId'); // Optional: filter by specific user
+    const searchQuery = searchParams.get('search') || ''; // Optional: search filter
 
-    // First, get all users with emails for lookup
+    // STEP 1: Fetch all users with their emails using our secure database function
+    // Note: We can't directly query auth.users from the client, so we use a
+    // SECURITY DEFINER function that has permission to access that table
     const { data: allUsers, error: usersError } = await supabase
       .rpc('get_all_users_for_admin');
 
@@ -36,12 +63,16 @@ export async function GET(request: Request) {
       throw usersError;
     }
 
-    // Create user lookup map
+    // STEP 2: Create a lookup Map for fast user email/tier resolution
+    // Why Map? O(1) lookup performance vs O(n) with array.find()
+    // Structure: Map<user_id, { email, tier }>
     const userLookup = new Map(
       (allUsers || []).map((u: any) => [u.id, { email: u.email, tier: u.subscription_tier }])
     );
 
-    // Get all conversations with user details
+    // STEP 3: Query conversations from the database
+    // Note: We only select the fields we need from the conversations table
+    // User email is NOT in this table - that's why we need the lookup map above
     let conversationsQuery = supabase
       .from('conversations')
       .select(`
@@ -52,9 +83,9 @@ export async function GET(request: Request) {
         user_id
       `)
       .order('updated_at', { ascending: false })
-      .limit(100);
+      .limit(100); // Limit to most recent 100 conversations for performance
 
-    // Filter by specific user if provided
+    // Optional: Filter by specific user if userId parameter was provided
     if (userId) {
       conversationsQuery = conversationsQuery.eq('user_id', userId);
     }
@@ -66,19 +97,24 @@ export async function GET(request: Request) {
       throw convsError;
     }
 
-    // For each conversation, get message count and latest message
+    // STEP 4: Enrich each conversation with additional details
+    // For each conversation, we need to:
+    // 1. Get the user email/tier from our lookup map
+    // 2. Count the total messages in the conversation
+    // 3. Fetch the latest message for preview
     const conversationsWithDetails = await Promise.all(
       (conversations || []).map(async (conv) => {
-        // Get user details from lookup map
-        const userDetails: { email: string; tier: string } = userLookup.get(conv.user_id) || { email: 'Unknown', tier: 'free' };
+        // Lookup user details from the Map we created earlier
+        // TypeScript note: Map.get() can return undefined, so we cast with 'as' after the || fallback
+        const userDetails = (userLookup.get(conv.user_id) || { email: 'Unknown', tier: 'free' }) as { email: string; tier: string };
 
-        // Get message count
+        // Count messages in this conversation (head: true = don't return data, just count)
         const { count } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('conversation_id', conv.id);
 
-        // Get latest message
+        // Get the most recent message for preview
         const { data: latestMessage } = await supabase
           .from('messages')
           .select('content, created_at, role')
@@ -87,14 +123,15 @@ export async function GET(request: Request) {
           .limit(1)
           .single();
 
+        // Return enriched conversation object
         return {
           id: conv.id,
           title: conv.title,
           created_at: conv.created_at,
           updated_at: conv.updated_at,
           user_id: conv.user_id,
-          user_email: userDetails.email,
-          user_tier: userDetails.tier,
+          user_email: userDetails.email, // From lookup map
+          user_tier: userDetails.tier,   // From lookup map
           message_count: count || 0,
           latest_message: latestMessage ? {
             content: latestMessage.content?.substring(0, 150) + (latestMessage.content?.length > 150 ? '...' : ''),
@@ -105,7 +142,8 @@ export async function GET(request: Request) {
       })
     );
 
-    // Apply search filter if provided
+    // STEP 5: Apply client-side search filtering if search query was provided
+    // We filter on: user email, conversation title, or message content
     let filteredConversations = conversationsWithDetails;
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
