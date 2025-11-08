@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function GET(
@@ -25,24 +26,50 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
   }
 
+  // Create service role client to access auth.users directly
+  const supabaseAdmin = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+
   try {
     const { conversationId } = await params;
 
-    // STEP 1: Fetch all users to get email (user_profiles doesn't have email column)
-    const { data: allUsers, error: usersError } = await supabase
-      .rpc('get_all_users_for_admin');
+    // STEP 1: Fetch all users directly from auth.users (bypasses RPC)
+    const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
 
-    if (usersError) {
-      console.error('Error fetching users:', usersError);
-      throw usersError;
+    if (authUsersError) {
+      console.error('Error fetching auth users:', authUsersError);
+      throw authUsersError;
     }
+
+    // STEP 2: Fetch user_profiles to get subscription tiers
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('id, subscription_tier, created_at');
+
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      throw profilesError;
+    }
+
+    // Create profile lookup map
+    const profileMap = new Map(
+      (profiles || []).map((p: any) => [p.id, { tier: p.subscription_tier, created_at: p.created_at }])
+    );
 
     // Create lookup map for user details
     const userLookup = new Map(
-      (allUsers || []).map((u: any) => [u.id, {
+      (authUsers?.users || []).map((u: any) => [u.id, {
         email: u.email,
-        tier: u.subscription_tier,
-        created_at: u.created_at
+        tier: profileMap.get(u.id)?.tier || 'free',
+        created_at: profileMap.get(u.id)?.created_at || u.created_at
       }])
     );
 
