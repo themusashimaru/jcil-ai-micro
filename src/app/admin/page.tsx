@@ -8,7 +8,7 @@ import {
   Users, DollarSign, TrendingUp, Zap,
   Calendar, ArrowLeft, RefreshCw, Activity,
   Search, UserCog, Mail, Clock, BarChart3, LineChart,
-  FileText, Download
+  FileText, Download, MessageSquare, Paperclip, X, ExternalLink
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -115,6 +115,13 @@ export default function AdminDashboard() {
   const [activities, setActivities] = useState<any[]>([]);
   const [activityStats, setActivityStats] = useState({ activeNow: 0, totalActivities: 0 });
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
+
+  // Conversation viewer state
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  const [conversationSearch, setConversationSearch] = useState('');
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [isLoadingConversationDetail, setIsLoadingConversationDetail] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -266,6 +273,44 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchConversations = async () => {
+    try {
+      setIsLoadingConversations(true);
+      const url = `/api/admin/conversations${conversationSearch ? `?search=${encodeURIComponent(conversationSearch)}` : ''}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversations');
+      }
+
+      const data = await response.json();
+      setConversations(data.conversations || []);
+    } catch (err: any) {
+      console.error('Failed to fetch conversations:', err);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  };
+
+  const fetchConversationDetail = async (conversationId: string) => {
+    try {
+      setIsLoadingConversationDetail(true);
+      const response = await fetch(`/api/admin/conversations/${conversationId}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversation details');
+      }
+
+      const data = await response.json();
+      setSelectedConversation(data);
+    } catch (err: any) {
+      console.error('Failed to fetch conversation details:', err);
+      alert(`Failed to load conversation: ${err.message}`);
+    } finally {
+      setIsLoadingConversationDetail(false);
+    }
+  };
+
   // Filter users based on search query
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -290,16 +335,19 @@ export default function AdminDashboard() {
   // Fetch activity when activity tab is opened and set up auto-refresh
   useEffect(() => {
     if (activeTab === 'activity') {
-      fetchActivity();
-
-      // Auto-refresh every 30 seconds
-      const interval = setInterval(() => {
-        fetchActivity();
-      }, 30000);
-
-      return () => clearInterval(interval);
+      fetchConversations();
     }
   }, [activeTab]);
+
+  // Fetch conversations when search changes
+  useEffect(() => {
+    if (activeTab === 'activity') {
+      const timer = setTimeout(() => {
+        fetchConversations();
+      }, 300); // Debounce search
+      return () => clearTimeout(timer);
+    }
+  }, [conversationSearch]);
 
   if (loading && !stats) {
     return (
@@ -738,7 +786,72 @@ export default function AdminDashboard() {
 
         {/* Users Tab */}
         {activeTab === 'users' && (
-          <Card className="mb-8">
+          <div className="space-y-6">
+          {/* User Count by Tier */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3">
+                    <Users className="h-6 w-6 text-slate-600" />
+                  </div>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {users.filter(u => u.subscription_tier === 'free').length}
+                  </p>
+                  <p className="text-sm text-slate-600 mt-1">Free Tier</p>
+                  <p className="text-xs text-slate-500 mt-1">$0/month</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mb-3">
+                    <Users className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <p className="text-2xl font-bold text-blue-900">
+                    {users.filter(u => u.subscription_tier === 'basic').length}
+                  </p>
+                  <p className="text-sm text-slate-600 mt-1">Basic Tier</p>
+                  <p className="text-xs text-slate-500 mt-1">$12/month</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 mb-3">
+                    <Users className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <p className="text-2xl font-bold text-yellow-900">
+                    {users.filter(u => u.subscription_tier === 'pro').length}
+                  </p>
+                  <p className="text-sm text-slate-600 mt-1">Pro Tier</p>
+                  <p className="text-xs text-slate-500 mt-1">$30/month</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 mb-3">
+                    <Users className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <p className="text-2xl font-bold text-purple-900">
+                    {users.filter(u => u.subscription_tier === 'executive').length}
+                  </p>
+                  <p className="text-sm text-slate-600 mt-1">Executive Tier</p>
+                  <p className="text-xs text-slate-500 mt-1">$150/month</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* User Management Table */}
+          <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center text-slate-900">
@@ -867,6 +980,7 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+        </div>
         )}
 
         {/* Notifications Tab */}
@@ -1080,155 +1194,266 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        {/* Activity Tab */}
+        {/* Activity Tab - Conversation Viewer */}
         {activeTab === 'activity' && (
           <div className="space-y-6">
-            {/* Active Users Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">Active Now</p>
-                      <p className="text-3xl font-bold text-green-600 mt-1">{activityStats.activeNow}</p>
-                    </div>
-                    <div className="p-3 bg-green-100 rounded-full">
-                      <Activity className="h-6 w-6 text-green-600" />
-                    </div>
+            {/* Warning Banner */}
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="p-2 bg-red-100 rounded-full">
+                    <ExternalLink className="h-5 w-5 text-red-600" />
                   </div>
-                  <p className="text-xs text-slate-500 mt-2">Users active in last hour</p>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-red-900 mb-1">⚠️ Admin Conversation Viewer - Legal/Investigation Use Only</h3>
+                  <p className="text-sm text-red-800">
+                    This tool provides full access to all user conversations and attachments for legal compliance, investigations, and user support.
+                    All access is logged. Use only when authorized.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Conversation List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-slate-900">
+                    <MessageSquare className="h-5 w-5 mr-2 text-purple-600" />
+                    All Conversations
+                  </CardTitle>
+                  <div className="mt-4">
+                    <div className="relative">
+                      <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                      <Input
+                        type="text"
+                        placeholder="Search by email, title, or content..."
+                        value={conversationSearch}
+                        onChange={(e) => setConversationSearch(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {conversations.length} conversation{conversations.length !== 1 ? 's' : ''} found
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingConversations ? (
+                    <div className="text-center py-12">
+                      <RefreshCw className="h-8 w-8 text-slate-400 animate-spin mx-auto mb-2" />
+                      <p className="text-slate-600">Loading conversations...</p>
+                    </div>
+                  ) : conversations.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No conversations found</p>
+                      <p className="text-sm text-slate-500">
+                        {conversationSearch ? 'Try a different search term' : 'No conversations in the system yet'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                      {conversations.map((conv) => {
+                        const getTierColor = (tier: string) => {
+                          switch (tier) {
+                            case 'free': return 'bg-slate-100 text-slate-700';
+                            case 'basic': return 'bg-blue-100 text-blue-700';
+                            case 'pro': return 'bg-yellow-100 text-yellow-700';
+                            case 'executive': return 'bg-purple-100 text-purple-700';
+                            default: return 'bg-slate-100 text-slate-700';
+                          }
+                        };
+
+                        return (
+                          <div
+                            key={conv.id}
+                            onClick={() => fetchConversationDetail(conv.id)}
+                            className={`p-4 border rounded-lg cursor-pointer transition-all hover:border-purple-300 hover:bg-purple-50 ${
+                              selectedConversation?.conversation?.id === conv.id
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-slate-900 truncate">
+                                  {conv.user_email}
+                                </p>
+                                <p className="text-xs text-slate-600 truncate">
+                                  {conv.title || 'Untitled conversation'}
+                                </p>
+                              </div>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${getTierColor(conv.user_tier)}`}>
+                                {conv.user_tier}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <MessageSquare className="h-3 w-3" />
+                                {conv.message_count}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Paperclip className="h-3 w-3" />
+                                {conv.attachment_count}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {new Date(conv.updated_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {conv.latest_message && (
+                              <p className="text-xs text-slate-500 mt-2 line-clamp-2">
+                                {conv.latest_message.content}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
+              {/* Conversation Detail Viewer */}
               <Card>
-                <CardContent className="pt-6">
+                <CardHeader>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">Recent Events</p>
-                      <p className="text-3xl font-bold text-blue-600 mt-1">{activityStats.totalActivities}</p>
-                    </div>
-                    <div className="p-3 bg-blue-100 rounded-full">
-                      <Clock className="h-6 w-6 text-blue-600" />
-                    </div>
+                    <CardTitle className="flex items-center text-slate-900">
+                      {selectedConversation ? (
+                        <>
+                          <MessageSquare className="h-5 w-5 mr-2 text-purple-600" />
+                          Conversation Details
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare className="h-5 w-5 mr-2 text-slate-400" />
+                          Select a Conversation
+                        </>
+                      )}
+                    </CardTitle>
+                    {selectedConversation && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(`/api/admin/conversations/${selectedConversation.conversation.id}/export`, '_blank')}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Export
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedConversation(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-slate-500 mt-2">Activities in last 24 hours</p>
-                </CardContent>
-              </Card>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingConversationDetail ? (
+                    <div className="text-center py-12">
+                      <RefreshCw className="h-8 w-8 text-slate-400 animate-spin mx-auto mb-2" />
+                      <p className="text-slate-600">Loading conversation...</p>
+                    </div>
+                  ) : !selectedConversation ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No conversation selected</p>
+                      <p className="text-sm text-slate-500">Click on a conversation to view full details</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Conversation Meta */}
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-slate-600 mb-1">User</p>
+                            <p className="font-semibold text-slate-900">{selectedConversation.conversation.user_email}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-600 mb-1">Tier</p>
+                            <p className="font-semibold text-slate-900 capitalize">{selectedConversation.conversation.user_tier}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-600 mb-1">Messages</p>
+                            <p className="font-semibold text-slate-900">{selectedConversation.stats.total_messages}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-600 mb-1">Attachments</p>
+                            <p className="font-semibold text-slate-900">{selectedConversation.stats.total_attachments}</p>
+                          </div>
+                        </div>
+                      </div>
 
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">Auto-Refresh</p>
-                      <p className="text-3xl font-bold text-purple-600 mt-1">30s</p>
+                      {/* Messages */}
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                        <h3 className="text-sm font-semibold text-slate-900 sticky top-0 bg-white pb-2">
+                          Messages ({selectedConversation.stats.total_messages})
+                        </h3>
+                        {selectedConversation.messages.map((msg: any) => (
+                          <div
+                            key={msg.id}
+                            className={`p-3 rounded-lg border ${
+                              msg.role === 'user'
+                                ? 'bg-blue-50 border-blue-200'
+                                : msg.role === 'assistant'
+                                ? 'bg-green-50 border-green-200'
+                                : 'bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`text-xs font-semibold uppercase ${
+                                msg.role === 'user' ? 'text-blue-700' :
+                                msg.role === 'assistant' ? 'text-green-700' :
+                                'text-slate-700'
+                              }`}>
+                                {msg.role}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {new Date(msg.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">
+                              {msg.content || '[No content]'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Attachments */}
+                      {selectedConversation.attachments.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-semibold text-slate-900">
+                            Attachments ({selectedConversation.stats.total_attachments})
+                          </h3>
+                          {selectedConversation.attachments.map((att: any) => (
+                            <div key={att.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <Paperclip className="h-4 w-4 text-slate-600" />
+                                <div>
+                                  <p className="text-sm font-medium text-slate-900">{att.file_name || 'Unknown file'}</p>
+                                  <p className="text-xs text-slate-500">
+                                    {att.file_type} • {att.file_size ? (att.file_size / 1024).toFixed(2) + ' KB' : 'Unknown size'}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-xs text-slate-500">
+                                {new Date(att.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div className="p-3 bg-purple-100 rounded-full">
-                      <RefreshCw className="h-6 w-6 text-purple-600 animate-spin" />
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">Updates automatically</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
-
-            {/* Activity Feed */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center text-slate-900">
-                    <Activity className="h-5 w-5 mr-2 text-purple-600" />
-                    Activity Feed
-                  </CardTitle>
-                  <Button
-                    onClick={fetchActivity}
-                    variant="outline"
-                    size="sm"
-                    disabled={isLoadingActivity}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingActivity ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingActivity && activities.length === 0 ? (
-                  <div className="text-center py-12">
-                    <RefreshCw className="h-12 w-12 text-slate-400 animate-spin mx-auto mb-4" />
-                    <p className="text-slate-600">Loading activity...</p>
-                  </div>
-                ) : activities.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <p className="text-slate-600 mb-2">No recent activity</p>
-                    <p className="text-sm text-slate-500">Activity will appear here as users interact with the app</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {activities.map((activity) => {
-                      const timeAgo = getTimeAgo(activity.timestamp);
-                      const getTierColor = (tier: string) => {
-                        switch (tier) {
-                          case 'free': return 'bg-slate-100 text-slate-700';
-                          case 'basic': return 'bg-blue-100 text-blue-700';
-                          case 'pro': return 'bg-yellow-100 text-yellow-700';
-                          case 'executive': return 'bg-purple-100 text-purple-700';
-                          default: return 'bg-slate-100 text-slate-700';
-                        }
-                      };
-
-                      return (
-                        <div key={activity.id} className="flex items-start gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
-                          {/* Icon */}
-                          <div className={`p-2 rounded-full flex-shrink-0 ${
-                            activity.type === 'activity' ? 'bg-green-100' :
-                            activity.type === 'signup' ? 'bg-blue-100' :
-                            activity.type === 'high_usage' ? 'bg-orange-100' :
-                            'bg-slate-100'
-                          }`}>
-                            {activity.type === 'activity' && <Activity className="h-5 w-5 text-green-600" />}
-                            {activity.type === 'signup' && <Users className="h-5 w-5 text-blue-600" />}
-                            {activity.type === 'high_usage' && <Zap className="h-5 w-5 text-orange-600" />}
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-900 truncate">
-                                  {activity.user.email}
-                                </p>
-                                <p className="text-sm text-slate-600 mt-1">
-                                  {activity.type === 'activity' && (
-                                    <>
-                                      Active session • {activity.details.messages} messages • {activity.details.tokens.toLocaleString()} tokens
-                                    </>
-                                  )}
-                                  {activity.type === 'signup' && (
-                                    <>New user signup</>
-                                  )}
-                                  {activity.type === 'high_usage' && (
-                                    <>High usage alert • {activity.details.percent}% of daily limit ({activity.details.usage}/{activity.details.limit})</>
-                                  )}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTierColor(activity.user.tier)}`}>
-                                  {activity.user.tier}
-                                </span>
-                              </div>
-                            </div>
-                            <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {timeAgo}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
         )}
 
