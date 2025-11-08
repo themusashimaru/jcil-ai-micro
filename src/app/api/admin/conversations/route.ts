@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Create service role client (bypasses RLS)
+    // Create service role client
     const admin = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -33,46 +33,59 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
-    // Fetch all users with auth.admin
+    // Fetch all users
     const { data: authData } = await admin.auth.admin.listUsers();
     const users = authData?.users || [];
 
-    // Create email lookup
-    const emailMap = new Map(users.map(u => [u.id, u.email || 'Unknown']));
+    // If no userId specified, return list of users with conversation counts
+    if (!userId) {
+      // Get all conversations
+      const { data: allConversations } = await admin
+        .from('conversations')
+        .select('user_id');
 
-    // Fetch conversations
-    let query = admin
+      // Count conversations per user
+      const conversationCounts = new Map<string, number>();
+      (allConversations || []).forEach(conv => {
+        conversationCounts.set(
+          conv.user_id,
+          (conversationCounts.get(conv.user_id) || 0) + 1
+        );
+      });
+
+      // Build user list with conversation counts
+      const userList = users
+        .map(u => ({
+          user_id: u.id,
+          user_email: u.email || 'Unknown',
+          conversation_count: conversationCounts.get(u.id) || 0,
+          created_at: u.created_at,
+        }))
+        .filter(u => u.conversation_count > 0) // Only show users with conversations
+        .sort((a, b) => a.user_email.localeCompare(b.user_email)); // Alphabetical
+
+      return NextResponse.json({
+        users: userList,
+        total: userList.length,
+      });
+    }
+
+    // If userId specified, return that user's conversations
+    const { data: conversations } = await admin
       .from('conversations')
       .select('id, title, created_at, user_id')
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-
-    const { data: conversations, error: convError } = await query;
-
-    console.log('[CONVERSATIONS] Query result:', {
-      count: conversations?.length,
-      error: convError,
-      hasData: !!conversations
-    });
-
-    if (convError) {
-      console.error('[CONVERSATIONS] Query error:', convError);
-      return NextResponse.json({
-        error: 'Failed to fetch conversations',
-        details: convError.message
-      }, { status: 500 });
-    }
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
     if (!conversations || conversations.length === 0) {
-      console.log('[CONVERSATIONS] No conversations found');
-      return NextResponse.json({ conversations: [], total: 0 });
+      return NextResponse.json({
+        user_email: users.find(u => u.id === userId)?.email || 'Unknown',
+        conversations: [],
+        total: 0
+      });
     }
 
-    // Enrich conversations
+    // Enrich conversations with message info
     const enriched = await Promise.all(
       conversations.map(async (conv) => {
         // Get message count
@@ -93,14 +106,11 @@ export async function GET(request: Request) {
         return {
           id: conv.id,
           title: conv.title,
-          created_at: conv.created_at,
-          user_id: conv.user_id,
-          user_email: emailMap.get(conv.user_id) || 'Unknown',
-          user_tier: 'free',
+          created_at: new Date(conv.created_at).toISOString(),
           message_count: count || 0,
           latest_message: latest ? {
             content: latest.content?.substring(0, 150) || '',
-            created_at: latest.created_at,
+            created_at: new Date(latest.created_at).toISOString(),
             role: latest.role,
           } : null,
         };
@@ -108,6 +118,7 @@ export async function GET(request: Request) {
     );
 
     return NextResponse.json({
+      user_email: users.find(u => u.id === userId)?.email || 'Unknown',
       conversations: enriched,
       total: enriched.length,
     });
@@ -118,7 +129,6 @@ export async function GET(request: Request) {
       {
         error: 'Failed to fetch conversations',
         details: error.message,
-        stack: error.stack
       },
       { status: 500 }
     );

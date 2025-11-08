@@ -57,6 +57,12 @@ export async function GET(
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
+    // Format messages with proper dates
+    const formattedMessages = (messages || []).map(m => ({
+      ...m,
+      created_at: new Date(m.created_at).toISOString(),
+    }));
+
     // Extract attachments from messages
     const attachments = (messages || [])
       .filter(m => m.file_url)
@@ -67,7 +73,7 @@ export async function GET(
         file_url: m.file_url,
         file_type: m.file_type,
         file_size: m.file_size,
-        created_at: m.created_at,
+        created_at: new Date(m.created_at).toISOString(),
         role: m.role,
       }));
 
@@ -75,12 +81,12 @@ export async function GET(
       conversation: {
         id: conversation.id,
         title: conversation.title,
-        created_at: conversation.created_at,
+        created_at: new Date(conversation.created_at).toISOString(),
         user_id: conversation.user_id,
         user_email: userEmail,
         user_tier: 'free',
       },
-      messages: messages || [],
+      messages: formattedMessages,
       attachments,
       stats: {
         total_messages: messages?.length || 0,
