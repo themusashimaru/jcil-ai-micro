@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 const VALID_TIERS = ['free', 'basic', 'pro', 'executive'];
@@ -31,6 +32,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
   }
 
+  // Create service role client to bypass RLS for admin operations
+  const supabaseAdmin = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+
   try {
     const body = await request.json();
     const { userId, tier } = body;
@@ -44,8 +57,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
 
-    // First check if profile exists
-    const { data: existingProfile } = await supabase
+    // Use service role client to update (bypasses RLS)
+    const { data: existingProfile } = await supabaseAdmin
       .from('user_profiles')
       .select('id')
       .eq('id', userId)
@@ -55,7 +68,7 @@ export async function POST(request: Request) {
 
     if (existingProfile) {
       // Update existing profile
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('user_profiles')
         .update({
           subscription_tier: tier,
@@ -71,7 +84,7 @@ export async function POST(request: Request) {
       result = data;
     } else {
       // Create new profile
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('user_profiles')
         .insert({
           id: userId,
