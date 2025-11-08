@@ -43,8 +43,8 @@ export async function GET(request: Request) {
     // Fetch conversations
     let query = admin
       .from('conversations')
-      .select('id, title, created_at, updated_at, user_id')
-      .order('updated_at', { ascending: false })
+      .select('id, title, created_at, user_id')
+      .order('created_at', { ascending: false })
       .limit(100);
 
     if (userId) {
@@ -94,7 +94,6 @@ export async function GET(request: Request) {
           id: conv.id,
           title: conv.title,
           created_at: conv.created_at,
-          updated_at: conv.updated_at,
           user_id: conv.user_id,
           user_email: emailMap.get(conv.user_id) || 'Unknown',
           user_tier: 'free',
