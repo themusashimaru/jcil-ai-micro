@@ -51,9 +51,24 @@ export async function GET(request: Request) {
       query = query.eq('user_id', userId);
     }
 
-    const { data: conversations } = await query;
+    const { data: conversations, error: convError } = await query;
+
+    console.log('[CONVERSATIONS] Query result:', {
+      count: conversations?.length,
+      error: convError,
+      hasData: !!conversations
+    });
+
+    if (convError) {
+      console.error('[CONVERSATIONS] Query error:', convError);
+      return NextResponse.json({
+        error: 'Failed to fetch conversations',
+        details: convError.message
+      }, { status: 500 });
+    }
 
     if (!conversations || conversations.length === 0) {
+      console.log('[CONVERSATIONS] No conversations found');
       return NextResponse.json({ conversations: [], total: 0 });
     }
 
