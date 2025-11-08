@@ -1981,14 +1981,14 @@ Generated: ${new Date().toISOString()}
                       )}
                     </CardTitle>
                     {selectedConversation && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {/* Moderation Dropdown */}
                         <div className="relative">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setShowModerationMenu(!showModerationMenu)}
-                            className="border-red-300 hover:bg-red-50"
+                            className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
                           >
                             <Shield className="h-4 w-4 mr-2" />
                             Moderate
@@ -2010,7 +2010,7 @@ Generated: ${new Date().toISOString()}
                                       handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '1h');
                                       setShowModerationMenu(false);
                                     }}
-                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                    className="w-full justify-start text-xs text-slate-900 hover:bg-yellow-50 hover:text-slate-900"
                                   >
                                     1 Hour
                                   </Button>
@@ -2021,7 +2021,7 @@ Generated: ${new Date().toISOString()}
                                       handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '1d');
                                       setShowModerationMenu(false);
                                     }}
-                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                    className="w-full justify-start text-xs text-slate-900 hover:bg-yellow-50 hover:text-slate-900"
                                   >
                                     1 Day
                                   </Button>
@@ -2032,7 +2032,7 @@ Generated: ${new Date().toISOString()}
                                       handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '1w');
                                       setShowModerationMenu(false);
                                     }}
-                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                    className="w-full justify-start text-xs text-slate-900 hover:bg-yellow-50 hover:text-slate-900"
                                   >
                                     1 Week
                                   </Button>
@@ -2043,7 +2043,7 @@ Generated: ${new Date().toISOString()}
                                       handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '1m');
                                       setShowModerationMenu(false);
                                     }}
-                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                    className="w-full justify-start text-xs text-slate-900 hover:bg-yellow-50 hover:text-slate-900"
                                   >
                                     1 Month
                                   </Button>
@@ -2054,7 +2054,7 @@ Generated: ${new Date().toISOString()}
                                       handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '6m');
                                       setShowModerationMenu(false);
                                     }}
-                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                    className="w-full justify-start text-xs text-slate-900 hover:bg-yellow-50 hover:text-slate-900"
                                   >
                                     6 Months
                                   </Button>
@@ -2070,7 +2070,7 @@ Generated: ${new Date().toISOString()}
                                         setShowModerationMenu(false);
                                       }
                                     }}
-                                    className="w-full justify-start text-xs hover:bg-red-50 text-red-700 font-semibold"
+                                    className="w-full justify-start text-xs text-red-700 hover:bg-red-50 hover:text-red-800 font-semibold"
                                   >
                                     <Ban className="h-3 w-3 mr-2" />
                                     Ban Permanently
@@ -2534,7 +2534,7 @@ Generated: ${new Date().toISOString()}
                       )}
                     </CardTitle>
                     {selectedModConversation && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {selectedModeratedUser?.is_suspended && !selectedModeratedUser?.is_banned && (
                           <Button
                             size="sm"
@@ -2544,7 +2544,7 @@ Generated: ${new Date().toISOString()}
                                 handleModerateUser(selectedModeratedUser.id, 'lift');
                               }
                             }}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             Lift Suspension
                           </Button>
@@ -2558,7 +2558,7 @@ Generated: ${new Date().toISOString()}
                                 handleModerateUser(selectedModeratedUser.id, 'unban');
                               }
                             }}
-                            className="bg-orange-600 hover:bg-orange-700"
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
                           >
                             Unban User
                           </Button>
