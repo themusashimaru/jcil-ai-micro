@@ -28,7 +28,25 @@ export async function GET(
   try {
     const { conversationId } = await params;
 
-    // Get conversation details
+    // STEP 1: Fetch all users to get email (user_profiles doesn't have email column)
+    const { data: allUsers, error: usersError } = await supabase
+      .rpc('get_all_users_for_admin');
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      throw usersError;
+    }
+
+    // Create lookup map for user details
+    const userLookup = new Map(
+      (allUsers || []).map((u: any) => [u.id, {
+        email: u.email,
+        tier: u.subscription_tier,
+        created_at: u.created_at
+      }])
+    );
+
+    // STEP 2: Get conversation details (without trying to join email from user_profiles)
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
       .select(`
@@ -36,8 +54,7 @@ export async function GET(
         title,
         created_at,
         updated_at,
-        user_id,
-        user_profiles!inner(email, subscription_tier, created_at)
+        user_id
       `)
       .eq('id', conversationId)
       .single();
@@ -51,12 +68,14 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    // Extract user profile (Supabase returns it as an array even with .single())
-    const userProfile = Array.isArray(conversation.user_profiles)
-      ? conversation.user_profiles[0]
-      : conversation.user_profiles;
+    // Get user details from lookup map
+    const userDetails = userLookup.get(conversation.user_id) || {
+      email: 'Unknown',
+      tier: 'free',
+      created_at: null
+    };
 
-    // Get all messages for this conversation
+    // STEP 3: Get all messages for this conversation
     const { data: messages, error: messagesError } = await supabase
       .from('messages')
       .select('*')
@@ -68,16 +87,19 @@ export async function GET(
       throw messagesError;
     }
 
-    // Get all attachments for this conversation
-    const { data: attachments, error: attachmentsError } = await supabase
+    // STEP 4: Try to get attachments (table may or may not exist)
+    let attachments: any[] = [];
+    const { data: attachmentsData, error: attachmentsError } = await supabase
       .from('attachments')
       .select('*')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
+    // Don't throw error if attachments table doesn't exist, just log it
     if (attachmentsError) {
-      console.error('Error fetching attachments:', attachmentsError);
-      throw attachmentsError;
+      console.warn('Could not fetch attachments (table may not exist):', attachmentsError.message);
+    } else {
+      attachments = attachmentsData || [];
     }
 
     return NextResponse.json({
@@ -87,17 +109,17 @@ export async function GET(
         created_at: conversation.created_at,
         updated_at: conversation.updated_at,
         user_id: conversation.user_id,
-        user_email: userProfile?.email || 'Unknown',
-        user_tier: userProfile?.subscription_tier || 'free',
-        user_joined: userProfile?.created_at,
+        user_email: userDetails.email,
+        user_tier: userDetails.tier,
+        user_joined: userDetails.created_at,
       },
       messages: messages || [],
-      attachments: attachments || [],
+      attachments: attachments,
       stats: {
         total_messages: messages?.length || 0,
         user_messages: messages?.filter(m => m.role === 'user').length || 0,
         assistant_messages: messages?.filter(m => m.role === 'assistant').length || 0,
-        total_attachments: attachments?.length || 0,
+        total_attachments: attachments.length,
       },
     });
   } catch (error: any) {
