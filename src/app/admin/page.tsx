@@ -118,9 +118,12 @@ export default function AdminDashboard() {
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
 
   // Conversation viewer state
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [conversationUsers, setConversationUsers] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [userConversations, setUserConversations] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [conversationSearch, setConversationSearch] = useState('');
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isLoadingConversationDetail, setIsLoadingConversationDetail] = useState(false);
 
@@ -274,20 +277,37 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchConversations = async () => {
+  const fetchConversationUsers = async () => {
+    try {
+      setIsLoadingUsers(true);
+      const response = await fetch('/api/admin/conversations');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+
+      const data = await response.json();
+      setConversationUsers(data.users || []);
+    } catch (err: any) {
+      console.error('Failed to fetch conversation users:', err);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const fetchUserConversations = async (userId: string) => {
     try {
       setIsLoadingConversations(true);
-      const url = `/api/admin/conversations${conversationSearch ? `?search=${encodeURIComponent(conversationSearch)}` : ''}`;
-      const response = await fetch(url);
+      const response = await fetch(`/api/admin/conversations?userId=${userId}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch conversations');
       }
 
       const data = await response.json();
-      setConversations(data.conversations || []);
+      setUserConversations(data.conversations || []);
     } catch (err: any) {
-      console.error('Failed to fetch conversations:', err);
+      console.error('Failed to fetch user conversations:', err);
     } finally {
       setIsLoadingConversations(false);
     }
@@ -341,22 +361,15 @@ export default function AdminDashboard() {
     fetchUsers();
   }, [period]);
 
-  // Fetch activity when activity tab is opened and set up auto-refresh
+  // Fetch users when activity tab is opened
   useEffect(() => {
     if (activeTab === 'activity') {
-      fetchConversations();
+      fetchConversationUsers();
+      setSelectedUser(null);
+      setUserConversations([]);
+      setSelectedConversation(null);
     }
   }, [activeTab]);
-
-  // Fetch conversations when search changes
-  useEffect(() => {
-    if (activeTab === 'activity') {
-      const timer = setTimeout(() => {
-        fetchConversations();
-      }, 300); // Debounce search
-      return () => clearTimeout(timer);
-    }
-  }, [conversationSearch]);
 
   if (loading && !stats) {
     return (
