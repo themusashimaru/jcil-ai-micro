@@ -8,7 +8,7 @@ import {
   Users, DollarSign, TrendingUp, Zap,
   Calendar, ArrowLeft, RefreshCw, Activity,
   Search, UserCog, Mail, Clock, BarChart3, LineChart,
-  FileText, Download, MessageSquare, Paperclip, X, ExternalLink, Shield, Ban, AlertTriangle
+  FileText, Download, MessageSquare, Paperclip, X, ExternalLink, Shield, Ban, AlertTriangle, Bell, ShieldAlert
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -162,6 +162,11 @@ export default function AdminDashboard() {
   const [safetyCustomStartDate, setSafetyCustomStartDate] = useState('');
   const [safetyCustomEndDate, setSafetyCustomEndDate] = useState('');
   const [isLoadingSafety, setIsLoadingSafety] = useState(false);
+
+  // Notification counts
+  const [generalNotifications, setGeneralNotifications] = useState(0);
+  const [adminNotifications, setAdminNotifications] = useState(0);
+  const [cyberAlerts, setCyberAlerts] = useState(0);
 
   const fetchStats = async () => {
     try {
@@ -492,6 +497,30 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchNotificationCounts = async () => {
+    try {
+      // Fetch general notifications (unread user messages, system alerts, etc.)
+      setGeneralNotifications(0); // TODO: Implement general notifications API
+
+      // Fetch admin notifications (moderation needed, user reports, etc.)
+      const safetyResponse = await fetch('/api/admin/safety-logs');
+      if (safetyResponse.ok) {
+        const safetyData = await safetyResponse.json();
+        const unreviewedSafety = (safetyData.logs || []).filter((log: any) => !log.reviewed).length;
+        setAdminNotifications(unreviewedSafety);
+      }
+
+      // Fetch critical cyber security alerts
+      const statsResponse = await fetch('/api/security/stats');
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setCyberAlerts(statsData.critical_events || 0);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch notification counts:', err);
+    }
+  };
+
   const handleModerateUser = async (userId: string, action: string, duration?: string) => {
     const reason = prompt(`Reason for ${action}ing this user (optional):`);
 
@@ -624,7 +653,17 @@ Generated: ${new Date().toISOString()}
   useEffect(() => {
     fetchStats();
     fetchUsers();
+    fetchNotificationCounts();
   }, [period]);
+
+  // Refresh notification counts every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchNotificationCounts();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch users when activity tab is opened
   useEffect(() => {
@@ -882,13 +921,49 @@ Generated: ${new Date().toISOString()}
               <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
               <p className="text-slate-600 mt-1">JCIL.AI Command Center</p>
             </div>
-            <Button
-              onClick={() => router.push('/')}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Chat
-            </Button>
+            <div className="flex gap-3">
+              {/* Cyber Security Button with Critical Alerts Bell */}
+              <Button
+                onClick={() => router.push('/security')}
+                className="bg-red-600 hover:bg-red-700 text-white relative"
+              >
+                <ShieldAlert className="h-4 w-4 mr-2" />
+                Cyber Security
+                {cyberAlerts > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse">
+                    {cyberAlerts}
+                  </span>
+                )}
+              </Button>
+
+              {/* Admin Panel Button with Notifications Bell */}
+              <Button
+                variant="outline"
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 relative"
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Admin
+                {adminNotifications > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                    {adminNotifications}
+                  </span>
+                )}
+              </Button>
+
+              {/* Back to Chat Button with General Notifications */}
+              <Button
+                onClick={() => router.push('/')}
+                className="bg-blue-600 hover:bg-blue-700 text-white relative"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Chat
+                {generalNotifications > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                    {generalNotifications}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* Period Selector */}
