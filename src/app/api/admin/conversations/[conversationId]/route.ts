@@ -69,11 +69,11 @@ export async function GET(
     }
 
     // Get user details from lookup map
-    const userDetails = userLookup.get(conversation.user_id) || {
+    const userDetails = (userLookup.get(conversation.user_id) || {
       email: 'Unknown',
       tier: 'free',
       created_at: null
-    };
+    }) as { email: string; tier: string; created_at: string | null };
 
     // STEP 3: Get all messages for this conversation
     const { data: messages, error: messagesError } = await supabase
