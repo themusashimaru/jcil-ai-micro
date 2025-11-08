@@ -124,7 +124,11 @@ export default function AdminDashboard() {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userLetterFilter, setUserLetterFilter] = useState<string>('all');
   const [conversations, setConversations] = useState<any[]>([]);
+  const [filteredConversations, setFilteredConversations] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | '7days' | '30days' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isLoadingConversationDetail, setIsLoadingConversationDetail] = useState(false);
@@ -330,7 +334,13 @@ export default function AdminDashboard() {
       }
 
       const data = await response.json();
-      setConversations(data.conversations || []);
+      const convs = data.conversations || [];
+      setConversations(convs);
+      setFilteredConversations(convs);
+      // Reset date filter when selecting new user
+      setDateFilter('all');
+      setCustomStartDate('');
+      setCustomEndDate('');
     } catch (err: any) {
       console.error('Failed to fetch conversations:', err);
     } finally {
@@ -421,6 +431,49 @@ export default function AdminDashboard() {
 
     setFilteredActivityUsers(filtered);
   }, [userLetterFilter, userSearchQuery, activityUsers]);
+
+  // Filter conversations by date
+  useEffect(() => {
+    if (!selectedUser) {
+      setFilteredConversations([]);
+      return;
+    }
+
+    let filtered = conversations;
+    const now = new Date();
+
+    if (dateFilter === 'today') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      filtered = conversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= today;
+      });
+    } else if (dateFilter === '7days') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      filtered = conversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= sevenDaysAgo;
+      });
+    } else if (dateFilter === '30days') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      filtered = conversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= thirtyDaysAgo;
+      });
+    } else if (dateFilter === 'custom' && customStartDate) {
+      const startDate = new Date(customStartDate);
+      const endDate = customEndDate ? new Date(customEndDate) : now;
+      // Set end date to end of day
+      endDate.setHours(23, 59, 59, 999);
+
+      filtered = conversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= startDate && convDate <= endDate;
+      });
+    }
+
+    setFilteredConversations(filtered);
+  }, [dateFilter, customStartDate, customEndDate, conversations, selectedUser]);
 
   if (loading && !stats) {
     return (
@@ -1490,13 +1543,96 @@ export default function AdminDashboard() {
                         onClick={() => {
                           setSelectedUser(null);
                           setConversations([]);
+                          setFilteredConversations([]);
                           setSelectedConversation(null);
+                          setDateFilter('all');
+                          setCustomStartDate('');
+                          setCustomEndDate('');
                         }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
+
+                  {/* Date Filter - Only show when user is selected */}
+                  {selectedUser && (
+                    <div className="mt-4 space-y-3">
+                      <div className="border-t border-slate-200 pt-4">
+                        <p className="text-sm font-medium text-slate-700 mb-2">Filter by date:</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant={dateFilter === 'all' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('all')}
+                            className={`text-xs ${dateFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            All Time
+                          </Button>
+                          <Button
+                            variant={dateFilter === 'today' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('today')}
+                            className={`text-xs ${dateFilter === 'today' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            Today
+                          </Button>
+                          <Button
+                            variant={dateFilter === '7days' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('7days')}
+                            className={`text-xs ${dateFilter === '7days' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            Last 7 Days
+                          </Button>
+                          <Button
+                            variant={dateFilter === '30days' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('30days')}
+                            className={`text-xs ${dateFilter === '30days' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            Last 30 Days
+                          </Button>
+                          <Button
+                            variant={dateFilter === 'custom' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('custom')}
+                            className={`text-xs ${dateFilter === 'custom' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            Custom Range
+                          </Button>
+                        </div>
+
+                        {/* Custom Date Range Inputs */}
+                        {dateFilter === 'custom' && (
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-xs text-slate-600 mb-1 block">Start Date</label>
+                              <Input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-600 mb-1 block">End Date</label>
+                              <Input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="text-xs"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <p className="text-xs text-slate-500 mt-2">
+                          Showing {filteredConversations.length} of {conversations.length} conversations
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {!selectedUser ? (
@@ -1510,15 +1646,17 @@ export default function AdminDashboard() {
                       <RefreshCw className="h-8 w-8 text-slate-400 animate-spin mx-auto mb-2" />
                       <p className="text-slate-600">Loading conversations...</p>
                     </div>
-                  ) : conversations.length === 0 ? (
+                  ) : filteredConversations.length === 0 ? (
                     <div className="text-center py-12">
                       <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-600 mb-2">No conversations</p>
-                      <p className="text-sm text-slate-500">This user has no conversations yet</p>
+                      <p className="text-slate-600 mb-2">No conversations found</p>
+                      <p className="text-sm text-slate-500">
+                        {dateFilter !== 'all' ? 'No conversations in this date range' : 'This user has no conversations yet'}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                      {conversations.map((conv) => (
+                      {filteredConversations.map((conv) => (
                         <div
                           key={conv.id}
                           onClick={() => fetchConversationDetail(conv.id)}
