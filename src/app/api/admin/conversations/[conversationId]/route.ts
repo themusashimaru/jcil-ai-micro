@@ -37,7 +37,7 @@ export async function GET(
     // Get conversation
     const { data: conversation, error: convError } = await admin
       .from('conversations')
-      .select('id, title, created_at, updated_at, user_id')
+      .select('id, title, created_at, user_id')
       .eq('id', conversationId)
       .single();
 
@@ -76,7 +76,6 @@ export async function GET(
         id: conversation.id,
         title: conversation.title,
         created_at: conversation.created_at,
-        updated_at: conversation.updated_at,
         user_id: conversation.user_id,
         user_email: userEmail,
         user_tier: 'free',

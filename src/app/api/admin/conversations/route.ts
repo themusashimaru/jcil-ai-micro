@@ -43,17 +43,32 @@ export async function GET(request: Request) {
     // Fetch conversations
     let query = admin
       .from('conversations')
-      .select('id, title, created_at, updated_at, user_id')
-      .order('updated_at', { ascending: false })
+      .select('id, title, created_at, user_id')
+      .order('created_at', { ascending: false })
       .limit(100);
 
     if (userId) {
       query = query.eq('user_id', userId);
     }
 
-    const { data: conversations } = await query;
+    const { data: conversations, error: convError } = await query;
+
+    console.log('[CONVERSATIONS] Query result:', {
+      count: conversations?.length,
+      error: convError,
+      hasData: !!conversations
+    });
+
+    if (convError) {
+      console.error('[CONVERSATIONS] Query error:', convError);
+      return NextResponse.json({
+        error: 'Failed to fetch conversations',
+        details: convError.message
+      }, { status: 500 });
+    }
 
     if (!conversations || conversations.length === 0) {
+      console.log('[CONVERSATIONS] No conversations found');
       return NextResponse.json({ conversations: [], total: 0 });
     }
 
@@ -79,7 +94,6 @@ export async function GET(request: Request) {
           id: conv.id,
           title: conv.title,
           created_at: conv.created_at,
-          updated_at: conv.updated_at,
           user_id: conv.user_id,
           user_email: emailMap.get(conv.user_id) || 'Unknown',
           user_tier: 'free',
