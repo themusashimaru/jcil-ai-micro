@@ -45,31 +45,55 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
     }
 
-    // Update user's subscription tier and daily message limit
-    // Use upsert to handle both new and existing profiles
-    const { data, error } = await supabase
+    // First check if profile exists
+    const { data: existingProfile } = await supabase
       .from('user_profiles')
-      .upsert({
-        id: userId,
-        subscription_tier: tier,
-        daily_message_limit: TIER_LIMITS[tier],
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'id'
-      })
-      .select();
+      .select('id')
+      .eq('id', userId)
+      .single();
 
-    if (error) {
-      console.error('Error updating user tier:', error);
-      throw error;
+    let result;
+
+    if (existingProfile) {
+      // Update existing profile
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .update({
+          subscription_tier: tier,
+          daily_message_limit: TIER_LIMITS[tier],
+        })
+        .eq('id', userId)
+        .select();
+
+      if (error) {
+        console.error('Error updating user tier:', error);
+        throw error;
+      }
+      result = data;
+    } else {
+      // Create new profile
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: userId,
+          subscription_tier: tier,
+          daily_message_limit: TIER_LIMITS[tier],
+        })
+        .select();
+
+      if (error) {
+        console.error('Error creating user profile:', error);
+        throw error;
+      }
+      result = data;
     }
 
-    console.log('✅ User tier updated:', { userId, tier, data });
+    console.log('✅ User tier updated:', { userId, tier, result });
 
     return NextResponse.json({
       success: true,
       message: `User tier updated to ${tier}`,
-      data: data,
+      data: result,
     });
   } catch (error: any) {
     console.error('Admin update tier error:', error);
