@@ -117,11 +117,19 @@ export default function AdminDashboard() {
   const [activityStats, setActivityStats] = useState({ activeNow: 0, totalActivities: 0 });
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
 
-  // Conversation viewer state
+  // Conversation viewer state - User-centric approach
+  const [activityUsers, setActivityUsers] = useState<any[]>([]);
+  const [filteredActivityUsers, setFilteredActivityUsers] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userLetterFilter, setUserLetterFilter] = useState<string>('all');
   const [conversations, setConversations] = useState<any[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
-  const [conversationLetterFilter, setConversationLetterFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | '7days' | '30days' | 'custom'>('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isLoadingConversationDetail, setIsLoadingConversationDetail] = useState(false);
 
@@ -275,9 +283,9 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchConversations = async () => {
+  const fetchActivityUsers = async () => {
     try {
-      setIsLoadingConversations(true);
+      setIsLoadingUsers(true);
       const response = await fetch('/api/admin/conversations');
 
       if (!response.ok) {
@@ -285,7 +293,54 @@ export default function AdminDashboard() {
       }
 
       const data = await response.json();
-      setConversations(data.conversations || []);
+      const conversations = data.conversations || [];
+
+      // Group conversations by user
+      const userMap = new Map<string, any>();
+      conversations.forEach((conv: any) => {
+        if (!userMap.has(conv.user_id)) {
+          userMap.set(conv.user_id, {
+            id: conv.user_id,
+            email: conv.user_email,
+            tier: conv.user_tier,
+            conversation_count: 0,
+            total_messages: 0,
+            total_attachments: 0,
+          });
+        }
+        const user = userMap.get(conv.user_id)!;
+        user.conversation_count++;
+        user.total_messages += conv.message_count || 0;
+        user.total_attachments += conv.attachment_count || 0;
+      });
+
+      const uniqueUsers = Array.from(userMap.values());
+      setActivityUsers(uniqueUsers);
+      setFilteredActivityUsers(uniqueUsers);
+    } catch (err: any) {
+      console.error('Failed to fetch users:', err);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const fetchUserConversations = async (userId: string) => {
+    try {
+      setIsLoadingConversations(true);
+      const response = await fetch(`/api/admin/conversations?userId=${userId}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversations');
+      }
+
+      const data = await response.json();
+      const convs = data.conversations || [];
+      setConversations(convs);
+      setFilteredConversations(convs);
+      // Reset date filter when selecting new user
+      setDateFilter('all');
+      setCustomStartDate('');
+      setCustomEndDate('');
     } catch (err: any) {
       console.error('Failed to fetch conversations:', err);
     } finally {
@@ -347,25 +402,78 @@ export default function AdminDashboard() {
     fetchUsers();
   }, [period]);
 
-  // Fetch conversations when activity tab is opened
+  // Fetch users when activity tab is opened
   useEffect(() => {
     if (activeTab === 'activity') {
-      fetchConversations();
+      fetchActivityUsers();
     }
   }, [activeTab]);
 
-  // Filter conversations by letter
+  // Filter users by letter and search query
   useEffect(() => {
-    if (conversationLetterFilter === 'all') {
-      setFilteredConversations(conversations);
-    } else {
-      setFilteredConversations(
-        conversations.filter(conv =>
-          conv.user_email.toLowerCase().startsWith(conversationLetterFilter.toLowerCase())
-        )
+    let filtered = activityUsers;
+
+    // Apply letter filter first
+    if (userLetterFilter !== 'all') {
+      filtered = filtered.filter(user =>
+        user.email.toLowerCase().startsWith(userLetterFilter.toLowerCase())
       );
     }
-  }, [conversationLetterFilter, conversations]);
+
+    // Then apply search query
+    if (userSearchQuery.trim()) {
+      const query = userSearchQuery.toLowerCase();
+      filtered = filtered.filter(user =>
+        user.email.toLowerCase().includes(query) ||
+        user.id.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredActivityUsers(filtered);
+  }, [userLetterFilter, userSearchQuery, activityUsers]);
+
+  // Filter conversations by date
+  useEffect(() => {
+    if (!selectedUser) {
+      setFilteredConversations([]);
+      return;
+    }
+
+    let filtered = conversations;
+    const now = new Date();
+
+    if (dateFilter === 'today') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      filtered = conversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= today;
+      });
+    } else if (dateFilter === '7days') {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      filtered = conversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= sevenDaysAgo;
+      });
+    } else if (dateFilter === '30days') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      filtered = conversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= thirtyDaysAgo;
+      });
+    } else if (dateFilter === 'custom' && customStartDate) {
+      const startDate = new Date(customStartDate);
+      const endDate = customEndDate ? new Date(customEndDate) : now;
+      // Set end date to end of day
+      endDate.setHours(23, 59, 59, 999);
+
+      filtered = conversations.filter(conv => {
+        const convDate = new Date(conv.created_at);
+        return convDate >= startDate && convDate <= endDate;
+      });
+    }
+
+    setFilteredConversations(filtered);
+  }, [dateFilter, customStartDate, customEndDate, conversations, selectedUser]);
 
   if (loading && !stats) {
     return (
@@ -1253,7 +1361,7 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        {/* Activity Tab - Conversation Viewer */}
+        {/* Activity Tab - User-Centric Conversation Viewer */}
         {activeTab === 'activity' && (
           <div className="space-y-6">
             {/* Warning Banner */}
@@ -1274,46 +1382,58 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Conversation List */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* User List */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center text-slate-900">
-                    <MessageSquare className="h-5 w-5 mr-2 text-purple-600" />
-                    User Conversations
+                    <Users className="h-5 w-5 mr-2 text-purple-600" />
+                    Users
                   </CardTitle>
-                  <div className="mt-4">
+                  <div className="mt-4 space-y-4">
+                    {/* Search Box with Autocomplete */}
+                    <div className="relative">
+                      <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                      <Input
+                        type="text"
+                        placeholder="Search by email or user ID..."
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        className="pl-10 w-full"
+                      />
+                    </div>
+
                     {/* Letter Filter */}
                     <div className="border-t border-slate-200 pt-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <p className="text-sm font-medium text-slate-700">Filter by user:</p>
+                        <p className="text-sm font-medium text-slate-700">Filter by letter:</p>
                         <Button
-                          variant={conversationLetterFilter === 'all' ? 'default' : 'ghost'}
+                          variant={userLetterFilter === 'all' ? 'default' : 'ghost'}
                           size="sm"
-                          onClick={() => setConversationLetterFilter('all')}
-                          className={`text-xs px-2 h-7 ${conversationLetterFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          onClick={() => setUserLetterFilter('all')}
+                          className={`text-xs px-2 h-7 ${userLetterFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
                         >
                           All
                         </Button>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map((letter) => {
-                          const convCount = conversations.filter(c => c.user_email.toLowerCase().startsWith(letter.toLowerCase())).length;
+                          const userCount = activityUsers.filter(u => u.email.toLowerCase().startsWith(letter.toLowerCase())).length;
                           return (
                             <Button
                               key={letter}
-                              variant={conversationLetterFilter === letter ? 'default' : 'outline'}
+                              variant={userLetterFilter === letter ? 'default' : 'outline'}
                               size="sm"
-                              onClick={() => setConversationLetterFilter(letter)}
-                              disabled={convCount === 0}
+                              onClick={() => setUserLetterFilter(letter)}
+                              disabled={userCount === 0}
                               className={`text-xs px-2 h-7 min-w-[32px] ${
-                                conversationLetterFilter === letter
+                                userLetterFilter === letter
                                   ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                                  : convCount === 0
+                                  : userCount === 0
                                   ? 'opacity-30 cursor-not-allowed'
                                   : ''
                               }`}
-                              title={`${convCount} conversation${convCount !== 1 ? 's' : ''}`}
+                              title={`${userCount} user${userCount !== 1 ? 's' : ''}`}
                             >
                               {letter}
                             </Button>
@@ -1321,28 +1441,28 @@ export default function AdminDashboard() {
                         })}
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-3">
-                      Showing {filteredConversations.length} of {conversations.length} conversations
+                    <p className="text-xs text-slate-500">
+                      Showing {filteredActivityUsers.length} of {activityUsers.length} users
                     </p>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {isLoadingConversations ? (
+                  {isLoadingUsers ? (
                     <div className="text-center py-12">
                       <RefreshCw className="h-8 w-8 text-slate-400 animate-spin mx-auto mb-2" />
-                      <p className="text-slate-600">Loading conversations...</p>
+                      <p className="text-slate-600">Loading users...</p>
                     </div>
-                  ) : filteredConversations.length === 0 ? (
+                  ) : filteredActivityUsers.length === 0 ? (
                     <div className="text-center py-12">
-                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                      <p className="text-slate-600 mb-2">No conversations found</p>
+                      <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No users found</p>
                       <p className="text-sm text-slate-500">
-                        {conversationLetterFilter !== 'all' ? 'No users starting with this letter' : 'No conversations in the system yet'}
+                        {userSearchQuery ? 'No users match your search' : userLetterFilter !== 'all' ? 'No users starting with this letter' : 'No users with conversations'}
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                      {filteredConversations.map((conv) => {
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                      {filteredActivityUsers.map((user) => {
                         const getTierColor = (tier: string) => {
                           switch (tier) {
                             case 'free': return 'bg-slate-100 text-slate-700';
@@ -1355,10 +1475,14 @@ export default function AdminDashboard() {
 
                         return (
                           <div
-                            key={conv.id}
-                            onClick={() => fetchConversationDetail(conv.id)}
-                            className={`p-4 border rounded-lg cursor-pointer transition-all hover:border-purple-300 hover:bg-purple-50 ${
-                              selectedConversation?.conversation?.id === conv.id
+                            key={user.id}
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setSelectedConversation(null);
+                              fetchUserConversations(user.id);
+                            }}
+                            className={`p-3 border rounded-lg cursor-pointer transition-all hover:border-purple-300 hover:bg-purple-50 ${
+                              selectedUser?.id === user.id
                                 ? 'border-purple-500 bg-purple-50'
                                 : 'border-slate-200'
                             }`}
@@ -1366,38 +1490,206 @@ export default function AdminDashboard() {
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-slate-900 truncate">
-                                  {conv.user_email}
-                                </p>
-                                <p className="text-xs text-slate-600 truncate">
-                                  {conv.title || 'Untitled conversation'}
+                                  {user.email}
                                 </p>
                               </div>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${getTierColor(conv.user_tier)}`}>
-                                {conv.user_tier}
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${getTierColor(user.tier)}`}>
+                                {user.tier}
                               </span>
                             </div>
-                            <div className="flex items-center gap-4 text-xs text-slate-500">
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
                               <span className="flex items-center gap-1">
                                 <MessageSquare className="h-3 w-3" />
-                                {conv.message_count}
+                                {user.conversation_count} chat{user.conversation_count !== 1 ? 's' : ''}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Activity className="h-3 w-3" />
+                                {user.total_messages} msgs
                               </span>
                               <span className="flex items-center gap-1">
                                 <Paperclip className="h-3 w-3" />
-                                {conv.attachment_count}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {new Date(conv.updated_at).toLocaleDateString()}
+                                {user.total_attachments}
                               </span>
                             </div>
-                            {conv.latest_message && (
-                              <p className="text-xs text-slate-500 mt-2 line-clamp-2">
-                                {conv.latest_message.content}
-                              </p>
-                            )}
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* User's Conversations */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center text-slate-900">
+                      {selectedUser ? (
+                        <>
+                          <MessageSquare className="h-5 w-5 mr-2 text-purple-600" />
+                          {selectedUser.email}'s Conversations
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare className="h-5 w-5 mr-2 text-slate-400" />
+                          Select a User
+                        </>
+                      )}
+                    </CardTitle>
+                    {selectedUser && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedUser(null);
+                          setConversations([]);
+                          setFilteredConversations([]);
+                          setSelectedConversation(null);
+                          setDateFilter('all');
+                          setCustomStartDate('');
+                          setCustomEndDate('');
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Date Filter - Only show when user is selected */}
+                  {selectedUser && (
+                    <div className="mt-4 space-y-3">
+                      <div className="border-t border-slate-200 pt-4">
+                        <p className="text-sm font-medium text-slate-700 mb-2">Filter by date:</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant={dateFilter === 'all' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('all')}
+                            className={`text-xs ${dateFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            All Time
+                          </Button>
+                          <Button
+                            variant={dateFilter === 'today' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('today')}
+                            className={`text-xs ${dateFilter === 'today' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            Today
+                          </Button>
+                          <Button
+                            variant={dateFilter === '7days' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('7days')}
+                            className={`text-xs ${dateFilter === '7days' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            Last 7 Days
+                          </Button>
+                          <Button
+                            variant={dateFilter === '30days' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('30days')}
+                            className={`text-xs ${dateFilter === '30days' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            Last 30 Days
+                          </Button>
+                          <Button
+                            variant={dateFilter === 'custom' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('custom')}
+                            className={`text-xs ${dateFilter === 'custom' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          >
+                            Custom Range
+                          </Button>
+                        </div>
+
+                        {/* Custom Date Range Inputs */}
+                        {dateFilter === 'custom' && (
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-xs text-slate-600 mb-1 block">Start Date</label>
+                              <Input
+                                type="date"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                                className="text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-600 mb-1 block">End Date</label>
+                              <Input
+                                type="date"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                                className="text-xs"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <p className="text-xs text-slate-500 mt-2">
+                          Showing {filteredConversations.length} of {conversations.length} conversations
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {!selectedUser ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No user selected</p>
+                      <p className="text-sm text-slate-500">Select a user to view their conversations</p>
+                    </div>
+                  ) : isLoadingConversations ? (
+                    <div className="text-center py-12">
+                      <RefreshCw className="h-8 w-8 text-slate-400 animate-spin mx-auto mb-2" />
+                      <p className="text-slate-600">Loading conversations...</p>
+                    </div>
+                  ) : filteredConversations.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-600 mb-2">No conversations found</p>
+                      <p className="text-sm text-slate-500">
+                        {dateFilter !== 'all' ? 'No conversations in this date range' : 'This user has no conversations yet'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                      {filteredConversations.map((conv) => (
+                        <div
+                          key={conv.id}
+                          onClick={() => fetchConversationDetail(conv.id)}
+                          className={`p-3 border rounded-lg cursor-pointer transition-all hover:border-purple-300 hover:bg-purple-50 ${
+                            selectedConversation?.conversation?.id === conv.id
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-slate-200'
+                          }`}
+                        >
+                          <p className="text-sm font-semibold text-slate-900 truncate mb-2">
+                            {conv.title || 'Untitled conversation'}
+                          </p>
+                          <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <span className="flex items-center gap-1">
+                              <MessageSquare className="h-3 w-3" />
+                              {conv.message_count}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Paperclip className="h-3 w-3" />
+                              {conv.attachment_count}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(conv.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {conv.latest_message && (
+                            <p className="text-xs text-slate-500 mt-2 line-clamp-2">
+                              {conv.latest_message.content}
+                            </p>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </CardContent>
