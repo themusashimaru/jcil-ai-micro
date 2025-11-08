@@ -1,15 +1,7 @@
--- ============================================
--- NUCLEAR OPTION: Force complete function refresh
--- ============================================
--- This will completely remove and recreate the admin function
-
--- 1. Drop with CASCADE to remove any dependencies
+-- Drop and recreate admin function with explicit type casting
 DROP FUNCTION IF EXISTS public.get_all_users_for_admin() CASCADE;
 
--- 2. Wait a moment (some Postgres clients need this)
-SELECT pg_sleep(1);
-
--- 3. Create the function with a clean slate
+-- Create the function
 CREATE OR REPLACE FUNCTION public.get_all_users_for_admin()
 RETURNS TABLE(
   id UUID,
@@ -43,20 +35,18 @@ BEGIN
 END;
 $$;
 
--- 4. Grant permissions
+-- Grant permissions
 GRANT EXECUTE ON FUNCTION public.get_all_users_for_admin() TO authenticated;
 
--- 5. Force PostgREST to reload schema
+-- Force PostgREST to reload schema
 NOTIFY pgrst, 'reload schema';
 
--- 6. Verify the function was created correctly
+-- Test the function
 DO $$
 DECLARE
   v_result RECORD;
 BEGIN
-  -- Test the function
   SELECT * FROM public.get_all_users_for_admin() LIMIT 1 INTO v_result;
-
   RAISE NOTICE '✅ Function created and tested successfully!';
   RAISE NOTICE '📊 Function is ready to use';
 EXCEPTION
