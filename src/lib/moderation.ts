@@ -134,15 +134,46 @@ export async function runModeration(
     ? { allowed: false, categories, reason, tip, action: "block" }
     : { allowed: true, categories: [], reason: "", action: "allow" };
 
-  // Log *violations* server-side so client RLS doesn’t matter
+  // Calculate severity based on categories
+  const calculateSeverity = (cats: string[]): string => {
+    const catSet = new Set(cats.map(c => c.toLowerCase()));
+
+    // Critical threats
+    if (catSet.has('self-harm') || catSet.has('suicide') || catSet.has('violence') ||
+        catSet.has('terrorism') || catSet.has('extremism') || catSet.has('weapons')) {
+      return 'critical';
+    }
+
+    // High threats
+    if (catSet.has('hate') || catSet.has('hate/threats') ||
+        catSet.has('harassment/threats') || catSet.has('sexual/minors')) {
+      return 'high';
+    }
+
+    // Medium threats
+    if (catSet.has('harassment') || catSet.has('sexual') || catSet.has('illicit')) {
+      return 'medium';
+    }
+
+    return 'low';
+  };
+
+  // Log *violations* server-side so client RLS doesn't matter
   if (!result.allowed) {
-    try { await supabaseAdmin.from("moderation_logs").insert({ user_id: meta?.userId ?? null,
-      ip: meta?.ip ?? null,
-      categories: result.categories,
-      reason: result.reason,
-      tip: result.tip ?? null,
-      text: textToCheck || null
-     }); } catch (e) {}
+    try {
+      const severity = calculateSeverity(result.categories);
+      await supabaseAdmin.from("moderation_logs").insert({
+        user_id: meta?.userId ?? null,
+        ip: meta?.ip ?? null,
+        categories: result.categories,
+        reason: result.reason,
+        tip: result.tip ?? null,
+        text: textToCheck || null,
+        severity: severity
+      });
+    } catch (e) {
+      console.error('[MODERATION] Failed to log violation:', e);
+    }
   }
 
   return result;
