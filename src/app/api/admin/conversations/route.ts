@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     const conversationsWithDetails = await Promise.all(
       (conversations || []).map(async (conv) => {
         // Get user details from lookup map
-        const userDetails = userLookup.get(conv.user_id) || { email: 'Unknown', tier: 'free' };
+        const userDetails: { email: string; tier: string } = userLookup.get(conv.user_id) || { email: 'Unknown', tier: 'free' };
 
         // Get message count
         const { count } = await supabase
