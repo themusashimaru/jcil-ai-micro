@@ -8,7 +8,7 @@ import {
   Users, DollarSign, TrendingUp, Zap,
   Calendar, ArrowLeft, RefreshCw, Activity,
   Search, UserCog, Mail, Clock, BarChart3, LineChart,
-  FileText, Download, MessageSquare, Paperclip, X, ExternalLink
+  FileText, Download, MessageSquare, Paperclip, X, ExternalLink, Shield, Ban
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -129,6 +129,7 @@ export default function AdminDashboard() {
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | '7days' | '30days' | 'custom'>('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [showModerationMenu, setShowModerationMenu] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [isLoadingConversationDetail, setIsLoadingConversationDetail] = useState(false);
@@ -373,43 +374,99 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleModerateUser = async (userId: string, action: string, duration?: string) => {
+    const reason = prompt(`Reason for ${action}ing this user (optional):`);
+
+    try {
+      const response = await fetch('/api/admin/moderate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          action,
+          duration,
+          reason: reason || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to moderate user');
+      }
+
+      const result = await response.json();
+      alert(`✅ ${result.message}`);
+
+      // Refresh the conversation data to show updated status
+      if (selectedConversation) {
+        fetchConversationDetail(selectedConversation.conversation.id);
+      }
+    } catch (error: any) {
+      console.error('Moderation error:', error);
+      alert(`❌ Failed to ${action} user: ${error.message}`);
+    }
+  };
+
   const handleEmailReport = (conversationId: string, userEmail: string, conversationTitle: string) => {
     // First, trigger the download
     window.open(`/api/admin/conversations/${conversationId}/export`, '_blank');
 
     // Small delay to ensure download starts, then open mailto
     setTimeout(() => {
-      const subject = encodeURIComponent(`JCIL.AI Admin Export - User: ${userEmail}`);
+      const subject = encodeURIComponent(`JCIL.AI - User Conversation Export: ${userEmail}`);
       const fileName = `conversation_${userEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
+      const exportDate = new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      });
 
-      const body = encodeURIComponent(`This is an automated export from the JCIL.AI Admin Portal.
+      const body = encodeURIComponent(`Dear Recipient,
 
-CONVERSATION EXPORT DETAILS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-User Email:        ${userEmail}
-Conversation:      ${conversationTitle || 'Untitled'}
-Export Date:       ${new Date().toLocaleString()}
-File Name:         ${fileName}
+This message contains a confidential user conversation export from JCIL.AI, provided in response to your authorized request.
 
-⚠️  CONFIDENTIAL INFORMATION
-This export contains private user communications and personally identifiable information (PII). This document is intended solely for authorized legal, compliance, investigative, or support purposes.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXPORT SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-INSTRUCTIONS:
-1. The conversation export has been downloaded to your Downloads folder
-2. Please attach the downloaded HTML file to this email
-3. Ensure the recipient is authorized to receive this sensitive information
-4. This export is logged for compliance and audit purposes
+User Account:         ${userEmail}
+Conversation Title:   ${conversationTitle || 'Untitled Conversation'}
+Export Generated:     ${exportDate}
+Export ID:            ${conversationId}
+Attachment:           ${fileName}
 
-LEGAL NOTICE:
-Unauthorized access, use, disclosure, or distribution of this information is strictly prohibited and may be subject to legal action. By sending this email, you confirm that you are authorized to share this information with the recipient(s) and that such sharing is necessary for legitimate business purposes.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONFIDENTIALITY NOTICE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  This document contains private user communications and personally identifiable information (PII). The attached export includes the complete conversation history, message content, timestamps, and any associated file attachments.
 
-Generated by: JCIL.AI Admin Portal
-Export ID: ${conversationId}
-Timestamp: ${new Date().toISOString()}
+This information is provided solely for authorized legal, compliance, investigative, or regulatory purposes. Unauthorized access, use, disclosure, or distribution is strictly prohibited and may be subject to legal action under applicable data protection and privacy laws.
 
-Note: Please manually attach the downloaded file before sending.`);
+By accessing this export, you acknowledge that:
+• You are authorized to receive this information
+• The information will be handled in accordance with applicable laws
+• The information will be protected with appropriate security measures
+• The information will only be used for the stated authorized purpose
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The complete conversation export is attached to this email as an HTML document. You may open it in any web browser or save it as a PDF for your records using your browser's print function.
+
+If you have any questions regarding this export or require additional information, please contact our legal compliance team.
+
+Best regards,
+JCIL.AI Legal Compliance Team
+adminactivities@jcil.ai
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This export was generated by an authorized administrator and is logged for audit purposes.
+Document ID: ${conversationId}
+Generated: ${new Date().toISOString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
       window.location.href = `mailto:?subject=${subject}&body=${body}`;
     }, 500);
@@ -1756,6 +1813,105 @@ Note: Please manually attach the downloaded file before sending.`);
                     </CardTitle>
                     {selectedConversation && (
                       <div className="flex gap-2">
+                        {/* Moderation Dropdown */}
+                        <div className="relative">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setShowModerationMenu(!showModerationMenu)}
+                            className="border-red-300 hover:bg-red-50"
+                          >
+                            <Shield className="h-4 w-4 mr-2" />
+                            Moderate
+                          </Button>
+
+                          {showModerationMenu && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setShowModerationMenu(false)}
+                              />
+                              <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-20 p-2">
+                                <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-slate-700 px-2 py-1">Suspend User</p>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '1h');
+                                      setShowModerationMenu(false);
+                                    }}
+                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                  >
+                                    1 Hour
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '1d');
+                                      setShowModerationMenu(false);
+                                    }}
+                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                  >
+                                    1 Day
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '1w');
+                                      setShowModerationMenu(false);
+                                    }}
+                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                  >
+                                    1 Week
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '1m');
+                                      setShowModerationMenu(false);
+                                    }}
+                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                  >
+                                    1 Month
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      handleModerateUser(selectedConversation.conversation.user_id, 'suspend', '6m');
+                                      setShowModerationMenu(false);
+                                    }}
+                                    className="w-full justify-start text-xs hover:bg-yellow-50"
+                                  >
+                                    6 Months
+                                  </Button>
+
+                                  <div className="border-t border-slate-200 my-2" />
+
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      if (confirm('⚠️ Are you sure you want to PERMANENTLY BAN this user? This action should only be taken for serious violations.')) {
+                                        handleModerateUser(selectedConversation.conversation.user_id, 'ban');
+                                        setShowModerationMenu(false);
+                                      }
+                                    }}
+                                    className="w-full justify-start text-xs hover:bg-red-50 text-red-700 font-semibold"
+                                  >
+                                    <Ban className="h-3 w-3 mr-2" />
+                                    Ban Permanently
+                                  </Button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
                         <Button
                           size="sm"
                           variant="default"
