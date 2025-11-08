@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { conversationId: string } }
+  { params }: { params: Promise<{ conversationId: string }> }
 ) {
   const supabase = await createClient();
 
@@ -26,7 +26,7 @@ export async function GET(
   }
 
   try {
-    const conversationId = params.conversationId;
+    const { conversationId } = await params;
 
     // Get conversation details
     const { data: conversation, error: convError } = await supabase
