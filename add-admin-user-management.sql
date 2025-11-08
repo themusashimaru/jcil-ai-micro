@@ -21,13 +21,14 @@ BEGIN
     u.id,
     u.email,
     COALESCE(p.subscription_tier, 'free') as subscription_tier,
-    COALESCE(p.daily_message_count, 0) as daily_message_count,
+    COALESCE(du.message_count, 0) as daily_message_count,
     COALESCE(p.daily_message_limit, 10) as daily_message_limit,
-    COALESCE(p.daily_token_count, 0) as daily_token_count,
-    COALESCE(p.last_message_date, p.updated_at) as last_active,
+    COALESCE(du.token_count, 0) as daily_token_count,
+    COALESCE(du.updated_at, p.updated_at, u.created_at) as last_active,
     u.created_at
   FROM auth.users u
   LEFT JOIN public.user_profiles p ON u.id = p.id
+  LEFT JOIN public.daily_usage du ON u.id = du.user_id AND du.usage_date = CURRENT_DATE
   ORDER BY p.updated_at DESC NULLS LAST;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

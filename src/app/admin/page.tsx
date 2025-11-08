@@ -96,6 +96,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [letterFilter, setLetterFilter] = useState<string>('all');
   const [period, setPeriod] = useState<'daily' | 'monthly' | 'quarterly' | 'half' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -311,21 +312,29 @@ export default function AdminDashboard() {
     }
   };
 
-  // Filter users based on search query
+  // Filter users based on search query and letter filter
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredUsers(users);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredUsers(
-        users.filter(
-          (user) =>
-            user.email.toLowerCase().includes(query) ||
-            user.subscription_tier.toLowerCase().includes(query)
-        )
+    let filtered = users;
+
+    // Apply letter filter first
+    if (letterFilter !== 'all') {
+      filtered = filtered.filter((user) =>
+        user.email.toLowerCase().startsWith(letterFilter.toLowerCase())
       );
     }
-  }, [searchQuery, users]);
+
+    // Then apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (user) =>
+          user.email.toLowerCase().includes(query) ||
+          user.subscription_tier.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredUsers(filtered);
+  }, [searchQuery, letterFilter, users]);
 
   useEffect(() => {
     fetchStats();
@@ -853,31 +862,72 @@ export default function AdminDashboard() {
           {/* User Management Table */}
           <Card>
           <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <CardTitle className="flex items-center text-slate-900">
-                <UserCog className="h-5 w-5 mr-2 text-blue-600" />
-                User Management
-              </CardTitle>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <div className="relative flex-1 sm:flex-initial">
-                  <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-                  <Input
-                    type="text"
-                    placeholder="Search users..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 w-full sm:w-64"
-                  />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <CardTitle className="flex items-center text-slate-900">
+                  <UserCog className="h-5 w-5 mr-2 text-blue-600" />
+                  User Management
+                </CardTitle>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:flex-initial">
+                    <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search users..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 w-full sm:w-64"
+                    />
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchUsers}
+                    disabled={usersLoading}
+                    className="flex-shrink-0"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${usersLoading ? 'animate-spin' : ''}`} />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={fetchUsers}
-                  disabled={usersLoading}
-                  className="flex-shrink-0"
-                >
-                  <RefreshCw className={`h-4 w-4 ${usersLoading ? 'animate-spin' : ''}`} />
-                </Button>
+              </div>
+
+              {/* Alphabetical Filter */}
+              <div className="border-t border-slate-200 pt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-medium text-slate-700">Filter by first letter:</p>
+                  <Button
+                    variant={letterFilter === 'all' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setLetterFilter('all')}
+                    className={`text-xs px-2 h-7 ${letterFilter === 'all' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+                  >
+                    All
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map((letter) => {
+                    const userCount = users.filter(u => u.email.toLowerCase().startsWith(letter.toLowerCase())).length;
+                    return (
+                      <Button
+                        key={letter}
+                        variant={letterFilter === letter ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setLetterFilter(letter)}
+                        disabled={userCount === 0}
+                        className={`text-xs px-2 h-7 min-w-[32px] ${
+                          letterFilter === letter
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : userCount === 0
+                            ? 'opacity-30 cursor-not-allowed'
+                            : ''
+                        }`}
+                        title={`${userCount} user${userCount !== 1 ? 's' : ''}`}
+                      >
+                        {letter}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </CardHeader>

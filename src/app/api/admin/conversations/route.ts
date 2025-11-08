@@ -27,7 +27,21 @@ export async function GET(request: Request) {
     const userId = searchParams.get('userId');
     const searchQuery = searchParams.get('search') || '';
 
-    // Get all conversations with their messages
+    // First, get all users with emails for lookup
+    const { data: allUsers, error: usersError } = await supabase
+      .rpc('get_all_users_for_admin');
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+      throw usersError;
+    }
+
+    // Create user lookup map
+    const userLookup = new Map(
+      (allUsers || []).map((u: any) => [u.id, { email: u.email, tier: u.subscription_tier }])
+    );
+
+    // Get all conversations with user details
     let conversationsQuery = supabase
       .from('conversations')
       .select(`
@@ -35,8 +49,7 @@ export async function GET(request: Request) {
         title,
         created_at,
         updated_at,
-        user_id,
-        user_profiles!inner(email, subscription_tier)
+        user_id
       `)
       .order('updated_at', { ascending: false })
       .limit(100);
@@ -56,10 +69,8 @@ export async function GET(request: Request) {
     // For each conversation, get message count and latest message
     const conversationsWithDetails = await Promise.all(
       (conversations || []).map(async (conv) => {
-        // Extract user profile (Supabase returns it as an array even with .single())
-        const userProfile = Array.isArray(conv.user_profiles)
-          ? conv.user_profiles[0]
-          : conv.user_profiles;
+        // Get user details from lookup map
+        const userDetails = userLookup.get(conv.user_id) || { email: 'Unknown', tier: 'free' };
 
         // Get message count
         const { count } = await supabase
@@ -76,22 +87,15 @@ export async function GET(request: Request) {
           .limit(1)
           .single();
 
-        // Get attachments count
-        const { count: attachmentCount } = await supabase
-          .from('attachments')
-          .select('*', { count: 'exact', head: true })
-          .eq('conversation_id', conv.id);
-
         return {
           id: conv.id,
           title: conv.title,
           created_at: conv.created_at,
           updated_at: conv.updated_at,
           user_id: conv.user_id,
-          user_email: userProfile?.email || 'Unknown',
-          user_tier: userProfile?.subscription_tier || 'free',
+          user_email: userDetails.email,
+          user_tier: userDetails.tier,
           message_count: count || 0,
-          attachment_count: attachmentCount || 0,
           latest_message: latestMessage ? {
             content: latestMessage.content?.substring(0, 150) + (latestMessage.content?.length > 150 ? '...' : ''),
             created_at: latestMessage.created_at,
