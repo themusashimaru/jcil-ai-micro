@@ -103,10 +103,10 @@ export async function GET(request: Request) {
       (allUsers || []).map((u: any) => [u.id, { email: u.email, tier: u.subscription_tier }])
     );
 
-    // STEP 3: Query conversations from the database
+    // STEP 3: Query conversations from the database using service role client
     // Note: We only select the fields we need from the conversations table
     // User email is NOT in this table - that's why we need the lookup map above
-    let conversationsQuery = supabase
+    let conversationsQuery = supabaseAdmin
       .from('conversations')
       .select(`
         id,
@@ -142,13 +142,13 @@ export async function GET(request: Request) {
         const userDetails = (userLookup.get(conv.user_id) || { email: 'Unknown', tier: 'free' }) as { email: string; tier: string };
 
         // Count messages in this conversation (head: true = don't return data, just count)
-        const { count } = await supabase
+        const { count } = await supabaseAdmin
           .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('conversation_id', conv.id);
 
         // Get the most recent message for preview
-        const { data: latestMessage } = await supabase
+        const { data: latestMessage } = await supabaseAdmin
           .from('messages')
           .select('content, created_at, role')
           .eq('conversation_id', conv.id)
