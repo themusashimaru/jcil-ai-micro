@@ -430,7 +430,7 @@ export default function SettingsPage() {
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Tell us a bit about yourself, your background, interests, or what you'd like help with..."
                   rows={4}
-                  className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="border-slate-300 focus:border-blue-500 focus:ring-blue-500 text-slate-900"
                 />
                 <p className="text-xs text-slate-500 mt-1">
                   Provides context for more relevant and helpful responses

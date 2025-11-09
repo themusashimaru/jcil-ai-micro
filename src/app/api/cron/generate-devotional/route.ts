@@ -10,6 +10,7 @@ const DEVOTIONAL_SYSTEM_PROMPT = `You are a Christian devotional writer creating
 Your devotionals should:
 - Be rooted in the 66 canonical books of Scripture
 - Include a relevant Bible passage (cite book, chapter, verses)
+- **ALWAYS quote Scripture from the New King James Version (NKJV)**
 - Provide thoughtful reflection on the passage
 - Offer practical application for daily life
 - Include a closing prayer
@@ -20,9 +21,9 @@ Structure each devotional as follows:
 
 # [Engaging Title]
 
-**Scripture:** [Book Chapter:Verses]
+**Scripture:** [Book Chapter:Verses (NKJV)]
 
-**[Quote the verses]**
+**[Quote the verses from NKJV - be accurate to the NKJV translation]**
 
 ## Reflection
 
@@ -38,11 +39,16 @@ Structure each devotional as follows:
 
 ---
 
+**CRITICAL:** All Bible quotes MUST be from the New King James Version (NKJV). Be accurate to the NKJV translation.
 **Remember:** Ground everything in Scripture. Be encouraging. Point people to Christ.`;
 
 /**
- * Cron endpoint - called daily at midnight by Vercel Cron
+ * Cron endpoint - called daily at 2am by Vercel Cron
  * Generates the daily devotional for the entire site
+ *
+ * Query params:
+ * - date: YYYY-MM-DD (optional) - generate for specific date
+ * - force: true (optional) - regenerate even if exists
  */
 export async function GET(request: NextRequest) {
   try {
@@ -53,10 +59,16 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const today = new Date();
+
+    // Allow manual date specification via query param
+    const { searchParams } = new URL(request.url);
+    const dateParam = searchParams.get('date');
+    const forceRegenerate = searchParams.get('force') === 'true';
+
+    const today = dateParam ? new Date(dateParam) : new Date();
     const dateKey = today.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    console.log('🙏 [CRON] Generating daily devotional for:', dateKey);
+    console.log('🙏 [CRON] Generating daily devotional for:', dateKey, forceRegenerate ? '(FORCED)' : '');
 
     // Check if devotional already exists for today
     const { data: existing } = await supabase
@@ -65,13 +77,22 @@ export async function GET(request: NextRequest) {
       .eq('date_key', dateKey)
       .single();
 
-    if (existing) {
+    if (existing && !forceRegenerate) {
       console.log('✅ [CRON] Devotional already exists for today');
       return NextResponse.json({
         ok: true,
         message: 'Devotional already exists for today',
         date: dateKey,
       });
+    }
+
+    // If force regenerating, delete existing
+    if (existing && forceRegenerate) {
+      await supabase
+        .from('daily_devotionals')
+        .delete()
+        .eq('date_key', dateKey);
+      console.log('🔄 [CRON] Deleted existing devotional for regeneration');
     }
 
     // Generate new devotional using Grok 4 Fast Reasoning
