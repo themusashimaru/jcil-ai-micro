@@ -447,7 +447,9 @@ export default function Home() {
   const [upgradeModalData, setUpgradeModalData] = useState<any>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use instant scroll (not smooth) for better UX during streaming
+    // Smooth scrolling lags behind during rapid message updates
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   };
 
   const clearAttachmentState = () => {
