@@ -417,8 +417,8 @@ export default function Home() {
   // tools / files
   const [activeTool, setActiveTool] = useState<ToolType>('none');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const MAX_FILES = 10;
-  const MAX_TOTAL_SIZE = 25 * 1024 * 1024; // 25MB total
+  const MAX_FILES = 5;
+  const MAX_TOTAL_SIZE = 12.5 * 1024 * 1024; // 12.5MB total
 
   // ============================================
   // MIC RECORDING - REBUILT FROM SCRATCH
@@ -1053,29 +1053,12 @@ export default function Home() {
       setConversations((prev) => [newConvo, ...prev]);
     }
 
-    // Convert uploaded files to base64 for optimistic display
-    let optimisticImages: Array<{ data: string; mediaType: string; fileName: string }> | undefined;
-    if (uploadedFiles.length > 0) {
-      optimisticImages = await Promise.all(
-        uploadedFiles.map(async (file) => {
-          const arrayBuffer = await file.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-          return {
-            data: base64,
-            mediaType: file.type,
-            fileName: file.name
-          };
-        })
-      );
-    }
-
-    // locally display user message
+    // locally display user message (without images to avoid stack overflow)
     const newUserMessage: Message = {
       id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       role: 'user',
       content: userMsgText,
       created_at: new Date().toISOString(),
-      images: optimisticImages
     };
     setMessages((prev) => [...prev, newUserMessage]);
     setLocalInput('');
@@ -1801,6 +1784,11 @@ export default function Home() {
         }
 
         assistantText = streamedText;
+
+        // Reload conversation to fetch images if files were uploaded
+        if (hasFiles && currentConvoId) {
+          await loadConversation(currentConvoId);
+        }
       }
 
       // Note: Database saving is now handled on the backend during streaming
@@ -2363,27 +2351,27 @@ export default function Home() {
                 <div className="text-xs text-slate-600 mb-2 font-medium">
                   {uploadedFiles.length} {uploadedFiles.length === 1 ? 'file' : 'files'} attached
                 </div>
-                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   {uploadedFiles.map((file, index) => (
                     <div
                       key={index}
-                      className="relative group rounded-lg border border-blue-200 bg-blue-50/50 overflow-hidden shadow-sm hover:shadow-md transition-shadow max-w-[80px]"
+                      className="relative group rounded-lg border border-blue-200 bg-blue-50/50 overflow-hidden shadow-sm hover:shadow-md transition-shadow max-w-[56px]"
                     >
-                      {/* Remove button */}
+                      {/* Remove button - Always visible */}
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-red-500 hover:bg-red-600 text-white z-10"
                         onClick={() => removeAttachedFile(index)}
                         disabled={isLoading}
                       >
-                        <XIcon className="h-2.5 w-2.5" strokeWidth={2} />
+                        <XIcon className="h-2 w-2" strokeWidth={2} />
                       </Button>
 
                       {/* Thumbnail preview */}
                       {file.type.startsWith('image/') ? (
-                        <div className="w-full h-16 bg-slate-100">
+                        <div className="w-full h-[45px] bg-slate-100">
                           <img
                             src={URL.createObjectURL(file)}
                             alt={file.name}
@@ -2391,8 +2379,8 @@ export default function Home() {
                           />
                         </div>
                       ) : (
-                        <div className="w-full h-16 bg-blue-100 flex items-center justify-center">
-                          <FileIcon className="h-6 w-6 text-blue-600" strokeWidth={1.5} />
+                        <div className="w-full h-[45px] bg-blue-100 flex items-center justify-center">
+                          <FileIcon className="h-5 w-5 text-blue-600" strokeWidth={1.5} />
                         </div>
                       )}
 
