@@ -1,38 +1,44 @@
 -- ============================================
--- UPDATE SUBSCRIPTION TIER PRICING
+-- UPDATE SUBSCRIPTION TIER PRICING & LIMITS
 -- ============================================
--- Updates pricing and message limits to match new structure:
--- FREE: $0/month, 10 messages/day
--- BASIC: $12/month
--- PRO: $30/month
--- EXECUTIVE: $150/month
+-- Updates pricing and message limits to match new structure
+-- NOTE: Backend limits are GENEROUS (underpromise, overdeliver strategy)
+-- Users see conservative limits on landing page, but get much more!
 
--- Update free tier users to have 10 messages per day instead of 5
-UPDATE public.user_profiles
-SET daily_message_limit = 10
-WHERE subscription_tier = 'free' AND daily_message_limit = 5;
+-- Displayed Limits: Free=10, Basic=30, Pro=100, Executive=200
+-- Actual Limits:    Free=10, Basic=120, Pro=250, Executive=1000
 
--- Update basic tier users to new pricing
+-- Update FREE tier users (10 messages/day - matches what's displayed)
 UPDATE public.user_profiles
-SET monthly_price = 12
+SET daily_message_limit = 10,
+    monthly_price = 0
+WHERE subscription_tier = 'free';
+
+-- Update BASIC tier users ($12/month, 120 messages/day actual - displays 30)
+UPDATE public.user_profiles
+SET daily_message_limit = 120,
+    monthly_price = 12
 WHERE subscription_tier = 'basic';
 
--- Update pro tier users to new pricing
+-- Update PRO tier users ($30/month, 250 messages/day actual - displays 100)
 UPDATE public.user_profiles
-SET monthly_price = 30
+SET daily_message_limit = 250,
+    monthly_price = 30
 WHERE subscription_tier = 'pro';
 
--- Update executive tier users to new pricing
+-- Update EXECUTIVE tier users ($150/month, 1000 messages/day actual - displays 200)
 UPDATE public.user_profiles
-SET monthly_price = 150
+SET daily_message_limit = 1000,
+    monthly_price = 150
 WHERE subscription_tier = 'executive';
 
 -- Log the updates
 DO $$
 BEGIN
-  RAISE NOTICE 'Pricing tiers updated:';
-  RAISE NOTICE 'FREE: $0/month, 10 messages/day';
-  RAISE NOTICE 'BASIC: $12/month';
-  RAISE NOTICE 'PRO: $30/month';
-  RAISE NOTICE 'EXECUTIVE: $150/month';
+  RAISE NOTICE 'Pricing tiers updated with GENEROUS backend limits:';
+  RAISE NOTICE 'FREE: $0/month, 10 messages/day (displayed: 10)';
+  RAISE NOTICE 'BASIC: $12/month, 120 messages/day (displayed: 30) - 4x bonus!';
+  RAISE NOTICE 'PRO: $30/month, 250 messages/day (displayed: 100) - 2.5x bonus!';
+  RAISE NOTICE 'EXECUTIVE: $150/month, 1000 messages/day (displayed: 200) - 5x bonus!';
+  RAISE NOTICE 'Strategy: Underpromise on landing page, overdeliver in practice = happy users!';
 END $$;

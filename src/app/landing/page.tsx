@@ -133,7 +133,6 @@ export default function LandingPage() {
       name: 'Free',
       price: '$0',
       period: '/month',
-      messages: '10 messages/day',
       model: 'Slingshot 2.0',
       poweredBy: 'Powered by XAI',
       features: [
@@ -152,7 +151,6 @@ export default function LandingPage() {
       name: 'Basic',
       price: '$12',
       period: '/month',
-      messages: '30 messages/day',
       model: 'Slingshot 2.0',
       poweredBy: 'Powered by XAI',
       features: [
@@ -172,7 +170,6 @@ export default function LandingPage() {
       name: 'Pro',
       price: '$30',
       period: '/month',
-      messages: '100 messages/day',
       model: 'Slingshot 2.0',
       poweredBy: 'Powered by XAI',
       features: [
@@ -192,7 +189,6 @@ export default function LandingPage() {
       name: 'Executive',
       price: '$150',
       period: '/month',
-      messages: '200 messages/day',
       model: 'Slingshot 2.0',
       poweredBy: 'Powered by XAI',
       features: [
@@ -549,7 +545,6 @@ export default function LandingPage() {
                     <span className="text-4xl font-black text-blue-900">{tier.price}</span>
                     <span className="text-slate-600 ml-1">{tier.period}</span>
                   </div>
-                  <p className="text-sm font-semibold text-blue-600">{tier.messages}</p>
                   <p className="text-xs font-bold text-slate-700 mt-2">{tier.model}</p>
                   <p className="text-xs text-slate-500">{tier.poweredBy}</p>
                 </div>
