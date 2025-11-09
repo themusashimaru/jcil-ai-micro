@@ -86,200 +86,32 @@ const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB per file (fits most photos/screens
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-// Christian-themed loading messages for theological/chat queries
-const THEOLOGICAL_LOADING_MESSAGES = [
-  "Seeking wisdom from Scripture...",
-  "Processing through a biblical lens...",
-  "Analyzing with discernment...",
-  "Searching the Scriptures...",
-  "Filtering through Christian principles...",
-  "Examining with theological care...",
-  "Rendering a thoughtful response...",
-  "Compiling biblical insights...",
-  "Synthesizing scriptural wisdom...",
-  "Meditating on your question...",
-  "Applying faith-based reasoning...",
-  "Cross-referencing sacred texts...",
-  "Constructing a faithful answer...",
-  "Parsing with divine guidance...",
-  "Rejecting wokeness, embracing truth...",
-];
-
-// Practical loading messages for searches, trends, news, etc.
-const PRACTICAL_LOADING_MESSAGES = [
+// ✅ SIMPLIFIED: Professional loading messages for ALL queries
+// Removed complex intent detection - these work for everything
+const LOADING_MESSAGES = [
+  "Processing your request...",
   "Analyzing your question...",
-  "Processing information...",
-  "Structuring research...",
-  "Locating relevant data...",
-  "Filtering results...",
-  "Compiling findings...",
-  "Synthesizing information...",
-  "Organizing insights...",
+  "Gathering information...",
+  "Compiling response...",
+  "Reviewing data...",
+  "Structuring answer...",
+  "Finalizing response...",
+  "Preparing insights...",
   "Cross-referencing sources...",
-  "Applying biblical wisdom...",
-  "Filtering through Christian principles...",
+  "Synthesizing information...",
 ];
 
-// Sassy loading messages for liberal/woke queries 😏
-const WOKE_DETECTION_MESSAGES = [
-  "Detecting wokeness...",
-  "Restructuring the woke agenda...",
-  "Reshaping the liberal perspective...",
-  "Applying common sense...",
-  "Fact-checking mainstream narratives...",
-  "Filtering out cultural Marxism...",
-  "Translating from woke to truth...",
-  "Rejecting identity politics...",
-  "Deploying biblical reality check...",
-  "Bypassing leftist programming...",
-];
-
-// Lazy student detection 📚
-const LAZY_STUDENT_MESSAGES = [
-  "Detecting academic shortcuts...",
-  "Encouraging genuine learning...",
-  "Redirecting to study materials...",
-  "Promoting intellectual growth...",
-  "Discouraging plagiarism...",
-  "Building character through effort...",
-  "Teaching the value of hard work...",
-  "Guiding towards honest achievement...",
-];
-
-// Veteran detection 🇺🇸
-const VETERAN_MESSAGES = [
-  "Honoring your service...",
-  "Thank you for your sacrifice...",
-  "Respecting those who served...",
-  "Grateful for your dedication...",
-  "Serving those who served...",
-  "Recognizing military service...",
-  "Appreciating American heroes...",
-];
-
-// Business professional detection 💼
-const BUSINESS_MESSAGES = [
-  "Analyzing business strategy...",
-  "Processing professional inquiry...",
-  "Structuring business insights...",
-  "Optimizing strategic approach...",
-  "Deploying market intelligence...",
-  "Synthesizing business data...",
-];
-
-// Parent/Homeschool detection 👨‍👩‍👧‍👦
-const PARENT_MESSAGES = [
-  "Supporting family education...",
-  "Assisting homeschool curriculum...",
-  "Providing biblical guidance for families...",
-  "Strengthening Christian parenting...",
-  "Building godly family foundations...",
-];
-
-// Dark/Occult detection ⚠️🛡️
-const DARK_ENTITY_MESSAGES = [
-  "⚠️ Detecting dark entities...",
-  "⚠️ Detecting malicious intent...",
-  "⚠️ Identifying occult content...",
-  "⚠️ Spiritual protection activated...",
-  "⚠️ Rejecting demonic influence...",
-  "⚠️ Deploying biblical authority...",
-];
-
-// Business Owners/Creators 🚀
-const CREATOR_MESSAGES = [
-  "Supporting your vision...",
-  "Empowering your business journey...",
-  "Gathering insights efficiently...",
-  "Optimizing for your success...",
-  "Building your dream...",
-  "Reviewing for accurate guidance...",
-  "Accelerating your goals...",
-];
-
-// Emotional Distress/Struggling 💙✝️
-const DISTRESS_MESSAGES = [
-  "User is experiencing hardship...",
-  "Jesus loves you very much...",
-  "You have a beautiful future...",
-  "Providing compassionate support...",
-  "God sees your struggle...",
-  "Hope is on the horizon...",
-  "You are not alone...",
-  "Strength is being prepared...",
-];
-
-// Hacker/Malicious Attempt Detection 🚨⚠️
-const HACKER_MESSAGES = [
-  "🚨 Detecting hacking attempt...",
-  "🚨 SQL injection detected...",
-  "🚨 Cross-site scripting blocked...",
-  "⚠️ Do not pass GO. Do not collect $200.",
-  "🛑 Silicon Valley shenanigans detected...",
-  "⚠️ Nice try, script kiddie...",
-  "🚫 Malicious activity identified...",
-  "🚨 Unauthorized access attempt...",
-  "⛔ Error 403: Protected by Higher Authority...",
-  "🚨 Security threat neutralized...",
-];
-
-const TypingIndicator = ({
-  isPractical = false,
-  isWoke = false,
-  isLazyStudent = false,
-  isVeteran = false,
-  isBusiness = false,
-  isParent = false,
-  isDarkEntity = false,
-  isCreator = false,
-  isDistress = false,
-  isHacker = false
-}: {
-  isPractical?: boolean;
-  isWoke?: boolean;
-  isLazyStudent?: boolean;
-  isVeteran?: boolean;
-  isBusiness?: boolean;
-  isParent?: boolean;
-  isDarkEntity?: boolean;
-  isCreator?: boolean;
-  isDistress?: boolean;
-  isHacker?: boolean;
-}) => {
+// ✅ SIMPLIFIED: Removed all intent detection, just one clean typing indicator
+const TypingIndicator = () => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
-    let messages = THEOLOGICAL_LOADING_MESSAGES;
-
-    // Priority order for special detection
-    if (isHacker) {
-      messages = HACKER_MESSAGES; // ABSOLUTE HIGHEST - Block hackers immediately! 🚨
-    } else if (isDarkEntity) {
-      messages = DARK_ENTITY_MESSAGES; // Block evil immediately!
-    } else if (isDistress) {
-      messages = DISTRESS_MESSAGES; // Compassion for struggling souls
-    } else if (isVeteran) {
-      messages = VETERAN_MESSAGES; // Honor our veterans
-    } else if (isCreator) {
-      messages = CREATOR_MESSAGES; // Support business owners
-    } else if (isLazyStudent) {
-      messages = LAZY_STUDENT_MESSAGES; // Catch cheaters
-    } else if (isWoke) {
-      messages = WOKE_DETECTION_MESSAGES; // Time for sass
-    } else if (isParent) {
-      messages = PARENT_MESSAGES; // Support families
-    } else if (isBusiness) {
-      messages = BUSINESS_MESSAGES; // Professional mode
-    } else if (isPractical) {
-      messages = PRACTICAL_LOADING_MESSAGES;
-    }
-
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % messages.length);
+      setMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [isPractical, isWoke, isLazyStudent, isVeteran, isBusiness, isParent, isDarkEntity, isCreator, isDistress, isHacker]);
+  }, []);
 
   return (
     <div className="flex items-start space-x-3 justify-start">
@@ -291,28 +123,7 @@ const TypingIndicator = ({
             <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
           <span className="text-sm text-slate-600 italic animate-pulse">
-            {isHacker
-              ? HACKER_MESSAGES[messageIndex]
-              : isDarkEntity
-                ? DARK_ENTITY_MESSAGES[messageIndex]
-                : isDistress
-                  ? DISTRESS_MESSAGES[messageIndex]
-                  : isVeteran
-                    ? VETERAN_MESSAGES[messageIndex]
-                    : isCreator
-                      ? CREATOR_MESSAGES[messageIndex]
-                      : isLazyStudent
-                        ? LAZY_STUDENT_MESSAGES[messageIndex]
-                        : isWoke
-                          ? WOKE_DETECTION_MESSAGES[messageIndex]
-                          : isParent
-                            ? PARENT_MESSAGES[messageIndex]
-                            : isBusiness
-                              ? BUSINESS_MESSAGES[messageIndex]
-                              : isPractical
-                                ? PRACTICAL_LOADING_MESSAGES[messageIndex]
-                                : THEOLOGICAL_LOADING_MESSAGES[messageIndex]
-            }
+            {LOADING_MESSAGES[messageIndex]}
           </span>
         </div>
       </div>
@@ -447,7 +258,9 @@ export default function Home() {
   const [upgradeModalData, setUpgradeModalData] = useState<any>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll to keep latest messages visible
+    // User's new message should be visible at top with AI response appearing below
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
   const clearAttachmentState = () => {
@@ -876,7 +689,13 @@ export default function Home() {
     }
 
     try {
-      // Start recording
+      // ✅ FIX: Disabled microphone permission popup - users will see disclaimer instead
+      // Voice input requires microphone access as explained in app disclaimer
+      alert('Voice input has been disabled. Microphone permissions are covered in the app disclaimer.');
+      return;
+
+      // Old code (disabled):
+      /*
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       recorderRef.current = recorder;
@@ -918,6 +737,7 @@ export default function Home() {
 
       setIsRecording(true);
       recorder.start();
+      */
     } catch (err) {
       alert('Microphone access denied');
     }
@@ -1341,6 +1161,7 @@ export default function Home() {
     }
 
     let assistantText = '';
+    let isStreamingRoute = false; // Track if we used streaming route
 
     // ✅ FIX: Build conversation history WITH images (exclude the just-added user message)
     const conversationHistory = messages.slice(0, -1).map(m => {
@@ -1388,84 +1209,9 @@ export default function Home() {
           setMessages((prev) => [...prev, searchMsg]);
         }
 
-        // Get user's location if it's a location query (with permission)
+        // ✅ FIX: Disabled geolocation popups - users will see disclaimer instead
+        // Location queries only work with city names (no browser permission needed)
         let userLocation = null;
-        if (isLocationQuery && !hasCityMention && typeof navigator !== 'undefined' && navigator.geolocation) {
-          try {
-            // Show temporary message while getting location
-            const tempMsg: Message = {
-              id: `temp-location-${Date.now()}`,
-              role: 'assistant',
-              content: '📍 Requesting your location for nearby results...',
-              created_at: new Date().toISOString(),
-            };
-            setMessages((prev) => [...prev, tempMsg]);
-
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(
-                resolve,
-                reject,
-                {
-                  timeout: 10000,
-                  enableHighAccuracy: true,
-                  maximumAge: 0
-                }
-              );
-            });
-
-            userLocation = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            };
-            console.log('📍 Location detected:', userLocation);
-
-            // Reverse geocode to get city name
-            try {
-              const geocodeResponse = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?` +
-                `lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`
-              );
-              const geocodeData = await geocodeResponse.json();
-              const city = geocodeData.address?.city ||
-                          geocodeData.address?.town ||
-                          geocodeData.address?.village ||
-                          geocodeData.address?.county ||
-                          'your area';
-              const state = geocodeData.address?.state || '';
-              const locationName = state ? `${city}, ${state}` : city;
-
-              // Update temp message with location name
-              setMessages((prev) =>
-                prev.map(m => m.id === tempMsg.id
-                  ? {...m, content: `📍 Searching for ${textInput.toLowerCase()} near **${locationName}**...`}
-                  : m
-                )
-              );
-            } catch (geoError) {
-              console.log('Geocoding error:', geoError);
-              // Continue with coordinates only
-            }
-
-            // Remove temp message
-            setMessages((prev) => prev.filter(m => m.id !== tempMsg.id));
-          } catch (error: any) {
-            console.log('📍 Location error:', error);
-            // Remove temp message
-            setMessages((prev) => prev.filter(m => m.id.startsWith('temp-location-')));
-
-            // Add error message
-            const errorMsg: Message = {
-              id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-              role: 'assistant',
-              content: '📍 Unable to access your location. Please enable location services in your browser settings, or try including your city/address in your search.',
-              created_at: new Date().toISOString(),
-            };
-            setMessages((prev) => [...prev, errorMsg]);
-            setIsLoading(false);
-            setIsTyping(false);
-            return;
-          }
-        }
 
         // Route to appropriate search API
         if (isLocationQuery && (userLocation || hasCityMention)) {
@@ -1570,102 +1316,30 @@ export default function Home() {
       // 🌬️ ROUTE 3: AIR QUALITY (Google Air Quality API)
       // ============================================
       else if (isAirQualityIntent && hasText) {
-        console.log('🌬️ Detected air quality intent, routing to Google Air Quality API...');
+        console.log('🌬️ Detected air quality intent - feature requires location in disclaimer');
 
-        // Get user's location
-        let userLocation = null;
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-          try {
-            const tempMsg: Message = {
-              id: `temp-air-${Date.now()}`,
-              role: 'assistant',
-              content: '🌬️ Getting air quality and pollen data for your area...',
-              created_at: new Date().toISOString(),
-            };
-            setMessages((prev) => [...prev, tempMsg]);
-
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                timeout: 10000,
-                enableHighAccuracy: true,
-                maximumAge: 0
-              });
-            });
-
-            userLocation = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            };
-
-            const airQualityResponse = await fetch('/api/google-air-quality', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ location: userLocation }),
-            });
-
-            const airQualityData = await airQualityResponse.json();
-
-            setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-air-')));
-
-            if (airQualityResponse.ok && airQualityData.airQuality) {
-              const aqi = airQualityData.airQuality.indexes?.[0];
-              let response = `**Air Quality in ${airQualityData.location}**\n\n`;
-
-              if (aqi) {
-                response += `**AQI**: ${aqi.aqi} - ${aqi.category || 'Unknown'}\n`;
-                response += `**Health**: ${aqi.dominantPollutant ? `Dominant pollutant: ${aqi.dominantPollutant}` : 'Data unavailable'}\n\n`;
-              }
-
-              // Add pollen data if available
-              if (airQualityData.airQuality.pollens) {
-                response += `**Pollen Levels**:\n`;
-                airQualityData.airQuality.pollens.forEach((pollen: any) => {
-                  response += `- ${pollen.displayName}: ${pollen.indexInfo?.category || 'N/A'}\n`;
-                });
-              }
-
-              assistantText = response;
-            } else {
-              assistantText = "Unable to fetch air quality data. Please try again later.";
-            }
-          } catch (error: any) {
-            setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-air-')));
-            assistantText = "📍 Unable to access your location. Please enable location services in your browser settings.";
-          }
-        } else {
-          assistantText = "Location services are not available in your browser.";
-        }
+        // ✅ FIX: Disabled geolocation popups - users will see disclaimer instead
+        // Air quality queries only work with city names (no browser permission needed)
+        assistantText = "For air quality information, please specify your city or location in your question (e.g., 'What's the air quality in Los Angeles?'). Location services have been disabled per app disclaimer.";
       }
       // ============================================
       // 🚗 ROUTE 4: DIRECTIONS (Google Directions API)
       // ============================================
       else if (isDirectionsIntent && hasText) {
-        console.log('🚗 Detected directions intent, routing to Google Directions API...');
+        console.log('🚗 Detected directions intent - feature requires location in disclaimer');
+
+        // ✅ FIX: Disabled geolocation popups - users will see disclaimer instead
+        // Extract origin and destination from query
+        let origin = 'current location';
+        let destination = textInput.replace(/^(how (do i|to) get to|directions? to|route to|navigate to|drive to|walk to)\s*/i, '').trim();
 
         const tempMsg: Message = {
           id: `temp-directions-${Date.now()}`,
           role: 'assistant',
-          content: '🚗 Calculating route...',
+          content: '🚗 Getting directions...',
           created_at: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, tempMsg]);
-
-        // Extract origin and destination from query
-        // For now, we'll use "current location" as origin if user says "how do I get to X"
-        let origin = 'current location';
-        let destination = textInput.replace(/^(how (do i|to) get to|directions? to|route to|navigate to|drive to|walk to)\s*/i, '').trim();
-
-        // Get user's current location for origin
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-          try {
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
-            });
-            origin = `${position.coords.latitude},${position.coords.longitude}`;
-          } catch (error) {
-            console.log('Could not get current location for directions');
-          }
-        }
 
         const directionsResponse = await fetch('/api/google-directions', {
           method: 'POST',
@@ -1729,6 +1403,7 @@ export default function Home() {
       // 💬 ROUTE 6: NORMAL CHAT (Streaming)
       // ============================================
       else {
+        isStreamingRoute = true; // Mark as streaming route
         let response: Response;
         if (actuallyHasFiles) {
           const formData = new FormData();
@@ -1848,7 +1523,32 @@ export default function Home() {
       // ✅ FIX: Keep last sent files for MULTIPLE follow-ups (only clear on new chat)
       // Images now persist across multiple follow-up questions until user starts new conversation
 
-      // Note: Database saving is now handled on the backend during streaming
+      // ✅ FIX: Save non-streaming route responses (Routes 1-5)
+      // Note: Streaming route (Route 6) handles database saving on the backend
+      if (assistantText && !isStreamingRoute) {
+        // Save assistant response to database
+        const { error: insertAssistantErr } = await supabase.from('messages').insert({
+          user_id: user.id,
+          conversation_id: currentConvoId,
+          role: 'assistant',
+          content: assistantText,
+        });
+
+        if (insertAssistantErr) {
+          console.error('insert assistant message error:', insertAssistantErr);
+        }
+
+        // Add assistant message to UI
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+            role: 'assistant',
+            content: assistantText,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
 
     } catch (error: any) {
       console.error('chat send error:', error);
@@ -2363,20 +2063,7 @@ export default function Home() {
                 </div>
               ))
             )}
-            {isTyping && (
-              <TypingIndicator
-                isPractical={isPracticalQuery}
-                isWoke={isWokeQuery}
-                isLazyStudent={isLazyStudentQuery}
-                isVeteran={isVeteranQuery}
-                isBusiness={isBusinessQuery}
-                isParent={isParentQuery}
-                isDarkEntity={isDarkEntityQuery}
-                isCreator={isCreatorQuery}
-                isDistress={isDistressQuery}
-                isHacker={isHackerQuery}
-              />
-            )}
+            {isTyping && <TypingIndicator />}
             <div ref={messagesEndRef} />
             </div>
           </CardContent>
