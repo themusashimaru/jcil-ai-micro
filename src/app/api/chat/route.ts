@@ -30,14 +30,16 @@ const UPGRADE_PATHS: Record<string, { nextTier: string; paymentLink: string; pri
 };
 
 // ============================================
-// 📊 DAILY MESSAGE LIMITS BY TIER
+// 📊 DAILY MESSAGE LIMITS BY TIER (BACKEND - GENEROUS!)
 // ============================================
+// NOTE: These are the ACTUAL limits users get (generous to delight users)
+// Frontend displays conservative estimates - underpromise, overdeliver!
+// Displayed limits: Free=10, Basic=30, Pro=100, Executive=200
 const DAILY_LIMITS: Record<string, number> = {
-  'free': 10,
-  'basic': 80,
-  'pro': 80, // Same as basic
-  'premium': 200,
-  'executive': 1500
+  'free': 10,        // Advertised: 10/day ✓ (matches)
+  'basic': 120,      // Advertised: 30/day (4x more! Students can study all day)
+  'pro': 250,        // Advertised: 100/day (2.5x more! Power users won't hit limits)
+  'executive': 1000  // Advertised: 200/day (5x more! Unlimited feel for execs)
 };
 
 // ============================================
