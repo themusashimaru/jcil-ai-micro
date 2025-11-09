@@ -41,6 +41,15 @@ export default function SettingsPage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   
+  // Profile Personalization State
+  const [fullName, setFullName] = useState('');
+  const [bio, setBio] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [purposeOfUse, setPurposeOfUse] = useState('');
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileError, setProfileError] = useState('');
+
   // Contact Admin State
   const [contactCategory, setContactCategory] = useState('general');
   const [contactSubject, setContactSubject] = useState('');
@@ -70,10 +79,10 @@ export default function SettingsPage() {
     }
     setUser(user);
 
-    // Get subscription info
+    // Get subscription info and profile details
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('subscription_tier, daily_message_limit, subscription_status')
+      .select('subscription_tier, daily_message_limit, subscription_status, full_name, bio, job_title, purpose_of_use')
       .eq('id', user.id)
       .single();
 
@@ -81,6 +90,12 @@ export default function SettingsPage() {
       setSubscriptionTier(profile.subscription_tier || 'free');
       setDailyLimit(profile.daily_message_limit || 10);
       setSubscriptionStatus(profile.subscription_status || 'inactive');
+
+      // Load profile personalization fields
+      setFullName(profile.full_name || '');
+      setBio(profile.bio || '');
+      setJobTitle(profile.job_title || '');
+      setPurposeOfUse(profile.purpose_of_use || '');
     }
 
     // Get today's usage
@@ -172,6 +187,36 @@ export default function SettingsPage() {
       
       // Hide success message after 3 seconds
       setTimeout(() => setPasswordSuccess(false), 3000);
+    }
+  };
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileLoading(true);
+    setProfileError('');
+    setProfileSuccess(false);
+
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          full_name: fullName.trim() || null,
+          bio: bio.trim() || null,
+          job_title: jobTitle.trim() || null,
+          purpose_of_use: purposeOfUse.trim() || null,
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfileSuccess(true);
+
+      // Hide success message after 3 seconds
+      setTimeout(() => setProfileSuccess(false), 3000);
+    } catch (err: any) {
+      setProfileError(err.message || 'Failed to update profile');
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -308,6 +353,122 @@ export default function SettingsPage() {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Profile Personalization Card */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <User className="h-5 w-5" />
+              Profile Personalization
+            </CardTitle>
+            <CardDescription className="text-slate-600">
+              Help Slingshot provide more personalized and effective responses (all fields optional)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleProfileUpdate} className="space-y-4">
+              <div>
+                <label htmlFor="fullName" className="text-sm font-medium text-slate-700 block mb-2">
+                  Full Name
+                </label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Your full name"
+                  className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Used to personalize greetings and responses
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="jobTitle" className="text-sm font-medium text-slate-700 block mb-2">
+                  Job Title / Role
+                </label>
+                <Input
+                  id="jobTitle"
+                  type="text"
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  placeholder="e.g., Pastor, Teacher, Business Owner"
+                  className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Helps tailor advice to your profession
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="purposeOfUse" className="text-sm font-medium text-slate-700 block mb-2">
+                  Purpose of Use
+                </label>
+                <Input
+                  id="purposeOfUse"
+                  type="text"
+                  value={purposeOfUse}
+                  onChange={(e) => setPurposeOfUse(e.target.value)}
+                  placeholder="e.g., Ministry, Business, Education, Personal Growth"
+                  className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Helps us understand your goals
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="bio" className="text-sm font-medium text-slate-700 block mb-2">
+                  Brief Description
+                </label>
+                <Textarea
+                  id="bio"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell us a bit about yourself, your background, interests, or what you'd like help with..."
+                  rows={4}
+                  className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Provides context for more relevant and helpful responses
+                </p>
+              </div>
+
+              {profileError && (
+                <div className="bg-red-50 text-red-700 p-3 rounded-lg flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-sm">{profileError}</span>
+                </div>
+              )}
+
+              {profileSuccess && (
+                <div className="bg-green-50 text-green-700 p-3 rounded-lg flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="text-sm">Profile updated successfully!</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={profileLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {profileLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Save Profile
+                  </>
+                )}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
