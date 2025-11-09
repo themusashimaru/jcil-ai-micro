@@ -457,7 +457,7 @@ export default function AdminInbox() {
             </CardHeader>
             <CardContent>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -493,7 +493,7 @@ export default function AdminInbox() {
               {/* Sort and Bulk Actions */}
               <div className="flex items-center gap-2">
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="text-sm">
+                  <SelectTrigger className="text-sm text-gray-900">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
