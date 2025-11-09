@@ -2094,7 +2094,12 @@ export default function Home() {
           </CardHeader>
 
           {/* messages */}
-          <CardContent className="flex-1 overflow-y-auto p-0 bg-white relative rounded-b-3xl">
+          <CardContent
+            className="flex-1 overflow-y-auto p-0 bg-white relative pb-8"
+            style={{
+              clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 2rem), 50% 100%, 0 calc(100% - 2rem))'
+            }}
+          >
             <div className="px-3 sm:px-6 md:px-8 h-full flex flex-col space-y-4 sm:space-y-6">
             {isLoading && messages.length === 0 ? (
               <div className="text-center text-slate-500 text-sm">Loading messages...</div>
@@ -2227,7 +2232,11 @@ export default function Home() {
           {/* input bar */}
           <form
             onSubmit={handleFormSubmit}
-            className="px-3 sm:px-6 md:px-8 pt-0 pb-3 sm:pb-4 md:pb-5 bg-gradient-to-b from-white to-slate-50 rounded-t-3xl rounded-b-lg sm:rounded-b-xl shadow-inner -mt-1"
+            className="px-3 sm:px-6 md:px-8 pt-4 pb-3 sm:pb-4 md:pb-5 bg-gradient-to-b from-white to-slate-50 rounded-b-lg sm:rounded-b-xl shadow-inner relative"
+            style={{
+              clipPath: 'ellipse(120% 100% at 50% 100%)',
+              marginTop: '-2rem'
+            }}
           >
             {attachedFileName && (
               <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
