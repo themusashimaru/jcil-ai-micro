@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { query, location } = await request.json();
+    const { query, location, history = [] } = await request.json();
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json({ error: 'Invalid query' }, { status: 400 });
@@ -163,17 +163,21 @@ Keep formatting clean:
 Be concise and thorough.`;
     }
 
+    // Build messages array with conversation history
+    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
+      ...history,
+      {
+        role: 'user',
+        content: userPrompt,
+      }
+    ];
+
     // Send search results to Claude Haiku 4.5 for interpretation
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 4096,
       system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
+      messages,
     });
 
     const interpretation = response.content[0].type === 'text'
