@@ -739,6 +739,16 @@ Generated: ${new Date().toISOString()}
     return () => clearInterval(interval);
   }, []);
 
+  // Refresh stats and users every 30 seconds for overview
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchUsers();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [period]);
+
   // Fetch users when activity tab is opened
   useEffect(() => {
     if (activeTab === 'activity') {
