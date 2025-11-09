@@ -15,7 +15,8 @@ import {
   CheckCircle,
   RefreshCw,
   Code,
-  Wrench
+  Wrench,
+  FolderOpen
 } from 'lucide-react';
 import {
   Select,
@@ -24,8 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import AdminToolCategories from './AdminToolCategories';
+import AdminTools from './AdminTools';
 
-type SectionType = 'prompt-editor' | 'tools' | 'config';
+type SectionType = 'prompt-editor' | 'tool-categories' | 'tools' | 'config';
 
 interface SystemPrompt {
   id: string;
@@ -168,7 +171,8 @@ export default function AdminSystems() {
 
   const sections = [
     { id: 'prompt-editor' as SectionType, label: 'System Prompt Editor', icon: MessageSquare },
-    { id: 'tools' as SectionType, label: 'Tool Prompts', icon: Wrench },
+    { id: 'tool-categories' as SectionType, label: 'Tool Categories', icon: FolderOpen },
+    { id: 'tools' as SectionType, label: 'Tools', icon: Wrench },
     { id: 'config' as SectionType, label: 'Configuration', icon: Settings },
   ];
 
@@ -278,7 +282,7 @@ export default function AdminSystems() {
                         value={editedContent}
                         onChange={(e) => setEditedContent(e.target.value)}
                         rows={25}
-                        className="font-mono text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        className="font-mono text-sm text-gray-900 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         placeholder="Enter system prompt..."
                       />
                     </div>
@@ -396,22 +400,11 @@ export default function AdminSystems() {
         </div>
       )}
 
-      {/* Tool Prompts Section - Placeholder */}
-      {activeSection === 'tools' && (
-        <Card className="border-gray-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-gray-900">Tool Prompts</CardTitle>
-            <CardDescription className="text-gray-600">
-              Manage prompts for specialized tools (coming soon)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600">
-              Tool prompt editing will be available in a future update.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Tool Categories Section */}
+      {activeSection === 'tool-categories' && <AdminToolCategories />}
+
+      {/* Tools Section */}
+      {activeSection === 'tools' && <AdminTools />}
 
       {/* Configuration Section - Placeholder */}
       {activeSection === 'config' && (
