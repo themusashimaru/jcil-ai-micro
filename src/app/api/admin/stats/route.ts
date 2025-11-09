@@ -139,9 +139,14 @@ export async function GET(request: Request) {
     // ====================
     // SIGNUP STATS
     // ====================
-    // Note: created_at is in auth.users, not user_profiles
-    // For now, we'll set newSignups to 0 and implement this later with a proper query
-    const newSignups = 0;
+    const { data: signupData, error: signupError } = await supabase
+      .from('user_profiles')
+      .select('created_at')
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', now.toISOString());
+
+    const newSignups = signupData?.length || 0;
+    console.log(`New signups in period ${period}: ${newSignups}`);
 
     // ====================
     // DAILY BREAKDOWN
