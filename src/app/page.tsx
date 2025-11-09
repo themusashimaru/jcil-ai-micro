@@ -638,12 +638,40 @@ export default function Home() {
       console.error('loadConversation error:', error);
       setMessages([{ id: 'err', role: 'assistant', content: 'Error loading conversation.' }]);
     } else {
-      // Map messages - don't load images
+      // ✅ FIX: Load images from message_images table
+      const messageIds = (data ?? []).map(m => m.id);
+      let imagesMap: Record<string, Array<{ data: string; mediaType: string; fileName: string }>> = {};
+
+      if (messageIds.length > 0) {
+        const { data: imagesData, error: imagesError } = await supabase
+          .from('message_images')
+          .select('message_id, image_data, media_type, file_name')
+          .in('message_id', messageIds);
+
+        if (!imagesError && imagesData) {
+          // Group images by message_id
+          imagesData.forEach((img) => {
+            if (!imagesMap[img.message_id]) {
+              imagesMap[img.message_id] = [];
+            }
+            imagesMap[img.message_id].push({
+              data: img.image_data,
+              mediaType: img.media_type,
+              fileName: img.file_name
+            });
+          });
+        } else if (imagesError) {
+          console.error('Error loading images:', imagesError);
+        }
+      }
+
+      // Map messages WITH images
       const loaded: Message[] = (data ?? []).map((m) => ({
         id: m.id,
         role: m.role as 'user' | 'assistant',
         content: m.content,
-        created_at: m.created_at
+        created_at: m.created_at,
+        images: imagesMap[m.id] // Attach images if they exist
       }));
 
       setMessages(loaded);
@@ -1026,25 +1054,33 @@ export default function Home() {
     try {
       const userMsgText = textInput;
 
-      // ensure conversation exists (with user_id)
+      // ✅ FIX: Prevent race condition - set conversation ID immediately
       let currentConvoId = conversationId;
       if (!currentConvoId) {
+        // Generate and set ID BEFORE database insert to prevent race conditions
+        const tempConvoId = crypto.randomUUID();
+        setConversationId(tempConvoId); // Set immediately to prevent duplicate creation
+        currentConvoId = tempConvoId;
+
         const title = userMsgText.substring(0, 40) + '...';
         const { data: newConvo, error: convError } = await supabase
           .from('conversations')
-          .insert({ user_id: user.id, title })  // ✅ include user_id
+          .insert({
+            id: tempConvoId, // Use pre-generated ID
+            user_id: user.id,
+            title
+          })
           .select('id, created_at, title, user_id')
           .single();
 
         if (convError) {
           console.error('conversation insert error:', convError);
           alert('Failed to start a conversation.');
+          setConversationId(null); // Reset on error
           return;
         }
-      currentConvoId = newConvo.id;
-      setConversationId(newConvo.id);
-      setConversations((prev) => [newConvo, ...prev]);
-    }
+        setConversations((prev) => [newConvo, ...prev]);
+      }
 
     // locally display user message (without images to avoid stack overflow)
     const newUserMessage: Message = {
@@ -1306,11 +1342,18 @@ export default function Home() {
 
     let assistantText = '';
 
-    // Build conversation history from messages (exclude the just-added user message)
-    const conversationHistory = messages.slice(0, -1).map(m => ({
-      role: m.role,
-      content: m.content
-    }));
+    // ✅ FIX: Build conversation history WITH images (exclude the just-added user message)
+    const conversationHistory = messages.slice(0, -1).map(m => {
+      const historyItem: any = {
+        role: m.role,
+        content: m.content
+      };
+      // Include images if they exist
+      if (m.images && m.images.length > 0) {
+        historyItem.images = m.images;
+      }
+      return historyItem;
+    });
 
       // ============================================
       // 🌐 ROUTE 1: WEB SEARCH (Brave + Claude)
@@ -1802,10 +1845,8 @@ export default function Home() {
         assistantText = streamedText;
       }
 
-      // Clear last sent files after AI responds (only keep for one follow-up)
-      if (lastSentFiles.length > 0 && !hasFiles) {
-        setLastSentFiles([]);
-      }
+      // ✅ FIX: Keep last sent files for MULTIPLE follow-ups (only clear on new chat)
+      // Images now persist across multiple follow-up questions until user starts new conversation
 
       // Note: Database saving is now handled on the backend during streaming
 
