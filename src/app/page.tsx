@@ -82,7 +82,7 @@ interface Conversation {
   user_id?: string;
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB per file (prevent crashes)
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
@@ -417,8 +417,8 @@ export default function Home() {
   // tools / files
   const [activeTool, setActiveTool] = useState<ToolType>('none');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const MAX_FILES = 5;
-  const MAX_TOTAL_SIZE = 12.5 * 1024 * 1024; // 12.5MB total
+  const MAX_FILES = 3;
+  const MAX_TOTAL_SIZE = 5 * 1024 * 1024; // 5MB total (3 files × ~1.6MB avg)
 
   // ============================================
   // MIC RECORDING - REBUILT FROM SCRATCH
@@ -1803,11 +1803,6 @@ export default function Home() {
         }
 
         assistantText = streamedText;
-
-        // Reload conversation to fetch images if files were uploaded
-        if (hasFiles && currentConvoId) {
-          await loadConversation(currentConvoId);
-        }
       }
 
       // Note: Database saving is now handled on the backend during streaming
@@ -2370,7 +2365,7 @@ export default function Home() {
                 <div className="text-xs text-slate-600 mb-2 font-medium">
                   {uploadedFiles.length} {uploadedFiles.length === 1 ? 'file' : 'files'} attached
                 </div>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {uploadedFiles.map((file, index) => (
                     <div
                       key={index}
