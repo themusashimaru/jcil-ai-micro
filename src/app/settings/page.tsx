@@ -8,7 +8,15 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Eye, EyeOff, Trash2, Key, User, LogOut, CheckCircle, AlertTriangle, CreditCard, Zap } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Trash2, Key, User, LogOut, CheckCircle, AlertTriangle, CreditCard, Zap, Mail, MessageCircle, Send, RefreshCw } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import Link from 'next/link';
 
 export default function SettingsPage() {
@@ -33,6 +41,14 @@ export default function SettingsPage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   
+  // Contact Admin State
+  const [contactCategory, setContactCategory] = useState('general');
+  const [contactSubject, setContactSubject] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
+  const [contactError, setContactError] = useState('');
+
   // Delete Account State
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -156,6 +172,44 @@ export default function SettingsPage() {
       
       // Hide success message after 3 seconds
       setTimeout(() => setPasswordSuccess(false), 3000);
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactLoading(true);
+    setContactError('');
+    setContactSuccess(false);
+
+    try {
+      const response = await fetch('/api/contact/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: contactCategory,
+          subject: contactSubject,
+          message: contactMessage,
+          name: user?.user_metadata?.full_name || user?.email,
+          email: user?.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to submit contact form');
+      }
+
+      setContactSuccess(true);
+      setContactSubject('');
+      setContactMessage('');
+      setContactCategory('general');
+
+      // Hide success message after 5 seconds
+      setTimeout(() => setContactSuccess(false), 5000);
+    } catch (error: any) {
+      setContactError(error.message);
+    } finally {
+      setContactLoading(false);
     }
   };
 
@@ -524,6 +578,109 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Contact Admin */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <MessageCircle className="h-5 w-5" />
+              Contact Admin
+            </CardTitle>
+            <CardDescription className="text-slate-600">
+              Have questions or need help? Send a message to our admin team.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleContactSubmit} className="space-y-4">
+              {/* Category Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Inquiry Type
+                </label>
+                <Select value={contactCategory} onValueChange={setContactCategory}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="membership">Membership Plan Inquiry</SelectItem>
+                    <SelectItem value="payment">Payment Inquiry</SelectItem>
+                    <SelectItem value="suggestions">Improvement Suggestion</SelectItem>
+                    <SelectItem value="technical">Technical Difficulty</SelectItem>
+                    <SelectItem value="business">Business Solutions</SelectItem>
+                    <SelectItem value="influencer">Influencer Inquiry</SelectItem>
+                    <SelectItem value="general">General Inquiry</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Subject
+                </label>
+                <Input
+                  type="text"
+                  value={contactSubject}
+                  onChange={(e) => setContactSubject(e.target.value)}
+                  placeholder="Brief description of your inquiry"
+                  required
+                  className="border-slate-300"
+                />
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Message
+                </label>
+                <Textarea
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  placeholder="Provide details about your inquiry..."
+                  rows={5}
+                  required
+                  className="border-slate-300"
+                />
+              </div>
+
+              {/* Success Message */}
+              {contactSuccess && (
+                <div className="p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <p className="text-sm text-green-700">
+                    Message sent! Our admin team will respond shortly.
+                  </p>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {contactError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                  <p className="text-sm text-red-600">{contactError}</p>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={contactLoading || !contactSubject.trim() || !contactMessage.trim()}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {contactLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Message
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Danger Zone - Delete Account */}
         <Card className="border-red-200 shadow-sm">

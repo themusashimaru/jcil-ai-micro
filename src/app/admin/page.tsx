@@ -8,8 +8,9 @@ import {
   Users, DollarSign, TrendingUp, Zap,
   Calendar, ArrowLeft, RefreshCw, Activity,
   Search, UserCog, Mail, Clock, BarChart3, LineChart,
-  FileText, Download, MessageSquare, Paperclip, X, ExternalLink, Shield, Ban, AlertTriangle, Bell, ShieldAlert
+  FileText, Download, MessageSquare, Paperclip, X, ExternalLink, Shield, Ban, AlertTriangle, Bell, ShieldAlert, Inbox
 } from 'lucide-react';
+import AdminInbox from '@/components/admin/AdminInbox';
 import { Input } from '@/components/ui/input';
 import {
   LineChart as RechartsLineChart,
@@ -71,7 +72,7 @@ interface AdminStats {
   };
 }
 
-type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity' | 'moderation' | 'safety' | 'iam';
+type TabType = 'overview' | 'users' | 'notifications' | 'reports' | 'activity' | 'moderation' | 'safety' | 'iam' | 'inbox';
 
 // Helper function to format time ago
 function getTimeAgo(timestamp: string): string {
@@ -1121,6 +1122,7 @@ Generated: ${new Date().toISOString()}
             <div className="flex space-x-4 md:space-x-8 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
               {[
                 { id: 'overview', label: 'Overview', icon: TrendingUp },
+                { id: 'inbox', label: 'Inbox', icon: Inbox },
                 { id: 'users', label: 'Users', icon: Users },
                 { id: 'notifications', label: 'Notifications', icon: Mail },
                 { id: 'reports', label: 'Reports', icon: BarChart3 },
@@ -1464,6 +1466,9 @@ Generated: ${new Date().toISOString()}
         </div>
           </>
         )}
+
+        {/* Inbox Tab */}
+        {activeTab === 'inbox' && <AdminInbox />}
 
         {/* Users Tab */}
         {activeTab === 'users' && (
