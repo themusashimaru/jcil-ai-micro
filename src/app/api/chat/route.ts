@@ -867,7 +867,7 @@ Examples of questions requiring web search:
     // Save user message immediately
     const userMessageText = message || (imageFiles.length > 0 ? "" : "");
 
-    const { data: savedMessage, error: msgError } = await supabase
+    const { data: savedMessage } = await supabase
       .from("messages")
       .insert({
         user_id: userId,
@@ -878,13 +878,8 @@ Examples of questions requiring web search:
       .select('id')
       .single();
 
-    if (msgError || !savedMessage) {
-      console.error('Error saving message:', msgError);
-      throw new Error('Failed to save message');
-    }
-
     // If there are images, save them all to message_images table
-    if (imageDataArray.length > 0) {
+    if (savedMessage && imageDataArray.length > 0) {
       const imageInserts = imageDataArray.map(img => ({
         message_id: savedMessage.id,
         user_id: userId,
@@ -892,17 +887,10 @@ Examples of questions requiring web search:
         image_data: img.data,
         media_type: img.mediaType,
         file_name: img.fileName,
-        file_size: null // We don't track size anymore since we have the data
+        file_size: null
       }));
 
-      const { error: imgError } = await supabase
-        .from("message_images")
-        .insert(imageInserts);
-
-      if (imgError) {
-        console.error('Error saving images:', imgError);
-        // Don't throw - continue with chat even if image save fails
-      }
+      await supabase.from("message_images").insert(imageInserts);
     }
 
     // Create a streaming response
