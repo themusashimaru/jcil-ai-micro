@@ -92,16 +92,36 @@ export async function GET(request: Request) {
     const totalUsers = usersByTier?.length || 0;
 
     // ====================
-    // REVENUE STATS
+    // REVENUE STATS (ONLY PAYING CUSTOMERS)
     // ====================
-    // Always show ALL tiers, even if they have 0 users
+    // IMPORTANT: Only count users who are ACTUALLY paying (have Stripe subscription)
+    // Don't count test accounts or manually assigned tiers
+    const { data: payingUsers, error: payingError } = await supabase
+      .from('user_profiles')
+      .select('subscription_tier, monthly_price')
+      .not('stripe_subscription_id', 'is', null) // Only users with active Stripe subscription
+      .neq('subscription_tier', 'free'); // Exclude free tier
+
+    if (payingError) {
+      console.error('Error fetching paying users:', payingError);
+    }
+
+    // Count PAYING users by tier
+    const payingTierCounts = payingUsers?.reduce((acc: any, user: any) => {
+      const tier = user.subscription_tier || 'free';
+      acc[tier] = (acc[tier] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    // Calculate revenue ONLY from paying users
     const allTiers = ['free', 'basic', 'pro', 'executive'];
     const revenueByTier = allTiers.map(tier => {
-      const count = tierCounts[tier] || 0;
+      const payingCount = payingTierCounts[tier] || 0;
       return {
         tier,
-        count,
-        monthlyRevenue: count * (PRICING[tier as keyof typeof PRICING] || 0),
+        count: tierCounts[tier] || 0, // Total users (includes test accounts)
+        payingCount, // ACTUAL paying customers
+        monthlyRevenue: payingCount * (PRICING[tier as keyof typeof PRICING] || 0),
       };
     });
 
