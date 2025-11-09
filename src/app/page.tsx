@@ -2094,7 +2094,7 @@ export default function Home() {
           </CardHeader>
 
           {/* messages */}
-          <CardContent className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-white relative">
+          <CardContent className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 pb-4 sm:pb-6 space-y-4 sm:space-y-6 bg-white relative">
             {isLoading && messages.length === 0 ? (
               <div className="text-center text-slate-500 text-sm">Loading messages...</div>
             ) : messages.length === 0 ? (
@@ -2225,7 +2225,7 @@ export default function Home() {
           {/* input bar */}
           <form
             onSubmit={handleFormSubmit}
-            className="px-3 sm:px-6 md:px-8 pt-4 pb-3 sm:pt-5 sm:pb-4 md:pt-6 md:pb-5 border-t border-slate-200 bg-gradient-to-b from-white to-slate-50 rounded-t-3xl rounded-b-lg sm:rounded-b-xl shadow-inner"
+            className="px-3 sm:px-6 md:px-8 pt-4 pb-3 sm:pt-5 sm:pb-4 md:pt-6 md:pb-5 bg-gradient-to-b from-white to-slate-50 rounded-t-3xl rounded-b-lg sm:rounded-b-xl shadow-inner"
           >
             {attachedFileName && (
               <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
