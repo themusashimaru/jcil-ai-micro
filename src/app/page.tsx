@@ -258,9 +258,9 @@ export default function Home() {
   const [upgradeModalData, setUpgradeModalData] = useState<any>(null);
 
   const scrollToBottom = () => {
-    // Scroll so the latest message appears at the top of the viewport
-    // This keeps new user messages and AI responses visible while streaming
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Scroll to keep latest messages visible
+    // User's new message should be visible at top with AI response appearing below
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
   const clearAttachmentState = () => {
@@ -689,11 +689,16 @@ export default function Home() {
     }
 
     try {
-      // Start recording
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      recorderRef.current = recorder;
-      chunksRef.current = [];
+      // ✅ FIX: Disabled microphone permission popup - users will see disclaimer instead
+      // Voice input requires microphone access as explained in app disclaimer
+      alert('Voice input has been disabled. Microphone permissions are covered in the app disclaimer.');
+      return;
+
+      // Old code (disabled):
+      // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // const recorder = new MediaRecorder(stream);
+      // recorderRef.current = recorder;
+      // chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -1154,6 +1159,7 @@ export default function Home() {
     }
 
     let assistantText = '';
+    let isStreamingRoute = false; // Track if we used streaming route
 
     // ✅ FIX: Build conversation history WITH images (exclude the just-added user message)
     const conversationHistory = messages.slice(0, -1).map(m => {
@@ -1395,6 +1401,7 @@ export default function Home() {
       // 💬 ROUTE 6: NORMAL CHAT (Streaming)
       // ============================================
       else {
+        isStreamingRoute = true; // Mark as streaming route
         let response: Response;
         if (actuallyHasFiles) {
           const formData = new FormData();
@@ -1514,7 +1521,32 @@ export default function Home() {
       // ✅ FIX: Keep last sent files for MULTIPLE follow-ups (only clear on new chat)
       // Images now persist across multiple follow-up questions until user starts new conversation
 
-      // Note: Database saving is now handled on the backend during streaming
+      // ✅ FIX: Save non-streaming route responses (Routes 1-5)
+      // Note: Streaming route (Route 6) handles database saving on the backend
+      if (assistantText && !isStreamingRoute) {
+        // Save assistant response to database
+        const { error: insertAssistantErr } = await supabase.from('messages').insert({
+          user_id: user.id,
+          conversation_id: currentConvoId,
+          role: 'assistant',
+          content: assistantText,
+        });
+
+        if (insertAssistantErr) {
+          console.error('insert assistant message error:', insertAssistantErr);
+        }
+
+        // Add assistant message to UI
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+            role: 'assistant',
+            content: assistantText,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
 
     } catch (error: any) {
       console.error('chat send error:', error);
