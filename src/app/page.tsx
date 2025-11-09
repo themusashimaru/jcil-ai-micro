@@ -637,33 +637,44 @@ export default function Home() {
       console.error('loadConversation error:', error);
       setMessages([{ id: 'err', role: 'assistant', content: 'Error loading conversation.' }]);
     } else {
-      // Load images for these messages
+      // Load images for these messages (simplified to avoid stack overflow)
       const messageIds = (data ?? []).map(m => m.id);
-      const { data: images } = await supabase
-        .from('message_images')
-        .select('message_id, image_data, media_type, file_name')
-        .in('message_id', messageIds)
-        .order('created_at', { ascending: true });
 
-      // Group images by message_id
-      const imagesByMessage = (images || []).reduce((acc, img) => {
-        if (!acc[img.message_id]) acc[img.message_id] = [];
-        acc[img.message_id].push({
+      let images: any[] = [];
+      if (messageIds.length > 0) {
+        const { data: imageData } = await supabase
+          .from('message_images')
+          .select('message_id, image_data, media_type, file_name')
+          .in('message_id', messageIds)
+          .order('created_at', { ascending: true });
+        images = imageData || [];
+      }
+
+      // Group images by message_id (using simple loop instead of reduce)
+      const imagesByMessage: Record<string, Array<{ data: string; mediaType: string; fileName: string }>> = {};
+      for (const img of images) {
+        if (!imagesByMessage[img.message_id]) {
+          imagesByMessage[img.message_id] = [];
+        }
+        imagesByMessage[img.message_id].push({
           data: img.image_data,
           mediaType: img.media_type,
           fileName: img.file_name
         });
-        return acc;
-      }, {} as Record<string, Array<{ data: string; mediaType: string; fileName: string }>>);
+      }
 
       // Attach images to corresponding messages
-      const loaded = (data ?? []).map((m) => ({
-        id: m.id,
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-        created_at: m.created_at,
-        images: imagesByMessage[m.id] || undefined
-      }));
+      const loaded: Message[] = [];
+      for (const m of (data ?? [])) {
+        loaded.push({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          created_at: m.created_at,
+          images: imagesByMessage[m.id]
+        });
+      }
+
       setMessages(loaded);
       setConversationId(id);
     }
@@ -796,18 +807,26 @@ export default function Home() {
   }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(event.target.files || []);
+    let newFiles = Array.from(event.target.files || []);
 
     if (newFiles.length === 0 || !user) {
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    // Check if adding these files would exceed the limit
-    if (uploadedFiles.length + newFiles.length > MAX_FILES) {
-      alert(`You can only upload up to ${MAX_FILES} files at a time. Please select fewer files.`);
+    // Calculate how many more files we can add
+    const availableSlots = MAX_FILES - uploadedFiles.length;
+
+    if (availableSlots <= 0) {
+      alert(`You already have ${MAX_FILES} files. Please remove some before adding more.`);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
+    }
+
+    // If user selected more than available slots, only take what we can
+    if (newFiles.length > availableSlots) {
+      alert(`You can only add ${availableSlots} more file${availableSlots === 1 ? '' : 's'}. Only the first ${availableSlots} will be added.`);
+      newFiles = newFiles.slice(0, availableSlots);
     }
 
     // Validate each file
@@ -829,7 +848,7 @@ export default function Home() {
     const currentTotalSize = uploadedFiles.reduce((sum, f) => sum + f.size, 0);
     const newTotalSize = newFiles.reduce((sum, f) => sum + f.size, 0);
     if (currentTotalSize + newTotalSize > MAX_TOTAL_SIZE) {
-      const maxMB = (MAX_TOTAL_SIZE / (1024 * 1024)).toFixed(0);
+      const maxMB = (MAX_TOTAL_SIZE / (1024 * 1024)).toFixed(1);
       alert(`Sorry, the total size of all files would exceed ${maxMB}MB. Please upload fewer or smaller files.`);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
