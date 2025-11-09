@@ -1664,10 +1664,18 @@ export default function Home() {
       // 💬 ROUTE 6: NORMAL CHAT (Streaming)
       // ============================================
       else {
+        // Build conversation history from messages (exclude the just-added user message)
+        const history = messages.slice(0, -1).map(m => ({
+          role: m.role,
+          content: m.content
+        }));
+
         let response: Response;
         if (hasFiles) {
           const formData = new FormData();
           formData.append('message', textInput);
+          formData.append('conversationId', currentConvoId || '');
+          formData.append('history', JSON.stringify(history));
           // Append all files
           uploadedFiles.forEach((file) => {
             formData.append('files', file);
@@ -1678,7 +1686,12 @@ export default function Home() {
           response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: textInput, toolType: activeTool }),
+            body: JSON.stringify({
+              message: textInput,
+              conversationId: currentConvoId,
+              history: history,
+              toolType: activeTool
+            }),
           });
         }
 
