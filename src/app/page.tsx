@@ -2232,9 +2232,9 @@ export default function Home() {
           {/* input bar */}
           <form
             onSubmit={handleFormSubmit}
-            className="px-3 sm:px-6 md:px-8 pt-4 pb-3 sm:pb-4 md:pb-5 bg-gradient-to-b from-white to-slate-50 rounded-b-lg sm:rounded-b-xl shadow-inner relative"
+            className="px-3 sm:px-6 md:px-8 pt-8 pb-3 sm:pb-4 md:pb-5 bg-gradient-to-b from-white to-slate-50 rounded-b-lg sm:rounded-b-xl shadow-inner relative"
             style={{
-              clipPath: 'ellipse(120% 100% at 50% 100%)',
+              clipPath: 'polygon(0 2rem, 50% 0, 100% 2rem, 100% 100%, 0 100%)',
               marginTop: '-2rem'
             }}
           >
