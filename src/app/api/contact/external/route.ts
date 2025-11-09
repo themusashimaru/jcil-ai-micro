@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
@@ -141,37 +144,85 @@ async function sendEmailNotification(data: {
   phone?: string;
   company?: string;
 }) {
-  // If you have an email service configured (SendGrid, Resend, etc.), use it here
-  // For now, this is a placeholder that logs the email
+  // Send email using Resend
+  // Note: Make sure to verify your domain in Resend dashboard and update the 'from' address
+  // Also add RESEND_API_KEY to your environment variables
 
-  // Using Resend as an example (you'll need to install: npm install resend)
-  // Uncomment and configure if you have Resend API key
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured - email will not be sent');
+    return;
+  }
 
-  /*
-  const { Resend } = require('resend');
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  try {
+    await resend.emails.send({
+      from: 'JCIL.AI Contact <onboarding@resend.dev>', // Update this to your verified domain
+      to: data.to,
+      subject: data.subject,
+      replyTo: data.email, // Allow direct reply to the person who submitted the form
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+              .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; }
+              .field { margin-bottom: 15px; }
+              .label { font-weight: bold; color: #6b7280; }
+              .value { color: #111827; margin-top: 5px; }
+              .message-box { background: white; padding: 15px; border-left: 4px solid #667eea; margin-top: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h2 style="margin: 0;">🔔 New Contact Form Submission</h2>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">JCIL.AI External Contact</p>
+              </div>
+              <div class="content">
+                <div class="field">
+                  <div class="label">Name:</div>
+                  <div class="value">${data.name}</div>
+                </div>
+                <div class="field">
+                  <div class="label">Email:</div>
+                  <div class="value"><a href="mailto:${data.email}">${data.email}</a></div>
+                </div>
+                <div class="field">
+                  <div class="label">Category:</div>
+                  <div class="value">${data.category}</div>
+                </div>
+                ${data.phone ? `
+                <div class="field">
+                  <div class="label">Phone:</div>
+                  <div class="value"><a href="tel:${data.phone}">${data.phone}</a></div>
+                </div>
+                ` : ''}
+                ${data.company ? `
+                <div class="field">
+                  <div class="label">Company:</div>
+                  <div class="value">${data.company}</div>
+                </div>
+                ` : ''}
+                <div class="field">
+                  <div class="label">Message:</div>
+                  <div class="message-box">${data.message.replace(/\n/g, '<br>')}</div>
+                </div>
+                <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+                <p style="font-size: 12px; color: #9ca3af; margin: 0;">
+                  This message was sent from the JCIL.AI contact form. Reply directly to respond to ${data.name}.
+                </p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `,
+    });
 
-  await resend.emails.send({
-    from: 'JCIL.AI Contact <noreply@jcil.ai>',
-    to: data.to,
-    subject: data.subject,
-    html: `
-      <h2>New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${data.name}</p>
-      <p><strong>Email:</strong> ${data.email}</p>
-      <p><strong>Category:</strong> ${data.category}</p>
-      ${data.phone ? `<p><strong>Phone:</strong> ${data.phone}</p>` : ''}
-      ${data.company ? `<p><strong>Company:</strong> ${data.company}</p>` : ''}
-      <p><strong>Message:</strong></p>
-      <p>${data.message.replace(/\n/g, '<br>')}</p>
-    `,
-  });
-  */
-
-  console.log('Email notification:', {
-    to: data.to,
-    subject: data.subject,
-    from: data.email,
-    category: data.category,
-  });
+    console.log('Email sent successfully to:', data.to);
+  } catch (error) {
+    console.error('Failed to send email via Resend:', error);
+    throw error; // Re-throw so the calling function knows it failed
+  }
 }
