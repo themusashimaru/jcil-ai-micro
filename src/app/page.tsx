@@ -2097,7 +2097,7 @@ export default function Home() {
           <CardContent
             className="flex-1 overflow-y-auto p-0 bg-white relative pb-8"
             style={{
-              clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 2rem), 50% 100%, 0 calc(100% - 2rem))'
+              clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 3rem), 87.5% calc(100% - 1.5rem), 75% calc(100% - 0.8rem), 62.5% calc(100% - 0.3rem), 50% calc(100% - 0.1rem), 37.5% calc(100% - 0.3rem), 25% calc(100% - 0.8rem), 12.5% calc(100% - 1.5rem), 0 calc(100% - 3rem))'
             }}
           >
             <div className="px-3 sm:px-6 md:px-8 h-full flex flex-col space-y-4 sm:space-y-6">
@@ -2234,8 +2234,8 @@ export default function Home() {
             onSubmit={handleFormSubmit}
             className="px-3 sm:px-6 md:px-8 pt-8 pb-3 sm:pb-4 md:pb-5 bg-gradient-to-b from-white to-slate-50 rounded-b-lg sm:rounded-b-xl shadow-inner relative"
             style={{
-              clipPath: 'polygon(0 2rem, 50% 0, 100% 2rem, 100% 100%, 0 100%)',
-              marginTop: '-2rem'
+              clipPath: 'polygon(0 3rem, 12.5% 1.5rem, 25% 0.8rem, 37.5% 0.3rem, 50% 0.1rem, 62.5% 0.3rem, 75% 0.8rem, 87.5% 1.5rem, 100% 3rem, 100% 100%, 0 100%)',
+              marginTop: '-3rem'
             }}
           >
             {attachedFileName && (
