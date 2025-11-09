@@ -8,17 +8,17 @@ JCIL.AI Slingshot 2.0 now supports multiple subscription tiers with daily messag
 
 ### 🆓 FREE TIER
 - **Price:** $0/month
-- **Daily Limit:** 5 messages per day
+- **Daily Limit:** 10 messages per day
 - **Model:** Claude Haiku 4 (`claude-haiku-4-20250514`)
 - **API Cost:** $0.25/MTok input, $1.25/MTok output
 - **Features:**
   - Full chat functionality
   - Image uploads (vision)
-  - All AI tools
+  - Basic AI tools
   - 40 messages per minute burst rate limit
 
 ### 📘 BASIC TIER
-- **Price:** $20/month
+- **Price:** $12/month
 - **Daily Limit:** 30 messages per day
 - **Model:** Claude Haiku 4.5 (`claude-haiku-4.5-20250514`)
 - **API Cost:** $1/MTok input, $5/MTok output
@@ -26,26 +26,29 @@ JCIL.AI Slingshot 2.0 now supports multiple subscription tiers with daily messag
   - All free tier features
   - Newer, faster Haiku 4.5 model
   - Better performance and quality
-  - 6x more messages than free
+  - 3x more messages than free
+  - Access to professional tools
 
 ### 🚀 PRO TIER
-- **Price:** $60/month
+- **Price:** $30/month
 - **Daily Limit:** 100 messages per day
 - **Model:** Claude Haiku 4.5 (`claude-haiku-4.5-20250514`)
 - **API Cost:** $1/MTok input, $5/MTok output
 - **Features:**
   - All basic tier features
-  - 20x more messages than free
+  - 10x more messages than free
+  - Access to AI assistants
   - Best for power users
 
 ### 💼 EXECUTIVE TIER
-- **Price:** $99/month
+- **Price:** $150/month
 - **Daily Limit:** 200 messages per day
 - **Model:** Claude Haiku 4.5 (`claude-haiku-4.5-20250514`)
 - **API Cost:** $1/MTok input, $5/MTok output
 - **Features:**
   - All pro tier features
-  - 40x more messages than free
+  - 20x more messages than free
+  - Priority access to all features
   - Premium support (coming soon)
   - **Note:** Can be upgraded to Sonnet 4 if needed
 
@@ -91,42 +94,42 @@ This will:
 2. Open `user_profiles` table
 3. Find user by `id` (UUID from auth.users)
 4. Update `subscription_tier` and `daily_message_limit`:
-   - **free:** tier='free', limit=5, price=0
-   - **basic:** tier='basic', limit=30, price=20
-   - **pro:** tier='pro', limit=100, price=60
-   - **executive:** tier='executive', limit=200, price=99
+   - **free:** tier='free', limit=10, price=0
+   - **basic:** tier='basic', limit=30, price=12
+   - **pro:** tier='pro', limit=100, price=30
+   - **executive:** tier='executive', limit=200, price=150
 
 ### Via SQL
 
 ```sql
--- Upgrade user to BASIC tier ($20/mo, 30 messages/day)
+-- Upgrade user to BASIC tier ($12/mo, 30 messages/day)
 UPDATE public.user_profiles
 SET subscription_tier = 'basic',
     daily_message_limit = 30,
-    monthly_price = 20,
+    monthly_price = 12,
     updated_at = NOW()
 WHERE id = 'USER_UUID_HERE';
 
--- Upgrade user to PRO tier ($60/mo, 100 messages/day)
+-- Upgrade user to PRO tier ($30/mo, 100 messages/day)
 UPDATE public.user_profiles
 SET subscription_tier = 'pro',
     daily_message_limit = 100,
-    monthly_price = 60,
+    monthly_price = 30,
     updated_at = NOW()
 WHERE id = 'USER_UUID_HERE';
 
--- Upgrade user to EXECUTIVE tier ($99/mo, 200 messages/day)
+-- Upgrade user to EXECUTIVE tier ($150/mo, 200 messages/day)
 UPDATE public.user_profiles
 SET subscription_tier = 'executive',
     daily_message_limit = 200,
-    monthly_price = 99,
+    monthly_price = 150,
     updated_at = NOW()
 WHERE id = 'USER_UUID_HERE';
 
 -- Downgrade user to FREE tier
 UPDATE public.user_profiles
 SET subscription_tier = 'free',
-    daily_message_limit = 5,
+    daily_message_limit = 10,
     monthly_price = 0,
     updated_at = NOW()
 WHERE id = 'USER_UUID_HERE';
@@ -148,20 +151,20 @@ WHERE u.id = 'USER_UUID_HERE';
 
 ## Testing the System
 
-### Test Free Tier (Default - 5 messages/day)
+### Test Free Tier (Default - 10 messages/day)
 1. Create a new user account
 2. Send a chat message
 3. Check server logs for:
    - `👤 User {id} tier: free`
-   - `📊 Daily usage: 1/5 for tier: free`
+   - `📊 Daily usage: 1/10 for tier: free`
    - `🤖 Using model: claude-haiku-4-20250514 for tier: free`
    - `✅ Daily usage incremented for user {id}`
-4. Send 4 more messages (total 5)
-5. Try sending a 6th message - should get limit error:
+4. Send 9 more messages (total 10)
+5. Try sending an 11th message - should get limit error:
    ```json
    {
      "ok": false,
-     "error": "Daily message limit reached (5 messages per day for free tier). Upgrade your plan or try again tomorrow.",
+     "error": "Daily message limit reached (10 messages per day for free tier). Upgrade your plan or try again tomorrow.",
      "limitExceeded": true
    }
    ```
@@ -170,7 +173,7 @@ WHERE u.id = 'USER_UUID_HERE';
 1. Upgrade user in Supabase:
    ```sql
    UPDATE public.user_profiles
-   SET subscription_tier = 'basic', daily_message_limit = 30, monthly_price = 20
+   SET subscription_tier = 'basic', daily_message_limit = 30, monthly_price = 12
    WHERE id = 'YOUR_USER_ID';
    ```
 2. Send a chat message
