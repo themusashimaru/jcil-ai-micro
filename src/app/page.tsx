@@ -417,8 +417,8 @@ export default function Home() {
   // tools / files
   const [activeTool, setActiveTool] = useState<ToolType>('none');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const MAX_FILES = 5;
-  const MAX_TOTAL_SIZE = 8 * 1024 * 1024; // 8MB total (5 files × ~1.6MB avg)
+  const MAX_FILES = 3;
+  const MAX_TOTAL_SIZE = 5 * 1024 * 1024; // 5MB total (3 files × ~1.6MB avg)
 
   // ============================================
   // MIC RECORDING - REBUILT FROM SCRATCH
@@ -2365,7 +2365,7 @@ export default function Home() {
                 <div className="text-xs text-slate-600 mb-2 font-medium">
                   {uploadedFiles.length} {uploadedFiles.length === 1 ? 'file' : 'files'} attached
                 </div>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   {uploadedFiles.map((file, index) => (
                     <div
                       key={index}
