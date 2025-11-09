@@ -2094,7 +2094,7 @@ export default function Home() {
           </CardHeader>
 
           {/* messages */}
-          <CardContent className="flex-1 overflow-y-auto p-0 bg-white relative rounded-b-3xl -mt-[1px] -mb-[1px]">
+          <CardContent className="flex-1 overflow-y-auto p-0 bg-white relative">
             <div className="px-3 sm:px-6 md:px-8 h-full flex flex-col space-y-4 sm:space-y-6">
             {isLoading && messages.length === 0 ? (
               <div className="text-center text-slate-500 text-sm">Loading messages...</div>
