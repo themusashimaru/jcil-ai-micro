@@ -108,7 +108,7 @@ export default function DevotionalPage() {
               <h1 className="text-3xl font-bold mb-2">Daily Devotional</h1>
               <p className="text-blue-100 text-sm">
                 {date
-                  ? new Date(date).toLocaleDateString('en-US', {
+                  ? new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',

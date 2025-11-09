@@ -55,6 +55,10 @@ export async function GET(request: NextRequest) {
     const today = new Date();
     const dateKey = today.toISOString().split('T')[0]; // YYYY-MM-DD format
 
+    // Check for force regeneration (dev/admin use)
+    const { searchParams } = new URL(request.url);
+    const forceRegenerate = searchParams.get('force') === 'true';
+
     // Check if we already have today's devotional
     const { data: existingDevotional, error: fetchError } = await supabase
       .from('daily_devotionals')
@@ -62,7 +66,14 @@ export async function GET(request: NextRequest) {
       .eq('date_key', dateKey)
       .single();
 
-    if (existingDevotional && !fetchError) {
+    // If force regenerating, delete existing
+    if (existingDevotional && forceRegenerate) {
+      await supabase
+        .from('daily_devotionals')
+        .delete()
+        .eq('date_key', dateKey);
+      console.log('Force regenerating devotional for:', dateKey);
+    } else if (existingDevotional && !fetchError) {
       // Return existing devotional
       return NextResponse.json({
         ok: true,
