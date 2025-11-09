@@ -1,12 +1,84 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Check, BookOpen, Heart, Newspaper, Mic, Shield, Sparkles, Zap, Clock, Users, Search, Brain, CheckCircle, Globe } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Check, BookOpen, Heart, Newspaper, Mic, Shield, Sparkles, Zap, Clock, Users, Search, Brain, CheckCircle, Globe, Mail, Send, X, MessageCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function LandingPage() {
   const router = useRouter();
+
+  // Contact form state
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    category: 'general',
+    subject: '',
+    message: '',
+  });
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(false);
+  const [contactError, setContactError] = useState('');
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactLoading(true);
+    setContactError('');
+
+    try {
+      const response = await fetch('/api/contact/external', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to send message');
+      }
+
+      setContactSuccess(true);
+      setContactForm({
+        name: '',
+        email: '',
+        phone: '',
+        company: '',
+        category: 'general',
+        subject: '',
+        message: '',
+      });
+
+      setTimeout(() => {
+        setShowContactDialog(false);
+        setContactSuccess(false);
+      }, 3000);
+    } catch (error: any) {
+      setContactError(error.message);
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   const features = [
     {
@@ -558,7 +630,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-8 mb-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
               <h3 className="text-white font-bold text-lg mb-4">Quick Links</h3>
               <ul className="space-y-2 text-sm">
@@ -568,9 +640,162 @@ export default function LandingPage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-white font-bold text-lg mb-4">Contact</h3>
-              <p className="text-sm">
+              <h3 className="text-white font-bold text-lg mb-4">Contact Us</h3>
+              <p className="text-sm mb-3">
                 <a href="mailto:info@jcil.ai" className="hover:text-white transition">info@jcil.ai</a>
+              </p>
+              <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="bg-transparent border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Send Message
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Mail className="h-5 w-5" />
+                      Contact JCIL.AI
+                    </DialogTitle>
+                    <DialogDescription>
+                      Have questions? We'd love to hear from you. Fill out the form below and we'll get back to you soon.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <form onSubmit={handleContactSubmit} className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Name *</label>
+                        <Input
+                          type="text"
+                          value={contactForm.name}
+                          onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                          placeholder="John Doe"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Email *</label>
+                        <Input
+                          type="email"
+                          value={contactForm.email}
+                          onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                          placeholder="john@example.com"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Phone</label>
+                        <Input
+                          type="tel"
+                          value={contactForm.phone}
+                          onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                          placeholder="(555) 123-4567"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Company</label>
+                        <Input
+                          type="text"
+                          value={contactForm.company}
+                          onChange={(e) => setContactForm({ ...contactForm, company: e.target.value })}
+                          placeholder="Company Name"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Inquiry Type *</label>
+                      <Select value={contactForm.category} onValueChange={(value) => setContactForm({ ...contactForm, category: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="general">General Inquiry</SelectItem>
+                          <SelectItem value="membership">Membership Plan Inquiry</SelectItem>
+                          <SelectItem value="payment">Payment Inquiry</SelectItem>
+                          <SelectItem value="technical">Technical Support</SelectItem>
+                          <SelectItem value="business">Business Solutions</SelectItem>
+                          <SelectItem value="influencer">Influencer Partnership</SelectItem>
+                          <SelectItem value="partnership">Partnership Opportunity</SelectItem>
+                          <SelectItem value="media">Media Inquiry</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Subject *</label>
+                      <Input
+                        type="text"
+                        value={contactForm.subject}
+                        onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
+                        placeholder="Brief description of your inquiry"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Message *</label>
+                      <Textarea
+                        value={contactForm.message}
+                        onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                        placeholder="Tell us more about your inquiry..."
+                        rows={5}
+                        required
+                      />
+                    </div>
+
+                    {contactSuccess && (
+                      <div className="p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <p className="text-sm text-green-700">
+                          Message sent successfully! We'll get back to you soon.
+                        </p>
+                      </div>
+                    )}
+
+                    {contactError && (
+                      <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                        <p className="text-sm text-red-600">{contactError}</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowContactDialog(false)}
+                        className="flex-1"
+                        disabled={contactLoading}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={contactLoading}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      >
+                        {contactLoading ? (
+                          <>Sending...</>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Send Message
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-lg mb-4">About</h3>
+              <p className="text-sm">
+                JCIL.AI Slingshot 2.0 - A powerful AI assistant built for Christians, by Christians. Grounded in Scripture, guided by truth.
               </p>
             </div>
           </div>
