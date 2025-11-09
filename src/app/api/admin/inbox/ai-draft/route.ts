@@ -1,6 +1,5 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import OpenAI from 'openai';
 
 const xai = new OpenAI({
@@ -10,8 +9,7 @@ const xai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
+    const supabase = await createClient();
 
     const {
       data: { user },

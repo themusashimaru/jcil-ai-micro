@@ -1,6 +1,5 @@
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
@@ -27,8 +26,7 @@ export async function POST(request: Request) {
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     // Create admin supabase client (service role for external submissions)
-    const cookieStore = await cookies();
-    const supabase = createClient(cookieStore);
+    const supabase = await createClient();
 
     // Create contact submission record
     const { data: submission, error: submissionError } = await supabase
