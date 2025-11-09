@@ -555,7 +555,7 @@ export async function POST(req: Request) {
   let conversationId: string | null = null;
   let message = "";
   let history: Array<{ role: "user" | "assistant"; content: string }> = [];
-  let imageFile: File | null = null;
+  let imageFiles: File[] = [];
   let toolType: ToolType = 'none';
 
   // Handle multipart (file upload) OR JSON
@@ -568,11 +568,9 @@ export async function POST(req: Request) {
     conversationId = String(form.get("conversationId") || "") || null;
     toolType = (String(form.get("toolType") || "none")) as ToolType;
 
-    // Get the uploaded file
-    const file = form.get("file");
-    if (file && typeof file !== "string") {
-      imageFile = file as File;
-    }
+    // Get all uploaded files
+    const files = form.getAll("files");
+    imageFiles = files.filter((file): file is File => file instanceof File);
   } else {
     const body = await req.json();
     message = body.message || "";
@@ -692,32 +690,47 @@ export async function POST(req: Request) {
   
   // Build current user message
   let userMessageContent: any;
-  
-  if (imageFile) {
-    // Convert image to base64
-    const arrayBuffer = await imageFile.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
-    
-    // Determine media type
-    let mediaType = "image/jpeg";
-    if (imageFile.type === "image/png") mediaType = "image/png";
-    else if (imageFile.type === "image/gif") mediaType = "image/gif";
-    else if (imageFile.type === "image/webp") mediaType = "image/webp";
-    
-    userMessageContent = [
-      {
+  let imageDataArray: Array<{ data: string; mediaType: string; fileName: string }> = [];
+
+  if (imageFiles.length > 0) {
+    // Convert all images to base64
+    const imageContents = [];
+
+    for (const file of imageFiles) {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+      // Determine media type
+      let mediaType = "image/jpeg";
+      if (file.type === "image/png") mediaType = "image/png";
+      else if (file.type === "image/gif") mediaType = "image/gif";
+      else if (file.type === "image/webp") mediaType = "image/webp";
+
+      // Store for database
+      imageDataArray.push({
+        data: base64,
+        mediaType: mediaType,
+        fileName: file.name
+      });
+
+      // Add to message content
+      imageContents.push({
         type: "image",
         source: {
           type: "base64",
           media_type: mediaType,
           data: base64,
         },
-      },
-      {
-        type: "text",
-        text: message || "What's in this image?"
-      }
-    ];
+      });
+    }
+
+    // Add text at the end
+    imageContents.push({
+      type: "text",
+      text: message || "What's in these images?"
+    });
+
+    userMessageContent = imageContents;
   } else {
     // Text only
     userMessageContent = message;
@@ -852,16 +865,45 @@ Examples of questions requiring web search:
     }
 
     // Save user message immediately
-    const userMessageText = imageFile
-      ? `[Image: ${imageFile.name}] ${message}`
-      : message;
+    const userMessageText = message || (imageFiles.length > 0 ? "" : "");
 
-    await supabase.from("messages").insert({
-      user_id: userId,
-      role: "user",
-      content: userMessageText,
-      conversation_id: conversationId
-    });
+    const { data: savedMessage, error: msgError } = await supabase
+      .from("messages")
+      .insert({
+        user_id: userId,
+        role: "user",
+        content: userMessageText,
+        conversation_id: conversationId
+      })
+      .select('id')
+      .single();
+
+    if (msgError || !savedMessage) {
+      console.error('Error saving message:', msgError);
+      throw new Error('Failed to save message');
+    }
+
+    // If there are images, save them all to message_images table
+    if (imageDataArray.length > 0) {
+      const imageInserts = imageDataArray.map(img => ({
+        message_id: savedMessage.id,
+        user_id: userId,
+        conversation_id: conversationId,
+        image_data: img.data,
+        media_type: img.mediaType,
+        file_name: img.fileName,
+        file_size: null // We don't track size anymore since we have the data
+      }));
+
+      const { error: imgError } = await supabase
+        .from("message_images")
+        .insert(imageInserts);
+
+      if (imgError) {
+        console.error('Error saving images:', imgError);
+        // Don't throw - continue with chat even if image save fails
+      }
+    }
 
     // Create a streaming response
     const encoder = new TextEncoder();

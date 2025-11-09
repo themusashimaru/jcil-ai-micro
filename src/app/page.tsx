@@ -68,6 +68,11 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   created_at?: string;
+  images?: Array<{
+    data: string;
+    mediaType: string;
+    fileName: string;
+  }>;
 }
 
 interface Conversation {
@@ -411,9 +416,9 @@ export default function Home() {
 
   // tools / files
   const [activeTool, setActiveTool] = useState<ToolType>('none');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
-  const [attachedFileMimeType, setAttachedFileMimeType] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const MAX_FILES = 10;
+  const MAX_TOTAL_SIZE = 25 * 1024 * 1024; // 25MB total
 
   // ============================================
   // MIC RECORDING - REBUILT FROM SCRATCH
@@ -445,9 +450,7 @@ export default function Home() {
   };
 
   const clearAttachmentState = () => {
-    setUploadedFile(null);
-    setAttachedFileName(null);
-    setAttachedFileMimeType(null);
+    setUploadedFiles([]);
   };
 
   const resizeTextarea = () => {
@@ -474,7 +477,7 @@ export default function Home() {
 
   const getPlaceholderText = () => {
     if (isLoading) return 'AI is thinking...';
-    if (attachedFileName) return 'Describe the file or add text...';
+    if (uploadedFiles.length > 0) return 'Describe the files or add text...';
     if (activeTool !== 'none') {
       const tool = TOOLS_CONFIG[activeTool];
       return `Using ${tool?.name || 'tool'}...`;
@@ -634,11 +637,32 @@ export default function Home() {
       console.error('loadConversation error:', error);
       setMessages([{ id: 'err', role: 'assistant', content: 'Error loading conversation.' }]);
     } else {
+      // Load images for these messages
+      const messageIds = (data ?? []).map(m => m.id);
+      const { data: images } = await supabase
+        .from('message_images')
+        .select('message_id, image_data, media_type, file_name')
+        .in('message_id', messageIds)
+        .order('created_at', { ascending: true });
+
+      // Group images by message_id
+      const imagesByMessage = (images || []).reduce((acc, img) => {
+        if (!acc[img.message_id]) acc[img.message_id] = [];
+        acc[img.message_id].push({
+          data: img.image_data,
+          mediaType: img.media_type,
+          fileName: img.file_name
+        });
+        return acc;
+      }, {} as Record<string, Array<{ data: string; mediaType: string; fileName: string }>>);
+
+      // Attach images to corresponding messages
       const loaded = (data ?? []).map((m) => ({
         id: m.id,
         role: m.role as 'user' | 'assistant',
         content: m.content,
         created_at: m.created_at,
+        images: imagesByMessage[m.id] || undefined
       }));
       setMessages(loaded);
       setConversationId(id);
@@ -772,30 +796,54 @@ export default function Home() {
   }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const newFiles = Array.from(event.target.files || []);
 
-    if (file && user) {
+    if (newFiles.length === 0 || !user) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Check if adding these files would exceed the limit
+    if (uploadedFiles.length + newFiles.length > MAX_FILES) {
+      alert(`You can only upload up to ${MAX_FILES} files at a time. Please select fewer files.`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Validate each file
+    for (const file of newFiles) {
       if (!ALLOWED_FILE_TYPES.includes(file.type.toLowerCase())) {
-        alert(`Invalid file type. Allowed: ${ALLOWED_FILE_EXTENSIONS.join(', ')}`);
+        alert(`Sorry, "${file.name}" has an invalid file type. Allowed types: ${ALLOWED_FILE_EXTENSIONS.join(', ')}`);
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
       if (file.size > MAX_FILE_SIZE) {
         const maxMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
-        alert(`File is too large. Max ${maxMB}MB`);
+        alert(`Sorry, "${file.name}" is too large. The maximum file size is ${maxMB}MB.`);
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
-
-      setUploadedFile(file);
-      setAttachedFileName(file.name);
-      setAttachedFileMimeType(file.type);
     }
+
+    // Check total size
+    const currentTotalSize = uploadedFiles.reduce((sum, f) => sum + f.size, 0);
+    const newTotalSize = newFiles.reduce((sum, f) => sum + f.size, 0);
+    if (currentTotalSize + newTotalSize > MAX_TOTAL_SIZE) {
+      const maxMB = (MAX_TOTAL_SIZE / (1024 * 1024)).toFixed(0);
+      alert(`Sorry, the total size of all files would exceed ${maxMB}MB. Please upload fewer or smaller files.`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // All validations passed, add the files
+    setUploadedFiles(prev => [...prev, ...newFiles]);
 
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const removeAttachedFile = () => { clearAttachmentState(); };
+  const removeAttachedFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   // --------- AUDIO VALIDATION & TRANSCRIPTION ----------
   // ============================================
@@ -970,10 +1018,10 @@ export default function Home() {
     }
 
     const textInput = localInput.trim();
-    const hasFile = !!uploadedFile;
+    const hasFiles = uploadedFiles.length > 0;
     const hasText = textInput.length > 0;
 
-    if (!hasText && !hasFile) return;
+    if (!hasText && !hasFiles) return;
     if (isRecording) recorderRef.current?.stop();
 
     setIsLoading(true);
@@ -981,7 +1029,9 @@ export default function Home() {
 
     // CRITICAL FIX: Wrap entire async flow in try-finally to prevent stuck loading state
     try {
-      const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
+      const userMsgText = hasText
+        ? textInput
+        : `${uploadedFiles.length} ${uploadedFiles.length === 1 ? 'file' : 'files'} uploaded`;
 
       // ensure conversation exists (with user_id)
       let currentConvoId = conversationId;
@@ -1628,10 +1678,13 @@ export default function Home() {
       // ============================================
       else {
         let response: Response;
-        if (hasFile) {
+        if (hasFiles) {
           const formData = new FormData();
           formData.append('message', textInput);
-          formData.append('file', uploadedFile as File);
+          // Append all files
+          uploadedFiles.forEach((file) => {
+            formData.append('files', file);
+          });
           formData.append('toolType', activeTool);
           response = await fetch('/api/chat', { method: 'POST', body: formData });
         } else {
@@ -2196,6 +2249,19 @@ export default function Home() {
                   >
                     {msg.role === 'user' ? (
                       <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-lg">
+                        {msg.images && msg.images.length > 0 && (
+                          <div className="mb-3 grid grid-cols-2 gap-2">
+                            {msg.images.map((img, idx) => (
+                              <div key={idx} className="rounded-lg overflow-hidden bg-white/10">
+                                <img
+                                  src={`data:${img.mediaType};base64,${img.data}`}
+                                  alt={img.fileName || `Image ${idx + 1}`}
+                                  className="w-full h-auto max-h-40 object-contain"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         {msg.content}
                       </div>
                     ) : (
@@ -2275,22 +2341,56 @@ export default function Home() {
               marginTop: '-1.5rem'
             }}
           >
-            {attachedFileName && (
-              <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
-                <div className="flex items-center gap-2 truncate">
-                  <FileIcon className="h-4 w-4 text-blue-600" strokeWidth={2} />
-                  <span className="truncate text-blue-800 font-medium">{attachedFileName}</span>
+            {uploadedFiles.length > 0 && (
+              <div className="mb-3 sm:mb-4">
+                <div className="text-xs text-slate-600 mb-2 font-medium">
+                  {uploadedFiles.length} {uploadedFiles.length === 1 ? 'file' : 'files'} attached
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 sm:h-7 sm:w-7 hover:bg-blue-100 rounded-full"
-                  onClick={removeAttachedFile}
-                  disabled={isLoading}
-                >
-                  <XIcon className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" strokeWidth={2} />
-                </Button>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
+                  {uploadedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="relative group rounded-lg border border-blue-200 bg-blue-50/50 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      {/* Remove button */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        onClick={() => removeAttachedFile(index)}
+                        disabled={isLoading}
+                      >
+                        <XIcon className="h-3 w-3" strokeWidth={2} />
+                      </Button>
+
+                      {/* Thumbnail preview */}
+                      {file.type.startsWith('image/') ? (
+                        <div className="aspect-square bg-slate-100">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="aspect-square bg-blue-100 flex items-center justify-center">
+                          <FileIcon className="h-10 w-10 text-blue-600" strokeWidth={1.5} />
+                        </div>
+                      )}
+
+                      {/* File name */}
+                      <div className="px-2 py-1.5 bg-white/80 backdrop-blur-sm">
+                        <p className="text-xs text-slate-700 font-medium truncate">
+                          {file.name}
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -2301,6 +2401,7 @@ export default function Home() {
               onChange={handleFileChange}
               accept={ALLOWED_FILE_EXTENSIONS.join(',')}
               className="hidden"
+              multiple
             />
             <input
               type="file"
@@ -2601,9 +2702,9 @@ export default function Home() {
                 {/* Send Button - Invisible bg that turns blue when typing */}
                 <Button
                   type="submit"
-                  disabled={isLoading || (!localInput.trim() && !attachedFileName)}
+                  disabled={isLoading || (!localInput.trim() && uploadedFiles.length === 0)}
                   className={`h-10 w-10 sm:h-11 sm:w-11 rounded-lg flex items-center justify-center transition-all ${
-                    localInput.trim() || attachedFileName
+                    localInput.trim() || uploadedFiles.length > 0
                       ? 'bg-blue-900 hover:bg-blue-950 text-white'
                       : 'bg-transparent hover:bg-slate-100 text-slate-400'
                   }`}
