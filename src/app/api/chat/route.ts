@@ -312,7 +312,7 @@ async function getSystemPrompt(supabase: any): Promise<string> {
   const now = Date.now();
 
   // Return cached version if still valid
-  if (cachedSystemPrompt && (now - cacheTimestamp) < CACHE_DURATION) {
+  if (cachedSystemPrompt !== null && (now - cacheTimestamp) < CACHE_DURATION) {
     return cachedSystemPrompt;
   }
 
@@ -330,7 +330,7 @@ async function getSystemPrompt(supabase: any): Promise<string> {
       cachedSystemPrompt = promptData.prompt_content;
       cacheTimestamp = now;
       console.log('✅ System prompt loaded from database (cached for 5 min)');
-      return cachedSystemPrompt;
+      return promptData.prompt_content;
     }
 
     // Fall back to hardcoded if database fails
