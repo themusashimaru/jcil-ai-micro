@@ -981,12 +981,12 @@ export default function Home() {
 
     // CRITICAL FIX: Wrap entire async flow in try-finally to prevent stuck loading state
     try {
-      const userMsgText = hasText ? textInput : `[Image: ${attachedFileName}]`;
+      const userMsgText = hasText ? textInput : (hasFile ? "Image" : "");
 
       // ensure conversation exists (with user_id)
       let currentConvoId = conversationId;
       if (!currentConvoId) {
-        const title = userMsgText.substring(0, 40) + '...';
+        const title = (hasText ? textInput : "Image upload").substring(0, 40) + '...';
         const { data: newConvo, error: convError } = await supabase
           .from('conversations')
           .insert({ user_id: user.id, title })  // ✅ include user_id
@@ -1003,14 +1003,19 @@ export default function Home() {
       setConversations((prev) => [newConvo, ...prev]);
     }
 
-    // locally display user message
-    const newUserMessage: Message = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-      role: 'user',
-      content: userMsgText,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, newUserMessage]);
+    // For image uploads, skip optimistic update - wait for DB to save with proper JSON format
+    // This prevents mismatch between frontend display and backend storage
+    if (!hasFile) {
+      // Only show optimistic update for text-only messages
+      const newUserMessage: Message = {
+        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        role: 'user',
+        content: userMsgText,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, newUserMessage]);
+    }
+
     setLocalInput('');
     clearAttachmentState();
 
@@ -1711,6 +1716,24 @@ export default function Home() {
                     )
                   );
                 } else if (data.type === 'done') {
+                  // If image was uploaded, reload conversation to show thumbnail
+                  if (hasFile && currentConvoId) {
+                    const { data: allMessages } = await supabase
+                      .from('messages')
+                      .select('*')
+                      .eq('conversation_id', currentConvoId)
+                      .order('created_at', { ascending: true });
+
+                    if (allMessages) {
+                      setMessages(allMessages.map((m) => ({
+                        id: m.id,
+                        role: m.role as 'user' | 'assistant',
+                        content: m.content,
+                        created_at: m.created_at,
+                      })));
+                    }
+                  }
+
                   // Check for upgrade prompt
                   if (data.upgradePrompt) {
                     setUpgradeModalData(data.upgradePrompt);
@@ -2195,8 +2218,40 @@ export default function Home() {
                     }`}
                   >
                     {msg.role === 'user' ? (
-                      <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-lg">
-                        {msg.content}
+                      <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl text-sm leading-relaxed shadow-lg">
+                        {(() => {
+                          // Try to parse as JSON (for image messages)
+                          try {
+                            const parsed = JSON.parse(msg.content);
+                            if (parsed.image) {
+                              return (
+                                <div className="space-y-2">
+                                  {/* Image thumbnail */}
+                                  <img
+                                    src={`data:${parsed.image.mediaType};base64,${parsed.image.data}`}
+                                    alt={parsed.image.name}
+                                    className="rounded-lg max-w-xs w-full shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => {
+                                      // Open full size in new tab
+                                      const win = window.open();
+                                      if (win) {
+                                        win.document.write(`<img src="data:${parsed.image.mediaType};base64,${parsed.image.data}" style="max-width:100%; height:auto;" />`);
+                                      }
+                                    }}
+                                  />
+                                  {/* Text (if any) */}
+                                  {parsed.text && (
+                                    <div className="whitespace-pre-wrap">{parsed.text}</div>
+                                  )}
+                                </div>
+                              );
+                            }
+                          } catch (e) {
+                            // Not JSON, render as plain text
+                          }
+                          // Plain text message (backwards compatible)
+                          return <div className="whitespace-pre-wrap">{msg.content}</div>;
+                        })()}
                       </div>
                     ) : (
                       <div className="text-slate-700 text-sm leading-relaxed">
