@@ -123,6 +123,7 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userLetterFilter, setUserLetterFilter] = useState<string>('all');
+  const [showUserSuggestions, setShowUserSuggestions] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
@@ -729,6 +730,17 @@ Generated: ${new Date().toISOString()}
     }
   }, [activeTab]);
 
+  // Auto-refresh activity data every 30 seconds when on activity tab
+  useEffect(() => {
+    if (activeTab === 'activity') {
+      const interval = setInterval(() => {
+        fetchActivityUsers();
+      }, 30000); // 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
+
   // Filter users by letter and search query
   useEffect(() => {
     let filtered = activityUsers;
@@ -1074,7 +1086,7 @@ Generated: ${new Date().toISOString()}
 
           {/* Tab Navigation */}
           <div className="mt-6 border-b border-slate-200">
-            <div className="flex space-x-8">
+            <div className="flex space-x-4 md:space-x-8 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
               {[
                 { id: 'overview', label: 'Overview', icon: TrendingUp },
                 { id: 'users', label: 'Users', icon: Users },
@@ -1092,7 +1104,7 @@ Generated: ${new Date().toISOString()}
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as TabType)}
                     className={`
-                      flex items-center gap-2 pb-3 px-1 border-b-2 font-medium text-sm transition-colors
+                      flex items-center gap-2 pb-3 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap flex-shrink-0
                       ${isActive
                         ? 'border-blue-600 text-blue-600'
                         : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
@@ -1100,7 +1112,7 @@ Generated: ${new Date().toISOString()}
                     `}
                   >
                     <Icon className="h-4 w-4" />
-                    {tab.label}
+                    <span className="hidden sm:inline">{tab.label}</span>
                   </button>
                 );
               })}
@@ -1897,21 +1909,69 @@ Generated: ${new Date().toISOString()}
               {/* User List */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center text-slate-900">
-                    <Users className="h-5 w-5 mr-2 text-purple-600" />
-                    Users
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center text-slate-900">
+                      <Users className="h-5 w-5 mr-2 text-purple-600" />
+                      Users
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={fetchActivityUsers}
+                      disabled={isLoadingUsers}
+                      className="flex-shrink-0"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isLoadingUsers ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
                   <div className="mt-4 space-y-4">
                     {/* Search Box with Autocomplete */}
                     <div className="relative">
-                      <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+                      <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 z-10" />
                       <Input
                         type="text"
                         placeholder="Search by email or user ID..."
                         value={userSearchQuery}
-                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                          setUserSearchQuery(e.target.value);
+                          setShowUserSuggestions(e.target.value.length > 0);
+                        }}
+                        onFocus={() => userSearchQuery.length > 0 && setShowUserSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowUserSuggestions(false), 200)}
                         className="pl-10 w-full"
                       />
+                      {showUserSuggestions && userSearchQuery && filteredActivityUsers.length > 0 && (
+                        <div className="absolute top-full mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
+                          <div className="p-2 text-xs text-slate-500 border-b">
+                            {filteredActivityUsers.length} user{filteredActivityUsers.length !== 1 ? 's' : ''} found
+                          </div>
+                          {filteredActivityUsers.slice(0, 10).map((user) => (
+                            <div
+                              key={user.id}
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setSelectedConversation(null);
+                                fetchUserConversations(user.id);
+                                setUserSearchQuery('');
+                                setShowUserSuggestions(false);
+                              }}
+                              className="p-3 hover:bg-purple-50 cursor-pointer border-b last:border-b-0 transition-colors"
+                            >
+                              <p className="text-sm font-medium text-slate-900 truncate">{user.email}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-slate-500">{user.conversation_count} conversations</span>
+                                <span className="text-xs text-slate-400">•</span>
+                                <span className="text-xs text-slate-500 truncate">{user.id.substring(0, 8)}...</span>
+                              </div>
+                            </div>
+                          ))}
+                          {filteredActivityUsers.length > 10 && (
+                            <div className="p-2 text-xs text-center text-slate-500 bg-slate-50">
+                              +{filteredActivityUsers.length - 10} more users
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Letter Filter */}
@@ -2191,7 +2251,14 @@ Generated: ${new Date().toISOString()}
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {new Date(conv.created_at).toLocaleDateString()}
+                              {new Date(conv.created_at).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              })}
                             </span>
                           </div>
                           {conv.latest_message && (
@@ -2760,7 +2827,14 @@ Generated: ${new Date().toISOString()}
                           <div className="flex items-center gap-3 text-xs text-slate-500">
                             <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" />{conv.message_count}</span>
                             <span className="flex items-center gap-1"><Paperclip className="h-3 w-3" />{conv.attachment_count}</span>
-                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(conv.created_at).toLocaleDateString()}</span>
+                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(conv.created_at).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}</span>
                           </div>
                         </div>
                       ))}

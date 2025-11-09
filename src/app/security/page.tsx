@@ -253,7 +253,7 @@ export default function SecurityDashboard() {
 
           {/* Tab Navigation */}
           <div className="mt-6 border-b border-slate-700">
-            <div className="flex space-x-8">
+            <div className="flex space-x-4 md:space-x-8 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
               {[
                 { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
                 { id: 'events', label: 'Security Events', icon: Activity },
@@ -269,7 +269,7 @@ export default function SecurityDashboard() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as TabType)}
                     className={`
-                      flex items-center gap-2 pb-3 px-1 border-b-2 font-medium text-sm transition-colors
+                      flex items-center gap-2 pb-3 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap flex-shrink-0
                       ${isActive
                         ? 'border-red-500 text-red-400'
                         : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600'
@@ -277,7 +277,7 @@ export default function SecurityDashboard() {
                     `}
                   >
                     <Icon className="h-4 w-4" />
-                    {tab.label}
+                    <span className="hidden sm:inline">{tab.label}</span>
                   </button>
                 );
               })}
