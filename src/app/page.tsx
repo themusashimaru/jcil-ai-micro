@@ -82,7 +82,7 @@ interface Conversation {
   user_id?: string;
 }
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB per file (prevent crashes)
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB per file (fits most photos/screenshots)
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
@@ -418,7 +418,7 @@ export default function Home() {
   const [activeTool, setActiveTool] = useState<ToolType>('none');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const MAX_FILES = 3;
-  const MAX_TOTAL_SIZE = 5 * 1024 * 1024; // 5MB total (3 files × ~1.6MB avg)
+  const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB total (3 files × ~3.3MB avg)
 
   // ============================================
   // MIC RECORDING - REBUILT FROM SCRATCH
@@ -1803,6 +1803,19 @@ export default function Home() {
         }
 
         assistantText = streamedText;
+
+        // If files were uploaded, reload conversation after a delay to fetch images
+        if (hasFiles && currentConvoId) {
+          const convoId = currentConvoId; // Capture for closure
+          setTimeout(async () => {
+            try {
+              await loadConversation(convoId);
+            } catch (reloadError) {
+              console.error('Error reloading conversation for images:', reloadError);
+              // Don't crash - images just won't show immediately
+            }
+          }, 1500); // Wait 1.5s for backend to finish saving
+        }
       }
 
       // Note: Database saving is now handled on the backend during streaming
