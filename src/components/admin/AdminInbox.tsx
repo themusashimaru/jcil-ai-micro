@@ -460,12 +460,12 @@ export default function AdminInbox() {
                 <SelectTrigger className="text-gray-900 font-semibold">
                   <SelectValue className="text-gray-900 font-semibold" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="unread">Unread</SelectItem>
-                  <SelectItem value="read">Read</SelectItem>
-                  <SelectItem value="replied">Replied</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
+                <SelectContent className="text-gray-900">
+                  <SelectItem value="all" className="text-gray-900">All Status</SelectItem>
+                  <SelectItem value="unread" className="text-gray-900">Unread</SelectItem>
+                  <SelectItem value="read" className="text-gray-900">Read</SelectItem>
+                  <SelectItem value="replied" className="text-gray-900">Replied</SelectItem>
+                  <SelectItem value="archived" className="text-gray-900">Archived</SelectItem>
                 </SelectContent>
               </Select>
             </CardContent>
@@ -496,12 +496,12 @@ export default function AdminInbox() {
                   <SelectTrigger className="text-sm text-gray-900 font-semibold">
                     <SelectValue className="text-gray-900 font-semibold" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date_desc">Newest First</SelectItem>
-                    <SelectItem value="date_asc">Oldest First</SelectItem>
-                    <SelectItem value="sender">By Sender</SelectItem>
-                    <SelectItem value="subject">By Subject</SelectItem>
-                    <SelectItem value="status">By Status</SelectItem>
+                  <SelectContent className="text-gray-900">
+                    <SelectItem value="date_desc" className="text-gray-900">Newest First</SelectItem>
+                    <SelectItem value="date_asc" className="text-gray-900">Oldest First</SelectItem>
+                    <SelectItem value="sender" className="text-gray-900">By Sender</SelectItem>
+                    <SelectItem value="subject" className="text-gray-900">By Subject</SelectItem>
+                    <SelectItem value="status" className="text-gray-900">By Status</SelectItem>
                   </SelectContent>
                 </Select>
 
