@@ -178,11 +178,17 @@ export default function AdminInbox() {
       if (!response.ok) throw new Error('Failed to send reply');
 
       const data = await response.json();
-      alert(
-        data.notificationSent
-          ? 'Reply sent! User has been notified.'
-          : 'Reply saved.'
-      );
+
+      // If it's an external inquiry, open mailto instead of sending via API
+      if (selectedMessage.from_email && !selectedMessage.from_user_id) {
+        handleSendExternalEmail();
+      } else {
+        alert(
+          data.notificationSent
+            ? 'Reply sent! User has been notified.'
+            : 'Reply saved.'
+        );
+      }
 
       setShowReplyComposer(false);
       setReplyMessage('');
@@ -203,6 +209,23 @@ export default function AdminInbox() {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleSendExternalEmail = () => {
+    if (!selectedMessage || !replyMessage) return;
+
+    // Build mailto link
+    const recipientEmail = selectedMessage.from_email || '';
+    const emailSubject = `Re: ${selectedMessage.subject}`;
+    const emailBody = replyMessage;
+
+    // Create mailto URL with proper encoding
+    const mailtoLink = `mailto:${encodeURIComponent(recipientEmail)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
+    // Open mailto link
+    window.location.href = mailtoLink;
+
+    alert('Opening your default email client. Review and send when ready!');
   };
 
   const getFolderIcon = (folder: string) => {
@@ -269,8 +292,8 @@ export default function AdminInbox() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Master Admin Inbox</h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <h2 className="text-2xl font-bold text-gray-900">Master Admin Inbox</h2>
+          <p className="text-sm text-gray-700 mt-1">
             Manage user inquiries, system alerts, and critical notifications
           </p>
         </div>
@@ -392,7 +415,7 @@ export default function AdminInbox() {
                     <p className={`text-sm mb-1 ${msg.status === 'unread' ? 'font-semibold' : ''}`}>
                       {msg.subject}
                     </p>
-                    <p className="text-xs text-slate-600 line-clamp-2 mb-2">
+                    <p className="text-xs text-gray-800 line-clamp-2 mb-2">
                       {msg.message}
                     </p>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -446,8 +469,8 @@ export default function AdminInbox() {
               <CardContent className="flex-1 overflow-y-auto p-6 space-y-4">
                 {/* Original Message */}
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-700 mb-2">Message:</h4>
-                  <div className="bg-slate-50 rounded-lg p-4 whitespace-pre-wrap text-sm">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Message:</h4>
+                  <div className="bg-slate-50 rounded-lg p-4 whitespace-pre-wrap text-sm text-gray-900">
                     {selectedMessage.message}
                   </div>
                 </div>
@@ -455,8 +478,8 @@ export default function AdminInbox() {
                 {/* Metadata */}
                 {selectedMessage.metadata && Object.keys(selectedMessage.metadata).length > 0 && (
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-700 mb-2">Additional Info:</h4>
-                    <div className="bg-slate-50 rounded-lg p-4 text-xs font-mono">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Additional Info:</h4>
+                    <div className="bg-slate-50 rounded-lg p-4 text-xs font-mono text-gray-800">
                       {JSON.stringify(selectedMessage.metadata, null, 2)}
                     </div>
                   </div>
@@ -487,7 +510,7 @@ export default function AdminInbox() {
                       </div>
 
                       <div>
-                        <label className="text-xs font-medium text-slate-700 mb-1 block">
+                        <label className="text-xs font-medium text-gray-900 mb-1 block">
                           Tone:
                         </label>
                         <Select value={selectedTone} onValueChange={setSelectedTone}>
@@ -504,7 +527,7 @@ export default function AdminInbox() {
                       </div>
 
                       <div>
-                        <label className="text-xs font-medium text-slate-700 mb-1 block">
+                        <label className="text-xs font-medium text-gray-900 mb-1 block">
                           What do you want to communicate?
                         </label>
                         <Textarea
@@ -538,7 +561,7 @@ export default function AdminInbox() {
 
                     {/* Reply Message */}
                     <div>
-                      <label className="text-xs font-medium text-slate-700 mb-1 block">
+                      <label className="text-xs font-medium text-gray-900 mb-1 block">
                         Your Reply:
                       </label>
                       <Textarea
@@ -551,23 +574,44 @@ export default function AdminInbox() {
                     </div>
 
                     <div className="flex gap-2">
-                      <Button
-                        onClick={handleSendReply}
-                        disabled={sending || !replyMessage.trim()}
-                        className="flex-1"
-                      >
-                        {sending ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4 mr-2" />
-                            Send Reply
-                          </>
-                        )}
-                      </Button>
+                      {/* Different button text for external vs internal */}
+                      {selectedMessage.from_email && !selectedMessage.from_user_id ? (
+                        <Button
+                          onClick={handleSendReply}
+                          disabled={sending || !replyMessage.trim()}
+                          className="flex-1 bg-purple-600 hover:bg-purple-700"
+                        >
+                          {sending ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="h-4 w-4 mr-2" />
+                              Open in Email Client
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={handleSendReply}
+                          disabled={sending || !replyMessage.trim()}
+                          className="flex-1"
+                        >
+                          {sending ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 mr-2" />
+                              Send Internal Notification
+                            </>
+                          )}
+                        </Button>
+                      )}
                       <Button
                         onClick={() => {
                           setShowReplyComposer(false);
@@ -579,6 +623,13 @@ export default function AdminInbox() {
                         Cancel
                       </Button>
                     </div>
+
+                    {/* Helper text for external emails */}
+                    {selectedMessage.from_email && !selectedMessage.from_user_id && (
+                      <p className="text-xs text-purple-700 bg-purple-50 p-3 rounded-lg border border-purple-200">
+                        📧 External inquiry - Clicking "Open in Email Client" will open Gmail/Outlook with a pre-filled draft. Review and send when ready!
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>
