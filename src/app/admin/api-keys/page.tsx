@@ -508,10 +508,10 @@ export default function ApiKeysMonitoringPage() {
                                     Key #{stat.key_group}
                                   </span>
                                 </td>
-                                <td className="py-3 px-4">{stat.user_count.toLocaleString()}</td>
-                                <td className="py-3 px-4">{stat.total_requests.toLocaleString()}</td>
-                                <td className="py-3 px-4">{(stat.total_tokens / 1000).toFixed(1)}K</td>
-                                <td className="py-3 px-4">{avgTokens.toFixed(0)}</td>
+                                <td className="py-3 px-4 text-slate-900">{stat.user_count.toLocaleString()}</td>
+                                <td className="py-3 px-4 text-slate-900">{stat.total_requests.toLocaleString()}</td>
+                                <td className="py-3 px-4 text-slate-900">{(stat.total_tokens / 1000).toFixed(1)}K</td>
+                                <td className="py-3 px-4 text-slate-900">{avgTokens.toFixed(0)}</td>
                                 <td className="py-3 px-4 text-sm text-slate-600">
                                   {stat.last_request_at
                                     ? new Date(stat.last_request_at).toLocaleString()
@@ -631,23 +631,23 @@ export default function ApiKeysMonitoringPage() {
                   <div className="bg-slate-50 rounded-lg p-4 space-y-2 font-mono text-xs">
                     <p>
                       <span className="text-slate-600">Total Keys:</span>{' '}
-                      <span className="font-semibold">{stats.totalKeys}</span>
+                      <span className="font-semibold text-slate-900">{stats.totalKeys}</span>
                     </p>
                     <p>
                       <span className="text-slate-600">Total Users:</span>{' '}
-                      <span className="font-semibold">{totalUsers.toLocaleString()}</span>
+                      <span className="font-semibold text-slate-900">{totalUsers.toLocaleString()}</span>
                     </p>
                     <p>
                       <span className="text-slate-600">Total Requests:</span>{' '}
-                      <span className="font-semibold">{totalRequests.toLocaleString()}</span>
+                      <span className="font-semibold text-slate-900">{totalRequests.toLocaleString()}</span>
                     </p>
                     <p>
                       <span className="text-slate-600">Total Tokens:</span>{' '}
-                      <span className="font-semibold">{totalTokens.toLocaleString()}</span>
+                      <span className="font-semibold text-slate-900">{totalTokens.toLocaleString()}</span>
                     </p>
                     <p>
                       <span className="text-slate-600">Last Updated:</span>{' '}
-                      <span className="font-semibold">
+                      <span className="font-semibold text-slate-900">
                         {new Date(healthData.timestamp).toLocaleString()}
                       </span>
                     </p>

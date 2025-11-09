@@ -49,12 +49,26 @@ export async function GET(req: Request) {
       console.error('Error fetching API key stats from database:', error);
     }
 
+    // Create a complete list of all key groups based on detected keys
+    const completeStats = stats.keyGroups.map((keyGroup) => {
+      const existing = dbStats?.find((s: any) => s.key_group === keyGroup);
+      return existing || {
+        key_group: keyGroup,
+        user_count: 0,
+        total_requests: 0,
+        total_tokens: 0,
+        last_request_at: null,
+      };
+    });
+
+    console.log(`📊 Health Check: ${stats.totalKeys} keys detected, returning stats for ${completeStats.length} key groups`);
+
     return new Response(
       JSON.stringify({
         ok: true,
         health,
         stats,
-        keyGroupStats: dbStats || [],
+        keyGroupStats: completeStats,
         timestamp: new Date().toISOString(),
       }),
       {
