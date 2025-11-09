@@ -253,13 +253,13 @@ export default function ApiKeysMonitoringPage() {
               <div className="flex items-center gap-3">
                 {statusIcons[health.status as keyof typeof statusIcons]}
                 <div>
-                  <h3 className="font-semibold">System Status: {health.status}</h3>
-                  <p className="text-sm opacity-90">{health.message}</p>
+                  <h3 className="font-semibold text-slate-900">System Status: {health.status}</h3>
+                  <p className="text-sm text-slate-800 opacity-90">{health.message}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs opacity-75">Last Updated</p>
-                <p className="text-sm font-medium">
+                <p className="text-xs text-slate-600 opacity-75">Last Updated</p>
+                <p className="text-sm font-medium text-slate-900">
                   {new Date(healthData.timestamp).toLocaleTimeString()}
                 </p>
               </div>
@@ -311,7 +311,7 @@ export default function ApiKeysMonitoringPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold">{stats.totalKeys}</p>
+                    <p className="text-3xl font-bold text-slate-900">{stats.totalKeys}</p>
                     <p className="text-xs text-slate-500 mt-1">API keys detected</p>
                   </CardContent>
                 </Card>
@@ -324,7 +324,7 @@ export default function ApiKeysMonitoringPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold">{totalUsers.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-slate-900">{totalUsers.toLocaleString()}</p>
                     <p className="text-xs text-slate-500 mt-1">Across all keys</p>
                   </CardContent>
                 </Card>
@@ -337,7 +337,7 @@ export default function ApiKeysMonitoringPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold">{totalRequests.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-slate-900">{totalRequests.toLocaleString()}</p>
                     <p className="text-xs text-slate-500 mt-1">All-time requests</p>
                   </CardContent>
                 </Card>
@@ -350,7 +350,7 @@ export default function ApiKeysMonitoringPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold">{(totalTokens / 1000000).toFixed(2)}M</p>
+                    <p className="text-3xl font-bold text-slate-900">{(totalTokens / 1000000).toFixed(2)}M</p>
                     <p className="text-xs text-slate-500 mt-1">Tokens processed</p>
                   </CardContent>
                 </Card>
@@ -594,7 +594,7 @@ export default function ApiKeysMonitoringPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="font-semibold mb-2">Detected API Keys</h3>
+                  <h3 className="font-semibold text-slate-900 mb-2">Detected API Keys</h3>
                   <div className="bg-slate-50 rounded-lg p-4">
                     <p className="text-sm text-slate-700">
                       <strong>{stats.totalKeys}</strong> API keys detected
@@ -606,7 +606,7 @@ export default function ApiKeysMonitoringPage() {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold mb-2">Auto-Refresh Settings</h3>
+                  <h3 className="font-semibold text-slate-900 mb-2">Auto-Refresh Settings</h3>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-slate-600">
                       Automatically refresh data every 10 seconds
@@ -627,7 +627,7 @@ export default function ApiKeysMonitoringPage() {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold mb-2">System Information</h3>
+                  <h3 className="font-semibold text-slate-900 mb-2">System Information</h3>
                   <div className="bg-slate-50 rounded-lg p-4 space-y-2 font-mono text-xs">
                     <p>
                       <span className="text-slate-600">Total Keys:</span>{' '}
@@ -655,7 +655,7 @@ export default function ApiKeysMonitoringPage() {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold mb-2">Export Data</h3>
+                  <h3 className="font-semibold text-slate-900 mb-2">Export Data</h3>
                   <Button
                     variant="outline"
                     onClick={() => {
