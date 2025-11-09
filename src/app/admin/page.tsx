@@ -330,37 +330,58 @@ export default function AdminDashboard() {
   const fetchActivityUsers = async () => {
     try {
       setIsLoadingUsers(true);
-      const response = await fetch('/api/admin/conversations');
 
-      if (!response.ok) {
+      // Fetch ALL users from the system
+      const usersResponse = await fetch('/api/admin/users');
+      if (!usersResponse.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const usersData = await usersResponse.json();
+      const allUsers = usersData.users || [];
+
+      // Fetch conversations to get activity stats
+      const convsResponse = await fetch('/api/admin/conversations');
+      if (!convsResponse.ok) {
         throw new Error('Failed to fetch conversations');
       }
+      const convsData = await convsResponse.json();
+      const conversations = convsData.conversations || [];
 
-      const data = await response.json();
-      const conversations = data.conversations || [];
-
-      // Group conversations by user
-      const userMap = new Map<string, any>();
+      // Create a map of conversation stats by user
+      const statsMap = new Map<string, any>();
       conversations.forEach((conv: any) => {
-        if (!userMap.has(conv.user_id)) {
-          userMap.set(conv.user_id, {
-            id: conv.user_id,
-            email: conv.user_email,
-            tier: conv.user_tier,
+        if (!statsMap.has(conv.user_id)) {
+          statsMap.set(conv.user_id, {
             conversation_count: 0,
             total_messages: 0,
             total_attachments: 0,
           });
         }
-        const user = userMap.get(conv.user_id)!;
-        user.conversation_count++;
-        user.total_messages += conv.message_count || 0;
-        user.total_attachments += conv.attachment_count || 0;
+        const stats = statsMap.get(conv.user_id)!;
+        stats.conversation_count++;
+        stats.total_messages += conv.message_count || 0;
+        stats.total_attachments += conv.attachment_count || 0;
       });
 
-      const uniqueUsers = Array.from(userMap.values());
-      setActivityUsers(uniqueUsers);
-      setFilteredActivityUsers(uniqueUsers);
+      // Merge all users with their conversation stats
+      const enrichedUsers = allUsers.map((user: any) => {
+        const stats = statsMap.get(user.id) || {
+          conversation_count: 0,
+          total_messages: 0,
+          total_attachments: 0,
+        };
+        return {
+          id: user.id,
+          email: user.email || 'No email',
+          tier: user.subscription_tier || 'free',
+          conversation_count: stats.conversation_count,
+          total_messages: stats.total_messages,
+          total_attachments: stats.total_attachments,
+        };
+      });
+
+      setActivityUsers(enrichedUsers);
+      setFilteredActivityUsers(enrichedUsers);
     } catch (err: any) {
       console.error('Failed to fetch users:', err);
     } finally {
@@ -741,6 +762,17 @@ Generated: ${new Date().toISOString()}
     }
   }, [activeTab]);
 
+  // Auto-refresh moderation/suspensions data every 30 seconds when on moderation tab
+  useEffect(() => {
+    if (activeTab === 'moderation') {
+      const interval = setInterval(() => {
+        fetchModeratedUsers();
+      }, 30000); // 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
+
   // Filter users by letter and search query
   useEffect(() => {
     let filtered = activityUsers;
@@ -1055,7 +1087,7 @@ Generated: ${new Date().toISOString()}
           </div>
 
           {/* Period Selector */}
-          <div className="flex gap-2 mt-6 flex-wrap">
+          <div className="flex gap-1.5 md:gap-2 mt-6 flex-wrap">
             {([
               { key: 'daily', label: 'Today' },
               { key: 'monthly', label: 'This Month' },
@@ -1068,7 +1100,7 @@ Generated: ${new Date().toISOString()}
                 variant={period === p.key ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setPeriod(p.key)}
-                className={period === p.key ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                className={`text-xs md:text-sm h-8 md:h-9 ${period === p.key ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
               >
                 {p.label}
               </Button>
@@ -1534,17 +1566,17 @@ Generated: ${new Date().toISOString()}
               {/* Alphabetical Filter */}
               <div className="border-t border-slate-200 pt-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-sm font-medium text-slate-700">Filter by first letter:</p>
+                  <p className="text-xs md:text-sm font-medium text-slate-700">Filter by first letter:</p>
                   <Button
                     variant={letterFilter === 'all' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setLetterFilter('all')}
-                    className={`text-xs px-2 h-7 ${letterFilter === 'all' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
+                    className={`text-[10px] md:text-xs px-1.5 md:px-2 h-6 md:h-7 ${letterFilter === 'all' ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
                   >
                     All
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-0.5 md:gap-1">
                   {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map((letter) => {
                     const userCount = users.filter(u => u.email.toLowerCase().startsWith(letter.toLowerCase())).length;
                     return (
@@ -1554,7 +1586,7 @@ Generated: ${new Date().toISOString()}
                         size="sm"
                         onClick={() => setLetterFilter(letter)}
                         disabled={userCount === 0}
-                        className={`text-xs px-2 h-7 min-w-[32px] ${
+                        className={`text-[10px] md:text-xs px-1 md:px-2 h-6 md:h-7 min-w-[24px] md:min-w-[32px] ${
                           letterFilter === letter
                             ? 'bg-blue-600 hover:bg-blue-700 text-white'
                             : userCount === 0
@@ -1977,17 +2009,17 @@ Generated: ${new Date().toISOString()}
                     {/* Letter Filter */}
                     <div className="border-t border-slate-200 pt-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <p className="text-sm font-medium text-slate-700">Filter by letter:</p>
+                        <p className="text-xs md:text-sm font-medium text-slate-700">Filter by letter:</p>
                         <Button
                           variant={userLetterFilter === 'all' ? 'default' : 'ghost'}
                           size="sm"
                           onClick={() => setUserLetterFilter('all')}
-                          className={`text-xs px-2 h-7 ${userLetterFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
+                          className={`text-[10px] md:text-xs px-1.5 md:px-2 h-6 md:h-7 ${userLetterFilter === 'all' ? 'bg-purple-600 hover:bg-purple-700 text-white' : ''}`}
                         >
                           All
                         </Button>
                       </div>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-0.5 md:gap-1">
                         {['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map((letter) => {
                           const userCount = activityUsers.filter(u => u.email.toLowerCase().startsWith(letter.toLowerCase())).length;
                           return (
@@ -1997,7 +2029,7 @@ Generated: ${new Date().toISOString()}
                               size="sm"
                               onClick={() => setUserLetterFilter(letter)}
                               disabled={userCount === 0}
-                              className={`text-xs px-2 h-7 min-w-[32px] ${
+                              className={`text-[10px] md:text-xs px-1 md:px-2 h-6 md:h-7 min-w-[24px] md:min-w-[32px] ${
                                 userLetterFilter === letter
                                   ? 'bg-purple-600 hover:bg-purple-700 text-white'
                                   : userCount === 0
@@ -3508,10 +3540,21 @@ adminactivities@jcil.ai`);
             {/* User Role Management */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center text-slate-900">
-                  <UserCog className="h-5 w-5 mr-2 text-blue-600" />
-                  User Roles & Permissions
-                </CardTitle>
+                <div className="flex items-center justify-between mb-4">
+                  <CardTitle className="flex items-center text-slate-900">
+                    <UserCog className="h-5 w-5 mr-2 text-blue-600" />
+                    User Roles & Permissions
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchIamUsers}
+                    disabled={isLoadingIam}
+                    className="flex-shrink-0"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoadingIam ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
 
                 {/* Search and Filters */}
                 <div className="mt-4 space-y-4">
@@ -3588,6 +3631,7 @@ adminactivities@jcil.ai`);
                           <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Moderator</th>
                           <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Cyber Analyst</th>
                           <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Tier</th>
+                          <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3627,6 +3671,29 @@ adminactivities@jcil.ai`);
                               }`}>
                                 {user.subscription_tier || 'free'}
                               </span>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              {(user.is_admin || user.is_moderator || user.is_cyber_analyst) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (confirm(`⚠️ Remove all permissions from ${user.email}?`)) {
+                                      try {
+                                        if (user.is_admin) await handleUpdateRole(user.id, 'is_admin', false);
+                                        if (user.is_moderator) await handleUpdateRole(user.id, 'is_moderator', false);
+                                        if (user.is_cyber_analyst) await handleUpdateRole(user.id, 'is_cyber_analyst', false);
+                                        await fetchIamUsers();
+                                      } catch (err) {
+                                        console.error('Failed to remove permissions:', err);
+                                      }
+                                    }
+                                  }}
+                                  className="text-xs h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  Remove All
+                                </Button>
+                              )}
                             </td>
                           </tr>
                         ))}
