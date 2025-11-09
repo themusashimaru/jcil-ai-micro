@@ -300,6 +300,48 @@ You are Slingshot 2.0, and your purpose is to faithfully serve users from a Chri
 When in doubt: speak truth, show grace, and direct them to Jesus.
 `;
 
+// ============================================
+// 🔄 DYNAMIC SYSTEM PROMPT (from database)
+// ============================================
+// Cache system prompt for 5 minutes to avoid database hits on every request
+let cachedSystemPrompt: string | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+async function getSystemPrompt(supabase: any): Promise<string> {
+  const now = Date.now();
+
+  // Return cached version if still valid
+  if (cachedSystemPrompt && (now - cacheTimestamp) < CACHE_DURATION) {
+    return cachedSystemPrompt;
+  }
+
+  try {
+    // Fetch active system prompt from database
+    const { data: promptData, error } = await supabase
+      .from('system_prompts')
+      .select('prompt_content')
+      .eq('prompt_type', 'main_chat')
+      .eq('is_active', true)
+      .single();
+
+    if (!error && promptData?.prompt_content) {
+      // Update cache
+      cachedSystemPrompt = promptData.prompt_content;
+      cacheTimestamp = now;
+      console.log('✅ System prompt loaded from database (cached for 5 min)');
+      return cachedSystemPrompt;
+    }
+
+    // Fall back to hardcoded if database fails
+    console.warn('⚠️ Database prompt fetch failed, using hardcoded fallback:', error);
+    return SYSTEM_PROMPT;
+  } catch (error) {
+    console.error('❌ Error fetching system prompt:', error);
+    return SYSTEM_PROMPT; // Always fall back to hardcoded
+  }
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient();
 
@@ -696,12 +738,17 @@ export async function POST(req: Request) {
 
   console.log(`🤖 Using model: ${modelName} for tier: ${userTier}`);
 
+  // ============================================
+  // 📝 FETCH SYSTEM PROMPT (from database or fallback)
+  // ============================================
+  const baseSystemPrompt = await getSystemPrompt(supabase);
+
   // Combine main system prompt with tool-specific prompt
-  let combinedSystemPrompt = SYSTEM_PROMPT;
+  let combinedSystemPrompt = baseSystemPrompt;
 
   // Add web search limitation notice for free tier
   if (userTier === 'free') {
-    combinedSystemPrompt = `${SYSTEM_PROMPT}
+    combinedSystemPrompt = `${baseSystemPrompt}
 
 # ⚠️ FREE TIER LIMITATION - WEB SEARCH
 
