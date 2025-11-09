@@ -689,13 +689,7 @@ export default function Home() {
     }
 
     try {
-      // ✅ FIX: Disabled microphone permission popup - users will see disclaimer instead
-      // Voice input requires microphone access as explained in app disclaimer
-      alert('Voice input has been disabled. Microphone permissions are covered in the app disclaimer.');
-      return;
-
-      // Old code (disabled):
-      /*
+      // Note: Browser will show permission popup first time, but users agree to this in signup disclaimer
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       recorderRef.current = recorder;
@@ -737,7 +731,6 @@ export default function Home() {
 
       setIsRecording(true);
       recorder.start();
-      */
     } catch (err) {
       alert('Microphone access denied');
     }
