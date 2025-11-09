@@ -1802,6 +1802,11 @@ export default function Home() {
         assistantText = streamedText;
       }
 
+      // Clear last sent files after AI responds (only keep for one follow-up)
+      if (lastSentFiles.length > 0 && !hasFiles) {
+        setLastSentFiles([]);
+      }
+
       // Note: Database saving is now handled on the backend during streaming
 
     } catch (error: any) {
