@@ -417,8 +417,8 @@ export default function Home() {
   // tools / files
   const [activeTool, setActiveTool] = useState<ToolType>('none');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const MAX_FILES = 3;
-  const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB total (3 files × ~3.3MB avg)
+  const MAX_FILES = 1;
+  const MAX_TOTAL_SIZE = 4 * 1024 * 1024; // 4MB for single file
 
   // ============================================
   // MIC RECORDING - REBUILT FROM SCRATCH
@@ -637,40 +637,12 @@ export default function Home() {
       console.error('loadConversation error:', error);
       setMessages([{ id: 'err', role: 'assistant', content: 'Error loading conversation.' }]);
     } else {
-      // Load messages without image data (images just show as text indicators)
-      const messageIds = (data ?? []).map(m => m.id);
-
-      // Fetch just the count and filenames of images (lightweight)
-      let imagesByMessage: Record<string, Array<{ data: string; mediaType: string; fileName: string }>> = {};
-      if (messageIds.length > 0) {
-        try {
-          const { data: imageData } = await supabase
-            .from('message_images')
-            .select('message_id, file_name, media_type')
-            .in('message_id', messageIds);
-
-          for (const img of (imageData || [])) {
-            if (!imagesByMessage[img.message_id]) {
-              imagesByMessage[img.message_id] = [];
-            }
-            imagesByMessage[img.message_id].push({
-              data: '', // Don't load the actual image data
-              mediaType: img.media_type,
-              fileName: img.file_name
-            });
-          }
-        } catch (imgError) {
-          console.log('Could not load image metadata (table may not exist):', imgError);
-        }
-      }
-
-      // Map messages
+      // Map messages - don't load images
       const loaded: Message[] = (data ?? []).map((m) => ({
         id: m.id,
         role: m.role as 'user' | 'assistant',
         content: m.content,
-        created_at: m.created_at,
-        images: imagesByMessage[m.id]
+        created_at: m.created_at
       }));
 
       setMessages(loaded);
@@ -2207,7 +2179,7 @@ export default function Home() {
               clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 1.5rem), 98% calc(100% - 0.8rem), 95% calc(100% - 0.3rem), 90% calc(100% - 0.1rem), 10% calc(100% - 0.1rem), 5% calc(100% - 0.3rem), 2% calc(100% - 0.8rem), 0 calc(100% - 1.5rem))'
             }}
           >
-            <div className="px-3 sm:px-6 md:px-8 h-full flex flex-col space-y-4 sm:space-y-6">
+            <div className="px-3 sm:px-6 md:px-8 pt-3 h-full flex flex-col space-y-4 sm:space-y-6">
             {isLoading && messages.length === 0 ? (
               <div className="text-center text-slate-500 text-sm">Loading messages...</div>
             ) : messages.length === 0 ? (
@@ -2266,13 +2238,6 @@ export default function Home() {
                   >
                     {msg.role === 'user' ? (
                       <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-lg">
-                        {msg.images && msg.images.length > 0 && (
-                          <div className="mb-2 text-xs text-white/80 italic">
-                            {msg.images.map((img, idx) => (
-                              <div key={idx}>📎 Image attached: {img.fileName}</div>
-                            ))}
-                          </div>
-                        )}
                         {msg.content}
                       </div>
                     ) : (
@@ -2412,7 +2377,6 @@ export default function Home() {
               onChange={handleFileChange}
               accept={ALLOWED_FILE_EXTENSIONS.join(',')}
               className="hidden"
-              multiple
             />
             <input
               type="file"
