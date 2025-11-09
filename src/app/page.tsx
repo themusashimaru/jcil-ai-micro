@@ -689,13 +689,7 @@ export default function Home() {
     }
 
     try {
-      // ✅ FIX: Disabled microphone permission popup - users will see disclaimer instead
-      // Voice input requires microphone access as explained in app disclaimer
-      alert('Voice input has been disabled. Microphone permissions are covered in the app disclaimer.');
-      return;
-
-      // Old code (disabled):
-      /*
+      // Note: Browser will show permission popup first time, but users agree to this in signup disclaimer
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       recorderRef.current = recorder;
@@ -737,7 +731,6 @@ export default function Home() {
 
       setIsRecording(true);
       recorder.start();
-      */
     } catch (err) {
       alert('Microphone access denied');
     }
@@ -925,16 +918,18 @@ export default function Home() {
     const lowerText = textInput.toLowerCase();
 
     // Web Search Intent Patterns (for Brave Search API)
+    // Exclude writing/drafting requests from triggering search
+    const isWritingRequest = /\b(write|draft|compose|create|make|help me write|send)\s+(an?|me|the)?\s*(email|letter|message|note|memo)\b/i.test(lowerText);
+
     const searchPatterns = [
-      /\b(search|google|look up|find|show me|tell me about)\b/i,
+      /\b(search|google|look up|find|show me)\b/i,
       /\b(what'?s|whats)\s+(happening|going on|new|breaking|the latest)\b/i,
       /\b(breaking news|latest news|news today|current events|today'?s news)\b/i,
-      /\b(nearest|closest|best|top rated|around me|near me|nearby)\b/i, // location-based
+      /\b(nearest|closest|best|top rated|around me|near me|nearby)\s+(restaurant|barber|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food)\b/i, // location + business
       /\b(who is|what is|where is|when did|how did)\b.*\b(now|today|currently|recently|latest|2025)\b/i,
       /\b(news about|updates on|information on|status of)\b/i,
-      /\b(restaurant|barber|barbershop|shop|store|hotel|cafe|coffee|gym|salon|spa|dentist|doctor|hospital|pharmacy|gas station|bank|atm|pizza|food|nail|nails|hair|massage)\b/i, // local business keywords
-      /(closest|nearest|near me|around me|nearby|close by)\s+(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food|nail|nails|hair)/i, // closest + business
-      /(restaurant|barber|barbershop|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food|nail|nails|hair)\s+(near|nearby|around|close to|closest to|nearest to|in)\s+(me|here)/i, // business + near me
+      /\b(find|search for|looking for)\s+(a|an|some|the)?\s*(restaurant|barber|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food)\b/i, // "find a restaurant"
+      /(restaurant|barber|shop|store|hotel|cafe|gym|salon|spa|dentist|doctor|pizza|food)\s+(near|nearby|around|close to|in)\s+(me|here)/i, // business + near me
       /\b(places?|businesses?|spots?)\s+(in|near|around)\b/i // "places in marblehead"
     ];
 
@@ -1079,7 +1074,7 @@ export default function Home() {
       /\b(cookie.?theft|session.?hijack|csrf|xss|xxe)\b/i,
     ];
 
-    const isSearchIntent = searchPatterns.some(pattern => pattern.test(lowerText));
+    const isSearchIntent = !isWritingRequest && searchPatterns.some(pattern => pattern.test(lowerText));
     const isFactCheckIntent = !isSearchIntent && factCheckPatterns.some(pattern => pattern.test(lowerText));
     const isAirQualityIntent = !isSearchIntent && !isFactCheckIntent && airQualityPatterns.some(pattern => pattern.test(lowerText));
     const isDirectionsIntent = !isSearchIntent && !isFactCheckIntent && !isAirQualityIntent && directionsPatterns.some(pattern => pattern.test(lowerText));
