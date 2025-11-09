@@ -1201,84 +1201,9 @@ export default function Home() {
           setMessages((prev) => [...prev, searchMsg]);
         }
 
-        // Get user's location if it's a location query (with permission)
+        // ✅ FIX: Disabled geolocation popups - users will see disclaimer instead
+        // Location queries only work with city names (no browser permission needed)
         let userLocation = null;
-        if (isLocationQuery && !hasCityMention && typeof navigator !== 'undefined' && navigator.geolocation) {
-          try {
-            // Show temporary message while getting location
-            const tempMsg: Message = {
-              id: `temp-location-${Date.now()}`,
-              role: 'assistant',
-              content: '📍 Requesting your location for nearby results...',
-              created_at: new Date().toISOString(),
-            };
-            setMessages((prev) => [...prev, tempMsg]);
-
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(
-                resolve,
-                reject,
-                {
-                  timeout: 10000,
-                  enableHighAccuracy: true,
-                  maximumAge: 0
-                }
-              );
-            });
-
-            userLocation = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            };
-            console.log('📍 Location detected:', userLocation);
-
-            // Reverse geocode to get city name
-            try {
-              const geocodeResponse = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?` +
-                `lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`
-              );
-              const geocodeData = await geocodeResponse.json();
-              const city = geocodeData.address?.city ||
-                          geocodeData.address?.town ||
-                          geocodeData.address?.village ||
-                          geocodeData.address?.county ||
-                          'your area';
-              const state = geocodeData.address?.state || '';
-              const locationName = state ? `${city}, ${state}` : city;
-
-              // Update temp message with location name
-              setMessages((prev) =>
-                prev.map(m => m.id === tempMsg.id
-                  ? {...m, content: `📍 Searching for ${textInput.toLowerCase()} near **${locationName}**...`}
-                  : m
-                )
-              );
-            } catch (geoError) {
-              console.log('Geocoding error:', geoError);
-              // Continue with coordinates only
-            }
-
-            // Remove temp message
-            setMessages((prev) => prev.filter(m => m.id !== tempMsg.id));
-          } catch (error: any) {
-            console.log('📍 Location error:', error);
-            // Remove temp message
-            setMessages((prev) => prev.filter(m => m.id.startsWith('temp-location-')));
-
-            // Add error message
-            const errorMsg: Message = {
-              id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-              role: 'assistant',
-              content: '📍 Unable to access your location. Please enable location services in your browser settings, or try including your city/address in your search.',
-              created_at: new Date().toISOString(),
-            };
-            setMessages((prev) => [...prev, errorMsg]);
-            setIsLoading(false);
-            setIsTyping(false);
-            return;
-          }
-        }
 
         // Route to appropriate search API
         if (isLocationQuery && (userLocation || hasCityMention)) {
@@ -1383,102 +1308,30 @@ export default function Home() {
       // 🌬️ ROUTE 3: AIR QUALITY (Google Air Quality API)
       // ============================================
       else if (isAirQualityIntent && hasText) {
-        console.log('🌬️ Detected air quality intent, routing to Google Air Quality API...');
+        console.log('🌬️ Detected air quality intent - feature requires location in disclaimer');
 
-        // Get user's location
-        let userLocation = null;
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-          try {
-            const tempMsg: Message = {
-              id: `temp-air-${Date.now()}`,
-              role: 'assistant',
-              content: '🌬️ Getting air quality and pollen data for your area...',
-              created_at: new Date().toISOString(),
-            };
-            setMessages((prev) => [...prev, tempMsg]);
-
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                timeout: 10000,
-                enableHighAccuracy: true,
-                maximumAge: 0
-              });
-            });
-
-            userLocation = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            };
-
-            const airQualityResponse = await fetch('/api/google-air-quality', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ location: userLocation }),
-            });
-
-            const airQualityData = await airQualityResponse.json();
-
-            setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-air-')));
-
-            if (airQualityResponse.ok && airQualityData.airQuality) {
-              const aqi = airQualityData.airQuality.indexes?.[0];
-              let response = `**Air Quality in ${airQualityData.location}**\n\n`;
-
-              if (aqi) {
-                response += `**AQI**: ${aqi.aqi} - ${aqi.category || 'Unknown'}\n`;
-                response += `**Health**: ${aqi.dominantPollutant ? `Dominant pollutant: ${aqi.dominantPollutant}` : 'Data unavailable'}\n\n`;
-              }
-
-              // Add pollen data if available
-              if (airQualityData.airQuality.pollens) {
-                response += `**Pollen Levels**:\n`;
-                airQualityData.airQuality.pollens.forEach((pollen: any) => {
-                  response += `- ${pollen.displayName}: ${pollen.indexInfo?.category || 'N/A'}\n`;
-                });
-              }
-
-              assistantText = response;
-            } else {
-              assistantText = "Unable to fetch air quality data. Please try again later.";
-            }
-          } catch (error: any) {
-            setMessages((prev) => prev.filter(m => !m.id.startsWith('temp-air-')));
-            assistantText = "📍 Unable to access your location. Please enable location services in your browser settings.";
-          }
-        } else {
-          assistantText = "Location services are not available in your browser.";
-        }
+        // ✅ FIX: Disabled geolocation popups - users will see disclaimer instead
+        // Air quality queries only work with city names (no browser permission needed)
+        assistantText = "For air quality information, please specify your city or location in your question (e.g., 'What's the air quality in Los Angeles?'). Location services have been disabled per app disclaimer.";
       }
       // ============================================
       // 🚗 ROUTE 4: DIRECTIONS (Google Directions API)
       // ============================================
       else if (isDirectionsIntent && hasText) {
-        console.log('🚗 Detected directions intent, routing to Google Directions API...');
+        console.log('🚗 Detected directions intent - feature requires location in disclaimer');
+
+        // ✅ FIX: Disabled geolocation popups - users will see disclaimer instead
+        // Extract origin and destination from query
+        let origin = 'current location';
+        let destination = textInput.replace(/^(how (do i|to) get to|directions? to|route to|navigate to|drive to|walk to)\s*/i, '').trim();
 
         const tempMsg: Message = {
           id: `temp-directions-${Date.now()}`,
           role: 'assistant',
-          content: '🚗 Calculating route...',
+          content: '🚗 Getting directions...',
           created_at: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, tempMsg]);
-
-        // Extract origin and destination from query
-        // For now, we'll use "current location" as origin if user says "how do I get to X"
-        let origin = 'current location';
-        let destination = textInput.replace(/^(how (do i|to) get to|directions? to|route to|navigate to|drive to|walk to)\s*/i, '').trim();
-
-        // Get user's current location for origin
-        if (typeof navigator !== 'undefined' && navigator.geolocation) {
-          try {
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
-            });
-            origin = `${position.coords.latitude},${position.coords.longitude}`;
-          } catch (error) {
-            console.log('Could not get current location for directions');
-          }
-        }
 
         const directionsResponse = await fetch('/api/google-directions', {
           method: 'POST',
