@@ -2170,7 +2170,7 @@ export default function Home() {
 
                           // Default: render as markdown
                           return (
-                            <div className="prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-em:text-slate-600 prose-em:italic prose-strong:font-bold prose-strong:text-slate-900 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800">
+                            <div className="prose prose-sm max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-headings:mb-3 prose-headings:mt-5 prose-p:text-slate-700 prose-p:mb-4 prose-p:leading-relaxed prose-em:text-slate-600 prose-em:italic prose-strong:font-bold prose-strong:text-slate-900 prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800 prose-ul:my-3 prose-ol:my-3 prose-li:my-1">
                               <ReactMarkdown rehypePlugins={[rehypeRaw]}>
                                 {msg.content}
                               </ReactMarkdown>
