@@ -2030,9 +2030,9 @@ export default function Home() {
 
       {/* main chat area */}
       <main className="flex-1 flex flex-col p-0 sm:p-4 md:p-6 bg-white overflow-hidden">
-        <Card className="w-full h-full flex flex-col shadow-xl sm:shadow-2xl bg-white border-slate-200 rounded-lg sm:rounded-2xl">
+        <Card className="w-full h-full flex flex-col shadow-xl sm:shadow-2xl bg-white border-slate-200 rounded-lg sm:rounded-2xl gap-0 py-0">
           {/* header */}
-          <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-5">
+          <CardHeader className="bg-white border-b border-slate-200 rounded-t-lg sm:rounded-t-xl px-4 sm:px-6 md:px-8 pt-3 sm:pt-4 md:pt-5 pb-0">
             <div className="flex items-center justify-between">
               {/* Left side - Mobile menu OR desktop spacer */}
               <div className="flex items-center gap-2">
@@ -2094,7 +2094,7 @@ export default function Home() {
           </CardHeader>
 
           {/* messages */}
-          <CardContent className="flex-1 overflow-y-auto p-0 bg-white relative rounded-b-3xl -mt-[1px] -mb-[1px]">
+          <CardContent className="flex-1 overflow-y-auto p-0 bg-white relative">
             <div className="px-3 sm:px-6 md:px-8 h-full flex flex-col space-y-4 sm:space-y-6">
             {isLoading && messages.length === 0 ? (
               <div className="text-center text-slate-500 text-sm">Loading messages...</div>
@@ -2227,7 +2227,7 @@ export default function Home() {
           {/* input bar */}
           <form
             onSubmit={handleFormSubmit}
-            className="px-3 sm:px-6 md:px-8 pt-4 pb-3 sm:pt-5 sm:pb-4 md:pt-6 md:pb-5 bg-gradient-to-b from-white to-slate-50 rounded-t-3xl rounded-b-lg sm:rounded-b-xl shadow-inner"
+            className="px-3 sm:px-6 md:px-8 pt-0 pb-3 sm:pb-4 md:pb-5 bg-gradient-to-b from-white to-slate-50 rounded-t-3xl rounded-b-lg sm:rounded-b-xl shadow-inner"
           >
             {attachedFileName && (
               <div className="mb-2 sm:mb-3 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm shadow-sm">
