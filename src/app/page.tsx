@@ -1624,7 +1624,7 @@ export default function Home() {
         }
       }
       // ============================================
-      // 💬 ROUTE 6: NORMAL CHAT (Claude Haiku)
+      // 💬 ROUTE 6: NORMAL CHAT (Streaming)
       // ============================================
       else {
         let response: Response;
@@ -1642,15 +1642,16 @@ export default function Home() {
           });
         }
 
-        const data = await response.json();
+        // Check if response is an error (non-streaming JSON response)
+        if (!response.ok || response.headers.get('content-type')?.includes('application/json')) {
+          const data = await response.json();
 
-        // Check if this is a limit exceeded error with upgrade prompt
-        if (!response.ok || !data.ok) {
-          // If there's an upgrade prompt in the error response (free tier limit hit)
+          // If there's an upgrade prompt in the error response
           if (data.upgradePrompt) {
             setUpgradeModalData(data.upgradePrompt);
             setShowUpgradeModal(true);
           }
+
           // Pass moderation data if present
           const error = new Error(data.error || 'Error from /api/chat') as any;
           if (data.moderation) {
@@ -1661,42 +1662,78 @@ export default function Home() {
           throw error;
         }
 
-        assistantText = data.reply ?? '';
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
 
-        // Check if successful response includes upgrade prompt (paid tier periodic upgrade)
-        if (data.upgradePrompt) {
-          setUpgradeModalData(data.upgradePrompt);
-          setShowUpgradeModal(true);
+        if (!reader) {
+          throw new Error('No response body');
         }
+
+        // Create assistant message placeholder
+        const assistantMsgId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        const assistantMessage: Message = {
+          id: assistantMsgId,
+          role: 'assistant',
+          content: '',
+          created_at: new Date().toISOString(),
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        let streamedText = '';
+        let buffer = '';
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = JSON.parse(line.slice(6));
+
+                if (data.type === 'init') {
+                  currentConvoId = data.conversationId;
+                  setConversationId(currentConvoId);
+                } else if (data.type === 'chunk') {
+                  streamedText += data.text;
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMsgId
+                        ? { ...msg, content: streamedText }
+                        : msg
+                    )
+                  );
+                } else if (data.type === 'done') {
+                  // Check for upgrade prompt
+                  if (data.upgradePrompt) {
+                    setUpgradeModalData(data.upgradePrompt);
+                    setShowUpgradeModal(true);
+                  }
+
+                  // Generate smart title after first exchange
+                  if (messages.length <= 1 && currentConvoId) {
+                    generateTitle(currentConvoId);
+                  }
+                }
+              }
+            }
+          }
+        } catch (streamError) {
+          console.error('Stream reading error:', streamError);
+          throw streamError;
+        }
+
+        assistantText = streamedText;
       }
 
-      // ============================================
-      // 💾 SHOW & SAVE ASSISTANT REPLY
-      // ============================================
-      const assistantMessage: Message = {
-        id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-        role: 'assistant',
-        content: assistantText,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      // persist assistant reply with user_id
-      const { error: insertAsstErr } = await supabase.from('messages').insert({
-        user_id: user.id,                    // ✅ include user_id
-        conversation_id: currentConvoId,
-        role: 'assistant',
-        content: assistantText,
-      });
-      if (insertAsstErr) {
-        console.error('insert assistant message error:', insertAsstErr);
-      }
-
-      // Generate smart title after first exchange (user message + assistant response)
-      // Only generate if this is the first assistant response (2 messages total)
-      if (messages.length <= 1 && currentConvoId) {
-        generateTitle(currentConvoId);
-      }
+      // Note: Database saving is now handled on the backend during streaming
 
     } catch (error: any) {
       console.error('chat send error:', error);

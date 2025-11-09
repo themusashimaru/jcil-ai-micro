@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { xai } from '@ai-sdk/xai';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import { createClient } from "@/lib/supabase/server";
 import { getToolSystemPrompt, type ToolType } from "@/lib/tools-config";
 import { runModeration } from "@/lib/moderation";
@@ -762,24 +762,86 @@ Examples of questions requiring web search:
       console.log('🚫 Web search DISABLED for free tier');
     }
 
-    const response = await generateText({
+    const result = await streamText({
       model: xai(modelName), // 🎯 Using Grok for all tiers
       system: combinedSystemPrompt,
       messages: aiSdkMessages,
       providerOptions,
     });
 
-    // Extract text from response
-    reply = response.text || "I apologize, but I couldn't generate a text response.";
-
-    // Extract token usage from response
-    totalTokens = response.usage?.totalTokens || 0;
-    console.log(`📊 Token usage - Total: ${totalTokens} tokens`);
-
-    // Log citations if available (for debugging/monitoring)
-    if (response.sources && response.sources.length > 0) {
-      console.log('🔍 Grok used Live Search - Citations:', response.sources);
+    // Create conversation if doesn't exist
+    if (!conversationId) {
+      conversationId = crypto.randomUUID();
     }
+
+    // Save user message immediately
+    const userMessageText = imageFile
+      ? `[Image: ${imageFile.name}] ${message}`
+      : message;
+
+    await supabase.from("messages").insert({
+      user_id: userId,
+      role: "user",
+      content: userMessageText,
+      conversation_id: conversationId
+    });
+
+    // Create a streaming response
+    const encoder = new TextEncoder();
+    let fullText = '';
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // Send conversation ID first
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ conversationId, type: 'init' })}\n\n`));
+
+          // Stream the text chunks
+          for await (const chunk of result.textStream) {
+            fullText += chunk;
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk, type: 'chunk' })}\n\n`));
+          }
+
+          // Get final usage stats
+          const usage = await result.usage;
+          totalTokens = usage?.totalTokens || 0;
+          console.log(`📊 Token usage - Total: ${totalTokens} tokens`);
+
+          // Save assistant message to database
+          await supabase.from("messages").insert({
+            user_id: userId,
+            role: "assistant",
+            content: fullText,
+            conversation_id: conversationId
+          });
+
+          // Increment daily usage count
+          await supabase.rpc('increment_message_count', {
+            p_user_id: userId,
+            p_token_count: totalTokens
+          });
+
+          // Send completion signal with upgrade prompt if applicable
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'done',
+            upgradePrompt: upgradePromptData
+          })}\n\n`));
+
+          controller.close();
+        } catch (error) {
+          console.error('Streaming error:', error);
+          controller.error(error);
+        }
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error: any) {
     console.error("xAI API Error:", error);
@@ -792,66 +854,4 @@ Examples of questions requiring web search:
       { status: 500, headers: { "content-type": "application/json" } }
     );
   }
-
-  // ============================================
-  // 💾 SAVE TO DATABASE
-  // ============================================
-  
-  // Create conversation if doesn't exist
-  if (!conversationId) {
-    conversationId = crypto.randomUUID();
-  }
-
-  // Save user message (with image indication if present)
-  const userMessageText = imageFile 
-    ? `[Image: ${imageFile.name}] ${message}` 
-    : message;
-
-  // Save both messages
-  const { error: insertError } = await supabase.from("messages").insert([
-    {
-      user_id: userId,
-      role: "user",
-      content: userMessageText,
-      conversation_id: conversationId
-    },
-    {
-      user_id: userId,
-      role: "assistant",
-      content: reply,
-      conversation_id: conversationId
-    },
-  ]);
-
-  if (insertError) {
-    console.error("Database insert error:", insertError);
-    // Still return the reply even if save fails
-  }
-
-  // ============================================
-  // 📈 INCREMENT DAILY USAGE COUNT
-  // ============================================
-  const { error: usageError } = await supabase
-    .rpc('increment_message_count', {
-      p_user_id: userId,
-      p_token_count: totalTokens // Track actual token usage from response.usage
-    });
-
-  if (usageError) {
-    console.error("Failed to increment usage count:", usageError);
-    // Don't fail the request, just log the error
-  } else {
-    console.log(`✅ Daily usage incremented for user ${userId}`);
-  }
-
-  return new Response(
-    JSON.stringify({
-      ok: true,
-      reply,
-      conversationId,
-      // Include upgrade prompt if applicable (for paid users)
-      upgradePrompt: upgradePromptData
-    }),
-    { status: 200, headers: { "content-type": "application/json" } }
-  );
 }
