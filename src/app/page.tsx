@@ -1018,9 +1018,7 @@ export default function Home() {
 
     // CRITICAL FIX: Wrap entire async flow in try-finally to prevent stuck loading state
     try {
-      const userMsgText = hasText
-        ? textInput
-        : `${uploadedFiles.length} ${uploadedFiles.length === 1 ? 'file' : 'files'} uploaded`;
+      const userMsgText = textInput;
 
       // ensure conversation exists (with user_id)
       let currentConvoId = conversationId;
