@@ -477,8 +477,13 @@ export async function moderateImage(
     
     // 3. Log the violation
     await logImageViolation(userId, imageUrl, analysis);
-    
+
     // 4. Delete the image from storage immediately
+    // ⚠️ IMPROVEMENT NEEDED: Instead of immediate deletion, consider:
+    // - Moving image to a "violations" bucket for 30-90 day retention
+    // - Allows for appeal process and false positive review
+    // - Maintains evidence for legal/compliance purposes
+    // - Current implementation permanently deletes with no recovery option
     const deleted = await deleteImageFromStorage(imageUrl);
     if (!deleted) {
       console.error('⚠️ WARNING: Failed to delete flagged image from storage!');

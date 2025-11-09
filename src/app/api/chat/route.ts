@@ -46,7 +46,16 @@ const DAILY_LIMITS: Record<string, number> = {
 // ============================================
 // ⚡ RATE LIMITING (Dual-layer protection)
 // ============================================
-// In-memory rate limiter with two limits:
+// ⚠️ KNOWN LIMITATION: In-memory rate limiter
+// This works for single-instance deployments but won't work correctly
+// in multi-instance/serverless environments (like Vercel with multiple edge functions).
+//
+// For production at scale, consider:
+// 1. Upstash Redis (serverless-friendly, built for edge functions)
+// 2. Vercel KV (native Vercel integration)
+// 3. Supabase-based rate limiting (custom table with RLS)
+//
+// Current implementation:
 // 1. Rapid-fire protection: 10 messages per minute
 // 2. Hourly protection: 60 messages per hour
 const rateLimitMap = new Map<string, number[]>();
@@ -554,7 +563,11 @@ export async function POST(req: Request) {
 
   let conversationId: string | null = null;
   let message = "";
-  let history: Array<{ role: "user" | "assistant"; content: string }> = [];
+  let history: Array<{
+    role: "user" | "assistant";
+    content: string;
+    images?: Array<{ data: string; mediaType: string; fileName: string }>;
+  }> = [];
   let imageFiles: File[] = [];
   let toolType: ToolType = 'none';
 
@@ -621,48 +634,47 @@ export async function POST(req: Request) {
         );
       }
     } catch (moderationError) {
-      // If moderation API fails, log but don't block the request
-      // (Fail open for better UX, but log for monitoring)
-      console.error("Moderation API error:", moderationError);
+      // ✅ FIX: Fail-closed for security - block requests when moderation API fails
+      console.error("🚨 CRITICAL: Moderation API error - blocking request for safety:", moderationError);
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "Content moderation is temporarily unavailable. Please try again in a moment.",
+          tip: "Our safety systems are currently experiencing issues. Please retry your request."
+        }),
+        { status: 503, headers: { "content-type": "application/json" } }
+      );
     }
   }
 
   // ============================================
-  // 🧠 MEMORY SYSTEM (Contextual Loading)
+  // 🧠 MEMORY SYSTEM (Smart Contextual Loading)
   // ============================================
 
-  // Only load global memory if user explicitly requests past conversation recall
-  const userMessage = message.toLowerCase();
-  const memoryKeywords = [
-    'remember', 'recall', 'last time', 'previously', 'before', 'earlier',
-    'we talked about', 'we discussed', 'you said', 'i told you', 'i mentioned',
-    'what did i', 'what did we', 'from our chat', 'from our conversation'
-  ];
-
-  const shouldLoadGlobalMemory = memoryKeywords.some(keyword => userMessage.includes(keyword));
-
+  // ✅ FIX: Always load recent memory for better context (not keyword-dependent)
+  // Load last 20 messages from OTHER conversations to give AI cross-conversation awareness
   let globalMemory: Array<{ role: "user" | "assistant"; content: string }> = [];
 
-  if (shouldLoadGlobalMemory) {
-    console.log('🧠 Loading global memory (user requested recall)');
-    const { data: allMessages } = await supabase
-      .from("messages")
-      .select("role, content, conversation_id, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(100); // Get last 100 messages across ALL chats
+  console.log('🧠 Loading recent cross-conversation memory...');
+  const { data: recentMessages } = await supabase
+    .from("messages")
+    .select("role, content, conversation_id, created_at")
+    .eq("user_id", userId)
+    .neq("conversation_id", conversationId || "none") // Exclude current conversation
+    .order("created_at", { ascending: false })
+    .limit(20); // Last 20 messages from other conversations
 
-    if (allMessages && allMessages.length > 0) {
-      // Reverse to get chronological order (oldest first)
-      globalMemory = allMessages
-        .reverse()
-        .map(m => ({
-          role: m.role as "user" | "assistant",
-          content: m.content
-        }));
-    }
+  if (recentMessages && recentMessages.length > 0) {
+    // Reverse to get chronological order (oldest first)
+    globalMemory = recentMessages
+      .reverse()
+      .map(m => ({
+        role: m.role as "user" | "assistant",
+        content: m.content
+      }));
+    console.log(`✅ Loaded ${globalMemory.length} messages from recent conversations`);
   } else {
-    console.log('💬 Focusing on current conversation only');
+    console.log('💬 No previous conversation history found');
   }
 
   // ============================================
@@ -680,11 +692,38 @@ export async function POST(req: Request) {
     });
   }
   
-  // Add current conversation history
+  // ✅ FIX: Add current conversation history WITH images
   for (const msg of history) {
+    let messageContent: any = msg.content;
+
+    // If message has images, build multi-part content
+    if (msg.images && msg.images.length > 0) {
+      const contentParts = [];
+
+      // Add images first
+      for (const img of msg.images) {
+        contentParts.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: img.mediaType,
+            data: img.data,
+          },
+        });
+      }
+
+      // Add text after images
+      contentParts.push({
+        type: "text",
+        text: msg.content || ""
+      });
+
+      messageContent = contentParts;
+    }
+
     claudeMessages.push({
       role: msg.role,
-      content: msg.content
+      content: messageContent
     });
   }
   
