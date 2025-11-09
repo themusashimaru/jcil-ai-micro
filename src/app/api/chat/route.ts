@@ -880,6 +880,13 @@ Examples of questions requiring web search:
 
     if (msgInsertError) {
       console.error('Error saving user message:', msgInsertError);
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "Failed to save your message. Please try again."
+        }),
+        { status: 500, headers: { "content-type": "application/json" } }
+      );
     }
 
     // If there are images, save them all to message_images table (optional - gracefully fail if table doesn't exist)
