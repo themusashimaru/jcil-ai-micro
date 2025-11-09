@@ -417,6 +417,7 @@ export default function Home() {
   // tools / files
   const [activeTool, setActiveTool] = useState<ToolType>('none');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [lastSentFiles, setLastSentFiles] = useState<File[]>([]); // Keep last sent images for follow-ups
   const MAX_FILES = 1;
   const MAX_TOTAL_SIZE = 4 * 1024 * 1024; // 4MB for single file
 
@@ -659,6 +660,7 @@ export default function Home() {
     setLocalInput('');
     setRenamingId(null);
     clearAttachmentState();
+    setLastSentFiles([]); // Clear image context for new chat
     setActiveTool('none');
     if (isRecording) recorderRef.current?.stop();
     setIsRecording(false);
@@ -1010,7 +1012,11 @@ export default function Home() {
     const hasFiles = uploadedFiles.length > 0;
     const hasText = textInput.length > 0;
 
-    if (!hasText && !hasFiles) return;
+    // Auto-include last sent images for follow-up questions
+    const filesToSend = hasFiles ? uploadedFiles : (hasText ? lastSentFiles : []);
+    const actuallyHasFiles = filesToSend.length > 0;
+
+    if (!hasText && !actuallyHasFiles) return;
     if (isRecording) recorderRef.current?.stop();
 
     setIsLoading(true);
@@ -1049,6 +1055,11 @@ export default function Home() {
     };
     setMessages((prev) => [...prev, newUserMessage]);
     setLocalInput('');
+
+    // Save uploaded files for follow-up questions, then clear
+    if (hasFiles) {
+      setLastSentFiles(uploadedFiles);
+    }
     clearAttachmentState();
 
     // ============================================
@@ -1676,13 +1687,13 @@ export default function Home() {
       // ============================================
       else {
         let response: Response;
-        if (hasFiles) {
+        if (actuallyHasFiles) {
           const formData = new FormData();
           formData.append('message', textInput);
           formData.append('conversationId', currentConvoId || '');
           formData.append('history', JSON.stringify(conversationHistory));
-          // Append all files
-          uploadedFiles.forEach((file) => {
+          // Append all files (new uploads or last sent for follow-ups)
+          filesToSend.forEach((file) => {
             formData.append('files', file);
           });
           formData.append('toolType', activeTool);
