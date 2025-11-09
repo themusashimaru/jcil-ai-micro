@@ -2,11 +2,12 @@ export const runtime = 'nodejs';
 
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
-import { xai } from '@ai-sdk/xai';
+import { createXai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import { createClient } from "@/lib/supabase/server";
 import { getToolSystemPrompt, type ToolType } from "@/lib/tools-config";
 import { runModeration } from "@/lib/moderation";
+import { getApiKeyForGroup, getKeyPoolStats } from "@/lib/api-key-pool";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -357,13 +358,14 @@ export async function POST(req: Request) {
   }
 
   // ============================================
-  // 🎯 GET USER SUBSCRIPTION TIER & CHECK DAILY LIMIT
+  // 🎯 GET USER SUBSCRIPTION TIER, API KEY GROUP & CHECK DAILY LIMIT
   // ============================================
   let userTier = 'free'; // Default to free tier
+  let apiKeyGroup = 1; // Default to key group 1
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('subscription_tier, daily_message_limit, monthly_price')
+    .select('subscription_tier, daily_message_limit, monthly_price, api_key_group')
     .eq('id', userId)
     .single();
 
@@ -371,7 +373,11 @@ export async function POST(req: Request) {
     userTier = profile.subscription_tier;
   }
 
-  console.log(`👤 User ${userId} tier: ${userTier}`);
+  if (profile?.api_key_group) {
+    apiKeyGroup = profile.api_key_group;
+  }
+
+  console.log(`👤 User ${userId} | Tier: ${userTier} | API Key Group: ${apiKeyGroup}`);
 
   // ============================================
   // 📊 CHECK DAILY MESSAGE LIMIT (ALL TIERS)
@@ -736,7 +742,13 @@ export async function POST(req: Request) {
 
   const modelName = 'grok-4-fast-reasoning'; // Same model for all tiers, different message limits
 
-  console.log(`🤖 Using model: ${modelName} for tier: ${userTier}`);
+  // 🔑 GET API KEY FOR THIS USER'S GROUP (Load Balancing)
+  const userApiKey = getApiKeyForGroup(apiKeyGroup);
+
+  // Create xAI instance with user's assigned API key
+  const xai = createXai({ apiKey: userApiKey });
+
+  console.log(`🤖 Using model: ${modelName} | Tier: ${userTier} | API Key Group: ${apiKeyGroup}`);
 
   // ============================================
   // 📝 FETCH SYSTEM PROMPT (from database or fallback)
@@ -884,6 +896,12 @@ Examples of questions requiring web search:
           await supabase.rpc('increment_message_count', {
             p_user_id: userId,
             p_token_count: totalTokens
+          });
+
+          // 📊 Track API key usage stats (for load balancing monitoring)
+          await supabase.rpc('increment_api_key_stats', {
+            p_key_group: apiKeyGroup,
+            p_tokens: totalTokens
           });
 
           // Send completion signal with upgrade prompt if applicable
