@@ -72,6 +72,14 @@ export default function AdminInbox() {
   const [selectedTone, setSelectedTone] = useState('professional');
   const [sending, setSending] = useState(false);
 
+  // Sorting and filtering state
+  const [sortBy, setSortBy] = useState<string>('date_desc');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Bulk selection state
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     fetchMessages();
   }, [selectedFolder, statusFilter]);
@@ -228,6 +236,102 @@ export default function AdminInbox() {
     alert('Opening your default email client. Review and send when ready!');
   };
 
+  // Delete messages
+  const handleDeleteMessages = async (messageIds: string[]) => {
+    if (messageIds.length === 0) return;
+
+    const confirmMessage = messageIds.length === 1
+      ? 'Are you sure you want to delete this message?'
+      : `Are you sure you want to delete ${messageIds.length} messages?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch('/api/admin/inbox/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageIds }),
+      });
+
+      if (!response.ok) throw new Error('Failed to delete messages');
+
+      const data = await response.json();
+      alert(data.message);
+
+      // Clear selection
+      setSelectedMessageIds([]);
+
+      // Clear selected message if it was deleted
+      if (selectedMessage && messageIds.includes(selectedMessage.id)) {
+        setSelectedMessage(null);
+      }
+
+      // Refresh messages
+      await fetchMessages();
+    } catch (error: any) {
+      console.error('Failed to delete messages:', error);
+      alert('Failed to delete messages: ' + error.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Toggle selection for a single message
+  const toggleMessageSelection = (messageId: string) => {
+    setSelectedMessageIds((prev) =>
+      prev.includes(messageId)
+        ? prev.filter((id) => id !== messageId)
+        : [...prev, messageId]
+    );
+  };
+
+  // Toggle select all
+  const toggleSelectAll = () => {
+    if (selectedMessageIds.length === messages.length) {
+      setSelectedMessageIds([]);
+    } else {
+      setSelectedMessageIds(messages.map((m) => m.id));
+    }
+  };
+
+  // Filter and sort messages
+  const getFilteredAndSortedMessages = () => {
+    let filtered = [...messages];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((msg) =>
+        msg.subject.toLowerCase().includes(query) ||
+        msg.message.toLowerCase().includes(query) ||
+        msg.from_name?.toLowerCase().includes(query) ||
+        msg.from_email?.toLowerCase().includes(query) ||
+        msg.category?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date_desc':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'date_asc':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'sender':
+          return (a.from_name || '').localeCompare(b.from_name || '');
+        case 'subject':
+          return a.subject.localeCompare(b.subject);
+        case 'status':
+          return a.status.localeCompare(b.status);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  };
+
   const getFolderIcon = (folder: string) => {
     switch (folder) {
       case 'cyber_emergencies':
@@ -309,7 +413,7 @@ export default function AdminInbox() {
         <div className="col-span-12 md:col-span-3">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Folders</CardTitle>
+              <CardTitle className="text-sm font-semibold text-gray-900">Folders</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1">
               {[
@@ -328,7 +432,7 @@ export default function AdminInbox() {
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
                       isActive
                         ? 'bg-blue-50 text-blue-700 font-medium'
-                        : 'text-slate-700 hover:bg-slate-50'
+                        : 'text-gray-900 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -349,7 +453,7 @@ export default function AdminInbox() {
           {/* Status Filter */}
           <Card className="mt-4">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Status</CardTitle>
+              <CardTitle className="text-sm font-semibold text-gray-900">Status</CardTitle>
             </CardHeader>
             <CardContent>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -371,29 +475,79 @@ export default function AdminInbox() {
         {/* Message List */}
         <div className="col-span-12 md:col-span-4">
           <Card className="h-[700px] flex flex-col">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 space-y-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">
-                  {messages.length} Messages
+                <CardTitle className="text-sm font-semibold text-gray-900">
+                  {getFilteredAndSortedMessages().length} Messages
                 </CardTitle>
               </div>
+
+              {/* Search Input */}
+              <Input
+                placeholder="Search messages, senders, subjects..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="text-sm"
+              />
+
+              {/* Sort and Bulk Actions */}
+              <div className="flex items-center gap-2">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date_desc">Newest First</SelectItem>
+                    <SelectItem value="date_asc">Oldest First</SelectItem>
+                    <SelectItem value="sender">By Sender</SelectItem>
+                    <SelectItem value="subject">By Subject</SelectItem>
+                    <SelectItem value="status">By Status</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {selectedMessageIds.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteMessages(selectedMessageIds)}
+                    disabled={deleting}
+                  >
+                    <Trash className="h-4 w-4 mr-1" />
+                    Delete ({selectedMessageIds.length})
+                  </Button>
+                )}
+              </div>
+
+              {/* Select All Checkbox */}
+              {messages.length > 0 && (
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedMessageIds.length === messages.length && messages.length > 0}
+                    onChange={toggleSelectAll}
+                    className="rounded border-gray-300"
+                  />
+                  <span>Select All</span>
+                </label>
+              )}
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto space-y-2 p-4">
               {loading ? (
                 <div className="flex items-center justify-center h-32">
                   <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
                 </div>
-              ) : messages.length === 0 ? (
+              ) : getFilteredAndSortedMessages().length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 text-slate-400">
                   <Mail className="h-8 w-8 mb-2" />
-                  <p className="text-sm">No messages</p>
+                  <p className="text-sm">
+                    {searchQuery ? 'No messages match your search' : 'No messages'}
+                  </p>
                 </div>
               ) : (
-                messages.map((msg) => (
-                  <button
+                getFilteredAndSortedMessages().map((msg) => (
+                  <div
                     key={msg.id}
-                    onClick={() => handleSelectMessage(msg)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                    className={`w-full p-3 rounded-lg border transition-all ${
                       selectedMessage?.id === msg.id
                         ? 'bg-blue-50 border-blue-300'
                         : msg.status === 'unread'
@@ -401,28 +555,59 @@ export default function AdminInbox() {
                         : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <div className="flex items-center gap-2">
-                        {getFolderIcon(msg.folder)}
-                        <span className={`text-sm ${msg.status === 'unread' ? 'font-semibold' : 'font-medium'}`}>
-                          {msg.from_name || msg.from_email || 'System'}
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-500 whitespace-nowrap">
-                        {getTimeAgo(msg.created_at)}
-                      </span>
+                    <div className="flex items-start gap-2">
+                      {/* Checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={selectedMessageIds.includes(msg.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleMessageSelection(msg.id);
+                        }}
+                        className="mt-1 rounded border-gray-300"
+                      />
+
+                      {/* Message Content */}
+                      <button
+                        onClick={() => handleSelectMessage(msg)}
+                        className="flex-1 text-left"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            {getFolderIcon(msg.folder)}
+                            <span className={`text-sm ${msg.status === 'unread' ? 'font-semibold' : 'font-medium'}`}>
+                              {msg.from_name || msg.from_email || 'System'}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-500 whitespace-nowrap">
+                            {getTimeAgo(msg.created_at)}
+                          </span>
+                        </div>
+                        <p className={`text-sm mb-1 ${msg.status === 'unread' ? 'font-semibold' : ''}`}>
+                          {msg.subject}
+                        </p>
+                        <p className="text-xs text-gray-800 line-clamp-2 mb-2">
+                          {msg.message}
+                        </p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {getSeverityBadge(msg.severity)}
+                          {getStatusBadge(msg.status)}
+                        </div>
+                      </button>
+
+                      {/* Individual Delete Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteMessages([msg.id]);
+                        }}
+                        className="mt-1 p-1 hover:bg-red-50 rounded transition-colors"
+                        title="Delete message"
+                      >
+                        <Trash className="h-4 w-4 text-red-600" />
+                      </button>
                     </div>
-                    <p className={`text-sm mb-1 ${msg.status === 'unread' ? 'font-semibold' : ''}`}>
-                      {msg.subject}
-                    </p>
-                    <p className="text-xs text-gray-800 line-clamp-2 mb-2">
-                      {msg.message}
-                    </p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {getSeverityBadge(msg.severity)}
-                      {getStatusBadge(msg.status)}
-                    </div>
-                  </button>
+                  </div>
                 ))
               )}
             </CardContent>
@@ -456,13 +641,23 @@ export default function AdminInbox() {
                       </span>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedMessage(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteMessages([selectedMessage.id])}
+                      title="Delete message"
+                    >
+                      <Trash className="h-4 w-4 text-red-600" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedMessage(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
 
