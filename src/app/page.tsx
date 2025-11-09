@@ -695,10 +695,11 @@ export default function Home() {
       return;
 
       // Old code (disabled):
-      // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // const recorder = new MediaRecorder(stream);
-      // recorderRef.current = recorder;
-      // chunksRef.current = [];
+      /*
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -736,6 +737,7 @@ export default function Home() {
 
       setIsRecording(true);
       recorder.start();
+      */
     } catch (err) {
       alert('Microphone access denied');
     }
