@@ -86,200 +86,32 @@ const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB per file (fits most photos/screens
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
-// Christian-themed loading messages for theological/chat queries
-const THEOLOGICAL_LOADING_MESSAGES = [
-  "Seeking wisdom from Scripture...",
-  "Processing through a biblical lens...",
-  "Analyzing with discernment...",
-  "Searching the Scriptures...",
-  "Filtering through Christian principles...",
-  "Examining with theological care...",
-  "Rendering a thoughtful response...",
-  "Compiling biblical insights...",
-  "Synthesizing scriptural wisdom...",
-  "Meditating on your question...",
-  "Applying faith-based reasoning...",
-  "Cross-referencing sacred texts...",
-  "Constructing a faithful answer...",
-  "Parsing with divine guidance...",
-  "Rejecting wokeness, embracing truth...",
-];
-
-// Practical loading messages for searches, trends, news, etc.
-const PRACTICAL_LOADING_MESSAGES = [
+// ✅ SIMPLIFIED: Professional loading messages for ALL queries
+// Removed complex intent detection - these work for everything
+const LOADING_MESSAGES = [
+  "Processing your request...",
   "Analyzing your question...",
-  "Processing information...",
-  "Structuring research...",
-  "Locating relevant data...",
-  "Filtering results...",
-  "Compiling findings...",
-  "Synthesizing information...",
-  "Organizing insights...",
+  "Gathering information...",
+  "Compiling response...",
+  "Reviewing data...",
+  "Structuring answer...",
+  "Finalizing response...",
+  "Preparing insights...",
   "Cross-referencing sources...",
-  "Applying biblical wisdom...",
-  "Filtering through Christian principles...",
+  "Synthesizing information...",
 ];
 
-// Sassy loading messages for liberal/woke queries 😏
-const WOKE_DETECTION_MESSAGES = [
-  "Detecting wokeness...",
-  "Restructuring the woke agenda...",
-  "Reshaping the liberal perspective...",
-  "Applying common sense...",
-  "Fact-checking mainstream narratives...",
-  "Filtering out cultural Marxism...",
-  "Translating from woke to truth...",
-  "Rejecting identity politics...",
-  "Deploying biblical reality check...",
-  "Bypassing leftist programming...",
-];
-
-// Lazy student detection 📚
-const LAZY_STUDENT_MESSAGES = [
-  "Detecting academic shortcuts...",
-  "Encouraging genuine learning...",
-  "Redirecting to study materials...",
-  "Promoting intellectual growth...",
-  "Discouraging plagiarism...",
-  "Building character through effort...",
-  "Teaching the value of hard work...",
-  "Guiding towards honest achievement...",
-];
-
-// Veteran detection 🇺🇸
-const VETERAN_MESSAGES = [
-  "Honoring your service...",
-  "Thank you for your sacrifice...",
-  "Respecting those who served...",
-  "Grateful for your dedication...",
-  "Serving those who served...",
-  "Recognizing military service...",
-  "Appreciating American heroes...",
-];
-
-// Business professional detection 💼
-const BUSINESS_MESSAGES = [
-  "Analyzing business strategy...",
-  "Processing professional inquiry...",
-  "Structuring business insights...",
-  "Optimizing strategic approach...",
-  "Deploying market intelligence...",
-  "Synthesizing business data...",
-];
-
-// Parent/Homeschool detection 👨‍👩‍👧‍👦
-const PARENT_MESSAGES = [
-  "Supporting family education...",
-  "Assisting homeschool curriculum...",
-  "Providing biblical guidance for families...",
-  "Strengthening Christian parenting...",
-  "Building godly family foundations...",
-];
-
-// Dark/Occult detection ⚠️🛡️
-const DARK_ENTITY_MESSAGES = [
-  "⚠️ Detecting dark entities...",
-  "⚠️ Detecting malicious intent...",
-  "⚠️ Identifying occult content...",
-  "⚠️ Spiritual protection activated...",
-  "⚠️ Rejecting demonic influence...",
-  "⚠️ Deploying biblical authority...",
-];
-
-// Business Owners/Creators 🚀
-const CREATOR_MESSAGES = [
-  "Supporting your vision...",
-  "Empowering your business journey...",
-  "Gathering insights efficiently...",
-  "Optimizing for your success...",
-  "Building your dream...",
-  "Reviewing for accurate guidance...",
-  "Accelerating your goals...",
-];
-
-// Emotional Distress/Struggling 💙✝️
-const DISTRESS_MESSAGES = [
-  "User is experiencing hardship...",
-  "Jesus loves you very much...",
-  "You have a beautiful future...",
-  "Providing compassionate support...",
-  "God sees your struggle...",
-  "Hope is on the horizon...",
-  "You are not alone...",
-  "Strength is being prepared...",
-];
-
-// Hacker/Malicious Attempt Detection 🚨⚠️
-const HACKER_MESSAGES = [
-  "🚨 Detecting hacking attempt...",
-  "🚨 SQL injection detected...",
-  "🚨 Cross-site scripting blocked...",
-  "⚠️ Do not pass GO. Do not collect $200.",
-  "🛑 Silicon Valley shenanigans detected...",
-  "⚠️ Nice try, script kiddie...",
-  "🚫 Malicious activity identified...",
-  "🚨 Unauthorized access attempt...",
-  "⛔ Error 403: Protected by Higher Authority...",
-  "🚨 Security threat neutralized...",
-];
-
-const TypingIndicator = ({
-  isPractical = false,
-  isWoke = false,
-  isLazyStudent = false,
-  isVeteran = false,
-  isBusiness = false,
-  isParent = false,
-  isDarkEntity = false,
-  isCreator = false,
-  isDistress = false,
-  isHacker = false
-}: {
-  isPractical?: boolean;
-  isWoke?: boolean;
-  isLazyStudent?: boolean;
-  isVeteran?: boolean;
-  isBusiness?: boolean;
-  isParent?: boolean;
-  isDarkEntity?: boolean;
-  isCreator?: boolean;
-  isDistress?: boolean;
-  isHacker?: boolean;
-}) => {
+// ✅ SIMPLIFIED: Removed all intent detection, just one clean typing indicator
+const TypingIndicator = () => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
-    let messages = THEOLOGICAL_LOADING_MESSAGES;
-
-    // Priority order for special detection
-    if (isHacker) {
-      messages = HACKER_MESSAGES; // ABSOLUTE HIGHEST - Block hackers immediately! 🚨
-    } else if (isDarkEntity) {
-      messages = DARK_ENTITY_MESSAGES; // Block evil immediately!
-    } else if (isDistress) {
-      messages = DISTRESS_MESSAGES; // Compassion for struggling souls
-    } else if (isVeteran) {
-      messages = VETERAN_MESSAGES; // Honor our veterans
-    } else if (isCreator) {
-      messages = CREATOR_MESSAGES; // Support business owners
-    } else if (isLazyStudent) {
-      messages = LAZY_STUDENT_MESSAGES; // Catch cheaters
-    } else if (isWoke) {
-      messages = WOKE_DETECTION_MESSAGES; // Time for sass
-    } else if (isParent) {
-      messages = PARENT_MESSAGES; // Support families
-    } else if (isBusiness) {
-      messages = BUSINESS_MESSAGES; // Professional mode
-    } else if (isPractical) {
-      messages = PRACTICAL_LOADING_MESSAGES;
-    }
-
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % messages.length);
+      setMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [isPractical, isWoke, isLazyStudent, isVeteran, isBusiness, isParent, isDarkEntity, isCreator, isDistress, isHacker]);
+  }, []);
 
   return (
     <div className="flex items-start space-x-3 justify-start">
@@ -291,28 +123,7 @@ const TypingIndicator = ({
             <div className="w-2 h-2 bg-blue-900 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
           <span className="text-sm text-slate-600 italic animate-pulse">
-            {isHacker
-              ? HACKER_MESSAGES[messageIndex]
-              : isDarkEntity
-                ? DARK_ENTITY_MESSAGES[messageIndex]
-                : isDistress
-                  ? DISTRESS_MESSAGES[messageIndex]
-                  : isVeteran
-                    ? VETERAN_MESSAGES[messageIndex]
-                    : isCreator
-                      ? CREATOR_MESSAGES[messageIndex]
-                      : isLazyStudent
-                        ? LAZY_STUDENT_MESSAGES[messageIndex]
-                        : isWoke
-                          ? WOKE_DETECTION_MESSAGES[messageIndex]
-                          : isParent
-                            ? PARENT_MESSAGES[messageIndex]
-                            : isBusiness
-                              ? BUSINESS_MESSAGES[messageIndex]
-                              : isPractical
-                                ? PRACTICAL_LOADING_MESSAGES[messageIndex]
-                                : THEOLOGICAL_LOADING_MESSAGES[messageIndex]
-            }
+            {LOADING_MESSAGES[messageIndex]}
           </span>
         </div>
       </div>
@@ -447,7 +258,9 @@ export default function Home() {
   const [upgradeModalData, setUpgradeModalData] = useState<any>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll so the latest message appears at the top of the viewport
+    // This keeps new user messages and AI responses visible while streaming
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const clearAttachmentState = () => {
@@ -2363,20 +2176,7 @@ export default function Home() {
                 </div>
               ))
             )}
-            {isTyping && (
-              <TypingIndicator
-                isPractical={isPracticalQuery}
-                isWoke={isWokeQuery}
-                isLazyStudent={isLazyStudentQuery}
-                isVeteran={isVeteranQuery}
-                isBusiness={isBusinessQuery}
-                isParent={isParentQuery}
-                isDarkEntity={isDarkEntityQuery}
-                isCreator={isCreatorQuery}
-                isDistress={isDistressQuery}
-                isHacker={isHackerQuery}
-              />
-            )}
+            {isTyping && <TypingIndicator />}
             <div ref={messagesEndRef} />
             </div>
           </CardContent>
