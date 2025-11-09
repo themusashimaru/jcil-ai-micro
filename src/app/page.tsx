@@ -637,43 +637,41 @@ export default function Home() {
       console.error('loadConversation error:', error);
       setMessages([{ id: 'err', role: 'assistant', content: 'Error loading conversation.' }]);
     } else {
-      // Load images for these messages (simplified to avoid stack overflow)
+      // Load messages without image data (images just show as text indicators)
       const messageIds = (data ?? []).map(m => m.id);
 
-      let images: any[] = [];
+      // Fetch just the count and filenames of images (lightweight)
+      let imagesByMessage: Record<string, Array<{ data: string; mediaType: string; fileName: string }>> = {};
       if (messageIds.length > 0) {
-        const { data: imageData } = await supabase
-          .from('message_images')
-          .select('message_id, image_data, media_type, file_name')
-          .in('message_id', messageIds)
-          .order('created_at', { ascending: true });
-        images = imageData || [];
-      }
+        try {
+          const { data: imageData } = await supabase
+            .from('message_images')
+            .select('message_id, file_name, media_type')
+            .in('message_id', messageIds);
 
-      // Group images by message_id (using simple loop instead of reduce)
-      const imagesByMessage: Record<string, Array<{ data: string; mediaType: string; fileName: string }>> = {};
-      for (const img of images) {
-        if (!imagesByMessage[img.message_id]) {
-          imagesByMessage[img.message_id] = [];
+          for (const img of (imageData || [])) {
+            if (!imagesByMessage[img.message_id]) {
+              imagesByMessage[img.message_id] = [];
+            }
+            imagesByMessage[img.message_id].push({
+              data: '', // Don't load the actual image data
+              mediaType: img.media_type,
+              fileName: img.file_name
+            });
+          }
+        } catch (imgError) {
+          console.log('Could not load image metadata (table may not exist):', imgError);
         }
-        imagesByMessage[img.message_id].push({
-          data: img.image_data,
-          mediaType: img.media_type,
-          fileName: img.file_name
-        });
       }
 
-      // Attach images to corresponding messages
-      const loaded: Message[] = [];
-      for (const m of (data ?? [])) {
-        loaded.push({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-          created_at: m.created_at,
-          images: imagesByMessage[m.id]
-        });
-      }
+      // Map messages
+      const loaded: Message[] = (data ?? []).map((m) => ({
+        id: m.id,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        created_at: m.created_at,
+        images: imagesByMessage[m.id]
+      }));
 
       setMessages(loaded);
       setConversationId(id);
@@ -1803,19 +1801,6 @@ export default function Home() {
         }
 
         assistantText = streamedText;
-
-        // If files were uploaded, reload conversation after a delay to fetch images
-        if (hasFiles && currentConvoId) {
-          const convoId = currentConvoId; // Capture for closure
-          setTimeout(async () => {
-            try {
-              await loadConversation(convoId);
-            } catch (reloadError) {
-              console.error('Error reloading conversation for images:', reloadError);
-              // Don't crash - images just won't show immediately
-            }
-          }, 1500); // Wait 1.5s for backend to finish saving
-        }
       }
 
       // Note: Database saving is now handled on the backend during streaming
@@ -2282,15 +2267,9 @@ export default function Home() {
                     {msg.role === 'user' ? (
                       <div className="bg-gradient-to-br from-blue-900 to-blue-800 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl whitespace-pre-wrap text-sm leading-relaxed shadow-lg">
                         {msg.images && msg.images.length > 0 && (
-                          <div className="mb-3 grid grid-cols-2 gap-2">
+                          <div className="mb-2 text-xs text-white/80 italic">
                             {msg.images.map((img, idx) => (
-                              <div key={idx} className="rounded-lg overflow-hidden bg-white/10">
-                                <img
-                                  src={`data:${img.mediaType};base64,${img.data}`}
-                                  alt={img.fileName || `Image ${idx + 1}`}
-                                  className="w-full h-auto max-h-40 object-contain"
-                                />
-                              </div>
+                              <div key={idx}>📎 Image attached: {img.fileName}</div>
                             ))}
                           </div>
                         )}
@@ -2378,7 +2357,7 @@ export default function Home() {
                 <div className="text-xs text-slate-600 mb-2 font-medium">
                   {uploadedFiles.length} {uploadedFiles.length === 1 ? 'file' : 'files'} attached
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-wrap items-start">
                   {uploadedFiles.map((file, index) => (
                     <div
                       key={index}
@@ -2471,9 +2450,9 @@ export default function Home() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      disabled={isLoading}
+                      disabled={isLoading || uploadedFiles.length >= MAX_FILES}
                       className={`hover:bg-slate-100 rounded-lg h-10 w-10 sm:h-11 sm:w-11 ${fileButtonFlash ? 'bg-slate-200' : ''}`}
-                      title="Attach file or take photo"
+                      title={uploadedFiles.length >= MAX_FILES ? `Maximum ${MAX_FILES} files reached` : "Attach file or take photo"}
                     >
                       <Paperclip className="h-5 w-5 text-slate-700" strokeWidth={2} />
                     </Button>
@@ -2485,12 +2464,14 @@ export default function Home() {
                   >
                     <DropdownMenuItem
                       onSelect={() => cameraInputRef.current?.click()}
+                      disabled={uploadedFiles.length >= MAX_FILES}
                       className="text-slate-700 text-sm cursor-pointer"
                     >
                       Take Photo
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onSelect={() => fileInputRef.current?.click()}
+                      disabled={uploadedFiles.length >= MAX_FILES}
                       className="text-slate-700 text-sm cursor-pointer"
                     >
                       Choose File
