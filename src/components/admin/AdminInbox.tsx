@@ -460,7 +460,7 @@ export default function AdminInbox() {
                 <SelectTrigger className="text-gray-900 font-semibold">
                   <SelectValue className="text-gray-900 font-semibold" />
                 </SelectTrigger>
-                <SelectContent className="text-gray-900">
+                <SelectContent className="bg-white text-gray-900 border border-gray-200 shadow-lg">
                   <SelectItem value="all" className="text-gray-900">All Status</SelectItem>
                   <SelectItem value="unread" className="text-gray-900">Unread</SelectItem>
                   <SelectItem value="read" className="text-gray-900">Read</SelectItem>
@@ -496,7 +496,7 @@ export default function AdminInbox() {
                   <SelectTrigger className="text-sm text-gray-900 font-semibold">
                     <SelectValue className="text-gray-900 font-semibold" />
                   </SelectTrigger>
-                  <SelectContent className="text-gray-900">
+                  <SelectContent className="bg-white text-gray-900 border border-gray-200 shadow-lg">
                     <SelectItem value="date_desc" className="text-gray-900">Newest First</SelectItem>
                     <SelectItem value="date_asc" className="text-gray-900">Oldest First</SelectItem>
                     <SelectItem value="sender" className="text-gray-900">By Sender</SelectItem>
