@@ -867,7 +867,7 @@ Examples of questions requiring web search:
     // Save user message immediately
     const userMessageText = message || (imageFiles.length > 0 ? "" : "");
 
-    const { data: savedMessage } = await supabase
+    const { data: savedMessage, error: msgInsertError } = await supabase
       .from("messages")
       .insert({
         user_id: userId,
@@ -878,19 +878,31 @@ Examples of questions requiring web search:
       .select('id')
       .single();
 
-    // If there are images, save them all to message_images table
-    if (savedMessage && imageDataArray.length > 0) {
-      const imageInserts = imageDataArray.map(img => ({
-        message_id: savedMessage.id,
-        user_id: userId,
-        conversation_id: conversationId,
-        image_data: img.data,
-        media_type: img.mediaType,
-        file_name: img.fileName,
-        file_size: null
-      }));
+    if (msgInsertError) {
+      console.error('Error saving user message:', msgInsertError);
+    }
 
-      await supabase.from("message_images").insert(imageInserts);
+    // If there are images, save them all to message_images table (optional - gracefully fail if table doesn't exist)
+    if (savedMessage && imageDataArray.length > 0) {
+      try {
+        const imageInserts = imageDataArray.map(img => ({
+          message_id: savedMessage.id,
+          user_id: userId,
+          conversation_id: conversationId,
+          image_data: img.data,
+          media_type: img.mediaType,
+          file_name: img.fileName,
+          file_size: null
+        }));
+
+        const { error: imgError } = await supabase.from("message_images").insert(imageInserts);
+        if (imgError) {
+          console.error('Error saving images (table may not exist yet):', imgError);
+        }
+      } catch (imgCatchError) {
+        console.error('Failed to save images:', imgCatchError);
+        // Continue anyway - images are optional
+      }
     }
 
     // Create a streaming response
