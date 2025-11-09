@@ -563,7 +563,11 @@ export async function POST(req: Request) {
 
   let conversationId: string | null = null;
   let message = "";
-  let history: Array<{ role: "user" | "assistant"; content: string }> = [];
+  let history: Array<{
+    role: "user" | "assistant";
+    content: string;
+    images?: Array<{ data: string; mediaType: string; fileName: string }>;
+  }> = [];
   let imageFiles: File[] = [];
   let toolType: ToolType = 'none';
 
