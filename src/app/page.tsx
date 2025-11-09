@@ -1295,6 +1295,12 @@ export default function Home() {
 
     let assistantText = '';
 
+    // Build conversation history from messages (exclude the just-added user message)
+    const conversationHistory = messages.slice(0, -1).map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+
       // ============================================
       // 🌐 ROUTE 1: WEB SEARCH (Brave + Claude)
       // ============================================
@@ -1417,7 +1423,8 @@ export default function Home() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               query: textInput,
-              location: userLocation // can be null if city is mentioned in query
+              location: userLocation, // can be null if city is mentioned in query
+              history: conversationHistory
             }),
           });
 
@@ -1453,7 +1460,8 @@ export default function Home() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               query: textInput,
-              location: userLocation
+              location: userLocation,
+              history: conversationHistory
             }),
           });
 
@@ -1487,7 +1495,10 @@ export default function Home() {
         const factCheckResponse = await fetch('/api/fact-check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ claim: textInput }),
+          body: JSON.stringify({
+            claim: textInput,
+            history: conversationHistory
+          }),
         });
 
         const factCheckData = await factCheckResponse.json();
@@ -1664,18 +1675,12 @@ export default function Home() {
       // 💬 ROUTE 6: NORMAL CHAT (Streaming)
       // ============================================
       else {
-        // Build conversation history from messages (exclude the just-added user message)
-        const history = messages.slice(0, -1).map(m => ({
-          role: m.role,
-          content: m.content
-        }));
-
         let response: Response;
         if (hasFiles) {
           const formData = new FormData();
           formData.append('message', textInput);
           formData.append('conversationId', currentConvoId || '');
-          formData.append('history', JSON.stringify(history));
+          formData.append('history', JSON.stringify(conversationHistory));
           // Append all files
           uploadedFiles.forEach((file) => {
             formData.append('files', file);
@@ -1689,7 +1694,7 @@ export default function Home() {
             body: JSON.stringify({
               message: textInput,
               conversationId: currentConvoId,
-              history: history,
+              history: conversationHistory,
               toolType: activeTool
             }),
           });
