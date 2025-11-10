@@ -129,6 +129,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Chat API error:', error);
 
+    // Log detailed error info
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+
     // Check for specific error types
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
@@ -149,6 +155,7 @@ export async function POST(request: NextRequest) {
       JSON.stringify({
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
       }),
       {
         status: 500,
