@@ -37,6 +37,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,30 +85,62 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return;
 
-    const newAttachments: Attachment[] = [];
+    // Clear previous errors
+    setFileError(null);
 
-    Array.from(files).forEach((file) => {
-      // Validate file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`File ${file.name} is too large (max 10MB)`);
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
+    const MAX_TOTAL_SIZE = 25 * 1024 * 1024; // 25MB total for all files
+    const MAX_FILE_COUNT = 10; // 10 files maximum (API limit)
+    const newAttachments: Attachment[] = [];
+    const fileArray = Array.from(files);
+
+    // Check file count limit
+    const totalFileCount = attachments.length + fileArray.length;
+    if (totalFileCount > MAX_FILE_COUNT) {
+      setFileError(`Maximum ${MAX_FILE_COUNT} files allowed. You currently have ${attachments.length} file(s). Remove some files first.`);
+      setTimeout(() => setFileError(null), 5000);
+      return;
+    }
+
+    // Calculate total size of new files
+    const newFilesSize = fileArray.reduce((sum, file) => sum + file.size, 0);
+    const existingFilesSize = attachments.reduce((sum, att) => sum + att.size, 0);
+    const totalSize = newFilesSize + existingFilesSize;
+
+    // Check total size limit
+    if (totalSize > MAX_TOTAL_SIZE) {
+      const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
+      setFileError(`Total file size (${totalMB}MB) exceeds 25MB limit. Remove some files and try again.`);
+      setTimeout(() => setFileError(null), 5000);
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/pdf',
+      'text/plain',
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+
+    for (const file of fileArray) {
+      // Validate individual file size
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        setFileError(`"${file.name}" is too large (${sizeMB}MB). Maximum file size is 10MB.`);
+        setTimeout(() => setFileError(null), 5000);
         return;
       }
 
       // Validate file type
-      const allowedTypes = [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'application/pdf',
-        'text/plain',
-        'text/csv',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      ];
-
       if (!allowedTypes.includes(file.type)) {
-        alert(`File type ${file.type} not supported`);
+        setFileError(`"${file.name}" file type not supported. Allowed: images, PDF, TXT, CSV, XLSX.`);
+        setTimeout(() => setFileError(null), 5000);
         return;
       }
 
@@ -129,7 +162,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
       } else {
         newAttachments.push(attachment);
       }
-    });
+    }
 
     if (newAttachments.length > 0) {
       setAttachments((prev) => [...prev, ...newAttachments]);
@@ -380,6 +413,13 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
         {recordingError && (
           <p className="mt-2 text-xs text-red-400">
             {recordingError}
+          </p>
+        )}
+
+        {/* File Upload Error */}
+        {fileError && (
+          <p className="mt-2 text-xs text-red-400">
+            ⚠️ {fileError}
           </p>
         )}
 
