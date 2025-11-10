@@ -1,41 +1,26 @@
 {
-  "name": "JCIL.AI Slingshot 2.0",
-  "short_name": "Slingshot",
-  "description": "Christian Conservative AI Assistant - Biblical wisdom meets modern AI",
+  "name": "Delta-2 AI Chat",
+  "short_name": "Delta-2",
+  "description": "AI Chat Interface with Advanced Tools",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1e3a8a",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/jcil-ai-logo.png",
-      "sizes": "512x512",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/jcil-ai-logo.png",
-      "sizes": "192x192",
+      "src": "/icon-512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "lifestyle", "education"],
-  "shortcuts": [
-    {
-      "name": "New Chat",
-      "short_name": "Chat",
-      "description": "Start a new conversation",
-      "url": "/",
-      "icons": [{ "src": "/jcil-ai-logo.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Daily Devotional",
-      "short_name": "Devotional",
-      "description": "Read today's devotional",
-      "url": "/devotional",
-      "icons": [{ "src": "/jcil-ai-logo.png", "sizes": "192x192" }]
-    }
-  ]
+  "categories": ["productivity", "utilities"],
+  "screenshots": []
 }

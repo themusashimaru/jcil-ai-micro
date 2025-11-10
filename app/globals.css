@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --glass-bg: rgba(0, 0, 0, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+}
+
+@layer base {
+  body {
+    @apply bg-black text-white;
+  }
+}
+
+@layer utilities {
+  .glass-morphism {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 var(--glass-shadow);
+  }
+
+  .chat-bubble {
+    @apply glass-morphism rounded-2xl p-4;
+  }
+
+  .chat-bubble-tail {
+    position: relative;
+  }
+
+  .chat-bubble-tail::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+  }
+
+  .chat-bubble-tail.left::after {
+    left: -10px;
+    border-right-color: var(--glass-bg);
+  }
+
+  .chat-bubble-tail.right::after {
+    right: -10px;
+    border-left-color: var(--glass-bg);
+  }
+}
