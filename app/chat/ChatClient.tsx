@@ -25,6 +25,7 @@ import { useState, useEffect } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
+import { NotificationProvider } from '@/components/notifications/NotificationProvider';
 import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
@@ -167,6 +168,7 @@ export function ChatClient() {
             <h1 className="text-xl font-semibold">Delta-2 Chat</h1>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationProvider />
             <button
               className="rounded-lg px-3 py-1.5 text-sm hover:bg-white/10"
               aria-label="Settings"
