@@ -200,6 +200,50 @@ export function ChatClient() {
     setIsStreaming(true);
 
     try {
+      // Format messages for API (handle text + image attachments)
+      const apiMessages = [...messages, userMessage].map((msg) => {
+        // Check if message has image attachments
+        const imageAttachments = msg.attachments?.filter(
+          (att) => att.type.startsWith('image/') && att.thumbnail
+        );
+
+        // If no images, send simple text message
+        if (!imageAttachments || imageAttachments.length === 0) {
+          return {
+            role: msg.role,
+            content: msg.content,
+          };
+        }
+
+        // Format message with images (xAI multi-part format)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const contentParts: any[] = [];
+
+        // Add images first
+        imageAttachments.forEach((image) => {
+          contentParts.push({
+            type: 'image_url',
+            image_url: {
+              url: image.thumbnail, // Already in base64 format
+              detail: 'high',
+            },
+          });
+        });
+
+        // Add text content
+        if (msg.content) {
+          contentParts.push({
+            type: 'text',
+            text: msg.content,
+          });
+        }
+
+        return {
+          role: msg.role,
+          content: contentParts,
+        };
+      });
+
       // Call streaming API
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -207,10 +251,7 @@ export function ChatClient() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })),
+          messages: apiMessages,
         }),
       });
 
