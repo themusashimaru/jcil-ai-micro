@@ -88,10 +88,19 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
     // Clear previous errors
     setFileError(null);
 
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
     const MAX_TOTAL_SIZE = 25 * 1024 * 1024; // 25MB total for all files
+    const MAX_FILE_COUNT = 10; // 10 files maximum (API limit)
     const newAttachments: Attachment[] = [];
     const fileArray = Array.from(files);
+
+    // Check file count limit
+    const totalFileCount = attachments.length + fileArray.length;
+    if (totalFileCount > MAX_FILE_COUNT) {
+      setFileError(`Maximum ${MAX_FILE_COUNT} files allowed. You currently have ${attachments.length} file(s). Remove some files first.`);
+      setTimeout(() => setFileError(null), 5000);
+      return;
+    }
 
     // Calculate total size of new files
     const newFilesSize = fileArray.reduce((sum, file) => sum + file.size, 0);
