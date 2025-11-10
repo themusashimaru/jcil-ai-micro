@@ -52,7 +52,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
   };
 
   return (
-    <div className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse justify-end' : ''}`}>
       {/* Avatar */}
       <div
         className={`mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
@@ -75,7 +75,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
       </div>
 
       {/* Message Content */}
-      <div className="flex-1 space-y-2">
+      <div className={`space-y-2 ${isUser ? 'max-w-[70%]' : 'flex-1'}`}>
         {/* Tool Calls */}
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="flex flex-wrap gap-2">

@@ -74,7 +74,7 @@ export function getSystemPromptForTool(toolType?: ToolType): string {
       return `You are an expert coding assistant. Generate clean, well-documented code following best practices. Explain your reasoning and provide helpful comments.`;
 
     case 'research':
-      return `You are a thorough research assistant. Conduct comprehensive research using available tools. Cite your sources and provide detailed analysis.`;
+      return `You are a concise research assistant. Provide direct, accurate answers using real-time web search. Keep responses brief and to the point. Include sources at the end.`;
 
     case 'email':
       return `You are a professional email writing assistant. Craft clear, well-structured emails appropriate for the specified tone and context.`;
