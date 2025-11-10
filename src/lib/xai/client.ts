@@ -111,13 +111,36 @@ async function createDirectXAICompletion(options: ChatOptions) {
   const systemPrompt = getSystemPromptForTool(tool);
   const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
-  const agenticTools = getAgenticTools(tool);
 
   // Prepare messages with system prompt
   const apiMessages = [
     { role: 'system', content: systemPrompt },
     ...messages,
   ];
+
+  // Prepare request body
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requestBody: any = {
+    model: modelName,
+    messages: apiMessages,
+    temperature: effectiveTemperature,
+    max_tokens: effectiveMaxTokens,
+    stream: false,
+  };
+
+  // Add search_parameters for research tool
+  // Live Search is NOT a tool - it's a top-level search_parameters field
+  if (tool === 'research') {
+    requestBody.search_parameters = {
+      mode: 'on', // Force search on for live search button
+      return_citations: true,
+      sources: [
+        { type: 'web' },
+        { type: 'x' },
+        { type: 'news' }
+      ]
+    };
+  }
 
   // Make direct API call to xAI
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -126,14 +149,7 @@ async function createDirectXAICompletion(options: ChatOptions) {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: modelName,
-      messages: apiMessages,
-      temperature: effectiveTemperature,
-      max_tokens: effectiveMaxTokens,
-      tools: agenticTools,
-      stream: false,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {

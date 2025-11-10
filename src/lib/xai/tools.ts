@@ -7,35 +7,16 @@ import { ToolType } from './types';
 
 /**
  * Get server-side agentic tools configuration
- * These tools are executed by xAI servers automatically
+ * NOTE: Live Search is NOT a tool - it's handled via search_parameters in the API request
+ * This function is kept for potential future custom tools (function type)
  */
-export function getAgenticTools(toolType?: ToolType) {
+export function getAgenticTools(_toolType?: ToolType) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tools: any[] = [];
 
-  // Research tool should have live_search (xAI's real-time web search)
-  if (toolType === 'research') {
-    tools.push(
-      { type: 'live_search' }
-    );
-  }
-
-  // Code tool should have live_search for documentation lookup
-  if (toolType === 'code') {
-    tools.push(
-      { type: 'live_search' }
-    );
-  }
-
-  // Shopping should have live_search
-  if (toolType === 'shopper') {
-    tools.push({ type: 'live_search' });
-  }
-
-  // Scripture study might benefit from live_search
-  if (toolType === 'scripture') {
-    tools.push({ type: 'live_search' });
-  }
+  // Live Search is now handled via search_parameters, not tools
+  // Tools array is kept empty for now
+  // Future: Could add custom function tools here
 
   return tools;
 }
