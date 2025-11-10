@@ -245,7 +245,9 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder={
-              isDragging
+              recordingState === 'recording'
+                ? 'Listening...'
+                : isDragging
                 ? 'Drop files here...'
                 : 'Type your message... (Shift+Enter for new line)'
             }
