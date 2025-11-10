@@ -55,8 +55,9 @@ export async function createChatCompletion(options: ChatOptions) {
   // Get agentic tools for the tool type
   const agenticTools = getAgenticTools(tool);
 
-  // For research tool with web search, use direct xAI API to ensure tools work
-  if (tool === 'research' && agenticTools.length > 0 && !stream) {
+  // For research tool with web search, use direct xAI API with search_parameters
+  // Note: search_parameters is a top-level field, not a tool
+  if (tool === 'research' && !stream) {
     return createDirectXAICompletion(options);
   }
 
