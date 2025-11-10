@@ -7,14 +7,10 @@ import { createXai } from '@ai-sdk/xai';
 import { streamText, generateText, CoreMessage } from 'ai';
 import {
   getModelForTool,
-  supportsAgenticTools,
   getRecommendedTemperature,
   getMaxTokens,
 } from './models';
 import {
-  getAgenticTools,
-  getClientSideTools,
-  shouldUseAgenticTools,
   getSystemPromptForTool,
 } from './tools';
 import type { ToolType } from './types';
@@ -68,36 +64,14 @@ export async function createChatCompletion(options: ChatOptions) {
   const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
-  // Prepare tools configuration
-  const useAgenticTools = shouldUseAgenticTools(tool) && supportsAgenticTools(modelName);
-  const agenticTools = useAgenticTools ? getAgenticTools(tool) : [];
-  const clientTools = getClientSideTools(tool);
-
-  // Configure request parameters
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const requestConfig: any = {
+  // Simple configuration without complex tools for now
+  const requestConfig = {
     model,
     messages,
     system: systemPrompt,
     temperature: effectiveTemperature,
     maxTokens: effectiveMaxTokens,
   };
-
-  // Add server-side agentic tools if applicable
-  // Note: xAI server-side tools use experimental_toolCallMode
-  if (agenticTools.length > 0) {
-    requestConfig.experimental_toolCallMode = 'server';
-    requestConfig.tools = agenticTools.reduce((acc: any, toolDef: any) => {
-      acc[toolDef.type] = {}; // xAI server-side tools don't need parameters
-      return acc;
-    }, {});
-  }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-
-  // Add client-side tools if applicable
-  if (Object.keys(clientTools).length > 0) {
-    requestConfig.tools = { ...requestConfig.tools, ...clientTools };
-  }
 
   // Return streaming or non-streaming response
   if (stream) {
