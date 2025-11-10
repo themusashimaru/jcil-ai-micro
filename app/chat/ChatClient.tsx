@@ -134,7 +134,19 @@ export function ChatClient() {
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
-    if (!currentChatId) return;
+    // Auto-create chat if none exists
+    if (!currentChatId) {
+      const newChat: Chat = {
+        id: Date.now().toString(),
+        title: 'New Chat',
+        isPinned: false,
+        lastMessage: content.slice(0, 50),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setChats([newChat, ...chats]);
+      setCurrentChatId(newChat.id);
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
