@@ -13,36 +13,28 @@ export function getAgenticTools(toolType?: ToolType) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tools: any[] = [];
 
-  // Research tool should have web search and code execution
+  // Research tool should have live_search (xAI's real-time web search)
   if (toolType === 'research') {
     tools.push(
-      { type: 'web_search' },
-      { type: 'x_search' },
-      { type: 'code_execution' }
+      { type: 'live_search' }
     );
   }
 
-  // Code tool should have code execution
+  // Code tool should have live_search for documentation lookup
   if (toolType === 'code') {
     tools.push(
-      { type: 'code_execution' },
-      { type: 'web_search' } // For documentation lookup
+      { type: 'live_search' }
     );
   }
 
-  // Data analysis might need code execution
-  if (toolType === 'data') {
-    tools.push({ type: 'code_execution' });
-  }
-
-  // Shopping should have web search
+  // Shopping should have live_search
   if (toolType === 'shopper') {
-    tools.push({ type: 'web_search' });
+    tools.push({ type: 'live_search' });
   }
 
-  // Scripture study might benefit from web search
+  // Scripture study might benefit from live_search
   if (toolType === 'scripture') {
-    tools.push({ type: 'web_search' });
+    tools.push({ type: 'live_search' });
   }
 
   return tools;
