@@ -4,7 +4,7 @@
  */
 
 import { createXai } from '@ai-sdk/xai';
-import { streamText, generateText, convertToCoreMessages } from 'ai';
+import { streamText, generateText } from 'ai';
 import {
   getModelForTool,
   getRecommendedTemperature,
@@ -65,14 +65,10 @@ export async function createChatCompletion(options: ChatOptions) {
   const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
-  // Convert messages to CoreMessage format
-  // This ensures proper handling of multi-part messages (text + images)
-  const coreMessages = convertToCoreMessages(messages);
-
   // Simple configuration without complex tools for now
   const requestConfig = {
     model,
-    messages: coreMessages,
+    messages, // Pass messages directly - they're already in the right format
     system: systemPrompt,
     temperature: effectiveTemperature,
     maxTokens: effectiveMaxTokens,

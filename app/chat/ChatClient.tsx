@@ -173,8 +173,8 @@ export function ChatClient() {
     setMessages((prev) => [...prev, userMessage, searchMessage]);
   };
 
-  // Auto-detect which tool to use based on the user's query
-  const detectTool = (query: string): string | undefined => {
+  // Check if query needs live search and provide a helpful message
+  const needsLiveSearch = (query: string): string | null => {
     const lowerQuery = query.toLowerCase();
 
     // Patterns that indicate live search is needed
@@ -192,55 +192,16 @@ export function ChatClient() {
       /stock price/i,
       /current (price|value)/i,
       /happening (now|today)/i,
-      /search (for|about)/i,
-      /look up/i,
-      /find (out|information)/i,
-    ];
-
-    // Patterns that indicate coding help is needed
-    const codingPatterns = [
-      /write (a |an |some )?code/i,
-      /write (a |an )?(function|class|method|script)/i,
-      /how (do|can) (i|you) code/i,
-      /create (a |an )?(function|class|component)/i,
-      /implement (a |an )/i,
-      /debug (this|my)/i,
-      /fix (this|my|the) (code|bug|error)/i,
-      /regex (for|to)/i,
-      /algorithm (for|to)/i,
-      /code (to|for|that)/i,
-      /programming (help|question)/i,
     ];
 
     // Check for live search patterns
     for (const pattern of liveSearchPatterns) {
       if (pattern.test(lowerQuery)) {
-        return 'research';
+        return "For real-time information like current time, date, weather, or latest news, please use the **Live Search** button below to get accurate, up-to-date results.";
       }
     }
 
-    // Check for coding patterns
-    for (const pattern of codingPatterns) {
-      if (pattern.test(lowerQuery)) {
-        return 'code';
-      }
-    }
-
-    // Check for specific keywords
-    if (
-      lowerQuery.includes('search') ||
-      lowerQuery.includes('google') ||
-      lowerQuery.includes('latest') ||
-      lowerQuery.includes('news') ||
-      lowerQuery.includes('current') ||
-      lowerQuery.includes('today') ||
-      lowerQuery.includes('now')
-    ) {
-      return 'research';
-    }
-
-    // Default: no specific tool
-    return undefined;
+    return null;
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
@@ -314,10 +275,23 @@ export function ChatClient() {
         };
       });
 
-      // Auto-detect which tool to use
-      const detectedTool = detectTool(content);
+      // Check if query needs live search
+      const liveSearchMessage = needsLiveSearch(content);
 
-      // Call API with auto-detected tool
+      if (liveSearchMessage) {
+        // Provide helpful message about using Live Search button
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: liveSearchMessage,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        setIsStreaming(false);
+        return;
+      }
+
+      // Call API with regular chat (no auto tool selection)
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -325,7 +299,7 @@ export function ChatClient() {
         },
         body: JSON.stringify({
           messages: apiMessages,
-          tool: detectedTool, // Automatically use the right tool
+          // No tool parameter - let users manually select tools via buttons
         }),
       });
 
