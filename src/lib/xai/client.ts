@@ -3,7 +3,7 @@
  * Wrapper for xAI API using Vercel AI SDK
  */
 
-import { xai } from '@ai-sdk/xai';
+import { createXai } from '@ai-sdk/xai';
 import { streamText, generateText, CoreMessage } from 'ai';
 import {
   getModelForTool,
@@ -39,13 +39,23 @@ function getXAIApiKey(): string {
 }
 
 /**
+ * Get configured xAI provider
+ */
+function getXAIProvider() {
+  const apiKey = getXAIApiKey();
+  return createXai({
+    apiKey,
+  });
+}
+
+/**
  * Create a chat completion with streaming support
  */
 export async function createChatCompletion(options: ChatOptions) {
   const { messages, tool, temperature, maxTokens, stream = true } = options;
 
-  // Ensure API key is available
-  getXAIApiKey();
+  // Get configured xAI provider
+  const xai = getXAIProvider();
 
   // Determine the appropriate model
   const modelName = getModelForTool(tool);
@@ -131,8 +141,8 @@ export async function generateImage(prompt: string) {
  * Analyze an image using xAI vision capabilities
  */
 export async function analyzeImage(imageUrl: string, question: string) {
-  // Ensure API key is available
-  getXAIApiKey();
+  // Get configured xAI provider
+  const xai = getXAIProvider();
 
   const model = xai('grok-4-fast-reasoning');
 
