@@ -153,6 +153,18 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
           </div>
         )}
 
+        {/* Generated Image */}
+        {message.imageUrl && (
+          <div className="mb-2 overflow-hidden rounded-lg border border-white/10">
+            <img
+              src={message.imageUrl}
+              alt="AI-generated image"
+              className="max-w-full rounded-lg"
+              style={{ maxHeight: '400px' }}
+            />
+          </div>
+        )}
+
         {/* Message Bubble */}
         <div
           className={`chat-bubble chat-bubble-tail ${
