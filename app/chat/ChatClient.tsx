@@ -126,18 +126,85 @@ export function ChatClient() {
     setMessages([...messages, userMessage]);
     setIsStreaming(true);
 
-    // TODO: Call streaming API
-    // Mock streaming response
-    setTimeout(() => {
+    try {
+      // Call streaming API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      // Create assistant message placeholder
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'This is a mock response. API integration pending.',
+        content: '',
         timestamp: new Date(),
       };
+
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      let accumulatedContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('0:')) {
+            // Text delta from Vercel AI SDK stream format
+            const content = line.slice(2).replace(/^"(.*)"$/, '$1');
+            if (content) {
+              accumulatedContent += content;
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessage.id
+                    ? { ...msg, content: accumulatedContent }
+                    : msg
+                )
+              );
+            }
+          }
+        }
+      }
+
       setIsStreaming(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Chat API error:', error);
+
+      // Show error message
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the console and Vercel logs.`,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsStreaming(false);
+    }
   };
 
   return (
