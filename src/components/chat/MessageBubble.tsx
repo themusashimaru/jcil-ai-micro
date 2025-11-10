@@ -168,7 +168,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
         {/* Message Bubble */}
         <div
           className={`chat-bubble chat-bubble-tail ${
-            isUser ? 'right bg-white text-black' : 'left'
+            isUser ? 'right bg-blue-600 text-white' : 'left'
           }`}
         >
           <div className="whitespace-pre-wrap break-words">{message.content}</div>
@@ -176,7 +176,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
           {/* Timestamp */}
           <div
             className={`mt-2 text-xs ${
-              isUser ? 'text-black/60' : 'text-gray-500'
+              isUser ? 'text-white/70' : 'text-gray-500'
             }`}
           >
             {new Date(message.timestamp).toLocaleTimeString([], {
