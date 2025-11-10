@@ -1,20 +1,68 @@
 /**
  * VIDEO GENERATION TOOL
- * PURPOSE: AI video generation (queued jobs, async processing)
- * ROUTES: /tools/video (auth required)
- * RATE LIMITS: Basic=OFF, Pro=5/day, Exec=10/day
- * TODO: Implement job queue, progress tracking, webhook callbacks
+ * PURPOSE: AI video generation
  */
 
+'use client';
+
+import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
+
+const VIDEO_CONFIG: ToolConfig = {
+  id: 'video',
+  icon: '🎬',
+  title: 'Video Generator',
+  description: 'Create AI-generated videos from text prompts.',
+  fields: [
+    {
+      name: 'prompt',
+      label: 'Video Description',
+      type: 'textarea',
+      placeholder: 'Describe the video you want to create...\ne.g., A time-lapse of clouds moving over a mountain range...',
+      required: true,
+      rows: 4,
+    },
+    {
+      name: 'duration',
+      label: 'Duration',
+      type: 'select',
+      required: true,
+      options: [
+        { value: '3', label: '3 seconds' },
+        { value: '5', label: '5 seconds' },
+        { value: '10', label: '10 seconds' },
+      ],
+    },
+    {
+      name: 'style',
+      label: 'Video Style',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'cinematic', label: 'Cinematic' },
+        { value: 'animated', label: 'Animated' },
+        { value: 'realistic', label: 'Realistic' },
+        { value: 'artistic', label: 'Artistic' },
+      ],
+    },
+    {
+      name: 'aspectRatio',
+      label: 'Aspect Ratio',
+      type: 'select',
+      required: true,
+      options: [
+        { value: '16:9', label: '16:9 (Widescreen)' },
+        { value: '9:16', label: '9:16 (Vertical)' },
+        { value: '1:1', label: '1:1 (Square)' },
+      ],
+    },
+  ],
+  examples: [
+    'Ocean waves crashing on shore',
+    'Bustling city street time-lapse',
+    'Northern lights dancing in sky',
+  ],
+};
+
 export default function VideoGenPage() {
-  return (
-    <div className="min-h-screen bg-black p-8">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="mb-8 text-3xl font-bold">Video Generation</h1>
-        <div className="glass-morphism rounded-2xl p-6">
-          <p className="text-gray-400">Video generation tool coming soon</p>
-        </div>
-      </div>
-    </div>
-  );
+  return <ToolLauncher config={VIDEO_CONFIG} />;
 }

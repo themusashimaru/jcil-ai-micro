@@ -1,20 +1,64 @@
 /**
  * DEEP RESEARCH TOOL
- * PURPOSE: Web research with citations, source tracking, and analysis
- * ROUTES: /tools/research (auth required)
- * RATE LIMITS: Subject to plan limits + web search quotas
- * TODO: Implement web search, citation management, source validation
+ * PURPOSE: Web research with citations and source tracking
  */
 
+'use client';
+
+import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
+
+const RESEARCH_CONFIG: ToolConfig = {
+  id: 'research',
+  icon: '🔍',
+  title: 'Deep Research',
+  description: 'Comprehensive research with web search, analysis, and citations.',
+  fields: [
+    {
+      name: 'topic',
+      label: 'Research Topic',
+      type: 'textarea',
+      placeholder: 'What do you want to research?\ne.g., Latest advances in quantum computing, market trends for electric vehicles...',
+      required: true,
+      rows: 3,
+    },
+    {
+      name: 'depth',
+      label: 'Research Depth',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'overview', label: 'Quick Overview' },
+        { value: 'detailed', label: 'Detailed Analysis' },
+        { value: 'comprehensive', label: 'Comprehensive Study' },
+      ],
+    },
+    {
+      name: 'sources',
+      label: 'Number of Sources',
+      type: 'select',
+      required: true,
+      options: [
+        { value: '5', label: '5 sources' },
+        { value: '10', label: '10 sources' },
+        { value: '15', label: '15 sources' },
+        { value: '20', label: '20+ sources' },
+      ],
+    },
+    {
+      name: 'focus',
+      label: 'Specific Focus Areas',
+      type: 'textarea',
+      placeholder: 'Any specific aspects to focus on? (optional)',
+      rows: 3,
+    },
+  ],
+  examples: [
+    'AI regulation policies 2024',
+    'Renewable energy market analysis',
+    'Modern education technology trends',
+  ],
+};
+
 export default function ResearchPage() {
-  return (
-    <div className="min-h-screen bg-black p-8">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="mb-8 text-3xl font-bold">Deep Research</h1>
-        <div className="glass-morphism rounded-2xl p-6">
-          <p className="text-gray-400">Research tool with web search coming soon</p>
-        </div>
-      </div>
-    </div>
-  );
+  return <ToolLauncher config={RESEARCH_CONFIG} />;
 }
