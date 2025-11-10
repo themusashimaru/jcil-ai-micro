@@ -39,6 +39,8 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
+import { PWAInstaller } from '@/components/pwa/PWAInstaller';
+import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
 
 export const metadata: Metadata = {
   title: 'Delta-2 | AI Chat Interface',
@@ -49,6 +51,12 @@ export const metadata: Metadata = {
     width: 'device-width',
     initialScale: 1,
     maximumScale: 1,
+    userScalable: false,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Delta-2',
   },
 };
 
@@ -59,7 +67,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-black text-white antialiased">{children}</body>
+      <head>
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
+      <body className="bg-black text-white antialiased">
+        <OfflineIndicator />
+        {children}
+        <PWAInstaller />
+      </body>
     </html>
   );
 }

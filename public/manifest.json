@@ -1,12 +1,16 @@
 {
   "name": "Delta-2 AI Chat",
   "short_name": "Delta-2",
-  "description": "AI Chat Interface with Advanced Tools",
-  "start_url": "/",
+  "description": "AI Chat Interface with Advanced Tools - Create content, analyze data, generate images, and more",
+  "start_url": "/chat",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait-primary",
+  "dir": "ltr",
+  "lang": "en-US",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192.png",
@@ -21,6 +25,39 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "utilities"],
-  "screenshots": []
+  "categories": ["productivity", "utilities", "business"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "New Chat",
+      "short_name": "Chat",
+      "description": "Start a new chat conversation",
+      "url": "/chat",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Email Tool",
+      "short_name": "Email",
+      "description": "Draft professional emails",
+      "url": "/tools/email",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Image Generator",
+      "short_name": "Image",
+      "description": "Generate images with AI",
+      "url": "/tools/image",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "share_target": {
+    "action": "/chat",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }
