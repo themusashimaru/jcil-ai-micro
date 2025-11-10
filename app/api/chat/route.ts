@@ -1,58 +1,161 @@
 /**
- * CHAT API ROUTE - SSE Streaming
+ * CHAT API ROUTE - xAI Streaming Integration
  *
  * PURPOSE:
  * - Handle chat message requests with streaming responses
- * - Route to appropriate provider (OpenAI/XAI) based on user plan
- * - Execute tool calls (web search, maps, image gen, etc.)
- * - Apply rate limits per user tier
+ * - Integrate with xAI API (Grok models)
+ * - Support agentic tool calling (web search, code execution, etc.)
+ * - Route to appropriate models based on tool type
  *
  * PUBLIC ROUTES:
- * - POST /api/chat (requires authentication)
+ * - POST /api/chat
  *
  * SECURITY/RLS NOTES:
- * - Validate user session
- * - Check rate limits before processing
  * - Input sanitization for prompts
- * - Validate file uploads (MIME, size)
- * - Moderate content pre/post generation
- *
- * RATE LIMITS:
- * - Free: 10 msgs/day
- * - Basic: 100 msgs/day
- * - Pro: 200 msgs/day
- * - Exec: 1000 msgs/day
+ * - Rate limiting (TODO)
+ * - Content moderation (TODO)
  *
  * DEPENDENCIES/ENVS:
- * - NEXT_PUBLIC_SUPABASE_URL
- * - SUPABASE_SERVICE_ROLE_KEY
- * - OPENAI_API_KEY
- * - XAI_API_KEY
- * - UPSTASH_REDIS_REST_URL (rate limiting)
+ * - XAI_API_KEY (required)
+ * - NEXT_PUBLIC_SUPABASE_URL (optional, for future auth)
+ *
+ * FEATURES:
+ * - ✅ Streaming responses with SSE
+ * - ✅ Model routing (chat/code/image)
+ * - ✅ Agentic tool calling (web_search, x_search, code_execution)
+ * - ✅ Tool-specific system prompts
+ * - ✅ Temperature and token optimization per tool
  *
  * TODO:
- * - [ ] Implement SSE streaming response
- * - [ ] Add provider routing logic
- * - [ ] Implement rate limit checks
- * - [ ] Add tool call handlers
- * - [ ] Implement decision engine (tool vs LLM)
+ * - [ ] Add authentication
+ * - [ ] Implement rate limiting
+ * - [ ] Store messages in database
  * - [ ] Add content moderation
- * - [ ] Store messages in Supabase
- * - [ ] Implement graceful failover
- *
- * TEST PLAN:
- * - Test streaming with OpenAI
- * - Test streaming with XAI
- * - Verify rate limits enforce correctly
- * - Test tool calls execute properly
- * - Validate content moderation
- * - Test failover scenarios
+ * - [ ] Implement usage tracking
  */
 
-import { NextResponse } from 'next/server';
+import { createChatCompletion, generateImage } from '@/lib/xai/client';
+import { getModelForTool } from '@/lib/xai/models';
+import { NextRequest } from 'next/server';
+import { CoreMessage } from 'ai';
 
-export async function POST() {
-  return NextResponse.json({ message: 'Chat API - implementation pending' });
+interface ChatRequestBody {
+  messages: CoreMessage[];
+  tool?: string;
+  temperature?: number;
+  max_tokens?: number;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Parse request body
+    const body: ChatRequestBody = await request.json();
+    const { messages, tool, temperature, max_tokens } = body;
+
+    // Validate messages
+    if (!messages || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Messages are required' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Check if this is an image generation request
+    if (tool === 'image' || tool === 'video') {
+      // Extract prompt from last message
+      const lastMessage = messages[messages.length - 1];
+      const prompt = typeof lastMessage.content === 'string'
+        ? lastMessage.content
+        : '';
+
+      try {
+        const imageUrl = await generateImage(prompt);
+
+        return new Response(
+          JSON.stringify({
+            type: 'image',
+            url: imageUrl,
+            model: 'grok-2-image-1212',
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      } catch (error) {
+        console.error('Image generation error:', error);
+        return new Response(
+          JSON.stringify({
+            error: 'Image generation failed',
+            details: error instanceof Error ? error.message : 'Unknown error',
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
+    // Regular chat completion with streaming
+    const result = await createChatCompletion({
+      messages,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tool: tool as any,
+      temperature,
+      maxTokens: max_tokens,
+      stream: true,
+    });
+
+    // Get the model being used
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const model = getModelForTool(tool as any);
+
+    // Return streaming response with proper headers
+    // Cast to any since we know stream=true returns StreamTextResult
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new Response((result as any).toDataStream(), {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Model-Used': model,
+        'X-Tool-Type': tool || 'default',
+      },
+    });
+  } catch (error) {
+    console.error('Chat API error:', error);
+
+    // Check for specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('API key')) {
+        return new Response(
+          JSON.stringify({
+            error: 'API configuration error',
+            details: 'XAI_API_KEY is not configured',
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
 }
 
 export const runtime = 'edge';
