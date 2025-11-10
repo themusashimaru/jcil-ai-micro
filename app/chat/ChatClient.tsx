@@ -246,18 +246,15 @@ export function ChatClient() {
           };
         }
 
-        // Format message with images (xAI multi-part format)
+        // Format message with images (Vercel AI SDK format)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const contentParts: any[] = [];
 
-        // Add images first
+        // Add images first (AI SDK format)
         imageAttachments.forEach((image) => {
           contentParts.push({
-            type: 'image_url',
-            image_url: {
-              url: image.thumbnail, // Already in base64 format
-              detail: 'high',
-            },
+            type: 'image',
+            image: image.thumbnail, // Base64 data URL
           });
         });
 
