@@ -1,20 +1,63 @@
 /**
  * DATA ANALYSIS TOOL
- * PURPOSE: CSV/XLSX file analysis, data visualization, insights generation
- * ROUTES: /tools/data (auth required)
- * SECURITY: File validation, size limits, malware scanning
- * TODO: Implement file parser, chart generation, data export
+ * PURPOSE: CSV/XLSX file analysis and insights
  */
 
+'use client';
+
+import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
+
+const DATA_CONFIG: ToolConfig = {
+  id: 'data',
+  icon: '📊',
+  title: 'Data Analyzer',
+  description: 'Upload and analyze CSV or Excel files. Get insights, charts, and summaries.',
+  fields: [
+    {
+      name: 'file',
+      label: 'Data File',
+      type: 'file',
+      required: true,
+    },
+    {
+      name: 'analysisType',
+      label: 'Analysis Type',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'summary', label: 'Summary Statistics' },
+        { value: 'trends', label: 'Trends & Patterns' },
+        { value: 'correlations', label: 'Correlations' },
+        { value: 'anomalies', label: 'Anomaly Detection' },
+        { value: 'forecasting', label: 'Forecasting' },
+      ],
+    },
+    {
+      name: 'visualizations',
+      label: 'Visualizations',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'auto', label: 'Auto-generate charts' },
+        { value: 'none', label: 'No visualizations' },
+        { value: 'custom', label: 'Custom (describe below)' },
+      ],
+    },
+    {
+      name: 'questions',
+      label: 'Specific Questions',
+      type: 'textarea',
+      placeholder: 'Any specific questions about your data? (optional)\ne.g., What are the top performing categories? Is there a seasonal pattern?',
+      rows: 4,
+    },
+  ],
+  examples: [
+    'Sales data analysis',
+    'Customer behavior patterns',
+    'Financial trend analysis',
+  ],
+};
+
 export default function DataAnalysisPage() {
-  return (
-    <div className="min-h-screen bg-black p-8">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="mb-8 text-3xl font-bold">Data Analysis</h1>
-        <div className="glass-morphism rounded-2xl p-6">
-          <p className="text-gray-400">Data analysis tool coming soon</p>
-        </div>
-      </div>
-    </div>
-  );
+  return <ToolLauncher config={DATA_CONFIG} />;
 }
