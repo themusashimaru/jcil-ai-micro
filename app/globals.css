@@ -51,4 +51,88 @@
     right: -10px;
     border-left-color: var(--glass-bg);
   }
+
+  /* PWA Animations */
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Mobile-first touch optimizations */
+  @media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets on mobile */
+    button, a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Disable text selection for better UX */
+    .no-select {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+  }
+
+  /* Safe area insets for notched devices */
+  @supports (padding: env(safe-area-inset-top)) {
+    .safe-area-top {
+      padding-top: env(safe-area-inset-top);
+    }
+
+    .safe-area-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .safe-area-left {
+      padding-left: env(safe-area-inset-left);
+    }
+
+    .safe-area-right {
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+
+  /* Smooth scrolling for mobile */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
