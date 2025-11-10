@@ -54,8 +54,11 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Send on Enter (without Shift)
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Only send on Enter for desktop (non-touch devices)
+    // Mobile users should use the Send button
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
       e.preventDefault();
       handleSend();
     }
