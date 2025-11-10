@@ -256,54 +256,22 @@ export function ChatClient() {
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(`API error: ${errorData.details || response.statusText}`);
       }
 
-      // Create assistant message placeholder
+      // Parse JSON response (non-streaming)
+      const data = await response.json();
+
+      // Create assistant message with the response
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: '',
+        content: data.content,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-
-      // Handle streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      let accumulatedContent = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('0:')) {
-            // Text delta from Vercel AI SDK stream format
-            const content = line.slice(2).replace(/^"(.*)"$/, '$1');
-            if (content) {
-              accumulatedContent += content;
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessage.id
-                    ? { ...msg, content: accumulatedContent }
-                    : msg
-                )
-              );
-            }
-          }
-        }
-      }
-
       setIsStreaming(false);
     } catch (error) {
       console.error('Chat API error:', error);
