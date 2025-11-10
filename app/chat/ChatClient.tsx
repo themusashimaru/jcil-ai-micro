@@ -173,6 +173,76 @@ export function ChatClient() {
     setMessages((prev) => [...prev, userMessage, searchMessage]);
   };
 
+  // Auto-detect which tool to use based on the user's query
+  const detectTool = (query: string): string | undefined => {
+    const lowerQuery = query.toLowerCase();
+
+    // Patterns that indicate live search is needed
+    const liveSearchPatterns = [
+      /what('s| is) (the )?(current )?time/i,
+      /what time is it/i,
+      /what('s| is) (today'?s?|the) date/i,
+      /what day is it/i,
+      /current (time|date)/i,
+      /today'?s? (date|time)/i,
+      /weather (in|at|for)/i,
+      /what('s| is) the weather/i,
+      /latest news/i,
+      /recent (news|events)/i,
+      /stock price/i,
+      /current (price|value)/i,
+      /happening (now|today)/i,
+      /search (for|about)/i,
+      /look up/i,
+      /find (out|information)/i,
+    ];
+
+    // Patterns that indicate coding help is needed
+    const codingPatterns = [
+      /write (a |an |some )?code/i,
+      /write (a |an )?(function|class|method|script)/i,
+      /how (do|can) (i|you) code/i,
+      /create (a |an )?(function|class|component)/i,
+      /implement (a |an )/i,
+      /debug (this|my)/i,
+      /fix (this|my|the) (code|bug|error)/i,
+      /regex (for|to)/i,
+      /algorithm (for|to)/i,
+      /code (to|for|that)/i,
+      /programming (help|question)/i,
+    ];
+
+    // Check for live search patterns
+    for (const pattern of liveSearchPatterns) {
+      if (pattern.test(lowerQuery)) {
+        return 'research';
+      }
+    }
+
+    // Check for coding patterns
+    for (const pattern of codingPatterns) {
+      if (pattern.test(lowerQuery)) {
+        return 'code';
+      }
+    }
+
+    // Check for specific keywords
+    if (
+      lowerQuery.includes('search') ||
+      lowerQuery.includes('google') ||
+      lowerQuery.includes('latest') ||
+      lowerQuery.includes('news') ||
+      lowerQuery.includes('current') ||
+      lowerQuery.includes('today') ||
+      lowerQuery.includes('now')
+    ) {
+      return 'research';
+    }
+
+    // Default: no specific tool
+    return undefined;
+  };
+
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
     // Auto-create chat if none exists
     if (!currentChatId) {
@@ -244,7 +314,10 @@ export function ChatClient() {
         };
       });
 
-      // Call streaming API
+      // Auto-detect which tool to use
+      const detectedTool = detectTool(content);
+
+      // Call API with auto-detected tool
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -252,58 +325,27 @@ export function ChatClient() {
         },
         body: JSON.stringify({
           messages: apiMessages,
+          tool: detectedTool, // Automatically use the right tool
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(`API error: ${errorData.details || response.statusText}`);
       }
 
-      // Create assistant message placeholder
+      // Parse JSON response (non-streaming)
+      const data = await response.json();
+
+      // Create assistant message with the response
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: '',
+        content: data.content,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-
-      // Handle streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      let accumulatedContent = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('0:')) {
-            // Text delta from Vercel AI SDK stream format
-            const content = line.slice(2).replace(/^"(.*)"$/, '$1');
-            if (content) {
-              accumulatedContent += content;
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessage.id
-                    ? { ...msg, content: accumulatedContent }
-                    : msg
-                )
-              );
-            }
-          }
-        }
-      }
-
       setIsStreaming(false);
     } catch (error) {
       console.error('Chat API error:', error);

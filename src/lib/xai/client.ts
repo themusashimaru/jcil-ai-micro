@@ -4,23 +4,20 @@
  */
 
 import { createXai } from '@ai-sdk/xai';
-import { streamText, generateText, CoreMessage } from 'ai';
+import { streamText, generateText, convertToCoreMessages } from 'ai';
 import {
   getModelForTool,
-  supportsAgenticTools,
   getRecommendedTemperature,
   getMaxTokens,
 } from './models';
 import {
-  getAgenticTools,
-  getClientSideTools,
-  shouldUseAgenticTools,
   getSystemPromptForTool,
 } from './tools';
 import type { ToolType } from './types';
 
 interface ChatOptions {
-  messages: CoreMessage[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  messages: any[]; // Accept any message format, will convert to CoreMessage
   tool?: ToolType;
   temperature?: number;
   maxTokens?: number;
@@ -68,36 +65,18 @@ export async function createChatCompletion(options: ChatOptions) {
   const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
-  // Prepare tools configuration
-  const useAgenticTools = shouldUseAgenticTools(tool) && supportsAgenticTools(modelName);
-  const agenticTools = useAgenticTools ? getAgenticTools(tool) : [];
-  const clientTools = getClientSideTools(tool);
+  // Convert messages to CoreMessage format
+  // This ensures proper handling of multi-part messages (text + images)
+  const coreMessages = convertToCoreMessages(messages);
 
-  // Configure request parameters
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const requestConfig: any = {
+  // Simple configuration without complex tools for now
+  const requestConfig = {
     model,
-    messages,
+    messages: coreMessages,
     system: systemPrompt,
     temperature: effectiveTemperature,
     maxTokens: effectiveMaxTokens,
   };
-
-  // Add server-side agentic tools if applicable
-  // Note: xAI server-side tools use experimental_toolCallMode
-  if (agenticTools.length > 0) {
-    requestConfig.experimental_toolCallMode = 'server';
-    requestConfig.tools = agenticTools.reduce((acc: any, toolDef: any) => {
-      acc[toolDef.type] = {}; // xAI server-side tools don't need parameters
-      return acc;
-    }, {});
-  }
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-
-  // Add client-side tools if applicable
-  if (Object.keys(clientTools).length > 0) {
-    requestConfig.tools = { ...requestConfig.tools, ...clientTools };
-  }
 
   // Return streaming or non-streaming response
   if (stream) {

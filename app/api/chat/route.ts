@@ -100,34 +100,44 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Regular chat completion with streaming
+    // Regular chat completion (non-streaming for now)
     const result = await createChatCompletion({
       messages,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tool: tool as any,
       temperature,
       maxTokens: max_tokens,
-      stream: true,
+      stream: false, // Disable streaming for now
     });
 
     // Get the model being used
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = getModelForTool(tool as any);
 
-    // Return streaming response with proper headers
-    // Cast to any since we know stream=true returns StreamTextResult
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return new Response((result as any).toDataStream(), {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Model-Used': model,
-        'X-Tool-Type': tool || 'default',
-      },
-    });
+    // Return JSON response with the text
+    return new Response(
+      JSON.stringify({
+        type: 'text',
+        content: result.text,
+        model,
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Model-Used': model,
+          'X-Tool-Type': tool || 'default',
+        },
+      }
+    );
   } catch (error) {
     console.error('Chat API error:', error);
+
+    // Log detailed error info
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
 
     // Check for specific error types
     if (error instanceof Error) {
@@ -149,6 +159,7 @@ export async function POST(request: NextRequest) {
       JSON.stringify({
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
       }),
       {
         status: 500,

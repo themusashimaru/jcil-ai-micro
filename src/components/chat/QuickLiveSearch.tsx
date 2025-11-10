@@ -35,37 +35,15 @@ export function QuickLiveSearch({ onSearchComplete, isSearching = false }: Quick
       });
 
       if (!response.ok) {
-        throw new Error('Search failed');
+        const errorData = await response.json();
+        throw new Error(`Search failed: ${errorData.details || response.statusText}`);
       }
 
-      // Read the streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullResponse = '';
+      // Parse JSON response (non-streaming)
+      const data = await response.json();
 
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('0:')) {
-            const content = line.slice(2).replace(/^"(.*)"$/, '$1');
-            if (content) {
-              fullResponse += content;
-            }
-          }
-        }
-      }
-
-      if (fullResponse) {
-        onSearchComplete(fullResponse, query);
+      if (data.content) {
+        onSearchComplete(data.content, query);
         setQuery('');
         setIsOpen(false);
       } else {
