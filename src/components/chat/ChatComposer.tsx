@@ -21,14 +21,18 @@
 import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import type { Attachment } from '@/app/chat/types';
 import { QuickImageGenerator } from './QuickImageGenerator';
+import { QuickCodingAssistant } from './QuickCodingAssistant';
+import { QuickLiveSearch } from './QuickLiveSearch';
 
 interface ChatComposerProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
   onImageGenerated?: (imageUrl: string, prompt: string) => void;
+  onCodeGenerated?: (response: string, request: string) => void;
+  onSearchComplete?: (response: string, query: string) => void;
   isStreaming: boolean;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, isStreaming }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, isStreaming }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -257,6 +261,22 @@ export function ChatComposer({ onSendMessage, onImageGenerated, isStreaming }: C
                 <QuickImageGenerator
                   onImageGenerated={onImageGenerated}
                   isGenerating={isStreaming}
+                />
+              )}
+
+              {/* Quick Coding Assistant */}
+              {onCodeGenerated && (
+                <QuickCodingAssistant
+                  onCodeGenerated={onCodeGenerated}
+                  isGenerating={isStreaming}
+                />
+              )}
+
+              {/* Quick Live Search */}
+              {onSearchComplete && (
+                <QuickLiveSearch
+                  onSearchComplete={onSearchComplete}
+                  isSearching={isStreaming}
                 />
               )}
 
