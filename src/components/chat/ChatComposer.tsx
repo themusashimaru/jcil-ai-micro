@@ -20,13 +20,15 @@
 
 import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import type { Attachment } from '@/app/chat/types';
+import { QuickImageGenerator } from './QuickImageGenerator';
 
 interface ChatComposerProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
+  onImageGenerated?: (imageUrl: string, prompt: string) => void;
   isStreaming: boolean;
 }
 
-export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, isStreaming }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -225,7 +227,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
 
           {/* Action Bar */}
           <div className="flex items-center justify-between border-t border-white/10 p-2">
-            <div className="flex items-center gap-2">
+            <div className="relative flex items-center gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -249,6 +251,14 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                   />
                 </svg>
               </button>
+
+              {/* Quick Image Generator */}
+              {onImageGenerated && (
+                <QuickImageGenerator
+                  onImageGenerated={onImageGenerated}
+                  isGenerating={isStreaming}
+                />
+              )}
 
               {attachments.length > 0 && (
                 <span className="text-xs text-gray-400">

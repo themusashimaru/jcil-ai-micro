@@ -23,6 +23,7 @@ export interface Message {
   content: string;
   toolCalls?: ToolCall[];
   attachments?: Attachment[];
+  imageUrl?: string; // For AI-generated images
   timestamp: Date;
   isStreaming?: boolean;
 }

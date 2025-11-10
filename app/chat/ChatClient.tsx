@@ -112,6 +112,27 @@ export function ChatClient() {
     setChats(chats.map((chat) => (chat.id === chatId ? { ...chat, folder } : chat)));
   };
 
+  const handleImageGenerated = (imageUrl: string, prompt: string) => {
+    // Add user message with prompt
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: `Generate image: ${prompt}`,
+      timestamp: new Date(),
+    };
+
+    // Add assistant message with generated image
+    const imageMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: `Here's your generated image based on: "${prompt}"`,
+      imageUrl,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage, imageMessage]);
+  };
+
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
     if (!currentChatId) return;
 
@@ -268,7 +289,11 @@ export function ChatClient() {
             isStreaming={isStreaming}
             currentChatId={currentChatId}
           />
-          <ChatComposer onSendMessage={handleSendMessage} isStreaming={isStreaming} />
+          <ChatComposer
+            onSendMessage={handleSendMessage}
+            onImageGenerated={handleImageGenerated}
+            isStreaming={isStreaming}
+          />
         </main>
       </div>
     </div>
