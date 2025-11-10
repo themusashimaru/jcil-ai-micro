@@ -133,8 +133,60 @@ export function ChatClient() {
     setMessages((prev) => [...prev, userMessage, imageMessage]);
   };
 
+  const handleCodeGenerated = (response: string, request: string) => {
+    // Add user message with request
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: request,
+      timestamp: new Date(),
+    };
+
+    // Add assistant message with code response
+    const codeMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: response,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage, codeMessage]);
+  };
+
+  const handleSearchComplete = (response: string, query: string) => {
+    // Add user message with search query
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: `Search: ${query}`,
+      timestamp: new Date(),
+    };
+
+    // Add assistant message with search results
+    const searchMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: response,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage, searchMessage]);
+  };
+
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
-    if (!currentChatId) return;
+    // Auto-create chat if none exists
+    if (!currentChatId) {
+      const newChat: Chat = {
+        id: Date.now().toString(),
+        title: 'New Chat',
+        isPinned: false,
+        lastMessage: content.slice(0, 50),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setChats([newChat, ...chats]);
+      setCurrentChatId(newChat.id);
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -292,6 +344,8 @@ export function ChatClient() {
           <ChatComposer
             onSendMessage={handleSendMessage}
             onImageGenerated={handleImageGenerated}
+            onCodeGenerated={handleCodeGenerated}
+            onSearchComplete={handleSearchComplete}
             isStreaming={isStreaming}
           />
         </main>
