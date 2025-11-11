@@ -21,6 +21,7 @@ import { useEffect, useRef } from 'react';
 import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -31,6 +32,7 @@ interface ChatThreadProps {
 export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { profile, hasProfile } = useUserProfile();
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -77,6 +79,25 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
       className="flex-1 overflow-y-auto p-6"
     >
       <div className="mx-auto max-w-3xl space-y-6">
+        {/* Personalized greeting when chat is empty */}
+        {messages.length === 0 && currentChatId && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="text-center max-w-lg">
+              <h2 className="text-3xl font-bold text-white mb-3">
+                {hasProfile ? `Hi ${profile.name}!` : 'Hello!'}
+              </h2>
+              <p className="text-gray-400 text-lg">
+                How can I help you today?
+              </p>
+              {hasProfile && profile.description && (
+                <p className="text-gray-500 text-sm mt-4">
+                  Ready to assist with {profile.description.toLowerCase()}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {messages.map((message, index) => (
           <MessageBubble
             key={message.id}
