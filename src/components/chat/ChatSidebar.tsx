@@ -231,13 +231,29 @@ export function ChatSidebar({
     );
   };
 
-  if (collapsed) {
-    return null;
-  }
-
   return (
-    <aside className="glass-morphism w-full border-r border-white/10 md:w-80">
-      <div className="flex h-full flex-col">
+    <>
+      {/* Mobile backdrop overlay */}
+      {!collapsed && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={() => setActiveMenu(null)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          glass-morphism border-r border-white/10
+          fixed md:relative
+          inset-y-0 left-0 z-50
+          w-80 md:w-80
+          transform transition-transform duration-300 ease-in-out
+          ${collapsed ? '-translate-x-full md:translate-x-0 md:w-0 md:border-0' : 'translate-x-0'}
+        `}
+      >
+        <div className="flex h-full flex-col">
         {/* New Chat Button */}
         <div className="border-b border-white/10 p-4">
           <button
@@ -329,5 +345,6 @@ export function ChatSidebar({
         </div>
       </div>
     </aside>
+    </>
   );
 }

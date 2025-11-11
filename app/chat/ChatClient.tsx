@@ -38,9 +38,27 @@ export function ChatClient() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Start with sidebar collapsed on mobile, open on desktop
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { profile, hasProfile } = useUserProfile();
+
+  // Detect screen size and set initial sidebar state
+  useEffect(() => {
+    const handleResize = () => {
+      // Auto-open sidebar on desktop (≥768px), keep closed on mobile
+      if (window.innerWidth >= 768) {
+        setSidebarCollapsed(false);
+      }
+    };
+
+    // Set initial state
+    handleResize();
+
+    // Listen for resize events
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Mock data for development
   useEffect(() => {
@@ -79,10 +97,18 @@ export function ChatClient() {
     setChats([newChat, ...chats]);
     setCurrentChatId(newChat.id);
     setMessages([]);
+    // Auto-close sidebar on mobile after creating new chat
+    if (window.innerWidth < 768) {
+      setSidebarCollapsed(true);
+    }
   };
 
   const handleSelectChat = (chatId: string) => {
     setCurrentChatId(chatId);
+    // Auto-close sidebar on mobile after selecting chat
+    if (window.innerWidth < 768) {
+      setSidebarCollapsed(true);
+    }
     // TODO: Load messages from API
     setMessages([
       {
@@ -441,9 +467,10 @@ export function ChatClient() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="rounded-lg p-2 hover:bg-white/10 md:hidden"
+              className="rounded-lg p-2 hover:bg-white/10 transition-colors"
               aria-label="Toggle sidebar"
             >
+              {/* Menu/Close icon */}
               <svg
                 className="h-5 w-5"
                 fill="none"
