@@ -72,7 +72,7 @@ export function QuickCodingAssistant({ onCodeGenerated, isGenerating = false }: 
 
       {/* Popup Form */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 md:py-10" onClick={() => setIsOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto pt-2 pb-4 md:pt-10 md:pb-10" onClick={() => setIsOpen(false)}>
           <div className="relative mx-4 w-full max-w-lg rounded-2xl border border-white/10 bg-black/95 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="mb-4 flex items-center justify-between">

@@ -177,7 +177,7 @@ Format your response with:
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-4 md:py-10">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto pt-2 pb-4 md:pt-10 md:pb-10">
           <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl mx-4">
             <div className="flex max-h-[80vh] flex-col">
                 {/* Header */}
