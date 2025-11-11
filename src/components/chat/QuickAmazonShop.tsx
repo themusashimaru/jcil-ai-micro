@@ -31,16 +31,6 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
   const [error, setError] = useState<string | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  const scrollCarousel = (direction: 'left' | 'right') => {
-    if (carouselRef.current) {
-      const scrollAmount = 300;
-      carouselRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
-    }
-  };
-
   const handleSearch = async () => {
     if (!query.trim()) return;
 
@@ -56,7 +46,25 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
           messages: [
             {
               role: 'user',
-              content: `Search Amazon for: ${query}. Provide 3-5 product recommendations with: title, price, rating, and Amazon product link. Format as JSON array: [{"title": "...", "price": "$XX.XX", "rating": "X.X/5", "url": "https://amazon.com/..."}]`,
+              content: `Find 3-5 popular products on Amazon for: "${query}". Use real-time search to get current products with REAL product images and working Amazon links.
+
+Return ONLY a JSON array in this EXACT format:
+[
+  {
+    "title": "Full product name from Amazon",
+    "price": "$XX.XX",
+    "rating": "X.X/5",
+    "image": "direct Amazon product image URL (https://m.media-amazon.com/... or similar)",
+    "url": "actual Amazon product page URL (https://www.amazon.com/dp/...)"
+  }
+]
+
+CRITICAL:
+- Use live web search to find REAL Amazon products
+- Include actual Amazon product image URLs
+- Include working Amazon product page links (dp/ASIN format)
+- Get current prices and ratings
+- Return ONLY the JSON array, no extra text`,
             },
           ],
           tool: 'research', // Use research tool for live search
@@ -137,9 +145,9 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
       {/* Modal */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-black/90 p-6 shadow-xl backdrop-blur-xl border border-white/10">
-            {/* Header */}
-            <div className="mb-4 flex items-center justify-between">
+          <div className="w-full max-w-4xl max-h-[85vh] flex flex-col rounded-lg bg-black/90 shadow-xl backdrop-blur-xl border border-white/10">
+            {/* Header - Fixed */}
+            <div className="flex-shrink-0 p-6 pb-4 flex items-center justify-between border-b border-white/10">
               <h2 className="text-xl font-bold">🛍️ Intelligent Personal Shopping</h2>
               <button
                 onClick={() => setIsOpen(false)}
@@ -156,65 +164,43 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
               </button>
             </div>
 
-            {/* Search Input */}
-            <div className="mb-4">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="What are you looking for? (e.g., wireless headphones)"
-                className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
-                autoFocus
-              />
-            </div>
-
-            {/* Search Button */}
-            <button
-              onClick={handleSearch}
-              disabled={!query.trim() || isSearching}
-              className="mb-4 w-full rounded-lg bg-white px-4 py-2 font-semibold text-black transition hover:bg-gray-200 disabled:opacity-50"
-            >
-              {isSearching ? 'Searching Amazon...' : 'Search Products'}
-            </button>
-
-            {/* Error Message */}
-            {error && (
-              <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-red-400">
-                {error}
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 pt-4">
+              {/* Search Input */}
+              <div className="mb-4">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  placeholder="What are you looking for? (e.g., wireless headphones)"
+                  className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+                  autoFocus
+                />
               </div>
-            )}
 
-            {/* Product Carousel */}
-            {products.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
+              {/* Search Button */}
+              <button
+                onClick={handleSearch}
+                disabled={!query.trim() || isSearching}
+                className="mb-4 w-full rounded-lg bg-white px-4 py-2 font-semibold text-black transition hover:bg-gray-200 disabled:opacity-50"
+              >
+                {isSearching ? 'Searching Amazon...' : 'Search Products'}
+              </button>
+
+              {/* Error Message */}
+              {error && (
+                <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-red-400">
+                  {error}
+                </div>
+              )}
+
+              {/* Product Carousel */}
+              {products.length > 0 && (
+                <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-gray-400">
                     {products.length} Product{products.length > 1 ? 's' : ''} Found
                   </h3>
-
-                  {/* Scroll Arrows */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => scrollCarousel('left')}
-                      className="rounded-full bg-white/5 p-2 hover:bg-white/10 transition"
-                      aria-label="Scroll left"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => scrollCarousel('right')}
-                      className="rounded-full bg-white/5 p-2 hover:bg-white/10 transition"
-                      aria-label="Scroll right"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
 
                 {/* Horizontal Scrolling Carousel */}
                 <div
@@ -267,20 +253,21 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
                   ))}
                 </div>
 
-                {/* View All on Amazon */}
-                <button
-                  onClick={() => window.open(`https://www.amazon.com/s?k=${encodeURIComponent(query)}`, '_blank')}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 py-2 text-sm text-gray-400 hover:bg-white/10 hover:text-white"
-                >
-                  View all results on Amazon →
-                </button>
-              </div>
-            )}
+                  {/* View All on Amazon */}
+                  <button
+                    onClick={() => window.open(`https://www.amazon.com/s?k=${encodeURIComponent(query)}`, '_blank')}
+                    className="w-full rounded-lg border border-white/10 bg-white/5 py-2 text-sm text-gray-400 hover:bg-white/10 hover:text-white"
+                  >
+                    View all results on Amazon →
+                  </button>
+                </div>
+              )}
 
-            {/* Help Text */}
-            <p className="mt-4 text-xs text-gray-500">
-              Click any product to open on Amazon • Scroll carousel with arrows or swipe
-            </p>
+              {/* Help Text */}
+              <p className="mt-4 text-xs text-gray-500">
+                Click any product to open on Amazon • Swipe to browse products
+              </p>
+            </div>
           </div>
         </div>
       )}
