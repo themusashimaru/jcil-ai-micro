@@ -304,9 +304,26 @@ export function ChatClient() {
       const toolType = selectedTool;
       setSelectedTool(null); // Clear selection
 
+      // Add user message to chat first
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: toolType === 'image'
+          ? `🎨 Generate image: ${content}`
+          : toolType === 'code'
+          ? `💻 Coding help: ${content}`
+          : toolType === 'search'
+          ? `🔍 Search: ${content}`
+          : toolType === 'data'
+          ? `📊 Data analysis: ${content}`
+          : content,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      setIsStreaming(true);
+
       if (toolType === 'image') {
         // Image generation
-        setIsStreaming(true);
         try {
           const response = await fetch('/api/chat', {
             method: 'POST',
@@ -319,7 +336,15 @@ export function ChatClient() {
           if (!response.ok) throw new Error('Image generation failed');
           const data = await response.json();
           if (data.url) {
-            handleImageGenerated(data.url, content);
+            // Add only the assistant response with image
+            const imageMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: `Here's your generated image based on: "${content}"`,
+              imageUrl: data.url,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, imageMessage]);
           }
         } catch (error) {
           console.error('Image error:', error);
@@ -336,7 +361,6 @@ export function ChatClient() {
         return;
       } else if (toolType === 'code') {
         // Code generation
-        setIsStreaming(true);
         try {
           const response = await fetch('/api/chat', {
             method: 'POST',
@@ -349,7 +373,14 @@ export function ChatClient() {
           if (!response.ok) throw new Error('Code generation failed');
           const data = await response.json();
           if (data.content) {
-            handleCodeGenerated(data.content, content);
+            // Add only the assistant response
+            const codeMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: data.content,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, codeMessage]);
           }
         } catch (error) {
           console.error('Code error:', error);
@@ -366,7 +397,6 @@ export function ChatClient() {
         return;
       } else if (toolType === 'search') {
         // Live search
-        setIsStreaming(true);
         try {
           const response = await fetch('/api/chat', {
             method: 'POST',
@@ -379,7 +409,14 @@ export function ChatClient() {
           if (!response.ok) throw new Error('Search failed');
           const data = await response.json();
           if (data.content) {
-            handleSearchComplete(data.content, content);
+            // Add only the assistant response
+            const searchMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: data.content,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, searchMessage]);
           }
         } catch (error) {
           console.error('Search error:', error);
@@ -413,6 +450,7 @@ export function ChatClient() {
             setMessages((prev) => [...prev, errorMsg]);
           }
         }
+        setIsStreaming(false);
         return;
       }
     }
