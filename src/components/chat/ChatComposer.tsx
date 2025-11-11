@@ -213,11 +213,11 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   return (
-    <div className="glass-morphism border-t border-white/10 py-0 px-0 md:p-4">
+    <div className="glass-morphism border-t border-white/10 py-0.5 px-1 md:p-4">
       <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
-          <div className="mb-0 md:mb-3 flex flex-wrap gap-0 md:gap-2">
+          <div className="mb-0.5 md:mb-3 flex flex-wrap gap-0 md:gap-2">
             {attachments.slice(0, 4).map((attachment) => (
               <div
                 key={attachment.id}
@@ -289,13 +289,13 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Drop files here...'
                 : 'Type your message...'
             }
-            className="w-full resize-none bg-transparent py-0 px-0 md:p-4 text-xs md:text-base text-white placeholder-gray-400 focus:outline-none"
+            className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-xs md:text-base text-white placeholder-gray-400 focus:outline-none"
             rows={1}
             disabled={isStreaming}
           />
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between border-t border-white/10 py-0 px-0 md:p-2">
+          <div className="flex items-center justify-between border-t border-white/10 py-0.5 px-1 md:p-2">
             <div className="relative flex items-center gap-0 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
               {/* Hidden file inputs */}
               <input
@@ -505,10 +505,10 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-white p-1 md:p-2.5 text-black transition hover:bg-gray-200 disabled:opacity-50 shrink-0 flex items-center justify-center"
+                className="rounded-full bg-black border border-white/20 p-0.5 md:p-2.5 text-white transition hover:bg-gray-900 disabled:opacity-50 shrink-0 flex items-center justify-center"
                 title={isStreaming ? 'Sending...' : 'Send message'}
               >
-                <svg className="h-3 w-3 md:h-6 md:w-6" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                 </svg>
               </button>
