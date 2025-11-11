@@ -47,11 +47,11 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   // Show logo and tools when no chat is selected OR when chat is empty
   if (!currentChatId || messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center p-4">
         <div className="text-center">
           {/* JCIL.ai Logo */}
-          <div className="mb-4">
-            <h1 className="text-5xl font-bold tracking-tight text-white mb-2">
+          <div className="mb-3">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">
               JCIL<span className="text-blue-500">.ai</span>
             </h1>
             <p className="text-lg text-gray-400 font-medium mb-3">
@@ -95,9 +95,9 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto p-6"
+      className="flex-1 overflow-y-auto p-3 md:p-4"
     >
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="mx-auto max-w-xl md:max-w-2xl space-y-4">
 
         {messages.map((message, index) => (
           <MessageBubble
