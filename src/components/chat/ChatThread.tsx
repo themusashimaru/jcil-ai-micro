@@ -95,9 +95,9 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto p-2"
+      className="flex-1 overflow-y-auto p-1.5 md:p-2"
     >
-      <div className="mx-auto max-w-xs sm:max-w-md md:max-w-lg space-y-3">
+      <div className="mx-auto max-w-[95%] sm:max-w-xl md:max-w-2xl space-y-2 md:space-y-3">
 
         {messages.map((message, index) => (
           <MessageBubble
