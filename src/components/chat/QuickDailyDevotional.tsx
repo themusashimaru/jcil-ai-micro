@@ -25,6 +25,7 @@ interface Devotional {
 
 export function QuickDailyDevotional() {
   const [isOpen, setIsOpen] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [devotional, setDevotional] = useState<Devotional | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +55,24 @@ export function QuickDailyDevotional() {
     }
 
     setIsLoading(false);
+  };
+
+  const handleSendEmail = () => {
+    if (!devotional) return;
+
+    const subject = `Daily Devotional: ${devotional.title}`;
+    const body = `${devotional.title}\n${devotional.date}\n\n${devotional.scripture.reference}\n"${devotional.scripture.text}"\n\nMeditation:\n${devotional.meditation}\n\nPrayer:\n${devotional.prayer}\n\nApplication:\n${devotional.application}`;
+
+    const mailto = `mailto:${recipientEmail || ''}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+
+    window.location.href = mailto;
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setRecipientEmail('');
   };
 
   return (
@@ -93,7 +112,7 @@ export function QuickDailyDevotional() {
                     <h2 className="text-lg font-semibold sm:text-xl">📖 Daily Devotional</h2>
                   </div>
                   <button
-                    onClick={() => setIsOpen(false)}
+                    onClick={handleClose}
                     className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white"
                   >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -173,6 +192,40 @@ export function QuickDailyDevotional() {
                           This devotional is refreshed daily at 12:01 AM
                         </p>
                       </div>
+
+                      {/* Recipient Email */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-300">
+                          Recipient Email (Optional)
+                        </label>
+                        <input
+                          type="email"
+                          value={recipientEmail}
+                          onChange={(e) => setRecipientEmail(e.target.value)}
+                          placeholder="e.g., friend@example.com"
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Required only if you want to use the &quot;Send Email&quot; button
+                        </p>
+                      </div>
+
+                      {/* Send Email Button */}
+                      <button
+                        onClick={handleSendEmail}
+                        className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-3 font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition flex items-center justify-center gap-2"
+                        title={!recipientEmail ? 'Enter recipient email to enable' : 'Open in your default email client'}
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                          />
+                        </svg>
+                        {recipientEmail ? 'Send Email' : 'Send Email (Add Recipient Email)'}
+                      </button>
                     </div>
                   )}
                 </div>

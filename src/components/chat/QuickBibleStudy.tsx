@@ -20,6 +20,7 @@ interface QuickBibleStudyProps {
 export function QuickBibleStudy({ onStudyComplete }: QuickBibleStudyProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [question, setQuestion] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [isStudying, setIsStudying] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +83,19 @@ Use seminary-level theological sophistication, proper hermeneutical principles, 
     setIsStudying(false);
   };
 
+  const handleSendEmail = () => {
+    if (!response) return;
+
+    const subject = `Bible Study: ${question}`;
+    const body = `Question: ${question}\n\n${response}`;
+
+    const mailto = `mailto:${recipientEmail || ''}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+
+    window.location.href = mailto;
+  };
+
   const handleNewQuestion = () => {
     setQuestion('');
     setResponse(null);
@@ -91,6 +105,7 @@ Use seminary-level theological sophistication, proper hermeneutical principles, 
   const handleClose = () => {
     setIsOpen(false);
     setQuestion('');
+    setRecipientEmail('');
     setResponse(null);
     setError(null);
   };
@@ -207,19 +222,55 @@ Use seminary-level theological sophistication, proper hermeneutical principles, 
                           </div>
                         </div>
 
+                        {/* Recipient Email */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-300">
+                            Recipient Email (Optional)
+                          </label>
+                          <input
+                            type="email"
+                            value={recipientEmail}
+                            onChange={(e) => setRecipientEmail(e.target.value)}
+                            placeholder="e.g., studygroup@church.org"
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Required only if you want to use the &quot;Send Email&quot; button
+                          </p>
+                        </div>
+
                         {/* Action Buttons */}
-                        <div className="flex gap-3">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex gap-3">
+                            <button
+                              onClick={handleNewQuestion}
+                              className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20"
+                            >
+                              Ask Another Question
+                            </button>
+                            <button
+                              onClick={handleClose}
+                              className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20"
+                            >
+                              Close
+                            </button>
+                          </div>
+
+                          {/* Send Email Button */}
                           <button
-                            onClick={handleNewQuestion}
-                            className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20"
+                            onClick={handleSendEmail}
+                            className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-3 font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition flex items-center justify-center gap-2"
+                            title={!recipientEmail ? 'Enter recipient email to enable' : 'Open in your default email client'}
                           >
-                            Ask Another Question
-                          </button>
-                          <button
-                            onClick={handleClose}
-                            className="flex-1 rounded-xl bg-white px-4 py-3 font-semibold text-black transition hover:bg-gray-200"
-                          >
-                            Close
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                              />
+                            </svg>
+                            {recipientEmail ? 'Send Email' : 'Send Email (Add Recipient Email)'}
                           </button>
                         </div>
                       </>

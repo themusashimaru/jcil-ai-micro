@@ -18,6 +18,7 @@ interface QuickResearchToolProps {
 export function QuickResearchTool({ onResearchComplete }: QuickResearchToolProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [topic, setTopic] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [focus, setFocus] = useState('');
   const [depth, setDepth] = useState<'overview' | 'detailed' | 'comprehensive'>('detailed');
   const [isResearching, setIsResearching] = useState(false);
@@ -105,6 +106,19 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
     }
   };
 
+  const handleSendEmail = () => {
+    if (!report) return;
+
+    const subject = `Research Report: ${topic}`;
+    const body = `${report}`;
+
+    const mailto = `mailto:${recipientEmail || ''}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+
+    window.location.href = mailto;
+  };
+
   const handleReset = () => {
     setReport(null);
     setError(null);
@@ -113,6 +127,7 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
   const handleClose = () => {
     setIsOpen(false);
     setTopic('');
+    setRecipientEmail('');
     setFocus('');
     setDepth('detailed');
     setReport(null);
@@ -142,8 +157,8 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-4 md:py-10">
+          <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl mx-4 my-auto">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <div>
@@ -183,6 +198,23 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
                       placeholder="e.g., Artificial Intelligence in Healthcare, Climate Change Solutions"
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
                     />
+                  </div>
+
+                  {/* Recipient Email */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300">
+                      Recipient Email (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      placeholder="e.g., colleague@company.com"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Required only if you want to use the &quot;Send Email&quot; button
+                    </p>
                   </div>
 
                   {/* Specific Focus */}
@@ -280,18 +312,45 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleCopy}
+                        className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white hover:bg-white/20 transition flex items-center justify-center gap-2"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                        Copy Report
+                      </button>
+                      <button
+                        onClick={handleReset}
+                        className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white hover:bg-white/20 transition"
+                      >
+                        New Research
+                      </button>
+                    </div>
+
+                    {/* Send Email Button */}
                     <button
-                      onClick={handleCopy}
-                      className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white hover:bg-white/20 transition"
+                      onClick={handleSendEmail}
+                      className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-3 font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition flex items-center justify-center gap-2"
+                      title={!recipientEmail ? 'Enter recipient email to enable' : 'Open in your default email client'}
                     >
-                      Copy Report
-                    </button>
-                    <button
-                      onClick={handleReset}
-                      className="flex-1 rounded-xl bg-blue-500 px-4 py-3 font-semibold text-white hover:bg-blue-600 transition"
-                    >
-                      New Research
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        />
+                      </svg>
+                      {recipientEmail ? 'Send Email' : 'Send Email (Add Recipient Email)'}
                     </button>
                   </div>
                 </>
