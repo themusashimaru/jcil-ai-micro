@@ -40,34 +40,130 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
     setProducts([]);
 
     try {
-      // For now, use direct Amazon search since AI is hallucinating product data
-      // TODO: Integrate with real Amazon Product API when available
-      console.log('Searching Amazon for:', query);
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content: `Search Amazon.com for: "${query}"
 
-      // Create a fallback that just links to Amazon search
-      const fallbackProducts: Product[] = [
-        {
-          title: `View "${query}" on Amazon.com`,
-          price: 'Click to see current prices and reviews',
-          url: `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
-          rating: 'See ratings on Amazon',
-        },
-      ];
+CRITICAL: You MUST use web search to find 3-5 REAL products currently on Amazon.com.
 
-      setProducts(fallbackProducts);
+For EACH product:
+1. Search Amazon.com and open actual product pages
+2. Copy the EXACT ASIN from the URL (10-character code like B09XS7JWHH)
+3. Copy the EXACT product image URL from the page (starts with https://m.media-amazon.com/images/I/)
+4. Get the real current price (e.g., $49.99)
+5. Get the customer rating (e.g., 4.6/5)
 
-      // Still send to chat
-      if (onShopComplete) {
-        onShopComplete(
-          `I found products for "${query}" on Amazon. Click the link to browse current listings with real prices and reviews.`,
-          query,
-          fallbackProducts
-        );
+DO NOT make up or guess ASINs or image URLs. If you cannot find a real image URL, set image to null.
+
+Return ONLY this JSON array (no markdown, no code blocks):
+[{"title":"Exact product name","price":"$XX.XX","rating":"X.X/5","image":"https://m.media-amazon.com/images/I/REAL_ID.jpg","url":"https://www.amazon.com/dp/REAL_ASIN"}]
+
+Example response:
+[{"title":"Sony WH-1000XM5 Wireless Headphones","price":"$398.00","rating":"4.6/5","image":"https://m.media-amazon.com/images/I/51NBru9GxwL._AC_SL1500_.jpg","url":"https://www.amazon.com/dp/B09XS7JWHH"}]`,
+            },
+          ],
+          tool: 'shopper',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to search products');
+      }
+
+      const data = await response.json();
+      const aiResponse = data.content as string;
+
+      console.log('AI Response:', aiResponse);
+
+      // Extract JSON from response
+      let jsonText = aiResponse;
+      const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        jsonText = jsonMatch[0];
+      }
+
+      let parsedProducts: Product[] = [];
+
+      try {
+        const raw = JSON.parse(jsonText);
+
+        if (Array.isArray(raw)) {
+          // Validate and clean products
+          parsedProducts = raw
+            .filter((item: any) => {
+              // Must have title and URL
+              if (!item.title || !item.url) return false;
+
+              // Validate ASIN in URL (must be exactly 10 alphanumeric characters)
+              const asinMatch = item.url.match(/\/dp\/([A-Z0-9]{10})/i);
+              if (!asinMatch) return false;
+
+              // If image exists, validate it's a real Amazon image URL
+              if (item.image && !item.image.includes('media-amazon.com/images/I/')) {
+                console.warn('Invalid image URL, removing:', item.image);
+                item.image = null;
+              }
+
+              return true;
+            })
+            .map((item: any) => ({
+              title: item.title,
+              price: item.price || '',
+              rating: item.rating,
+              image: item.image || undefined,
+              url: item.url,
+            }));
+        }
+
+        console.log('Valid products:', parsedProducts);
+
+        if (parsedProducts.length === 0) {
+          throw new Error('No valid products found');
+        }
+
+        setProducts(parsedProducts);
+
+        if (onShopComplete) {
+          onShopComplete(aiResponse, query, parsedProducts);
+        }
+      } catch (parseError) {
+        console.error('Parse error:', parseError);
+
+        // Fallback to Amazon search
+        const fallback: Product[] = [
+          {
+            title: `View "${query}" on Amazon.com`,
+            price: 'Click to browse products',
+            url: `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
+          },
+        ];
+
+        setProducts(fallback);
+
+        if (onShopComplete) {
+          onShopComplete(`Search results for "${query}"`, query, fallback);
+        }
       }
     } catch (err) {
-      console.error('Amazon search error:', err);
+      console.error('Search error:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
+
+      // Final fallback
+      const fallback: Product[] = [
+        {
+          title: `View "${query}" on Amazon.com`,
+          price: 'Click to browse',
+          url: `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
+        },
+      ];
+      setProducts(fallback);
     }
+
     setIsSearching(false);
   };
 
