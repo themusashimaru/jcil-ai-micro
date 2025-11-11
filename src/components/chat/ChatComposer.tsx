@@ -213,11 +213,11 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   return (
-    <div className="glass-morphism border-t border-white/10 py-0 px-0.5 md:p-4">
-      <div className="mx-auto max-w-[95%] sm:max-w-xl md:max-w-2xl">
+    <div className="glass-morphism border-t border-white/10 py-0 px-0 md:p-4">
+      <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
-          <div className="mb-0.5 md:mb-3 flex flex-wrap gap-0.5 md:gap-2">
+          <div className="mb-0 md:mb-3 flex flex-wrap gap-0 md:gap-2">
             {attachments.slice(0, 4).map((attachment) => (
               <div
                 key={attachment.id}
@@ -227,10 +227,10 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                   <img
                     src={attachment.thumbnail}
                     alt={attachment.name}
-                    className="h-10 w-10 md:h-16 md:w-16 object-cover"
+                    className="h-8 w-8 md:h-16 md:w-16 object-cover"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 md:h-16 md:w-16 items-center justify-center bg-white/5">
+                  <div className="flex h-8 w-8 md:h-16 md:w-16 items-center justify-center bg-white/5">
                     <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24">
                       <path
                         stroke="currentColor"
@@ -259,7 +259,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               </div>
             ))}
             {attachments.length > 4 && (
-              <div className="flex h-10 w-10 md:h-16 md:w-16 items-center justify-center rounded-lg bg-white/5 text-xs md:text-sm text-gray-400">
+              <div className="flex h-8 w-8 md:h-16 md:w-16 items-center justify-center rounded-lg bg-white/5 text-xs md:text-sm text-gray-400">
                 +{attachments.length - 4}
               </div>
             )}
@@ -289,14 +289,14 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Drop files here...'
                 : 'Type your message...'
             }
-            className="w-full resize-none bg-transparent py-0.5 px-0.5 md:p-4 text-sm md:text-base text-white placeholder-gray-400 focus:outline-none"
+            className="w-full resize-none bg-transparent py-0 px-0 md:p-4 text-xs md:text-base text-white placeholder-gray-400 focus:outline-none"
             rows={1}
             disabled={isStreaming}
           />
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between border-t border-white/10 py-0.5 px-0 md:p-2">
-            <div className="relative flex items-center gap-0.5 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
+          <div className="flex items-center justify-between border-t border-white/10 py-0 px-0 md:p-2">
+            <div className="relative flex items-center gap-0 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
               {/* Hidden file inputs */}
               <input
                 ref={cameraInputRef}
@@ -328,10 +328,10 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 <button
                   onClick={() => setShowAttachMenu(!showAttachMenu)}
                   disabled={isStreaming}
-                  className="rounded-lg p-0.5 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
+                  className="rounded-lg p-0 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
                   title="Attach files"
                 >
-                  <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3 w-3 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -445,22 +445,22 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               )}
 
               {attachments.length > 0 && (
-                <span className="text-xs text-gray-400 text-center">
+                <span className="text-xs text-gray-400 block w-full text-center">
                   {attachments.length} {attachments.length === 1 ? 'file' : 'files'} attached
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-0.5 md:gap-2 shrink-0">
+            <div className="flex items-center justify-center gap-0 md:gap-2 shrink-0">
               {message.length > 0 && (
-                <span className="text-xs text-gray-400 text-center">{message.length}</span>
+                <span className="text-xs text-gray-400 text-center block">{message.length}</span>
               )}
 
               {/* Microphone Button */}
               <button
                 onClick={handleMicClick}
                 disabled={isStreaming || recordingState === 'transcribing'}
-                className={`rounded-lg p-0.5 md:p-2 transition shrink-0 flex items-center justify-center ${
+                className={`rounded-lg p-0 md:p-2 transition shrink-0 flex items-center justify-center ${
                   recordingState === 'recording'
                     ? 'bg-red-500 text-white animate-pulse'
                     : 'text-gray-400 hover:bg-white/10 hover:text-white'
@@ -474,7 +474,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 }
               >
                 {recordingState === 'transcribing' ? (
-                  <svg className="h-4 w-4 md:h-5 md:w-5 animate-spin" viewBox="0 0 24 24">
+                  <svg className="h-3 w-3 md:h-5 md:w-5 animate-spin" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -491,7 +491,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                     />
                   </svg>
                 ) : (
-                  <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3 w-3 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -505,10 +505,10 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-white p-1.5 md:p-2.5 text-black transition hover:bg-gray-200 disabled:opacity-50 shrink-0 flex items-center justify-center"
+                className="rounded-full bg-white p-1 md:p-2.5 text-black transition hover:bg-gray-200 disabled:opacity-50 shrink-0 flex items-center justify-center"
                 title={isStreaming ? 'Sending...' : 'Send message'}
               >
-                <svg className="h-4 w-4 md:h-6 md:w-6" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="h-3 w-3 md:h-6 md:w-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                 </svg>
               </button>
@@ -518,14 +518,14 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
 
         {/* Recording Error */}
         {recordingError && (
-          <p className="mt-0.5 text-xs text-red-400">
+          <p className="mt-0 text-xs text-red-400">
             {recordingError}
           </p>
         )}
 
         {/* File Upload Error */}
         {fileError && (
-          <p className="mt-0.5 text-xs text-red-400">
+          <p className="mt-0 text-xs text-red-400">
             ⚠️ {fileError}
           </p>
         )}

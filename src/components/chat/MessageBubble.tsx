@@ -52,11 +52,11 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
   };
 
   return (
-    <div className={`flex items-start gap-0.5 ${isUser ? 'justify-end' : ''}`}>
+    <div className={`flex items-start gap-0 ${isUser ? 'justify-end' : ''}`}>
       {/* Avatar - only for AI messages */}
       {!isUser && (
-        <div className="mt-0 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-white/5 text-gray-400">
-          <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
+        <div className="mt-0 flex h-3 w-3 flex-shrink-0 items-center justify-center rounded-full bg-white/5 text-gray-400">
+          <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
           </svg>
         </div>
@@ -66,7 +66,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
       <div className={`space-y-0 ${isUser ? 'max-w-[70%]' : 'flex-1'}`}>
         {/* Tool Calls */}
         {message.toolCalls && message.toolCalls.length > 0 && (
-          <div className="flex flex-wrap gap-0.5">
+          <div className="flex flex-wrap gap-0">
             {message.toolCalls.map((tool) => (
               <div
                 key={tool.id}
@@ -101,7 +101,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
 
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
-          <div className="flex flex-wrap gap-0.5">
+          <div className="flex flex-wrap gap-0">
             {message.attachments.map((attachment) => (
               <div
                 key={attachment.id}
@@ -111,10 +111,10 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
                   <img
                     src={attachment.thumbnail}
                     alt={attachment.name}
-                    className="h-12 w-12 object-cover"
+                    className="h-10 w-10 object-cover"
                   />
                 ) : (
-                  <div className="flex h-12 w-12 items-center justify-center bg-white/5">
+                  <div className="flex h-10 w-10 items-center justify-center bg-white/5">
                     <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24">
                       <path
                         stroke="currentColor"
@@ -134,7 +134,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
               </div>
             ))}
             {message.attachments.length > 4 && (
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white/5 text-xs text-gray-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 text-xs text-gray-400">
                 +{message.attachments.length - 4}
               </div>
             )}
