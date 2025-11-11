@@ -296,7 +296,7 @@ Format your response with:
 
                     {/* Help Text */}
                     <div className="rounded-xl bg-white/5 p-4 text-xs text-gray-400">
-                      <p className="font-semibold text-gray-300 mb-2">What you'll get:</p>
+                      <p className="font-semibold text-gray-300 mb-2">What you&apos;ll get:</p>
                       <ul className="space-y-1 list-disc list-inside">
                         <li>Data structure and overview</li>
                         <li>Key statistics and metrics</li>
