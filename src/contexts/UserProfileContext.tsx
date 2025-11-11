@@ -16,6 +16,10 @@ export interface UserProfile {
   isStudent: boolean;
   jobTitle: string;
   description: string;
+  emailSignature?: string;
+  signatureBold?: boolean;
+  signatureItalic?: boolean;
+  signatureColor?: string;
 }
 
 interface UserProfileContextType {
@@ -29,6 +33,10 @@ const defaultProfile: UserProfile = {
   isStudent: false,
   jobTitle: '',
   description: '',
+  emailSignature: '',
+  signatureBold: false,
+  signatureItalic: false,
+  signatureColor: '#FFFFFF',
 };
 
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
