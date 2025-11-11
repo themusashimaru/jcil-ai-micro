@@ -52,18 +52,18 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
   };
 
   return (
-    <div className={`flex items-start gap-2 ${isUser ? 'justify-end' : ''}`}>
+    <div className={`flex items-start gap-1 ${isUser ? 'justify-end' : ''}`}>
       {/* Avatar - only for AI messages */}
       {!isUser && (
-        <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/5 text-gray-400">
-          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+        <div className="mt-0 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-white/5 text-gray-400">
+          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
           </svg>
         </div>
       )}
 
       {/* Message Content */}
-      <div className={`space-y-1 ${isUser ? 'max-w-[70%]' : 'flex-1'}`}>
+      <div className={`space-y-0.5 ${isUser ? 'max-w-[70%]' : 'flex-1'}`}>
         {/* Tool Calls */}
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -219,7 +219,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
 
           {/* Timestamp */}
           <div
-            className={`mt-1 text-xs ${
+            className={`mt-0.5 text-xs ${
               isUser ? 'text-white/70' : 'text-gray-500'
             }`}
           >
@@ -232,10 +232,10 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
 
         {/* Actions */}
         {!isUser && isLast && (
-          <div className="flex gap-1">
+          <div className="flex gap-0.5">
             <button
               onClick={() => navigator.clipboard.writeText(message.content)}
-              className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-white/5 hover:text-white flex items-center justify-center"
+              className="rounded px-1.5 py-0.5 text-xs text-gray-400 hover:bg-white/5 hover:text-white flex items-center justify-center"
               title="Copy message"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -248,7 +248,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
               </svg>
             </button>
             <button
-              className="rounded px-2 py-1 text-xs text-gray-400 hover:bg-white/5 hover:text-white flex items-center justify-center"
+              className="rounded px-1.5 py-0.5 text-xs text-gray-400 hover:bg-white/5 hover:text-white flex items-center justify-center"
               title="Regenerate"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

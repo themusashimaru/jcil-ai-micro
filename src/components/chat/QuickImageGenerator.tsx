@@ -77,7 +77,7 @@ export function QuickImageGenerator({ onImageGenerated, isGenerating = false }: 
               <h3 className="text-lg font-semibold text-white">Create AI Image</h3>
               <button
                 onClick={() => setIsOpen(false)}
-                className="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+                className="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white flex items-center justify-center"
                 aria-label="Close"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
