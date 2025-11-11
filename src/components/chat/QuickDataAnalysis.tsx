@@ -301,7 +301,6 @@ Format your response with:
               </div>
             </div>
           </div>
-        </div>
       )}
     </>
   );
