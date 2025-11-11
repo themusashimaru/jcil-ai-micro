@@ -213,7 +213,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   return (
-    <div className="glass-morphism border-t border-white/10 p-1.5 md:p-4">
+    <div className="glass-morphism border-t border-white/10 p-1 md:p-4">
       <div className="mx-auto max-w-[95%] sm:max-w-xl md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
@@ -289,14 +289,14 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Drop files here...'
                 : 'Type your message...'
             }
-            className="w-full resize-none bg-transparent p-1.5 md:p-4 text-sm md:text-base text-white placeholder-gray-400 focus:outline-none"
+            className="w-full resize-none bg-transparent p-1 md:p-4 text-sm md:text-base text-white placeholder-gray-400 focus:outline-none"
             rows={1}
             disabled={isStreaming}
           />
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between border-t border-white/10 p-1 md:p-2">
-            <div className="relative flex items-center gap-1 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
+          <div className="flex items-center justify-between border-t border-white/10 p-0.5 md:p-2">
+            <div className="relative flex items-center gap-0.5 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
               {/* Hidden file inputs */}
               <input
                 ref={cameraInputRef}
@@ -451,7 +451,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               )}
             </div>
 
-            <div className="flex items-center gap-1 md:gap-2 shrink-0">
+            <div className="flex items-center gap-0.5 md:gap-2 shrink-0">
               {message.length > 0 && (
                 <span className="text-xs text-gray-400">{message.length}</span>
               )}
@@ -505,9 +505,17 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-lg bg-white px-3 py-1 md:px-6 md:py-2 text-xs md:text-sm font-semibold text-black transition hover:bg-gray-200 disabled:opacity-50 shrink-0"
+                className="rounded-full bg-white p-1.5 md:p-2 text-black transition hover:bg-gray-200 disabled:opacity-50 shrink-0"
+                title={isStreaming ? 'Sending...' : 'Send message'}
               >
-                {isStreaming ? 'Sending...' : 'Send'}
+                <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  />
+                </svg>
               </button>
             </div>
           </div>

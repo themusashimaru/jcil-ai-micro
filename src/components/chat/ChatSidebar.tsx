@@ -248,7 +248,7 @@ export function ChatSidebar({
           glass-morphism border-r border-white/10
           fixed md:relative
           inset-y-0 left-0 z-50
-          w-60 md:w-64
+          w-72 md:w-80
           transform transition-transform duration-300 ease-in-out
           ${collapsed ? '-translate-x-full md:translate-x-0 md:w-0 md:border-0' : 'translate-x-0'}
         `}
