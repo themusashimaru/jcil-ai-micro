@@ -336,7 +336,15 @@ export function ChatClient() {
           if (!response.ok) throw new Error('Image generation failed');
           const data = await response.json();
           if (data.url) {
-            handleImageGenerated(data.url, content);
+            // Add only the assistant response with image
+            const imageMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: `Here's your generated image based on: "${content}"`,
+              imageUrl: data.url,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, imageMessage]);
           }
         } catch (error) {
           console.error('Image error:', error);
@@ -365,7 +373,14 @@ export function ChatClient() {
           if (!response.ok) throw new Error('Code generation failed');
           const data = await response.json();
           if (data.content) {
-            handleCodeGenerated(data.content, content);
+            // Add only the assistant response
+            const codeMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: data.content,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, codeMessage]);
           }
         } catch (error) {
           console.error('Code error:', error);
@@ -394,7 +409,14 @@ export function ChatClient() {
           if (!response.ok) throw new Error('Search failed');
           const data = await response.json();
           if (data.content) {
-            handleSearchComplete(data.content, content);
+            // Add only the assistant response
+            const searchMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: data.content,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, searchMessage]);
           }
         } catch (error) {
           console.error('Search error:', error);
