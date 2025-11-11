@@ -472,17 +472,17 @@ export function ChatClient() {
   return (
     <div className="flex h-screen flex-col bg-black">
       {/* Header */}
-      <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
+      <header className="glass-morphism border-b border-white/10 py-1 px-1 md:p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="rounded-lg p-1 hover:bg-white/10 transition-colors"
+              className="rounded-lg p-0.5 hover:bg-white/10 transition-colors"
               aria-label="Toggle sidebar"
             >
               {/* Menu/Close icon */}
               <svg
-                className="h-3.5 w-3.5 md:h-5 md:w-5"
+                className="h-4 w-4 md:h-5 md:w-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -495,15 +495,15 @@ export function ChatClient() {
                 />
               </svg>
             </button>
-            <h1 className="text-sm md:text-xl font-semibold">JCIL.ai</h1>
+            <h1 className="text-base md:text-xl font-semibold">JCIL.ai</h1>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5"
+              className="rounded-lg px-1.5 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5"
               aria-label="User Profile"
             >
-              <svg className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
