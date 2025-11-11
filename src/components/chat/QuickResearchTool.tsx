@@ -158,7 +158,7 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
       {/* Modal */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-4 md:py-10">
-          <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl mx-4 my-auto">
+          <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl mx-4">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <div>
