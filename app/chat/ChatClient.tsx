@@ -173,31 +173,30 @@ export function ChatClient() {
     setMessages((prev) => [...prev, userMessage, searchMessage]);
   };
 
-  const handleShopComplete = (response: string, query: string, products: ShopProduct[]) => {
+  const handleDataAnalysisComplete = (response: string, source: string, type: 'file' | 'url') => {
     const timestamp = new Date();
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: `🛍️ Shop: ${query}`,
+      content: `📊 Data Analysis: ${type === 'file' ? source : 'URL'}`,
       timestamp,
     };
 
-    const shopMessage: Message = {
+    const analysisMessage: Message = {
       id: (Date.now() + 1).toString(),
       role: 'assistant',
       content: response,
-      products,
       timestamp,
     };
 
-    const nextLastMessage = products[0]?.title ? `🛍️ ${products[0].title}` : `🛍️ Shop: ${query}`;
+    const nextLastMessage = `📊 Analysis: ${source.slice(0, 40)}`;
 
     if (!currentChatId) {
       const newChatId = Date.now().toString();
       const newChat: Chat = {
         id: newChatId,
-        title: `Shopping: ${query}`.slice(0, 40),
+        title: `Data Analysis: ${source}`.slice(0, 40),
         isPinned: false,
         lastMessage: nextLastMessage.slice(0, 60),
         createdAt: timestamp,
@@ -206,11 +205,11 @@ export function ChatClient() {
 
       setChats((prevChats) => [newChat, ...prevChats]);
       setCurrentChatId(newChatId);
-      setMessages([userMessage, shopMessage]);
+      setMessages([userMessage, analysisMessage]);
       return;
     }
 
-    setMessages((prev) => [...prev, userMessage, shopMessage]);
+    setMessages((prev) => [...prev, userMessage, analysisMessage]);
     setChats((prevChats) =>
       prevChats.map((chat) =>
         chat.id === currentChatId
@@ -451,7 +450,7 @@ export function ChatClient() {
             onImageGenerated={handleImageGenerated}
             onCodeGenerated={handleCodeGenerated}
             onSearchComplete={handleSearchComplete}
-            onShopComplete={handleShopComplete}
+            onDataAnalysisComplete={handleDataAnalysisComplete}
             isStreaming={isStreaming}
           />
         </main>
