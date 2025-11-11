@@ -78,8 +78,6 @@ Example response:
       const data = await response.json();
       const aiResponse = data.content as string;
 
-      console.log('AI Response:', aiResponse);
-
       // Extract JSON from response
       let jsonText = aiResponse;
       const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
@@ -95,32 +93,35 @@ Example response:
         if (Array.isArray(raw)) {
           // Validate and clean products
           parsedProducts = raw
-            .filter((item: any) => {
+            .filter((item: unknown) => {
+              if (!item || typeof item !== 'object') return false;
+              const product = item as Record<string, unknown>;
+
               // Must have title and URL
-              if (!item.title || !item.url) return false;
+              if (!product.title || !product.url) return false;
 
               // Validate ASIN in URL (must be exactly 10 alphanumeric characters)
-              const asinMatch = item.url.match(/\/dp\/([A-Z0-9]{10})/i);
+              const asinMatch = String(product.url).match(/\/dp\/([A-Z0-9]{10})/i);
               if (!asinMatch) return false;
 
               // If image exists, validate it's a real Amazon image URL
-              if (item.image && !item.image.includes('media-amazon.com/images/I/')) {
-                console.warn('Invalid image URL, removing:', item.image);
-                item.image = null;
+              if (product.image && !String(product.image).includes('media-amazon.com/images/I/')) {
+                product.image = null;
               }
 
               return true;
             })
-            .map((item: any) => ({
-              title: item.title,
-              price: item.price || '',
-              rating: item.rating,
-              image: item.image || undefined,
-              url: item.url,
-            }));
+            .map((item: unknown) => {
+              const product = item as Record<string, unknown>;
+              return {
+                title: String(product.title),
+                price: product.price ? String(product.price) : '',
+                rating: product.rating ? String(product.rating) : undefined,
+                image: product.image ? String(product.image) : undefined,
+                url: String(product.url),
+              };
+            });
         }
-
-        console.log('Valid products:', parsedProducts);
 
         if (parsedProducts.length === 0) {
           throw new Error('No valid products found');
