@@ -174,24 +174,54 @@ export function ChatClient() {
   };
 
   const handleShopComplete = (response: string, query: string, products: ShopProduct[]) => {
-    // Add user message with shop query
+    const timestamp = new Date();
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: `🛍️ Shop: ${query}`,
-      timestamp: new Date(),
+      timestamp,
     };
 
-    // Add assistant message with product results
     const shopMessage: Message = {
       id: (Date.now() + 1).toString(),
       role: 'assistant',
       content: response,
-      products: products, // Include products for display
-      timestamp: new Date(),
+      products,
+      timestamp,
     };
 
+    const nextLastMessage = products[0]?.title ? `🛍️ ${products[0].title}` : `🛍️ Shop: ${query}`;
+
+    if (!currentChatId) {
+      const newChatId = Date.now().toString();
+      const newChat: Chat = {
+        id: newChatId,
+        title: `Shopping: ${query}`.slice(0, 40),
+        isPinned: false,
+        lastMessage: nextLastMessage.slice(0, 60),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+
+      setChats((prevChats) => [newChat, ...prevChats]);
+      setCurrentChatId(newChatId);
+      setMessages([userMessage, shopMessage]);
+      return;
+    }
+
     setMessages((prev) => [...prev, userMessage, shopMessage]);
+    setChats((prevChats) =>
+      prevChats.map((chat) =>
+        chat.id === currentChatId
+          ? {
+              ...chat,
+              lastMessage: nextLastMessage.slice(0, 60),
+              updatedAt: timestamp,
+            }
+          : chat
+      )
+    );
   };
 
   // Check if query needs live search and provide a helpful message
