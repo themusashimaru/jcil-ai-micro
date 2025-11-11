@@ -351,7 +351,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                       onClick={() => setShowAttachMenu(false)}
                     />
                     {/* Menu */}
-                    <div className="absolute bottom-full left-0 mb-2 z-50 w-48 rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
+                    <div className="fixed bottom-20 left-4 z-50 w-56 rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
                       <button
                         onClick={() => {
                           cameraInputRef.current?.click();
