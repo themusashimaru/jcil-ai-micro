@@ -47,14 +47,14 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   // Show logo and tools when no chat is selected OR when chat is empty
   if (!currentChatId || messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-2">
+      <div className="flex flex-1 items-center justify-center p-1">
         <div className="text-center">
           {/* JCIL.ai Logo */}
-          <div className="mb-2">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-1.5">
+          <div className="mb-1">
+            <h1 className="text-xl md:text-4xl font-bold tracking-tight text-white mb-0.5">
               JCIL<span className="text-blue-500">.ai</span>
             </h1>
-            <p className="text-base md:text-lg text-gray-400 font-medium mb-2">
+            <p className="text-xs md:text-lg text-gray-400 font-medium mb-1">
               Slingshot 2.0
             </p>
             <p className="text-xs md:text-sm text-gray-400 italic">
@@ -64,26 +64,26 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
 
           {/* Personalized greeting if profile exists */}
           {hasProfile && currentChatId && (
-            <p className="mb-3 text-base md:text-lg text-gray-300">
+            <p className="mb-1 text-xs md:text-lg text-gray-300">
               Hi {profile.name}! How can I help you today?
             </p>
           )}
 
           {!currentChatId && (
-            <p className="mb-4 text-xs md:text-sm text-gray-400">
+            <p className="mb-2 text-xs md:text-sm text-gray-400">
               Start a new chat or select an existing conversation
             </p>
           )}
 
           {/* Main Tools */}
-          <div className="flex flex-wrap justify-center gap-2 mb-3 mt-4">
+          <div className="flex flex-wrap justify-center gap-1 mb-1 mt-2">
             <QuickEmailWriter />
             <QuickResearchTool />
             <QuickEssayWriter />
           </div>
 
           {/* Bible Tools */}
-          <div className="flex justify-center gap-2">
+          <div className="flex justify-center gap-1">
             <QuickDailyDevotional />
             <QuickBibleStudy />
           </div>
