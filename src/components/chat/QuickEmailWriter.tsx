@@ -10,17 +10,21 @@
 'use client';
 
 import { useState } from 'react';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 
 interface QuickEmailWriterProps {
   onEmailGenerated?: (email: string, subject: string) => void;
 }
 
 export function QuickEmailWriter({ onEmailGenerated }: QuickEmailWriterProps) {
+  const { profile } = useUserProfile();
   const [isOpen, setIsOpen] = useState(false);
   const [recipient, setRecipient] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [purpose, setPurpose] = useState('');
   const [tone, setTone] = useState<'professional' | 'friendly' | 'formal' | 'casual'>('professional');
   const [keyPoints, setKeyPoints] = useState('');
+  const [includeSignature, setIncludeSignature] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedEmail, setGeneratedEmail] = useState<{ subject: string; body: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,13 +51,15 @@ ${keyPoints ? `**Key Points to Include:** ${keyPoints}` : ''}
 2. Create a well-structured email body with:
    - Professional greeting (use recipient name if provided)
    - Clear opening that states purpose
-   - Organized body paragraphs (use bullet points if listing items)
+   - Organized body paragraphs (use bullet points or hyphens for lists, NO em-dashes)
    - Strong, actionable closing
-   - Appropriate sign-off
+   - Appropriate sign-off (e.g., Best regards, Sincerely, etc.)
 3. Match the ${tone} tone throughout
 4. Keep it concise but complete (150-300 words for body)
 5. Ensure grammar, spelling, and punctuation are perfect
-6. Make it ready to send immediately
+6. DO NOT use em-dashes (—) anywhere in the email
+7. Use standard hyphens (-) instead of em-dashes
+8. Make it ready to send immediately
 
 Return ONLY a JSON object with this format (no markdown, no code blocks):
 {
@@ -87,6 +93,15 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
 
       const emailData = JSON.parse(content);
 
+      // Remove any em-dashes that may have been generated
+      emailData.body = emailData.body.replace(/—/g, '-');
+      emailData.subject = emailData.subject.replace(/—/g, '-');
+
+      // Add signature if requested and available
+      if (includeSignature && profile.emailSignature) {
+        emailData.body = `${emailData.body}\n\n${profile.emailSignature}`;
+      }
+
       setGeneratedEmail(emailData);
 
       if (onEmailGenerated) {
@@ -107,6 +122,18 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
     }
   };
 
+  const handleSendEmail = () => {
+    if (!generatedEmail) return;
+
+    // Create mailto link with encoded subject and body
+    const mailto = `mailto:${recipientEmail || ''}?subject=${encodeURIComponent(
+      generatedEmail.subject
+    )}&body=${encodeURIComponent(generatedEmail.body)}`;
+
+    // Open mailto link
+    window.location.href = mailto;
+  };
+
   const handleReset = () => {
     setGeneratedEmail(null);
     setError(null);
@@ -115,9 +142,11 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
   const handleClose = () => {
     setIsOpen(false);
     setRecipient('');
+    setRecipientEmail('');
     setPurpose('');
     setKeyPoints('');
     setTone('professional');
+    setIncludeSignature(true);
     setGeneratedEmail(null);
     setError(null);
   };
@@ -177,7 +206,7 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
                   {/* Recipient */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-300">
-                      Recipient (Optional)
+                      Recipient Name (Optional)
                     </label>
                     <input
                       type="text"
@@ -186,6 +215,23 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
                       placeholder="e.g., John Smith, Hiring Manager"
                       className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
                     />
+                  </div>
+
+                  {/* Recipient Email */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300">
+                      Recipient Email (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      placeholder="e.g., john.smith@company.com"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Required only if you want to use the &quot;Send Email&quot; button
+                    </p>
                   </div>
 
                   {/* Purpose */}
@@ -238,6 +284,49 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
                     />
                   </div>
 
+                  {/* Include Signature Toggle */}
+                  {profile.emailSignature && (
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={includeSignature}
+                            onChange={(e) => setIncludeSignature(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-blue-500 transition-colors"></div>
+                          <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-300 group-hover:text-white transition">
+                            Include Email Signature
+                          </span>
+                          <p className="text-xs text-gray-500">
+                            Append your saved signature to the email
+                          </p>
+                        </div>
+                      </label>
+
+                      {/* Signature Preview */}
+                      {includeSignature && (
+                        <div className="ml-14 rounded-xl border border-white/10 bg-white/5 p-3">
+                          <p className="text-xs font-semibold text-gray-400 mb-2">SIGNATURE PREVIEW</p>
+                          <div
+                            className="whitespace-pre-wrap text-xs"
+                            style={{
+                              fontWeight: profile.signatureBold ? 'bold' : 'normal',
+                              fontStyle: profile.signatureItalic ? 'italic' : 'normal',
+                              color: profile.signatureColor || '#FFFFFF',
+                            }}
+                          >
+                            {profile.emailSignature}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Error */}
                   {error && (
                     <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
@@ -272,18 +361,45 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleCopy}
+                        className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white hover:bg-white/20 transition flex items-center justify-center gap-2"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                        Copy Email
+                      </button>
+                      <button
+                        onClick={handleReset}
+                        className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white hover:bg-white/20 transition"
+                      >
+                        Write Another
+                      </button>
+                    </div>
+
+                    {/* Send Email Button */}
                     <button
-                      onClick={handleCopy}
-                      className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white hover:bg-white/20 transition"
+                      onClick={handleSendEmail}
+                      className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-3 font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition flex items-center justify-center gap-2"
+                      title={!recipientEmail ? 'Enter recipient email to enable' : 'Open in your default email client'}
                     >
-                      Copy Email
-                    </button>
-                    <button
-                      onClick={handleReset}
-                      className="flex-1 rounded-xl bg-blue-500 px-4 py-3 font-semibold text-white hover:bg-blue-600 transition"
-                    >
-                      Write Another
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        />
+                      </svg>
+                      {recipientEmail ? 'Send Email' : 'Send Email (Add Recipient Email)'}
                     </button>
                   </div>
                 </>
