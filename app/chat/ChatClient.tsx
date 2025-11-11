@@ -42,8 +42,8 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { profile, hasProfile } = useUserProfile();
-  // Selected tool for data analysis
-  const [selectedDataTool, setSelectedDataTool] = useState(false);
+  // Selected tool (only one can be selected at a time)
+  const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
 
   // Detect screen size and set initial sidebar state
   useEffect(() => {
@@ -297,32 +297,124 @@ export function ChatClient() {
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
-    // If data tool is selected, handle data analysis
-    if (selectedDataTool) {
-      setSelectedDataTool(false);
+    if (!content.trim() && attachments.length === 0) return;
 
-      // Check if user provided a file or URL
-      if (attachments.length > 0) {
-        // Handle file attachment
-        const file = attachments[0];
-        handleDataAnalysisComplete(`Analysis of ${file.name}:\n\n[Analysis results would appear here based on file type: ${file.type}]`, file.name, 'file');
-      } else if (content.trim()) {
-        // Check if content is a URL
-        const urlPattern = /^(https?:\/\/)?([\w-]+(\.[\w-]+)+)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?$/;
-        if (urlPattern.test(content.trim())) {
-          handleDataAnalysisComplete(`Analysis of URL:\n\n[Analysis results would appear here for: ${content}]`, content, 'url');
-        } else {
-          // Treat as instructions with attached file expected
-          const errorMessage: Message = {
+    // Handle tool-specific requests
+    if (selectedTool) {
+      const toolType = selectedTool;
+      setSelectedTool(null); // Clear selection
+
+      if (toolType === 'image') {
+        // Image generation
+        setIsStreaming(true);
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: content }],
+              tool: 'image',
+            }),
+          });
+          if (!response.ok) throw new Error('Image generation failed');
+          const data = await response.json();
+          if (data.url) {
+            handleImageGenerated(data.url, content);
+          }
+        } catch (error) {
+          console.error('Image error:', error);
+          const errorMsg: Message = {
             id: Date.now().toString(),
             role: 'assistant',
-            content: 'Please attach a file (CSV, XLSX, etc.) or paste a valid URL for data analysis.',
+            content: `Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`,
             timestamp: new Date(),
           };
-          setMessages((prev) => [...prev, errorMessage]);
+          setMessages((prev) => [...prev, errorMsg]);
+        } finally {
+          setIsStreaming(false);
         }
+        return;
+      } else if (toolType === 'code') {
+        // Code generation
+        setIsStreaming(true);
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: content }],
+              tool: 'code',
+            }),
+          });
+          if (!response.ok) throw new Error('Code generation failed');
+          const data = await response.json();
+          if (data.content) {
+            handleCodeGenerated(data.content, content);
+          }
+        } catch (error) {
+          console.error('Code error:', error);
+          const errorMsg: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `Failed to generate code: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMsg]);
+        } finally {
+          setIsStreaming(false);
+        }
+        return;
+      } else if (toolType === 'search') {
+        // Live search
+        setIsStreaming(true);
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: content }],
+              tool: 'research',
+            }),
+          });
+          if (!response.ok) throw new Error('Search failed');
+          const data = await response.json();
+          if (data.content) {
+            handleSearchComplete(data.content, content);
+          }
+        } catch (error) {
+          console.error('Search error:', error);
+          const errorMsg: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMsg]);
+        } finally {
+          setIsStreaming(false);
+        }
+        return;
+      } else if (toolType === 'data') {
+        // Data analysis
+        if (attachments.length > 0) {
+          const file = attachments[0];
+          handleDataAnalysisComplete(`Analysis of ${file.name}:\n\n[Analysis results would appear here based on file type: ${file.type}]`, file.name, 'file');
+        } else if (content.trim()) {
+          const urlPattern = /^(https?:\/\/)?([\w-]+(\.[\w-]+)+)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?$/;
+          if (urlPattern.test(content.trim())) {
+            handleDataAnalysisComplete(`Analysis of URL:\n\n[Analysis results would appear here for: ${content}]`, content, 'url');
+          } else {
+            const errorMsg: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: 'Please attach a file (CSV, XLSX, etc.) or paste a valid URL for data analysis.',
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, errorMsg]);
+          }
+        }
+        return;
       }
-      return;
     }
 
     // Track if this is a new chat (for title generation)
@@ -531,7 +623,7 @@ export function ChatClient() {
           {/* New Chat Button - Mobile Only, Centered */}
           <button
             onClick={handleNewChat}
-            className="absolute left-1/2 -translate-x-1/2 md:hidden rounded-full p-1.5 hover:bg-white/10 transition-colors"
+            className="absolute left-1/2 -translate-x-1/2 md:hidden rounded-full p-1.5 hover:bg-white/10 transition-colors flex items-center justify-center"
             aria-label="New chat"
             title="Start new chat"
           >
@@ -540,11 +632,11 @@ export function ChatClient() {
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              strokeWidth={2.5}
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
                 d="M12 4v16m8-8H4"
               />
             </svg>
@@ -600,8 +692,8 @@ export function ChatClient() {
             onSearchComplete={handleSearchComplete}
             onDataAnalysisComplete={handleDataAnalysisComplete}
             isStreaming={isStreaming}
-            dataToolSelected={selectedDataTool}
-            onSelectDataTool={setSelectedDataTool}
+            selectedTool={selectedTool}
+            onSelectTool={setSelectedTool}
           />
         </main>
       </div>

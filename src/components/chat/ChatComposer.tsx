@@ -32,11 +32,11 @@ interface ChatComposerProps {
   onSearchComplete?: (response: string, query: string) => void;
   onDataAnalysisComplete?: (response: string, source: string, type: 'file' | 'url') => void;
   isStreaming: boolean;
-  dataToolSelected?: boolean;
-  onSelectDataTool?: (selected: boolean) => void;
+  selectedTool?: 'image' | 'code' | 'search' | 'data' | null;
+  onSelectTool?: (tool: 'image' | 'code' | 'search' | 'data' | null) => void;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onDataAnalysisComplete, isStreaming, dataToolSelected, onSelectDataTool }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onDataAnalysisComplete, isStreaming, selectedTool, onSelectTool }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -288,7 +288,13 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Listening...'
                 : isDragging
                 ? 'Drop files here...'
-                : dataToolSelected
+                : selectedTool === 'image'
+                ? '🎨 Describe the image you want to create...'
+                : selectedTool === 'code'
+                ? '💻 What code do you need help with?'
+                : selectedTool === 'search'
+                ? '🔍 What would you like to search for?'
+                : selectedTool === 'data'
                 ? '📊 Attach a file (CSV, XLSX, etc.) or paste a URL for analysis...'
                 : 'Type your message...'
             }
@@ -300,7 +306,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
 
           {/* Action Bar */}
           <div className="flex items-center justify-between border-t border-white/10 py-2 px-1 md:p-2">
-            <div className="relative flex items-center gap-0 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
+            <div className="relative flex items-center gap-1 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
               {/* Hidden file inputs */}
               <input
                 ref={cameraInputRef}
@@ -418,43 +424,49 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               </div>
 
               {/* Quick Image Generator */}
-              {onImageGenerated && (
+              {onImageGenerated && onSelectTool && (
                 <QuickImageGenerator
                   onImageGenerated={onImageGenerated}
                   isGenerating={isStreaming}
+                  isSelected={selectedTool === 'image'}
+                  onSelect={() => onSelectTool(selectedTool === 'image' ? null : 'image')}
                 />
               )}
 
               {/* Quick Coding Assistant */}
-              {onCodeGenerated && (
+              {onCodeGenerated && onSelectTool && (
                 <QuickCodingAssistant
                   onCodeGenerated={onCodeGenerated}
                   isGenerating={isStreaming}
+                  isSelected={selectedTool === 'code'}
+                  onSelect={() => onSelectTool(selectedTool === 'code' ? null : 'code')}
                 />
               )}
 
               {/* Quick Live Search */}
-              {onSearchComplete && (
+              {onSearchComplete && onSelectTool && (
                 <QuickLiveSearch
                   onSearchComplete={onSearchComplete}
                   isSearching={isStreaming}
+                  isSelected={selectedTool === 'search'}
+                  onSelect={() => onSelectTool(selectedTool === 'search' ? null : 'search')}
                 />
               )}
 
               {/* Quick Data Analysis */}
-              {onDataAnalysisComplete && onSelectDataTool && (
+              {onDataAnalysisComplete && onSelectTool && (
                 <button
-                  onClick={() => onSelectDataTool(!dataToolSelected)}
+                  onClick={() => onSelectTool(selectedTool === 'data' ? null : 'data')}
                   className={`rounded-lg px-3 py-2 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed border whitespace-nowrap ${
-                    dataToolSelected
+                    selectedTool === 'data'
                       ? 'bg-white text-black border-white'
                       : 'bg-black text-white border-white/20 hover:bg-gray-800'
                   }`}
                   disabled={isStreaming}
                   aria-label="Data analysis mode"
-                  title={dataToolSelected ? "Data analysis mode active - attach file or paste URL" : "Select data analysis mode"}
+                  title={selectedTool === 'data' ? "Data analysis mode active - attach file or paste URL" : "Select data analysis mode"}
                 >
-                  {dataToolSelected ? '✓ Data' : 'Data'}
+                  {selectedTool === 'data' ? '✓ Data' : 'Data'}
                 </button>
               )}
 
