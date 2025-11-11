@@ -213,7 +213,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   return (
-    <div className="glass-morphism border-t border-white/10 p-0.5 md:p-4">
+    <div className="glass-morphism border-t border-white/10 py-0 px-0.5 md:p-4">
       <div className="mx-auto max-w-[95%] sm:max-w-xl md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
@@ -289,7 +289,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Drop files here...'
                 : 'Type your message...'
             }
-            className="w-full resize-none bg-transparent p-0.5 md:p-4 text-sm md:text-base text-white placeholder-gray-400 focus:outline-none"
+            className="w-full resize-none bg-transparent py-1 px-0.5 md:p-4 text-sm md:text-base text-white placeholder-gray-400 focus:outline-none"
             rows={1}
             disabled={isStreaming}
           />
