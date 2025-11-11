@@ -217,48 +217,60 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
           messages: [
             {
               role: 'user',
-              content: `Find 3-5 popular products on Amazon for: "${query}". Use real-time search to get current products with REAL product images and working Amazon links.
+              content: `Search Amazon.com for: "${query}"
 
-Return ONLY a JSON array in this EXACT format:
-[
-  {
-    "title": "Full product name from Amazon",
-    "price": "$XX.XX",
-    "rating": "X.X/5",
-    "image": "direct Amazon product image URL (https://m.media-amazon.com/... or similar)",
-    "url": "actual Amazon product page URL (https://www.amazon.com/dp/...)"
-  }
-]
+Find 3-5 REAL products currently available on Amazon. For each product, you MUST:
+1. Visit amazon.com and find actual product listings
+2. Extract the real ASIN (10-character product ID from the URL like /dp/B08N5WRWNW)
+3. Get the actual product image URL from Amazon (m.media-amazon.com)
+4. Get the real current price
+5. Get the actual customer rating
 
-CRITICAL:
-- Use live web search to find REAL Amazon products
-- Include actual Amazon product image URLs
-- Include working Amazon product page links (dp/ASIN format)
-- Get current prices and ratings
-- Return ONLY the JSON array, no extra text`,
+Return ONLY a valid JSON array with NO markdown, NO code blocks, NO explanation:
+[{"title":"Exact product name from Amazon","price":"$XX.XX","rating":"4.5/5","image":"https://m.media-amazon.com/images/I/XXXXX.jpg","url":"https://www.amazon.com/dp/ASIN123456"}]
+
+Example for wireless headphones:
+[{"title":"Sony WH-1000XM5 Wireless Headphones","price":"$398.00","rating":"4.6/5","image":"https://m.media-amazon.com/images/I/51K0TYXWFEL._AC_SL1500_.jpg","url":"https://www.amazon.com/dp/B09XS7JWHH"}]
+
+CRITICAL REQUIREMENTS:
+- Search ONLY Amazon.com using web search
+- Use REAL ASINs from actual Amazon product pages
+- Include working image URLs from m.media-amazon.com or images-amazon.com
+- Return ONLY the JSON array - nothing else
+- NO markdown formatting, NO code fences like \`\`\`json
+- Start response with [ and end with ]`,
             },
           ],
-          tool: 'research', // Use research tool for live search
+          tool: 'shopper', // Use shopper tool for Amazon product search
         }),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API response error:', errorText);
         throw new Error('Failed to search Amazon products');
       }
 
       const data = await response.json();
       const searchResults = data.content as string;
 
+      console.log('Raw AI response:', searchResults.substring(0, 500)); // Debug log
+
       // Try to parse JSON from response
       let parsedProducts: Product[] = [];
       try {
         const jsonText = extractJsonArray(searchResults);
+        console.log('Extracted JSON:', jsonText?.substring(0, 500)); // Debug log
+
         if (jsonText) {
           const raw = JSON.parse(jsonText);
+          console.log('Parsed raw products:', raw); // Debug log
           parsedProducts = normalizeProducts(raw);
+          console.log('Normalized products:', parsedProducts); // Debug log
         }
 
         if (parsedProducts.length === 0) {
+          console.warn('No products found, using fallback');
           parsedProducts = [
             {
               title: `Search results for "${query}"`,
@@ -271,6 +283,7 @@ CRITICAL:
         setProducts(parsedProducts);
       } catch (parseError) {
         console.error('Failed to parse products:', parseError);
+        console.error('Raw response that failed to parse:', searchResults);
         parsedProducts = [
           {
             title: `Search results for "${query}"`,
