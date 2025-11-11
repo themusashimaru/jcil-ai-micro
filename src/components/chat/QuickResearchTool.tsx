@@ -241,15 +241,15 @@ ${focus ? `**Specific Focus:** ${focus}` : ''}
                         <button
                           key={d}
                           onClick={() => setDepth(d)}
-                          className={`rounded-lg px-4 py-3 text-sm font-medium transition ${
+                          className={`rounded-lg px-2 py-2 text-xs font-medium transition ${
                             depth === d
                               ? 'bg-blue-500 text-white'
                               : 'bg-white/5 text-gray-400 hover:bg-white/10'
                           }`}
                         >
-                          <div className="flex flex-col gap-1">
-                            <span>{d.charAt(0).toUpperCase() + d.slice(1)}</span>
-                            <span className="text-xs opacity-75">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs">{d.charAt(0).toUpperCase() + d.slice(1)}</span>
+                            <span className="text-[10px] opacity-75">
                               {d === 'overview' && '~400 words'}
                               {d === 'detailed' && '~700 words'}
                               {d === 'comprehensive' && '~1100 words'}
