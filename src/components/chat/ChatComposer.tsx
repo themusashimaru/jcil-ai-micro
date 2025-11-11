@@ -289,6 +289,12 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Listening...'
                 : isDragging
                 ? 'Drop files here...'
+                : selectedTool === 'image'
+                ? '🎨 Describe the image you want to create...'
+                : selectedTool === 'code'
+                ? '💻 What code do you need help with?'
+                : selectedTool === 'search'
+                ? '🔍 What would you like to search for?'
                 : 'Type your message...'
             }
             className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[40px]"
