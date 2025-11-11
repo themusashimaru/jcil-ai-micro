@@ -12,7 +12,7 @@
 import { useState, useRef } from 'react';
 
 interface QuickAmazonShopProps {
-  onShopComplete?: (response: string, query: string) => void;
+  onShopComplete?: (response: string, query: string, products: Product[]) => void;
 }
 
 interface Product {
@@ -71,32 +71,35 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
       const searchResults = data.content;
 
       // Try to parse JSON from response
+      let parsedProducts: Product[] = [];
       try {
         const jsonMatch = searchResults.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
-          const parsedProducts = JSON.parse(jsonMatch[0]);
+          parsedProducts = JSON.parse(jsonMatch[0]);
           setProducts(parsedProducts);
         } else {
           // If no JSON, just show the text response
-          setProducts([{
+          parsedProducts = [{
             title: 'Search Results',
             price: '',
             url: `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
-          }]);
+          }];
+          setProducts(parsedProducts);
         }
       } catch (parseError) {
         console.error('Failed to parse products:', parseError);
         // Fallback: create generic Amazon search link
-        setProducts([{
+        parsedProducts = [{
           title: `Search results for "${query}"`,
           price: '',
           url: `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
-        }]);
+        }];
+        setProducts(parsedProducts);
       }
 
-      // Send response to chat
+      // Send response to chat with products
       if (onShopComplete) {
-        onShopComplete(searchResults, query);
+        onShopComplete(searchResults, query, parsedProducts);
       }
 
       setIsSearching(false);
@@ -134,10 +137,10 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
       {/* Modal */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-2xl rounded-lg bg-black/90 p-6 shadow-xl backdrop-blur-xl border border-white/10">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-lg bg-black/90 p-6 shadow-xl backdrop-blur-xl border border-white/10">
             {/* Header */}
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">🛒 Amazon Shop</h2>
+              <h2 className="text-xl font-bold">🛍️ Intelligent Personal Shopping</h2>
               <button
                 onClick={() => setIsOpen(false)}
                 className="rounded-lg p-2 hover:bg-white/10"
