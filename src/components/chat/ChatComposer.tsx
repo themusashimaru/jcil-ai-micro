@@ -23,7 +23,6 @@ import type { Attachment } from '@/app/chat/types';
 import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
 import { QuickLiveSearch } from './QuickLiveSearch';
-import { QuickDataAnalysis } from './QuickDataAnalysis';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 interface ChatComposerProps {
