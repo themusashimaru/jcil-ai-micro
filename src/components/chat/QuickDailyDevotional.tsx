@@ -136,7 +136,7 @@ export function QuickDailyDevotional() {
                       {/* Scripture */}
                       <div className="rounded-xl bg-white/5 p-6 border border-white/10">
                         <p className="text-sm font-semibold text-amber-400 mb-3">
-                          {devotional.scripture.reference} (KJV)
+                          {devotional.scripture.reference}
                         </p>
                         <p className="text-base leading-relaxed text-gray-200 italic">
                           {devotional.scripture.text}

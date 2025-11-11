@@ -26,6 +26,8 @@ import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
+import { UserProfileModal } from '@/components/profile/UserProfileModal';
+import { useUserProfile } from '@/contexts/UserProfileContext';
 import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
@@ -37,6 +39,8 @@ export function ChatClient() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { profile, hasProfile } = useUserProfile();
 
   // Mock data for development
   useEffect(() => {
@@ -338,6 +342,16 @@ export function ChatClient() {
         return;
       }
 
+      // Build user context for personalization
+      const userContext = hasProfile
+        ? {
+            name: profile.name,
+            role: profile.isStudent ? 'student' : 'professional',
+            field: profile.jobTitle,
+            purpose: profile.description,
+          }
+        : undefined;
+
       // Call API with regular chat (no auto tool selection)
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -346,6 +360,7 @@ export function ChatClient() {
         },
         body: JSON.stringify({
           messages: apiMessages,
+          userContext,
           // No tool parameter - let users manually select tools via buttons
         }),
       });
@@ -414,6 +429,21 @@ export function ChatClient() {
           <div className="flex items-center gap-2">
             <NotificationProvider />
             <button
+              onClick={() => setIsProfileOpen(true)}
+              className="rounded-lg px-3 py-1.5 text-sm hover:bg-white/10 flex items-center gap-2"
+              aria-label="User Profile"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+              {hasProfile ? profile.name : 'Profile'}
+            </button>
+            <button
               className="rounded-lg px-3 py-1.5 text-sm hover:bg-white/10"
               aria-label="Settings"
             >
@@ -455,6 +485,9 @@ export function ChatClient() {
           />
         </main>
       </div>
+
+      {/* User Profile Modal */}
+      <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </div>
   );
 }

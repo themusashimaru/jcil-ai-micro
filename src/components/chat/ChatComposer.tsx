@@ -25,6 +25,7 @@ import { QuickCodingAssistant } from './QuickCodingAssistant';
 import { QuickLiveSearch } from './QuickLiveSearch';
 import { QuickDataAnalysis } from './QuickDataAnalysis';
 import { QuickDailyDevotional } from './QuickDailyDevotional';
+import { QuickBibleStudy } from './QuickBibleStudy';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 interface ChatComposerProps {
@@ -300,6 +301,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 type="file"
                 multiple
                 accept="image/*,.pdf,.txt,.csv,.xlsx"
+                capture="environment"
                 onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
               />
@@ -352,6 +354,9 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
 
               {/* Daily Devotional */}
               <QuickDailyDevotional />
+
+              {/* Bible Study */}
+              <QuickBibleStudy />
 
               {attachments.length > 0 && (
                 <span className="text-xs text-gray-400">

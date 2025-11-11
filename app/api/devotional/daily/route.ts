@@ -49,26 +49,38 @@ async function generateDevotional(): Promise<Devotional> {
     day: 'numeric',
   });
 
-  const prompt = `You are a faithful Christian pastor and theologian creating a daily devotional for believers. Generate a biblically sound, encouraging devotional for ${formattedDate}.
+  const prompt = `You are a seminary-trained Christian theologian with a Master of Divinity degree, creating a daily devotional for spiritually mature believers. Generate a biblically sound, theologically rich devotional for ${formattedDate}.
 
 Requirements:
-1. Use a REAL King James Version (KJV) Bible verse - cite the exact reference
+1. Use a REAL King James Version (KJV) Bible verse - cite the exact reference with (KJV) notation
 2. Provide the ACTUAL KJV text of that verse (not paraphrased)
-3. Write a thoughtful meditation (150-200 words) that explains the verse and applies it to daily Christian living
-4. Include a sincere prayer (75-100 words) that helps readers connect with God
-5. Provide a practical application (50-75 words) with actionable steps
+3. Write a sophisticated meditation (200-250 words) that:
+   - Demonstrates exegetical depth and biblical insight
+   - Engages with the historical, cultural, and theological context
+   - Uses elevated vocabulary appropriate for graduate-level readers
+   - Explores theological themes and doctrines
+   - Makes connections to broader biblical theology
+   - Applies profound spiritual truths to contemporary Christian living
+4. Compose an eloquent prayer (100-125 words) that:
+   - Reflects theological sophistication
+   - Uses rich, reverent language
+   - Addresses God with depth and intimacy
+5. Provide a substantive application (75-100 words) that:
+   - Challenges readers at a deeper spiritual level
+   - Offers concrete, transformative action steps
+   - Connects devotional practice to theological understanding
 
 The devotional must be:
-- Theologically sound and biblically accurate
-- Encouraging and uplifting
-- Relevant to modern Christians
-- Rooted in orthodox Christian teaching
-- Focused on spiritual growth and discipleship
+- Written at a master's degree reading level with sophisticated vocabulary
+- Theologically rigorous and exegetically sound
+- Rooted in orthodox Christian doctrine and biblical theology
+- Intellectually stimulating while remaining pastorally sensitive
+- Reflective of deep spiritual maturity and theological acumen
 
 Return ONLY a valid JSON object in this exact format (no markdown, no code blocks):
 {
   "date": "${formattedDate}",
-  "title": "A brief, compelling title (4-6 words)",
+  "title": "A theologically rich title (4-6 words)",
   "scripture": {
     "reference": "Book Chapter:Verse (KJV)",
     "text": "The exact KJV verse text"
@@ -84,7 +96,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
         {
           role: 'system',
           content:
-            'You are a faithful Christian theologian who creates biblically sound devotionals. You have deep knowledge of Scripture and Christian theology. Always use accurate KJV Bible verses with proper citations. Return only valid JSON with no markdown formatting.',
+            'You are a seminary-trained theologian with a Master of Divinity degree who creates intellectually rigorous, theologically rich devotionals for spiritually mature believers. You possess comprehensive knowledge of biblical exegesis, systematic theology, church history, and biblical languages. Write at a graduate-level reading comprehension with sophisticated vocabulary and profound theological insight. Always use accurate KJV Bible verses with proper (KJV) notation. Return only valid JSON with no markdown formatting.',
         },
         {
           role: 'user',
@@ -128,17 +140,17 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     // Fallback devotional if generation fails
     return {
       date: formattedDate,
-      title: 'Walk in Faith',
+      title: 'The Epistemology of Divine Trust',
       scripture: {
         reference: 'Proverbs 3:5-6 (KJV)',
         text: 'Trust in the LORD with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.',
       },
       meditation:
-        "Today's Scripture calls us to a life of complete trust in God. The command to trust \"with all thine heart\" means holding nothing back - not our fears, not our plans, not our understanding. When we lean on our own understanding, we limit ourselves to what we can see and comprehend. But God sees the entire picture of our lives.\n\nThe promise is beautiful: when we acknowledge Him in all our ways - in our decisions, relationships, work, and daily routines - He will direct our paths. This doesn't mean we become passive, but rather that we actively seek His guidance in everything. Walking by faith means trusting that God's direction is better than our own planning, even when we cannot see the outcome.",
+        "This Solomonic wisdom presents a profound theological tension between human epistemology and divine omniscience. The imperative to trust \"with all thine heart\" employs the Hebrew concept of \"leb\" - not merely emotional sentiment, but the totality of one's intellectual, volitional, and affective faculties. The antithesis posed - \"lean not unto thine own understanding\" - challenges the Enlightenment privileging of autonomous reason, instead advocating a posture of epistemic humility before the transcendent God.\n\nThe text establishes a covenantal framework wherein comprehensive acknowledgment of God's sovereignty becomes the prerequisite for divine guidance. The phrase \"in all thy ways\" demands an integrated theology of vocation, where the sacred-secular dichotomy dissolves. God's promise to \"direct thy paths\" employs a causative verb form, indicating divine intervention that actively shapes our trajectory. This theodicy affirms God's meticulous providence while maintaining human agency - a nuanced middle path between determinism and open theism. The wisdom tradition here anticipates Paul's later theological development regarding the renewal of the mind (Romans 12:2) and Christ as the wisdom of God (1 Corinthians 1:24).",
       prayer:
-        "Heavenly Father, I come before You acknowledging my need for Your guidance. Forgive me for the times I have relied solely on my own understanding instead of seeking Your wisdom. Help me to trust You completely, even when the path ahead seems unclear. Direct my steps today, Lord, and give me the courage to follow where You lead. May every decision I make honor You. In Jesus' name, Amen.",
+        "Sovereign Lord, You who inhabit eternity and perceive all temporal realities simultaneously, I approach Your throne acknowledging my finite understanding and propensity toward autonomous reasoning. Forgive my presumption when I have elevated human wisdom above Your divine counsel. Grant me the theological virtue of faith that transcends empirical certainty, enabling me to rest in Your providential governance. Illumine my heart with the wisdom that originates in the fear of the Lord. May Your Spirit cultivate within me an epistemological humility that seeks Your guidance in every dimension of my existence. Through Christ, who is Himself the incarnate Wisdom of God, I pray. Amen.",
       application:
-        "Today, identify one area where you've been relying on your own understanding rather than God's guidance. It might be a decision you're facing, a relationship, or a plan you're making. Pause and specifically pray about it, asking God to direct your path. Write down what you sense Him leading you to do, and take one practical step of obedience in that direction.",
+        "Engage in a rigorous theological audit of your decision-making processes. Identify one specific domain where Enlightenment rationalism or pragmatic utilitarianism has supplanted trust in divine providence. Practice the spiritual discipline of discernment through extended contemplative prayer, Scripture meditation, and consultation with mature believers. Document the tension between human understanding and faith-oriented trust, then deliberately choose one concrete action that reflects epistemic submission to God's revealed will, even if it contradicts conventional wisdom or personal preference. This praxis of trust becomes a tangible demonstration of covenant faithfulness.",
     };
   }
 }

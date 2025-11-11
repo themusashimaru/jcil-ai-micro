@@ -41,6 +41,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { PWAInstaller } from '@/components/pwa/PWAInstaller';
 import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
+import { UserProfileProvider } from '@/contexts/UserProfileContext';
 
 export const metadata: Metadata = {
   title: 'Delta-2 | AI Chat Interface',
@@ -73,9 +74,11 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="bg-black text-white antialiased">
-        <OfflineIndicator />
-        {children}
-        <PWAInstaller />
+        <UserProfileProvider>
+          <OfflineIndicator />
+          {children}
+          <PWAInstaller />
+        </UserProfileProvider>
       </body>
     </html>
   );

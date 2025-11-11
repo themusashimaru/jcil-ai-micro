@@ -39,18 +39,26 @@ import { getModelForTool } from '@/lib/xai/models';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 
+interface UserContext {
+  name: string;
+  role: 'student' | 'professional';
+  field?: string;
+  purpose?: string;
+}
+
 interface ChatRequestBody {
   messages: CoreMessage[];
   tool?: string;
   temperature?: number;
   max_tokens?: number;
+  userContext?: UserContext;
 }
 
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body: ChatRequestBody = await request.json();
-    const { messages, tool, temperature, max_tokens } = body;
+    const { messages, tool, temperature, max_tokens, userContext } = body;
 
     // Validate messages
     if (!messages || messages.length === 0) {
@@ -100,9 +108,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Add user context as a system message if provided
+    const messagesWithContext = userContext
+      ? [
+          {
+            role: 'system' as const,
+            content: `You are assisting ${userContext.name}, a ${userContext.role}${userContext.field ? ` in ${userContext.field}` : ''}. ${userContext.purpose ? `They use this AI for: ${userContext.purpose}. ` : ''}Tailor your responses to their background, adjusting complexity, terminology, and examples accordingly.`,
+          },
+          ...messages,
+        ]
+      : messages;
+
     // Regular chat completion (non-streaming for now)
     const result = await createChatCompletion({
-      messages,
+      messages: messagesWithContext,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tool: tool as any,
       temperature,
