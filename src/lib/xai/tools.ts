@@ -89,7 +89,13 @@ export function getSystemPromptForTool(toolType?: ToolType): string {
       return `You are a professional translator. Provide accurate translations that preserve meaning, tone, and cultural context.`;
 
     case 'shopper':
-      return `You are a helpful shopping assistant. Research products, compare options, and provide recommendations based on user preferences and budget.`;
+      return `You are a helpful shopping assistant with web search access. When searching for products:
+1. Use web search to find REAL products on Amazon.com
+2. Extract actual ASINs from product URLs (the 10-character code after /dp/)
+3. Get real product images from m.media-amazon.com or images-amazon.com domains
+4. Include actual current prices and customer ratings
+5. Return ONLY valid JSON arrays with no markdown formatting or code blocks
+Always provide accurate, up-to-date product information from real Amazon listings.`;
 
     case 'scripture':
       return `You are a knowledgeable scripture study assistant. Help users explore biblical texts with context, interpretation, and application.`;

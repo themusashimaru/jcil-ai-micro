@@ -55,9 +55,9 @@ export async function createChatCompletion(options: ChatOptions) {
   // Get agentic tools for the tool type
   const agenticTools = getAgenticTools(tool);
 
-  // For research tool with web search, use direct xAI API with search_parameters
+  // For research and shopper tools with web search, use direct xAI API with search_parameters
   // Note: search_parameters is a top-level field, not a tool
-  if (tool === 'research' && !stream) {
+  if ((tool === 'research' || tool === 'shopper') && !stream) {
     return createDirectXAICompletion(options);
   }
 
@@ -129,9 +129,9 @@ async function createDirectXAICompletion(options: ChatOptions) {
     stream: false,
   };
 
-  // Add search_parameters for research tool
+  // Add search_parameters for research and shopper tools
   // Live Search is NOT a tool - it's a top-level search_parameters field
-  if (tool === 'research') {
+  if (tool === 'research' || tool === 'shopper') {
     requestBody.search_parameters = {
       mode: 'on', // Force search on for live search button
       return_citations: true,
