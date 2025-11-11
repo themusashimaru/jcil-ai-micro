@@ -311,7 +311,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ref={photoInputRef}
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                 onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
               />
@@ -319,7 +319,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/*,.pdf,.txt,.csv,.xlsx,.doc,.docx"
+                accept=".pdf,.txt,.csv,.xlsx,.xls"
                 onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
               />
