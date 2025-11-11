@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface QuickAmazonShopProps {
   onShopComplete?: (response: string, query: string) => void;
@@ -29,6 +29,17 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = 300;
+      carouselRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -97,22 +108,8 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
   };
 
   const handleProductClick = (product: Product) => {
-    // Deep link to Amazon app on mobile, otherwise open in browser
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-    if (isMobile) {
-      // Try Amazon app deep link first
-      const appLink = product.url.replace('https://www.amazon.com', 'amazon://');
-      window.location.href = appLink;
-
-      // Fallback to browser after 500ms if app doesn't open
-      setTimeout(() => {
-        window.open(product.url, '_blank');
-      }, 500);
-    } else {
-      // Desktop: open in new tab
-      window.open(product.url, '_blank');
-    }
+    // Open Amazon link directly - Amazon will handle app prompt on mobile
+    window.open(product.url, '_blank');
   };
 
   return (
@@ -120,10 +117,10 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
       {/* Shop Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white"
-        title="Search Amazon"
+        className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-sm text-gray-400 hover:bg-white/10 hover:text-white transition"
+        title="Search Amazon products"
       >
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -131,6 +128,7 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
             d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
           />
         </svg>
+        <span>Shop</span>
       </button>
 
       {/* Modal */}
@@ -187,30 +185,60 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
             {/* Product Carousel */}
             {products.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-400">
-                  {products.length} Product{products.length > 1 ? 's' : ''} Found
-                </h3>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-400">
+                    {products.length} Product{products.length > 1 ? 's' : ''} Found
+                  </h3>
+
+                  {/* Scroll Arrows */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => scrollCarousel('left')}
+                      className="rounded-full bg-white/5 p-2 hover:bg-white/10 transition"
+                      aria-label="Scroll left"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => scrollCarousel('right')}
+                      className="rounded-full bg-white/5 p-2 hover:bg-white/10 transition"
+                      aria-label="Scroll right"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Horizontal Scrolling Carousel */}
+                <div
+                  ref={carouselRef}
+                  className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
                   {products.map((product, index) => (
                     <button
                       key={index}
                       onClick={() => handleProductClick(product)}
-                      className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/5 p-4 text-left transition hover:border-white/20 hover:bg-white/10"
+                      className="group relative flex-shrink-0 w-64 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-left transition hover:border-white/20 hover:bg-white/10 snap-start"
                     >
                       {/* Product Image */}
                       {product.image && (
-                        <div className="mb-3 overflow-hidden rounded-lg">
+                        <div className="h-48 overflow-hidden">
                           <img
                             src={product.image}
                             alt={product.title}
-                            className="h-32 w-full object-cover"
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         </div>
                       )}
 
                       {/* Product Info */}
-                      <div className="space-y-1">
-                        <h4 className="line-clamp-2 text-sm font-semibold text-white group-hover:text-blue-400">
+                      <div className="p-4 space-y-2">
+                        <h4 className="line-clamp-2 text-sm font-semibold text-white group-hover:text-blue-400 min-h-[2.5rem]">
                           {product.title}
                         </h4>
                         {product.price && (
@@ -248,7 +276,7 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
 
             {/* Help Text */}
             <p className="mt-4 text-xs text-gray-500">
-              Click any product to open in Amazon app (mobile) or browser (desktop)
+              Click any product to open on Amazon • Scroll carousel with arrows or swipe
             </p>
           </div>
         </div>
