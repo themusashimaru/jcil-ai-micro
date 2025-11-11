@@ -301,6 +301,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 type="file"
                 multiple
                 accept="image/*,.pdf,.txt,.csv,.xlsx"
+                capture="environment"
                 onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
               />
