@@ -35,19 +35,19 @@ export function QuickBibleStudy({ onStudyComplete }: QuickBibleStudyProps) {
     setResponse(null);
 
     try {
-      const studyPrompt = `As a seminary-trained biblical scholar with expertise in Hebrew, Greek, systematic theology, and biblical exegesis, provide a comprehensive answer to this theological question:
+      const studyPrompt = `Provide a comprehensive theological answer to this question about Scripture, demonstrating deep biblical knowledge, expertise in Hebrew and Greek, systematic theology, and sound exegesis:
 
 ${question}
 
 Please provide:
 1. **Biblical Foundation**: Cite relevant KJV Scripture passages with proper exegesis
-2. **Original Languages**: Include Hebrew/Greek word studies where applicable
+2. **Original Languages**: Include Hebrew/Greek word studies where applicable (lexical analysis, manuscript insights)
 3. **Theological Analysis**: Engage with systematic theology, biblical theology, and historical context
 4. **Christological Focus**: Connect to the teachings and person of Christ
 5. **Apologetic Considerations**: Address potential objections or alternative interpretations
 6. **Practical Application**: How this truth impacts Christian life and discipleship
 
-Write at a master's degree level with theological sophistication, using proper hermeneutical principles and engaging with church tradition while remaining biblically grounded.`;
+Use seminary-level theological sophistication, proper hermeneutical principles, and engage with church tradition while remaining biblically grounded. Write with the depth and accuracy expected from advanced theological scholarship.`;
 
       const res = await fetch('/api/chat', {
         method: 'POST',
