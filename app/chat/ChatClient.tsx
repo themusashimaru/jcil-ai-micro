@@ -503,7 +503,7 @@ export function ChatClient() {
     <div className="flex h-screen flex-col bg-black">
       {/* Header */}
       <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between relative">
           <div className="flex items-center gap-1">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -527,6 +527,29 @@ export function ChatClient() {
             </button>
             <h1 className="text-base md:text-xl font-semibold">JCIL.ai</h1>
           </div>
+
+          {/* New Chat Button - Mobile Only, Centered */}
+          <button
+            onClick={handleNewChat}
+            className="absolute left-1/2 -translate-x-1/2 md:hidden rounded-full p-1.5 hover:bg-white/10 transition-colors"
+            aria-label="New chat"
+            title="Start new chat"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+          </button>
+
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => setIsProfileOpen(true)}
