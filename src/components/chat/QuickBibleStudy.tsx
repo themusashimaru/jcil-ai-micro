@@ -104,8 +104,8 @@ Write at a master's degree level with theological sophistication, using proper h
         title="In-depth Bible study and theological questions"
       >
         <span className="flex items-center gap-1.5">
-          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2L12 10M12 14L12 22M8 6L16 6M8 18L16 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m-8-8h16" />
           </svg>
           <span>Bible Study</span>
         </span>

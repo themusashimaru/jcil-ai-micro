@@ -56,7 +56,7 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
             <p className="text-lg text-gray-400 font-medium mb-3">
               Slingshot 2.0
             </p>
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-sm text-gray-400 italic">
               Faith-based AI tools for your everyday needs
             </p>
           </div>
