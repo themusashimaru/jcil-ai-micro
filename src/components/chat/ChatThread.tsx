@@ -47,43 +47,43 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   // Show logo and tools when no chat is selected OR when chat is empty
   if (!currentChatId || messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4">
+      <div className="flex flex-1 items-center justify-center p-2">
         <div className="text-center">
           {/* JCIL.ai Logo */}
-          <div className="mb-3">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-2">
+          <div className="mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-1.5">
               JCIL<span className="text-blue-500">.ai</span>
             </h1>
-            <p className="text-lg text-gray-400 font-medium mb-3">
+            <p className="text-base md:text-lg text-gray-400 font-medium mb-2">
               Slingshot 2.0
             </p>
-            <p className="text-sm text-gray-400 italic">
+            <p className="text-xs md:text-sm text-gray-400 italic">
               Faith-based AI tools for your everyday needs
             </p>
           </div>
 
           {/* Personalized greeting if profile exists */}
           {hasProfile && currentChatId && (
-            <p className="mb-4 text-lg text-gray-300">
+            <p className="mb-3 text-base md:text-lg text-gray-300">
               Hi {profile.name}! How can I help you today?
             </p>
           )}
 
           {!currentChatId && (
-            <p className="mb-8 text-sm text-gray-400">
+            <p className="mb-4 text-xs md:text-sm text-gray-400">
               Start a new chat or select an existing conversation
             </p>
           )}
 
           {/* Main Tools */}
-          <div className="flex flex-wrap justify-center gap-3 mb-4 mt-8">
+          <div className="flex flex-wrap justify-center gap-2 mb-3 mt-4">
             <QuickEmailWriter />
             <QuickResearchTool />
             <QuickEssayWriter />
           </div>
 
           {/* Bible Tools */}
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-2">
             <QuickDailyDevotional />
             <QuickBibleStudy />
           </div>
@@ -95,9 +95,9 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto p-3 md:p-4"
+      className="flex-1 overflow-y-auto p-2"
     >
-      <div className="mx-auto max-w-xl md:max-w-2xl space-y-4">
+      <div className="mx-auto max-w-sm md:max-w-md space-y-3">
 
         {messages.map((message, index) => (
           <MessageBubble
