@@ -304,6 +304,22 @@ export function ChatClient() {
       const toolType = selectedTool;
       setSelectedTool(null); // Clear selection
 
+      // Auto-create chat if none exists (important for first-time tool use)
+      let chatId = currentChatId;
+      if (!currentChatId) {
+        chatId = Date.now().toString();
+        const newChat: Chat = {
+          id: chatId,
+          title: 'New Chat',
+          isPinned: false,
+          lastMessage: content.slice(0, 50),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        setChats([newChat, ...chats]);
+        setCurrentChatId(chatId);
+      }
+
       // Add user message to chat first
       const userMessage: Message = {
         id: Date.now().toString(),
