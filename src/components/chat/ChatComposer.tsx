@@ -213,7 +213,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   return (
-    <div className="glass-morphism border-t border-white/10 py-1 px-1 md:p-4">
+    <div className="glass-morphism border-t border-white/10 py-0.5 px-1 md:p-4">
       <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
@@ -289,7 +289,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Drop files here...'
                 : 'Type your message...'
             }
-            className="w-full resize-none bg-transparent py-2.5 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[48px]"
+            className="w-full resize-none bg-transparent py-2 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[44px]"
             rows={1}
             disabled={isStreaming}
             style={{ fontSize: '16px' }}
@@ -519,14 +519,14 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
 
         {/* Recording Error */}
         {recordingError && (
-          <p className="mt-0 text-xs text-red-400">
+          <p className="mt-0.5 text-xs text-red-400">
             {recordingError}
           </p>
         )}
 
         {/* File Upload Error */}
         {fileError && (
-          <p className="mt-0 text-xs text-red-400">
+          <p className="mt-0.5 text-xs text-red-400">
             ⚠️ {fileError}
           </p>
         )}
