@@ -213,7 +213,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   return (
-    <div className="glass-morphism border-t border-white/10 py-0.5 px-1 md:p-4">
+    <div className="glass-morphism border-t border-white/10 py-0 px-1 md:p-4">
       <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
@@ -289,14 +289,14 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Drop files here...'
                 : 'Type your message...'
             }
-            className="w-full resize-none bg-transparent py-2 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[44px]"
+            className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[40px]"
             rows={1}
             disabled={isStreaming}
             style={{ fontSize: '16px' }}
           />
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between border-t border-white/10 py-0.5 px-1 md:p-2">
+          <div className="flex items-center justify-between border-t border-white/10 py-0 px-1 md:p-2">
             <div className="relative flex items-center gap-0 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
               {/* Hidden file inputs */}
               <input
@@ -329,7 +329,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 <button
                   onClick={() => setShowAttachMenu(!showAttachMenu)}
                   disabled={isStreaming}
-                  className="rounded-lg p-1.5 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
+                  className="rounded-lg p-1 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
                   title="Attach files"
                 >
                   <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -461,7 +461,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleMicClick}
                 disabled={isStreaming || recordingState === 'transcribing'}
-                className={`rounded-lg p-1.5 md:p-2 transition shrink-0 flex items-center justify-center ${
+                className={`rounded-lg p-1 md:p-2 transition shrink-0 flex items-center justify-center ${
                   recordingState === 'recording'
                     ? 'bg-red-500 text-white animate-pulse'
                     : 'text-gray-400 hover:bg-white/10 hover:text-white'
@@ -506,7 +506,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-black border border-white/20 p-1 md:p-2.5 text-white transition hover:bg-gray-900 disabled:opacity-50 shrink-0 flex items-center justify-center"
+                className="rounded-full bg-black border border-white/20 p-0.5 md:p-2.5 text-white transition hover:bg-gray-900 disabled:opacity-50 shrink-0 flex items-center justify-center"
                 title={isStreaming ? 'Sending...' : 'Send message'}
               >
                 <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="currentColor" viewBox="0 0 24 24">
@@ -519,14 +519,14 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
 
         {/* Recording Error */}
         {recordingError && (
-          <p className="mt-0.5 text-xs text-red-400">
+          <p className="mt-0 text-xs text-red-400">
             {recordingError}
           </p>
         )}
 
         {/* File Upload Error */}
         {fileError && (
-          <p className="mt-0.5 text-xs text-red-400">
+          <p className="mt-0 text-xs text-red-400">
             ⚠️ {fileError}
           </p>
         )}
