@@ -37,11 +37,27 @@ interface ChatThreadProps {
 export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const { profile, hasProfile } = useUserProfile();
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to show user's message at top when new message is sent
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length === 0) return;
+
+    // Find the last user message
+    const lastMessage = messages[messages.length - 1];
+
+    // If the last message is from user, scroll to show it at the top
+    if (lastMessage.role === 'user' && lastUserMessageRef.current) {
+      // Scroll so the user message appears near the top of the viewport
+      lastUserMessageRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    } else {
+      // Otherwise scroll to bottom (for assistant responses)
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   // Show logo and tools when no chat is selected OR when chat is empty
@@ -99,13 +115,22 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
     >
       <div className="mx-auto max-w-[95%] sm:max-w-xl md:max-w-2xl space-y-0 md:space-y-3">
 
-        {messages.map((message, index) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            isLast={index === messages.length - 1}
-          />
-        ))}
+        {messages.map((message, index) => {
+          // Check if this is the last user message
+          const isLastUserMessage = index === messages.length - 1 && message.role === 'user';
+
+          return (
+            <div
+              key={message.id}
+              ref={isLastUserMessage ? lastUserMessageRef : null}
+            >
+              <MessageBubble
+                message={message}
+                isLast={index === messages.length - 1}
+              />
+            </div>
+          );
+        })}
 
         {/* Professional typing indicator */}
         {isStreaming && <TypingIndicator />}
