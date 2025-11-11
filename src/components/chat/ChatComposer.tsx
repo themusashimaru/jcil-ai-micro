@@ -295,7 +295,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 : selectedTool === 'search'
                 ? '🔍 What would you like to search for?'
                 : selectedTool === 'data'
-                ? '📊 Attach a file (CSV, XLSX, etc.) or paste a URL for analysis...'
+                ? '📊 Attach a file (CSV, XLSX, etc.) or paste a URL'
                 : 'Type your message...'
             }
             className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[40px]"
