@@ -265,6 +265,131 @@ export function ChatClient() {
     );
   };
 
+  // Handle image generation from selected tool mode
+  const handleImageGenerationFromInput = async (prompt: string) => {
+    setIsStreaming(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: prompt }],
+          tool: 'image',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Image generation failed');
+      }
+
+      const data = await response.json();
+
+      if (data.url) {
+        handleImageGenerated(data.url, prompt);
+      } else {
+        throw new Error('No image URL in response');
+      }
+    } catch (error) {
+      console.error('Image generation error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  // Handle code generation from selected tool mode
+  const handleCodeGenerationFromInput = async (request: string) => {
+    setIsStreaming(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: request }],
+          tool: 'code',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Code generation failed: ${errorData.details || response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.content) {
+        handleCodeGenerated(data.content, request);
+      } else {
+        throw new Error('No response from AI');
+      }
+    } catch (error) {
+      console.error('Code generation error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Failed to generate code: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  // Handle search from selected tool mode
+  const handleSearchFromInput = async (query: string) => {
+    setIsStreaming(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: query }],
+          tool: 'research',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Search failed: ${errorData.details || response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.content) {
+        handleSearchComplete(data.content, query);
+      } else {
+        throw new Error('No search results');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
   // Check if query needs live search and provide a helpful message
   const needsLiveSearch = (query: string): string | null => {
     const lowerQuery = query.toLowerCase();
@@ -297,6 +422,23 @@ export function ChatClient() {
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
+    if (!content.trim()) return;
+
+    // If a tool is selected, execute that tool instead of normal chat
+    if (selectedTool === 'image') {
+      setSelectedTool(null);
+      await handleImageGenerationFromInput(content);
+      return;
+    } else if (selectedTool === 'code') {
+      setSelectedTool(null);
+      await handleCodeGenerationFromInput(content);
+      return;
+    } else if (selectedTool === 'search') {
+      setSelectedTool(null);
+      await handleSearchFromInput(content);
+      return;
+    }
+
     // Track if this is a new chat (for title generation)
     const isNewChat = !currentChatId;
     let newChatId = currentChatId;
@@ -316,29 +458,16 @@ export function ChatClient() {
       setCurrentChatId(newChatId);
     }
 
-    // Modify content based on selected tool
-    let modifiedContent = content;
-    if (selectedTool === 'image') {
-      modifiedContent = `[Image Generation Request] ${content}`;
-    } else if (selectedTool === 'code') {
-      modifiedContent = `[Coding Assistant Request] ${content}`;
-    } else if (selectedTool === 'search') {
-      modifiedContent = `[Live Web Search Request] ${content}`;
-    }
-
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: modifiedContent,
+      content,
       attachments: attachments.length > 0 ? attachments : undefined,
       timestamp: new Date(),
     };
 
     setMessages([...messages, userMessage]);
     setIsStreaming(true);
-
-    // Clear selected tool after sending
-    setSelectedTool(null);
 
     try {
       // Format messages for API (handle text + image attachments)
