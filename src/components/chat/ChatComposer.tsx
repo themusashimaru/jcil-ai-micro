@@ -19,11 +19,11 @@
 'use client';
 
 import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
-import type { Attachment, ShopProduct } from '@/app/chat/types';
+import type { Attachment } from '@/app/chat/types';
 import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
 import { QuickLiveSearch } from './QuickLiveSearch';
-import { QuickAmazonShop } from './QuickAmazonShop';
+import { QuickDataAnalysis } from './QuickDataAnalysis';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 interface ChatComposerProps {
@@ -31,11 +31,11 @@ interface ChatComposerProps {
   onImageGenerated?: (imageUrl: string, prompt: string) => void;
   onCodeGenerated?: (response: string, request: string) => void;
   onSearchComplete?: (response: string, query: string) => void;
-  onShopComplete?: (response: string, query: string, products: ShopProduct[]) => void;
+  onDataAnalysisComplete?: (response: string, source: string, type: 'file' | 'url') => void;
   isStreaming: boolean;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onShopComplete, isStreaming }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onDataAnalysisComplete, isStreaming }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -342,10 +342,10 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 />
               )}
 
-              {/* Quick Amazon Shop */}
-              {onShopComplete && (
-                <QuickAmazonShop
-                  onShopComplete={onShopComplete}
+              {/* Quick Data Analysis */}
+              {onDataAnalysisComplete && (
+                <QuickDataAnalysis
+                  onAnalysisComplete={onDataAnalysisComplete}
                 />
               )}
 
