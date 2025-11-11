@@ -22,6 +22,11 @@ import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { QuickEmailWriter } from './QuickEmailWriter';
+import { QuickResearchTool } from './QuickResearchTool';
+import { QuickEssayWriter } from './QuickEssayWriter';
+import { QuickDailyDevotional } from './QuickDailyDevotional';
+import { QuickBibleStudy } from './QuickBibleStudy';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -44,29 +49,33 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
       <div className="flex flex-1 items-center justify-center p-6">
         <div className="text-center">
           {/* JCIL.ai Logo */}
-          <div className="mb-6">
+          <div className="mb-4">
             <h1 className="text-5xl font-bold tracking-tight text-white mb-2">
               JCIL<span className="text-blue-500">.ai</span>
             </h1>
-            <p className="text-lg text-gray-400 font-medium">
+            <p className="text-lg text-gray-400 font-medium mb-3">
               Slingshot 2.0
+            </p>
+            <p className="text-sm text-gray-500 italic">
+              Faith-based AI tools for your everyday needs
             </p>
           </div>
 
-          <p className="mb-6 text-sm text-gray-400">
+          <p className="mb-8 text-sm text-gray-400">
             Start a new chat or select an existing conversation
           </p>
 
-          <div className="flex flex-wrap justify-center gap-2">
-            <button className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-white/10">
-              📧 Write an email
-            </button>
-            <button className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-white/10">
-              🔍 Research a topic
-            </button>
-            <button className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-white/10">
-              ✍️ Write an essay
-            </button>
+          {/* Main Tools */}
+          <div className="flex flex-wrap justify-center gap-3 mb-4">
+            <QuickEmailWriter />
+            <QuickResearchTool />
+            <QuickEssayWriter />
+          </div>
+
+          {/* Bible Tools */}
+          <div className="flex justify-center gap-3">
+            <QuickDailyDevotional />
+            <QuickBibleStudy />
           </div>
         </div>
       </div>
