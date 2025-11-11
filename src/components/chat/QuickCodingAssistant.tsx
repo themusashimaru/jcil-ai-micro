@@ -62,12 +62,12 @@ export function QuickCodingAssistant({ onCodeGenerated, isGenerating = false }: 
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20"
+        className="rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 whitespace-nowrap"
         disabled={isGenerating}
         aria-label="Coding assistant"
         title="Get coding help"
       >
-        Coding
+        Code
       </button>
 
       {/* Popup Form */}

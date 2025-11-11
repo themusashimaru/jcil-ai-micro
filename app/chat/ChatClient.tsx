@@ -52,12 +52,22 @@ export function ChatClient() {
       }
     };
 
+    // Handle toggle sidebar event from sidebar close button
+    const handleToggleSidebar = () => {
+      setSidebarCollapsed(prev => !prev);
+    };
+
     // Set initial state
     handleResize();
 
     // Listen for resize events
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('toggle-sidebar', handleToggleSidebar);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('toggle-sidebar', handleToggleSidebar);
+    };
   }, []);
 
   // Mock data for development
@@ -462,12 +472,12 @@ export function ChatClient() {
   return (
     <div className="flex h-screen flex-col bg-black">
       {/* Header */}
-      <header className="glass-morphism border-b border-white/10 p-4">
+      <header className="glass-morphism border-b border-white/10 p-2 md:p-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="rounded-lg p-2 hover:bg-white/10 transition-colors"
+              className="rounded-lg p-1.5 hover:bg-white/10 transition-colors"
               aria-label="Toggle sidebar"
             >
               {/* Menu/Close icon */}
@@ -485,13 +495,12 @@ export function ChatClient() {
                 />
               </svg>
             </button>
-            <h1 className="text-xl font-semibold">JCIL.ai</h1>
+            <h1 className="text-lg md:text-xl font-semibold">JCIL.ai</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <NotificationProvider />
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="rounded-lg px-3 py-1.5 text-sm hover:bg-white/10 flex items-center gap-2"
+              className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-1.5"
               aria-label="User Profile"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -504,12 +513,7 @@ export function ChatClient() {
               </svg>
               {hasProfile ? profile.name : 'Profile'}
             </button>
-            <button
-              className="rounded-lg px-3 py-1.5 text-sm hover:bg-white/10"
-              aria-label="Settings"
-            >
-              Settings
-            </button>
+            <NotificationProvider />
           </div>
         </div>
       </header>

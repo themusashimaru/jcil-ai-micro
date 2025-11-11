@@ -62,12 +62,12 @@ export function QuickLiveSearch({ onSearchComplete, isSearching = false }: Quick
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20"
+        className="rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 whitespace-nowrap"
         disabled={isSearching}
         aria-label="Live search"
         title="Search the web in real-time"
       >
-        Live Search
+        Search
       </button>
 
       {/* Popup Form */}
