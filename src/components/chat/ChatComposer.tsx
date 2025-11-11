@@ -329,10 +329,10 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 <button
                   onClick={() => setShowAttachMenu(!showAttachMenu)}
                   disabled={isStreaming}
-                  className="rounded-lg p-0 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
+                  className="rounded-lg p-1.5 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
                   title="Attach files"
                 >
-                  <svg className="h-3 w-3 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -461,7 +461,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleMicClick}
                 disabled={isStreaming || recordingState === 'transcribing'}
-                className={`rounded-lg p-0 md:p-2 transition shrink-0 flex items-center justify-center ${
+                className={`rounded-lg p-1.5 md:p-2 transition shrink-0 flex items-center justify-center ${
                   recordingState === 'recording'
                     ? 'bg-red-500 text-white animate-pulse'
                     : 'text-gray-400 hover:bg-white/10 hover:text-white'
@@ -475,7 +475,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 }
               >
                 {recordingState === 'transcribing' ? (
-                  <svg className="h-3 w-3 md:h-5 md:w-5 animate-spin" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 md:h-5 md:w-5 animate-spin" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -492,7 +492,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                     />
                   </svg>
                 ) : (
-                  <svg className="h-3 w-3 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -506,7 +506,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-black border border-white/20 p-0.5 md:p-2.5 text-white transition hover:bg-gray-900 disabled:opacity-50 shrink-0 flex items-center justify-center"
+                className="rounded-full bg-black border border-white/20 p-1 md:p-2.5 text-white transition hover:bg-gray-900 disabled:opacity-50 shrink-0 flex items-center justify-center"
                 title={isStreaming ? 'Sending...' : 'Send message'}
               >
                 <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="currentColor" viewBox="0 0 24 24">
