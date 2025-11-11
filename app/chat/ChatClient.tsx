@@ -472,7 +472,7 @@ export function ChatClient() {
   return (
     <div className="flex h-screen flex-col bg-black">
       {/* Header */}
-      <header className="glass-morphism border-b border-white/10 py-0 px-0.5 md:p-3">
+      <header className="glass-morphism border-b border-white/10 py-0 px-0 md:p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
