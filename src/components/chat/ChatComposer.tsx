@@ -24,6 +24,7 @@ import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
 import { QuickLiveSearch } from './QuickLiveSearch';
 import { QuickDataAnalysis } from './QuickDataAnalysis';
+import { QuickDailyDevotional } from './QuickDailyDevotional';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 interface ChatComposerProps {
@@ -293,7 +294,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
 
           {/* Action Bar */}
           <div className="flex items-center justify-between border-t border-white/10 p-2">
-            <div className="relative flex items-center gap-2">
+            <div className="relative flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -348,6 +349,9 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                   onAnalysisComplete={onDataAnalysisComplete}
                 />
               )}
+
+              {/* Daily Devotional */}
+              <QuickDailyDevotional />
 
               {attachments.length > 0 && (
                 <span className="text-xs text-gray-400">
