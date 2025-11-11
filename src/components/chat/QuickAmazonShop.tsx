@@ -38,9 +38,6 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
     setProducts([]);
 
     try {
-      // Use live search with Amazon-specific query
-      const amazonQuery = `site:amazon.com ${query} product`;
-
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
