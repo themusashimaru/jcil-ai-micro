@@ -33,11 +33,9 @@ interface ChatComposerProps {
   onSearchComplete?: (response: string, query: string) => void;
   onDataAnalysisComplete?: (response: string, source: string, type: 'file' | 'url') => void;
   isStreaming: boolean;
-  selectedTool?: 'image' | 'code' | 'search' | null;
-  onSelectTool?: (tool: 'image' | 'code' | 'search' | null) => void;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onDataAnalysisComplete, isStreaming, selectedTool, onSelectTool }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onDataAnalysisComplete, isStreaming }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -289,12 +287,6 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Listening...'
                 : isDragging
                 ? 'Drop files here...'
-                : selectedTool === 'image'
-                ? '🎨 Describe the image you want to create...'
-                : selectedTool === 'code'
-                ? '💻 What code do you need help with?'
-                : selectedTool === 'search'
-                ? '🔍 What would you like to search for?'
                 : 'Type your message...'
             }
             className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[40px]"
@@ -423,32 +415,26 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               </div>
 
               {/* Quick Image Generator */}
-              {onImageGenerated && onSelectTool && (
+              {onImageGenerated && (
                 <QuickImageGenerator
                   onImageGenerated={onImageGenerated}
                   isGenerating={isStreaming}
-                  isSelected={selectedTool === 'image'}
-                  onSelect={() => onSelectTool(selectedTool === 'image' ? null : 'image')}
                 />
               )}
 
               {/* Quick Coding Assistant */}
-              {onCodeGenerated && onSelectTool && (
+              {onCodeGenerated && (
                 <QuickCodingAssistant
                   onCodeGenerated={onCodeGenerated}
                   isGenerating={isStreaming}
-                  isSelected={selectedTool === 'code'}
-                  onSelect={() => onSelectTool(selectedTool === 'code' ? null : 'code')}
                 />
               )}
 
               {/* Quick Live Search */}
-              {onSearchComplete && onSelectTool && (
+              {onSearchComplete && (
                 <QuickLiveSearch
                   onSearchComplete={onSearchComplete}
                   isSearching={isStreaming}
-                  isSelected={selectedTool === 'search'}
-                  onSelect={() => onSelectTool(selectedTool === 'search' ? null : 'search')}
                 />
               )}
 
