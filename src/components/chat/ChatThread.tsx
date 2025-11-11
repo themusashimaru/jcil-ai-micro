@@ -49,12 +49,15 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
       <div className="flex flex-1 items-center justify-center p-6">
         <div className="text-center">
           {/* JCIL.ai Logo */}
-          <div className="mb-6">
+          <div className="mb-4">
             <h1 className="text-5xl font-bold tracking-tight text-white mb-2">
               JCIL<span className="text-blue-500">.ai</span>
             </h1>
-            <p className="text-lg text-gray-400 font-medium">
+            <p className="text-lg text-gray-400 font-medium mb-3">
               Slingshot 2.0
+            </p>
+            <p className="text-sm text-gray-500 italic">
+              Faith-based AI tools for your everyday needs
             </p>
           </div>
 
