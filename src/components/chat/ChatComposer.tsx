@@ -213,8 +213,8 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   return (
-    <div className="glass-morphism border-t border-white/10 p-4">
-      <div className="mx-auto max-w-3xl">
+    <div className="glass-morphism border-t border-white/10 p-2 md:p-4">
+      <div className="mx-auto max-w-xs sm:max-w-md md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
@@ -289,14 +289,14 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Drop files here...'
                 : 'Type your message... (Shift+Enter for new line)'
             }
-            className="w-full resize-none bg-transparent p-4 text-white placeholder-gray-400 focus:outline-none"
+            className="w-full resize-none bg-transparent p-2 md:p-4 text-sm md:text-base text-white placeholder-gray-400 focus:outline-none"
             rows={1}
             disabled={isStreaming}
           />
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between border-t border-white/10 p-2">
-            <div className="relative flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
+          <div className="flex items-center justify-between border-t border-white/10 p-1.5 md:p-2">
+            <div className="relative flex items-center gap-1 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
               {/* Hidden file inputs */}
               <input
                 ref={cameraInputRef}
@@ -328,10 +328,10 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 <button
                   onClick={() => setShowAttachMenu(!showAttachMenu)}
                   disabled={isStreaming}
-                  className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                  className="rounded-lg p-1.5 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0"
                   title="Attach files"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -451,7 +451,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
               {message.length > 0 && (
                 <span className="text-xs text-gray-400">{message.length}</span>
               )}
@@ -460,7 +460,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleMicClick}
                 disabled={isStreaming || recordingState === 'transcribing'}
-                className={`rounded-lg p-2 transition ${
+                className={`rounded-lg p-1.5 md:p-2 transition shrink-0 ${
                   recordingState === 'recording'
                     ? 'bg-red-500 text-white animate-pulse'
                     : 'text-gray-400 hover:bg-white/10 hover:text-white'
@@ -474,7 +474,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 }
               >
                 {recordingState === 'transcribing' ? (
-                  <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 md:h-5 md:w-5 animate-spin" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -491,7 +491,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                     />
                   </svg>
                 ) : (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -505,7 +505,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-lg bg-white px-6 py-2 text-sm font-semibold text-black transition hover:bg-gray-200 disabled:opacity-50"
+                className="rounded-lg bg-white px-3 py-1.5 md:px-6 md:py-2 text-xs md:text-sm font-semibold text-black transition hover:bg-gray-200 disabled:opacity-50 shrink-0"
               >
                 {isStreaming ? 'Sending...' : 'Send'}
               </button>
@@ -528,7 +528,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
         )}
 
         {/* Help Text */}
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-1.5 md:mt-2 text-xs text-gray-500">
           Press Enter to send, Shift+Enter for new line
         </p>
       </div>
