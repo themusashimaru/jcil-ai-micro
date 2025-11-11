@@ -270,7 +270,7 @@ ${keyArguments ? `**Key Points to Address:** ${keyArguments}` : ''}
                           <button
                             key={count}
                             onClick={() => setWordCount(count)}
-                            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                            className={`rounded-lg px-2 py-2 text-xs font-medium transition ${
                               wordCount === count
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-white/5 text-gray-400 hover:bg-white/10'
@@ -291,7 +291,7 @@ ${keyArguments ? `**Key Points to Address:** ${keyArguments}` : ''}
                           <button
                             key={style}
                             onClick={() => setCitations(style)}
-                            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                            className={`rounded-lg px-2 py-2 text-xs font-medium transition ${
                               citations === style
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-white/5 text-gray-400 hover:bg-white/10'
