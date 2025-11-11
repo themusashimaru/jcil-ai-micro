@@ -254,23 +254,41 @@ CRITICAL REQUIREMENTS:
       const data = await response.json();
       const searchResults = data.content as string;
 
-      console.log('Raw AI response:', searchResults.substring(0, 500)); // Debug log
+      console.log('=== SHOP TOOL DEBUG ===');
+      console.log('Search query:', query);
+      console.log('Full AI response:', searchResults);
+      console.log('Response length:', searchResults.length);
 
       // Try to parse JSON from response
       let parsedProducts: Product[] = [];
       try {
         const jsonText = extractJsonArray(searchResults);
-        console.log('Extracted JSON:', jsonText?.substring(0, 500)); // Debug log
+        console.log('Extracted JSON text:', jsonText);
 
         if (jsonText) {
           const raw = JSON.parse(jsonText);
-          console.log('Parsed raw products:', raw); // Debug log
+          console.log('Parsed raw array:', raw);
+          console.log('Raw array length:', Array.isArray(raw) ? raw.length : 'not an array');
+
           parsedProducts = normalizeProducts(raw);
-          console.log('Normalized products:', parsedProducts); // Debug log
+          console.log('Normalized products:', parsedProducts);
+          console.log('Normalized products count:', parsedProducts.length);
+
+          // Log each product detail
+          parsedProducts.forEach((p, i) => {
+            console.log(`Product ${i + 1}:`, {
+              title: p.title,
+              price: p.price,
+              rating: p.rating,
+              hasImage: !!p.image,
+              imageUrl: p.image,
+              productUrl: p.url,
+            });
+          });
         }
 
         if (parsedProducts.length === 0) {
-          console.warn('No products found, using fallback');
+          console.warn('No products parsed, using Amazon search fallback');
           parsedProducts = [
             {
               title: `Search results for "${query}"`,
@@ -283,16 +301,25 @@ CRITICAL REQUIREMENTS:
         setProducts(parsedProducts);
       } catch (parseError) {
         console.error('Failed to parse products:', parseError);
-        console.error('Raw response that failed to parse:', searchResults);
+        console.error('Parse error details:', {
+          error: parseError instanceof Error ? parseError.message : 'Unknown',
+          stack: parseError instanceof Error ? parseError.stack : undefined,
+        });
+        console.error('Raw response that failed:', searchResults);
+
+        // Fallback to search page
         parsedProducts = [
           {
-            title: `Search results for "${query}"`,
-            price: '',
+            title: `View "${query}" on Amazon`,
+            price: 'Click to see prices',
             url: `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
           },
         ];
         setProducts(parsedProducts);
+        setError('Could not parse product data. Click to search Amazon directly.');
       }
+
+      console.log('=== END DEBUG ===');
 
       // Send response to chat with products
       if (onShopComplete) {
