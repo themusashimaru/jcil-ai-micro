@@ -259,10 +259,15 @@ export function ChatClient() {
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
+    // Track if this is a new chat (for title generation)
+    const isNewChat = !currentChatId;
+    let newChatId = currentChatId;
+
     // Auto-create chat if none exists
     if (!currentChatId) {
+      newChatId = Date.now().toString();
       const newChat: Chat = {
-        id: Date.now().toString(),
+        id: newChatId,
         title: 'New Chat',
         isPinned: false,
         lastMessage: content.slice(0, 50),
@@ -270,7 +275,7 @@ export function ChatClient() {
         updatedAt: new Date(),
       };
       setChats([newChat, ...chats]);
-      setCurrentChatId(newChat.id);
+      setCurrentChatId(newChatId);
     }
 
     const userMessage: Message = {
@@ -383,6 +388,35 @@ export function ChatClient() {
 
       setMessages((prev) => [...prev, assistantMessage]);
       setIsStreaming(false);
+
+      // Generate chat title for new chats
+      if (isNewChat && newChatId) {
+        try {
+          const titleResponse = await fetch('/api/chat/generate-title', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userMessage: content,
+              assistantMessage: data.content,
+            }),
+          });
+
+          if (titleResponse.ok) {
+            const titleData = await titleResponse.json();
+            const generatedTitle = titleData.title || 'New Chat';
+
+            // Update chat title
+            setChats((prevChats) =>
+              prevChats.map((chat) =>
+                chat.id === newChatId ? { ...chat, title: generatedTitle } : chat
+              )
+            );
+          }
+        } catch (titleError) {
+          console.error('Title generation error:', titleError);
+          // Continue silently if title generation fails
+        }
+      }
     } catch (error) {
       console.error('Chat API error:', error);
 

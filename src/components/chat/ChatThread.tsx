@@ -44,7 +44,8 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  if (!currentChatId) {
+  // Show logo and tools when no chat is selected OR when chat is empty
+  if (!currentChatId || messages.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
         <div className="text-center">
@@ -61,12 +62,21 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
             </p>
           </div>
 
-          <p className="mb-8 text-sm text-gray-400">
-            Start a new chat or select an existing conversation
-          </p>
+          {/* Personalized greeting if profile exists */}
+          {hasProfile && currentChatId && (
+            <p className="mb-4 text-lg text-gray-300">
+              Hi {profile.name}! How can I help you today?
+            </p>
+          )}
+
+          {!currentChatId && (
+            <p className="mb-8 text-sm text-gray-400">
+              Start a new chat or select an existing conversation
+            </p>
+          )}
 
           {/* Main Tools */}
-          <div className="flex flex-wrap justify-center gap-3 mb-4">
+          <div className="flex flex-wrap justify-center gap-3 mb-4 mt-8">
             <QuickEmailWriter />
             <QuickResearchTool />
             <QuickEssayWriter />
@@ -88,24 +98,6 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
       className="flex-1 overflow-y-auto p-6"
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        {/* Personalized greeting when chat is empty */}
-        {messages.length === 0 && currentChatId && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="text-center max-w-lg">
-              <h2 className="text-3xl font-bold text-white mb-3">
-                {hasProfile ? `Hi ${profile.name}!` : 'Hello!'}
-              </h2>
-              <p className="text-gray-400 text-lg">
-                How can I help you today?
-              </p>
-              {hasProfile && profile.description && (
-                <p className="text-gray-500 text-sm mt-4">
-                  Ready to assist with {profile.description.toLowerCase()}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
 
         {messages.map((message, index) => (
           <MessageBubble
