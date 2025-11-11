@@ -213,11 +213,11 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   return (
-    <div className="glass-morphism border-t border-white/10 p-1 md:p-4">
+    <div className="glass-morphism border-t border-white/10 p-0.5 md:p-4">
       <div className="mx-auto max-w-[95%] sm:max-w-xl md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
-          <div className="mb-1.5 md:mb-3 flex flex-wrap gap-1.5 md:gap-2">
+          <div className="mb-1 md:mb-3 flex flex-wrap gap-1 md:gap-2">
             {attachments.slice(0, 4).map((attachment) => (
               <div
                 key={attachment.id}
@@ -289,14 +289,14 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Drop files here...'
                 : 'Type your message...'
             }
-            className="w-full resize-none bg-transparent p-1 md:p-4 text-sm md:text-base text-white placeholder-gray-400 focus:outline-none"
+            className="w-full resize-none bg-transparent p-0.5 md:p-4 text-sm md:text-base text-white placeholder-gray-400 focus:outline-none"
             rows={1}
             disabled={isStreaming}
           />
 
           {/* Action Bar */}
           <div className="flex items-center justify-between border-t border-white/10 p-0.5 md:p-2">
-            <div className="relative flex items-center gap-0.5 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
+            <div className="relative flex items-center gap-1 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
               {/* Hidden file inputs */}
               <input
                 ref={cameraInputRef}
@@ -328,7 +328,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 <button
                   onClick={() => setShowAttachMenu(!showAttachMenu)}
                   disabled={isStreaming}
-                  className="rounded-lg p-1 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0"
+                  className="rounded-lg p-1 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
                   title="Attach files"
                 >
                   <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -451,7 +451,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               )}
             </div>
 
-            <div className="flex items-center gap-0.5 md:gap-2 shrink-0">
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
               {message.length > 0 && (
                 <span className="text-xs text-gray-400">{message.length}</span>
               )}
@@ -460,7 +460,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleMicClick}
                 disabled={isStreaming || recordingState === 'transcribing'}
-                className={`rounded-lg p-1 md:p-2 transition shrink-0 ${
+                className={`rounded-lg p-1 md:p-2 transition shrink-0 flex items-center justify-center ${
                   recordingState === 'recording'
                     ? 'bg-red-500 text-white animate-pulse'
                     : 'text-gray-400 hover:bg-white/10 hover:text-white'
@@ -505,16 +505,11 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-white p-1.5 md:p-2 text-black transition hover:bg-gray-200 disabled:opacity-50 shrink-0"
+                className="rounded-full bg-white p-2 md:p-2.5 text-black transition hover:bg-gray-200 disabled:opacity-50 shrink-0 flex items-center justify-center"
                 title={isStreaming ? 'Sending...' : 'Send message'}
               >
-                <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
+                <svg className="h-5 w-5 md:h-6 md:w-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                 </svg>
               </button>
             </div>
