@@ -144,129 +144,137 @@ CRITICAL:
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-          <div className="w-full max-w-4xl max-h-[85vh] flex flex-col rounded-lg bg-black/90 shadow-xl backdrop-blur-xl border border-white/10">
-            {/* Header - Fixed */}
-            <div className="flex-shrink-0 p-6 pb-4 flex items-center justify-between border-b border-white/10">
-              <h2 className="text-xl font-bold">🛍️ Intelligent Personal Shopping</h2>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="rounded-lg p-2 hover:bg-white/10"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6 pt-4">
-              {/* Search Input */}
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="What are you looking for? (e.g., wireless headphones)"
-                  className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
-                  autoFocus
-                />
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-4 sm:p-6">
+          <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl">
+            <div className="flex max-h-[80vh] flex-col">
+              {/* Header - Fixed */}
+              <div className="flex items-center justify-between border-b border-white/10 px-6 pt-5 pb-4">
+                <div className="flex items-center gap-3">
+                  <span className="hidden h-1.5 w-16 rounded-full bg-white/10 sm:block" aria-hidden="true" />
+                  <h2 className="text-lg font-semibold sm:text-xl">🛍️ Intelligent Personal Shopping</h2>
+                </div>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
               </div>
 
-              {/* Search Button */}
-              <button
-                onClick={handleSearch}
-                disabled={!query.trim() || isSearching}
-                className="mb-4 w-full rounded-lg bg-white px-4 py-2 font-semibold text-black transition hover:bg-gray-200 disabled:opacity-50"
-              >
-                {isSearching ? 'Searching Amazon...' : 'Search Products'}
-              </button>
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
+                {/* Search Input */}
+                <div className="mb-4 space-y-3">
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    placeholder="What are you looking for? (e.g., wireless headphones)"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+                    autoFocus
+                  />
 
-              {/* Error Message */}
-              {error && (
-                <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-red-400">
-                  {error}
-                </div>
-              )}
-
-              {/* Product Carousel */}
-              {products.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-400">
-                    {products.length} Product{products.length > 1 ? 's' : ''} Found
-                  </h3>
-
-                {/* Horizontal Scrolling Carousel */}
-                <div
-                  ref={carouselRef}
-                  className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory"
-                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                  {products.map((product, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleProductClick(product)}
-                      className="group relative flex-shrink-0 w-64 overflow-hidden rounded-lg border border-white/10 bg-white/5 text-left transition hover:border-white/20 hover:bg-white/10 snap-start"
-                    >
-                      {/* Product Image */}
-                      {product.image && (
-                        <div className="h-48 overflow-hidden">
-                          <img
-                            src={product.image}
-                            alt={product.title}
-                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        </div>
-                      )}
-
-                      {/* Product Info */}
-                      <div className="p-4 space-y-2">
-                        <h4 className="line-clamp-2 text-sm font-semibold text-white group-hover:text-blue-400 min-h-[2.5rem]">
-                          {product.title}
-                        </h4>
-                        {product.price && (
-                          <p className="text-lg font-bold text-green-400">{product.price}</p>
-                        )}
-                        {product.rating && (
-                          <p className="text-xs text-gray-400">⭐ {product.rating}</p>
-                        )}
-                      </div>
-
-                      {/* Open Icon */}
-                      <div className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                          />
-                        </svg>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                  {/* View All on Amazon */}
                   <button
-                    onClick={() => window.open(`https://www.amazon.com/s?k=${encodeURIComponent(query)}`, '_blank')}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 py-2 text-sm text-gray-400 hover:bg-white/10 hover:text-white"
+                    onClick={handleSearch}
+                    disabled={!query.trim() || isSearching}
+                    className="w-full rounded-xl bg-white px-4 py-2 font-semibold text-black transition hover:bg-gray-200 disabled:opacity-50"
                   >
-                    View all results on Amazon →
+                    {isSearching ? 'Searching Amazon...' : 'Search Products'}
                   </button>
                 </div>
-              )}
 
-              {/* Help Text */}
-              <p className="mt-4 text-xs text-gray-500">
-                Click any product to open on Amazon • Swipe to browse products
-              </p>
+                {/* Error Message */}
+                {error && (
+                  <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+                    {error}
+                  </div>
+                )}
+
+                {/* Product Carousel */}
+                {products.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-gray-300">
+                        {products.length} Product{products.length > 1 ? 's' : ''} Found
+                      </h3>
+                      <button
+                        onClick={() => window.open(`https://www.amazon.com/s?k=${encodeURIComponent(query)}`, '_blank')}
+                        className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-400 transition hover:border-white/30 hover:text-white"
+                      >
+                        View all →
+                      </button>
+                    </div>
+
+                    {/* Horizontal Scrolling Carousel */}
+                    <div
+                      ref={carouselRef}
+                      className="flex gap-4 overflow-x-auto pb-3 pr-1 scrollbar-hide snap-x snap-mandatory"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      {products.map((product, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleProductClick(product)}
+                          className="group relative flex w-72 flex-shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] text-left transition hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08]"
+                        >
+                          {/* Product Image */}
+                          {product.image && (
+                            <div className="relative h-56 overflow-hidden bg-black/40">
+                              <img
+                                src={product.image}
+                                alt={product.title}
+                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                              <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 to-transparent" />
+                            </div>
+                          )}
+
+                          {/* Product Info */}
+                          <div className="flex flex-1 flex-col justify-between gap-2 p-4">
+                            <div className="space-y-2">
+                              <h4 className="line-clamp-2 text-sm font-semibold text-white group-hover:text-blue-400">
+                                {product.title}
+                              </h4>
+                              {product.rating && (
+                                <p className="text-xs text-gray-400">⭐ {product.rating}</p>
+                              )}
+                            </div>
+
+                            {product.price && (
+                              <p className="text-lg font-semibold text-emerald-400">{product.price}</p>
+                            )}
+                          </div>
+
+                          {/* Open Icon */}
+                          <div className="absolute right-3 top-3 rounded-full bg-black/70 p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                              />
+                            </svg>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Help Text */}
+                <p className="mt-6 text-center text-xs text-gray-500">
+                  Tap a product to open it on Amazon • Swipe horizontally to browse all results
+                </p>
+              </div>
             </div>
           </div>
         </div>
