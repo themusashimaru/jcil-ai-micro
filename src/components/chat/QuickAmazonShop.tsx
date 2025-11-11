@@ -210,120 +210,29 @@ export function QuickAmazonShop({ onShopComplete }: QuickAmazonShopProps) {
     setProducts([]);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'user',
-              content: `Search Amazon.com for: "${query}"
+      // For now, use direct Amazon search since AI is hallucinating product data
+      // TODO: Integrate with real Amazon Product API when available
+      console.log('Searching Amazon for:', query);
 
-Find 3-5 REAL products currently available on Amazon. For each product, you MUST:
-1. Visit amazon.com and find actual product listings
-2. Extract the real ASIN (10-character product ID from the URL like /dp/B08N5WRWNW)
-3. Get the actual product image URL from Amazon (m.media-amazon.com)
-4. Get the real current price
-5. Get the actual customer rating
+      // Create a fallback that just links to Amazon search
+      const fallbackProducts: Product[] = [
+        {
+          title: `View "${query}" on Amazon.com`,
+          price: 'Click to see current prices and reviews',
+          url: `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
+          rating: 'See ratings on Amazon',
+        },
+      ];
 
-Return ONLY a valid JSON array with NO markdown, NO code blocks, NO explanation:
-[{"title":"Exact product name from Amazon","price":"$XX.XX","rating":"4.5/5","image":"https://m.media-amazon.com/images/I/XXXXX.jpg","url":"https://www.amazon.com/dp/ASIN123456"}]
+      setProducts(fallbackProducts);
 
-Example for wireless headphones:
-[{"title":"Sony WH-1000XM5 Wireless Headphones","price":"$398.00","rating":"4.6/5","image":"https://m.media-amazon.com/images/I/51K0TYXWFEL._AC_SL1500_.jpg","url":"https://www.amazon.com/dp/B09XS7JWHH"}]
-
-CRITICAL REQUIREMENTS:
-- Search ONLY Amazon.com using web search
-- Use REAL ASINs from actual Amazon product pages
-- Include working image URLs from m.media-amazon.com or images-amazon.com
-- Return ONLY the JSON array - nothing else
-- NO markdown formatting, NO code fences like \`\`\`json
-- Start response with [ and end with ]`,
-            },
-          ],
-          tool: 'shopper', // Use shopper tool for Amazon product search
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API response error:', errorText);
-        throw new Error('Failed to search Amazon products');
-      }
-
-      const data = await response.json();
-      const searchResults = data.content as string;
-
-      console.log('=== SHOP TOOL DEBUG ===');
-      console.log('Search query:', query);
-      console.log('Full AI response:', searchResults);
-      console.log('Response length:', searchResults.length);
-
-      // Try to parse JSON from response
-      let parsedProducts: Product[] = [];
-      try {
-        const jsonText = extractJsonArray(searchResults);
-        console.log('Extracted JSON text:', jsonText);
-
-        if (jsonText) {
-          const raw = JSON.parse(jsonText);
-          console.log('Parsed raw array:', raw);
-          console.log('Raw array length:', Array.isArray(raw) ? raw.length : 'not an array');
-
-          parsedProducts = normalizeProducts(raw);
-          console.log('Normalized products:', parsedProducts);
-          console.log('Normalized products count:', parsedProducts.length);
-
-          // Log each product detail
-          parsedProducts.forEach((p, i) => {
-            console.log(`Product ${i + 1}:`, {
-              title: p.title,
-              price: p.price,
-              rating: p.rating,
-              hasImage: !!p.image,
-              imageUrl: p.image,
-              productUrl: p.url,
-            });
-          });
-        }
-
-        if (parsedProducts.length === 0) {
-          console.warn('No products parsed, using Amazon search fallback');
-          parsedProducts = [
-            {
-              title: `Search results for "${query}"`,
-              price: '',
-              url: `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
-            },
-          ];
-        }
-
-        setProducts(parsedProducts);
-      } catch (parseError) {
-        console.error('Failed to parse products:', parseError);
-        console.error('Parse error details:', {
-          error: parseError instanceof Error ? parseError.message : 'Unknown',
-          stack: parseError instanceof Error ? parseError.stack : undefined,
-        });
-        console.error('Raw response that failed:', searchResults);
-
-        // Fallback to search page
-        parsedProducts = [
-          {
-            title: `View "${query}" on Amazon`,
-            price: 'Click to see prices',
-            url: `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
-          },
-        ];
-        setProducts(parsedProducts);
-        setError('Could not parse product data. Click to search Amazon directly.');
-      }
-
-      console.log('=== END DEBUG ===');
-
-      // Send response to chat with products
+      // Still send to chat
       if (onShopComplete) {
-        onShopComplete(searchResults, query, parsedProducts);
+        onShopComplete(
+          `I found products for "${query}" on Amazon. Click the link to browse current listings with real prices and reviews.`,
+          query,
+          fallbackProducts
+        );
       }
     } catch (err) {
       console.error('Amazon search error:', err);
