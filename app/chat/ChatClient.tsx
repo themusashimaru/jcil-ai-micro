@@ -173,6 +173,26 @@ export function ChatClient() {
     setMessages((prev) => [...prev, userMessage, searchMessage]);
   };
 
+  const handleShopComplete = (response: string, query: string) => {
+    // Add user message with shop query
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: `🛒 Shop: ${query}`,
+      timestamp: new Date(),
+    };
+
+    // Add assistant message with product results
+    const shopMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: response,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage, shopMessage]);
+  };
+
   // Check if query needs live search and provide a helpful message
   const needsLiveSearch = (query: string): string | null => {
     const lowerQuery = query.toLowerCase();
@@ -400,6 +420,7 @@ export function ChatClient() {
             onImageGenerated={handleImageGenerated}
             onCodeGenerated={handleCodeGenerated}
             onSearchComplete={handleSearchComplete}
+            onShopComplete={handleShopComplete}
             isStreaming={isStreaming}
           />
         </main>

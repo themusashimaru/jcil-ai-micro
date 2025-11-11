@@ -23,6 +23,7 @@ import type { Attachment } from '@/app/chat/types';
 import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
 import { QuickLiveSearch } from './QuickLiveSearch';
+import { QuickAmazonShop } from './QuickAmazonShop';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 interface ChatComposerProps {
@@ -30,10 +31,11 @@ interface ChatComposerProps {
   onImageGenerated?: (imageUrl: string, prompt: string) => void;
   onCodeGenerated?: (response: string, request: string) => void;
   onSearchComplete?: (response: string, query: string) => void;
+  onShopComplete?: (response: string, query: string) => void;
   isStreaming: boolean;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, isStreaming }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onShopComplete, isStreaming }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -337,6 +339,13 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 <QuickLiveSearch
                   onSearchComplete={onSearchComplete}
                   isSearching={isStreaming}
+                />
+              )}
+
+              {/* Quick Amazon Shop */}
+              {onShopComplete && (
+                <QuickAmazonShop
+                  onShopComplete={onShopComplete}
                 />
               )}
 
