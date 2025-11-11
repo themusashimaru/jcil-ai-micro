@@ -22,6 +22,11 @@ import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { QuickEmailWriter } from './QuickEmailWriter';
+import { QuickResearchTool } from './QuickResearchTool';
+import { QuickEssayWriter } from './QuickEssayWriter';
+import { QuickDailyDevotional } from './QuickDailyDevotional';
+import { QuickBibleStudy } from './QuickBibleStudy';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -53,20 +58,21 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
             </p>
           </div>
 
-          <p className="mb-6 text-sm text-gray-400">
+          <p className="mb-8 text-sm text-gray-400">
             Start a new chat or select an existing conversation
           </p>
 
-          <div className="flex flex-wrap justify-center gap-2">
-            <button className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-white/10">
-              📧 Write an email
-            </button>
-            <button className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-white/10">
-              🔍 Research a topic
-            </button>
-            <button className="rounded-lg bg-white/5 px-4 py-2 text-sm hover:bg-white/10">
-              ✍️ Write an essay
-            </button>
+          {/* Main Tools */}
+          <div className="flex flex-wrap justify-center gap-3 mb-4">
+            <QuickEmailWriter />
+            <QuickResearchTool />
+            <QuickEssayWriter />
+          </div>
+
+          {/* Bible Tools */}
+          <div className="flex justify-center gap-3">
+            <QuickDailyDevotional />
+            <QuickBibleStudy />
           </div>
         </div>
       </div>

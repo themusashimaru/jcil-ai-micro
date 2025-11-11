@@ -24,8 +24,6 @@ import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
 import { QuickLiveSearch } from './QuickLiveSearch';
 import { QuickDataAnalysis } from './QuickDataAnalysis';
-import { QuickDailyDevotional } from './QuickDailyDevotional';
-import { QuickBibleStudy } from './QuickBibleStudy';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 interface ChatComposerProps {
@@ -351,12 +349,6 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                   onAnalysisComplete={onDataAnalysisComplete}
                 />
               )}
-
-              {/* Daily Devotional */}
-              <QuickDailyDevotional />
-
-              {/* Bible Study */}
-              <QuickBibleStudy />
 
               {attachments.length > 0 && (
                 <span className="text-xs text-gray-400">
