@@ -42,8 +42,8 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { profile, hasProfile } = useUserProfile();
-  // Selected tool for bottom toolbar (image, code, search)
-  const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | null>(null);
+  // Selected tool for data analysis
+  const [selectedDataTool, setSelectedDataTool] = useState(false);
 
   // Detect screen size and set initial sidebar state
   useEffect(() => {
@@ -265,131 +265,6 @@ export function ChatClient() {
     );
   };
 
-  // Handle image generation from selected tool mode
-  const handleImageGenerationFromInput = async (prompt: string) => {
-    setIsStreaming(true);
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: prompt }],
-          tool: 'image',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Image generation failed');
-      }
-
-      const data = await response.json();
-
-      if (data.url) {
-        handleImageGenerated(data.url, prompt);
-      } else {
-        throw new Error('No image URL in response');
-      }
-    } catch (error) {
-      console.error('Image generation error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: `Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  // Handle code generation from selected tool mode
-  const handleCodeGenerationFromInput = async (request: string) => {
-    setIsStreaming(true);
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: request }],
-          tool: 'code',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Code generation failed: ${errorData.details || response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (data.content) {
-        handleCodeGenerated(data.content, request);
-      } else {
-        throw new Error('No response from AI');
-      }
-    } catch (error) {
-      console.error('Code generation error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: `Failed to generate code: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
-  // Handle search from selected tool mode
-  const handleSearchFromInput = async (query: string) => {
-    setIsStreaming(true);
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: query }],
-          tool: 'research',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Search failed: ${errorData.details || response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (data.content) {
-        handleSearchComplete(data.content, query);
-      } else {
-        throw new Error('No search results');
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsStreaming(false);
-    }
-  };
-
   // Check if query needs live search and provide a helpful message
   const needsLiveSearch = (query: string): string | null => {
     const lowerQuery = query.toLowerCase();
@@ -422,20 +297,31 @@ export function ChatClient() {
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
-    if (!content.trim()) return;
+    // If data tool is selected, handle data analysis
+    if (selectedDataTool) {
+      setSelectedDataTool(false);
 
-    // If a tool is selected, execute that tool instead of normal chat
-    if (selectedTool === 'image') {
-      setSelectedTool(null);
-      await handleImageGenerationFromInput(content);
-      return;
-    } else if (selectedTool === 'code') {
-      setSelectedTool(null);
-      await handleCodeGenerationFromInput(content);
-      return;
-    } else if (selectedTool === 'search') {
-      setSelectedTool(null);
-      await handleSearchFromInput(content);
+      // Check if user provided a file or URL
+      if (attachments.length > 0) {
+        // Handle file attachment
+        const file = attachments[0];
+        handleDataAnalysisComplete(`Analysis of ${file.name}:\n\n[Analysis results would appear here based on file type: ${file.type}]`, file.name, 'file');
+      } else if (content.trim()) {
+        // Check if content is a URL
+        const urlPattern = /^(https?:\/\/)?([\w-]+(\.[\w-]+)+)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?$/;
+        if (urlPattern.test(content.trim())) {
+          handleDataAnalysisComplete(`Analysis of URL:\n\n[Analysis results would appear here for: ${content}]`, content, 'url');
+        } else {
+          // Treat as instructions with attached file expected
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: 'Please attach a file (CSV, XLSX, etc.) or paste a valid URL for data analysis.',
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+        }
+      }
       return;
     }
 
@@ -617,7 +503,7 @@ export function ChatClient() {
     <div className="flex h-screen flex-col bg-black">
       {/* Header */}
       <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between relative">
           <div className="flex items-center gap-1">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -641,6 +527,29 @@ export function ChatClient() {
             </button>
             <h1 className="text-base md:text-xl font-semibold">JCIL.ai</h1>
           </div>
+
+          {/* New Chat Button - Mobile Only, Centered */}
+          <button
+            onClick={handleNewChat}
+            className="absolute left-1/2 -translate-x-1/2 md:hidden rounded-full p-1.5 hover:bg-white/10 transition-colors"
+            aria-label="New chat"
+            title="Start new chat"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+          </button>
+
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => setIsProfileOpen(true)}
@@ -691,8 +600,8 @@ export function ChatClient() {
             onSearchComplete={handleSearchComplete}
             onDataAnalysisComplete={handleDataAnalysisComplete}
             isStreaming={isStreaming}
-            selectedTool={selectedTool}
-            onSelectTool={setSelectedTool}
+            dataToolSelected={selectedDataTool}
+            onSelectDataTool={setSelectedDataTool}
           />
         </main>
       </div>
