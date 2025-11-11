@@ -116,6 +116,10 @@
     .safe-area-right {
       padding-right: env(safe-area-inset-right);
     }
+
+    .pb-safe {
+      padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    }
   }
 
   /* Smooth scrolling for mobile */

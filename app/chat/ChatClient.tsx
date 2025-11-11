@@ -474,15 +474,15 @@ export function ChatClient() {
       {/* Header */}
       <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-0.5">
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="rounded-lg p-0.5 hover:bg-white/10 transition-colors"
+              className="rounded-lg p-1.5 hover:bg-white/10 transition-colors"
               aria-label="Toggle sidebar"
             >
               {/* Menu/Close icon */}
               <svg
-                className="h-4 w-4 md:h-5 md:w-5"
+                className="h-5 w-5 md:h-6 md:w-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -495,7 +495,7 @@ export function ChatClient() {
                 />
               </svg>
             </button>
-            <h1 className="text-sm md:text-xl font-semibold">JCIL.ai</h1>
+            <h1 className="text-base md:text-xl font-semibold">JCIL.ai</h1>
           </div>
           <div className="flex items-center gap-0.5">
             <button

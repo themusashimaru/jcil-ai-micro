@@ -213,7 +213,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   return (
-    <div className="glass-morphism border-t border-white/10 py-0 px-1 md:p-4">
+    <div className="glass-morphism border-t border-white/10 py-0 px-1 md:p-4 pb-safe">
       <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
