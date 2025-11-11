@@ -72,8 +72,8 @@ export function QuickLiveSearch({ onSearchComplete, isSearching = false }: Quick
 
       {/* Popup Form */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto pt-2 pb-4 md:pt-10 md:pb-10" onClick={() => setIsOpen(false)}>
-          <div className="relative mx-4 w-full max-w-lg rounded-2xl border border-white/10 bg-black/95 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setIsOpen(false)}>
+          <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-black/95 p-6 shadow-2xl -mt-20 md:-mt-32 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-white">Live Web Search</h3>
