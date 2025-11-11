@@ -30,12 +30,13 @@
  * - [ ] Add authentication
  * - [ ] Implement rate limiting
  * - [ ] Store messages in database
- * - [ ] Add content moderation
+ * - [✓] Add content moderation (OpenAI omni-moderation-latest)
  * - [ ] Implement usage tracking
  */
 
 import { createChatCompletion, generateImage } from '@/lib/xai/client';
 import { getModelForTool } from '@/lib/xai/models';
+import { moderateContent } from '@/lib/openai/moderation';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 
@@ -69,6 +70,30 @@ export async function POST(request: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
         }
       );
+    }
+
+    // Moderate user messages before forwarding to xAI
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.role === 'user') {
+      const messageContent = typeof lastMessage.content === 'string'
+        ? lastMessage.content
+        : JSON.stringify(lastMessage.content);
+
+      const moderationResult = await moderateContent(messageContent);
+
+      if (moderationResult.flagged) {
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: moderationResult.message || 'Your message violates our content policy. Please rephrase your request in a respectful and appropriate manner.',
+            moderated: true,
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
     }
 
     // Check if this is an image generation request

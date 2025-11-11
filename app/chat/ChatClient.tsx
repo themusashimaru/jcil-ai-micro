@@ -458,7 +458,7 @@ export function ChatClient() {
                 />
               </svg>
             </button>
-            <h1 className="text-xl font-semibold">Delta-2 Chat</h1>
+            <h1 className="text-xl font-semibold">JCIL.ai</h1>
           </div>
           <div className="flex items-center gap-2">
             <NotificationProvider />
