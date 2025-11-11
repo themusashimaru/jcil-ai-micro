@@ -178,45 +178,24 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
             <textarea
               value={formData.emailSignature || ''}
               onChange={(e) => setFormData({ ...formData, emailSignature: e.target.value })}
-              placeholder="Best regards,&#10;John Smith&#10;Software Engineer&#10;(555) 123-4567"
+              placeholder="Best regards,&#10;John Smith&#10;**Software Engineer**&#10;*Company Name*&#10;(555) 123-4567"
               rows={4}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none resize-none"
             />
+            <p className="text-xs text-gray-500">
+              Use **text** for bold and *text* for italic. Example: **John Smith** makes &quot;John Smith&quot; bold.
+            </p>
 
-            {/* Signature Formatting Options */}
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Bold Toggle */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.signatureBold || false}
-                  onChange={(e) => setFormData({ ...formData, signatureBold: e.target.checked })}
-                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-500"
-                />
-                <span className="text-sm font-bold text-gray-300">Bold</span>
-              </label>
-
-              {/* Italic Toggle */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.signatureItalic || false}
-                  onChange={(e) => setFormData({ ...formData, signatureItalic: e.target.checked })}
-                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-500"
-                />
-                <span className="text-sm italic text-gray-300">Italic</span>
-              </label>
-
-              {/* Color Picker */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <span className="text-sm text-gray-300">Color:</span>
-                <input
-                  type="color"
-                  value={formData.signatureColor || '#FFFFFF'}
-                  onChange={(e) => setFormData({ ...formData, signatureColor: e.target.value })}
-                  className="w-10 h-8 rounded border border-white/10 bg-transparent cursor-pointer"
-                />
-              </label>
+            {/* Signature Color Picker */}
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-gray-300">Signature Color:</label>
+              <input
+                type="color"
+                value={formData.signatureColor || '#FFFFFF'}
+                onChange={(e) => setFormData({ ...formData, signatureColor: e.target.value })}
+                className="w-12 h-10 rounded border border-white/10 bg-transparent cursor-pointer"
+              />
+              <span className="text-xs text-gray-500">{formData.signatureColor || '#FFFFFF'}</span>
             </div>
 
             {/* Signature Preview */}
@@ -225,14 +204,14 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                 <p className="text-xs font-semibold text-gray-400 mb-2">PREVIEW</p>
                 <div
                   className="whitespace-pre-wrap text-sm"
-                  style={{
-                    fontWeight: formData.signatureBold ? 'bold' : 'normal',
-                    fontStyle: formData.signatureItalic ? 'italic' : 'normal',
-                    color: formData.signatureColor || '#FFFFFF',
+                  style={{ color: formData.signatureColor || '#FFFFFF' }}
+                  dangerouslySetInnerHTML={{
+                    __html: formData.emailSignature
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      .replace(/\n/g, '<br/>'),
                   }}
-                >
-                  {formData.emailSignature}
-                </div>
+                />
               </div>
             )}
           </div>

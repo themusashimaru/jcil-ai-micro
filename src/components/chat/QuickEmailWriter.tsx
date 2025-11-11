@@ -40,31 +40,44 @@ export function QuickEmailWriter({ onEmailGenerated }: QuickEmailWriterProps) {
     setGeneratedEmail(null);
 
     try {
-      const emailPrompt = `You are a professional email writing expert. Write a ${tone} email with the following details:
+      const toneInstructions = {
+        professional: 'formal but approachable, using professional language without being stiff',
+        friendly: 'warm and conversational like talking to a colleague or acquaintance, casual but still respectful',
+        formal: 'highly formal and business-like, suitable for executives or official correspondence',
+        casual: 'relaxed and informal like chatting with a friend, keeping it brief and easy-going'
+      };
+
+      const wordLimits = {
+        professional: '80-150 words',
+        friendly: '60-120 words',
+        formal: '100-180 words',
+        casual: '50-100 words'
+      };
+
+      const emailPrompt = `You are an email writing expert. Write a ${tone} email with these details:
 
 **Recipient:** ${recipient || 'Not specified'}
 **Purpose:** ${purpose}
-${keyPoints ? `**Key Points to Include:** ${keyPoints}` : ''}
+${keyPoints ? `**Key Points:** ${keyPoints}` : ''}
 
-**Instructions:**
-1. Write a compelling, clear subject line
-2. Create a well-structured email body with:
-   - Professional greeting (use recipient name if provided)
-   - Clear opening that states purpose
-   - Organized body paragraphs (use bullet points or hyphens for lists, NO em-dashes)
-   - Strong, actionable closing
-   - Appropriate sign-off (e.g., Best regards, Sincerely, etc.)
-3. Match the ${tone} tone throughout
-4. Keep it concise but complete (150-300 words for body)
-5. Ensure grammar, spelling, and punctuation are perfect
-6. DO NOT use em-dashes (—) anywhere in the email
-7. Use standard hyphens (-) instead of em-dashes
-8. Make it ready to send immediately
+**Critical Instructions:**
+1. TONE: ${toneInstructions[tone]}
+2. LENGTH: Keep body to ${wordLimits[tone]} - BE CONCISE, get straight to the point
+3. NO FLUFF: Skip unnecessary pleasantries, avoid long-winded explanations
+4. Subject: Clear and compelling (under 8 words)
+5. Structure:
+   - Brief greeting
+   - State purpose in 1-2 sentences
+   - Key points (use bullet points with hyphens if needed)
+   - Brief closing
+   - Simple sign-off
+6. NO em-dashes (—) - use standard hyphens (-) only
+7. Make every word count - remove anything that doesn't add value
 
-Return ONLY a JSON object with this format (no markdown, no code blocks):
+Return ONLY JSON (no markdown, no code blocks):
 {
-  "subject": "The email subject line",
-  "body": "The complete email body with line breaks preserved"
+  "subject": "Subject line",
+  "body": "Complete email body"
 }`;
 
       const res = await fetch('/api/chat', {
@@ -99,7 +112,11 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
 
       // Add signature if requested and available
       if (includeSignature && profile.emailSignature) {
-        emailData.body = `${emailData.body}\n\n${profile.emailSignature}`;
+        // Convert markdown to plain text for mailto (email clients don't support HTML)
+        const plainSignature = profile.emailSignature
+          .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers
+          .replace(/\*(.*?)\*/g, '$1');      // Remove italic markers
+        emailData.body = `${emailData.body}\n\n${plainSignature}`;
       }
 
       setGeneratedEmail(emailData);
@@ -174,8 +191,8 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-4 md:py-10">
+          <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl mx-4 my-auto">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <div>
@@ -314,14 +331,14 @@ Return ONLY a JSON object with this format (no markdown, no code blocks):
                           <p className="text-xs font-semibold text-gray-400 mb-2">SIGNATURE PREVIEW</p>
                           <div
                             className="whitespace-pre-wrap text-xs"
-                            style={{
-                              fontWeight: profile.signatureBold ? 'bold' : 'normal',
-                              fontStyle: profile.signatureItalic ? 'italic' : 'normal',
-                              color: profile.signatureColor || '#FFFFFF',
+                            style={{ color: profile.signatureColor || '#FFFFFF' }}
+                            dangerouslySetInnerHTML={{
+                              __html: profile.emailSignature
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                .replace(/\n/g, '<br/>'),
                             }}
-                          >
-                            {profile.emailSignature}
-                          </div>
+                          />
                         </div>
                       )}
                     </div>
