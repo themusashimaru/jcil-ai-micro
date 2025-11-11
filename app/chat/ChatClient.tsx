@@ -472,7 +472,7 @@ export function ChatClient() {
   return (
     <div className="flex h-screen flex-col bg-black">
       {/* Header */}
-      <header className="glass-morphism border-b border-white/10 p-2 md:p-3">
+      <header className="glass-morphism border-b border-white/10 p-1.5 md:p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
@@ -482,7 +482,7 @@ export function ChatClient() {
             >
               {/* Menu/Close icon */}
               <svg
-                className="h-5 w-5"
+                className="h-4 w-4 md:h-5 md:w-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -495,15 +495,15 @@ export function ChatClient() {
                 />
               </svg>
             </button>
-            <h1 className="text-lg md:text-xl font-semibold">JCIL.ai</h1>
+            <h1 className="text-base md:text-xl font-semibold">JCIL.ai</h1>
           </div>
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-1.5"
+              className="rounded-lg px-1.5 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-1"
               aria-label="User Profile"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
