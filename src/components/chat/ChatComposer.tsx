@@ -19,7 +19,7 @@
 'use client';
 
 import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
-import type { Attachment } from '@/app/chat/types';
+import type { Attachment, ShopProduct } from '@/app/chat/types';
 import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
 import { QuickLiveSearch } from './QuickLiveSearch';
@@ -31,7 +31,7 @@ interface ChatComposerProps {
   onImageGenerated?: (imageUrl: string, prompt: string) => void;
   onCodeGenerated?: (response: string, request: string) => void;
   onSearchComplete?: (response: string, query: string) => void;
-  onShopComplete?: (response: string, query: string) => void;
+  onShopComplete?: (response: string, query: string, products: ShopProduct[]) => void;
   isStreaming: boolean;
 }
 

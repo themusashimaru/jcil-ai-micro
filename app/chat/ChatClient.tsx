@@ -26,7 +26,7 @@ import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
-import type { Chat, Message, Attachment } from './types';
+import type { Chat, Message, Attachment, ShopProduct } from './types';
 
 // Re-export types for convenience
 export type { Chat, Message, ToolCall, Attachment } from './types';
@@ -173,12 +173,12 @@ export function ChatClient() {
     setMessages((prev) => [...prev, userMessage, searchMessage]);
   };
 
-  const handleShopComplete = (response: string, query: string) => {
+  const handleShopComplete = (response: string, query: string, products: ShopProduct[]) => {
     // Add user message with shop query
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: `🛒 Shop: ${query}`,
+      content: `🛍️ Shop: ${query}`,
       timestamp: new Date(),
     };
 
@@ -187,6 +187,7 @@ export function ChatClient() {
       id: (Date.now() + 1).toString(),
       role: 'assistant',
       content: response,
+      products: products, // Include products for display
       timestamp: new Date(),
     };
 

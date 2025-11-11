@@ -24,6 +24,7 @@ export interface Message {
   toolCalls?: ToolCall[];
   attachments?: Attachment[];
   imageUrl?: string; // For AI-generated images
+  products?: ShopProduct[]; // For Amazon shopping results
   timestamp: Date;
   isStreaming?: boolean;
 }
@@ -41,4 +42,12 @@ export interface Attachment {
   size: number;
   url?: string;
   thumbnail?: string;
+}
+
+export interface ShopProduct {
+  title: string;
+  price: string;
+  rating?: string;
+  image?: string;
+  url: string;
 }
