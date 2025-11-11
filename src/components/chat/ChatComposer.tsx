@@ -33,9 +33,11 @@ interface ChatComposerProps {
   onSearchComplete?: (response: string, query: string) => void;
   onDataAnalysisComplete?: (response: string, source: string, type: 'file' | 'url') => void;
   isStreaming: boolean;
+  dataToolSelected?: boolean;
+  onSelectDataTool?: (selected: boolean) => void;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onDataAnalysisComplete, isStreaming }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onDataAnalysisComplete, isStreaming, dataToolSelected, onSelectDataTool }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -287,6 +289,8 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Listening...'
                 : isDragging
                 ? 'Drop files here...'
+                : dataToolSelected
+                ? '📊 Attach a file (CSV, XLSX, etc.) or paste a URL for analysis...'
                 : 'Type your message...'
             }
             className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[40px]"
@@ -439,10 +443,20 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               )}
 
               {/* Quick Data Analysis */}
-              {onDataAnalysisComplete && (
-                <QuickDataAnalysis
-                  onAnalysisComplete={onDataAnalysisComplete}
-                />
+              {onDataAnalysisComplete && onSelectDataTool && (
+                <button
+                  onClick={() => onSelectDataTool(!dataToolSelected)}
+                  className={`rounded-lg px-3 py-2 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed border whitespace-nowrap ${
+                    dataToolSelected
+                      ? 'bg-white text-black border-white'
+                      : 'bg-black text-white border-white/20 hover:bg-gray-800'
+                  }`}
+                  disabled={isStreaming}
+                  aria-label="Data analysis mode"
+                  title={dataToolSelected ? "Data analysis mode active - attach file or paste URL" : "Select data analysis mode"}
+                >
+                  {dataToolSelected ? '✓ Data' : 'Data'}
+                </button>
               )}
 
               {attachments.length > 0 && (

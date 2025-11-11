@@ -42,6 +42,8 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { profile, hasProfile } = useUserProfile();
+  // Selected tool for data analysis
+  const [selectedDataTool, setSelectedDataTool] = useState(false);
 
   // Detect screen size and set initial sidebar state
   useEffect(() => {
@@ -295,6 +297,34 @@ export function ChatClient() {
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
+    // If data tool is selected, handle data analysis
+    if (selectedDataTool) {
+      setSelectedDataTool(false);
+
+      // Check if user provided a file or URL
+      if (attachments.length > 0) {
+        // Handle file attachment
+        const file = attachments[0];
+        handleDataAnalysisComplete(`Analysis of ${file.name}:\n\n[Analysis results would appear here based on file type: ${file.type}]`, file.name, 'file');
+      } else if (content.trim()) {
+        // Check if content is a URL
+        const urlPattern = /^(https?:\/\/)?([\w-]+(\.[\w-]+)+)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?$/;
+        if (urlPattern.test(content.trim())) {
+          handleDataAnalysisComplete(`Analysis of URL:\n\n[Analysis results would appear here for: ${content}]`, content, 'url');
+        } else {
+          // Treat as instructions with attached file expected
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: 'Please attach a file (CSV, XLSX, etc.) or paste a valid URL for data analysis.',
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+        }
+      }
+      return;
+    }
+
     // Track if this is a new chat (for title generation)
     const isNewChat = !currentChatId;
     let newChatId = currentChatId;
@@ -547,6 +577,8 @@ export function ChatClient() {
             onSearchComplete={handleSearchComplete}
             onDataAnalysisComplete={handleDataAnalysisComplete}
             isStreaming={isStreaming}
+            dataToolSelected={selectedDataTool}
+            onSelectDataTool={setSelectedDataTool}
           />
         </main>
       </div>
