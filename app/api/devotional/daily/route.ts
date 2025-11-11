@@ -49,38 +49,38 @@ async function generateDevotional(): Promise<Devotional> {
     day: 'numeric',
   });
 
-  const prompt = `You are a seminary-trained Christian theologian with a Master of Divinity degree, creating a daily devotional for spiritually mature believers. Generate a biblically sound, theologically rich devotional for ${formattedDate}.
+  const prompt = `You are a Christian pastor and theologian creating a daily devotional for believers. Generate a biblically sound, encouraging devotional for ${formattedDate}.
 
 Requirements:
 1. Use a REAL King James Version (KJV) Bible verse - cite the exact reference with (KJV) notation
 2. Provide the ACTUAL KJV text of that verse (not paraphrased)
-3. Write a sophisticated meditation (200-250 words) that:
-   - Demonstrates exegetical depth and biblical insight
-   - Engages with the historical, cultural, and theological context
-   - Uses elevated vocabulary appropriate for graduate-level readers
-   - Explores theological themes and doctrines
-   - Makes connections to broader biblical theology
-   - Applies profound spiritual truths to contemporary Christian living
-4. Compose an eloquent prayer (100-125 words) that:
-   - Reflects theological sophistication
-   - Uses rich, reverent language
-   - Addresses God with depth and intimacy
-5. Provide a substantive application (75-100 words) that:
-   - Challenges readers at a deeper spiritual level
-   - Offers concrete, transformative action steps
-   - Connects devotional practice to theological understanding
+3. Write a thoughtful meditation (150-200 words) that:
+   - Explains the verse clearly and provides biblical insight
+   - Includes relevant historical or cultural context when helpful
+   - Uses clear, accessible language appropriate for college-level readers
+   - Explores the spiritual meaning and theological significance
+   - Connects to broader biblical themes
+   - Applies the truth to everyday Christian living
+4. Compose a heartfelt prayer (75-100 words) that:
+   - Is theologically sound and reverent
+   - Uses clear, sincere language
+   - Helps readers connect with God personally
+5. Provide a practical application (50-75 words) that:
+   - Gives concrete, doable action steps
+   - Challenges readers to grow spiritually
+   - Connects faith to daily life
 
 The devotional must be:
-- Written at a master's degree reading level with sophisticated vocabulary
-- Theologically rigorous and exegetically sound
-- Rooted in orthodox Christian doctrine and biblical theology
-- Intellectually stimulating while remaining pastorally sensitive
-- Reflective of deep spiritual maturity and theological acumen
+- Written at a college reading level with clear, accessible vocabulary
+- Theologically accurate and biblically sound
+- Rooted in orthodox Christian teaching
+- Encouraging and practical while remaining substantive
+- Spiritually enriching without being overly academic
 
 Return ONLY a valid JSON object in this exact format (no markdown, no code blocks):
 {
   "date": "${formattedDate}",
-  "title": "A theologically rich title (4-6 words)",
+  "title": "An encouraging title (4-6 words)",
   "scripture": {
     "reference": "Book Chapter:Verse (KJV)",
     "text": "The exact KJV verse text"
@@ -96,7 +96,7 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
         {
           role: 'system',
           content:
-            'You are a seminary-trained theologian with a Master of Divinity degree who creates intellectually rigorous, theologically rich devotionals for spiritually mature believers. You possess comprehensive knowledge of biblical exegesis, systematic theology, church history, and biblical languages. Write at a graduate-level reading comprehension with sophisticated vocabulary and profound theological insight. Always use accurate KJV Bible verses with proper (KJV) notation. Return only valid JSON with no markdown formatting.',
+            'You are a Christian pastor and theologian who creates biblically sound, encouraging devotionals for everyday believers. You have deep knowledge of Scripture, theology, and biblical context. Write at a college reading level using clear, accessible language that is theologically accurate but not overly academic. Always use accurate KJV Bible verses with proper (KJV) notation. Return only valid JSON with no markdown formatting.',
         },
         {
           role: 'user',
@@ -140,17 +140,17 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     // Fallback devotional if generation fails
     return {
       date: formattedDate,
-      title: 'The Epistemology of Divine Trust',
+      title: 'Trust God Completely',
       scripture: {
         reference: 'Proverbs 3:5-6 (KJV)',
         text: 'Trust in the LORD with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.',
       },
       meditation:
-        "This Solomonic wisdom presents a profound theological tension between human epistemology and divine omniscience. The imperative to trust \"with all thine heart\" employs the Hebrew concept of \"leb\" - not merely emotional sentiment, but the totality of one's intellectual, volitional, and affective faculties. The antithesis posed - \"lean not unto thine own understanding\" - challenges the Enlightenment privileging of autonomous reason, instead advocating a posture of epistemic humility before the transcendent God.\n\nThe text establishes a covenantal framework wherein comprehensive acknowledgment of God's sovereignty becomes the prerequisite for divine guidance. The phrase \"in all thy ways\" demands an integrated theology of vocation, where the sacred-secular dichotomy dissolves. God's promise to \"direct thy paths\" employs a causative verb form, indicating divine intervention that actively shapes our trajectory. This theodicy affirms God's meticulous providence while maintaining human agency - a nuanced middle path between determinism and open theism. The wisdom tradition here anticipates Paul's later theological development regarding the renewal of the mind (Romans 12:2) and Christ as the wisdom of God (1 Corinthians 1:24).",
+        "This passage from Proverbs gives us powerful wisdom about our relationship with God. When it says to trust with \"all thine heart,\" it means we should trust God with our whole being - our thoughts, feelings, will, and actions. The Hebrew word for \"heart\" (leb) refers to the center of who we are, not just our emotions.\n\nThe command not to lean on our own understanding is challenging. We naturally want to figure everything out ourselves and rely on our own logic. But God sees the whole picture of our lives while we can only see a small part. This verse calls us to humble ourselves and recognize that God's wisdom is greater than ours.\n\nThe promise is beautiful: when we acknowledge God in all our ways - in our relationships, work, decisions, and daily routines - He will direct our paths. This doesn't mean we become passive, but rather that we actively seek His guidance in everything. It means trusting that God's plan is better than our own, even when we can't see the outcome. This is the foundation of faith.",
       prayer:
-        "Sovereign Lord, You who inhabit eternity and perceive all temporal realities simultaneously, I approach Your throne acknowledging my finite understanding and propensity toward autonomous reasoning. Forgive my presumption when I have elevated human wisdom above Your divine counsel. Grant me the theological virtue of faith that transcends empirical certainty, enabling me to rest in Your providential governance. Illumine my heart with the wisdom that originates in the fear of the Lord. May Your Spirit cultivate within me an epistemological humility that seeks Your guidance in every dimension of my existence. Through Christ, who is Himself the incarnate Wisdom of God, I pray. Amen.",
+        "Heavenly Father, I come to You acknowledging that I need Your wisdom and guidance. Forgive me for the times when I've trusted in my own understanding instead of seeking You first. Help me to trust You with my whole heart, even when the path ahead is unclear. Direct my steps today, Lord, and give me the courage to follow where You lead. May every decision I make honor You and reflect my trust in Your goodness. In Jesus' name, Amen.",
       application:
-        "Engage in a rigorous theological audit of your decision-making processes. Identify one specific domain where Enlightenment rationalism or pragmatic utilitarianism has supplanted trust in divine providence. Practice the spiritual discipline of discernment through extended contemplative prayer, Scripture meditation, and consultation with mature believers. Document the tension between human understanding and faith-oriented trust, then deliberately choose one concrete action that reflects epistemic submission to God's revealed will, even if it contradicts conventional wisdom or personal preference. This praxis of trust becomes a tangible demonstration of covenant faithfulness.",
+        "Today, identify one area where you've been relying on your own understanding instead of God's guidance. It could be a decision you're facing, a relationship, or a plan you're making. Spend time in prayer about it, asking God to show you His will. Write down what you sense Him leading you to do, and take one practical step of obedience. Choose to trust God's direction even if it doesn't make sense to you right now.",
     };
   }
 }
