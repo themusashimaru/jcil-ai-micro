@@ -304,9 +304,26 @@ export function ChatClient() {
       const toolType = selectedTool;
       setSelectedTool(null); // Clear selection
 
+      // Add user message to chat first
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: toolType === 'image'
+          ? `🎨 Generate image: ${content}`
+          : toolType === 'code'
+          ? `💻 Coding help: ${content}`
+          : toolType === 'search'
+          ? `🔍 Search: ${content}`
+          : toolType === 'data'
+          ? `📊 Data analysis: ${content}`
+          : content,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      setIsStreaming(true);
+
       if (toolType === 'image') {
         // Image generation
-        setIsStreaming(true);
         try {
           const response = await fetch('/api/chat', {
             method: 'POST',
@@ -336,7 +353,6 @@ export function ChatClient() {
         return;
       } else if (toolType === 'code') {
         // Code generation
-        setIsStreaming(true);
         try {
           const response = await fetch('/api/chat', {
             method: 'POST',
@@ -366,7 +382,6 @@ export function ChatClient() {
         return;
       } else if (toolType === 'search') {
         // Live search
-        setIsStreaming(true);
         try {
           const response = await fetch('/api/chat', {
             method: 'POST',
@@ -413,6 +428,7 @@ export function ChatClient() {
             setMessages((prev) => [...prev, errorMsg]);
           }
         }
+        setIsStreaming(false);
         return;
       }
     }
