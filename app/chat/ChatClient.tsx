@@ -26,7 +26,7 @@ import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
-import type { Chat, Message, Attachment, ShopProduct } from './types';
+import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
 export type { Chat, Message, ToolCall, Attachment } from './types';

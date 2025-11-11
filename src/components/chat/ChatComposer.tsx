@@ -19,7 +19,7 @@
 'use client';
 
 import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
-import type { Attachment, ShopProduct } from '@/app/chat/types';
+import type { Attachment } from '@/app/chat/types';
 import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
 import { QuickLiveSearch } from './QuickLiveSearch';
