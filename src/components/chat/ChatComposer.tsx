@@ -33,9 +33,11 @@ interface ChatComposerProps {
   onSearchComplete?: (response: string, query: string) => void;
   onDataAnalysisComplete?: (response: string, source: string, type: 'file' | 'url') => void;
   isStreaming: boolean;
+  selectedTool?: 'image' | 'code' | 'search' | null;
+  onSelectTool?: (tool: 'image' | 'code' | 'search' | null) => void;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onDataAnalysisComplete, isStreaming }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete, onDataAnalysisComplete, isStreaming, selectedTool, onSelectTool }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -415,26 +417,32 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               </div>
 
               {/* Quick Image Generator */}
-              {onImageGenerated && (
+              {onImageGenerated && onSelectTool && (
                 <QuickImageGenerator
                   onImageGenerated={onImageGenerated}
                   isGenerating={isStreaming}
+                  isSelected={selectedTool === 'image'}
+                  onSelect={() => onSelectTool(selectedTool === 'image' ? null : 'image')}
                 />
               )}
 
               {/* Quick Coding Assistant */}
-              {onCodeGenerated && (
+              {onCodeGenerated && onSelectTool && (
                 <QuickCodingAssistant
                   onCodeGenerated={onCodeGenerated}
                   isGenerating={isStreaming}
+                  isSelected={selectedTool === 'code'}
+                  onSelect={() => onSelectTool(selectedTool === 'code' ? null : 'code')}
                 />
               )}
 
               {/* Quick Live Search */}
-              {onSearchComplete && (
+              {onSearchComplete && onSelectTool && (
                 <QuickLiveSearch
                   onSearchComplete={onSearchComplete}
                   isSearching={isStreaming}
+                  isSelected={selectedTool === 'search'}
+                  onSelect={() => onSelectTool(selectedTool === 'search' ? null : 'search')}
                 />
               )}
 

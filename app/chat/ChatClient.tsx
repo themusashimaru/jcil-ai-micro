@@ -42,6 +42,8 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { profile, hasProfile } = useUserProfile();
+  // Selected tool for bottom toolbar (image, code, search)
+  const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | null>(null);
 
   // Detect screen size and set initial sidebar state
   useEffect(() => {
@@ -314,16 +316,29 @@ export function ChatClient() {
       setCurrentChatId(newChatId);
     }
 
+    // Modify content based on selected tool
+    let modifiedContent = content;
+    if (selectedTool === 'image') {
+      modifiedContent = `[Image Generation Request] ${content}`;
+    } else if (selectedTool === 'code') {
+      modifiedContent = `[Coding Assistant Request] ${content}`;
+    } else if (selectedTool === 'search') {
+      modifiedContent = `[Live Web Search Request] ${content}`;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content,
+      content: modifiedContent,
       attachments: attachments.length > 0 ? attachments : undefined,
       timestamp: new Date(),
     };
 
     setMessages([...messages, userMessage]);
     setIsStreaming(true);
+
+    // Clear selected tool after sending
+    setSelectedTool(null);
 
     try {
       // Format messages for API (handle text + image attachments)
@@ -547,6 +562,8 @@ export function ChatClient() {
             onSearchComplete={handleSearchComplete}
             onDataAnalysisComplete={handleDataAnalysisComplete}
             isStreaming={isStreaming}
+            selectedTool={selectedTool}
+            onSelectTool={setSelectedTool}
           />
         </main>
       </div>
