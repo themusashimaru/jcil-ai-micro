@@ -14,6 +14,7 @@ export function QuickBreakingNews() {
   const [newsContent, setNewsContent] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const fetchBreakingNews = async () => {
     setIsLoading(true);
@@ -92,6 +93,54 @@ Now provide the complete breaking news report following this exact format.`;
     }
   };
 
+  const handleCopy = async () => {
+    if (!newsContent || !lastUpdated) return;
+
+    const fullReport = `${newsContent}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nBrought to you by JCIL.ai Slingshot 2.0\nVisit: https://jcil.ai`;
+
+    try {
+      await navigator.clipboard.writeText(fullReport);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleEmail = () => {
+    if (!newsContent || !lastUpdated) return;
+
+    const dateStr = lastUpdated.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    const timeStr = lastUpdated.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+
+    const subject = `Breaking News Report - ${dateStr} at ${timeStr}`;
+
+    // Format the email body with proper spacing and alignment
+    const body = `Breaking News Report
+${dateStr} at ${timeStr}
+
+${newsContent}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Brought to you by JCIL.ai Slingshot 2.0
+Visit: https://jcil.ai
+
+Faith-based AI tools for your everyday needs`;
+
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+  };
+
   const handleOpen = () => {
     setIsOpen(true);
     if (!newsContent) {
@@ -142,17 +191,72 @@ Now provide the complete breaking news report following this exact format.`;
               </div>
               <div className="flex items-center gap-2">
                 {lastUpdated && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-400 hidden md:inline">
                     Updated: {lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                   </span>
                 )}
+                {/* Copy Button */}
+                <button
+                  onClick={handleCopy}
+                  disabled={!newsContent}
+                  className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  title="Copy report to clipboard"
+                >
+                  {copied ? (
+                    <>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="hidden sm:inline">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+                        />
+                      </svg>
+                      <span className="hidden sm:inline">Copy</span>
+                    </>
+                  )}
+                </button>
+                {/* Email Button */}
+                <button
+                  onClick={handleEmail}
+                  disabled={!newsContent}
+                  className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  title="Email report"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">Email</span>
+                </button>
+                {/* Refresh Button */}
                 <button
                   onClick={fetchBreakingNews}
                   disabled={isLoading}
-                  className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 disabled:opacity-50"
+                  className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  {isLoading ? 'Updating...' : 'Refresh'}
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">{isLoading ? 'Updating...' : 'Refresh'}</span>
                 </button>
+                {/* Close Button */}
                 <button
                   onClick={() => setIsOpen(false)}
                   className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white"
