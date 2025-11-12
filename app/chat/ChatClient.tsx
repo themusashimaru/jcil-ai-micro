@@ -45,6 +45,27 @@ export function ChatClient() {
   // Selected tool (only one can be selected at a time)
   const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
 
+  // Load design settings
+  const [siteName, setSiteName] = useState<string>('JCIL.ai');
+  const [headerLogo, setHeaderLogo] = useState<string>('');
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          if (settings.siteName) setSiteName(settings.siteName);
+          if (settings.headerLogo) setHeaderLogo(settings.headerLogo);
+        }
+      } catch (error) {
+        console.error('Failed to load design settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
   // Detect screen size and set initial sidebar state
   useEffect(() => {
     const handleResize = () => {
@@ -671,7 +692,15 @@ export function ChatClient() {
                 />
               </svg>
             </button>
-            <h1 className="text-base md:text-xl font-semibold">JCIL.ai</h1>
+            {headerLogo ? (
+              <img
+                src={headerLogo}
+                alt={siteName}
+                className="h-6 md:h-8 w-auto"
+              />
+            ) : (
+              <h1 className="text-base md:text-xl font-semibold">{siteName}</h1>
+            )}
           </div>
 
           {/* New Chat Button - Mobile Only, Centered */}
