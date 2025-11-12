@@ -150,7 +150,7 @@ export default function DesignSettings() {
   return (
     <div>
       <h2 className="text-3xl font-bold mb-6">Design Settings</h2>
-      <p className="text-gray-400 mb-8">Customize your site's branding, logos, and text</p>
+      <p className="text-gray-400 mb-8">Customize your site&apos;s branding, logos, and text</p>
 
       {/* Save Status */}
       {saveStatus && (
