@@ -17,7 +17,7 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
@@ -40,6 +40,27 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const { profile, hasProfile } = useUserProfile();
+
+  // Load design settings from API
+  const [mainLogo, setMainLogo] = useState<string>('/images/logo.png');
+  const [subtitle, setSubtitle] = useState<string>('Faith-based AI tools for your everyday needs');
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          if (settings.mainLogo) setMainLogo(settings.mainLogo);
+          if (settings.subtitle) setSubtitle(settings.subtitle);
+        }
+      } catch (error) {
+        console.error('Failed to load design settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   // Auto-scroll to show user's message at top when new message is sent
   useEffect(() => {
@@ -68,14 +89,17 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
         <div className="text-center">
           {/* JCIL.ai Logo */}
           <div className="mb-1">
-            <h1 className="text-2xl md:text-5xl font-bold tracking-tight text-white mb-0.5">
-              JCIL<span className="text-blue-500">.ai</span>
-            </h1>
+            {/* Logo Image - Dynamically loaded from admin settings */}
+            <img
+              src={mainLogo}
+              alt="JCIL.ai"
+              className="h-12 md:h-24 w-auto mx-auto mb-2"
+            />
             <p className="text-sm md:text-xl text-white font-medium mb-1">
               Slingshot 2.0
             </p>
             <p className="text-xs md:text-sm text-gray-400 italic">
-              Faith-based AI tools for your everyday needs
+              {subtitle}
             </p>
           </div>
 

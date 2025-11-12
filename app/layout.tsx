@@ -42,6 +42,7 @@ import './globals.css';
 import { PWAInstaller } from '@/components/pwa/PWAInstaller';
 import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
+import { FaviconUpdater } from '@/components/admin/FaviconUpdater';
 
 export const metadata: Metadata = {
   title: 'Delta-2 | AI Chat Interface',
@@ -75,6 +76,7 @@ export default function RootLayout({
       </head>
       <body className="bg-black text-white antialiased">
         <UserProfileProvider>
+          <FaviconUpdater />
           <OfflineIndicator />
           {children}
           <PWAInstaller />
