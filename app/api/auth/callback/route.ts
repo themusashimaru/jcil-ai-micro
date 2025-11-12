@@ -105,8 +105,11 @@ export async function GET(request: NextRequest) {
       // Redirect to chat
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     } catch (error) {
-      // Redirect to login with error message
-      return NextResponse.redirect(new URL('/login?error=Authentication failed', requestUrl.origin));
+      // Redirect to login with specific error message
+      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      return NextResponse.redirect(
+        new URL(`/login?error=${encodeURIComponent(errorMessage)}`, requestUrl.origin)
+      );
     }
   }
 
