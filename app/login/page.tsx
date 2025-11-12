@@ -44,17 +44,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-black p-4">
       <div className="w-full max-w-md">
         {/* Card */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
+        <div className="glass-morphism rounded-2xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
               Welcome Back
             </h1>
-            <p className="text-gray-300">
-              Sign in to Delta-2 AI
+            <p className="text-gray-400">
+              Sign in to JCIL.ai
             </p>
           </div>
 
@@ -77,7 +77,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
                 disabled={loading}
                 required
               />
@@ -93,7 +93,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
                 disabled={loading}
                 required
               />
@@ -103,7 +103,7 @@ export default function LoginPage() {
             <div className="text-right">
               <Link
                 href="/forgot-password"
-                className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                className="text-sm text-gray-400 hover:text-white transition-colors"
               >
                 Forgot password?
               </Link>
@@ -113,7 +113,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg px-4 py-3 font-medium hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-white text-black rounded-lg px-4 py-3 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -122,10 +122,10 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-600"></div>
+              <div className="w-full border-t border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-transparent text-gray-400">Or continue with Google</span>
+              <span className="px-4 bg-transparent text-gray-500">Or continue with Google</span>
             </div>
           </div>
 
@@ -133,7 +133,7 @@ export default function LoginPage() {
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 rounded-lg px-4 py-3 font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 bg-black/40 border border-white/10 text-white rounded-lg px-4 py-3 font-medium hover:bg-black/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -157,11 +157,11 @@ export default function LoginPage() {
           </button>
 
           {/* Sign Up Link */}
-          <p className="text-center text-gray-400 text-sm mt-6">
+          <p className="text-center text-gray-500 text-sm mt-6">
             Don&apos;t have an account?{' '}
             <Link
               href="/signup"
-              className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
+              className="text-white hover:text-gray-300 font-medium transition-colors"
             >
               Sign up
             </Link>
@@ -172,7 +172,7 @@ export default function LoginPage() {
         <div className="text-center mt-6">
           <Link
             href="/"
-            className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+            className="text-sm text-gray-500 hover:text-white transition-colors"
           >
             ← Back to home
           </Link>

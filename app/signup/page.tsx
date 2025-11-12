@@ -83,16 +83,16 @@ export default function SignUpPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="w-full max-w-md">
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8 text-center">
+          <div className="glass-morphism rounded-2xl p-8 text-center">
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Check your email!</h2>
-            <p className="text-gray-300">
+            <p className="text-gray-400">
               We&apos;ve sent you a confirmation link. Click it to activate your account.
             </p>
           </div>
@@ -102,17 +102,17 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-black p-4">
       <div className="w-full max-w-md">
         {/* Card */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 p-8">
+        <div className="glass-morphism rounded-2xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
               Create Account
             </h1>
-            <p className="text-gray-300">
-              Join Delta-2 AI
+            <p className="text-gray-400">
+              Join JCIL.ai
             </p>
           </div>
 
@@ -136,7 +136,7 @@ export default function SignUpPage() {
                 value={formData.full_name}
                 onChange={handleChange}
                 placeholder="John Doe"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
                 disabled={loading}
                 required
               />
@@ -153,7 +153,7 @@ export default function SignUpPage() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
                 disabled={loading}
                 required
               />
@@ -170,7 +170,7 @@ export default function SignUpPage() {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
                 disabled={loading}
                 required
                 minLength={8}
@@ -189,7 +189,7 @@ export default function SignUpPage() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
                 disabled={loading}
                 required
               />
@@ -204,11 +204,11 @@ export default function SignUpPage() {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
                 disabled={loading}
               >
-                <option value="student" className="bg-gray-800">Student</option>
-                <option value="professional" className="bg-gray-800">Professional</option>
+                <option value="student" className="bg-black">Student</option>
+                <option value="professional" className="bg-black">Professional</option>
               </select>
             </div>
 
@@ -223,7 +223,7 @@ export default function SignUpPage() {
                 value={formData.field}
                 onChange={handleChange}
                 placeholder="e.g., Computer Science, Marketing"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
                 disabled={loading}
               />
             </div>
@@ -248,7 +248,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg px-4 py-3 font-medium hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-white text-black rounded-lg px-4 py-3 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
@@ -257,10 +257,10 @@ export default function SignUpPage() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-600"></div>
+              <div className="w-full border-t border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-transparent text-gray-400">Or sign up with Google</span>
+              <span className="px-4 bg-transparent text-gray-500">Or sign up with Google</span>
             </div>
           </div>
 
@@ -268,7 +268,7 @@ export default function SignUpPage() {
           <button
             onClick={handleGoogleSignUp}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 rounded-lg px-4 py-3 font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-3 bg-black/40 border border-white/10 text-white rounded-lg px-4 py-3 font-medium hover:bg-black/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -292,11 +292,11 @@ export default function SignUpPage() {
           </button>
 
           {/* Sign In Link */}
-          <p className="text-center text-gray-400 text-sm mt-6">
+          <p className="text-center text-gray-500 text-sm mt-6">
             Already have an account?{' '}
             <Link
               href="/login"
-              className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
+              className="text-white hover:text-gray-300 font-medium transition-colors"
             >
               Sign in
             </Link>
@@ -307,7 +307,7 @@ export default function SignUpPage() {
         <div className="text-center mt-6">
           <Link
             href="/"
-            className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+            className="text-sm text-gray-500 hover:text-white transition-colors"
           >
             ← Back to home
           </Link>
