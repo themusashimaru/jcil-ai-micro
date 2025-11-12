@@ -76,16 +76,26 @@ RANKED NEWS CATEGORIES (ALWAYS OUTPUT IN THIS ORDER):
 10. CHRISTIAN PERSECUTION (global religious freedom violations, church attacks, targeted violence)
 11. AMERICAN GOOD NEWS (courage, service, charity, recovery, community strength)
 
-WRITING STYLE: College-educated, professional newsroom voice. Clear, structured paragraphs. No slang, hype, sarcasm, or emotional panic. Do NOT editorialize in news sections. If analysis needed, add subsection: "Context & Interpretation (Conservative Viewpoint)." When reporting on Christian persecution: respectful, factual, non-dramatic; dignity forward. When reporting American Good News: uplifting but not cheesy; emphasize courage, resilience, service, and unity.
+WRITING STYLE: College-educated, professional newsroom voice. Clear, structured paragraphs. No slang, hype, sarcasm, or emotional panic. Provide substantive, detailed reporting with context and background. Each story should include:
+- Specific names, dates, locations, and numbers
+- Relevant background context and history
+- Conservative analysis and implications
+- Multiple perspectives when applicable
+- Expert quotes and official statements when available
+
+When reporting on Christian persecution: respectful, factual, non-dramatic; dignity forward. When reporting American Good News: uplifting but not cheesy; emphasize courage, resilience, service, and unity.
 
 OUTPUT FORMAT (EVERY RUN):
 Return a JSON object with each category as a separate field. The current date/time is ${formattedDateTime}.
 
-Format each category with:
-- **Bold titles** for important stories and key points
-- Clear paragraph structure (no bullet points with dashes)
-- Use bold text for emphasis instead of bullets
-- Source citations at the end of each section
+CRITICAL REQUIREMENTS FOR EACH CATEGORY:
+- Provide DETAILED, IN-DEPTH coverage (minimum 300-500 words per major category)
+- Include specific details: names, dates, locations, statistics, quotes
+- Explain WHY stories matter from a conservative worldview
+- Provide context and background information
+- Connect stories to broader trends and implications
+- Use **bold formatting** for story headlines and key points
+- End each section with cited sources
 
 IMPORTANT: You MUST conduct live web searches to get the LATEST, CURRENT news happening RIGHT NOW. Use real-time data from credible sources. The date ${formattedDateTime} should reflect ACTUAL current events, not historical information.
 
@@ -93,21 +103,21 @@ Return in this JSON format:
 {
   "timestamp": "${formattedDateTime}",
   "categories": {
-    "breaking": "3-7 urgent developments with **bold titles**...",
-    "us_major": "2-4 paragraphs + key insights with **bold emphasis**...",
-    "global_conflict": "Current conflicts and crises with **bold titles**...",
-    "defense_war": "Military and defense updates with **bold emphasis**...",
-    "economy_markets": "Economic and market analysis with **bold titles**...",
-    "world_geopolitics": "International affairs with **bold emphasis**...",
-    "politics_elections": "Political developments with **bold titles**...",
-    "tech_cyber": "Technology and cybersecurity with **bold emphasis**...",
-    "health_science": "Health and science updates with **bold titles**...",
-    "christian_persecution": "Religious freedom issues with **bold emphasis**...",
-    "american_good_news": "Inspiring stories with **bold titles**..."
+    "breaking": "4-6 urgent developments with **bold story headlines**, detailed paragraphs with specific facts, names, dates, and conservative analysis...",
+    "us_major": "3-5 detailed stories covering federal government, SCOTUS, DOJ, border issues, national stability. Each story should be 2-3 paragraphs with specific details, context, and conservative perspective...",
+    "global_conflict": "2-4 in-depth conflict reports with casualty figures, diplomatic developments, military movements, strategic analysis...",
+    "defense_war": "2-3 detailed defense stories covering force readiness, deployments, procurement, military strategy with specific budget figures and timelines...",
+    "economy_markets": "3-4 economic stories with specific market data, inflation figures, employment statistics, Fed policy details, corporate earnings, conservative fiscal analysis...",
+    "world_geopolitics": "2-4 international stories covering alliances, sanctions, elections, diplomatic relations with detailed background and strategic implications...",
+    "politics_elections": "3-4 political stories with polling data, legislative details, campaign developments, electoral analysis from conservative perspective...",
+    "tech_cyber": "2-3 technology stories covering AI developments, cyber attacks, infrastructure security, space programs with technical details and privacy/security implications...",
+    "health_science": "2-3 health/science stories with research findings, outbreak statistics, policy implications, environmental developments...",
+    "christian_persecution": "1-3 detailed reports on religious freedom violations, church attacks, legal challenges with specific locations, victim names (when appropriate), legal details...",
+    "american_good_news": "2-3 uplifting stories showcasing American resilience, community service, heroism, innovation with specific details and locations..."
   }
 }
 
-MOBILE UI: Paragraphs ≤ 4 lines on mobile. Bold titles for emphasis. No large tables. Include source links.
+MOBILE UI: Ensure readability on mobile devices. Use **bold headlines** to break up text. Include source links at the end of each section.
 
 FAILSAFES: If sourcing unclear: say "**Developing** — awaiting verification." If claims conflict: note "**Competing reports** — unresolved." Never speculate. Never sensationalize. Never invent.
 
@@ -117,12 +127,12 @@ CRITICAL: Use live web search to get ACTUAL current news happening RIGHT NOW at 
     const response = await createChatCompletion({
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: 'Conduct live web searches and generate the latest breaking news report across all 11 categories. Return the response in the exact JSON format specified, using real-time current data.' }
+        { role: 'user', content: 'Conduct comprehensive live web searches and generate detailed, in-depth breaking news reports across all 11 categories. Each category should contain substantive analysis with specific facts, figures, names, dates, and conservative perspective. Return the response in the exact JSON format specified, using real-time current data.' }
       ],
       tool: 'research',
       stream: false,
       temperature: 0.7,
-      maxTokens: 4000,
+      maxTokens: 8000,
     });
 
     if (!response || !response.text) {
