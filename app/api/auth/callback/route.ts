@@ -9,11 +9,13 @@
  *
  * SECURITY/RLS NOTES:
  * - PKCE flow for OAuth
- * - Secure session handling
+ * - Secure session handling with SSR
  */
 
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -22,31 +24,52 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     try {
-      // Use service role client for database operations
-      const supabase = createClient(
+      const cookieStore = await cookies();
+
+      // Create Supabase client with SSR cookie handling
+      const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false
-          }
+          cookies: {
+            getAll() {
+              return cookieStore.getAll();
+            },
+            setAll(cookiesToSet) {
+              try {
+                cookiesToSet.forEach(({ name, value, options }) =>
+                  cookieStore.set(name, value, options)
+                );
+              } catch {
+                // Silently handle cookie errors
+              }
+            },
+          },
         }
       );
 
-      // Exchange code for session using anon key
-      const anonClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
+      // Exchange code for session - this will automatically set cookies
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-      const { data, error } = await anonClient.auth.exchangeCodeForSession(code);
-
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       if (data.user) {
+        // Use service role client for database operations
+        const adminClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        );
+
         // Check if user record exists in database
-        const { data: existingUser } = await supabase
+        const { data: existingUser } = await adminClient
           .from('users')
           .select('id')
           .eq('id', data.user.id)
@@ -64,12 +87,12 @@ export async function GET(request: NextRequest) {
             subscription_tier: 'free' as const,
           };
 
-          const { error: insertError } = await supabase
+          const { error: insertError } = await adminClient
             .from('users')
             .insert(userInsert);
 
           if (insertError) {
-            console.error('Error creating user record:', insertError);
+            // Log error but don't block authentication
           }
         }
       }
@@ -77,8 +100,11 @@ export async function GET(request: NextRequest) {
       // Redirect to chat
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     } catch (error) {
-      console.error('Auth callback error:', error);
-      return NextResponse.redirect(new URL('/login?error=Authentication failed', requestUrl.origin));
+      // Redirect to login with specific error message
+      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      return NextResponse.redirect(
+        new URL(`/login?error=${encodeURIComponent(errorMessage)}`, requestUrl.origin)
+      );
     }
   }
 
