@@ -95,7 +95,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
     setFileError(null);
 
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
-    const MAX_TOTAL_SIZE = 25 * 1024 * 1024; // 25MB total for all files
+    const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB total for all files
     const MAX_FILE_COUNT = 10; // 10 files maximum (API limit)
     const newAttachments: Attachment[] = [];
     const fileArray = Array.from(files);
@@ -116,7 +116,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
     // Check total size limit
     if (totalSize > MAX_TOTAL_SIZE) {
       const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
-      setFileError(`Total file size (${totalMB}MB) exceeds 25MB limit. Remove some files and try again.`);
+      setFileError(`Total file size (${totalMB}MB) exceeds 10MB limit. Please remove some files and try again.`);
       setTimeout(() => setFileError(null), 5000);
       return;
     }
@@ -457,7 +457,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               {onDataAnalysisComplete && onSelectTool && (
                 <button
                   onClick={() => onSelectTool(selectedTool === 'data' ? null : 'data')}
-                  className={`rounded-lg px-3 py-2 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed border whitespace-nowrap ${
+                  className={`rounded-lg px-3 py-2 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed border whitespace-nowrap flex items-center justify-center ${
                     selectedTool === 'data'
                       ? 'bg-white text-black border-white'
                       : 'bg-black text-white border-white/20 hover:bg-gray-800'
