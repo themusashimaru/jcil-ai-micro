@@ -15,33 +15,38 @@
  * - NEXT_PUBLIC_SUPABASE_URL
  * - NEXT_PUBLIC_SUPABASE_ANON_KEY
  * - SUPABASE_SERVICE_ROLE_KEY (server only)
- *
- * TODO:
- * - [ ] Implement client factory functions
- * - [ ] Add TypeScript database types
- * - [ ] Create auth helpers
- * - [ ] Add storage helpers
- *
- * TEST PLAN:
- * - Verify client initializes correctly
- * - Test RLS policies enforce properly
- * - Validate auth state persists
  */
 
+import { createBrowserClient as createBrowserSupabaseClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './types';
 
+/**
+ * Create a Supabase client for browser (client-side)
+ * Handles auth session automatically with cookies
+ */
 export const createBrowserClient = () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  return createBrowserSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 };
 
+/**
+ * Create a Supabase client for server-side with service role
+ * ONLY use this for admin operations - bypasses RLS
+ */
 export const createServerClient = () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
   );
 };
 
-export type Database = Record<string, never>; // TODO: Generate from Supabase
+export type { Database };
