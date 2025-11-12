@@ -27,6 +27,7 @@ import { QuickResearchTool } from './QuickResearchTool';
 import { QuickEssayWriter } from './QuickEssayWriter';
 import { QuickDailyDevotional } from './QuickDailyDevotional';
 import { QuickBibleStudy } from './QuickBibleStudy';
+import { QuickBreakingNews } from './QuickBreakingNews';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -99,9 +100,14 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
           </div>
 
           {/* Bible Tools */}
-          <div className="flex justify-center gap-1">
+          <div className="flex justify-center gap-1 mb-1">
             <QuickDailyDevotional />
             <QuickBibleStudy />
+          </div>
+
+          {/* Breaking News - Centered below Bible Tools */}
+          <div className="flex justify-center">
+            <QuickBreakingNews />
           </div>
         </div>
       </div>
