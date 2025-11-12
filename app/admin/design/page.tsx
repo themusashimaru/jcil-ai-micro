@@ -56,9 +56,9 @@ export default function DesignSettings() {
       return;
     }
 
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB');
+    // Validate file size (2MB limit for base64 encoding)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size must be less than 2MB');
       return;
     }
 
@@ -242,7 +242,7 @@ export default function DesignSettings() {
               >
                 {isUploading === 'main-logo' ? 'Uploading...' : 'Choose Main Logo'}
               </button>
-              <p className="text-xs text-gray-500 mt-2">Max size: 10MB</p>
+              <p className="text-xs text-gray-500 mt-2">Max size: 2MB</p>
             </div>
           </div>
         </div>
@@ -292,7 +292,7 @@ export default function DesignSettings() {
               >
                 {isUploading === 'header-logo' ? 'Uploading...' : 'Choose Header Logo'}
               </button>
-              <p className="text-xs text-gray-500 mt-2">Max size: 10MB</p>
+              <p className="text-xs text-gray-500 mt-2">Max size: 2MB</p>
             </div>
           </div>
         </div>
@@ -342,7 +342,7 @@ export default function DesignSettings() {
               >
                 {isUploading === 'login-logo' ? 'Uploading...' : 'Choose Login Logo'}
               </button>
-              <p className="text-xs text-gray-500 mt-2">Max size: 10MB</p>
+              <p className="text-xs text-gray-500 mt-2">Max size: 2MB</p>
             </div>
           </div>
         </div>
@@ -392,7 +392,7 @@ export default function DesignSettings() {
               >
                 {isUploading === 'favicon' ? 'Uploading...' : 'Choose Favicon'}
               </button>
-              <p className="text-xs text-gray-500 mt-2">Max size: 10MB</p>
+              <p className="text-xs text-gray-500 mt-2">Max size: 2MB</p>
             </div>
           </div>
         </div>
