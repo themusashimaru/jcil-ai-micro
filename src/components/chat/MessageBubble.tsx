@@ -63,7 +63,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
       )}
 
       {/* Message Content */}
-      <div className={`space-y-0 ${isUser ? 'max-w-[70%]' : 'flex-1'}`}>
+      <div className={`space-y-0 overflow-x-hidden ${isUser ? 'max-w-[70%]' : 'flex-1 max-w-full'}`}>
         {/* Tool Calls */}
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="flex flex-wrap gap-0">
@@ -101,7 +101,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
 
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
-          <div className="flex flex-wrap gap-0">
+          <div className="flex flex-wrap gap-1 max-w-full overflow-hidden">
             {message.attachments.map((attachment) => (
               <div
                 key={attachment.id}
@@ -143,12 +143,12 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
 
         {/* Generated Image */}
         {message.imageUrl && (
-          <div className="mb-2 overflow-hidden rounded-lg border border-white/10">
+          <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-full">
             <img
               src={message.imageUrl}
               alt="AI-generated image"
-              className="max-w-full rounded-lg"
-              style={{ maxHeight: '400px' }}
+              className="w-full h-auto rounded-lg"
+              style={{ maxHeight: '400px', objectFit: 'contain' }}
             />
           </div>
         )}

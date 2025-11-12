@@ -117,9 +117,9 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto py-0 px-0 md:p-2"
+      className="flex-1 overflow-y-auto overflow-x-hidden py-0 px-0 md:p-2"
     >
-      <div className="mx-auto max-w-[95%] sm:max-w-xl md:max-w-2xl space-y-0 md:space-y-3">
+      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-0 md:space-y-3">
 
         {messages.map((message, index) => {
           // Check if this is the last user message
