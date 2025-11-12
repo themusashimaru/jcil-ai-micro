@@ -54,14 +54,16 @@ export async function GET(request: NextRequest) {
 
         // Create user record if it doesn't exist (first-time login)
         if (!existingUser) {
+          const userInsert = {
+            id: data.user.id,
+            email: data.user.email || '',
+            full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
+            subscription_tier: 'free' as const,
+          };
+
           const { error: insertError } = await supabase
             .from('users')
-            .insert({
-              id: data.user.id,
-              email: data.user.email || '',
-              full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
-              subscription_tier: 'free',
-            } as any); // Use any to bypass type checking for now
+            .insert(userInsert);
 
           if (insertError) {
             console.error('Error creating user record:', insertError);
