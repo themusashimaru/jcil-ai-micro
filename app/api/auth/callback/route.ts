@@ -22,8 +22,6 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next') || '/chat';
 
-  console.log('Auth callback received, code:', code ? 'present' : 'missing');
-
   if (code) {
     try {
       const cookieStore = await cookies();
@@ -37,18 +35,18 @@ export async function GET(request: NextRequest) {
             get(name: string) {
               return cookieStore.get(name)?.value;
             },
-            set(name: string, value: string, options: any) {
+            set(name: string, value: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'lax' | 'strict' | 'none' }) {
               try {
                 cookieStore.set({ name, value, ...options });
               } catch (e) {
-                console.error('Error setting cookie:', name, e);
+                // Silently handle cookie errors
               }
             },
-            remove(name: string, options: any) {
+            remove(name: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'lax' | 'strict' | 'none' }) {
               try {
                 cookieStore.set({ name, value: '', ...options });
               } catch (e) {
-                console.error('Error removing cookie:', name, e);
+                // Silently handle cookie errors
               }
             },
           },
@@ -59,11 +57,8 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
       if (error) {
-        console.error('Error exchanging code for session:', error);
         throw error;
       }
-
-      console.log('Session exchange successful, user:', data.user?.email);
 
       if (data.user) {
         // Use service role client for database operations
@@ -102,7 +97,7 @@ export async function GET(request: NextRequest) {
             .insert(userInsert);
 
           if (insertError) {
-            console.error('Error creating user record:', insertError);
+            // Log error but don't block authentication
           }
         }
       }
@@ -110,7 +105,7 @@ export async function GET(request: NextRequest) {
       // Redirect to chat
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     } catch (error) {
-      console.error('Auth callback error:', error);
+      // Redirect to login with error message
       return NextResponse.redirect(new URL('/login?error=Authentication failed', requestUrl.origin));
     }
   }
