@@ -38,14 +38,14 @@ export async function GET(request: NextRequest) {
             set(name: string, value: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'lax' | 'strict' | 'none' }) {
               try {
                 cookieStore.set({ name, value, ...options });
-              } catch (e) {
+              } catch {
                 // Silently handle cookie errors
               }
             },
             remove(name: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'lax' | 'strict' | 'none' }) {
               try {
                 cookieStore.set({ name, value: '', ...options });
-              } catch (e) {
+              } catch {
                 // Silently handle cookie errors
               }
             },
