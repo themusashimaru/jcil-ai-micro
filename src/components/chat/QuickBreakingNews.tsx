@@ -204,8 +204,9 @@ Faith-based AI tools for your everyday needs`;
                   />
                 </svg>
                 <div>
-                  <h1 className="text-xl font-bold text-white">Slingshot News</h1>
-                  <p className="text-xs text-gray-400">Conservative</p>
+                  <h1 className="text-xl font-bold text-white">
+                    Slingshot <span className="text-xs font-normal text-gray-400">Conservative</span> News
+                  </h1>
                 </div>
               </div>
               <div className="flex items-center gap-2">
