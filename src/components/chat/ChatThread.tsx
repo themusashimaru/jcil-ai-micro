@@ -68,9 +68,12 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
         <div className="text-center">
           {/* JCIL.ai Logo */}
           <div className="mb-1">
-            <h1 className="text-2xl md:text-5xl font-bold tracking-tight text-white mb-0.5">
-              JCIL<span className="text-blue-500">.ai</span>
-            </h1>
+            {/* Logo Image - Replace /images/logo.png with your logo path */}
+            <img
+              src="/images/logo.png"
+              alt="JCIL.ai"
+              className="h-12 md:h-24 w-auto mx-auto mb-2"
+            />
             <p className="text-sm md:text-xl text-white font-medium mb-1">
               Slingshot 2.0
             </p>
