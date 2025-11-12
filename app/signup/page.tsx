@@ -34,8 +34,8 @@ export default function SignUpPage() {
       setLoading(true);
       await signInWithGoogle();
       // Redirect happens automatically via OAuth flow
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign up with Google');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign up with Google');
       setLoading(false);
     }
   };
@@ -96,8 +96,8 @@ export default function SignUpPage() {
       setTimeout(() => {
         router.push('/login?message=Please check your email to confirm your account');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign up');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign up');
       setLoading(false);
     }
   };
@@ -114,7 +114,7 @@ export default function SignUpPage() {
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Check your email!</h2>
             <p className="text-gray-300">
-              We've sent you a confirmation link. Click it to activate your account.
+              We&apos;ve sent you a confirmation link. Click it to activate your account.
             </p>
           </div>
         </div>

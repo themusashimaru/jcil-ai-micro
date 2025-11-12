@@ -18,8 +18,8 @@ export default function LoginPage() {
       setLoading(true);
       await signInWithGoogle();
       // Redirect happens automatically via OAuth flow
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign in with Google');
       setLoading(false);
     }
   };
@@ -37,8 +37,8 @@ export default function LoginPage() {
       setLoading(true);
       await signInWithEmail(email, password);
       router.push('/chat');
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to sign in');
       setLoading(false);
     }
   };
@@ -158,7 +158,7 @@ export default function LoginPage() {
 
           {/* Sign Up Link */}
           <p className="text-center text-gray-400 text-sm mt-6">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link
               href="/signup"
               className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
