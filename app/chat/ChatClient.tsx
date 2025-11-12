@@ -692,14 +692,19 @@ export function ChatClient() {
                 />
               </svg>
             </button>
-            {headerLogo ? (
-              <img
-                src={headerLogo}
-                alt={siteName}
-                className="h-6 md:h-8 w-auto"
-              />
-            ) : (
-              <h1 className="text-base md:text-xl font-semibold">{siteName}</h1>
+            {/* Only show logo/site name when a chat is active */}
+            {currentChatId && (
+              <>
+                {headerLogo ? (
+                  <img
+                    src={headerLogo}
+                    alt={siteName}
+                    className="h-6 md:h-8 w-auto"
+                  />
+                ) : (
+                  <h1 className="text-base md:text-xl font-semibold">{siteName}</h1>
+                )}
+              </>
             )}
           </div>
 
