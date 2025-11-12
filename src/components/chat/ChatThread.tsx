@@ -41,16 +41,16 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const { profile, hasProfile } = useUserProfile();
 
-  // Load design settings from API
+  // Load design settings from localStorage
   const [mainLogo, setMainLogo] = useState<string>('/images/logo.png');
   const [subtitle, setSubtitle] = useState<string>('Faith-based AI tools for your everyday needs');
 
   useEffect(() => {
-    const loadSettings = async () => {
+    const loadSettings = () => {
       try {
-        const response = await fetch('/api/admin/settings');
-        if (response.ok) {
-          const settings = await response.json();
+        const savedSettings = localStorage.getItem('admin_design_settings');
+        if (savedSettings) {
+          const settings = JSON.parse(savedSettings);
           if (settings.mainLogo) setMainLogo(settings.mainLogo);
           if (settings.subtitle) setSubtitle(settings.subtitle);
         }
@@ -60,6 +60,10 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
     };
 
     loadSettings();
+
+    // Listen for settings updates
+    window.addEventListener('design-settings-updated', loadSettings);
+    return () => window.removeEventListener('design-settings-updated', loadSettings);
   }, []);
 
   // Auto-scroll to show user's message at top when new message is sent

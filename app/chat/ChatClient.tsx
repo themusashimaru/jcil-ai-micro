@@ -45,16 +45,16 @@ export function ChatClient() {
   // Selected tool (only one can be selected at a time)
   const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
 
-  // Load design settings
+  // Load design settings from localStorage
   const [siteName, setSiteName] = useState<string>('JCIL.ai');
   const [headerLogo, setHeaderLogo] = useState<string>('');
 
   useEffect(() => {
-    const loadSettings = async () => {
+    const loadSettings = () => {
       try {
-        const response = await fetch('/api/admin/settings');
-        if (response.ok) {
-          const settings = await response.json();
+        const savedSettings = localStorage.getItem('admin_design_settings');
+        if (savedSettings) {
+          const settings = JSON.parse(savedSettings);
           if (settings.siteName) setSiteName(settings.siteName);
           if (settings.headerLogo) setHeaderLogo(settings.headerLogo);
         }
@@ -64,6 +64,10 @@ export function ChatClient() {
     };
 
     loadSettings();
+
+    // Listen for settings updates
+    window.addEventListener('design-settings-updated', loadSettings);
+    return () => window.removeEventListener('design-settings-updated', loadSettings);
   }, []);
 
   // Detect screen size and set initial sidebar state

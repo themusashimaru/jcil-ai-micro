@@ -9,11 +9,11 @@ import { useEffect } from 'react';
 
 export function FaviconUpdater() {
   useEffect(() => {
-    const loadFavicon = async () => {
+    const loadFavicon = () => {
       try {
-        const response = await fetch('/api/admin/settings');
-        if (response.ok) {
-          const settings = await response.json();
+        const savedSettings = localStorage.getItem('admin_design_settings');
+        if (savedSettings) {
+          const settings = JSON.parse(savedSettings);
           if (settings.favicon) {
             updateFavicon(settings.favicon);
           }
@@ -24,6 +24,10 @@ export function FaviconUpdater() {
     };
 
     loadFavicon();
+
+    // Listen for settings updates
+    window.addEventListener('design-settings-updated', loadFavicon);
+    return () => window.removeEventListener('design-settings-updated', loadFavicon);
   }, []);
 
   return null; // This component doesn't render anything
