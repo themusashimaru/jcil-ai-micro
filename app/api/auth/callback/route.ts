@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next') || '/chat';
 
+  console.log('Auth callback received, code:', code ? 'present' : 'missing');
+
   if (code) {
     try {
       const cookieStore = await cookies();
@@ -36,10 +38,18 @@ export async function GET(request: NextRequest) {
               return cookieStore.get(name)?.value;
             },
             set(name: string, value: string, options: any) {
-              cookieStore.set({ name, value, ...options });
+              try {
+                cookieStore.set({ name, value, ...options });
+              } catch (e) {
+                console.error('Error setting cookie:', name, e);
+              }
             },
             remove(name: string, options: any) {
-              cookieStore.set({ name, value: '', ...options });
+              try {
+                cookieStore.set({ name, value: '', ...options });
+              } catch (e) {
+                console.error('Error removing cookie:', name, e);
+              }
             },
           },
         }
@@ -48,7 +58,12 @@ export async function GET(request: NextRequest) {
       // Exchange code for session - this will automatically set cookies
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error exchanging code for session:', error);
+        throw error;
+      }
+
+      console.log('Session exchange successful, user:', data.user?.email);
 
       if (data.user) {
         // Use service role client for database operations
