@@ -88,15 +88,65 @@ export function QuickBreakingNews() {
       timeZoneName: 'short'
     });
 
-    const subject = `Breaking News Report - ${dateStr} at ${timeStr}`;
+    const subject = `Slingshot Conservative News - ${dateStr} at ${timeStr}`;
+
+    // Parse and format the content for email
+    let formattedContent = '';
+
+    try {
+      // Try to parse as JSON first
+      let cleanedContent = newsContent.trim();
+      cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      const parsed = JSON.parse(cleanedContent);
+
+      // If we have categories, format each one
+      if (parsed.categories) {
+        const categoryTitles: Record<string, string> = {
+          breaking: '1. BREAKING NEWS',
+          us_major: '2. U.S. MAJOR NEWS',
+          global_conflict: '3. GLOBAL CONFLICT & CRISIS',
+          defense_war: '4. DEPARTMENT OF DEFENSE / WAR',
+          economy_markets: '5. ECONOMY & MARKETS',
+          world_geopolitics: '6. WORLD / GEOPOLITICS',
+          politics_elections: '7. POLITICS & ELECTIONS',
+          tech_cyber: '8. TECHNOLOGY & CYBERSECURITY',
+          health_science: '9. HEALTH, SCIENCE & ENVIRONMENT',
+          christian_persecution: '10. CHRISTIAN PERSECUTION',
+          american_good_news: '11. AMERICAN GOOD NEWS',
+        };
+
+        Object.entries(categoryTitles).forEach(([key, title]) => {
+          if (parsed.categories[key]) {
+            formattedContent += `\n\n═══════════════════════════════════════════\n`;
+            formattedContent += `${title}\n`;
+            formattedContent += `═══════════════════════════════════════════\n\n`;
+
+            // Clean up the content: convert markdown to plain text
+            const categoryContent = parsed.categories[key]
+              .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markdown but keep text
+              .replace(/\n{3,}/g, '\n\n')  // Replace multiple line breaks with double
+              .trim();
+
+            formattedContent += categoryContent + '\n';
+          }
+        });
+      }
+    } catch {
+      // If JSON parsing fails, use the raw content with basic cleanup
+      formattedContent = newsContent
+        .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markdown
+        .replace(/\n{3,}/g, '\n\n')  // Clean up excessive line breaks
+        .trim();
+    }
 
     // Format the email body with proper spacing and alignment
-    const body = `Breaking News Report
+    const body = `SLINGSHOT CONSERVATIVE NEWS
+Breaking News Report
 ${dateStr} at ${timeStr}
 
-${newsContent}
+${formattedContent}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+═══════════════════════════════════════════
 
 Brought to you by JCIL.ai Slingshot 2.0
 Visit: https://jcil.ai
