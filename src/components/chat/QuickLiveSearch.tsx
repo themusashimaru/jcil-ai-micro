@@ -16,7 +16,7 @@ export function QuickLiveSearch({ isSearching = false, isSelected = false, onSel
   return (
     <button
       onClick={onSelect}
-      className={`rounded-lg px-3 py-2 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed border whitespace-nowrap ${
+      className={`rounded-lg px-3 py-2 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed border whitespace-nowrap flex items-center justify-center ${
         isSelected
           ? 'bg-white text-black border-white'
           : 'bg-black text-white border-white/20 hover:bg-gray-800'
