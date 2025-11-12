@@ -135,7 +135,7 @@ Faith-based AI tools for your everyday needs`;
       if (parsed[selectedCategory]) {
         return parsed[selectedCategory];
       }
-    } catch (e) {
+    } catch {
       // If JSON parsing fails, try to find the category in plain text
       // Look for patterns like "## Breaking News" or "**1. BREAKING NEWS**"
       const categoryLabels: Record<string, string[]> = {
