@@ -14,6 +14,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -44,7 +45,28 @@ export async function GET(request: NextRequest) {
 
       if (error) throw error;
 
-      if (data.user) {
+      if (data.user && data.session) {
+        // Set session cookies
+        const cookieStore = await cookies();
+
+        // Set access token cookie
+        cookieStore.set('sb-access-token', data.session.access_token, {
+          path: '/',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+        });
+
+        // Set refresh token cookie
+        cookieStore.set('sb-refresh-token', data.session.refresh_token, {
+          path: '/',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+        });
+
         // Check if user record exists in database
         const { data: existingUser } = await supabase
           .from('users')
