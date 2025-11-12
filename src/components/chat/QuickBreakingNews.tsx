@@ -122,7 +122,7 @@ export function QuickBreakingNews() {
             formattedContent += `═══════════════════════════════════════════\n\n`;
 
             // Clean up the content: convert markdown to plain text
-            let categoryContent = parsed.categories[key]
+            const categoryContent = parsed.categories[key]
               .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markdown but keep text
               .replace(/\n{3,}/g, '\n\n')  // Replace multiple line breaks with double
               .trim();
