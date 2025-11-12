@@ -9,9 +9,10 @@
  *
  * SECURITY/RLS NOTES:
  * - PKCE flow for OAuth
- * - Secure session handling
+ * - Secure session handling with SSR
  */
 
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -23,52 +24,47 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     try {
-      // Use service role client for database operations
-      const supabase = createClient(
+      const cookieStore = await cookies();
+
+      // Create Supabase client with SSR cookie handling
+      const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false
-          }
+          cookies: {
+            get(name: string) {
+              return cookieStore.get(name)?.value;
+            },
+            set(name: string, value: string, options: any) {
+              cookieStore.set({ name, value, ...options });
+            },
+            remove(name: string, options: any) {
+              cookieStore.set({ name, value: '', ...options });
+            },
+          },
         }
       );
 
-      // Exchange code for session using anon key
-      const anonClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-
-      const { data, error } = await anonClient.auth.exchangeCodeForSession(code);
+      // Exchange code for session - this will automatically set cookies
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
       if (error) throw error;
 
-      if (data.user && data.session) {
-        // Set session cookies
-        const cookieStore = await cookies();
-
-        // Set access token cookie
-        cookieStore.set('sb-access-token', data.session.access_token, {
-          path: '/',
-          maxAge: 60 * 60 * 24 * 7, // 7 days
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-        });
-
-        // Set refresh token cookie
-        cookieStore.set('sb-refresh-token', data.session.refresh_token, {
-          path: '/',
-          maxAge: 60 * 60 * 24 * 7, // 7 days
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-        });
+      if (data.user) {
+        // Use service role client for database operations
+        const adminClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        );
 
         // Check if user record exists in database
-        const { data: existingUser } = await supabase
+        const { data: existingUser } = await adminClient
           .from('users')
           .select('id')
           .eq('id', data.user.id)
@@ -86,7 +82,7 @@ export async function GET(request: NextRequest) {
             subscription_tier: 'free' as const,
           };
 
-          const { error: insertError } = await supabase
+          const { error: insertError } = await adminClient
             .from('users')
             .insert(userInsert);
 
