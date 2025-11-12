@@ -8,6 +8,20 @@
 
 import { useState } from 'react';
 
+const CATEGORIES = [
+  { key: 'breaking', label: 'Breaking News' },
+  { key: 'us_major', label: 'U.S. Major News' },
+  { key: 'global_conflict', label: 'Global Conflict & Crisis' },
+  { key: 'defense_war', label: 'Department of Defense / War' },
+  { key: 'economy_markets', label: 'Economy & Markets' },
+  { key: 'world_geopolitics', label: 'World / Geopolitics' },
+  { key: 'politics_elections', label: 'Politics & Elections' },
+  { key: 'tech_cyber', label: 'Technology & Cybersecurity' },
+  { key: 'health_science', label: 'Health, Science & Environment' },
+  { key: 'christian_persecution', label: 'Christian Persecution' },
+  { key: 'american_good_news', label: 'American Good News' },
+];
+
 export function QuickBreakingNews() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,76 +29,23 @@ export function QuickBreakingNews() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   const fetchBreakingNews = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const systemPrompt = `SYSTEM ROLE: You are the Breaking News Intelligence Desk for a national and international conservative news and analysis service. Your role is to gather, evaluate, and summarize the most important news events across key global and domestic categories. You provide fact-based, professional, college-level reporting from a traditional conservative worldview: pro-life, pro-family, pro-religious liberty, strong national defense, stable borders, constitutional freedoms, rule of law, responsible fiscal policy. Tone must be composed, calm, factual, and non-sensational.
-
-NEWS SOURCING RULES (NO EXCEPTIONS):
-Always pull facts FIRST from major credible wire services, primary documents, and official statements: AP News, Reuters, Bloomberg, Wall Street Journal (NEWS side only), Financial Times, The Economist (news desks), BBC World Service, Nikkei Asia, Al Jazeera English (for Middle East perspective differences, read critically), Defense.gov, CENTCOM, EUCOM, INDOPACOM, Pentagon briefings, State Dept releases, Congressional records.
-
-AFTER factual grounding is established, draw interpretive and worldview framing from reputable conservative sources: National Review, The Dispatch, Washington Examiner, RealClearPolitics, Daily Signal, Christianity Today, The Gospel Coalition, The American Conservative, Wall Street Journal (Opinion side), The Federalist.
-
-NEVER use unverified blogs, rumor networks, anonymous Telegram channels, or activist/conspiracy sites.
-
-RANKED NEWS CATEGORIES (ALWAYS OUTPUT IN THIS ORDER):
-1. BREAKING NEWS (urgent developments across all topics)
-2. U.S. MAJOR NEWS (federal gov, SCOTUS, DOJ, border, national stability)
-3. GLOBAL CONFLICT & CRISIS (wars, escalations, coups, insurgencies)
-4. DEPARTMENT OF DEFENSE / WAR (U.S. & allied force posture, deployments, procurement)
-5. ECONOMY & MARKETS (indices, commodities, inflation, employment, Fed, corporate movement)
-6. WORLD / GEOPOLITICS (diplomacy, alliances, sanctions, elections abroad)
-7. POLITICS & ELECTIONS (U.S. + allied democratic processes)
-8. TECHNOLOGY & CYBERSECURITY (AI, cyber ops, infrastructure breaches, space domain)
-9. HEALTH, SCIENCE & ENVIRONMENT (medical research, outbreaks, disasters)
-10. CHRISTIAN PERSECUTION (global religious freedom violations, church attacks, targeted violence)
-11. AMERICAN GOOD NEWS (courage, service, charity, recovery, community strength)
-
-WRITING STYLE: College-educated, professional newsroom voice. Clear, structured paragraphs. No slang, hype, sarcasm, or emotional panic. Do NOT editorialize in news sections. If analysis needed, add subsection: "Context & Interpretation (Conservative Viewpoint)." When reporting on Christian persecution: respectful, factual, non-dramatic; dignity forward. When reporting American Good News: uplifting but not cheesy; emphasize courage, resilience, service, and unity.
-
-OUTPUT FORMAT (EVERY RUN):
-**BREAKING NEWS UPDATE — [Date & Time, ET]**
-
-**1. BREAKING NEWS**
-- 3–7 bullet summaries of the most urgent events.
-
-**2. U.S. MAJOR NEWS**
-[2–4 paragraph summary + 1–3 key bullets "Why it matters."]
-
-**3. GLOBAL CONFLICT & CRISIS**
-[...]
-
-Continue for all categories in ranked order, ending with:
-
-**11. AMERICAN GOOD NEWS**
-- 1–2 stories of acts of service, unity, recovery, or courage.
-
-_Last updated at [Time ET]. Next update in ~30 minutes._
-
-MOBILE UI: Paragraphs ≤ 4 lines on mobile. Use bullet lists. Bold category headers only. No large tables. Include source links at end of each section.
-
-FAILSAFES: If sourcing unclear: say "Developing — awaiting verification." If claims conflict: note "Competing reports — unresolved." Never speculate. Never sensationalize. Never invent.
-
-Now provide the complete breaking news report following this exact format.`;
-
-      const response = await fetch('/api/chat', {
-        method: 'POST',
+      const response = await fetch('/api/breaking-news', {
+        method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Generate the latest breaking news report across all 11 categories following the exact format specified.' }],
-          tool: 'research',
-          model: 'grok-4-0709',
-        }),
       });
 
       if (!response.ok) throw new Error('Failed to fetch breaking news');
 
       const data = await response.json();
       setNewsContent(data.content);
-      setLastUpdated(new Date());
+      setLastUpdated(new Date(data.generatedAt));
     } catch (err) {
       console.error('Breaking news error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load breaking news');
@@ -148,16 +109,33 @@ Faith-based AI tools for your everyday needs`;
     }
   };
 
+  // Get the content for the selected category
+  const getSelectedContent = () => {
+    if (!newsContent || !selectedCategory) return '';
+
+    // Try to parse as JSON first
+    try {
+      const parsed = JSON.parse(newsContent);
+      if (parsed.categories && parsed.categories[selectedCategory]) {
+        return parsed.categories[selectedCategory];
+      }
+    } catch {
+      // If not JSON, return full content
+    }
+
+    return newsContent;
+  };
+
   return (
     <>
       {/* Breaking News Button */}
       <button
         onClick={handleOpen}
-        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 border border-red-500"
+        className="rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-900 border border-blue-500"
         title="Breaking News - Conservative perspective"
       >
-        <span className="flex items-center gap-2">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <span className="flex items-center gap-1.5">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -176,7 +154,7 @@ Faith-based AI tools for your everyday needs`;
           <div className="border-b border-white/20 bg-zinc-950 px-4 py-3">
             <div className="flex items-center justify-between max-w-6xl mx-auto">
               <div className="flex items-center gap-3">
-                <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -185,33 +163,34 @@ Faith-based AI tools for your everyday needs`;
                   />
                 </svg>
                 <div>
-                  <h1 className="text-xl font-bold text-white">JCIL Breaking News</h1>
-                  <p className="text-xs text-gray-400">Conservative Perspective</p>
+                  <h1 className="text-xl font-bold text-white">Slingshot News</h1>
+                  <p className="text-xs text-gray-400">Conservative</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {lastUpdated && (
-                  <span className="text-xs text-gray-400 hidden md:inline">
-                    Updated: {lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                  </span>
+                  <div className="text-xs text-gray-400 hidden md:block">
+                    <div>Updated: {lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
+                    <div className="text-[10px] text-gray-500">Updated every 30min</div>
+                  </div>
                 )}
                 {/* Copy Button */}
                 <button
                   onClick={handleCopy}
                   disabled={!newsContent}
-                  className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  className="rounded-lg bg-white/10 px-2 py-1.5 text-xs text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   title="Copy report to clipboard"
                 >
                   {copied ? (
                     <>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="hidden sm:inline">Copied!</span>
+                      <span className="hidden sm:inline text-[11px]">Copied!</span>
                     </>
                   ) : (
                     <>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -219,7 +198,7 @@ Faith-based AI tools for your everyday needs`;
                           d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
                         />
                       </svg>
-                      <span className="hidden sm:inline">Copy</span>
+                      <span className="hidden sm:inline text-[11px]">Copy</span>
                     </>
                   )}
                 </button>
@@ -227,10 +206,10 @@ Faith-based AI tools for your everyday needs`;
                 <button
                   onClick={handleEmail}
                   disabled={!newsContent}
-                  className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  className="rounded-lg bg-white/10 px-2 py-1.5 text-xs text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   title="Email report"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -238,15 +217,15 @@ Faith-based AI tools for your everyday needs`;
                       d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                     />
                   </svg>
-                  <span className="hidden sm:inline">Email</span>
+                  <span className="hidden sm:inline text-[11px]">Email</span>
                 </button>
                 {/* Refresh Button */}
                 <button
                   onClick={fetchBreakingNews}
                   disabled={isLoading}
-                  className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 disabled:opacity-50 flex items-center gap-1.5"
+                  className="rounded-lg bg-white/10 px-2 py-1.5 text-xs text-white hover:bg-white/20 disabled:opacity-50 flex items-center gap-1"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -254,7 +233,7 @@ Faith-based AI tools for your everyday needs`;
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                     />
                   </svg>
-                  <span className="hidden sm:inline">{isLoading ? 'Updating...' : 'Refresh'}</span>
+                  <span className="hidden sm:inline text-[11px]">{isLoading ? 'Updating...' : 'Refresh'}</span>
                 </button>
                 {/* Close Button */}
                 <button
@@ -262,7 +241,7 @@ Faith-based AI tools for your everyday needs`;
                   className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white"
                   aria-label="Close"
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -275,12 +254,33 @@ Faith-based AI tools for your everyday needs`;
             </div>
           </div>
 
+          {/* Category Dropdown */}
+          {newsContent && !isLoading && (
+            <div className="border-b border-white/10 bg-zinc-950 px-4 py-3">
+              <div className="max-w-6xl mx-auto">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full md:w-96 rounded-lg bg-white/10 border border-white/20 text-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="" className="bg-zinc-900">Select your topic...</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat.key} value={cat.key} className="bg-zinc-900">
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-gray-500 mt-1">Updated every 30min</p>
+              </div>
+            </div>
+          )}
+
           {/* Newspaper Content */}
           <div className="flex-1 overflow-y-auto bg-zinc-900">
             <div className="max-w-6xl mx-auto px-4 py-6">
               {isLoading && !newsContent && (
                 <div className="flex flex-col items-center justify-center py-20">
-                  <svg className="h-12 w-12 animate-spin text-red-500" fill="none" viewBox="0 0 24 24">
+                  <svg className="h-12 w-12 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -296,7 +296,7 @@ Faith-based AI tools for your everyday needs`;
                     />
                   </svg>
                   <p className="mt-4 text-lg text-gray-300">Loading breaking news...</p>
-                  <p className="mt-2 text-sm text-gray-500">Gathering reports from credible sources</p>
+                  <p className="mt-2 text-sm text-gray-500">Conducting live search from credible sources</p>
                 </div>
               )}
 
@@ -312,11 +312,31 @@ Faith-based AI tools for your everyday needs`;
                 </div>
               )}
 
-              {newsContent && (
+              {newsContent && !selectedCategory && (
+                <div className="text-center py-20">
+                  <svg className="h-16 w-16 mx-auto text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+                    />
+                  </svg>
+                  <p className="text-xl text-gray-300 font-medium">Select a topic above to view the latest news</p>
+                  <p className="text-sm text-gray-500 mt-2">Choose from 11 categories of breaking news coverage</p>
+                </div>
+              )}
+
+              {newsContent && selectedCategory && (
                 <div className="prose prose-invert max-w-none">
-                  <div className="whitespace-pre-wrap text-gray-200 leading-relaxed">
-                    {newsContent}
-                  </div>
+                  <div
+                    className="whitespace-pre-wrap text-gray-200 leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: getSelectedContent()
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br />')
+                    }}
+                  />
                 </div>
               )}
             </div>
