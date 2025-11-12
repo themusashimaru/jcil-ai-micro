@@ -1,18 +1,15 @@
 /**
  * ADMIN UPLOAD API
- * Handles file uploads for logos and favicons
+ * Handles file uploads for logos and favicons using base64 encoding
+ * (Vercel-compatible - no filesystem writes)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const type = formData.get('type') as string;
 
     if (!file) {
       return NextResponse.json(
@@ -21,10 +18,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
+    // Validate file size (2MB limit for base64 - more reasonable for embedding)
+    if (file.size > 2 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'File size must be less than 10MB' },
+        { error: 'File size must be less than 2MB' },
         { status: 400 }
       );
     }
@@ -38,54 +35,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to buffer
+    // Convert file to base64 data URL
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Determine file extension
-    let extension = 'png';
-    if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
-      extension = 'jpg';
-    } else if (file.type === 'image/x-icon' || file.type === 'image/vnd.microsoft.icon') {
-      extension = 'ico';
-    }
-
-    // Create filename based on type
-    let filename = '';
-    switch (type) {
-      case 'main-logo':
-        filename = `logo.${extension}`;
-        break;
-      case 'header-logo':
-        filename = `header-logo.${extension}`;
-        break;
-      case 'login-logo':
-        filename = `login-logo.${extension}`;
-        break;
-      case 'favicon':
-        filename = `favicon.${extension}`;
-        break;
-      default:
-        filename = `upload-${Date.now()}.${extension}`;
-    }
-
-    // Ensure upload directory exists
-    const uploadDir = join(process.cwd(), 'public', 'images');
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    // Save file
-    const filepath = join(uploadDir, filename);
-    await writeFile(filepath, buffer);
-
-    // Return URL
-    const url = `/images/${filename}`;
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
     return NextResponse.json({
       success: true,
-      url,
-      filename,
+      url: dataUrl,
+      type: file.type,
+      size: file.size,
     });
   } catch (error) {
     console.error('Upload error:', error);
