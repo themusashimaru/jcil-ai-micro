@@ -205,34 +205,34 @@ Faith-based AI tools for your everyday needs`;
                 </svg>
                 <div>
                   <h1 className="text-xl font-bold text-white">
-                    Slingshot <span className="text-xs font-normal text-gray-400">Conservative</span> News
+                    Slingshot <span className="text-xs font-normal text-gray-400">Conservative</span> <span className="text-blue-500">News</span>
                   </h1>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 ml-auto">
                 {lastUpdated && (
                   <div className="text-xs text-gray-400 hidden md:block">
                     <div>Updated: {lastUpdated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
-                    <div className="text-[10px] text-gray-500">Updated every 30min</div>
+                    <div className="text-[10px] text-white font-medium">Updated every 30min</div>
                   </div>
                 )}
                 {/* Copy Button */}
                 <button
                   onClick={handleCopy}
                   disabled={!newsContent}
-                  className="rounded-lg bg-white/10 px-2 py-1.5 text-xs text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  className="px-3 py-2 text-sm text-white hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
                   title="Copy report to clipboard"
                 >
                   {copied ? (
                     <>
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="hidden sm:inline text-[11px]">Copied!</span>
+                      <span className="hidden sm:inline">Copied!</span>
                     </>
                   ) : (
                     <>
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -240,7 +240,7 @@ Faith-based AI tools for your everyday needs`;
                           d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
                         />
                       </svg>
-                      <span className="hidden sm:inline text-[11px]">Copy</span>
+                      <span className="hidden sm:inline">Copy</span>
                     </>
                   )}
                 </button>
@@ -248,10 +248,10 @@ Faith-based AI tools for your everyday needs`;
                 <button
                   onClick={handleEmail}
                   disabled={!newsContent}
-                  className="rounded-lg bg-white/10 px-2 py-1.5 text-xs text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  className="px-3 py-2 text-sm text-white hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
                   title="Email report"
                 >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -259,15 +259,15 @@ Faith-based AI tools for your everyday needs`;
                       d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                     />
                   </svg>
-                  <span className="hidden sm:inline text-[11px]">Email</span>
+                  <span className="hidden sm:inline">Email</span>
                 </button>
                 {/* Refresh Button */}
                 <button
                   onClick={fetchBreakingNews}
                   disabled={isLoading}
-                  className="rounded-lg bg-white/10 px-2 py-1.5 text-xs text-white hover:bg-white/20 disabled:opacity-50 flex items-center gap-1"
+                  className="px-3 py-2 text-sm text-white hover:text-blue-400 disabled:opacity-50 flex items-center gap-1.5 transition-colors"
                 >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -275,12 +275,12 @@ Faith-based AI tools for your everyday needs`;
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                     />
                   </svg>
-                  <span className="hidden sm:inline text-[11px]">{isLoading ? 'Updating...' : 'Refresh'}</span>
+                  <span className="hidden sm:inline">{isLoading ? 'Updating...' : 'Refresh'}</span>
                 </button>
                 {/* Close Button */}
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white"
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
                   aria-label="Close"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
