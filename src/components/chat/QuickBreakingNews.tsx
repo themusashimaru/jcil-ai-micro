@@ -46,6 +46,11 @@ export function QuickBreakingNews() {
       const data = await response.json();
       setNewsContent(data.content);
       setLastUpdated(new Date(data.generatedAt));
+
+      // Auto-select "breaking" category when news loads
+      if (!selectedCategory) {
+        setSelectedCategory('breaking');
+      }
     } catch (err) {
       console.error('Breaking news error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load breaking news');
@@ -115,14 +120,50 @@ Faith-based AI tools for your everyday needs`;
 
     // Try to parse as JSON first
     try {
-      const parsed = JSON.parse(newsContent);
+      // Remove any markdown code blocks if present
+      let cleanedContent = newsContent.trim();
+      cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+      const parsed = JSON.parse(cleanedContent);
+
+      // Check if categories exist in the parsed object
       if (parsed.categories && parsed.categories[selectedCategory]) {
         return parsed.categories[selectedCategory];
       }
+
+      // If direct category access doesn't work, try the key directly
+      if (parsed[selectedCategory]) {
+        return parsed[selectedCategory];
+      }
     } catch {
-      // If not JSON, return full content
+      // If JSON parsing fails, try to find the category in plain text
+      // Look for patterns like "## Breaking News" or "**1. BREAKING NEWS**"
+      const categoryLabels: Record<string, string[]> = {
+        breaking: ['BREAKING NEWS', 'Breaking News'],
+        us_major: ['U.S. MAJOR NEWS', 'U.S. Major News'],
+        global_conflict: ['GLOBAL CONFLICT', 'Global Conflict'],
+        defense_war: ['DEPARTMENT OF DEFENSE', 'Defense', 'War'],
+        economy_markets: ['ECONOMY', 'Markets'],
+        world_geopolitics: ['WORLD', 'Geopolitics'],
+        politics_elections: ['POLITICS', 'Elections'],
+        tech_cyber: ['TECHNOLOGY', 'Cybersecurity'],
+        health_science: ['HEALTH', 'Science', 'Environment'],
+        christian_persecution: ['CHRISTIAN PERSECUTION', 'Christian Persecution'],
+        american_good_news: ['AMERICAN GOOD NEWS', 'American Good News'],
+      };
+
+      // Try to extract the section for this category
+      const labels = categoryLabels[selectedCategory] || [];
+      for (const label of labels) {
+        const regex = new RegExp(`\\*\\*.*?${label}.*?\\*\\*([\\s\\S]*?)(?=\\*\\*.*?(?:${Object.values(categoryLabels).flat().join('|')}).*?\\*\\*|$)`, 'i');
+        const match = newsContent.match(regex);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+      }
     }
 
+    // If all else fails, return the full content
     return newsContent;
   };
 
@@ -163,8 +204,9 @@ Faith-based AI tools for your everyday needs`;
                   />
                 </svg>
                 <div>
-                  <h1 className="text-xl font-bold text-white">Slingshot News</h1>
-                  <p className="text-xs text-gray-400">Conservative</p>
+                  <h1 className="text-xl font-bold text-white">
+                    Slingshot <span className="text-xs font-normal text-gray-400">Conservative</span> News
+                  </h1>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -309,21 +351,6 @@ Faith-based AI tools for your everyday needs`;
                   >
                     Try Again
                   </button>
-                </div>
-              )}
-
-              {newsContent && !selectedCategory && (
-                <div className="text-center py-20">
-                  <svg className="h-16 w-16 mx-auto text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-                    />
-                  </svg>
-                  <p className="text-xl text-gray-300 font-medium">Select a topic above to view the latest news</p>
-                  <p className="text-sm text-gray-500 mt-2">Choose from 11 categories of breaking news coverage</p>
                 </div>
               )}
 
