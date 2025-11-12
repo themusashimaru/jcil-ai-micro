@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signUpWithEmail, signInWithGoogle } from '@/lib/supabase/auth';
-import { createBrowserClient } from '@/lib/supabase/client';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -58,8 +57,8 @@ export default function SignUpPage() {
     try {
       setLoading(true);
 
-      // Sign up with Supabase Auth
-      const { user } = await signUpWithEmail(
+      // Sign up with Supabase Auth - user record will be created on first login
+      await signUpWithEmail(
         formData.email,
         formData.password,
         {
@@ -69,26 +68,6 @@ export default function SignUpPage() {
           purpose: formData.purpose,
         }
       );
-
-      if (user) {
-        // Create user record in database
-        const supabase = createBrowserClient();
-        const { error: dbError } = await supabase
-          .from('users')
-          .insert({
-            id: user.id,
-            email: formData.email,
-            full_name: formData.full_name,
-            role: formData.role,
-            field: formData.field,
-            purpose: formData.purpose,
-            subscription_tier: 'free',
-          });
-
-        if (dbError) {
-          console.error('Error creating user record:', dbError);
-        }
-      }
 
       setSuccess(true);
 

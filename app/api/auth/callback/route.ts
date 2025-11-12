@@ -58,6 +58,9 @@ export async function GET(request: NextRequest) {
             id: data.user.id,
             email: data.user.email || '',
             full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
+            role: data.user.user_metadata?.role || null,
+            field: data.user.user_metadata?.field || null,
+            purpose: data.user.user_metadata?.purpose || null,
             subscription_tier: 'free' as const,
           };
 

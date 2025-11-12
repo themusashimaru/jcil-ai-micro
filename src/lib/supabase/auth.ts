@@ -150,7 +150,7 @@ export async function isAuthenticated(): Promise<boolean> {
 export async function isAdmin(): Promise<boolean> {
   try {
     const user = await getUser();
-    if (!user) return false;
+    if (!user || !user.email) return false;
 
     const supabase = createBrowserClient();
     const { data } = await supabase
