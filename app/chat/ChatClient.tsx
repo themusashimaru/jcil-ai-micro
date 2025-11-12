@@ -733,7 +733,7 @@ export function ChatClient() {
         />
 
         {/* Chat thread area */}
-        <main className="flex flex-1 flex-col">
+        <main className="flex flex-1 flex-col overflow-hidden">
           <ChatThread
             messages={messages}
             isStreaming={isStreaming}
