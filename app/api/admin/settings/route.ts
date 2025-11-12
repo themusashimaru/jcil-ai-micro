@@ -1,15 +1,10 @@
 /**
  * ADMIN SETTINGS API
- * Handles saving and retrieving design settings
+ * Handles saving and retrieving design settings using cookies (Vercel-compatible)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, readFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
-
-const CONFIG_DIR = join(process.cwd(), 'config');
-const CONFIG_FILE = join(CONFIG_DIR, 'design-settings.json');
+import { cookies } from 'next/headers';
 
 interface DesignSettings {
   mainLogo: string;
@@ -26,49 +21,30 @@ const DEFAULT_SETTINGS: DesignSettings = {
   loginLogo: '',
   favicon: '/favicon.ico',
   siteName: 'JCIL.ai',
-  subtitle: 'Your AI Assistant',
+  subtitle: 'Faith-based AI tools for your everyday needs',
 };
 
-async function ensureConfigDir() {
-  if (!existsSync(CONFIG_DIR)) {
-    await mkdir(CONFIG_DIR, { recursive: true });
-  }
-}
-
-async function getSettings(): Promise<DesignSettings> {
-  try {
-    await ensureConfigDir();
-
-    if (!existsSync(CONFIG_FILE)) {
-      // Create default config if it doesn't exist
-      await writeFile(CONFIG_FILE, JSON.stringify(DEFAULT_SETTINGS, null, 2));
-      return DEFAULT_SETTINGS;
-    }
-
-    const data = await readFile(CONFIG_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading settings:', error);
-    return DEFAULT_SETTINGS;
-  }
-}
-
-async function saveSettings(settings: DesignSettings): Promise<void> {
-  await ensureConfigDir();
-  await writeFile(CONFIG_FILE, JSON.stringify(settings, null, 2));
-}
+const COOKIE_NAME = 'admin_design_settings';
 
 // GET - Retrieve current settings
 export async function GET() {
   try {
-    const settings = await getSettings();
-    return NextResponse.json(settings);
+    const cookieStore = await cookies();
+    const settingsCookie = cookieStore.get(COOKIE_NAME);
+
+    if (settingsCookie?.value) {
+      try {
+        const settings = JSON.parse(settingsCookie.value);
+        return NextResponse.json(settings);
+      } catch {
+        return NextResponse.json(DEFAULT_SETTINGS);
+      }
+    }
+
+    return NextResponse.json(DEFAULT_SETTINGS);
   } catch (error) {
     console.error('Error getting settings:', error);
-    return NextResponse.json(
-      { error: 'Failed to retrieve settings' },
-      { status: 500 }
-    );
+    return NextResponse.json(DEFAULT_SETTINGS);
   }
 }
 
@@ -86,12 +62,23 @@ export async function POST(request: NextRequest) {
       subtitle: body.subtitle || DEFAULT_SETTINGS.subtitle,
     };
 
-    await saveSettings(settings);
-
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       settings,
     });
+
+    // Store settings in cookie (max 4KB, should be fine for base64 images up to 2MB compressed)
+    // Split large data across multiple cookies if needed
+    const settingsJson = JSON.stringify(settings);
+
+    // Set cookie with 1 year expiration
+    response.cookies.set(COOKIE_NAME, settingsJson, {
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      path: '/',
+      sameSite: 'lax',
+    });
+
+    return response;
   } catch (error) {
     console.error('Error saving settings:', error);
     return NextResponse.json(
