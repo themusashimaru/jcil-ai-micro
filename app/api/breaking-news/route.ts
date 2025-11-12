@@ -123,7 +123,6 @@ CRITICAL: Use live web search to get ACTUAL current news happening RIGHT NOW at 
       stream: false,
       temperature: 0.7,
       maxTokens: 4000,
-      model: 'grok-2-1212',
     });
 
     if (!response || !response.text) {
@@ -182,7 +181,6 @@ export async function POST(request: Request) {
 
     // Allow Vercel Cron or requests with valid secret
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      console.warn('Unauthorized breaking news refresh attempt');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -196,8 +194,6 @@ export async function POST(request: Request) {
       content,
       generatedAt,
     };
-
-    console.log(`Breaking news refreshed at ${generatedAt.toISOString()}`);
 
     return NextResponse.json({
       success: true,
