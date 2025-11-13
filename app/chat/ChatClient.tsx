@@ -912,7 +912,9 @@ export function ChatClient() {
       });
 
       if (shouldGenerateTitle && newChatId) {
+        console.log('[ChatClient] STARTING title generation for chat ID:', newChatId);
         try {
+          console.log('[ChatClient] Calling /api/chat/generate-title with:', { userMessage: content, assistantMessage: data.content?.slice(0, 100) });
           const titleResponse = await fetch('/api/chat/generate-title', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -921,6 +923,8 @@ export function ChatClient() {
               assistantMessage: data.content,
             }),
           });
+
+          console.log('[ChatClient] Title API response status:', titleResponse.status);
 
           if (titleResponse.ok) {
             const titleData = await titleResponse.json();
@@ -946,11 +950,18 @@ export function ChatClient() {
             });
             const updateResult = await updateResponse.json();
             console.log('[ChatClient] Title update result:', updateResult);
+          } else {
+            const errorData = await titleResponse.json();
+            console.error('[ChatClient] Title generation failed:', titleResponse.status, errorData);
           }
         } catch (titleError) {
-          console.error('Title generation error:', titleError);
-          // Continue silently if title generation fails
+          console.error('[ChatClient] Title generation error:', titleError);
+          if (titleError instanceof Error) {
+            console.error('[ChatClient] Error details:', titleError.message, titleError.stack);
+          }
         }
+      } else {
+        console.log('[ChatClient] Skipping title generation:', { shouldGenerateTitle, newChatId });
       }
     } catch (error) {
       console.error('Chat API error:', error);
