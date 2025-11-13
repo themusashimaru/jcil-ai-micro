@@ -292,7 +292,7 @@ export function ChatClient() {
     setMessages((prev) => [...prev, userMessage, searchMessage]);
   };
 
-  const handleDataAnalysisComplete = (response: string, source: string, type: 'file' | 'url') => {
+  const handleDataAnalysisComplete = async (response: string, source: string, type: 'file' | 'url') => {
     const timestamp = new Date();
 
     const userMessage: Message = {
