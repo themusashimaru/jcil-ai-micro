@@ -902,13 +902,13 @@ export function ChatClient() {
       await saveMessageToDatabase(newChatId, 'assistant', data.content, 'text');
 
       // Generate chat title for new conversations
-      // Check if this is a new conversation by seeing if we just created it (currentChatId was null)
-      const isNewConversation = !currentChatId;
+      // Check if this is the first message exchange (we had 0 messages before adding user+assistant)
+      const isNewConversation = messages.length === 0;
 
       console.log('[ChatClient] Title generation check:', {
         isNewConversation,
-        newChatId,
-        originalCurrentChatId: currentChatId
+        messageCount: messages.length,
+        newChatId
       });
 
       if (isNewConversation && newChatId) {
