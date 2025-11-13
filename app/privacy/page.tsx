@@ -46,7 +46,7 @@ export default function PrivacyPage() {
                 <strong>Account Information:</strong> We use Auth0 for secure authentication. We collect your email address and basic profile information necessary to create and manage your account.
               </li>
               <li>
-                <strong>User Content:</strong> This includes the text prompts you enter, the files you upload, and the AI-generated responses (collectively, "Chat History").
+                <strong>User Content:</strong> This includes the text prompts you enter, the files you upload, and the AI-generated responses (collectively, &quot;Chat History&quot;).
               </li>
               <li>
                 <strong>Technical Data:</strong> We utilize Vercel for hosting and Supabase for database management. These services may collect metadata such as IP addresses, browser types, and interaction logs for security and performance monitoring.
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
                 <strong>LLM Provider (xAI):</strong> Our core conversational intelligence is powered by xAI. Your prompts are sent to xAI to generate responses.
               </li>
               <li>
-                <strong>Content Moderation (OpenAI):</strong> To ensure a safe environment, user inputs and outputs are passed through OpenAI's moderation endpoints. This is strictly for safety analysis and policy enforcement, not for training purposes.
+                <strong>Content Moderation (OpenAI):</strong> To ensure a safe environment, user inputs and outputs are passed through OpenAI&apos;s moderation endpoints. This is strictly for safety analysis and policy enforcement, not for training purposes.
               </li>
               <li>
                 <strong>Infrastructure:</strong>
@@ -86,12 +86,12 @@ export default function PrivacyPage() {
               <strong>6-Month Hard Limit:</strong> All chat logs, file uploads, and interaction history are permanently deleted from our servers and database (Supabase) 6 months after creation. Once deleted, this data is unrecoverable.
             </p>
 
-            <h3 className="text-xl font-bold text-white mt-6 mb-3">B. User-Initiated Deletion ("Soft Delete")</h3>
+            <h3 className="text-xl font-bold text-white mt-6 mb-3">B. User-Initiated Deletion (&quot;Soft Delete&quot;)</h3>
             <p>
               Users have the option to delete chats from their interface at any time.
             </p>
             <p className="mt-4">
-              If a user deletes a chat after 3 months, it is considered a "Soft Delete." This removes the chat from the user's view immediately, but the data remains in our secure backend archives until the 6-month mandatory retention period expires, at which point it is permanently purged.
+              If a user deletes a chat after 3 months, it is considered a &quot;Soft Delete.&quot; This removes the chat from the user&apos;s view immediately, but the data remains in our secure backend archives until the 6-month mandatory retention period expires, at which point it is permanently purged.
             </p>
           </section>
 

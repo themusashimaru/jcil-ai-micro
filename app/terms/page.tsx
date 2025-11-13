@@ -31,7 +31,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-2xl font-bold text-white mb-4">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using JCIL.AI ("the Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not access or use the Service.
+              By accessing or using JCIL.AI (&quot;the Service&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, you may not access or use the Service.
             </p>
           </section>
 
@@ -62,7 +62,7 @@ export default function TermsPage() {
               </li>
             </ul>
 
-            <h3 className="text-xl font-bold text-white mt-6 mb-3">B. Prohibited Technical Actions ("Jailbreaking")</h3>
+            <h3 className="text-xl font-bold text-white mt-6 mb-3">B. Prohibited Technical Actions (&quot;Jailbreaking&quot;)</h3>
             <p>
               You agree not to attempt to manipulate the AI to bypass its safety filters or its designated Christian conservative persona. This includes:
             </p>
@@ -99,10 +99,10 @@ export default function TermsPage() {
                 <strong>Not Professional Advice:</strong> JCIL.AI is an automated system. It is not a licensed counselor, theologian, medical doctor, or attorney. Responses should not be considered professional advice.
               </li>
               <li>
-                <strong>No Endorsement:</strong> While we strive for accuracy within our worldview, the AI (powered by xAI) may occasionally produce incorrect ("hallucinated") or biased information. You use the information provided at your own risk.
+                <strong>No Endorsement:</strong> While we strive for accuracy within our worldview, the AI (powered by xAI) may occasionally produce incorrect (&quot;hallucinated&quot;) or biased information. You use the information provided at your own risk.
               </li>
               <li>
-                <strong>"As Is" Basis:</strong> The Service is provided on an "AS IS" and "AS AVAILABLE" basis.
+                <strong>&quot;As Is&quot; Basis:</strong> The Service is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis.
               </li>
             </ul>
           </section>
