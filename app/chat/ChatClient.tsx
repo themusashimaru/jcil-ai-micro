@@ -130,9 +130,10 @@ export function ChatClient() {
     loadConversations();
   }, []);
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
+    const newChatId = Date.now().toString();
     const newChat: Chat = {
-      id: Date.now().toString(),
+      id: newChatId,
       title: 'New Chat',
       isPinned: false,
       lastMessage: '',
@@ -140,8 +141,18 @@ export function ChatClient() {
       updatedAt: new Date(),
     };
     setChats([newChat, ...chats]);
-    setCurrentChatId(newChat.id);
+    setCurrentChatId(newChatId);
     setMessages([]);
+
+    // Create conversation in database immediately
+    try {
+      await createConversationInDatabase(newChatId, 'New Chat', 'general');
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+      // Keep the local chat even if DB creation fails
+      // The conversation will be created when first message is sent
+    }
+
     // Auto-close sidebar on mobile after creating new chat
     if (window.innerWidth < 768) {
       setSidebarCollapsed(true);
@@ -386,7 +397,7 @@ export function ChatClient() {
     toolContext?: string
   ) => {
     try {
-      await fetch('/api/conversations', {
+      const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -395,8 +406,16 @@ export function ChatClient() {
           tool_context: toolContext || 'general',
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to create conversation: ${errorData.error || response.statusText}`);
+      }
+
+      return await response.json();
     } catch (error) {
       console.error('Error creating conversation in database:', error);
+      throw error; // Re-throw to let caller handle it
     }
   };
 
@@ -426,11 +445,16 @@ export function ChatClient() {
         setCurrentChatId(chatId);
 
         // Create conversation in database
-        await createConversationInDatabase(
-          chatId,
-          'New Chat',
-          toolType
-        );
+        try {
+          await createConversationInDatabase(
+            chatId,
+            'New Chat',
+            toolType
+          );
+        } catch (error) {
+          console.error('Failed to create conversation for tool:', error);
+          // Continue anyway - conversation will be created when message is saved
+        }
       } else {
         chatId = currentChatId;
       }
@@ -665,7 +689,12 @@ export function ChatClient() {
       setCurrentChatId(newChatId);
 
       // Create conversation in database
-      await createConversationInDatabase(newChatId, 'New Chat', 'general');
+      try {
+        await createConversationInDatabase(newChatId, 'New Chat', 'general');
+      } catch (error) {
+        console.error('Failed to create conversation:', error);
+        // Continue anyway - conversation will be created on retry
+      }
     } else {
       newChatId = currentChatId;
     }
