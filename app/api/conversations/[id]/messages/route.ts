@@ -139,6 +139,13 @@ export async function POST(
       allAttachments.push(image_url);
     }
 
+    console.log('[API] Attempting to save message:', {
+      conversation_id: conversationId,
+      user_id: user.id,
+      role,
+      content_preview: content.slice(0, 50),
+    });
+
     // Save message
     const { data: message, error } = await supabase
       .from('messages')
@@ -159,9 +166,17 @@ export async function POST(
       .single();
 
     if (error) {
-      console.error('Error saving message:', error);
+      console.error('[API] Error saving message:', {
+        error,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    console.log('[API] Message saved successfully:', message.id);
 
     // Update conversation's last_message_at and increment message_count
     // First get current count
