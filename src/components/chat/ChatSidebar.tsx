@@ -18,6 +18,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { createBrowserClient } from '@/lib/supabase/client';
 import type { Chat } from '@/app/chat/types';
 
 interface ChatSidebarProps {
@@ -47,6 +49,22 @@ export function ChatSidebar({
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
+
+  // Logout handler
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const supabase = createBrowserClient();
+      await supabase.auth.signOut();
+      // Redirect to login page
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      setIsLoggingOut(false);
+    }
+  };
 
   // Filter and sort chats
   const filteredChats = useMemo(() => {
@@ -386,7 +404,9 @@ export function ChatSidebar({
             <span>Settings</span>
           </button>
           <button
-            className="w-full rounded-lg px-3 py-2 text-sm text-left hover:bg-white/10 flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-full rounded-lg px-3 py-2 text-sm text-left hover:bg-white/10 flex items-center gap-2 text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             aria-label="Logout"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -397,7 +417,7 @@ export function ChatSidebar({
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
               />
             </svg>
-            <span>Logout</span>
+            <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
           </button>
         </div>
       </div>
