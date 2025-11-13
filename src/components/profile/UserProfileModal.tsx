@@ -50,8 +50,8 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
     try {
       const supabase = createBrowserClient();
       await supabase.auth.signOut();
-      // Redirect to login page
-      router.push('/login');
+      // Force full page reload to clear all state
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
       setIsLoggingOut(false);
