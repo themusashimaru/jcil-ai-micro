@@ -570,10 +570,14 @@ export function ChatClient() {
             );
 
             // Generate title for conversations that still have "New Chat" as title
-            const currentChatForImage = chats.find(c => c.id === chatId);
-            const needsTitleForImage = !currentChatForImage || currentChatForImage.title === 'New Chat';
+            let shouldGenerateTitleForImage = false;
+            setChats((prevChats) => {
+              const currentChatForImage = prevChats.find(c => c.id === chatId);
+              shouldGenerateTitleForImage = !currentChatForImage || currentChatForImage.title === 'New Chat';
+              return prevChats; // No changes, just checking
+            });
 
-            if (needsTitleForImage) {
+            if (shouldGenerateTitleForImage) {
               try {
                 const titleResponse = await fetch('/api/chat/generate-title', {
                   method: 'POST',
@@ -890,11 +894,15 @@ export function ChatClient() {
       // Save assistant message to database
       await saveMessageToDatabase(newChatId, 'assistant', data.content, 'text');
 
-      // Generate chat title for conversations that still have "New Chat" as title
-      const currentChat = chats.find(c => c.id === newChatId);
-      const needsTitle = !currentChat || currentChat.title === 'New Chat';
+      // Generate chat title for new conversations (check state with updater to get latest)
+      let shouldGenerateTitle = false;
+      setChats((prevChats) => {
+        const currentChat = prevChats.find(c => c.id === newChatId);
+        shouldGenerateTitle = !currentChat || currentChat.title === 'New Chat';
+        return prevChats; // No changes, just checking
+      });
 
-      if (needsTitle && newChatId) {
+      if (shouldGenerateTitle && newChatId) {
         try {
           const titleResponse = await fetch('/api/chat/generate-title', {
             method: 'POST',
