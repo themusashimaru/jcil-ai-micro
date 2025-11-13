@@ -7,21 +7,44 @@
  * - Redirect to home page
  */
 
-import { createBrowserClient } from '@/lib/supabase/client';
+import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createBrowserClient();
+    const cookieStore = await cookies();
 
-    // Sign out from Supabase (clears session)
+    // Create Supabase client with SSR cookie handling
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Silently handle cookie errors
+            }
+          },
+        },
+      }
+    );
+
+    // Sign out from Supabase (clears session and cookies)
     const { error } = await supabase.auth.signOut();
 
     if (error) throw error;
 
-    // Redirect to home
+    // Redirect to login page
     const requestUrl = new URL(request.url);
-    return NextResponse.redirect(new URL('/', requestUrl.origin), {
+    return NextResponse.redirect(new URL('/login', requestUrl.origin), {
       status: 302,
     });
   } catch (error) {

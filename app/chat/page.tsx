@@ -51,11 +51,15 @@
  */
 
 import { ChatClient } from './ChatClient';
+import { getServerSession } from '@/lib/supabase/server-auth';
+import { redirect } from 'next/navigation';
 
 export default async function ChatPage() {
-  // TODO: Check authentication
-  // const session = await getServerSession();
-  // if (!session) redirect('/');
+  // Check authentication - redirect to login if not authenticated
+  const session = await getServerSession();
+  if (!session) {
+    redirect('/login');
+  }
 
   return <ChatClient />;
 }
