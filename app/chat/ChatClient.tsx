@@ -374,8 +374,12 @@ export function ChatClient() {
               tool: 'image',
             }),
           });
-          if (!response.ok) throw new Error('Image generation failed');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.details || errorData.error || 'Image generation failed');
+          }
           const data = await response.json();
+
           if (data.url) {
             // Add only the assistant response with image
             const imageMessage: Message = {
@@ -386,6 +390,9 @@ export function ChatClient() {
               timestamp: new Date(),
             };
             setMessages((prev) => [...prev, imageMessage]);
+          } else {
+            // Handle case where no URL was returned
+            throw new Error(data.error || 'No image URL returned from API');
           }
         } catch (error) {
           console.error('Image error:', error);
