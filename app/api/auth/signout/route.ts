@@ -40,13 +40,15 @@ export async function POST(request: NextRequest) {
     // Sign out from Supabase (clears session and cookies)
     const { error } = await supabase.auth.signOut();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase signout error:', error);
+      throw error;
+    }
 
-    // Redirect to login page
-    const requestUrl = new URL(request.url);
-    return NextResponse.redirect(new URL('/login', requestUrl.origin), {
-      status: 302,
-    });
+    console.log('[API] User signed out successfully');
+
+    // Return success - let client handle redirect
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error('Signout error:', error);
     return NextResponse.json(

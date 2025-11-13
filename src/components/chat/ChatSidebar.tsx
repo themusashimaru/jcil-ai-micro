@@ -55,15 +55,23 @@ export function ChatSidebar({
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
+      console.log('[ChatSidebar] Calling logout API...');
       // Call the API route to handle logout with proper cookie management
-      await fetch('/api/auth/signout', {
+      const response = await fetch('/api/auth/signout', {
         method: 'POST',
       });
-      // Redirect to login page
-      router.push('/login');
+
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+
+      console.log('[ChatSidebar] Logout successful, redirecting...');
+      // Force a hard redirect to clear all state
+      window.location.href = '/login';
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('[ChatSidebar] Logout error:', error);
       setIsLoggingOut(false);
+      alert('Failed to logout. Please try again.');
     }
   };
 
