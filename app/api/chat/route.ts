@@ -63,17 +63,19 @@ function isAskingAboutHistory(content: string): boolean {
   const lowerContent = content.toLowerCase();
 
   const historyPatterns = [
-    /what (did|have) (we|i) (talk|discuss|chat)(ed)? about/i,
+    /what (did|have|were) (we|i) (talk|discuss|chat)(ed)? about/i,
     /previous (conversation|chat|discussion)s?/i,
     /earlier (conversation|chat|discussion)s?/i,
     /our (past|last|recent) (conversation|chat|discussion)s?/i,
-    /(show|tell|list) (me )?(my |the )?(previous|past|recent|earlier) (conversation|chat|discussion)s?/i,
+    /(show|tell|list) (me )?(my |the |our )?(previous|past|recent|earlier|last) (conversation|chat|discussion)s?/i,
     /what (was|were) (we|i) (talking|chatting|discussing) about/i,
     /(summarize|summary of) (my |our )?(previous|past|recent|earlier) (conversation|chat|discussion)s?/i,
     /history of (our|my) (conversation|chat|discussion)s?/i,
     /(remember|recall) (our|my) (previous|past|earlier) (conversation|chat|discussion)/i,
     /in (our|my) (previous|past|last|earlier) (conversation|chat|discussion)/i,
-    /(yesterday|last week|before)/i,
+    /last (two|three|few|several) (conversation|chat|discussion)s?/i,
+    /past (two|three|few|several) (conversation|chat|discussion)s?/i,
+    /(yesterday|last week|last time|before)/i,
   ];
 
   return historyPatterns.some(pattern => pattern.test(lowerContent));
