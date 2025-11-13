@@ -49,7 +49,6 @@ export function ChatSidebar({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const router = useRouter();
 
   // Logout handler
   const handleLogout = async () => {

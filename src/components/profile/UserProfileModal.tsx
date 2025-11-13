@@ -23,7 +23,6 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const [formData, setFormData] = useState<UserProfile>(profile);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const router = useRouter();
 
   // Update form when profile changes
   useEffect(() => {
