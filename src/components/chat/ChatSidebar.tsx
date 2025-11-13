@@ -19,7 +19,6 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@/lib/supabase/client';
 import type { Chat } from '@/app/chat/types';
 
 interface ChatSidebarProps {
@@ -56,8 +55,10 @@ export function ChatSidebar({
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      const supabase = createBrowserClient();
-      await supabase.auth.signOut();
+      // Call the API route to handle logout with proper cookie management
+      await fetch('/api/auth/signout', {
+        method: 'POST',
+      });
       // Redirect to login page
       router.push('/login');
     } catch (error) {
