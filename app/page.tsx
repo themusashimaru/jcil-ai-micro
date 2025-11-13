@@ -8,6 +8,7 @@
  */
 
 import Link from 'next/link';
+import PricingSection from './components/PricingSection';
 
 export default function HomePage() {
   return (
@@ -83,145 +84,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="container mx-auto px-4 py-20" id="pricing">
-        <h2 className="mb-4 text-center text-4xl font-bold">Simple, Transparent Pricing</h2>
-        <p className="mb-12 text-center text-gray-300">
-          Choose the plan that fits your needs
-        </p>
-
-        <div className="grid gap-8 md:grid-cols-4 max-w-7xl mx-auto">
-          {/* Free Tier */}
-          <div className="glass-morphism rounded-2xl p-8 border border-gray-700">
-            <h3 className="mb-2 text-2xl font-bold">Free</h3>
-            <p className="mb-4 text-gray-400">Get started with basic access</p>
-            <div className="mb-6">
-              <span className="text-5xl font-bold">$0</span>
-              <span className="text-gray-400">/month</span>
-            </div>
-            <ul className="mb-8 space-y-3 text-sm">
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                10 messages per day
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                Basic AI responses
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                6-month data retention
-              </li>
-            </ul>
-            <Link
-              href="/signup"
-              className="block w-full rounded-lg bg-gray-700 py-3 text-center font-semibold hover:bg-gray-600 transition"
-            >
-              Start Free
-            </Link>
-          </div>
-
-          {/* Basic Tier */}
-          <div className="glass-morphism rounded-2xl p-8 border border-gray-700">
-            <h3 className="mb-2 text-2xl font-bold">Basic</h3>
-            <p className="mb-4 text-gray-400">For regular users</p>
-            <div className="mb-6">
-              <span className="text-5xl font-bold">$10</span>
-              <span className="text-gray-400">/month</span>
-            </div>
-            <ul className="mb-8 space-y-3 text-sm">
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                100 messages per day
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                Enhanced AI responses
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                Priority support
-              </li>
-            </ul>
-            <Link
-              href="/signup"
-              className="block w-full rounded-lg bg-blue-600 py-3 text-center font-semibold hover:bg-blue-500 transition"
-            >
-              Get Started
-            </Link>
-          </div>
-
-          {/* Pro Tier */}
-          <div className="glass-morphism rounded-2xl p-8 border-2 border-blue-500 relative">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 px-4 py-1 rounded-full text-sm font-semibold">
-              POPULAR
-            </div>
-            <h3 className="mb-2 text-2xl font-bold">Pro</h3>
-            <p className="mb-4 text-gray-400">For power users</p>
-            <div className="mb-6">
-              <span className="text-5xl font-bold">$20</span>
-              <span className="text-gray-400">/month</span>
-            </div>
-            <ul className="mb-8 space-y-3 text-sm">
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                200 messages per day
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                Premium AI responses
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                5 image generations/day
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                Priority support
-              </li>
-            </ul>
-            <Link
-              href="/signup"
-              className="block w-full rounded-lg bg-blue-500 py-3 text-center font-semibold hover:bg-blue-400 transition"
-            >
-              Get Started
-            </Link>
-          </div>
-
-          {/* Executive Tier */}
-          <div className="glass-morphism rounded-2xl p-8 border border-gray-700">
-            <h3 className="mb-2 text-2xl font-bold">Executive</h3>
-            <p className="mb-4 text-gray-400">Unlimited access</p>
-            <div className="mb-6">
-              <span className="text-5xl font-bold">$150</span>
-              <span className="text-gray-400">/month</span>
-            </div>
-            <ul className="mb-8 space-y-3 text-sm">
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                1,000 messages per day
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                Premium AI responses
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                10 image generations/day
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2 text-green-400">✓</span>
-                Dedicated support
-              </li>
-            </ul>
-            <Link
-              href="/signup"
-              className="block w-full rounded-lg bg-gray-700 py-3 text-center font-semibold hover:bg-gray-600 transition"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </section>
+      <PricingSection />
 
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20 text-center">
