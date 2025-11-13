@@ -901,21 +901,24 @@ export function ChatClient() {
       // Save assistant message to database
       await saveMessageToDatabase(newChatId, 'assistant', data.content, 'text');
 
-      // Generate chat title for new conversations (check state with updater to get latest)
-      let shouldGenerateTitle = false;
-      setChats((prevChats) => {
-        console.log('[ChatClient] Checking if title needed for ID:', newChatId);
-        console.log('[ChatClient] Available chat IDs:', prevChats.map(c => c.id));
-        const currentChat = prevChats.find(c => c.id === newChatId);
-        shouldGenerateTitle = !currentChat || currentChat.title === 'New Chat';
-        console.log('[ChatClient] Should generate title?', { shouldGenerateTitle, chatFound: !!currentChat, currentTitle: currentChat?.title });
-        return prevChats; // No changes, just checking
+      // Generate chat title for new conversations
+      // Check if this is a new conversation by seeing if we just created it (currentChatId was null)
+      const isNewConversation = !currentChatId;
+
+      console.log('[ChatClient] Title generation check:', {
+        isNewConversation,
+        newChatId,
+        originalCurrentChatId: currentChatId
       });
 
-      if (shouldGenerateTitle && newChatId) {
-        console.log('[ChatClient] STARTING title generation for chat ID:', newChatId);
+      if (isNewConversation && newChatId) {
+        console.log('[ChatClient] STARTING title generation for new conversation:', newChatId);
         try {
-          console.log('[ChatClient] Calling /api/chat/generate-title with:', { userMessage: content, assistantMessage: data.content?.slice(0, 100) });
+          console.log('[ChatClient] Calling /api/chat/generate-title with:', {
+            userMessage: content,
+            assistantMessage: data.content?.slice(0, 100)
+          });
+
           const titleResponse = await fetch('/api/chat/generate-title', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -962,7 +965,7 @@ export function ChatClient() {
           }
         }
       } else {
-        console.log('[ChatClient] Skipping title generation:', { shouldGenerateTitle, newChatId });
+        console.log('[ChatClient] Skipping title generation - existing conversation');
       }
     } catch (error) {
       console.error('Chat API error:', error);
