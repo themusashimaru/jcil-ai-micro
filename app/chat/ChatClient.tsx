@@ -312,7 +312,7 @@ export function ChatClient() {
     const nextLastMessage = `📊 Analysis: ${source.slice(0, 40)}`;
 
     if (!currentChatId) {
-      let newChatId = Date.now().toString();
+      const newChatId = Date.now().toString();
       const newChat: Chat = {
         id: newChatId,
         title: `Data Analysis: ${source}`.slice(0, 40),
@@ -471,7 +471,6 @@ export function ChatClient() {
       setSelectedTool(null); // Clear selection
 
       // Auto-create chat if none exists (important for first-time tool use)
-      const isNewChat = !currentChatId;
       let chatId: string;
 
       if (!currentChatId) {
@@ -726,8 +725,6 @@ export function ChatClient() {
       }
     }
 
-    // Track if this is a new chat (for title generation)
-    const isNewChat = !currentChatId;
     let newChatId: string;
 
     // Auto-create chat if none exists
