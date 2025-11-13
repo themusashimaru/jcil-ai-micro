@@ -444,18 +444,12 @@ export function ChatClient() {
 
       const result = await response.json();
 
-      // Update local chat ID to match the database ID
+      // Return the database-generated UUID (don't update state here - let caller handle it)
       if (result.conversation && result.conversation.id) {
-        setCurrentChatId(result.conversation.id);
-        setChats((prevChats) =>
-          prevChats.map((chat) =>
-            chat.id === chatId ? { ...chat, id: result.conversation.id } : chat
-          )
-        );
         return result.conversation.id;
       }
 
-      return result;
+      throw new Error('No conversation ID returned from API');
     } catch (error) {
       console.error('Error creating conversation in database:', error);
       throw error; // Re-throw to let caller handle it
@@ -747,16 +741,20 @@ export function ChatClient() {
 
       // Create conversation in database
       try {
-        const dbConversationId = await createConversationInDatabase(newChatId, 'New Chat', 'general');
+        const tempId = newChatId; // Store temp ID before reassignment
+        const dbConversationId = await createConversationInDatabase(tempId, 'New Chat', 'general');
+        console.log('[ChatClient] Created conversation:', { tempId, dbId: dbConversationId });
         // Update newChatId to use the database-generated UUID
         if (dbConversationId && typeof dbConversationId === 'string') {
           newChatId = dbConversationId;
           setCurrentChatId(dbConversationId);
-          setChats((prevChats) =>
-            prevChats.map((chat) =>
-              chat.id !== dbConversationId ? chat : { ...chat, id: dbConversationId }
-            )
-          );
+          setChats((prevChats) => {
+            const updated = prevChats.map((chat) =>
+              chat.id === tempId ? { ...chat, id: dbConversationId } : chat
+            );
+            console.log('[ChatClient] Updated chats array with UUID:', updated[0]?.id);
+            return updated;
+          });
         }
       } catch (error) {
         console.error('Failed to create conversation:', error);
@@ -897,8 +895,11 @@ export function ChatClient() {
       // Generate chat title for new conversations (check state with updater to get latest)
       let shouldGenerateTitle = false;
       setChats((prevChats) => {
+        console.log('[ChatClient] Checking if title needed for ID:', newChatId);
+        console.log('[ChatClient] Available chat IDs:', prevChats.map(c => c.id));
         const currentChat = prevChats.find(c => c.id === newChatId);
         shouldGenerateTitle = !currentChat || currentChat.title === 'New Chat';
+        console.log('[ChatClient] Should generate title?', { shouldGenerateTitle, chatFound: !!currentChat, currentTitle: currentChat?.title });
         return prevChats; // No changes, just checking
       });
 
@@ -916,6 +917,7 @@ export function ChatClient() {
           if (titleResponse.ok) {
             const titleData = await titleResponse.json();
             const generatedTitle = titleData.title || 'New Chat';
+            console.log('[ChatClient] Generated title:', generatedTitle, 'for chat ID:', newChatId);
 
             // Update chat title in sidebar
             setChats((prevChats) =>
@@ -925,7 +927,8 @@ export function ChatClient() {
             );
 
             // Update title in database
-            await fetch('/api/conversations', {
+            console.log('[ChatClient] Updating title in DB with ID:', newChatId);
+            const updateResponse = await fetch('/api/conversations', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -933,6 +936,8 @@ export function ChatClient() {
                 title: generatedTitle,
               }),
             });
+            const updateResult = await updateResponse.json();
+            console.log('[ChatClient] Title update result:', updateResult);
           }
         } catch (titleError) {
           console.error('Title generation error:', titleError);
