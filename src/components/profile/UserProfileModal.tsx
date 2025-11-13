@@ -11,6 +11,8 @@
 
 import { useState, useEffect } from 'react';
 import { useUserProfile, type UserProfile } from '@/contexts/UserProfileContext';
+import { useRouter } from 'next/navigation';
+import { createBrowserClient } from '@/lib/supabase/client';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -21,6 +23,8 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const { profile, updateProfile } = useUserProfile();
   const [formData, setFormData] = useState<UserProfile>(profile);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
 
   // Update form when profile changes
   useEffect(() => {
@@ -39,6 +43,19 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const handleCancel = () => {
     setFormData(profile);
     onClose();
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const supabase = createBrowserClient();
+      await supabase.auth.signOut();
+      // Redirect to login page
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -249,20 +266,32 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-white/10 px-6 py-4 bg-white/5">
+        <div className="flex items-center justify-between border-t border-white/10 px-6 py-4 bg-white/5">
+          {/* Logout button on the left */}
           <button
-            onClick={handleCancel}
-            className="rounded-xl px-6 py-2.5 text-sm font-medium text-gray-300 hover:bg-white/10 transition"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="rounded-xl px-6 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            Cancel
+            {isLoggingOut ? 'Logging out...' : 'Logout'}
           </button>
-          <button
-            onClick={handleSave}
-            disabled={!formData.name.trim() || isSaving}
-            className="rounded-xl bg-blue-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            {isSaving ? 'Saving...' : 'Save Profile'}
-          </button>
+
+          {/* Save/Cancel buttons on the right */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleCancel}
+              className="rounded-xl px-6 py-2.5 text-sm font-medium text-gray-300 hover:bg-white/10 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!formData.name.trim() || isSaving}
+              className="rounded-xl bg-blue-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {isSaving ? 'Saving...' : 'Save Profile'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
