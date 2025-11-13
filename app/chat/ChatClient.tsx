@@ -409,8 +409,9 @@ export function ChatClient() {
       setSelectedTool(null); // Clear selection
 
       // Auto-create chat if none exists (important for first-time tool use)
-      let chatId = currentChatId;
       const isNewChat = !currentChatId;
+      let chatId: string;
+
       if (!currentChatId) {
         chatId = Date.now().toString();
         const newChat: Chat = {
@@ -430,6 +431,8 @@ export function ChatClient() {
           'New Chat',
           toolType
         );
+      } else {
+        chatId = currentChatId;
       }
 
       // Add user message to chat first
@@ -645,7 +648,7 @@ export function ChatClient() {
 
     // Track if this is a new chat (for title generation)
     const isNewChat = !currentChatId;
-    let newChatId = currentChatId;
+    let newChatId: string;
 
     // Auto-create chat if none exists
     if (!currentChatId) {
@@ -663,6 +666,8 @@ export function ChatClient() {
 
       // Create conversation in database
       await createConversationInDatabase(newChatId, 'New Chat', 'general');
+    } else {
+      newChatId = currentChatId;
     }
 
     const userMessage: Message = {
