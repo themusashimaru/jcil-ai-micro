@@ -144,8 +144,15 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('[API] Error creating conversation:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[API] Error creating conversation:', {
+          error,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          user_id: user.id,
+        });
+        return NextResponse.json({ error: error.message, details: error.details }, { status: 500 });
       }
 
       console.log('[API] Created new conversation:', conversation);

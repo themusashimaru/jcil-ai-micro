@@ -436,6 +436,7 @@ export function ChatClient() {
     toolContext?: string
   ) => {
     try {
+      console.log('[ChatClient] Creating conversation in DB:', { title, toolContext });
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -446,21 +447,26 @@ export function ChatClient() {
         }),
       });
 
+      console.log('[ChatClient] Conversation API response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('[ChatClient] Conversation creation failed:', errorData);
         throw new Error(`Failed to create conversation: ${errorData.error || response.statusText}`);
       }
 
       const result = await response.json();
+      console.log('[ChatClient] Conversation API result:', result);
 
       // Return the database-generated UUID (don't update state here - let caller handle it)
       if (result.conversation && result.conversation.id) {
+        console.log('[ChatClient] Returning conversation ID:', result.conversation.id);
         return result.conversation.id;
       }
 
       throw new Error('No conversation ID returned from API');
     } catch (error) {
-      console.error('Error creating conversation in database:', error);
+      console.error('[ChatClient] Error creating conversation in database:', error);
       throw error; // Re-throw to let caller handle it
     }
   };
