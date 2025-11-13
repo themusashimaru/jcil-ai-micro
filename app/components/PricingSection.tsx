@@ -6,7 +6,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 
 type PricingTier = 'free' | 'basic' | 'pro' | 'executive';
 
