@@ -4,12 +4,38 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/src/lib/supabase/server';
-import { createBillingPortalSession } from '@/src/lib/stripe/client';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { createBillingPortalSession } from '@/lib/stripe/client';
+
+// Get authenticated Supabase client
+async function getSupabaseClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Silently handle cookie errors
+          }
+        },
+      },
+    }
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = await getSupabaseClient();
 
     // Check authentication
     const {

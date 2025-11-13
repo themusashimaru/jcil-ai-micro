@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { stripe } from '@/src/lib/stripe/client';
+import { stripe } from '@/lib/stripe/client';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
