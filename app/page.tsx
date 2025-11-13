@@ -192,7 +192,7 @@ export default function HomePage() {
             <h3 className="mb-2 text-2xl font-bold">Executive</h3>
             <p className="mb-4 text-gray-400">Unlimited access</p>
             <div className="mb-6">
-              <span className="text-5xl font-bold">$50</span>
+              <span className="text-5xl font-bold">$150</span>
               <span className="text-gray-400">/month</span>
             </div>
             <ul className="mb-8 space-y-3 text-sm">
