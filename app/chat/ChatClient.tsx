@@ -146,7 +146,7 @@ export function ChatClient() {
 
     // Create conversation in database immediately
     try {
-      const dbConversationId = await createConversationInDatabase(newChatId, 'New Chat', 'general');
+      const dbConversationId = await createConversationInDatabase('New Chat', 'general');
       // Update to use the database-generated UUID
       if (dbConversationId && typeof dbConversationId === 'string') {
         setCurrentChatId(dbConversationId);
@@ -329,7 +329,6 @@ export function ChatClient() {
       // Create conversation in database
       try {
         const dbConversationId = await createConversationInDatabase(
-          newChatId,
           `Data Analysis: ${source}`.slice(0, 40),
           'data'
         );
@@ -422,7 +421,6 @@ export function ChatClient() {
 
   // Helper function to create conversation in database
   const createConversationInDatabase = async (
-    chatId: string,
     title: string,
     toolContext?: string
   ) => {
@@ -483,7 +481,6 @@ export function ChatClient() {
         // Create conversation in database
         try {
           const dbConversationId = await createConversationInDatabase(
-            chatId,
             'New Chat',
             toolType
           );
@@ -742,7 +739,7 @@ export function ChatClient() {
       // Create conversation in database
       try {
         const tempId = newChatId; // Store temp ID before reassignment
-        const dbConversationId = await createConversationInDatabase(tempId, 'New Chat', 'general');
+        const dbConversationId = await createConversationInDatabase('New Chat', 'general');
         console.log('[ChatClient] Created conversation:', { tempId, dbId: dbConversationId });
         // Update newChatId to use the database-generated UUID
         if (dbConversationId && typeof dbConversationId === 'string') {
