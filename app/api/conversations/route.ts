@@ -45,8 +45,11 @@ export async function GET() {
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.error('[API] GET /api/conversations - No authenticated user:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    console.log('[API] GET /api/conversations - User ID:', user.id, 'Email:', user.email);
 
     // Fetch conversations
     const { data: conversations, error } = await supabase
@@ -57,13 +60,16 @@ export async function GET() {
       .order('last_message_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching conversations:', error);
+      console.error('[API] Error fetching conversations:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    console.log('[API] GET /api/conversations - Found', conversations?.length || 0, 'conversations for user', user.id);
+    console.log('[API] Conversations:', conversations);
+
     return NextResponse.json({ conversations });
   } catch (error) {
-    console.error('Error in GET /api/conversations:', error);
+    console.error('[API] Error in GET /api/conversations:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -82,11 +88,15 @@ export async function POST(request: NextRequest) {
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.error('[API] POST /api/conversations - No authenticated user:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
     const { id, title, tool_context, summary } = body;
+
+    console.log('[API] POST /api/conversations - User ID:', user.id, 'Email:', user.email);
+    console.log('[API] Request body:', { id, title, tool_context, summary });
 
     // Calculate retention date (30 days from now by default)
     const retentionDate = new Date();
@@ -94,6 +104,7 @@ export async function POST(request: NextRequest) {
 
     if (id) {
       // Update existing conversation
+      console.log('[API] Updating conversation with ID:', id);
       const { data: conversation, error } = await supabase
         .from('conversations')
         .update({
@@ -108,13 +119,15 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('Error updating conversation:', error);
+        console.error('[API] Error updating conversation:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      console.log('[API] Updated conversation:', conversation);
       return NextResponse.json({ conversation });
     } else {
       // Create new conversation
+      console.log('[API] Creating new conversation for user:', user.id);
       const { data: conversation, error } = await supabase
         .from('conversations')
         .insert({
@@ -131,14 +144,15 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('Error creating conversation:', error);
+        console.error('[API] Error creating conversation:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      console.log('[API] Created new conversation:', conversation);
       return NextResponse.json({ conversation });
     }
   } catch (error) {
-    console.error('Error in POST /api/conversations:', error);
+    console.error('[API] Error in POST /api/conversations:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -101,9 +101,17 @@ export function ChatClient() {
   useEffect(() => {
     const loadConversations = async () => {
       try {
+        console.log('[ChatClient] Loading conversations from API...');
         const response = await fetch('/api/conversations');
+        console.log('[ChatClient] API response status:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('[ChatClient] Loaded conversations from DB:', {
+            count: data.conversations?.length || 0,
+            conversations: data.conversations,
+          });
+
           const formattedChats: Chat[] = data.conversations.map((conv: {
             id: string;
             title: string;
@@ -121,9 +129,12 @@ export function ChatClient() {
             updatedAt: new Date(conv.updated_at),
           }));
           setChats(formattedChats);
+          console.log('[ChatClient] Set chats state with', formattedChats.length, 'conversations');
+        } else {
+          console.error('[ChatClient] Failed to load conversations:', response.statusText);
         }
       } catch (error) {
-        console.error('Error loading conversations:', error);
+        console.error('[ChatClient] Error loading conversations:', error);
       }
     };
 
