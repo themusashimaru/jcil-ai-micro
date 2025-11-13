@@ -766,6 +766,7 @@ export function ChatClient() {
         body: JSON.stringify({
           messages: apiMessages,
           userContext,
+          conversationId: newChatId, // Pass current conversation ID to exclude from history
           // No tool parameter - let users manually select tools via buttons
         }),
       });

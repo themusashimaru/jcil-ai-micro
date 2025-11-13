@@ -39,6 +39,8 @@ import { getModelForTool } from '@/lib/xai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 interface UserContext {
   name: string;
@@ -53,13 +55,35 @@ interface ChatRequestBody {
   temperature?: number;
   max_tokens?: number;
   userContext?: UserContext;
+  conversationId?: string; // Current conversation ID to exclude from history
+}
+
+// Detect if user is asking about previous conversations
+function isAskingAboutHistory(content: string): boolean {
+  const lowerContent = content.toLowerCase();
+
+  const historyPatterns = [
+    /what (did|have) (we|i) (talk|discuss|chat)(ed)? about/i,
+    /previous (conversation|chat|discussion)s?/i,
+    /earlier (conversation|chat|discussion)s?/i,
+    /our (past|last|recent) (conversation|chat|discussion)s?/i,
+    /(show|tell|list) (me )?(my |the )?(previous|past|recent|earlier) (conversation|chat|discussion)s?/i,
+    /what (was|were) (we|i) (talking|chatting|discussing) about/i,
+    /(summarize|summary of) (my |our )?(previous|past|recent|earlier) (conversation|chat|discussion)s?/i,
+    /history of (our|my) (conversation|chat|discussion)s?/i,
+    /(remember|recall) (our|my) (previous|past|earlier) (conversation|chat|discussion)/i,
+    /in (our|my) (previous|past|last|earlier) (conversation|chat|discussion)/i,
+    /(yesterday|last week|before)/i,
+  ];
+
+  return historyPatterns.some(pattern => pattern.test(lowerContent));
 }
 
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body: ChatRequestBody = await request.json();
-    const { messages, tool, temperature, max_tokens, userContext } = body;
+    const { messages, tool, temperature, max_tokens, userContext, conversationId } = body;
 
     // Validate messages
     if (!messages || messages.length === 0) {
@@ -93,6 +117,99 @@ export async function POST(request: NextRequest) {
             headers: { 'Content-Type': 'application/json' },
           }
         );
+      }
+    }
+
+    // Check if user is asking about previous conversations
+    let conversationHistory = '';
+    const lastUserMessage = messages[messages.length - 1];
+    const lastUserContent = typeof lastUserMessage?.content === 'string'
+      ? lastUserMessage.content
+      : '';
+
+    if (lastUserContent && isAskingAboutHistory(lastUserContent)) {
+      try {
+        // Get authenticated Supabase client
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              getAll() {
+                return cookieStore.getAll();
+              },
+              setAll(cookiesToSet) {
+                try {
+                  cookiesToSet.forEach(({ name, value, options }) =>
+                    cookieStore.set(name, value, options)
+                  );
+                } catch {
+                  // Silently handle cookie errors
+                }
+              },
+            },
+          }
+        );
+
+        // Get authenticated user
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          // Fetch recent conversations (exclude current conversation)
+          let query = supabase
+            .from('conversations')
+            .select('id, title, tool_context, created_at, last_message_at')
+            .eq('user_id', user.id)
+            .is('deleted_at', null)
+            .order('last_message_at', { ascending: false })
+            .limit(10);
+
+          if (conversationId) {
+            query = query.neq('id', conversationId);
+          }
+
+          const { data: conversations } = await query;
+
+          if (conversations && conversations.length > 0) {
+            // Fetch messages for each conversation
+            const conversationsWithMessages = await Promise.all(
+              conversations.map(async (conv) => {
+                const { data: msgs } = await supabase
+                  .from('messages')
+                  .select('role, content, content_type, created_at')
+                  .eq('conversation_id', conv.id)
+                  .is('deleted_at', null)
+                  .order('created_at', { ascending: true })
+                  .limit(10);
+
+                return {
+                  title: conv.title,
+                  date: new Date(conv.last_message_at).toLocaleDateString(),
+                  messages: msgs || [],
+                };
+              })
+            );
+
+            // Format conversation history for AI context
+            conversationHistory = '\n\n=== PREVIOUS CONVERSATIONS ===\n\n';
+            conversationHistory += conversationsWithMessages
+              .map((conv) => {
+                const messagesSummary = conv.messages
+                  .slice(0, 5) // Limit to first 5 messages per conversation
+                  .map((msg) => `${msg.role}: ${msg.content.slice(0, 200)}`)
+                  .join('\n');
+
+                return `Conversation: "${conv.title}" (${conv.date})\n${messagesSummary}`;
+              })
+              .join('\n\n---\n\n');
+
+            conversationHistory += '\n\n=== END OF PREVIOUS CONVERSATIONS ===\n';
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching conversation history:', error);
+        // Continue without history if there's an error
       }
     }
 
@@ -133,16 +250,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Add user context as a system message if provided
-    const messagesWithContext = userContext
-      ? [
-          {
-            role: 'system' as const,
-            content: `You are assisting ${userContext.name}, a ${userContext.role}${userContext.field ? ` in ${userContext.field}` : ''}. ${userContext.purpose ? `They use this AI for: ${userContext.purpose}. ` : ''}Tailor your responses to their background, adjusting complexity, terminology, and examples accordingly.`,
-          },
-          ...messages,
-        ]
-      : messages;
+    // Add user context and conversation history as system messages if provided
+    let messagesWithContext = messages;
+
+    // Add conversation history context if available
+    if (conversationHistory) {
+      const historySystemMessage = {
+        role: 'system' as const,
+        content: `The user has asked about their previous conversations. Here is their conversation history (only accessible when specifically requested):${conversationHistory}\n\nUse this history to answer their question accurately. If they ask about something not in this history, let them know you can only see the conversations listed above.`,
+      };
+      messagesWithContext = [historySystemMessage, ...messagesWithContext];
+    }
+
+    // Add user context if provided
+    if (userContext) {
+      const userContextMessage = {
+        role: 'system' as const,
+        content: `You are assisting ${userContext.name}, a ${userContext.role}${userContext.field ? ` in ${userContext.field}` : ''}. ${userContext.purpose ? `They use this AI for: ${userContext.purpose}. ` : ''}Tailor your responses to their background, adjusting complexity, terminology, and examples accordingly.`,
+      };
+      messagesWithContext = [userContextMessage, ...messagesWithContext];
+    }
 
     // Regular chat completion (non-streaming for now)
     const result = await createChatCompletion({
