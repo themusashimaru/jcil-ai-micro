@@ -11,7 +11,6 @@
 
 import { useState, useEffect } from 'react';
 import { useUserProfile, type UserProfile } from '@/contexts/UserProfileContext';
-import { useRouter } from 'next/navigation';
 
 interface UserProfileModalProps {
   isOpen: boolean;
