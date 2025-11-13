@@ -12,7 +12,7 @@
 import { useState, useEffect } from 'react';
 import { useUserProfile, type UserProfile } from '@/contexts/UserProfileContext';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserClient } from '@/lib/supabase/client';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -48,7 +48,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      const supabase = createClient();
+      const supabase = createBrowserClient();
       await supabase.auth.signOut();
       // Redirect to login page
       router.push('/login');
