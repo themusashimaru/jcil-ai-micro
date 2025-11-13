@@ -104,6 +104,7 @@ export function ChatClient() {
         const response = await fetch('/api/conversations');
         if (response.ok) {
           const data = await response.json();
+          console.log('Loaded conversations from database:', data.conversations.length);
           const formattedChats: Chat[] = data.conversations.map((conv: {
             id: string;
             title: string;
@@ -121,6 +122,9 @@ export function ChatClient() {
             updatedAt: new Date(conv.updated_at),
           }));
           setChats(formattedChats);
+        } else {
+          const errorData = await response.json();
+          console.error('Failed to load conversations:', errorData);
         }
       } catch (error) {
         console.error('Error loading conversations:', error);
@@ -363,7 +367,7 @@ export function ChatClient() {
     attachmentUrls?: string[]
   ) => {
     try {
-      await fetch(`/api/conversations/${conversationId}/messages`, {
+      const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -374,6 +378,15 @@ export function ChatClient() {
           attachment_urls: attachmentUrls,
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to save message:', errorData);
+        throw new Error(errorData.error || 'Failed to save message');
+      }
+
+      const data = await response.json();
+      console.log('Message saved:', data);
     } catch (error) {
       console.error('Error saving message to database:', error);
     }
@@ -386,7 +399,7 @@ export function ChatClient() {
     toolContext?: string
   ) => {
     try {
-      await fetch('/api/conversations', {
+      const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -395,6 +408,15 @@ export function ChatClient() {
           tool_context: toolContext || 'general',
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to create conversation:', errorData);
+        throw new Error(errorData.error || 'Failed to create conversation');
+      }
+
+      const data = await response.json();
+      console.log('Conversation created:', data);
     } catch (error) {
       console.error('Error creating conversation in database:', error);
     }
