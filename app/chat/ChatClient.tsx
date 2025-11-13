@@ -135,16 +135,8 @@ export function ChatClient() {
   }, []);
 
   const handleNewChat = () => {
-    const newChat: Chat = {
-      id: Date.now().toString(),
-      title: 'New Chat',
-      isPinned: false,
-      lastMessage: '',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setChats([newChat, ...chats]);
-    setCurrentChatId(newChat.id);
+    // Clear current chat to force creation of new one on first message
+    setCurrentChatId(null);
     setMessages([]);
     // Auto-close sidebar on mobile after creating new chat
     if (window.innerWidth < 768) {

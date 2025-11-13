@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
       : '';
 
     if (lastUserContent && isAskingAboutHistory(lastUserContent)) {
+      console.log('🔍 User is asking about conversation history:', lastUserContent);
       try {
         // Get authenticated Supabase client
         const cookieStore = await cookies();
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
 
         // Get authenticated user
         const { data: { user } } = await supabase.auth.getUser();
+        console.log('👤 User authenticated:', !!user);
 
         if (user) {
           // Fetch recent conversations (exclude current conversation)
@@ -172,6 +174,7 @@ export async function POST(request: NextRequest) {
           }
 
           const { data: conversations } = await query;
+          console.log('💬 Found conversations:', conversations?.length || 0);
 
           if (conversations && conversations.length > 0) {
             // Fetch messages for each conversation
@@ -207,10 +210,15 @@ export async function POST(request: NextRequest) {
               .join('\n\n---\n\n');
 
             conversationHistory += '\n\n=== END OF PREVIOUS CONVERSATIONS ===\n';
+            console.log('✅ Added conversation history to context');
+          } else {
+            console.log('⚠️ No conversations found to add to history');
           }
+        } else {
+          console.log('⚠️ User not authenticated, cannot fetch history');
         }
       } catch (error) {
-        console.error('Error fetching conversation history:', error);
+        console.error('❌ Error fetching conversation history:', error);
         // Continue without history if there's an error
       }
     }
