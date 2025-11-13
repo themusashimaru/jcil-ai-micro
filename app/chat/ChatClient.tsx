@@ -760,7 +760,8 @@ export function ChatClient() {
             const updated = prevChats.map((chat) =>
               chat.id === tempId ? { ...chat, id: dbConversationId } : chat
             );
-            console.log('[ChatClient] Updated chats array with UUID:', updated[0]?.id);
+            const updatedChat = updated.find(c => c.id === dbConversationId);
+            console.log('[ChatClient] Updated chats array - found chat with new UUID:', updatedChat?.id, 'title:', updatedChat?.title);
             return updated;
           });
         }
