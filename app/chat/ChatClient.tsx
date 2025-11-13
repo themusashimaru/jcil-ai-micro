@@ -97,29 +97,37 @@ export function ChatClient() {
     };
   }, []);
 
-  // Mock data for development
+  // Load conversations from database
   useEffect(() => {
-    // TODO: Fetch real chats from API
-    setChats([
-      {
-        id: '1',
-        title: 'Welcome to Delta-2',
-        summary: 'Getting started with AI chat',
-        isPinned: true,
-        lastMessage: 'Hello! How can I help you today?',
-        createdAt: new Date(Date.now() - 86400000),
-        updatedAt: new Date(Date.now() - 3600000),
-      },
-      {
-        id: '2',
-        title: 'Email Draft Help',
-        folder: 'Work',
-        isPinned: false,
-        lastMessage: 'I can help you write professional emails',
-        createdAt: new Date(Date.now() - 172800000),
-        updatedAt: new Date(Date.now() - 7200000),
-      },
-    ]);
+    const loadConversations = async () => {
+      try {
+        const response = await fetch('/api/conversations');
+        if (response.ok) {
+          const data = await response.json();
+          const formattedChats: Chat[] = data.conversations.map((conv: {
+            id: string;
+            title: string;
+            summary: string | null;
+            tool_context: string | null;
+            created_at: string;
+            updated_at: string;
+          }) => ({
+            id: conv.id,
+            title: conv.title,
+            summary: conv.summary || undefined,
+            isPinned: false, // TODO: Add isPinned to database schema
+            lastMessage: '', // We'll update this if needed
+            createdAt: new Date(conv.created_at),
+            updatedAt: new Date(conv.updated_at),
+          }));
+          setChats(formattedChats);
+        }
+      } catch (error) {
+        console.error('Error loading conversations:', error);
+      }
+    };
+
+    loadConversations();
   }, []);
 
   const handleNewChat = () => {
@@ -140,21 +148,45 @@ export function ChatClient() {
     }
   };
 
-  const handleSelectChat = (chatId: string) => {
+  const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
     // Auto-close sidebar on mobile after selecting chat
     if (window.innerWidth < 768) {
       setSidebarCollapsed(true);
     }
-    // TODO: Load messages from API
-    setMessages([
-      {
-        id: '1',
-        role: 'assistant',
-        content: 'Hello! How can I help you today?',
-        timestamp: new Date(),
-      },
-    ]);
+
+    // Load messages from API
+    try {
+      const response = await fetch(`/api/conversations/${chatId}/messages`);
+      if (response.ok) {
+        const data = await response.json();
+        const formattedMessages: Message[] = data.messages.map((msg: {
+          id: string;
+          role: 'user' | 'assistant' | 'system';
+          content: string;
+          content_type: string;
+          attachment_urls: string[] | null;
+          created_at: string;
+        }) => {
+          // Check if there are any image attachments
+          const imageUrl = msg.attachment_urls && msg.attachment_urls.length > 0
+            ? msg.attachment_urls[0]
+            : undefined;
+
+          return {
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            imageUrl,
+            timestamp: new Date(msg.created_at),
+          };
+        });
+        setMessages(formattedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      setMessages([]);
+    }
   };
 
   const handleRenameChat = (chatId: string, newTitle: string) => {
@@ -321,6 +353,53 @@ export function ChatClient() {
     return null;
   };
 
+  // Helper function to save message to database
+  const saveMessageToDatabase = async (
+    conversationId: string,
+    role: 'user' | 'assistant' | 'system',
+    content: string,
+    contentType: 'text' | 'image' | 'code' | 'error' = 'text',
+    imageUrl?: string,
+    attachmentUrls?: string[]
+  ) => {
+    try {
+      await fetch(`/api/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role,
+          content,
+          content_type: contentType,
+          image_url: imageUrl,
+          attachment_urls: attachmentUrls,
+        }),
+      });
+    } catch (error) {
+      console.error('Error saving message to database:', error);
+    }
+  };
+
+  // Helper function to create conversation in database
+  const createConversationInDatabase = async (
+    chatId: string,
+    title: string,
+    toolContext?: string
+  ) => {
+    try {
+      await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: chatId,
+          title,
+          tool_context: toolContext || 'general',
+        }),
+      });
+    } catch (error) {
+      console.error('Error creating conversation in database:', error);
+    }
+  };
+
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
     if (!content.trim() && attachments.length === 0) return;
 
@@ -331,6 +410,7 @@ export function ChatClient() {
 
       // Auto-create chat if none exists (important for first-time tool use)
       let chatId = currentChatId;
+      const isNewChat = !currentChatId;
       if (!currentChatId) {
         chatId = Date.now().toString();
         const newChat: Chat = {
@@ -343,6 +423,13 @@ export function ChatClient() {
         };
         setChats([newChat, ...chats]);
         setCurrentChatId(chatId);
+
+        // Create conversation in database
+        await createConversationInDatabase(
+          chatId,
+          'New Chat',
+          toolType
+        );
       }
 
       // Add user message to chat first
@@ -362,6 +449,9 @@ export function ChatClient() {
       };
       setMessages((prev) => [...prev, userMessage]);
       setIsStreaming(true);
+
+      // Save user message to database
+      await saveMessageToDatabase(chatId, 'user', content, 'text');
 
       if (toolType === 'image') {
         // Image generation
@@ -390,6 +480,53 @@ export function ChatClient() {
               timestamp: new Date(),
             };
             setMessages((prev) => [...prev, imageMessage]);
+
+            // Save assistant message to database
+            await saveMessageToDatabase(
+              chatId,
+              'assistant',
+              imageMessage.content,
+              'image',
+              data.url
+            );
+
+            // Generate title for new chats
+            if (isNewChat) {
+              try {
+                const titleResponse = await fetch('/api/chat/generate-title', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userMessage: content,
+                    assistantMessage: imageMessage.content,
+                  }),
+                });
+
+                if (titleResponse.ok) {
+                  const titleData = await titleResponse.json();
+                  const generatedTitle = titleData.title || 'Image Generation';
+
+                  // Update chat title in sidebar
+                  setChats((prevChats) =>
+                    prevChats.map((chat) =>
+                      chat.id === chatId ? { ...chat, title: generatedTitle } : chat
+                    )
+                  );
+
+                  // Update title in database
+                  await fetch('/api/conversations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      id: chatId,
+                      title: generatedTitle,
+                    }),
+                  });
+                }
+              } catch (titleError) {
+                console.error('Title generation error:', titleError);
+              }
+            }
           } else {
             // Handle case where no URL was returned
             throw new Error(data.error || 'No image URL returned from API');
@@ -403,6 +540,9 @@ export function ChatClient() {
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, errorMsg]);
+
+          // Save error message to database
+          await saveMessageToDatabase(chatId, 'assistant', errorMsg.content, 'error');
         } finally {
           setIsStreaming(false);
         }
@@ -520,6 +660,9 @@ export function ChatClient() {
       };
       setChats([newChat, ...chats]);
       setCurrentChatId(newChatId);
+
+      // Create conversation in database
+      await createConversationInDatabase(newChatId, 'New Chat', 'general');
     }
 
     const userMessage: Message = {
@@ -532,6 +675,19 @@ export function ChatClient() {
 
     setMessages([...messages, userMessage]);
     setIsStreaming(true);
+
+    // Save user message to database
+    const attachmentUrls = attachments
+      .filter(att => att.url)
+      .map(att => att.url!);
+    await saveMessageToDatabase(
+      newChatId,
+      'user',
+      content,
+      'text',
+      undefined,
+      attachmentUrls.length > 0 ? attachmentUrls : undefined
+    );
 
     try {
       // Format messages for API (handle text + image attachments)
@@ -633,6 +789,9 @@ export function ChatClient() {
       setMessages((prev) => [...prev, assistantMessage]);
       setIsStreaming(false);
 
+      // Save assistant message to database
+      await saveMessageToDatabase(newChatId, 'assistant', data.content, 'text');
+
       // Generate chat title for new chats
       if (isNewChat && newChatId) {
         try {
@@ -649,12 +808,22 @@ export function ChatClient() {
             const titleData = await titleResponse.json();
             const generatedTitle = titleData.title || 'New Chat';
 
-            // Update chat title
+            // Update chat title in sidebar
             setChats((prevChats) =>
               prevChats.map((chat) =>
                 chat.id === newChatId ? { ...chat, title: generatedTitle } : chat
               )
             );
+
+            // Update title in database
+            await fetch('/api/conversations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: newChatId,
+                title: generatedTitle,
+              }),
+            });
           }
         } catch (titleError) {
           console.error('Title generation error:', titleError);
@@ -674,6 +843,9 @@ export function ChatClient() {
 
       setMessages((prev) => [...prev, errorMessage]);
       setIsStreaming(false);
+
+      // Save error message to database
+      await saveMessageToDatabase(newChatId, 'assistant', errorMessage.content, 'error');
     }
   };
 
