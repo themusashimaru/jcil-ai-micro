@@ -11,9 +11,12 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const cookieStore = await cookies();
+
+    console.log('[API] Starting logout process...');
+    console.log('[API] Current cookies:', cookieStore.getAll().map(c => c.name));
 
     // Create Supabase client with SSR cookie handling
     const supabase = createServerClient(
@@ -25,13 +28,10 @@ export async function POST(request: NextRequest) {
             return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // Silently handle cookie errors
-            }
+            cookiesToSet.forEach(({ name, value, options }) => {
+              console.log('[API] Setting cookie:', name, 'value:', value ? 'present' : 'empty');
+              cookieStore.set(name, value, options);
+            });
           },
         },
       }
@@ -40,15 +40,32 @@ export async function POST(request: NextRequest) {
     // Sign out from Supabase (clears session and cookies)
     const { error } = await supabase.auth.signOut();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[API] Supabase signout error:', error);
+      throw error;
+    }
 
-    // Redirect to login page
-    const requestUrl = new URL(request.url);
-    return NextResponse.redirect(new URL('/login', requestUrl.origin), {
-      status: 302,
+    console.log('[API] Supabase signOut() completed');
+
+    // MANUALLY delete ALL Supabase auth cookies to ensure they're cleared
+    const allCookies = cookieStore.getAll();
+    console.log('[API] Manually deleting cookies...');
+
+    allCookies.forEach((cookie) => {
+      // Delete any cookie that starts with 'sb-' (Supabase cookies)
+      if (cookie.name.startsWith('sb-')) {
+        console.log('[API] Deleting cookie:', cookie.name);
+        cookieStore.delete(cookie.name);
+      }
     });
+
+    console.log('[API] User signed out successfully');
+    console.log('[API] Remaining cookies:', cookieStore.getAll().map(c => c.name));
+
+    // Return success - let client handle redirect
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error('Signout error:', error);
+    console.error('[API] Signout error:', error);
     return NextResponse.json(
       { error: 'Failed to sign out' },
       { status: 500 }

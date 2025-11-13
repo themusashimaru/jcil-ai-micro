@@ -20,7 +20,13 @@ export async function POST(request: NextRequest) {
     const body: GenerateTitleRequest = await request.json();
     const { userMessage, assistantMessage } = body;
 
+    console.log('[API] Generate title request:', {
+      userMessage: userMessage?.slice(0, 100),
+      assistantMessage: assistantMessage?.slice(0, 100),
+    });
+
     if (!userMessage) {
+      console.error('[API] No user message provided for title generation');
       return new Response(
         JSON.stringify({ error: 'User message is required' }),
         {
@@ -31,6 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate a concise title using AI
+    console.log('[API] Calling AI to generate title...');
     const result = await createChatCompletion({
       messages: [
         {
@@ -55,6 +62,7 @@ Rules:
 
     // Extract the title and clean it up
     let title = result.text.trim();
+    console.log('[API] Raw AI-generated title:', title);
 
     // Remove quotes if present
     title = title.replace(/^["']|["']$/g, '');
@@ -67,6 +75,8 @@ Rules:
       title = title.slice(0, 47) + '...';
     }
 
+    console.log('[API] Final cleaned title:', title);
+
     return new Response(
       JSON.stringify({ title }),
       {
@@ -75,7 +85,7 @@ Rules:
       }
     );
   } catch (error) {
-    console.error('Title generation error:', error);
+    console.error('[API] Title generation error:', error);
 
     return new Response(
       JSON.stringify({

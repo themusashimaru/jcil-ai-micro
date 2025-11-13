@@ -11,8 +11,6 @@
 
 import { useState, useEffect } from 'react';
 import { useUserProfile, type UserProfile } from '@/contexts/UserProfileContext';
-import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@/lib/supabase/client';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -24,7 +22,6 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const [formData, setFormData] = useState<UserProfile>(profile);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const router = useRouter();
 
   // Update form when profile changes
   useEffect(() => {
@@ -48,13 +45,23 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      const supabase = createBrowserClient();
-      await supabase.auth.signOut();
-      // Redirect to login page
-      router.push('/login');
+      console.log('[ProfileModal] Calling logout API...');
+      // Call the API route to handle logout with proper cookie management
+      const response = await fetch('/api/auth/signout', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+
+      console.log('[ProfileModal] Logout successful, redirecting...');
+      // Force a hard redirect to clear all state
+      window.location.href = '/login';
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('[ProfileModal] Logout error:', error);
       setIsLoggingOut(false);
+      alert('Failed to logout. Please try again.');
     }
   };
 

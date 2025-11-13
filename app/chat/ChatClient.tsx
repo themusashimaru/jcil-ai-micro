@@ -101,9 +101,17 @@ export function ChatClient() {
   useEffect(() => {
     const loadConversations = async () => {
       try {
+        console.log('[ChatClient] Loading conversations from API...');
         const response = await fetch('/api/conversations');
+        console.log('[ChatClient] API response status:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('[ChatClient] Loaded conversations from DB:', {
+            count: data.conversations?.length || 0,
+            conversations: data.conversations,
+          });
+
           const formattedChats: Chat[] = data.conversations.map((conv: {
             id: string;
             title: string;
@@ -121,9 +129,12 @@ export function ChatClient() {
             updatedAt: new Date(conv.updated_at),
           }));
           setChats(formattedChats);
+          console.log('[ChatClient] Set chats state with', formattedChats.length, 'conversations');
+        } else {
+          console.error('[ChatClient] Failed to load conversations:', response.statusText);
         }
       } catch (error) {
-        console.error('Error loading conversations:', error);
+        console.error('[ChatClient] Error loading conversations:', error);
       }
     };
 
@@ -146,7 +157,16 @@ export function ChatClient() {
 
     // Create conversation in database immediately
     try {
-      await createConversationInDatabase(newChatId, 'New Chat', 'general');
+      const dbConversationId = await createConversationInDatabase('New Chat', 'general');
+      // Update to use the database-generated UUID
+      if (dbConversationId && typeof dbConversationId === 'string') {
+        setCurrentChatId(dbConversationId);
+        setChats((prevChats) =>
+          prevChats.map((chat) =>
+            chat.id === newChatId ? { ...chat, id: dbConversationId } : chat
+          )
+        );
+      }
     } catch (error) {
       console.error('Failed to create conversation:', error);
       // Keep the local chat even if DB creation fails
@@ -283,7 +303,7 @@ export function ChatClient() {
     setMessages((prev) => [...prev, userMessage, searchMessage]);
   };
 
-  const handleDataAnalysisComplete = (response: string, source: string, type: 'file' | 'url') => {
+  const handleDataAnalysisComplete = async (response: string, source: string, type: 'file' | 'url') => {
     const timestamp = new Date();
 
     const userMessage: Message = {
@@ -316,6 +336,26 @@ export function ChatClient() {
       setChats((prevChats) => [newChat, ...prevChats]);
       setCurrentChatId(newChatId);
       setMessages([userMessage, analysisMessage]);
+
+      // Create conversation in database
+      try {
+        const dbConversationId = await createConversationInDatabase(
+          `Data Analysis: ${source}`.slice(0, 40),
+          'data'
+        );
+        // Update to use the database-generated UUID
+        if (dbConversationId && typeof dbConversationId === 'string') {
+          setCurrentChatId(dbConversationId);
+          setChats((prevChats) =>
+            prevChats.map((chat) =>
+              chat.id === newChatId ? { ...chat, id: dbConversationId } : chat
+            )
+          );
+        }
+      } catch (error) {
+        console.error('Failed to create conversation for data analysis:', error);
+      }
+
       return;
     }
 
@@ -392,29 +432,41 @@ export function ChatClient() {
 
   // Helper function to create conversation in database
   const createConversationInDatabase = async (
-    chatId: string,
     title: string,
     toolContext?: string
   ) => {
     try {
+      console.log('[ChatClient] Creating conversation in DB:', { title, toolContext });
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: chatId,
+          // Don't pass id - let the API generate it, then we'll get it back
           title,
           tool_context: toolContext || 'general',
         }),
       });
 
+      console.log('[ChatClient] Conversation API response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('[ChatClient] Conversation creation failed:', errorData);
         throw new Error(`Failed to create conversation: ${errorData.error || response.statusText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('[ChatClient] Conversation API result:', result);
+
+      // Return the database-generated UUID (don't update state here - let caller handle it)
+      if (result.conversation && result.conversation.id) {
+        console.log('[ChatClient] Returning conversation ID:', result.conversation.id);
+        return result.conversation.id;
+      }
+
+      throw new Error('No conversation ID returned from API');
     } catch (error) {
-      console.error('Error creating conversation in database:', error);
+      console.error('[ChatClient] Error creating conversation in database:', error);
       throw error; // Re-throw to let caller handle it
     }
   };
@@ -428,7 +480,6 @@ export function ChatClient() {
       setSelectedTool(null); // Clear selection
 
       // Auto-create chat if none exists (important for first-time tool use)
-      const isNewChat = !currentChatId;
       let chatId: string;
 
       if (!currentChatId) {
@@ -446,11 +497,20 @@ export function ChatClient() {
 
         // Create conversation in database
         try {
-          await createConversationInDatabase(
-            chatId,
+          const dbConversationId = await createConversationInDatabase(
             'New Chat',
             toolType
           );
+          // Update chatId to use the database-generated UUID
+          if (dbConversationId && typeof dbConversationId === 'string') {
+            chatId = dbConversationId;
+            setCurrentChatId(dbConversationId);
+            setChats((prevChats) =>
+              prevChats.map((chat) =>
+                chat.id !== dbConversationId ? chat : { ...chat, id: dbConversationId }
+              )
+            );
+          }
         } catch (error) {
           console.error('Failed to create conversation for tool:', error);
           // Continue anyway - conversation will be created when message is saved
@@ -517,8 +577,15 @@ export function ChatClient() {
               data.url
             );
 
-            // Generate title for new chats
-            if (isNewChat) {
+            // Generate title for conversations that still have "New Chat" as title
+            let shouldGenerateTitleForImage = false;
+            setChats((prevChats) => {
+              const currentChatForImage = prevChats.find(c => c.id === chatId);
+              shouldGenerateTitleForImage = !currentChatForImage || currentChatForImage.title === 'New Chat';
+              return prevChats; // No changes, just checking
+            });
+
+            if (shouldGenerateTitleForImage) {
               try {
                 const titleResponse = await fetch('/api/chat/generate-title', {
                   method: 'POST',
@@ -670,8 +737,6 @@ export function ChatClient() {
       }
     }
 
-    // Track if this is a new chat (for title generation)
-    const isNewChat = !currentChatId;
     let newChatId: string;
 
     // Auto-create chat if none exists
@@ -690,7 +755,22 @@ export function ChatClient() {
 
       // Create conversation in database
       try {
-        await createConversationInDatabase(newChatId, 'New Chat', 'general');
+        const tempId = newChatId; // Store temp ID before reassignment
+        const dbConversationId = await createConversationInDatabase('New Chat', 'general');
+        console.log('[ChatClient] Created conversation:', { tempId, dbId: dbConversationId });
+        // Update newChatId to use the database-generated UUID
+        if (dbConversationId && typeof dbConversationId === 'string') {
+          newChatId = dbConversationId;
+          setCurrentChatId(dbConversationId);
+          setChats((prevChats) => {
+            const updated = prevChats.map((chat) =>
+              chat.id === tempId ? { ...chat, id: dbConversationId } : chat
+            );
+            const updatedChat = updated.find(c => c.id === dbConversationId);
+            console.log('[ChatClient] Updated chats array - found chat with new UUID:', updatedChat?.id, 'title:', updatedChat?.title);
+            return updated;
+          });
+        }
       } catch (error) {
         console.error('Failed to create conversation:', error);
         // Continue anyway - conversation will be created on retry
@@ -827,9 +907,24 @@ export function ChatClient() {
       // Save assistant message to database
       await saveMessageToDatabase(newChatId, 'assistant', data.content, 'text');
 
-      // Generate chat title for new chats
-      if (isNewChat && newChatId) {
+      // Generate chat title for new conversations
+      // Check if this is the first message exchange (we had 0 messages before adding user+assistant)
+      const isNewConversation = messages.length === 0;
+
+      console.log('[ChatClient] Title generation check:', {
+        isNewConversation,
+        messageCount: messages.length,
+        newChatId
+      });
+
+      if (isNewConversation && newChatId) {
+        console.log('[ChatClient] STARTING title generation for new conversation:', newChatId);
         try {
+          console.log('[ChatClient] Calling /api/chat/generate-title with:', {
+            userMessage: content,
+            assistantMessage: data.content?.slice(0, 100)
+          });
+
           const titleResponse = await fetch('/api/chat/generate-title', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -839,9 +934,12 @@ export function ChatClient() {
             }),
           });
 
+          console.log('[ChatClient] Title API response status:', titleResponse.status);
+
           if (titleResponse.ok) {
             const titleData = await titleResponse.json();
             const generatedTitle = titleData.title || 'New Chat';
+            console.log('[ChatClient] Generated title:', generatedTitle, 'for chat ID:', newChatId);
 
             // Update chat title in sidebar
             setChats((prevChats) =>
@@ -851,7 +949,8 @@ export function ChatClient() {
             );
 
             // Update title in database
-            await fetch('/api/conversations', {
+            console.log('[ChatClient] Updating title in DB with ID:', newChatId);
+            const updateResponse = await fetch('/api/conversations', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -859,11 +958,20 @@ export function ChatClient() {
                 title: generatedTitle,
               }),
             });
+            const updateResult = await updateResponse.json();
+            console.log('[ChatClient] Title update result:', updateResult);
+          } else {
+            const errorData = await titleResponse.json();
+            console.error('[ChatClient] Title generation failed:', titleResponse.status, errorData);
           }
         } catch (titleError) {
-          console.error('Title generation error:', titleError);
-          // Continue silently if title generation fails
+          console.error('[ChatClient] Title generation error:', titleError);
+          if (titleError instanceof Error) {
+            console.error('[ChatClient] Error details:', titleError.message, titleError.stack);
+          }
         }
+      } else {
+        console.log('[ChatClient] Skipping title generation - existing conversation');
       }
     } catch (error) {
       console.error('Chat API error:', error);
