@@ -89,18 +89,24 @@ export async function POST(request: NextRequest) {
       error: authError,
     } = await supabase.auth.getUser();
 
+    console.log('[Admin Settings] Auth check:', { user: user?.id, authError });
+
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.log('[Admin Settings] Not authenticated');
+      return NextResponse.json({ error: 'Unauthorized - Not logged in' }, { status: 401 });
     }
 
     // Check if user is admin
-    const { data: userData } = await supabase
+    const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('is_admin')
+      .select('is_admin, email')
       .eq('id', user.id)
       .single();
 
+    console.log('[Admin Settings] User lookup:', { userData, userError });
+
     if (!userData?.is_admin) {
+      console.log('[Admin Settings] User not admin');
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
