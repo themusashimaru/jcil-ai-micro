@@ -142,7 +142,7 @@ export default function PricingSection() {
       tier: 'basic' as PricingTier,
       title: 'Basic',
       description: 'For regular users',
-      price: 10,
+      price: 12,
       features: ['100 messages per day', 'Enhanced AI responses', 'Priority support'],
     },
     {

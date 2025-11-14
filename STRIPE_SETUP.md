@@ -24,14 +24,14 @@ This guide will help you configure Stripe for subscription payments on JCIL.AI.
 
 ## Step 2: Create Products and Prices
 
-### Basic Tier - $10/month
+### Basic Tier - $12/month
 1. Go to https://dashboard.stripe.com/products
 2. Click **"+ Add product"**
 3. Configure:
    - **Name:** JCIL.AI Basic
    - **Description:** 100 messages per day, enhanced AI responses, priority support
    - **Pricing:** Recurring
-   - **Price:** $10.00 USD
+   - **Price:** $12.00 USD
    - **Billing period:** Monthly
 4. Click **"Save product"**
 5. **Copy the Price ID** (starts with `price_...`)
