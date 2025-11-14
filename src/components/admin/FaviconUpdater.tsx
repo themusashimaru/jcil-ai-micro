@@ -9,13 +9,13 @@ import { useEffect } from 'react';
 
 export function FaviconUpdater() {
   useEffect(() => {
-    const loadFavicon = () => {
+    const loadFavicon = async () => {
       try {
-        const savedSettings = localStorage.getItem('admin_design_settings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
-          if (settings.favicon) {
-            updateFavicon(settings.favicon);
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.settings && data.settings.favicon) {
+            updateFavicon(data.settings.favicon);
           }
         }
       } catch (error) {

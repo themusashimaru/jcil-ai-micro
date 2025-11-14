@@ -32,33 +32,13 @@ async function getSupabaseClient() {
   );
 }
 
-// GET - Load current branding settings
+// GET - Load current branding settings (PUBLIC - no auth required)
 export async function GET() {
   try {
     const supabase = await getSupabaseClient();
 
-    // Check authentication and admin status
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is admin
-    const { data: userData } = await supabase
-      .from('users')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!userData?.is_admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
-
     // Fetch branding settings (should only be one row)
+    // No auth required - everyone can see the branding
     const { data: settings, error } = await supabase
       .from('branding_settings')
       .select('*')
@@ -67,7 +47,18 @@ export async function GET() {
 
     if (error) {
       console.error('[Admin Settings] Error fetching settings:', error);
-      return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 });
+      // Return default settings if database fetch fails
+      return NextResponse.json({
+        success: true,
+        settings: {
+          main_logo: '/images/logo.png',
+          header_logo: '',
+          login_logo: '',
+          favicon: '',
+          site_name: 'JCIL.AI',
+          subtitle: 'Faith-based AI tools for your everyday needs',
+        },
+      });
     }
 
     return NextResponse.json({

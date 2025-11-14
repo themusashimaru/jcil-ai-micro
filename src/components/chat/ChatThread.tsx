@@ -41,18 +41,20 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const { profile, hasProfile } = useUserProfile();
 
-  // Load design settings from localStorage
+  // Load design settings from database
   const [mainLogo, setMainLogo] = useState<string>('/images/logo.png');
   const [subtitle, setSubtitle] = useState<string>('Faith-based AI tools for your everyday needs');
 
   useEffect(() => {
-    const loadSettings = () => {
+    const loadSettings = async () => {
       try {
-        const savedSettings = localStorage.getItem('admin_design_settings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
-          if (settings.mainLogo) setMainLogo(settings.mainLogo);
-          if (settings.subtitle) setSubtitle(settings.subtitle);
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.settings) {
+            if (data.settings.main_logo) setMainLogo(data.settings.main_logo);
+            if (data.settings.subtitle) setSubtitle(data.settings.subtitle);
+          }
         }
       } catch (error) {
         console.error('Failed to load design settings:', error);
