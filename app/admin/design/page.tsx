@@ -131,7 +131,6 @@ export default function DesignSettings() {
       });
 
       if (response.ok) {
-        const data = await response.json();
         setSaveStatus('Settings saved successfully to database!');
         setTimeout(() => setSaveStatus(''), 5000);
       } else {
