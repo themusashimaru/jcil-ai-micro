@@ -136,24 +136,38 @@ export default function PricingSection() {
       title: 'Free',
       description: 'Get started with basic access',
       price: 0,
-      features: ['10 messages per day', 'Basic AI responses', '6-month data retention'],
+      features: [
+        '10 messages per day',
+        'Basic AI chat',
+        'Standard tools access',
+        '6-month data retention'
+      ],
     },
     {
       tier: 'basic' as PricingTier,
       title: 'Basic',
       description: 'For regular users',
       price: 12,
-      features: ['100 messages per day', 'Enhanced AI responses', 'Priority support'],
+      features: [
+        'Unlimited messaging',
+        'Enhanced AI responses',
+        'Daily devotional tool',
+        'Breaking news tool',
+        'Priority support'
+      ],
     },
     {
       tier: 'pro' as PricingTier,
       title: 'Pro',
       description: 'For power users',
-      price: 20,
+      price: 30,
       features: [
-        '200 messages per day',
+        'Unlimited messaging',
         'Premium AI responses',
-        '5 image generations/day',
+        'All Basic tools',
+        'Image generation tool',
+        'File upload & analysis',
+        'Advanced search',
         'Priority support',
       ],
       popular: true,
@@ -161,13 +175,16 @@ export default function PricingSection() {
     {
       tier: 'executive' as PricingTier,
       title: 'Executive',
-      description: 'Unlimited access',
+      description: 'Complete access',
       price: 150,
       features: [
-        '1,000 messages per day',
+        'Unlimited messaging',
         'Premium AI responses',
-        '10 image generations/day',
+        'All Pro tools & features',
+        'Advanced image generation',
+        'Custom integrations',
         'Dedicated support',
+        'Early access to new tools',
       ],
     },
   ];

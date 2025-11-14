@@ -29,7 +29,7 @@ This guide will help you configure Stripe for subscription payments on JCIL.AI.
 2. Click **"+ Add product"**
 3. Configure:
    - **Name:** JCIL.AI Basic
-   - **Description:** 100 messages per day, enhanced AI responses, priority support
+   - **Description:** Unlimited messaging, enhanced AI, devotional & breaking news tools, priority support
    - **Pricing:** Recurring
    - **Price:** $12.00 USD
    - **Billing period:** Monthly
@@ -40,13 +40,13 @@ This guide will help you configure Stripe for subscription payments on JCIL.AI.
    STRIPE_PRICE_ID_BASIC=price_...
    ```
 
-### Pro Tier - $20/month
+### Pro Tier - $30/month
 1. Click **"+ Add product"**
 2. Configure:
    - **Name:** JCIL.AI Pro
-   - **Description:** 200 messages per day, premium AI, 5 image generations/day
+   - **Description:** Unlimited messaging, premium AI, image generation, file uploads, advanced search
    - **Pricing:** Recurring
-   - **Price:** $20.00 USD
+   - **Price:** $30.00 USD
    - **Billing period:** Monthly
 3. Click **"Save product"**
 4. **Copy the Price ID**
@@ -59,7 +59,7 @@ This guide will help you configure Stripe for subscription payments on JCIL.AI.
 1. Click **"+ Add product"**
 2. Configure:
    - **Name:** JCIL.AI Executive
-   - **Description:** 1,000 messages per day, premium AI, 10 image generations/day, dedicated support
+   - **Description:** Unlimited messaging, premium AI, all tools, advanced image generation, custom integrations, dedicated support
    - **Pricing:** Recurring
    - **Price:** $150.00 USD
    - **Billing period:** Monthly
