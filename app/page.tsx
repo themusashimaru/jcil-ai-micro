@@ -165,6 +165,11 @@ export default function HomePage() {
               <h4 className="mb-4 font-semibold">Company</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
+                  <Link href="/marine-corps" className="hover:text-white">
+                    Ode to the Marine Corps
+                  </Link>
+                </li>
+                <li>
                   <a href="mailto:info@jcil.ai" className="hover:text-white">
                     Contact
                   </a>
