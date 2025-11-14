@@ -29,18 +29,11 @@ ON CONFLICT DO NOTHING;
 -- RLS Policies
 ALTER TABLE public.branding_settings ENABLE ROW LEVEL SECURITY;
 
--- Admin users can read
-CREATE POLICY "Admins can read branding settings"
+-- Anyone can read branding settings (public access)
+CREATE POLICY "Anyone can read branding settings"
     ON public.branding_settings
     FOR SELECT
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.users
-            WHERE users.id = auth.uid()
-            AND users.is_admin = true
-        )
-    );
+    USING (true);
 
 -- Admin users can update
 CREATE POLICY "Admins can update branding settings"
