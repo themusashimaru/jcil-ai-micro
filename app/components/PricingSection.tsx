@@ -78,8 +78,11 @@ export default function PricingSection() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: PricingTier) => {
+    console.log('[PricingSection] Button clicked, tier:', tier);
+
     if (tier === 'free') {
       // Redirect to signup for free tier
+      console.log('[PricingSection] Redirecting to signup...');
       window.location.href = '/signup';
       return;
     }
@@ -87,6 +90,8 @@ export default function PricingSection() {
     try {
       setLoading(true);
       setError(null);
+
+      console.log('[PricingSection] Creating checkout session for tier:', tier);
 
       // Create checkout session
       const response = await fetch('/api/stripe/checkout', {
@@ -97,10 +102,13 @@ export default function PricingSection() {
         body: JSON.stringify({ tier }),
       });
 
+      console.log('[PricingSection] Checkout response status:', response.status);
+
       if (!response.ok) {
         const data = await response.json();
         if (response.status === 401) {
           // User not logged in, redirect to signup
+          console.log('[PricingSection] Not authenticated, redirecting to signup...');
           window.location.href = '/signup';
           return;
         }
@@ -108,8 +116,11 @@ export default function PricingSection() {
       }
 
       const { url } = await response.json();
+      console.log('[PricingSection] Checkout URL:', url);
+
       if (url) {
         // Redirect to Stripe Checkout
+        console.log('[PricingSection] Redirecting to Stripe...');
         window.location.href = url;
       }
     } catch (err) {
