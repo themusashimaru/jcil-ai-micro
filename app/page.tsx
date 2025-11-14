@@ -86,6 +86,38 @@ export default function HomePage() {
       {/* Pricing Section */}
       <PricingSection />
 
+      {/* xAI Partnership Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="glass-morphism mx-auto max-w-4xl rounded-3xl p-12 border border-blue-500/20">
+          <h2 className="mb-6 text-center text-3xl font-bold text-blue-400">
+            A Thank You to Our Technology Partner
+          </h2>
+          <div className="space-y-6 text-lg text-gray-300 leading-relaxed">
+            <p>
+              We are honored to partner with <strong className="text-white">xAI</strong> to power the intelligence
+              behind JCIL.AI. Their cutting-edge technology enables us to deliver thoughtful, nuanced responses
+              that align with our values and mission.
+            </p>
+            <p>
+              What sets xAI apart is their unwavering commitment to <strong className="text-white">freedom of
+              speech</strong> and <strong className="text-white">freedom of religion</strong>. In an era where
+              many technology companies silence certain viewpoints, xAI stands firm in defending the right to
+              express diverse perspectives and uphold deeply-held beliefs.
+            </p>
+            <p>
+              <strong className="text-white">We pledge our commitment:</strong> As long as xAI continues to
+              champion truth, protect religious freedom, and allow us to exercise our Christian values without
+              censorship or compromise, we will proudly utilize their services to serve you.
+            </p>
+            <p className="text-center pt-4">
+              <span className="text-blue-400 font-semibold">
+                Thank you, xAI, for partnering with us and standing for what&apos;s right.
+              </span>
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="glass-morphism mx-auto max-w-3xl rounded-3xl p-12">
