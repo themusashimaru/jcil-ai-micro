@@ -48,7 +48,7 @@ export default function MarineCorpsPage() {
 
             <p>
               I write this with a heart full of gratitude and profound respect. The journey has been
-              tough—there&apos;s no denying that. But it is because of the <strong className="text-white">values
+              tough. There&apos;s no denying that. But it is because of the <strong className="text-white">values
               instilled in me</strong> by the Marine Corps that I stand here today as a man, a father, and
               a follower of Christ.
             </p>
@@ -64,7 +64,7 @@ export default function MarineCorpsPage() {
               As a <strong className="text-white">father</strong>, the lessons learned in the Corps guide me
               every single day. The discipline to wake up and do what needs to be done. The commitment to be
               present and lead my family with purpose. The courage to make hard decisions and stand by them.
-              These weren&apos;t just military lessons—they became the foundation of how I raise my children
+              These weren&apos;t just military lessons. They became the foundation of how I raise my children
               and love my family.
             </p>
 
@@ -78,7 +78,7 @@ export default function MarineCorpsPage() {
             </div>
 
             <p>
-              These values don&apos;t just apply to the battlefield—they apply to life. They apply to my
+              These values don&apos;t just apply to the battlefield. They apply to life. They apply to my
               <strong className="text-white"> walk with Christ</strong>. The discipline to pray daily, to study
               Scripture, to lead my family in faith. The courage to stand for truth in a world that often rejects
               it. The commitment to follow Jesus no matter the cost.
@@ -86,7 +86,7 @@ export default function MarineCorpsPage() {
 
             <p>
               The Marine Corps gave me the framework, and Christ gave me the purpose. Together, they&apos;ve
-              shaped who I am today—a warrior not just in the physical sense, but in the spiritual battle we
+              shaped who I am today. A warrior not just in the physical sense, but in the spiritual battle we
               all face. A leader not just of Marines, but of my household. A man who understands that
               <strong className="text-white"> true leadership means serving others</strong>, just as Christ served us.
             </p>
