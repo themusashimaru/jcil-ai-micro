@@ -23,24 +23,34 @@ export default function DesignSettings() {
   const loginLogoRef = useRef<HTMLInputElement>(null);
   const faviconRef = useRef<HTMLInputElement>(null);
 
-  // Load current settings from localStorage on mount
+  // Load current settings from Supabase on mount
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('admin_design_settings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        setMainLogo(settings.mainLogo || '/images/logo.png');
-        setHeaderLogo(settings.headerLogo || '');
-        setLoginLogo(settings.loginLogo || '');
-        setFavicon(settings.favicon || '');
-        setSiteName(settings.siteName || 'JCIL.ai');
-        setSubtitle(settings.subtitle || 'Faith-based AI tools for your everyday needs');
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/admin/settings');
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.settings) {
+            const s = data.settings;
+            setMainLogo(s.main_logo || '/images/logo.png');
+            setHeaderLogo(s.header_logo || '');
+            setLoginLogo(s.login_logo || '');
+            setFavicon(s.favicon || '');
+            setSiteName(s.site_name || 'JCIL.ai');
+            setSubtitle(s.subtitle || 'Faith-based AI tools for your everyday needs');
+          }
+        } else {
+          console.error('Failed to load settings:', response.status);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    loadSettings();
   }, []);
 
   const handleFileUpload = async (file: File, type: string) => {
@@ -101,30 +111,38 @@ export default function DesignSettings() {
     }
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     setSaveStatus('Saving...');
 
     try {
-      const settings = {
-        mainLogo,
-        headerLogo,
-        loginLogo,
-        favicon,
-        siteName,
-        subtitle,
-      };
+      const response = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mainLogo,
+          headerLogo,
+          loginLogo,
+          favicon,
+          siteName,
+          subtitle,
+        }),
+      });
 
-      // Save to localStorage
-      localStorage.setItem('admin_design_settings', JSON.stringify(settings));
-
-      // Dispatch event to notify other components to reload settings
-      window.dispatchEvent(new Event('design-settings-updated'));
-
-      setSaveStatus('Settings saved successfully! Refresh the page to see changes.');
-      setTimeout(() => setSaveStatus(''), 5000);
+      if (response.ok) {
+        const data = await response.json();
+        setSaveStatus('Settings saved successfully to database!');
+        setTimeout(() => setSaveStatus(''), 5000);
+      } else {
+        const error = await response.json();
+        setSaveStatus(`Failed to save settings: ${error.error || 'Unknown error'}`);
+        setTimeout(() => setSaveStatus(''), 5000);
+      }
     } catch (error) {
       setSaveStatus('Failed to save settings');
       console.error(error);
+      setTimeout(() => setSaveStatus(''), 5000);
     }
   };
 
