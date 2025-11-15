@@ -12,6 +12,25 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loginLogo, setLoginLogo] = useState<string>('/images/logo.png');
+
+  // Load logo from database
+  useEffect(() => {
+    const loadLogo = async () => {
+      try {
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.settings && data.settings.login_logo) {
+            setLoginLogo(data.settings.login_logo);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load logo:', error);
+      }
+    };
+    loadLogo();
+  }, []);
 
   // Check for error in URL params
   useEffect(() => {
@@ -57,6 +76,15 @@ function LoginForm() {
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="glass-morphism rounded-2xl p-8">
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <img
+              src={loginLogo}
+              alt="JCIL.ai"
+              className="h-24 w-auto"
+            />
+          </div>
+
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
