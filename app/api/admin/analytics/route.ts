@@ -111,8 +111,10 @@ export async function GET() {
 
     // Estimate tokens (avg 100 tokens per message)
     const avgTokensPerMessage = 100;
-    tokensByTierResult.data?.forEach((message: { users?: { subscription_tier?: string } }) => {
-      const tier = message.users?.subscription_tier?.toLowerCase() || 'free';
+    tokensByTierResult.data?.forEach((message) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const users = (message as any).users;
+      const tier = (Array.isArray(users) ? users[0]?.subscription_tier : users?.subscription_tier)?.toLowerCase() || 'free';
       if (tier in tokensByTier) {
         tokensByTier[tier as keyof typeof tokensByTier] += avgTokensPerMessage;
       }
