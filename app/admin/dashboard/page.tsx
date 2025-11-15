@@ -29,6 +29,7 @@ interface Analytics {
 export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -38,13 +39,17 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = async (isManualRefresh = false) => {
     try {
-      const response = await fetch('/api/admin/analytics');
+      if (isManualRefresh) setRefreshing(true);
+      const response = await fetch('/api/admin/analytics', {
+        cache: 'no-store', // Ensure fresh data
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
           setAnalytics(data.analytics);
+          setError(''); // Clear any previous errors
         }
       } else {
         setError('Failed to load analytics');
@@ -54,6 +59,7 @@ export default function AdminDashboard() {
       console.error(err);
     } finally {
       setLoading(false);
+      if (isManualRefresh) setRefreshing(false);
     }
   };
 
@@ -90,10 +96,11 @@ export default function AdminDashboard() {
           <p className="text-gray-400 mt-2">Real-time analytics and metrics</p>
         </div>
         <button
-          onClick={loadAnalytics}
-          className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition"
+          onClick={() => loadAnalytics(true)}
+          disabled={refreshing}
+          className={`px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition ${refreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          🔄 Refresh
+          <span className={refreshing ? 'inline-block animate-spin' : ''}>🔄</span> {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 

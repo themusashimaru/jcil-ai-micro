@@ -66,11 +66,10 @@ export async function GET() {
       // Total users
       supabase.from('users').select('id', { count: 'exact', head: true }),
 
-      // Users by subscription tier
+      // Users by subscription tier (get ALL users including free/null)
       supabase
         .from('users')
-        .select('subscription_tier')
-        .not('subscription_tier', 'is', null),
+        .select('subscription_tier'),
 
       // Online users (active in last 15 minutes)
       supabase
@@ -91,8 +90,8 @@ export async function GET() {
     };
 
     usersByTierResult.data?.forEach((user) => {
-      const tier = user.subscription_tier?.toLowerCase();
-      if (tier && tier in tierCounts) {
+      const tier = user.subscription_tier?.toLowerCase() || 'free'; // Default to 'free' if null
+      if (tier in tierCounts) {
         tierCounts[tier as keyof typeof tierCounts]++;
       }
     });
