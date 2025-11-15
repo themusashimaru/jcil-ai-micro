@@ -111,7 +111,7 @@ export async function GET() {
 
     // Estimate tokens (avg 100 tokens per message)
     const avgTokensPerMessage = 100;
-    tokensByTierResult.data?.forEach((message: any) => {
+    tokensByTierResult.data?.forEach((message: { users?: { subscription_tier?: string } }) => {
       const tier = message.users?.subscription_tier?.toLowerCase() || 'free';
       if (tier in tokensByTier) {
         tokensByTier[tier as keyof typeof tokensByTier] += avgTokensPerMessage;
