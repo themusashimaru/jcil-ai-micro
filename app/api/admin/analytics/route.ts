@@ -97,10 +97,10 @@ export async function GET() {
       }
     });
 
-    // Get token usage by tier (approximate from message counts)
+    // Get actual token usage by tier from database
     const tokensByTierResult = await supabase
       .from('messages')
-      .select('id, users!inner(subscription_tier)');
+      .select('tokens_used, users!inner(subscription_tier)');
 
     const tokensByTier = {
       free: 0,
@@ -109,14 +109,15 @@ export async function GET() {
       executive: 0,
     };
 
-    // Estimate tokens (avg 100 tokens per message)
-    const avgTokensPerMessage = 100;
+    // Sum actual tokens used per tier
     tokensByTierResult.data?.forEach((message) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const users = (message as any).users;
       const tier = (Array.isArray(users) ? users[0]?.subscription_tier : users?.subscription_tier)?.toLowerCase() || 'free';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tokens = (message as any).tokens_used || 0; // Use actual tokens, default to 0 for old messages
       if (tier in tokensByTier) {
-        tokensByTier[tier as keyof typeof tokensByTier] += avgTokensPerMessage;
+        tokensByTier[tier as keyof typeof tokensByTier] += tokens;
       }
     });
 

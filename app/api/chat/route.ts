@@ -122,6 +122,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Get authenticated Supabase client for user tracking and conversation history
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Silently handle cookie errors
+            }
+          },
+        },
+      }
+    );
+
+    // Get authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Update user's last_active_at timestamp for online user tracking
+    if (user) {
+      await supabase
+        .from('users')
+        .update({ last_active_at: new Date().toISOString() })
+        .eq('id', user.id);
+    }
+
     // Check if user is asking about previous conversations
     let conversationHistory = '';
     const lastUserMessage = messages[messages.length - 1];
@@ -131,31 +165,6 @@ export async function POST(request: NextRequest) {
 
     if (lastUserContent && isAskingAboutHistory(lastUserContent)) {
       try {
-        // Get authenticated Supabase client
-        const cookieStore = await cookies();
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              getAll() {
-                return cookieStore.getAll();
-              },
-              setAll(cookiesToSet) {
-                try {
-                  cookiesToSet.forEach(({ name, value, options }) =>
-                    cookieStore.set(name, value, options)
-                  );
-                } catch {
-                  // Silently handle cookie errors
-                }
-              },
-            },
-          }
-        );
-
-        // Get authenticated user
-        const { data: { user } } = await supabase.auth.getUser();
 
         if (user) {
           // Fetch recent conversations (exclude current conversation)
@@ -287,12 +296,13 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = getModelForTool(tool as any);
 
-    // Return JSON response with the text
+    // Return JSON response with the text and token usage
     return new Response(
       JSON.stringify({
         type: 'text',
         content: result.text,
         model,
+        usage: result.usage, // Include actual token usage from xAI
       }),
       {
         status: 200,
