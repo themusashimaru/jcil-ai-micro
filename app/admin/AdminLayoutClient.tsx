@@ -19,11 +19,10 @@ export default function AdminLayoutClient({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const pages = [
-    { name: 'Dashboard', href: '/admin', icon: '📊' },
+    { name: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
     { name: 'Design', href: '/admin/design', icon: '🎨' },
     { name: 'Users', href: '/admin/users', icon: '👥', disabled: true },
     { name: 'Settings', href: '/admin/settings', icon: '⚙️', disabled: true },
-    { name: 'Analytics', href: '/admin/analytics', icon: '📈', disabled: true },
   ];
 
   // Find current page name
