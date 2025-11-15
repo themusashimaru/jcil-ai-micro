@@ -78,8 +78,11 @@ export default function PricingSection() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: PricingTier) => {
+    console.log('[PricingSection] Button clicked, tier:', tier);
+
     if (tier === 'free') {
       // Redirect to signup for free tier
+      console.log('[PricingSection] Redirecting to signup...');
       window.location.href = '/signup';
       return;
     }
@@ -87,6 +90,8 @@ export default function PricingSection() {
     try {
       setLoading(true);
       setError(null);
+
+      console.log('[PricingSection] Creating checkout session for tier:', tier);
 
       // Create checkout session
       const response = await fetch('/api/stripe/checkout', {
@@ -97,10 +102,13 @@ export default function PricingSection() {
         body: JSON.stringify({ tier }),
       });
 
+      console.log('[PricingSection] Checkout response status:', response.status);
+
       if (!response.ok) {
         const data = await response.json();
         if (response.status === 401) {
           // User not logged in, redirect to signup
+          console.log('[PricingSection] Not authenticated, redirecting to signup...');
           window.location.href = '/signup';
           return;
         }
@@ -108,8 +116,11 @@ export default function PricingSection() {
       }
 
       const { url } = await response.json();
+      console.log('[PricingSection] Checkout URL:', url);
+
       if (url) {
         // Redirect to Stripe Checkout
+        console.log('[PricingSection] Redirecting to Stripe...');
         window.location.href = url;
       }
     } catch (err) {
@@ -125,24 +136,38 @@ export default function PricingSection() {
       title: 'Free',
       description: 'Get started with basic access',
       price: 0,
-      features: ['10 messages per day', 'Basic AI responses', '6-month data retention'],
+      features: [
+        '10 messages per day',
+        'Basic AI chat',
+        'Standard tools access',
+        '6-month data retention'
+      ],
     },
     {
       tier: 'basic' as PricingTier,
       title: 'Basic',
       description: 'For regular users',
-      price: 10,
-      features: ['100 messages per day', 'Enhanced AI responses', 'Priority support'],
+      price: 12,
+      features: [
+        'Unlimited messaging',
+        'Enhanced AI responses',
+        'Daily devotional tool',
+        'Breaking news tool',
+        'Priority support'
+      ],
     },
     {
       tier: 'pro' as PricingTier,
       title: 'Pro',
       description: 'For power users',
-      price: 20,
+      price: 30,
       features: [
-        '200 messages per day',
+        'Unlimited messaging',
         'Premium AI responses',
-        '5 image generations/day',
+        'All Basic tools',
+        'Image generation tool',
+        'File upload & analysis',
+        'Advanced search',
         'Priority support',
       ],
       popular: true,
@@ -150,13 +175,16 @@ export default function PricingSection() {
     {
       tier: 'executive' as PricingTier,
       title: 'Executive',
-      description: 'Unlimited access',
+      description: 'Complete access',
       price: 150,
       features: [
-        '1,000 messages per day',
+        'Unlimited messaging',
         'Premium AI responses',
-        '10 image generations/day',
+        'All Pro tools & features',
+        'Advanced image generation',
+        'Custom integrations',
         'Dedicated support',
+        'Early access to new tools',
       ],
     },
   ];
@@ -164,7 +192,14 @@ export default function PricingSection() {
   return (
     <section className="container mx-auto px-4 py-20" id="pricing">
       <h2 className="mb-4 text-center text-4xl font-bold">Simple, Transparent Pricing</h2>
-      <p className="mb-12 text-center text-gray-300">Choose the plan that fits your needs</p>
+      <p className="mb-8 text-center text-gray-300">Choose the plan that fits your needs</p>
+
+      {/* Signup Notice */}
+      <div className="mb-8 mx-auto max-w-3xl rounded-lg bg-blue-900/20 border border-blue-500/30 p-4 text-center">
+        <p className="text-blue-200">
+          <strong>New here?</strong> Create a free account first, then choose your membership tier.
+        </p>
+      </div>
 
       {error && (
         <div className="mb-8 mx-auto max-w-2xl rounded-lg bg-red-900/20 border border-red-500 p-4 text-red-400">

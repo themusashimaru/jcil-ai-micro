@@ -86,6 +86,38 @@ export default function HomePage() {
       {/* Pricing Section */}
       <PricingSection />
 
+      {/* xAI Partnership Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="glass-morphism mx-auto max-w-4xl rounded-3xl p-12 border border-blue-500/20">
+          <h2 className="mb-6 text-center text-3xl font-bold text-blue-400">
+            A Thank You to xAI
+          </h2>
+          <div className="space-y-6 text-lg text-gray-300 leading-relaxed">
+            <p>
+              We are grateful to <strong className="text-white">xAI</strong> for providing the API access
+              that powers the intelligence behind JCIL.AI. Their cutting-edge technology enables us to
+              deliver thoughtful, nuanced responses that align with our values and mission.
+            </p>
+            <p>
+              What sets xAI apart is their unwavering commitment to <strong className="text-white">freedom of
+              speech</strong> and <strong className="text-white">freedom of religion</strong>. In an era where
+              many technology companies silence certain viewpoints, xAI stands firm in defending the right to
+              express diverse perspectives and uphold deeply-held beliefs.
+            </p>
+            <p>
+              <strong className="text-white">Our commitment:</strong> As long as xAI continues to
+              champion truth, protect religious freedom, and allow us to exercise our Christian values without
+              censorship or compromise, we will proudly continue utilizing their API services to serve you.
+            </p>
+            <p className="text-center pt-4">
+              <span className="text-blue-400 font-semibold">
+                Thank you, xAI, for the opportunity to build with your technology and for standing for what&apos;s right.
+              </span>
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="glass-morphism mx-auto max-w-3xl rounded-3xl p-12">
@@ -132,6 +164,11 @@ export default function HomePage() {
             <div>
               <h4 className="mb-4 font-semibold">Company</h4>
               <ul className="space-y-2 text-sm text-gray-400">
+                <li>
+                  <Link href="/marine-corps" className="hover:text-white">
+                    Ode to the Marine Corps
+                  </Link>
+                </li>
                 <li>
                   <a href="mailto:info@jcil.ai" className="hover:text-white">
                     Contact

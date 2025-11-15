@@ -411,7 +411,8 @@ export function ChatClient() {
     content: string,
     contentType: 'text' | 'image' | 'code' | 'error' = 'text',
     imageUrl?: string,
-    attachmentUrls?: string[]
+    attachmentUrls?: string[],
+    tokensUsed?: number
   ) => {
     try {
       await fetch(`/api/conversations/${conversationId}/messages`, {
@@ -423,6 +424,7 @@ export function ChatClient() {
           content_type: contentType,
           image_url: imageUrl,
           attachment_urls: attachmentUrls,
+          tokens_used: tokensUsed,
         }),
       });
     } catch (error) {
@@ -904,8 +906,9 @@ export function ChatClient() {
       setMessages((prev) => [...prev, assistantMessage]);
       setIsStreaming(false);
 
-      // Save assistant message to database
-      await saveMessageToDatabase(newChatId, 'assistant', data.content, 'text');
+      // Save assistant message to database with token usage
+      const tokensUsed = data.usage?.total_tokens || data.usage?.completion_tokens || undefined;
+      await saveMessageToDatabase(newChatId, 'assistant', data.content, 'text', undefined, undefined, tokensUsed);
 
       // Generate chat title for new conversations
       // Check if this is the first message exchange (we had 0 messages before adding user+assistant)
