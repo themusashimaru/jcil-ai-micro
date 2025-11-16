@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signUpWithEmail, signInWithGoogle } from '@/lib/supabase/auth';
@@ -19,6 +19,26 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [loginLogo, setLoginLogo] = useState<string>('');
+  const [siteName, setSiteName] = useState<string>('JCIL.ai');
+
+  // Load design settings from API
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          if (settings.loginLogo) setLoginLogo(settings.loginLogo);
+          if (settings.siteName) setSiteName(settings.siteName);
+        }
+      } catch (error) {
+        console.error('Failed to load design settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
@@ -108,11 +128,21 @@ export default function SignUpPage() {
         <div className="glass-morphism rounded-2xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
+            {/* Logo */}
+            {loginLogo && (
+              <div className="mb-6">
+                <img
+                  src={loginLogo}
+                  alt={siteName}
+                  className="h-24 w-auto mx-auto"
+                />
+              </div>
+            )}
             <h1 className="text-3xl font-bold text-white mb-2">
               Create Account
             </h1>
             <p className="text-gray-400">
-              Join JCIL.ai
+              Join {siteName}
             </p>
           </div>
 

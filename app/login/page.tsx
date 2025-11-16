@@ -12,6 +12,26 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loginLogo, setLoginLogo] = useState<string>('');
+  const [siteName, setSiteName] = useState<string>('JCIL.ai');
+
+  // Load design settings from API
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          if (settings.loginLogo) setLoginLogo(settings.loginLogo);
+          if (settings.siteName) setSiteName(settings.siteName);
+        }
+      } catch (error) {
+        console.error('Failed to load design settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   // Check for error in URL params
   useEffect(() => {
@@ -59,11 +79,21 @@ function LoginForm() {
         <div className="glass-morphism rounded-2xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
+            {/* Logo */}
+            {loginLogo && (
+              <div className="mb-6">
+                <img
+                  src={loginLogo}
+                  alt={siteName}
+                  className="h-24 w-auto mx-auto"
+                />
+              </div>
+            )}
             <h1 className="text-3xl font-bold text-white mb-2">
               Welcome Back
             </h1>
             <p className="text-gray-400">
-              Sign in to JCIL.ai
+              Sign in to {siteName}
             </p>
           </div>
 
