@@ -131,14 +131,14 @@ export default function PricingSection() {
       tier: 'basic' as PricingTier,
       title: 'Basic',
       description: 'For regular users',
-      price: 10,
+      price: 12,
       features: ['100 messages per day', 'Enhanced AI responses', 'Priority support'],
     },
     {
       tier: 'pro' as PricingTier,
       title: 'Pro',
       description: 'For power users',
-      price: 20,
+      price: 30,
       features: [
         '200 messages per day',
         'Premium AI responses',
