@@ -45,16 +45,16 @@ export function ChatClient() {
   // Selected tool (only one can be selected at a time)
   const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
 
-  // Load design settings from localStorage
+  // Load design settings from API
   const [siteName, setSiteName] = useState<string>('JCIL.ai');
   const [headerLogo, setHeaderLogo] = useState<string>('');
 
   useEffect(() => {
-    const loadSettings = () => {
+    const loadSettings = async () => {
       try {
-        const savedSettings = localStorage.getItem('admin_design_settings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
+        const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+          const settings = await response.json();
           if (settings.siteName) setSiteName(settings.siteName);
           if (settings.headerLogo) setHeaderLogo(settings.headerLogo);
         }

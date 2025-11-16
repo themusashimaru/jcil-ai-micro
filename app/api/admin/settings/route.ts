@@ -1,10 +1,11 @@
 /**
  * ADMIN SETTINGS API
- * Handles saving and retrieving design settings using localStorage (client-side)
- * This API exists for compatibility but actual storage is client-side
+ * Handles saving and retrieving design settings from Supabase database
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 interface DesignSettings {
   mainLogo: string;
@@ -24,34 +25,113 @@ const DEFAULT_SETTINGS: DesignSettings = {
   subtitle: 'Faith-based AI tools for your everyday needs',
 };
 
-// GET - Return default settings (actual settings loaded from localStorage on client)
+// GET - Fetch settings from Supabase
 export async function GET() {
-  return NextResponse.json(DEFAULT_SETTINGS);
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Cookie operations may fail
+            }
+          },
+        },
+      }
+    );
+
+    const { data, error } = await supabase
+      .from('settings')
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('Error fetching settings:', error);
+      return NextResponse.json(DEFAULT_SETTINGS);
+    }
+
+    // Map database fields to frontend format
+    const settings: DesignSettings = {
+      mainLogo: data.sidebar_logo || DEFAULT_SETTINGS.mainLogo,
+      headerLogo: data.header_logo || DEFAULT_SETTINGS.headerLogo,
+      loginLogo: data.login_logo || DEFAULT_SETTINGS.loginLogo,
+      favicon: data.favicon || DEFAULT_SETTINGS.favicon,
+      siteName: data.site_name || DEFAULT_SETTINGS.siteName,
+      subtitle: data.site_tagline || DEFAULT_SETTINGS.subtitle,
+    };
+
+    return NextResponse.json(settings);
+  } catch (error) {
+    console.error('Error in GET /api/admin/settings:', error);
+    return NextResponse.json(DEFAULT_SETTINGS);
+  }
 }
 
-// POST - Acknowledge save (actual save happens in localStorage on client)
+// POST - Save settings to Supabase
 export async function POST(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Cookie operations may fail
+            }
+          },
+        },
+      }
+    );
     const body = await request.json();
 
-    // Just validate the structure
-    const settings: DesignSettings = {
-      mainLogo: body.mainLogo || DEFAULT_SETTINGS.mainLogo,
-      headerLogo: body.headerLogo || DEFAULT_SETTINGS.headerLogo,
-      loginLogo: body.loginLogo || DEFAULT_SETTINGS.loginLogo,
-      favicon: body.favicon || DEFAULT_SETTINGS.favicon,
-      siteName: body.siteName || DEFAULT_SETTINGS.siteName,
-      subtitle: body.subtitle || DEFAULT_SETTINGS.subtitle,
-    };
+    // Map frontend format to database fields
+    const { error } = await supabase
+      .from('settings')
+      .update({
+        header_logo: body.headerLogo,
+        sidebar_logo: body.mainLogo,
+        login_logo: body.loginLogo,
+        favicon: body.favicon,
+        site_name: body.siteName,
+        site_tagline: body.subtitle,
+      })
+      .eq('id', '00000000-0000-0000-0000-000000000001');
+
+    if (error) {
+      console.error('Error saving settings:', error);
+      return NextResponse.json(
+        { error: 'Failed to save settings to database' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      settings,
+      message: 'Settings saved successfully',
     });
   } catch (error) {
-    console.error('Error validating settings:', error);
+    console.error('Error in POST /api/admin/settings:', error);
     return NextResponse.json(
-      { error: 'Failed to validate settings' },
+      { error: 'Failed to save settings' },
       { status: 500 }
     );
   }
