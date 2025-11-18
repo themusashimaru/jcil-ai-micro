@@ -45,31 +45,6 @@ export function ChatClient() {
   // Selected tool (only one can be selected at a time)
   const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
 
-  // Load design settings from localStorage
-  const [siteName, setSiteName] = useState<string>('JCIL.ai');
-  const [headerLogo, setHeaderLogo] = useState<string>('');
-
-  useEffect(() => {
-    const loadSettings = () => {
-      try {
-        const savedSettings = localStorage.getItem('admin_design_settings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
-          if (settings.siteName) setSiteName(settings.siteName);
-          if (settings.headerLogo) setHeaderLogo(settings.headerLogo);
-        }
-      } catch (error) {
-        console.error('Failed to load design settings:', error);
-      }
-    };
-
-    loadSettings();
-
-    // Listen for settings updates
-    window.addEventListener('design-settings-updated', loadSettings);
-    return () => window.removeEventListener('design-settings-updated', loadSettings);
-  }, []);
-
   // Detect screen size and set initial sidebar state
   useEffect(() => {
     const handleResize = () => {
@@ -1020,17 +995,10 @@ export function ChatClient() {
             </button>
             {/* Only show logo/site name when a chat is active */}
             {currentChatId && (
-              <>
-                {headerLogo ? (
-                  <img
-                    src={headerLogo}
-                    alt={siteName}
-                    className="h-6 md:h-8 w-auto"
-                  />
-                ) : (
-                  <h1 className="text-base md:text-xl font-semibold">{siteName}</h1>
-                )}
-              </>
+              <h1 className="text-base md:text-xl font-semibold">
+                <span className="text-white">JCIL</span>
+                <span className="text-blue-500">.ai</span>
+              </h1>
             )}
           </div>
 

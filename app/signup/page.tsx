@@ -106,13 +106,21 @@ export default function SignUpPage() {
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="glass-morphism rounded-2xl p-8">
+          {/* Logo */}
+          <div className="text-center mb-6">
+            <h1 className="text-4xl font-bold">
+              <span className="text-white">JCIL</span>
+              <span className="text-blue-500">.ai</span>
+            </h1>
+          </div>
+
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <h2 className="text-3xl font-bold text-white mb-2">
               Create Account
-            </h1>
+            </h2>
             <p className="text-gray-400">
-              Join JCIL.ai
+              Join us today
             </p>
           </div>
 
