@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
 
 -- Insert your admin email
 INSERT INTO public.admin_users (email, user_id)
-VALUES ('m.moser338@gmail.com', NULL)
+VALUES ('the.musashi.maru@gmail.com', NULL)
 ON CONFLICT (email) DO NOTHING;
 
 CREATE INDEX idx_admin_users_email ON public.admin_users(email);
