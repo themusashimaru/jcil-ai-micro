@@ -3,6 +3,7 @@
  *
  * PURPOSE:
  * - User profile and preferences management
+ * - Membership/subscription management
  * - Profile enrichment (education, tone, goals, websites/socials)
  * - Model preferences, safety level, data export/delete
  * - Device/session management with revoke capability
@@ -30,57 +31,127 @@
  * DEPENDENCIES/ENVS:
  * - NEXT_PUBLIC_SUPABASE_URL
  * - NEXT_PUBLIC_SUPABASE_ANON_KEY
- *
- * TODO:
- * - [ ] Build profile enrichment form (education, tone, goals)
- * - [ ] Add websites/social links manager
- * - [ ] Implement model preference selector
- * - [ ] Add safety level slider
- * - [ ] Build data export downloader
- * - [ ] Implement account deletion with confirmation
- * - [ ] Add active sessions list with revoke
- * - [ ] Show subscription tier and upgrade CTA
- * - [ ] Add microphone/location permission manager
- *
- * TEST PLAN:
- * - Verify profile updates save correctly
- * - Test data export generates complete archive
- * - Validate account deletion removes all data
- * - Check session revoke logs out other devices
- * - Test permission revocation
  */
 
+'use client';
+
+import { useState } from 'react';
+import MembershipSection from '@/app/components/MembershipSection';
+import UsageMetricsSection from '@/app/components/UsageMetricsSection';
+
+type TabId = 'membership' | 'usage' | 'preferences' | 'privacy';
+
+interface Tab {
+  id: TabId;
+  label: string;
+  icon: string;
+}
+
+const TABS: Tab[] = [
+  { id: 'membership', label: 'Membership', icon: '💳' },
+  { id: 'usage', label: 'Usage & Metrics', icon: '📊' },
+  { id: 'preferences', label: 'Preferences', icon: '⚙️' },
+  { id: 'privacy', label: 'Data & Privacy', icon: '🔒' },
+];
+
 export default function SettingsPage() {
+  const [activeTab, setActiveTab] = useState<TabId>('membership');
+
   return (
-    <div className="min-h-screen bg-black p-8">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="mb-8 text-3xl font-bold">Settings</h1>
+    <div className="min-h-screen bg-black p-4 md:p-8">
+      <div className="mx-auto max-w-6xl">
+        <h1 className="mb-6 text-3xl font-bold">Settings</h1>
 
+        {/* Tabs Navigation */}
+        <div className="mb-8 flex flex-wrap gap-2 border-b border-white/10">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-6 py-3 font-semibold transition relative ${
+                activeTab === tab.id
+                  ? 'text-blue-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
         <div className="space-y-6">
-          {/* Profile Section */}
-          <section className="glass-morphism rounded-2xl p-6">
-            <h2 className="mb-4 text-xl font-semibold">Profile</h2>
-            <p className="text-gray-400">Profile enrichment form coming soon</p>
-          </section>
-
-          {/* Preferences Section */}
-          <section className="glass-morphism rounded-2xl p-6">
-            <h2 className="mb-4 text-xl font-semibold">Preferences</h2>
-            <p className="text-gray-400">Model and safety preferences coming soon</p>
-          </section>
-
-          {/* Data & Privacy Section */}
-          <section className="glass-morphism rounded-2xl p-6">
-            <h2 className="mb-4 text-xl font-semibold">Data & Privacy</h2>
-            <div className="space-y-4">
-              <button className="rounded-lg bg-white/10 px-4 py-2 hover:bg-white/20">
-                Export My Data
-              </button>
-              <button className="rounded-lg bg-red-600/20 px-4 py-2 text-red-400 hover:bg-red-600/30">
-                Delete Account
-              </button>
+          {activeTab === 'membership' && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">Membership & Billing</h2>
+                <p className="text-gray-400">
+                  Manage your subscription, view current plan, and upgrade or downgrade.
+                </p>
+              </div>
+              <MembershipSection />
             </div>
-          </section>
+          )}
+
+          {activeTab === 'usage' && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">Usage & Metrics</h2>
+                <p className="text-gray-400">
+                  Track your daily message and image usage across all features.
+                </p>
+              </div>
+              <UsageMetricsSection />
+            </div>
+          )}
+
+          {activeTab === 'preferences' && (
+            <section className="glass-morphism rounded-2xl p-6">
+              <h2 className="mb-4 text-xl font-semibold">Preferences</h2>
+              <p className="text-gray-400">Model and safety preferences coming soon</p>
+              <div className="mt-4 space-y-3 text-sm text-gray-500">
+                <p>Future features will include:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>AI model selection</li>
+                  <li>Response tone preferences</li>
+                  <li>Safety and content filtering levels</li>
+                  <li>Language preferences</li>
+                  <li>Notification settings</li>
+                </ul>
+              </div>
+            </section>
+          )}
+
+          {activeTab === 'privacy' && (
+            <section className="glass-morphism rounded-2xl p-6">
+              <h2 className="mb-4 text-xl font-semibold">Data & Privacy</h2>
+              <p className="text-gray-400 mb-6">
+                Manage your data, export conversations, or delete your account.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <button className="rounded-lg bg-white/10 px-6 py-3 font-semibold hover:bg-white/20 transition">
+                    Export My Data
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Download all your conversations and settings as a JSON file
+                  </p>
+                </div>
+                <div>
+                  <button className="rounded-lg bg-red-600/20 px-6 py-3 font-semibold text-red-400 hover:bg-red-600/30 transition">
+                    Delete Account
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Permanently delete your account and all associated data
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>

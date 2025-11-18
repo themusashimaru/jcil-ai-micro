@@ -23,24 +23,28 @@ export default function DesignSettings() {
   const loginLogoRef = useRef<HTMLInputElement>(null);
   const faviconRef = useRef<HTMLInputElement>(null);
 
-  // Load current settings from localStorage on mount
+  // Load current settings from database on mount
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem('admin_design_settings');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        setMainLogo(settings.mainLogo || '/images/logo.png');
-        setHeaderLogo(settings.headerLogo || '');
-        setLoginLogo(settings.loginLogo || '');
-        setFavicon(settings.favicon || '');
-        setSiteName(settings.siteName || 'JCIL.ai');
-        setSubtitle(settings.subtitle || 'Faith-based AI tools for your everyday needs');
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/design-settings');
+        if (response.ok) {
+          const settings = await response.json();
+          setMainLogo(settings.main_logo || '/images/logo.png');
+          setHeaderLogo(settings.header_logo || '');
+          setLoginLogo(settings.login_logo || '');
+          setFavicon(settings.favicon || '');
+          setSiteName(settings.site_name || 'JCIL.ai');
+          setSubtitle(settings.subtitle || 'Your AI Assistant');
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    loadSettings();
   }, []);
 
   const handleFileUpload = async (file: File, type: string) => {
@@ -101,7 +105,7 @@ export default function DesignSettings() {
     }
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     setSaveStatus('Saving...');
 
     try {
@@ -114,17 +118,29 @@ export default function DesignSettings() {
         subtitle,
       };
 
-      // Save to localStorage
-      localStorage.setItem('admin_design_settings', JSON.stringify(settings));
+      // Save to database via API
+      const response = await fetch('/api/design-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save settings');
+      }
 
       // Dispatch event to notify other components to reload settings
       window.dispatchEvent(new Event('design-settings-updated'));
 
-      setSaveStatus('Settings saved successfully! Refresh the page to see changes.');
+      setSaveStatus('Settings saved successfully! Changes are now live across your site.');
       setTimeout(() => setSaveStatus(''), 5000);
     } catch (error) {
-      setSaveStatus('Failed to save settings');
+      setSaveStatus(error instanceof Error ? error.message : 'Failed to save settings');
       console.error(error);
+      setTimeout(() => setSaveStatus(''), 5000);
     }
   };
 
