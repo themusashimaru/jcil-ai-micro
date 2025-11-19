@@ -13,6 +13,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [logo, setLogo] = useState<string>('');
+  const [isLogoLoading, setIsLogoLoading] = useState(true);
 
   // Load design settings and check for errors
   useEffect(() => {
@@ -44,6 +45,8 @@ function LoginForm() {
         }
       } catch (err) {
         console.error('[Login] Failed to load logo:', err);
+      } finally {
+        setIsLogoLoading(false);
       }
     };
     loadLogo();
@@ -87,7 +90,9 @@ function LoginForm() {
         <div className="glass-morphism rounded-2xl p-8">
           {/* Logo */}
           <div className="text-center mb-6">
-            {logo ? (
+            {isLogoLoading ? (
+              <div className="h-16 mx-auto" />
+            ) : logo ? (
               <img src={logo} alt="JCIL.ai" className="h-16 mx-auto" />
             ) : (
               <h1 className="text-4xl font-bold">
