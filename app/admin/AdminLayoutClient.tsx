@@ -19,11 +19,25 @@ export default function AdminLayoutClient({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const pages = [
-    { name: 'Dashboard', href: '/admin', icon: '📊' },
+    { name: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
+    { name: 'Users', href: '/admin/users', icon: '👥' },
+    { name: 'Conversations', href: '/admin/conversations', icon: '💬', disabled: true },
+    { name: 'Earnings', href: '/admin/earnings', icon: '💰' },
     { name: 'Design', href: '/admin/design', icon: '🎨' },
-    { name: 'Users', href: '/admin/users', icon: '👥', disabled: true },
-    { name: 'Settings', href: '/admin/settings', icon: '⚙️', disabled: true },
-    { name: 'Analytics', href: '/admin/analytics', icon: '📈', disabled: true },
+    { name: 'Notifications', href: '/admin/notifications', icon: '🔔' },
+    { name: 'Billing', href: '/admin/billing', icon: '💳', disabled: true },
+    { name: 'Plans', href: '/admin/plans', icon: '📋', disabled: true },
+    { name: 'Branding', href: '/admin/branding', icon: '🏷️', disabled: true },
+    { name: 'Broadcasts', href: '/admin/broadcasts', icon: '📢', disabled: true },
+    { name: 'CMS', href: '/admin/cms', icon: '📝', disabled: true },
+    { name: 'Devotionals', href: '/admin/devotionals', icon: '📖', disabled: true },
+    { name: 'Inbox (Internal)', href: '/admin/inbox-internal', icon: '📥', disabled: true },
+    { name: 'Inbox (External)', href: '/admin/inbox-external', icon: '📨', disabled: true },
+    { name: 'Live', href: '/admin/live', icon: '🔴', disabled: true },
+    { name: 'Logs', href: '/admin/logs', icon: '📋', disabled: true },
+    { name: 'Moderation', href: '/admin/moderation', icon: '🛡️', disabled: true },
+    { name: 'Providers', href: '/admin/providers', icon: '🔌', disabled: true },
+    { name: 'System', href: '/admin/system', icon: '⚙️', disabled: true },
   ];
 
   // Find current page name

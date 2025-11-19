@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
 
 -- Insert your admin email
 INSERT INTO public.admin_users (email, user_id)
-VALUES ('m.moser338@gmail.com', NULL)
+VALUES ('the.musashi.maru@gmail.com', NULL)
 ON CONFLICT (email) DO NOTHING;
 
 CREATE INDEX idx_admin_users_email ON public.admin_users(email);
@@ -564,6 +564,42 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+
+-- ============================================================
+-- COMPLETION MESSAGE
+-- ============================================================
+-- ============================================================
+-- 13. DESIGN SETTINGS TABLE
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.design_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Logo settings
+    main_logo TEXT DEFAULT '/images/logo.png',
+    header_logo TEXT,
+    login_logo TEXT,
+    favicon TEXT,
+
+    -- Text settings
+    site_name TEXT DEFAULT 'JCIL.ai',
+    subtitle TEXT DEFAULT 'Your AI Assistant',
+
+    -- Metadata
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Only allow one row in this table
+CREATE UNIQUE INDEX unique_design_settings ON public.design_settings ((id IS NOT NULL));
+
+-- Insert default settings
+INSERT INTO public.design_settings (main_logo, header_logo, login_logo, favicon, site_name, subtitle)
+VALUES ('/images/logo.png', '', '', '', 'JCIL.ai', 'Your AI Assistant')
+ON CONFLICT DO NOTHING;
+
+-- Apply update trigger
+CREATE TRIGGER update_design_settings_updated_at BEFORE UPDATE ON public.design_settings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================
 -- COMPLETION MESSAGE

@@ -9,11 +9,17 @@ import { stripe } from '@/lib/stripe/client';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
+// Runtime configuration
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 // Use service role key for webhook operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -99,7 +105,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log('[Stripe Webhook] Checkout completed for user:', userId, 'tier:', tier);
 
   // Update user with Stripe customer ID
-  const { error: updateError } = await supabaseAdmin
+  const { error: updateError } = await getSupabaseAdmin()
     .from('users')
     .update({
       stripe_customer_id: session.customer as string,
@@ -140,7 +146,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const status = statusMap[subscription.status] || 'active';
 
   // Update user subscription
-  const { error: updateError } = await supabaseAdmin
+  const { error: updateError } = await getSupabaseAdmin()
     .from('users')
     .update({
       stripe_subscription_id: subscription.id,
@@ -161,7 +167,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     ? subscription.items.data[0].price.unit_amount / 100
     : 0;
 
-  const { error: historyError } = await supabaseAdmin
+  const { error: historyError } = await getSupabaseAdmin()
     .from('subscription_history')
     .insert({
       user_id: userId,
@@ -194,7 +200,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   console.log('[Stripe Webhook] Subscription deleted for user:', userId);
 
   // Downgrade to free tier
-  const { error: updateError } = await supabaseAdmin
+  const { error: updateError } = await getSupabaseAdmin()
     .from('users')
     .update({
       subscription_tier: 'free',
@@ -226,7 +232,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   console.log('[Stripe Webhook] Payment failed for customer:', customerId);
 
   // Find user by Stripe customer ID and update status
-  const { error: updateError } = await supabaseAdmin
+  const { error: updateError } = await getSupabaseAdmin()
     .from('users')
     .update({
       subscription_status: 'past_due',
