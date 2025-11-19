@@ -8,7 +8,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 export default function DesignSettings() {
-  const [mainLogo, setMainLogo] = useState<string>('/images/logo.png');
+  const [mainLogo, setMainLogo] = useState<string>('');
   const [headerLogo, setHeaderLogo] = useState<string>('');
   const [loginLogo, setLoginLogo] = useState<string>('');
   const [favicon, setFavicon] = useState<string>('');
@@ -30,7 +30,9 @@ export default function DesignSettings() {
         const response = await fetch('/api/design-settings');
         if (response.ok) {
           const settings = await response.json();
-          setMainLogo(settings.main_logo || '/images/logo.png');
+          // Don't use /images/logo.png as default since it doesn't exist
+          const mainLogoValue = settings.main_logo === '/images/logo.png' ? '' : (settings.main_logo || '');
+          setMainLogo(mainLogoValue);
           setHeaderLogo(settings.header_logo || '');
           setLoginLogo(settings.login_logo || '');
           setFavicon(settings.favicon || '');
