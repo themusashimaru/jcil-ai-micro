@@ -56,9 +56,9 @@ export default function DesignSettings() {
       return;
     }
 
-    // Validate file size (2MB limit for base64 encoding)
-    if (file.size > 2 * 1024 * 1024) {
-      alert('File size must be less than 2MB');
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
       return;
     }
 

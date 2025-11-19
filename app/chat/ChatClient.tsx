@@ -44,6 +44,26 @@ export function ChatClient() {
   const { profile, hasProfile } = useUserProfile();
   // Selected tool (only one can be selected at a time)
   const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
+  // Header logo from design settings
+  const [headerLogo, setHeaderLogo] = useState<string>('');
+
+  // Load header logo from design settings
+  useEffect(() => {
+    const loadLogo = async () => {
+      try {
+        const response = await fetch('/api/design-settings');
+        if (response.ok) {
+          const settings = await response.json();
+          if (settings.header_logo) {
+            setHeaderLogo(settings.header_logo);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load header logo:', err);
+      }
+    };
+    loadLogo();
+  }, []);
 
   // Detect screen size and set initial sidebar state
   useEffect(() => {
@@ -995,10 +1015,14 @@ export function ChatClient() {
             </button>
             {/* Only show logo/site name when a chat is active */}
             {currentChatId && (
-              <h1 className="text-base md:text-xl font-semibold">
-                <span className="text-white">JCIL</span>
-                <span className="text-blue-500">.ai</span>
-              </h1>
+              headerLogo ? (
+                <img src={headerLogo} alt="JCIL.ai" className="h-8" />
+              ) : (
+                <h1 className="text-base md:text-xl font-semibold">
+                  <span className="text-white">JCIL</span>
+                  <span className="text-blue-500">.ai</span>
+                </h1>
+              )
             )}
           </div>
 
