@@ -44,6 +44,7 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   // Load design settings from database API
   const [mainLogo, setMainLogo] = useState<string>('');
   const [subtitle, setSubtitle] = useState<string>('Faith-based AI tools for your everyday needs');
+  const [modelName, setModelName] = useState<string>('Slingshot 2.0');
   const [isLogoLoading, setIsLogoLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -59,6 +60,9 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
           }
           if (settings.subtitle) {
             setSubtitle(settings.subtitle);
+          }
+          if (settings.model_name) {
+            setModelName(settings.model_name);
           }
         }
       } catch (error) {
@@ -120,7 +124,7 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
               </h1>
             )}
             <p className="text-sm md:text-xl text-white font-medium mb-1">
-              Slingshot 2.0
+              {modelName}
             </p>
             <p className="text-xs md:text-sm text-gray-400 italic">
               {subtitle}
