@@ -57,6 +57,34 @@ const TABS: Tab[] = [
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('membership');
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportData = async () => {
+    try {
+      setExporting(true);
+      const response = await fetch('/api/user/export');
+
+      if (!response.ok) {
+        throw new Error('Failed to export data');
+      }
+
+      // Get the blob and create download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `jcil-ai-data-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black p-4 md:p-8">
@@ -143,23 +171,19 @@ export default function SettingsPage() {
             <section className="glass-morphism rounded-2xl p-6">
               <h2 className="mb-4 text-xl font-semibold">Data & Privacy</h2>
               <p className="text-gray-400 mb-6">
-                Manage your data, export conversations, or delete your account.
+                Export all your conversations and account data.
               </p>
               <div className="space-y-4">
                 <div>
-                  <button className="rounded-lg bg-white/10 px-6 py-3 font-semibold hover:bg-white/20 transition">
-                    Export My Data
+                  <button
+                    onClick={handleExportData}
+                    disabled={exporting}
+                    className="rounded-lg bg-blue-500 px-6 py-3 font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {exporting ? 'Exporting...' : 'Export My Data'}
                   </button>
                   <p className="text-xs text-gray-500 mt-2">
-                    Download all your conversations and settings as a JSON file
-                  </p>
-                </div>
-                <div>
-                  <button className="rounded-lg bg-red-600/20 px-6 py-3 font-semibold text-red-400 hover:bg-red-600/30 transition">
-                    Delete Account
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Permanently delete your account and all associated data
+                    Download all your conversations, messages, and account info as an Excel file
                   </p>
                 </div>
               </div>
