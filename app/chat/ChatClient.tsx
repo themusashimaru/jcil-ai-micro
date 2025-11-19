@@ -116,6 +116,7 @@ export function ChatClient() {
             tool_context: string | null;
             created_at: string;
             updated_at: string;
+            last_message_at: string;
           }) => ({
             id: conv.id,
             title: conv.title,
@@ -123,7 +124,7 @@ export function ChatClient() {
             isPinned: false, // TODO: Add isPinned to database schema
             lastMessage: '', // We'll update this if needed
             createdAt: new Date(conv.created_at),
-            updatedAt: new Date(conv.updated_at),
+            updatedAt: new Date(conv.last_message_at || conv.updated_at),
           }));
           setChats(formattedChats);
           console.log('[ChatClient] Set chats state with', formattedChats.length, 'conversations');
