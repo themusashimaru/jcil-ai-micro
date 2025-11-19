@@ -239,20 +239,20 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
       <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
         {/* Attachments Preview */}
         {attachments.length > 0 && (
-          <div className="mb-0.5 md:mb-3 flex flex-wrap gap-0 md:gap-2">
+          <div className="mb-2 md:mb-3 flex flex-wrap gap-2 md:gap-3">
             {attachments.slice(0, 4).map((attachment) => (
               <div
                 key={attachment.id}
-                className="group relative overflow-hidden rounded-lg border border-white/10"
+                className="group relative overflow-hidden rounded-lg border border-white/20 bg-white/5"
               >
                 {attachment.thumbnail ? (
                   <img
                     src={attachment.thumbnail}
                     alt={attachment.name}
-                    className="h-8 w-8 md:h-16 md:w-16 object-cover"
+                    className="h-16 w-16 md:h-20 md:w-20 object-cover"
                   />
                 ) : (
-                  <div className="flex h-8 w-8 md:h-16 md:w-16 items-center justify-center bg-white/5">
+                  <div className="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center bg-white/5">
                     <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24">
                       <path
                         stroke="currentColor"
@@ -264,16 +264,16 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                     </svg>
                   </div>
                 )}
+                {/* Always visible delete button */}
                 <button
                   onClick={() => removeAttachment(attachment.id)}
-                  className="absolute right-1 top-1 rounded-full bg-black/60 p-1 opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
+                  className="absolute -right-1 -top-1 rounded-full bg-red-500 p-1.5 shadow-lg hover:bg-red-600 transition-colors"
                   aria-label="Remove attachment"
                 >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
                       d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
@@ -281,7 +281,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
               </div>
             ))}
             {attachments.length > 4 && (
-              <div className="flex h-8 w-8 md:h-16 md:w-16 items-center justify-center rounded-lg bg-white/5 text-xs md:text-sm text-gray-400">
+              <div className="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-lg bg-white/5 text-sm text-gray-400 border border-white/20">
                 +{attachments.length - 4}
               </div>
             )}
