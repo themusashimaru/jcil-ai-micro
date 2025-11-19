@@ -490,18 +490,9 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                   {selectedTool === 'data' ? '✓ Data' : 'Data'}
                 </button>
               )}
-
-              {attachments.length > 0 && (
-                <span className="text-xs text-gray-400 block w-full text-center">
-                  {attachments.length} {attachments.length === 1 ? 'file' : 'files'} attached
-                </span>
-              )}
             </div>
 
             <div className="flex items-center justify-center gap-0 md:gap-2 shrink-0">
-              {message.length > 0 && (
-                <span className="text-xs text-gray-400 text-center block">{message.length}</span>
-              )}
 
               {/* Microphone Button */}
               <button
