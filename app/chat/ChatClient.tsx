@@ -774,7 +774,7 @@ export function ChatClient() {
             setMessages((prev) => [...prev, searchMessage]);
 
             // Save message to database
-            await saveMessageToDatabase(chatId, 'assistant', data.content, 'search');
+            await saveMessageToDatabase(chatId, 'assistant', data.content, 'text');
 
             // Generate title for conversations that still have "New Chat" as title
             let shouldGenerateTitle = false;
