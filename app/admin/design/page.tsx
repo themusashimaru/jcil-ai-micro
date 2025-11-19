@@ -14,6 +14,7 @@ export default function DesignSettings() {
   const [favicon, setFavicon] = useState<string>('');
   const [siteName, setSiteName] = useState<string>('JCIL.ai');
   const [subtitle, setSubtitle] = useState<string>('Your AI Assistant');
+  const [modelName, setModelName] = useState<string>('Slingshot 2.0');
   const [isUploading, setIsUploading] = useState<string>('');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -38,6 +39,7 @@ export default function DesignSettings() {
           setFavicon(settings.favicon || '');
           setSiteName(settings.site_name || 'JCIL.ai');
           setSubtitle(settings.subtitle || 'Your AI Assistant');
+          setModelName(settings.model_name || 'Slingshot 2.0');
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -118,6 +120,7 @@ export default function DesignSettings() {
         favicon,
         siteName,
         subtitle,
+        modelName,
       };
 
       // Save to database via API
@@ -203,6 +206,20 @@ export default function DesignSettings() {
                 placeholder="Your AI Assistant"
               />
               <p className="text-xs text-gray-500 mt-1">This appears below the main logo on the chat page</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Model Name
+              </label>
+              <input
+                type="text"
+                value={modelName}
+                onChange={(e) => setModelName(e.target.value)}
+                className="w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white focus:border-white/40 focus:outline-none"
+                placeholder="Slingshot 2.0"
+              />
+              <p className="text-xs text-gray-500 mt-1">This appears below the subtitle on the chat page (e.g., &quot;Slingshot 2.0&quot;)</p>
             </div>
           </div>
         </div>
