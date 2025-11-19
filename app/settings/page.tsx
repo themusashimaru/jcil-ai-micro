@@ -36,6 +36,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import MembershipSection from '@/app/components/MembershipSection';
 import UsageMetricsSection from '@/app/components/UsageMetricsSection';
 
@@ -60,7 +61,19 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-black p-4 md:p-8">
       <div className="mx-auto max-w-6xl">
-        <h1 className="mb-6 text-3xl font-bold">Settings</h1>
+        {/* Header with Back to Chat button */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Settings</h1>
+          <Link
+            href="/chat"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Chat
+          </Link>
+        </div>
 
         {/* Tabs Navigation */}
         <div className="mb-8 flex flex-wrap gap-2 border-b border-white/10">
