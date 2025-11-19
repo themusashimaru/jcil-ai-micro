@@ -143,12 +143,11 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
 
         {/* Generated Image */}
         {message.imageUrl && (
-          <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-full">
+          <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-sm">
             <img
               src={message.imageUrl}
               alt="AI-generated image"
               className="w-full h-auto rounded-lg"
-              style={{ maxHeight: '400px', objectFit: 'contain' }}
             />
           </div>
         )}
