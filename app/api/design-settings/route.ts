@@ -34,22 +34,15 @@ export async function GET() {
     if (error) {
       console.error('[Design Settings API] Error fetching settings:', error);
 
-      // If no settings exist yet, return defaults
-      if (error.code === 'PGRST116') {
-        return NextResponse.json({
-          main_logo: '/images/logo.png',
-          header_logo: '',
-          login_logo: '',
-          favicon: '',
-          site_name: 'JCIL.ai',
-          subtitle: 'Your AI Assistant',
-        });
-      }
-
-      return NextResponse.json(
-        { error: 'Failed to load design settings' },
-        { status: 500 }
-      );
+      // Return defaults for any error (table doesn't exist, no rows, etc.)
+      return NextResponse.json({
+        main_logo: '/images/logo.png',
+        header_logo: '',
+        login_logo: '',
+        favicon: '',
+        site_name: 'JCIL.ai',
+        subtitle: 'Your AI Assistant',
+      });
     }
 
     return NextResponse.json(data || {
@@ -62,10 +55,15 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[Design Settings API] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    // Return defaults on any error
+    return NextResponse.json({
+      main_logo: '/images/logo.png',
+      header_logo: '',
+      login_logo: '',
+      favicon: '',
+      site_name: 'JCIL.ai',
+      subtitle: 'Your AI Assistant',
+    });
   }
 }
 
