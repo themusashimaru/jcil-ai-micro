@@ -44,6 +44,7 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   // Load design settings from database API
   const [mainLogo, setMainLogo] = useState<string>('');
   const [subtitle, setSubtitle] = useState<string>('Faith-based AI tools for your everyday needs');
+  const [isLogoLoading, setIsLogoLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -68,6 +69,8 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
         }
       } catch (error) {
         console.error('[ChatThread] Failed to load design settings:', error);
+      } finally {
+        setIsLogoLoading(false);
       }
     };
 
@@ -107,7 +110,10 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
           {/* JCIL.ai Logo */}
           <div className="mb-1">
             {/* Logo Image - Dynamically loaded from database */}
-            {mainLogo ? (
+            {isLogoLoading ? (
+              // Show placeholder while loading to prevent flash
+              <div className="h-36 md:h-72 w-auto mx-auto mb-2" />
+            ) : mainLogo ? (
               <img
                 src={mainLogo}
                 alt="JCIL.ai"
