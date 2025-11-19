@@ -18,10 +18,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (2MB limit for base64 - more reasonable for embedding)
-    if (file.size > 2 * 1024 * 1024) {
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'File size must be less than 2MB' },
+        { error: 'File size must be less than 5MB' },
         { status: 400 }
       );
     }

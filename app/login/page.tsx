@@ -12,13 +12,30 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [logo, setLogo] = useState<string>('');
 
-  // Check for error in URL params
+  // Load design settings and check for errors
   useEffect(() => {
     const errorParam = searchParams.get('error');
     if (errorParam) {
       setError(errorParam);
     }
+
+    // Fetch logo from design settings
+    const loadLogo = async () => {
+      try {
+        const response = await fetch('/api/design-settings');
+        if (response.ok) {
+          const settings = await response.json();
+          if (settings.login_logo) {
+            setLogo(settings.login_logo);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load logo:', err);
+      }
+    };
+    loadLogo();
   }, [searchParams]);
 
   const handleGoogleSignIn = async () => {
@@ -59,10 +76,14 @@ function LoginForm() {
         <div className="glass-morphism rounded-2xl p-8">
           {/* Logo */}
           <div className="text-center mb-6">
-            <h1 className="text-4xl font-bold">
-              <span className="text-white">JCIL</span>
-              <span className="text-blue-500">.ai</span>
-            </h1>
+            {logo ? (
+              <img src={logo} alt="JCIL.ai" className="h-16 mx-auto" />
+            ) : (
+              <h1 className="text-4xl font-bold">
+                <span className="text-white">JCIL</span>
+                <span className="text-blue-500">.ai</span>
+              </h1>
+            )}
           </div>
 
           {/* Header */}
