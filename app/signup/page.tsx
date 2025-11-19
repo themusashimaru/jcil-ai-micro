@@ -20,6 +20,7 @@ export default function SignUpPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [logo, setLogo] = useState<string>('');
+  const [isLogoLoading, setIsLogoLoading] = useState(true);
 
   // Load logo from design settings
   useEffect(() => {
@@ -36,6 +37,8 @@ export default function SignUpPage() {
         }
       } catch (err) {
         console.error('Failed to load logo:', err);
+      } finally {
+        setIsLogoLoading(false);
       }
     };
     loadLogo();
@@ -129,7 +132,9 @@ export default function SignUpPage() {
         <div className="glass-morphism rounded-2xl p-8">
           {/* Logo */}
           <div className="text-center mb-6">
-            {logo ? (
+            {isLogoLoading ? (
+              <div className="h-16 mx-auto" />
+            ) : logo ? (
               <img src={logo} alt="JCIL.ai" className="h-16 mx-auto" />
             ) : (
               <h1 className="text-4xl font-bold">
