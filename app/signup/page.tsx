@@ -28,8 +28,10 @@ export default function SignUpPage() {
         const response = await fetch('/api/design-settings');
         if (response.ok) {
           const settings = await response.json();
-          if (settings.login_logo) {
-            setLogo(settings.login_logo);
+          // Use login_logo, fall back to main_logo
+          const logoUrl = settings.login_logo || settings.main_logo;
+          if (logoUrl && logoUrl !== '/images/logo.png') {
+            setLogo(logoUrl);
           }
         }
       } catch (err) {

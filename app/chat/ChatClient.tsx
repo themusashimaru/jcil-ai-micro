@@ -54,8 +54,10 @@ export function ChatClient() {
         const response = await fetch('/api/design-settings');
         if (response.ok) {
           const settings = await response.json();
-          if (settings.header_logo) {
-            setHeaderLogo(settings.header_logo);
+          // Use header_logo, fall back to main_logo
+          const logoUrl = settings.header_logo || settings.main_logo;
+          if (logoUrl && logoUrl !== '/images/logo.png') {
+            setHeaderLogo(logoUrl);
           }
         }
       } catch (err) {
