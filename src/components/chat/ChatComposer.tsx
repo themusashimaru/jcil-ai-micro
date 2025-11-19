@@ -76,8 +76,21 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   };
 
   const handleSend = () => {
-    if ((!message.trim() && attachments.length === 0) || isStreaming) return;
+    console.log('[ChatComposer] Send clicked:', {
+      message: message.trim(),
+      attachmentsCount: attachments.length,
+      isStreaming
+    });
 
+    if ((!message.trim() && attachments.length === 0) || isStreaming) {
+      console.log('[ChatComposer] Send blocked:', {
+        noContent: !message.trim() && attachments.length === 0,
+        isStreaming
+      });
+      return;
+    }
+
+    console.log('[ChatComposer] Sending message with attachments:', attachments.map(a => a.name));
     onSendMessage(message.trim(), attachments);
     setMessage('');
     setAttachments([]);
@@ -161,8 +174,16 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
-          attachment.thumbnail = e.target?.result as string;
+          const base64Data = e.target?.result as string;
+          attachment.thumbnail = base64Data;
+          attachment.url = base64Data; // Also set url for compatibility
+          console.log('[ChatComposer] Image attachment added:', attachment.name);
           setAttachments((prev) => [...prev, attachment]);
+        };
+        reader.onerror = () => {
+          console.error('[ChatComposer] Failed to read file:', file.name);
+          setFileError(`Failed to read "${file.name}". Please try again.`);
+          setTimeout(() => setFileError(null), 5000);
         };
         reader.readAsDataURL(file);
       } else {
