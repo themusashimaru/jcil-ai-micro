@@ -41,29 +41,42 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const { profile, hasProfile } = useUserProfile();
 
-  // Load design settings from localStorage
-  const [mainLogo, setMainLogo] = useState<string>('/images/logo.png');
+  // Load design settings from database API
+  const [mainLogo, setMainLogo] = useState<string>('');
   const [subtitle, setSubtitle] = useState<string>('Faith-based AI tools for your everyday needs');
 
   useEffect(() => {
-    const loadSettings = () => {
+    const loadSettings = async () => {
       try {
-        const savedSettings = localStorage.getItem('admin_design_settings');
-        if (savedSettings) {
-          const settings = JSON.parse(savedSettings);
-          if (settings.mainLogo) setMainLogo(settings.mainLogo);
-          if (settings.subtitle) setSubtitle(settings.subtitle);
+        const response = await fetch('/api/design-settings');
+        if (response.ok) {
+          const settings = await response.json();
+          console.log('[ChatThread] Design settings loaded:', {
+            main_logo: settings.main_logo?.substring(0, 50) + '...',
+          });
+          // Use main_logo from database
+          const logoUrl = settings.main_logo;
+          if (logoUrl && logoUrl !== '/images/logo.png') {
+            setMainLogo(logoUrl);
+            console.log('[ChatThread] Main logo set successfully');
+          } else {
+            console.log('[ChatThread] No custom logo found');
+          }
+          if (settings.subtitle) {
+            setSubtitle(settings.subtitle);
+          }
         }
       } catch (error) {
-        console.error('Failed to load design settings:', error);
+        console.error('[ChatThread] Failed to load design settings:', error);
       }
     };
 
     loadSettings();
 
     // Listen for settings updates
-    window.addEventListener('design-settings-updated', loadSettings);
-    return () => window.removeEventListener('design-settings-updated', loadSettings);
+    const handleUpdate = () => loadSettings();
+    window.addEventListener('design-settings-updated', handleUpdate);
+    return () => window.removeEventListener('design-settings-updated', handleUpdate);
   }, []);
 
   // Auto-scroll to show user's message at top when new message is sent
@@ -93,12 +106,19 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
         <div className="text-center">
           {/* JCIL.ai Logo */}
           <div className="mb-1">
-            {/* Logo Image - Dynamically loaded from admin settings */}
-            <img
-              src={mainLogo}
-              alt="JCIL.ai"
-              className="h-36 md:h-72 w-auto mx-auto mb-2"
-            />
+            {/* Logo Image - Dynamically loaded from database */}
+            {mainLogo ? (
+              <img
+                src={mainLogo}
+                alt="JCIL.ai"
+                className="h-36 md:h-72 w-auto mx-auto mb-2"
+              />
+            ) : (
+              <h1 className="text-6xl md:text-8xl font-bold mb-2">
+                <span className="text-white">JCIL</span>
+                <span className="text-blue-500">.ai</span>
+              </h1>
+            )}
             <p className="text-sm md:text-xl text-white font-medium mb-1">
               Slingshot 2.0
             </p>
