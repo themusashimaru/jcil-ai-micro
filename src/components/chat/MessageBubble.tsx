@@ -143,12 +143,28 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
 
         {/* Generated Image */}
         {message.imageUrl && (
-          <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-sm">
+          <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-sm relative group">
             <img
               src={message.imageUrl}
               alt="AI-generated image"
               className="w-full h-auto rounded-lg"
             />
+            {/* Download button */}
+            <a
+              href={message.imageUrl}
+              download={`generated-image-${Date.now()}.png`}
+              className="absolute bottom-2 right-2 rounded-full bg-black/70 p-2 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity hover:bg-black/90"
+              title="Download image"
+            >
+              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+            </a>
           </div>
         )}
 
