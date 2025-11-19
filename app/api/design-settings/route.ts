@@ -32,7 +32,7 @@ export async function GET() {
       .single();
 
     if (error) {
-      console.error('[Design Settings API] Error fetching settings:', error);
+      console.error('[Design Settings API] Error fetching settings:', error.code, error.message);
 
       // Return defaults for any error (table doesn't exist, no rows, etc.)
       return NextResponse.json({
@@ -44,6 +44,12 @@ export async function GET() {
         subtitle: 'Your AI Assistant',
       });
     }
+
+    console.log('[Design Settings API] Returning settings:', {
+      main_logo: data?.main_logo ? `${data.main_logo.substring(0, 30)}...` : 'empty',
+      header_logo: data?.header_logo ? `${data.header_logo.substring(0, 30)}...` : 'empty',
+      login_logo: data?.login_logo ? `${data.login_logo.substring(0, 30)}...` : 'empty',
+    });
 
     return NextResponse.json(data || {
       main_logo: '/images/logo.png',

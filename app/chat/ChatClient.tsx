@@ -52,16 +52,25 @@ export function ChatClient() {
     const loadLogo = async () => {
       try {
         const response = await fetch('/api/design-settings');
+        console.log('[ChatClient] Design settings response status:', response.status);
         if (response.ok) {
           const settings = await response.json();
+          console.log('[ChatClient] Design settings:', {
+            main_logo: settings.main_logo?.substring(0, 50) + '...',
+            header_logo: settings.header_logo?.substring(0, 50) + '...',
+          });
           // Use header_logo, fall back to main_logo
           const logoUrl = settings.header_logo || settings.main_logo;
+          console.log('[ChatClient] Selected logo URL:', logoUrl?.substring(0, 50) + '...');
           if (logoUrl && logoUrl !== '/images/logo.png') {
             setHeaderLogo(logoUrl);
+            console.log('[ChatClient] Header logo set successfully');
+          } else {
+            console.log('[ChatClient] Using text logo fallback');
           }
         }
       } catch (err) {
-        console.error('Failed to load header logo:', err);
+        console.error('[ChatClient] Failed to load header logo:', err);
       }
     };
     loadLogo();
