@@ -73,7 +73,7 @@ export default function SettingsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `jcil-ai-data-export-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `jcil-ai-data-export-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                     {exporting ? 'Exporting...' : 'Export My Data'}
                   </button>
                   <p className="text-xs text-gray-500 mt-2">
-                    Download all your conversations, messages, and account info as an Excel file
+                    Download all your conversations, messages, and account info as a CSV file (opens in Excel)
                   </p>
                 </div>
               </div>
