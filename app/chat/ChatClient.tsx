@@ -358,8 +358,13 @@ export function ChatClient() {
     }
 
     setMessages((prev) => [...prev, userMessage, analysisMessage]);
-    setChats((prevChats) =>
-      prevChats.map((chat) =>
+
+    // Generate title for conversations that still have "New Chat" as title
+    let shouldGenerateTitle = false;
+    setChats((prevChats) => {
+      const currentChat = prevChats.find(c => c.id === currentChatId);
+      shouldGenerateTitle = currentChat?.title === 'New Chat';
+      return prevChats.map((chat) =>
         chat.id === currentChatId
           ? {
               ...chat,
@@ -367,8 +372,32 @@ export function ChatClient() {
               updatedAt: timestamp,
             }
           : chat
-      )
-    );
+      );
+    });
+
+    if (shouldGenerateTitle) {
+      const generatedTitle = `Data Analysis: ${source}`.slice(0, 40);
+
+      setChats((prevChats) =>
+        prevChats.map((chat) =>
+          chat.id === currentChatId ? { ...chat, title: generatedTitle } : chat
+        )
+      );
+
+      // Update title in database
+      try {
+        await fetch('/api/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: currentChatId,
+            title: generatedTitle,
+          }),
+        });
+      } catch (titleError) {
+        console.error('Title update error:', titleError);
+      }
+    }
   };
 
   // Check if query needs live search and provide a helpful message
@@ -661,6 +690,52 @@ export function ChatClient() {
               timestamp: new Date(),
             };
             setMessages((prev) => [...prev, codeMessage]);
+
+            // Save message to database
+            await saveMessageToDatabase(chatId, 'assistant', data.content, 'code');
+
+            // Generate title for conversations that still have "New Chat" as title
+            let shouldGenerateTitle = false;
+            setChats((prevChats) => {
+              const currentChat = prevChats.find(c => c.id === chatId);
+              shouldGenerateTitle = !currentChat || currentChat.title === 'New Chat';
+              return prevChats;
+            });
+
+            if (shouldGenerateTitle) {
+              try {
+                const titleResponse = await fetch('/api/chat/generate-title', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userMessage: content,
+                    assistantMessage: data.content,
+                  }),
+                });
+
+                if (titleResponse.ok) {
+                  const titleData = await titleResponse.json();
+                  const generatedTitle = titleData.title || 'Code Assistant';
+
+                  setChats((prevChats) =>
+                    prevChats.map((chat) =>
+                      chat.id === chatId ? { ...chat, title: generatedTitle } : chat
+                    )
+                  );
+
+                  await fetch('/api/conversations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      id: chatId,
+                      title: generatedTitle,
+                    }),
+                  });
+                }
+              } catch (titleError) {
+                console.error('Title generation error:', titleError);
+              }
+            }
           }
         } catch (error) {
           console.error('Code error:', error);
@@ -697,6 +772,52 @@ export function ChatClient() {
               timestamp: new Date(),
             };
             setMessages((prev) => [...prev, searchMessage]);
+
+            // Save message to database
+            await saveMessageToDatabase(chatId, 'assistant', data.content, 'text');
+
+            // Generate title for conversations that still have "New Chat" as title
+            let shouldGenerateTitle = false;
+            setChats((prevChats) => {
+              const currentChat = prevChats.find(c => c.id === chatId);
+              shouldGenerateTitle = !currentChat || currentChat.title === 'New Chat';
+              return prevChats;
+            });
+
+            if (shouldGenerateTitle) {
+              try {
+                const titleResponse = await fetch('/api/chat/generate-title', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userMessage: content,
+                    assistantMessage: data.content,
+                  }),
+                });
+
+                if (titleResponse.ok) {
+                  const titleData = await titleResponse.json();
+                  const generatedTitle = titleData.title || 'Web Search';
+
+                  setChats((prevChats) =>
+                    prevChats.map((chat) =>
+                      chat.id === chatId ? { ...chat, title: generatedTitle } : chat
+                    )
+                  );
+
+                  await fetch('/api/conversations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      id: chatId,
+                      title: generatedTitle,
+                    }),
+                  });
+                }
+              } catch (titleError) {
+                console.error('Title generation error:', titleError);
+              }
+            }
           }
         } catch (error) {
           console.error('Search error:', error);
