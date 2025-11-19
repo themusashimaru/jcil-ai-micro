@@ -26,21 +26,12 @@ function LoginForm() {
     const loadLogo = async () => {
       try {
         const response = await fetch('/api/design-settings');
-        console.log('[Login] Design settings response status:', response.status);
         if (response.ok) {
           const settings = await response.json();
-          console.log('[Login] Design settings:', {
-            main_logo: settings.main_logo?.substring(0, 50) + '...',
-            login_logo: settings.login_logo?.substring(0, 50) + '...',
-          });
           // Use login_logo, fall back to main_logo
           const logoUrl = settings.login_logo || settings.main_logo;
-          console.log('[Login] Selected logo URL:', logoUrl?.substring(0, 50) + '...');
           if (logoUrl && logoUrl !== '/images/logo.png') {
             setLogo(logoUrl);
-            console.log('[Login] Logo set successfully');
-          } else {
-            console.log('[Login] Using text logo fallback');
           }
         }
       } catch (err) {

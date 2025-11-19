@@ -52,16 +52,10 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
         const response = await fetch('/api/design-settings');
         if (response.ok) {
           const settings = await response.json();
-          console.log('[ChatThread] Design settings loaded:', {
-            main_logo: settings.main_logo?.substring(0, 50) + '...',
-          });
           // Use main_logo from database
           const logoUrl = settings.main_logo;
           if (logoUrl && logoUrl !== '/images/logo.png') {
             setMainLogo(logoUrl);
-            console.log('[ChatThread] Main logo set successfully');
-          } else {
-            console.log('[ChatThread] No custom logo found');
           }
           if (settings.subtitle) {
             setSubtitle(settings.subtitle);
