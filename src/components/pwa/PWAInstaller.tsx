@@ -139,16 +139,19 @@ export function PWAInstaller() {
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 text-2xl">📱</div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white mb-1">Install Delta-2</h3>
+              <h3 className="font-semibold text-white mb-1">Install JCIL.ai</h3>
               <p className="text-sm text-white/70 mb-3">
-                Install this app on your iPhone: tap the share button (
-                <span className="inline-block">
+                Add to your home screen for quick access:
+              </p>
+              <ol className="text-sm text-white/70 mb-3 list-decimal list-inside space-y-1">
+                <li>Tap the share button <span className="inline-block">
                   <svg className="w-4 h-4 inline" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .89 2 2z" />
                   </svg>
-                </span>
-                ) then &quot;Add to Home Screen&quot;
-              </p>
+                </span></li>
+                <li>Scroll down and tap &quot;Add to Home Screen&quot;</li>
+                <li>Tap &quot;Add&quot; in the top right</li>
+              </ol>
               <button
                 onClick={handleDismissInstall}
                 className="text-sm text-white/50 hover:text-white/70 transition-colors"
@@ -170,9 +173,9 @@ export function PWAInstaller() {
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 text-2xl">⚡</div>
             <div className="flex-1">
-              <h3 className="font-semibold text-white mb-1">Install Delta-2</h3>
+              <h3 className="font-semibold text-white mb-1">Install JCIL.ai</h3>
               <p className="text-sm text-white/70 mb-3">
-                Install this app for a faster, offline-capable experience
+                Install this app for quick access from your home screen
               </p>
               <div className="flex gap-2">
                 <button
@@ -205,7 +208,7 @@ export function PWAInstaller() {
             <div className="flex-1">
               <h3 className="font-semibold text-white mb-1">Update Available</h3>
               <p className="text-sm text-white/70 mb-3">
-                A new version of Delta-2 is available
+                A new version of JCIL.ai is available
               </p>
               <div className="flex gap-2">
                 <button
