@@ -47,7 +47,7 @@ import { FaviconUpdater } from '@/components/admin/FaviconUpdater';
 export const metadata: Metadata = {
   title: 'JCIL.ai | AI Chat Interface',
   description: 'AI-powered chat through a Christian conservative lens',
-  manifest: '/manifest.json',
+  manifest: '/api/manifest',
   themeColor: '#000000',
   viewport: {
     width: 'device-width',
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Delta-2',
+    title: 'JCIL.ai',
   },
 };
 
