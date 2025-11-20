@@ -42,7 +42,7 @@ export async function GET() {
         favicon: '',
         site_name: 'JCIL.ai',
         subtitle: 'Your AI Assistant',
-        model_name: 'Slingshot 2.0',
+        model_name: '',
       });
     }
 
@@ -53,7 +53,7 @@ export async function GET() {
       favicon: '',
       site_name: 'JCIL.ai',
       subtitle: 'Your AI Assistant',
-      model_name: 'Slingshot 2.0',
+      model_name: '',
     });
   } catch (error) {
     console.error('[Design Settings API] Error:', error);
@@ -65,7 +65,7 @@ export async function GET() {
       favicon: '',
       site_name: 'JCIL.ai',
       subtitle: 'Your AI Assistant',
-      model_name: 'Slingshot 2.0',
+      model_name: '',
     });
   }
 }

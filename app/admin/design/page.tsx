@@ -14,7 +14,7 @@ export default function DesignSettings() {
   const [favicon, setFavicon] = useState<string>('');
   const [siteName, setSiteName] = useState<string>('JCIL.ai');
   const [subtitle, setSubtitle] = useState<string>('Your AI Assistant');
-  const [modelName, setModelName] = useState<string>('Slingshot 2.0');
+  const [modelName, setModelName] = useState<string>('');
   const [isUploading, setIsUploading] = useState<string>('');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -39,7 +39,7 @@ export default function DesignSettings() {
           setFavicon(settings.favicon || '');
           setSiteName(settings.site_name || 'JCIL.ai');
           setSubtitle(settings.subtitle || 'Your AI Assistant');
-          setModelName(settings.model_name || 'Slingshot 2.0');
+          setModelName(settings.model_name || '');
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
