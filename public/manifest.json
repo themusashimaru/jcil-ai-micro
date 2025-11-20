@@ -1,7 +1,7 @@
 {
-  "name": "Delta-2 AI Chat",
-  "short_name": "Delta-2",
-  "description": "AI Chat Interface with Advanced Tools - Create content, analyze data, generate images, and more",
+  "name": "JCIL.ai",
+  "short_name": "JCIL.ai",
+  "description": "AI-powered chat through a Christian conservative lens",
   "start_url": "/chat",
   "scope": "/",
   "display": "standalone",

@@ -45,8 +45,8 @@ import { UserProfileProvider } from '@/contexts/UserProfileContext';
 import { FaviconUpdater } from '@/components/admin/FaviconUpdater';
 
 export const metadata: Metadata = {
-  title: 'Delta-2 | AI Chat Interface',
-  description: 'Production-ready AI chat interface with advanced tools',
+  title: 'JCIL.ai | AI Chat Interface',
+  description: 'AI-powered chat through a Christian conservative lens',
   manifest: '/manifest.json',
   themeColor: '#000000',
   viewport: {
