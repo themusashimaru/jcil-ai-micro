@@ -179,7 +179,8 @@ export default function PricingSection() {
   return (
     <section className="container mx-auto px-4 py-20" id="pricing">
       <h2 className="mb-4 text-center text-4xl font-bold">Simple, Transparent Pricing</h2>
-      <p className="mb-12 text-center text-gray-300">Choose the plan that fits your needs</p>
+      <p className="mb-2 text-center text-gray-300">Choose the plan that fits your needs</p>
+      <p className="mb-12 text-center text-sm text-gray-500">Cancel anytime. No hidden fees.</p>
 
       {error && (
         <div className="mb-8 mx-auto max-w-2xl rounded-lg bg-red-900/20 border border-red-500 p-4 text-red-400">
