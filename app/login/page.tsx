@@ -66,7 +66,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-black p-4">
       <div className="w-full max-w-md">
         {/* Card */}
-        <div className="glass-morphism rounded-2xl p-8">
+        <div className="glass-morphism rounded-2xl p-6 sm:p-8">
           {/* Logo */}
           <div className="text-center mb-6">
             {isLogoLoading ? (
@@ -74,7 +74,7 @@ function LoginForm() {
             ) : logo ? (
               <img src={logo} alt="JCIL.ai" className="h-16 mx-auto" />
             ) : (
-              <h1 className="text-4xl font-bold">
+              <h1 className="text-3xl sm:text-4xl font-bold">
                 <span className="text-white">JCIL</span>
                 <span className="text-blue-500">.ai</span>
               </h1>
@@ -82,8 +82,8 @@ function LoginForm() {
           </div>
 
           {/* Header */}
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">
+          <div className="text-center mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
               Welcome Back
             </h2>
             <p className="text-gray-400">

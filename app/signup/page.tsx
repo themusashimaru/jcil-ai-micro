@@ -98,13 +98,13 @@ export default function SignUpPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black p-4">
         <div className="w-full max-w-md">
-          <div className="glass-morphism rounded-2xl p-8 text-center">
+          <div className="glass-morphism rounded-2xl p-6 sm:p-8 text-center">
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Check your email!</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Check your email!</h2>
             <p className="text-gray-400">
               We&apos;ve sent you a confirmation link. Click it to activate your account.
             </p>
@@ -118,7 +118,7 @@ export default function SignUpPage() {
     <div className="min-h-screen flex items-center justify-center bg-black p-4">
       <div className="w-full max-w-md">
         {/* Card */}
-        <div className="glass-morphism rounded-2xl p-8">
+        <div className="glass-morphism rounded-2xl p-6 sm:p-8">
           {/* Logo */}
           <div className="text-center mb-6">
             {isLogoLoading ? (
@@ -126,7 +126,7 @@ export default function SignUpPage() {
             ) : logo ? (
               <img src={logo} alt="JCIL.ai" className="h-16 mx-auto" />
             ) : (
-              <h1 className="text-4xl font-bold">
+              <h1 className="text-3xl sm:text-4xl font-bold">
                 <span className="text-white">JCIL</span>
                 <span className="text-blue-500">.ai</span>
               </h1>
@@ -134,8 +134,8 @@ export default function SignUpPage() {
           </div>
 
           {/* Header */}
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">
+          <div className="text-center mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
               Create Account
             </h2>
             <p className="text-gray-400">
