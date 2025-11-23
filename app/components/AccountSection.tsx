@@ -24,7 +24,6 @@ export default function AccountSection() {
   const [emailError, setEmailError] = useState('');
 
   // Password change state
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -111,7 +110,6 @@ export default function AccountSection() {
       setPasswordLoading(true);
       await updatePassword(newPassword);
       setPasswordSuccess(true);
-      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
 
