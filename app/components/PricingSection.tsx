@@ -36,16 +36,16 @@ function PricingCard({
     : 'border border-gray-700';
 
   return (
-    <div className={`glass-morphism rounded-2xl p-8 ${borderClass}`}>
+    <div className={`glass-morphism rounded-2xl p-6 sm:p-8 ${borderClass}`}>
       {popular && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 px-4 py-1 rounded-full text-sm font-semibold">
           POPULAR
         </div>
       )}
-      <h3 className="mb-2 text-2xl font-bold">{title}</h3>
-      <p className="mb-4 text-gray-400">{description}</p>
+      <h3 className="mb-2 text-xl sm:text-2xl font-bold">{title}</h3>
+      <p className="mb-4 text-sm sm:text-base text-gray-400">{description}</p>
       <div className="mb-6">
-        <span className="text-5xl font-bold">${price}</span>
+        <span className="text-4xl sm:text-5xl font-bold">${price}</span>
         <span className="text-gray-400">/month</span>
       </div>
       <ul className="mb-8 space-y-3 text-sm">
@@ -177,10 +177,10 @@ export default function PricingSection() {
   ];
 
   return (
-    <section className="container mx-auto px-4 py-20" id="pricing">
-      <h2 className="mb-4 text-center text-4xl font-bold">Simple, Transparent Pricing</h2>
-      <p className="mb-2 text-center text-gray-300">Choose the plan that fits your needs</p>
-      <p className="mb-12 text-center text-sm text-gray-500">Cancel anytime. No hidden fees.</p>
+    <section className="container mx-auto px-4 py-12 sm:py-20" id="pricing">
+      <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold">Simple, Transparent Pricing</h2>
+      <p className="mb-2 text-center text-sm sm:text-base text-gray-300">Choose the plan that fits your needs</p>
+      <p className="mb-8 sm:mb-12 text-center text-sm text-gray-500">Cancel anytime. No hidden fees.</p>
 
       {error && (
         <div className="mb-8 mx-auto max-w-2xl rounded-lg bg-red-900/20 border border-red-500 p-4 text-red-400">
