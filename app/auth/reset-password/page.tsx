@@ -16,12 +16,24 @@ function ResetPasswordForm() {
 
   // Check if we have the required token/code
   const hasToken = searchParams.get('code') || searchParams.get('token');
+  const errorParam = searchParams.get('error');
+  const errorCode = searchParams.get('error_code');
+  const errorDescription = searchParams.get('error_description');
 
   useEffect(() => {
-    if (!hasToken) {
+    // Check for Supabase error parameters first
+    if (errorParam) {
+      if (errorCode === 'otp_expired') {
+        setError('This password reset link has expired. Please request a new one.');
+      } else if (errorDescription) {
+        setError(decodeURIComponent(errorDescription));
+      } else {
+        setError('Invalid or expired reset link. Please request a new one.');
+      }
+    } else if (!hasToken) {
       setError('Invalid or missing reset token. Please request a new password reset link.');
     }
-  }, [hasToken]);
+  }, [hasToken, errorParam, errorCode, errorDescription]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +114,15 @@ function ResetPasswordForm() {
           {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
-              <p className="text-red-200 text-sm">{error}</p>
+              <p className="text-red-200 text-sm mb-3">{error}</p>
+              {(errorParam || !hasToken) && (
+                <Link
+                  href="/forgot-password"
+                  className="inline-block text-sm text-red-300 hover:text-red-100 font-medium underline"
+                >
+                  Request a new password reset link →
+                </Link>
+              )}
             </div>
           )}
 
@@ -119,7 +139,7 @@ function ResetPasswordForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter new password"
                 className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
-                disabled={loading || !hasToken}
+                disabled={loading || !hasToken || !!errorParam}
                 required
                 minLength={8}
               />
@@ -137,7 +157,7 @@ function ResetPasswordForm() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
                 className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
-                disabled={loading || !hasToken}
+                disabled={loading || !hasToken || !!errorParam}
                 required
                 minLength={8}
               />
