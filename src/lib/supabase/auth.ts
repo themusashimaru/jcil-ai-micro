@@ -98,6 +98,21 @@ export async function updatePassword(newPassword: string) {
 }
 
 /**
+ * Update email address
+ * Requires confirmation from both old and new email addresses
+ */
+export async function updateEmail(newEmail: string) {
+  const supabase = createBrowserClient();
+
+  const { data, error } = await supabase.auth.updateUser({
+    email: newEmail,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Sign out
  */
 export async function signOut() {
