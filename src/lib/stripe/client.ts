@@ -57,6 +57,7 @@ export async function createCheckoutSession(
           quantity: 1,
         },
       ],
+      allow_promotion_codes: true, // Enable promo code field at checkout
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/chat?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/?canceled=true`,
       customer_email: customerEmail,
