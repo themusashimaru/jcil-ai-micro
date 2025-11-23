@@ -32,8 +32,7 @@ FROM public.users u
 WHERE u.email = 'the.musashi.maru@gmail.com'
 ON CONFLICT (email)
 DO UPDATE SET
-    user_id = EXCLUDED.user_id,
-    updated_at = NOW();
+    user_id = EXCLUDED.user_id;
 
 -- Step 4: If the.musashi.maru@gmail.com doesn't exist in users table yet, insert with NULL user_id
 INSERT INTO public.admin_users (email, user_id)

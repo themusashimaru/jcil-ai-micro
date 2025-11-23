@@ -104,7 +104,10 @@ export async function isServerAdmin(): Promise<boolean> {
     }
 
     // Verify data exists and user_id matches
-    if (!data || data.user_id !== user.id) {
+    // Type assertion needed because TypeScript can't properly narrow the type
+    const adminData = data as { id: string; user_id: string; email: string } | null;
+
+    if (!adminData || adminData.user_id !== user.id) {
       console.log('[Admin Check] No admin record found for user:', user.id);
       return false;
     }
