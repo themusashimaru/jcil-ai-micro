@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import { getUser, updateEmail, updatePassword } from '@/lib/supabase/auth';
+import PasswordStrengthIndicator from './PasswordStrengthIndicator';
 
 export default function AccountSection() {
   const [currentEmail, setCurrentEmail] = useState('');
@@ -268,7 +269,6 @@ export default function AccountSection() {
               required
               minLength={8}
             />
-            <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
           </div>
 
           <div>
@@ -287,6 +287,17 @@ export default function AccountSection() {
               minLength={8}
             />
           </div>
+
+          {/* Password Strength Indicator */}
+          {(newPassword || confirmPassword) && (
+            <div className="-mt-2">
+              <PasswordStrengthIndicator
+                password={newPassword}
+                confirmPassword={confirmPassword}
+                showMatchStatus={true}
+              />
+            </div>
+          )}
 
           <button
             type="submit"

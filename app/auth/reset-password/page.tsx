@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { updatePassword } from '@/lib/supabase/auth';
+import PasswordStrengthIndicator from '@/app/components/PasswordStrengthIndicator';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -143,7 +144,6 @@ function ResetPasswordForm() {
                 required
                 minLength={8}
               />
-              <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
             </div>
 
             <div>
@@ -162,6 +162,17 @@ function ResetPasswordForm() {
                 minLength={8}
               />
             </div>
+
+            {/* Password Strength Indicator */}
+            {(password || confirmPassword) && (
+              <div className="-mt-2">
+                <PasswordStrengthIndicator
+                  password={password}
+                  confirmPassword={confirmPassword}
+                  showMatchStatus={true}
+                />
+              </div>
+            )}
 
             {/* Submit Button */}
             <button

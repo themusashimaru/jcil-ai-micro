@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signUpWithEmail } from '@/lib/supabase/auth';
+import PasswordStrengthIndicator from '@/app/components/PasswordStrengthIndicator';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -201,7 +202,6 @@ export default function SignUpPage() {
                 required
                 minLength={8}
               />
-              <p className="text-xs text-gray-400 mt-1">At least 8 characters</p>
             </div>
 
             <div>
@@ -220,6 +220,17 @@ export default function SignUpPage() {
                 required
               />
             </div>
+
+            {/* Password Strength Indicator */}
+            {(formData.password || formData.confirmPassword) && (
+              <div className="-mt-2">
+                <PasswordStrengthIndicator
+                  password={formData.password}
+                  confirmPassword={formData.confirmPassword}
+                  showMatchStatus={true}
+                />
+              </div>
+            )}
 
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-300 mb-2">
