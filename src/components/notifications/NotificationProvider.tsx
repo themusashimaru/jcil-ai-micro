@@ -30,6 +30,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { NotificationBell } from './NotificationBell';
 import { NotificationInbox } from './NotificationInbox';
 import type { Notification } from '@/types/notifications';
@@ -92,6 +93,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 ];
 
 export function NotificationProvider() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
 
@@ -161,14 +163,14 @@ export function NotificationProvider() {
 
   // Handle notification click
   const handleNotificationClick = useCallback((notification: Notification) => {
-    // If there's an action URL, navigate to it
+    // If there's an action URL, navigate to it using Next.js router
     if (notification.actionUrl) {
-      window.location.href = notification.actionUrl;
+      router.push(notification.actionUrl);
     }
 
     // Close inbox
     setIsInboxOpen(false);
-  }, []);
+  }, [router]);
 
   return (
     <>
