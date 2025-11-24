@@ -143,7 +143,7 @@ export function NotificationInbox({
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex flex-nowrap gap-2 p-3 sm:p-4 overflow-x-auto border-b border-white/10 no-scrollbar">
+        <div className="flex flex-nowrap gap-2 p-3 sm:p-4 overflow-x-auto overflow-y-visible border-b border-white/10 no-scrollbar" style={{ scrollBehavior: 'smooth' }}>
           {FILTER_OPTIONS.map((option) => {
             const count = option.value === 'all'
               ? notifications.length
@@ -153,6 +153,7 @@ export function NotificationInbox({
               <button
                 key={option.value}
                 onClick={() => setActiveFilter(option.value)}
+                style={{ minWidth: 'fit-content' }}
                 className={`flex flex-shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                   activeFilter === option.value
                     ? 'bg-white/20 text-white'
