@@ -111,13 +111,13 @@ export function NotificationInbox({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] animate-fade-in"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999] animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
-      <div className="fixed top-0 right-0 bottom-0 w-full md:w-[480px] bg-black border-l border-white/10 z-[101] flex flex-col animate-slide-in-right shadow-2xl">
+      <div className="fixed top-0 right-0 h-screen w-full md:w-[480px] bg-black border-l border-white/10 z-[1000] flex flex-col animate-slide-in-right shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
           <h2 className="text-lg sm:text-xl font-semibold text-white">Notifications</h2>
