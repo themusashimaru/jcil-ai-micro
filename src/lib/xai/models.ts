@@ -11,7 +11,7 @@ import { XAIModel, ToolType } from './types';
 export function getModelForTool(tool?: ToolType): XAIModel {
   if (!tool) {
     // Default chat model
-    return 'grok-4-fast-reasoning';
+    return 'grok-4-1-fast-reasoning';
   }
 
   switch (tool) {
@@ -26,7 +26,7 @@ export function getModelForTool(tool?: ToolType): XAIModel {
 
     case 'research':
       // Research benefits from reasoning model
-      return 'grok-4-fast-reasoning';
+      return 'grok-4-1-fast-reasoning';
 
     case 'email':
     case 'essay':
@@ -37,7 +37,7 @@ export function getModelForTool(tool?: ToolType): XAIModel {
     case 'data':
     default:
       // General chat model for other tools
-      return 'grok-4-fast-reasoning';
+      return 'grok-4-1-fast-reasoning';
   }
 }
 
@@ -46,7 +46,7 @@ export function getModelForTool(tool?: ToolType): XAIModel {
  */
 export function supportsAgenticTools(model: XAIModel): boolean {
   return [
-    'grok-4-fast-reasoning',
+    'grok-4-1-fast-reasoning',
     'grok-4-fast',
   ].includes(model);
 }
