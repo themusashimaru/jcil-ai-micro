@@ -143,7 +143,7 @@ export function NotificationInbox({
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 p-3 sm:p-4 overflow-x-auto border-b border-white/10 no-scrollbar">
+        <div className="flex flex-nowrap gap-2 p-3 sm:p-4 overflow-x-auto border-b border-white/10 no-scrollbar">
           {FILTER_OPTIONS.map((option) => {
             const count = option.value === 'all'
               ? notifications.length
@@ -153,7 +153,7 @@ export function NotificationInbox({
               <button
                 key={option.value}
                 onClick={() => setActiveFilter(option.value)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`flex flex-shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                   activeFilter === option.value
                     ? 'bg-white/20 text-white'
                     : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80'
