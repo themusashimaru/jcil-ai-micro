@@ -111,16 +111,16 @@ export function NotificationInbox({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
-      <div className="fixed top-0 right-0 bottom-0 w-full md:w-[480px] bg-black border-l border-white/10 z-50 flex flex-col animate-slide-in-right">
+      <div className="fixed top-0 right-0 bottom-0 w-full md:w-[480px] bg-black border-l border-white/10 z-[101] flex flex-col animate-slide-in-right shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-xl font-semibold text-white">Notifications</h2>
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
+          <h2 className="text-lg sm:text-xl font-semibold text-white">Notifications</h2>
           <div className="flex items-center gap-2">
             {unreadCount > 0 && (
               <button
@@ -143,7 +143,7 @@ export function NotificationInbox({
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 p-4 overflow-x-auto border-b border-white/10 no-scrollbar">
+        <div className="flex gap-2 p-3 sm:p-4 overflow-x-auto border-b border-white/10 no-scrollbar">
           {FILTER_OPTIONS.map((option) => {
             const count = option.value === 'all'
               ? notifications.length
@@ -191,7 +191,7 @@ export function NotificationInbox({
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`relative flex gap-3 p-4 cursor-pointer transition-colors border-l-4 ${getPriorityColor(
+                  className={`relative flex gap-3 p-4 sm:p-5 cursor-pointer transition-colors border-l-4 ${getPriorityColor(
                     notification.priority
                   )} ${
                     notification.isRead
@@ -213,14 +213,14 @@ export function NotificationInbox({
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <h3 className={`text-sm font-semibold ${notification.isRead ? 'text-white/70' : 'text-white'}`}>
+                      <h3 className={`text-sm sm:text-base font-semibold ${notification.isRead ? 'text-white/70' : 'text-white'}`}>
                         {notification.title}
                       </h3>
-                      <span className="flex-shrink-0 text-xs text-white/50">
+                      <span className="flex-shrink-0 text-xs sm:text-sm text-white/50">
                         {formatTimestamp(notification.createdAt)}
                       </span>
                     </div>
-                    <p className={`text-sm ${notification.isRead ? 'text-white/50' : 'text-white/70'}`}>
+                    <p className={`text-sm sm:text-base ${notification.isRead ? 'text-white/50' : 'text-white/70'}`}>
                       {notification.body}
                     </p>
                     {notification.actionLabel && (
