@@ -365,11 +365,12 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                   <>
                     {/* Backdrop */}
                     <div
-                      className="fixed inset-0 z-40"
+                      className="fixed inset-0 z-[998] bg-black/20 backdrop-blur-sm"
                       onClick={() => setShowAttachMenu(false)}
+                      aria-hidden="true"
                     />
                     {/* Menu */}
-                    <div className="fixed bottom-20 left-4 z-50 w-56 rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
+                    <div className="fixed bottom-20 left-4 z-[999] w-56 rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
                       <button
                         onClick={() => {
                           cameraInputRef.current?.click();
