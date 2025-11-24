@@ -147,8 +147,10 @@ Return ONLY JSON (no markdown, no code blocks):
       generatedEmail.subject
     )}&body=${encodeURIComponent(generatedEmail.body)}`;
 
-    // Open mailto link
-    window.location.href = mailto;
+    // Use anchor element to prevent auth session disruption
+    const link = document.createElement('a');
+    link.href = mailto;
+    link.click();
   };
 
   const handleReset = () => {

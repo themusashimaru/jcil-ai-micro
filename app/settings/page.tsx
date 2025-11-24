@@ -39,8 +39,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import MembershipSection from '@/app/components/MembershipSection';
 import UsageMetricsSection from '@/app/components/UsageMetricsSection';
+import AccountSection from '@/app/components/AccountSection';
 
-type TabId = 'membership' | 'usage' | 'preferences' | 'privacy';
+type TabId = 'membership' | 'usage' | 'account' | 'preferences' | 'privacy';
 
 interface Tab {
   id: TabId;
@@ -51,6 +52,7 @@ interface Tab {
 const TABS: Tab[] = [
   { id: 'membership', label: 'Membership', icon: '💳' },
   { id: 'usage', label: 'Usage & Metrics', icon: '📊' },
+  { id: 'account', label: 'Account', icon: '👤' },
   { id: 'preferences', label: 'Preferences', icon: '⚙️' },
   { id: 'privacy', label: 'Data & Privacy', icon: '🔒' },
 ];
@@ -147,6 +149,18 @@ export default function SettingsPage() {
                 </p>
               </div>
               <UsageMetricsSection />
+            </div>
+          )}
+
+          {activeTab === 'account' && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">Account Settings</h2>
+                <p className="text-gray-400">
+                  Manage your email address and password.
+                </p>
+              </div>
+              <AccountSection />
             </div>
           )}
 

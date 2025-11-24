@@ -154,7 +154,11 @@ Visit: https://jcil.ai
 Faith-based AI tools for your everyday needs`;
 
     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailtoLink;
+
+    // Use anchor element to prevent auth session disruption
+    const link = document.createElement('a');
+    link.href = mailtoLink;
+    link.click();
   };
 
   const handleOpen = () => {

@@ -134,7 +134,10 @@ ${keyArguments ? `**Key Points to Address:** ${keyArguments}` : ''}
       subject
     )}&body=${encodeURIComponent(body)}`;
 
-    window.location.href = mailto;
+    // Use anchor element to prevent auth session disruption
+    const link = document.createElement('a');
+    link.href = mailto;
+    link.click();
   };
 
   const handleReset = () => {

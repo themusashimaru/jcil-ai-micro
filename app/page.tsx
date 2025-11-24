@@ -32,27 +32,27 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <h1 className="mb-6 text-6xl font-bold leading-tight">
+      <section className="container mx-auto px-4 py-12 sm:py-20 text-center">
+        <h1 className="mb-6 text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">
           AI-Powered Chat
           <br />
           <span className="text-blue-400">Through a Christian Conservative Lens</span>
         </h1>
-        <p className="mx-auto mb-12 max-w-2xl text-xl text-gray-300">
+        <p className="mx-auto mb-8 sm:mb-12 max-w-2xl text-lg sm:text-xl text-gray-300">
           Get intelligent answers, guidance, and support from an AI assistant designed to align
           with Christian conservative values and principles.
         </p>
         <Link
           href="/signup"
-          className="inline-block rounded-lg bg-blue-500 px-10 py-4 text-xl font-semibold hover:bg-blue-600 transition"
+          className="inline-block rounded-lg bg-blue-500 px-6 py-3 sm:px-10 sm:py-4 text-lg sm:text-xl font-semibold hover:bg-blue-600 transition"
         >
           Get Started Free
         </Link>
       </section>
 
       {/* Features Section */}
-      <section className="container mx-auto px-4 py-20">
-        <h2 className="mb-12 text-center text-4xl font-bold">Why Choose JCIL.AI</h2>
+      <section className="container mx-auto px-4 py-12 sm:py-20">
+        <h2 className="mb-8 sm:mb-12 text-center text-3xl sm:text-4xl font-bold">Why Choose JCIL.AI</h2>
         <div className="grid gap-8 md:grid-cols-3">
           <div className="glass-morphism rounded-2xl p-8">
             <div className="mb-4 text-4xl">✝️</div>
@@ -87,15 +87,15 @@ export default function HomePage() {
       <PricingSection />
 
       {/* CTA Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <div className="glass-morphism mx-auto max-w-3xl rounded-3xl p-12">
-          <h2 className="mb-6 text-4xl font-bold">Ready to Get Started?</h2>
-          <p className="mb-8 text-xl text-gray-300">
+      <section className="container mx-auto px-4 py-12 sm:py-20 text-center">
+        <div className="glass-morphism mx-auto max-w-3xl rounded-3xl p-6 sm:p-12">
+          <h2 className="mb-4 sm:mb-6 text-3xl sm:text-4xl font-bold">Ready to Get Started?</h2>
+          <p className="mb-6 sm:mb-8 text-lg sm:text-xl text-gray-300">
             Join JCIL.AI today and experience AI conversation guided by Christian conservative values.
           </p>
           <Link
             href="/signup"
-            className="inline-block rounded-lg bg-blue-500 px-10 py-4 text-xl font-semibold hover:bg-blue-600 transition"
+            className="inline-block rounded-lg bg-blue-500 px-6 py-3 sm:px-10 sm:py-4 text-lg sm:text-xl font-semibold hover:bg-blue-600 transition"
           >
             Create Your Account
           </Link>

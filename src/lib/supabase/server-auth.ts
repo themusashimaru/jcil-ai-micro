@@ -80,15 +80,42 @@ export async function isServerAuthenticated(): Promise<boolean> {
  * Check if user is admin (server-side)
  */
 export async function isServerAdmin(): Promise<boolean> {
-  const user = await getServerUser();
-  if (!user || !user.email) return false;
+  try {
+    const user = await getServerUser();
+    if (!user || !user.id) {
+      console.log('[Admin Check] No user or user ID found');
+      return false;
+    }
 
-  const supabase = await createServerSupabaseClient();
-  const { data } = await supabase
-    .from('admin_users')
-    .select('email')
-    .eq('email', user.email)
-    .single();
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('id, user_id, email')
+      .eq('user_id', user.id)  // Check by user_id, not email (more secure)
+      .single();
 
-  return !!data;
+    // Explicitly handle error case
+    if (error) {
+      // PGRST116 means no rows returned, which is expected for non-admins
+      if (error.code !== 'PGRST116') {
+        console.error('[Admin Check] Database error:', error);
+      }
+      return false;
+    }
+
+    // Verify data exists and user_id matches
+    // Type assertion needed because TypeScript can't properly narrow the type
+    const adminData = data as { id: string; user_id: string; email: string } | null;
+
+    if (!adminData || adminData.user_id !== user.id) {
+      console.log('[Admin Check] No admin record found for user:', user.id);
+      return false;
+    }
+
+    console.log('[Admin Check] Admin access granted for user:', user.id);
+    return true;
+  } catch (error) {
+    console.error('[Admin Check] Unexpected error:', error);
+    return false;
+  }
 }
