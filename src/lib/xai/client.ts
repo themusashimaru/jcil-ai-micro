@@ -120,8 +120,8 @@ async function createDirectXAICompletion(options: ChatOptions) {
     ...messages,
   ];
 
-  // Prepare request body - removing tools for now to restore chat functionality
-  // Will implement proper search integration after chat is working
+  // Prepare request body with search_parameters (NOT in tools array!)
+  // search_parameters enables AI to automatically search when needed
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: any = {
     model: modelName,
@@ -130,6 +130,20 @@ async function createDirectXAICompletion(options: ChatOptions) {
     max_tokens: effectiveMaxTokens,
     stream: false,
   };
+
+  // Enable intelligent auto-search for tool types that need it
+  // AI will automatically search when questions require current information
+  if (tool === 'research' || !tool) {
+    requestBody.search_parameters = {
+      mode: 'auto',  // Let AI decide when to search
+      return_citations: true,
+      sources: [
+        { type: 'web' },
+        { type: 'x' },
+        { type: 'news' }
+      ]
+    };
+  }
 
   // Make direct API call to xAI
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
