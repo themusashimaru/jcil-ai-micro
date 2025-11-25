@@ -162,13 +162,18 @@ async function createDirectXAICompletion(options: ChatOptions) {
   }
 
   // Parse response with better error handling
+  const responseText = await response.text();
+
+  // Log first 200 chars of response for debugging
+  console.log('[xAI API] Response preview:', responseText.substring(0, 200));
+
   let data;
   try {
-    const responseText = await response.text();
     data = JSON.parse(responseText);
   } catch (parseError) {
     const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
-    throw new Error(`Failed to parse xAI API response: ${errorMsg}`);
+    console.error('[xAI API] Parse error. Full response:', responseText.substring(0, 1000));
+    throw new Error(`Failed to parse xAI API response: ${errorMsg}. Response started with: ${responseText.substring(0, 150)}`);
   }
 
   // Return in the same format as generateText
