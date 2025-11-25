@@ -10,8 +10,8 @@ import { XAIModel, ToolType } from './types';
  */
 export function getModelForTool(tool?: ToolType): XAIModel {
   if (!tool) {
-    // Default chat model
-    return 'grok-4-1-fast-reasoning';
+    // Default chat model - using grok-4-fast for better search support
+    return 'grok-4-fast';
   }
 
   switch (tool) {
@@ -25,8 +25,8 @@ export function getModelForTool(tool?: ToolType): XAIModel {
       return 'grok-2-image-1212';
 
     case 'research':
-      // Research benefits from reasoning model
-      return 'grok-4-1-fast-reasoning';
+      // Research uses grok-4-fast for better search support
+      return 'grok-4-fast';
 
     case 'email':
     case 'essay':
@@ -36,8 +36,8 @@ export function getModelForTool(tool?: ToolType): XAIModel {
     case 'scripture':
     case 'data':
     default:
-      // General chat model for other tools
-      return 'grok-4-1-fast-reasoning';
+      // General chat model - using grok-4-fast for better search support
+      return 'grok-4-fast';
   }
 }
 
