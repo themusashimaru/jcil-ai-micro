@@ -22,17 +22,17 @@ import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import type { Attachment } from '@/app/chat/types';
 import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
-import { QuickLiveSearch } from './QuickLiveSearch';
+// import { QuickLiveSearch } from './QuickLiveSearch'; // HIDDEN: Auto-search now enabled for all conversations
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 interface ChatComposerProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
   onImageGenerated?: (imageUrl: string, prompt: string) => void;
   onCodeGenerated?: (response: string, request: string) => void;
-  onSearchComplete?: (response: string, query: string) => void;
+  onSearchComplete?: (response: string, query: string) => void; // Kept for backward compatibility but not used
   onDataAnalysisComplete?: (response: string, source: string, type: 'file' | 'url') => void;
   isStreaming: boolean;
-  selectedTool?: 'image' | 'code' | 'search' | 'data' | null;
+  selectedTool?: 'image' | 'code' | 'search' | 'data' | null; // 'search' kept for backward compatibility
   onSelectTool?: (tool: 'image' | 'code' | 'search' | 'data' | null) => void;
 }
 
@@ -301,8 +301,6 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? '🎨 Describe the image you want to create...'
                 : selectedTool === 'code'
                 ? '💻 What code do you need help with?'
-                : selectedTool === 'search'
-                ? '🔍 What would you like to search for?'
                 : selectedTool === 'data'
                 ? '📊 Attach a file (CSV, XLSX, etc.) or paste a URL'
                 : 'Type your message...'
@@ -379,15 +377,15 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 />
               )}
 
-              {/* Quick Live Search */}
-              {onSearchComplete && onSelectTool && (
+              {/* Quick Live Search - HIDDEN: Auto-search now enabled for all conversations */}
+              {/* {onSearchComplete && onSelectTool && (
                 <QuickLiveSearch
                   onSearchComplete={onSearchComplete}
                   isSearching={isStreaming}
                   isSelected={selectedTool === 'search'}
                   onSelect={() => onSelectTool(selectedTool === 'search' ? null : 'search')}
                 />
-              )}
+              )} */}
 
               {/* Quick Data Analysis */}
               {onDataAnalysisComplete && onSelectTool && (
