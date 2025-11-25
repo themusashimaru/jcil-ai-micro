@@ -138,7 +138,14 @@ async function createDirectXAICompletion(options: ChatOptions) {
   // - Biblical/theological questions → uses training data
   // - Stock prices, weather, news → searches automatically
   requestBody.tools = [
-    { type: 'live_search' },  // Live search tool for chat completions endpoint
+    {
+      type: 'live_search',
+      sources: [
+        { type: 'web' },
+        { type: 'x' },
+        { type: 'news' }
+      ]
+    }
   ];
 
   // Make direct API call to xAI
