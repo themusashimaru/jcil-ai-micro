@@ -23,7 +23,7 @@ import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { QuickEmailWriter } from './QuickEmailWriter';
-import { QuickResearchTool } from './QuickResearchTool';
+// import { QuickResearchTool } from './QuickResearchTool'; // HIDDEN: Auto-search is now enabled for all conversations
 import { QuickEssayWriter } from './QuickEssayWriter';
 import { QuickDailyDevotional } from './QuickDailyDevotional';
 import { QuickBibleStudy } from './QuickBibleStudy';
@@ -149,7 +149,7 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
           {/* Main Tools */}
           <div className="flex flex-wrap justify-center gap-1 mb-1 mt-2">
             <QuickEmailWriter />
-            <QuickResearchTool />
+            {/* <QuickResearchTool /> - HIDDEN: Auto-search now enabled for all conversations */}
             <QuickEssayWriter />
           </div>
 
