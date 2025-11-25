@@ -120,8 +120,8 @@ async function createDirectXAICompletion(options: ChatOptions) {
     ...messages,
   ];
 
-  // Prepare request body with properly structured live_search tool
-  // This enables AI to automatically search when questions need current information
+  // Prepare request body - removing tools for now to restore chat functionality
+  // Will implement proper search integration after chat is working
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: any = {
     model: modelName,
@@ -129,17 +129,6 @@ async function createDirectXAICompletion(options: ChatOptions) {
     temperature: effectiveTemperature,
     max_tokens: effectiveMaxTokens,
     stream: false,
-    tools: [
-      {
-        type: 'live_search',
-        sources: [
-          { type: 'web' },
-          { type: 'x' },
-          { type: 'news' }
-        ]
-      }
-    ],
-    tool_choice: 'auto', // Let AI decide when to use search
   };
 
   // Make direct API call to xAI
