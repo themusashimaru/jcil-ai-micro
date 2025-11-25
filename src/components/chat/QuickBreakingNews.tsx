@@ -7,6 +7,7 @@
 'use client';
 
 import { useState } from 'react';
+import { linkify } from '@/lib/utils/linkify';
 
 const CATEGORIES = [
   { key: 'breaking', label: 'Breaking News' },
@@ -413,9 +414,11 @@ Faith-based AI tools for your everyday needs`;
                   <div
                     className="whitespace-pre-wrap text-gray-200 leading-relaxed"
                     dangerouslySetInnerHTML={{
-                      __html: getSelectedContent()
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\n/g, '<br />')
+                      __html: linkify(
+                        getSelectedContent()
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\n/g, '<br />')
+                      )
                     }}
                   />
                 </div>
