@@ -131,20 +131,20 @@ async function createDirectXAICompletion(options: ChatOptions) {
     stream: false,
   };
 
-  // Enable intelligent auto-search for tool types that need it
-  // AI will automatically search when questions require current information
-  // Using mode: 'on' (same as Breaking News) to make search available
-  if (tool === 'research' || !tool) {
-    requestBody.search_parameters = {
-      mode: 'on',  // Make search available (AI still decides when to use it)
-      return_citations: true,
-      sources: [
-        { type: 'web' },
-        { type: 'x' },
-        { type: 'news' }
-      ]
-    };
-  }
+  // DISABLED: search_parameters is causing API errors
+  // The API is returning "An error o..." instead of JSON
+  // Need to investigate the correct format for search_parameters with grok-4-1-fast-reasoning
+  // if (tool === 'research' || !tool) {
+  //   requestBody.search_parameters = {
+  //     mode: 'on',
+  //     return_citations: true,
+  //     sources: [
+  //       { type: 'web' },
+  //       { type: 'x' },
+  //       { type: 'news' }
+  //     ]
+  //   };
+  // }
 
   // Make direct API call to xAI
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
