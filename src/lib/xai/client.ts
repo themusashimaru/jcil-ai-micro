@@ -132,13 +132,11 @@ async function createDirectXAICompletion(options: ChatOptions) {
     tools: [
       {
         type: 'live_search',
-        live_search: {
-          sources: [
-            { type: 'web' },
-            { type: 'x' },
-            { type: 'news' }
-          ]
-        }
+        sources: [
+          { type: 'web' },
+          { type: 'x' },
+          { type: 'news' }
+        ]
       }
     ],
     tool_choice: 'auto', // Let AI decide when to use search
