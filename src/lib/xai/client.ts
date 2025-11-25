@@ -55,9 +55,10 @@ export async function createChatCompletion(options: ChatOptions) {
   // Get agentic tools for the tool type
   const agenticTools = getAgenticTools(tool);
 
-  // For research, shopper, and data tools with web search, use direct xAI API with search_parameters
-  // Note: search_parameters is a top-level field, not a tool
-  if ((tool === 'research' || tool === 'shopper' || tool === 'data') && !stream) {
+  // Use direct xAI API with intelligent auto-search for all non-streaming requests
+  // This enables AI to automatically search when questions need current information
+  // No need to click "Research" button - AI decides when search is needed
+  if (!stream) {
     return createDirectXAICompletion(options);
   }
 
@@ -129,19 +130,21 @@ async function createDirectXAICompletion(options: ChatOptions) {
     stream: false,
   };
 
-  // Add search_parameters for research, shopper, and data tools
-  // Live Search is NOT a tool - it's a top-level search_parameters field
-  if (tool === 'research' || tool === 'shopper' || tool === 'data') {
-    requestBody.search_parameters = {
-      mode: 'on', // Force search on for live search button
-      return_citations: true,
-      sources: [
-        { type: 'web' },
-        { type: 'x' },
-        { type: 'news' }
-      ]
-    };
-  }
+  // Enable intelligent auto-search for ALL conversations
+  // AI automatically decides when to search based on question context
+  // - Questions about current events → searches automatically
+  // - General knowledge questions → uses existing knowledge
+  // - Biblical/theological questions → uses training data
+  // - Stock prices, weather, news → searches automatically
+  requestBody.search_parameters = {
+    mode: 'auto', // AI intelligently decides when search is needed
+    return_citations: true,
+    sources: [
+      { type: 'web' },
+      { type: 'x' },
+      { type: 'news' }
+    ]
+  };
 
   // Make direct API call to xAI
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
