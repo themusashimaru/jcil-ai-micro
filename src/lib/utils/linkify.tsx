@@ -11,6 +11,8 @@
  * - linkifyToReact(text) - Returns React elements array
  */
 
+import React from 'react';
+
 /**
  * Detect and convert URLs in text to clickable HTML links
  */
