@@ -130,23 +130,18 @@ async function createDirectXAICompletion(options: ChatOptions) {
     stream: false,
   };
 
-  // Enable intelligent auto-search for ALL conversations
-  // Using 'live_search' tool for chat/completions endpoint
-  // AI automatically decides when to search based on question context
-  // - Questions about current events → searches automatically
-  // - General knowledge questions → uses existing knowledge
-  // - Biblical/theological questions → uses training data
-  // - Stock prices, weather, news → searches automatically
-  requestBody.tools = [
-    {
-      type: 'live_search',
-      sources: [
-        { type: 'web' },
-        { type: 'x' },
-        { type: 'news' }
-      ]
-    }
-  ];
+  // Enable search for ALL conversations using search_parameters
+  // This is what Breaking News uses successfully - it forces search to be available
+  // The AI will use search when it detects the question needs current information
+  requestBody.search_parameters = {
+    mode: 'on',  // Always make search available (AI still decides when to use it)
+    return_citations: true,
+    sources: [
+      { type: 'web' },
+      { type: 'x' },
+      { type: 'news' }
+    ]
+  };
 
   // Make direct API call to xAI
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
