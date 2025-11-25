@@ -130,15 +130,15 @@ async function createDirectXAICompletion(options: ChatOptions) {
     stream: false,
   };
 
-  // Enable intelligent auto-search for ALL conversations using agentic tools
-  // This is the NEW approach for grok-4-fast - AI automatically decides when to search
+  // Enable intelligent auto-search for ALL conversations
+  // Using 'live_search' tool for chat/completions endpoint
+  // AI automatically decides when to search based on question context
   // - Questions about current events → searches automatically
   // - General knowledge questions → uses existing knowledge
   // - Biblical/theological questions → uses training data
   // - Stock prices, weather, news → searches automatically
   requestBody.tools = [
-    { type: 'web_search' },  // Web search tool
-    { type: 'x_search' },     // X (Twitter) search tool
+    { type: 'live_search' },  // Live search tool for chat completions endpoint
   ];
 
   // Make direct API call to xAI
