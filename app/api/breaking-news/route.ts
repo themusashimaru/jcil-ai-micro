@@ -12,25 +12,92 @@
  *
  * FEATURES:
  * - ✅ 30-minute caching (same for all users)
+ * - ✅ Database-backed cache (survives serverless restarts)
+ * - ✅ Instant loading for users (no 30-60s wait)
  * - ✅ 11 news categories
  * - ✅ Conservative perspective
  * - ✅ Credible source prioritization
+ *
+ * PERFORMANCE FIX:
+ * - Replaced in-memory cache with Supabase database storage
+ * - Cron pre-generates every 30 min → all users get instant results
+ * - Eliminated loading delays caused by serverless architecture
  */
 
 import { createChatCompletion } from '@/lib/xai/client';
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 interface NewsReport {
   content: string;
   generatedAt: Date;
 }
 
-// In-memory cache for the breaking news report
-let cachedNews: NewsReport | null = null;
-
 const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
-function isCacheValid(): boolean {
+// Create Supabase admin client for database operations
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+async function getCachedNews(): Promise<NewsReport | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('breaking_news_cache')
+      .select('content, generated_at')
+      .eq('id', 1)
+      .single();
+
+    if (error || !data) {
+      console.log('[Breaking News] No cache found in database');
+      return null;
+    }
+
+    return {
+      content: data.content,
+      generatedAt: new Date(data.generated_at),
+    };
+  } catch (error) {
+    console.error('[Breaking News] Error reading cache:', error);
+    return null;
+  }
+}
+
+async function setCachedNews(content: string, generatedAt: Date): Promise<void> {
+  try {
+    const supabase = getSupabaseAdmin();
+
+    // Upsert the cache (insert or update row with id=1)
+    const { error } = await supabase
+      .from('breaking_news_cache')
+      .upsert({
+        id: 1,
+        content,
+        generated_at: generatedAt.toISOString(),
+      });
+
+    if (error) {
+      console.error('[Breaking News] Error saving cache:', error);
+      throw error;
+    }
+
+    console.log('[Breaking News] Cache saved to database');
+  } catch (error) {
+    console.error('[Breaking News] Error in setCachedNews:', error);
+    throw error;
+  }
+}
+
+async function isCacheValid(): Promise<boolean> {
+  const cachedNews = await getCachedNews();
   if (!cachedNews) return false;
 
   const now = new Date().getTime();
@@ -149,24 +216,28 @@ CRITICAL: Use live web search to get ACTUAL current news happening RIGHT NOW at 
 
 export async function GET() {
   try {
-    // Check if we have a valid cached report
-    if (isCacheValid() && cachedNews) {
-      return NextResponse.json({
-        content: cachedNews.content,
-        generatedAt: cachedNews.generatedAt,
-        cached: true,
-      });
+    // Check if we have a valid cached report in database
+    const isValid = await isCacheValid();
+    if (isValid) {
+      const cachedNews = await getCachedNews();
+      if (cachedNews) {
+        console.log('[Breaking News] Serving from cache');
+        return NextResponse.json({
+          content: cachedNews.content,
+          generatedAt: cachedNews.generatedAt,
+          cached: true,
+        });
+      }
     }
+
+    console.log('[Breaking News] Cache miss or expired, generating new report');
 
     // Generate new report
     const content = await generateBreakingNews();
     const generatedAt = new Date();
 
-    // Cache it
-    cachedNews = {
-      content,
-      generatedAt,
-    };
+    // Save to database
+    await setCachedNews(content, generatedAt);
 
     return NextResponse.json({
       content,
@@ -174,7 +245,7 @@ export async function GET() {
       cached: false,
     });
   } catch (error) {
-    console.error('Error in breaking news API:', error);
+    console.error('[Breaking News] Error in GET:', error);
     return NextResponse.json(
       { error: 'Failed to load breaking news' },
       { status: 500 }
@@ -197,21 +268,23 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log('[Breaking News] Cron job triggered - generating new report');
+
     const content = await generateBreakingNews();
     const generatedAt = new Date();
 
-    cachedNews = {
-      content,
-      generatedAt,
-    };
+    // Save to database
+    await setCachedNews(content, generatedAt);
+
+    console.log('[Breaking News] Cron job completed successfully');
 
     return NextResponse.json({
       success: true,
       generatedAt,
-      message: 'Breaking news updated successfully',
+      message: 'Breaking news updated successfully in database',
     });
   } catch (error) {
-    console.error('Error refreshing breaking news:', error);
+    console.error('[Breaking News] Error in cron job:', error);
     return NextResponse.json(
       { error: 'Failed to refresh breaking news' },
       { status: 500 }
