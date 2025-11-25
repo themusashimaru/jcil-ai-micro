@@ -120,7 +120,8 @@ async function createDirectXAICompletion(options: ChatOptions) {
     ...messages,
   ];
 
-  // Prepare request body
+  // Prepare request body with properly structured live_search tool
+  // This enables AI to automatically search when questions need current information
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: any = {
     model: modelName,
@@ -128,19 +129,19 @@ async function createDirectXAICompletion(options: ChatOptions) {
     temperature: effectiveTemperature,
     max_tokens: effectiveMaxTokens,
     stream: false,
-  };
-
-  // Enable search for ALL conversations using search_parameters
-  // This is what Breaking News uses successfully - it forces search to be available
-  // The AI will use search when it detects the question needs current information
-  requestBody.search_parameters = {
-    mode: 'on',  // Always make search available (AI still decides when to use it)
-    return_citations: true,
-    sources: [
-      { type: 'web' },
-      { type: 'x' },
-      { type: 'news' }
-    ]
+    tools: [
+      {
+        type: 'live_search',
+        live_search: {
+          sources: [
+            { type: 'web' },
+            { type: 'x' },
+            { type: 'news' }
+          ]
+        }
+      }
+    ],
+    tool_choice: 'auto', // Let AI decide when to use search
   };
 
   // Make direct API call to xAI
@@ -158,7 +159,15 @@ async function createDirectXAICompletion(options: ChatOptions) {
     throw new Error(`xAI API error: ${error}`);
   }
 
-  const data = await response.json();
+  // Parse response with better error handling
+  let data;
+  try {
+    const responseText = await response.text();
+    data = JSON.parse(responseText);
+  } catch (parseError) {
+    const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
+    throw new Error(`Failed to parse xAI API response: ${errorMsg}`);
+  }
 
   // Return in the same format as generateText
   return {
