@@ -942,11 +942,14 @@ export function ChatClient() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const contentParts: any[] = [];
 
-        // Add images first (AI SDK format)
+        // Add images first (xAI format - OpenAI compatible)
         imageAttachments.forEach((image) => {
           contentParts.push({
-            type: 'image',
-            image: image.thumbnail, // Base64 data URL
+            type: 'image_url',
+            image_url: {
+              url: image.thumbnail, // Base64 data URL
+              detail: 'high' // Use high detail for better analysis
+            }
           });
         });
 
