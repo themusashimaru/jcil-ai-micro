@@ -133,9 +133,10 @@ async function createDirectXAICompletion(options: ChatOptions) {
 
   // Enable intelligent auto-search for tool types that need it
   // AI will automatically search when questions require current information
+  // Using mode: 'on' (same as Breaking News) to make search available
   if (tool === 'research' || !tool) {
     requestBody.search_parameters = {
-      mode: 'auto',  // Let AI decide when to search
+      mode: 'on',  // Make search available (AI still decides when to use it)
       return_citations: true,
       sources: [
         { type: 'web' },
