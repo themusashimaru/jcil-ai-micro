@@ -342,95 +342,22 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 className="hidden"
               />
 
-              {/* Attachment button with menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowAttachMenu(!showAttachMenu)}
-                  disabled={isStreaming}
-                  className="rounded-lg p-1 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
-                  title="Attach files"
-                >
-                  <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                    />
-                  </svg>
-                </button>
-
-                {/* Attachment menu */}
-                {showAttachMenu && (
-                  <>
-                    {/* Backdrop */}
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowAttachMenu(false)}
-                    />
-                    {/* Menu */}
-                    <div className="fixed bottom-20 left-4 z-50 w-56 rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
-                      <button
-                        onClick={() => {
-                          cameraInputRef.current?.click();
-                          setShowAttachMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors rounded-t-lg"
-                      >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                        Take a Photo
-                      </button>
-                      <button
-                        onClick={() => {
-                          photoInputRef.current?.click();
-                          setShowAttachMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/10"
-                      >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        Upload Photo
-                      </button>
-                      <button
-                        onClick={() => {
-                          fileInputRef.current?.click();
-                          setShowAttachMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/10 rounded-b-lg"
-                      >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                          />
-                        </svg>
-                        Upload File
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+              {/* Attachment button */}
+              <button
+                onClick={() => setShowAttachMenu(!showAttachMenu)}
+                disabled={isStreaming}
+                className="rounded-lg p-1 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
+                title="Attach files"
+              >
+                <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                  />
+                </svg>
+              </button>
 
               {/* Quick Image Generator */}
               {onImageGenerated && onSelectTool && (
@@ -556,6 +483,78 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
           </p>
         )}
       </div>
+
+      {/* Attachment menu - rendered at root level to avoid z-index issues */}
+      {showAttachMenu && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[998] bg-black/20 backdrop-blur-sm"
+            onClick={() => setShowAttachMenu(false)}
+            aria-hidden="true"
+          />
+          {/* Menu */}
+          <div className="fixed bottom-20 left-4 z-[999] w-56 rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
+            <button
+              onClick={() => {
+                cameraInputRef.current?.click();
+                setShowAttachMenu(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors rounded-t-lg"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              Take a Photo
+            </button>
+            <button
+              onClick={() => {
+                photoInputRef.current?.click();
+                setShowAttachMenu(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/10"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              Upload Photo
+            </button>
+            <button
+              onClick={() => {
+                fileInputRef.current?.click();
+                setShowAttachMenu(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/10 rounded-b-lg"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                />
+              </svg>
+              Upload File
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

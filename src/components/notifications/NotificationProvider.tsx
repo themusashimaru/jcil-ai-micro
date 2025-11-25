@@ -30,6 +30,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { NotificationBell } from './NotificationBell';
 import { NotificationInbox } from './NotificationInbox';
 import type { Notification } from '@/types/notifications';
@@ -40,8 +41,8 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     id: '1',
     type: 'system',
     priority: 'normal',
-    title: 'Welcome to Delta-2!',
-    body: 'Your account is ready. Start chatting with AI assistants and explore advanced tools.',
+    title: 'Welcome to JCIL.AI!',
+    body: 'Your account is ready. Start chatting with your faith-based AI assistant and explore powerful tools.',
     isRead: false,
     createdAt: new Date(Date.now() - 5 * 60000), // 5 minutes ago
     actionLabel: 'Get Started',
@@ -51,19 +52,19 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     id: '2',
     type: 'feature',
     priority: 'high',
-    title: 'New Feature: Image Generation',
-    body: 'Generate stunning images with AI. Try the new Image Generator tool now!',
+    title: 'New Feature: Daily Devotional',
+    body: 'Start your day with faith. Check out the new Daily Devotional feature in your chat!',
     isRead: false,
     createdAt: new Date(Date.now() - 30 * 60000), // 30 minutes ago
     actionLabel: 'Try Now',
-    actionUrl: '/tools/image',
+    actionUrl: '/chat',
   },
   {
     id: '3',
     type: 'billing',
     priority: 'urgent',
     title: 'Subscription Expiring Soon',
-    body: 'Your Pro subscription expires in 3 days. Renew now to avoid service interruption.',
+    body: 'Your subscription expires in 3 days. Renew now to continue accessing all features.',
     isRead: false,
     createdAt: new Date(Date.now() - 2 * 3600000), // 2 hours ago
     actionLabel: 'Renew Subscription',
@@ -92,6 +93,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 ];
 
 export function NotificationProvider() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
 
@@ -161,14 +163,14 @@ export function NotificationProvider() {
 
   // Handle notification click
   const handleNotificationClick = useCallback((notification: Notification) => {
-    // If there's an action URL, navigate to it
+    // If there's an action URL, navigate to it using Next.js router
     if (notification.actionUrl) {
-      window.location.href = notification.actionUrl;
+      router.push(notification.actionUrl);
     }
 
     // Close inbox
     setIsInboxOpen(false);
-  }, []);
+  }, [router]);
 
   return (
     <>

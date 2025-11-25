@@ -273,6 +273,13 @@ export async function POST(request: NextRequest) {
       messagesWithContext = [userContextMessage, ...messagesWithContext];
     }
 
+    // Log messages for debugging image issues
+    console.log('[Chat API] Processing request with messages:', JSON.stringify(messagesWithContext.map(m => ({
+      role: m.role,
+      contentType: typeof m.content,
+      hasImages: Array.isArray(m.content) && m.content.some(c => c.type === 'image')
+    })), null, 2));
+
     // Regular chat completion (non-streaming for now)
     const result = await createChatCompletion({
       messages: messagesWithContext,
@@ -310,6 +317,8 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
+      // Log the full error object for debugging
+      console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     }
 
     // Check for specific error types
@@ -328,11 +337,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Return detailed error for debugging
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
+        fullError: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          cause: error.cause
+        } : String(error),
       }),
       {
         status: 500,

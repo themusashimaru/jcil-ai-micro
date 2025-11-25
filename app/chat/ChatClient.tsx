@@ -942,7 +942,7 @@ export function ChatClient() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const contentParts: any[] = [];
 
-        // Add images first (AI SDK format)
+        // Add images first (Vercel AI SDK format)
         imageAttachments.forEach((image) => {
           contentParts.push({
             type: 'image',

@@ -4,10 +4,10 @@
  */
 
 export type XAIModel =
-  | 'grok-4-fast-reasoning'  // Main chat model
-  | 'grok-4-fast'             // Fast reasoning
-  | 'grok-code-fast-1'        // Code generation/debugging
-  | 'grok-2-image-1212';      // Image generation
+  | 'grok-4-1-fast-reasoning'  // Main chat model (Grok 4.1)
+  | 'grok-4-fast'              // Fast reasoning
+  | 'grok-code-fast-1'         // Code generation/debugging
+  | 'grok-2-image-1212';       // Image generation
 
 export type ToolType =
   | 'email'

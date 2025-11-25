@@ -205,7 +205,7 @@ export async function analyzeImage(imageUrl: string, question: string) {
   // Get configured xAI provider
   const xai = getXAIProvider();
 
-  const model = xai('grok-4-fast-reasoning');
+  const model = xai('grok-4-1-fast-reasoning');
 
   const result = await generateText({
     model,
