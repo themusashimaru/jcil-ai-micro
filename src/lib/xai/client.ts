@@ -278,10 +278,54 @@ async function createDirectXAICompletion(options: ChatOptions) {
     }
   }
 
-  // Extract citations from response
-  // Citations come directly in the response object
+  // Extract citations from response - check multiple possible locations
+  // 1. Direct citations array
   if (data.citations && Array.isArray(data.citations)) {
     citations.push(...data.citations);
+  }
+
+  // 2. Look for citations/sources in output items (web_search_call results)
+  if (data.output && Array.isArray(data.output)) {
+    for (const item of data.output) {
+      // Check for sources in search results
+      if (item.sources && Array.isArray(item.sources)) {
+        for (const source of item.sources) {
+          if (source.url && !citations.includes(source.url)) {
+            citations.push(source.url);
+          }
+        }
+      }
+      // Check for citations in search results
+      if (item.citations && Array.isArray(item.citations)) {
+        for (const citation of item.citations) {
+          const url = typeof citation === 'string' ? citation : citation.url;
+          if (url && !citations.includes(url)) {
+            citations.push(url);
+          }
+        }
+      }
+      // Check for results with URLs
+      if (item.results && Array.isArray(item.results)) {
+        for (const result of item.results) {
+          if (result.url && !citations.includes(result.url)) {
+            citations.push(result.url);
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Extract URLs from the text content as inline citations
+  if (textContent && citations.length === 0) {
+    const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g;
+    const foundUrls = textContent.match(urlRegex) || [];
+    for (const url of foundUrls) {
+      // Clean up URL (remove trailing punctuation)
+      const cleanUrl = url.replace(/[.,;:!?)]+$/, '');
+      if (!citations.includes(cleanUrl)) {
+        citations.push(cleanUrl);
+      }
+    }
   }
 
   // Log search activity
