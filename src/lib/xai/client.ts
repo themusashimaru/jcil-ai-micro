@@ -136,8 +136,9 @@ function convertMessageForXAI(message: any): any {
 }
 
 /**
- * Make direct API call to xAI for tool-enabled requests
- * This ensures web_search and other agentic tools work properly
+ * Make direct API call to xAI using the new Agentic Tool Calling API
+ * This uses the /v1/responses endpoint with web_search and x_search tools
+ * The model autonomously decides when to search and handles the full research loop
  */
 async function createDirectXAICompletion(options: ChatOptions) {
   const { messages, tool, temperature, maxTokens } = options;
@@ -152,51 +153,41 @@ async function createDirectXAICompletion(options: ChatOptions) {
   // Convert messages to xAI format (handles image format conversion)
   const convertedMessages = messages.map(convertMessageForXAI);
 
-  // Prepare messages with system prompt
-  const apiMessages = [
+  // Prepare input messages with system prompt for the Responses API
+  // The Responses API uses 'input' instead of 'messages'
+  const inputMessages = [
     { role: 'system', content: systemPrompt },
     ...convertedMessages,
   ];
 
-  // Prepare request body with search_parameters (NOT in tools array!)
-  // search_parameters enables AI to automatically search when needed
+  // Build request body for the Agentic Tool Calling API
+  // Uses /v1/responses endpoint with tools array (NOT search_parameters)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: any = {
     model: modelName,
-    messages: apiMessages,
+    input: inputMessages,
     temperature: effectiveTemperature,
-    max_tokens: effectiveMaxTokens,
-    stream: false,
+    max_output_tokens: effectiveMaxTokens,
+    // Enable agentic search tools - model decides when to use them
+    tools: [
+      {
+        type: 'web_search',
+        // Enable image understanding during web searches
+        enable_image_understanding: true,
+      },
+      {
+        type: 'x_search',
+        // Enable image and video understanding for X posts
+        enable_image_understanding: true,
+        enable_video_understanding: true,
+      },
+    ],
   };
 
-  // Check if any message contains images
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const hasImages = messages.some((msg: any) =>
-    Array.isArray(msg.content) &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
-  );
+  console.log('[xAI API] Using Agentic Tool Calling API with model:', modelName);
 
-  // REALITY CHECK: search_parameters does NOT work for regular chat
-  // It ONLY works for specific tools: 'research', 'shopper', 'data'
-  // Regular chat (tool === undefined) does NOT support search_parameters
-  // Enabling it causes: "Unexpected token 'A', An error o..." API error
-  //
-  // Enable search ONLY for supported tools, and ONLY when no images present
-  if (!hasImages && (tool === 'research' || tool === 'shopper' || tool === 'data')) {
-    requestBody.search_parameters = {
-      mode: 'on',
-      return_citations: true,
-      sources: [
-        { type: 'web' },
-        { type: 'x' },
-        { type: 'news' }
-      ]
-    };
-  }
-
-  // Make direct API call to xAI
-  const response = await fetch('https://api.x.ai/v1/chat/completions', {
+  // Make direct API call to xAI Responses endpoint
+  const response = await fetch('https://api.x.ai/v1/responses', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -207,18 +198,17 @@ async function createDirectXAICompletion(options: ChatOptions) {
 
   if (!response.ok) {
     const error = await response.text();
+    console.error('[xAI API] Error response:', error);
     throw new Error(`xAI API error: ${error}`);
   }
 
-  // Parse response with better error handling
+  // Parse response
   const responseText = await response.text();
+  console.log('[xAI API] Response preview:', responseText.substring(0, 300));
 
-  // Log first 200 chars of response for debugging
-  console.log('[xAI API] Response preview:', responseText.substring(0, 200));
-
-  // Check if response looks like an error message instead of JSON
+  // Check if response looks like an error
   if (responseText.startsWith('An error') || responseText.startsWith('Error') || !responseText.startsWith('{')) {
-    console.error('[xAI API] Non-JSON response received:', responseText);
+    console.error('[xAI API] Non-JSON response:', responseText);
     throw new Error(`xAI API returned error: ${responseText.substring(0, 500)}`);
   }
 
@@ -227,19 +217,69 @@ async function createDirectXAICompletion(options: ChatOptions) {
     data = JSON.parse(responseText);
   } catch (parseError) {
     const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
-    console.error('[xAI API] Parse error. Full response:', responseText.substring(0, 1000));
-    throw new Error(`Failed to parse xAI API response: ${errorMsg}. Full response: ${responseText.substring(0, 300)}`);
+    console.error('[xAI API] Parse error. Response:', responseText.substring(0, 1000));
+    throw new Error(`Failed to parse xAI API response: ${errorMsg}`);
   }
 
-  // Return in the same format as generateText, plus citations from Live Search
+  // Extract text content from the Responses API format
+  // The response structure has 'output' array with different types
+  let textContent = '';
+  const citations: string[] = [];
+  let toolCallsCount = 0;
+
+  // Process the response output
+  if (data.output && Array.isArray(data.output)) {
+    for (const item of data.output) {
+      // Extract text from message items
+      if (item.type === 'message' && item.content) {
+        for (const content of item.content) {
+          if (content.type === 'output_text' || content.type === 'text') {
+            textContent += content.text || '';
+          }
+        }
+      }
+      // Count tool calls for logging
+      if (item.type === 'web_search_call' || item.type === 'x_search_call') {
+        toolCallsCount++;
+      }
+    }
+  }
+
+  // Fallback: try alternative response structures
+  if (!textContent) {
+    // Try direct output_text field
+    if (data.output_text) {
+      textContent = data.output_text;
+    }
+    // Try choices array (chat completions style)
+    else if (data.choices?.[0]?.message?.content) {
+      textContent = data.choices[0].message.content;
+    }
+    // Try content array
+    else if (data.content?.[0]?.text) {
+      textContent = data.content[0].text;
+    }
+  }
+
+  // Extract citations from response
+  // Citations come directly in the response object
+  if (data.citations && Array.isArray(data.citations)) {
+    citations.push(...data.citations);
+  }
+
+  // Log search activity
+  if (toolCallsCount > 0 || citations.length > 0) {
+    console.log(`[xAI API] Agentic search: ${toolCallsCount} tool calls, ${citations.length} citations`);
+  }
+
+  // Return in standard format
   return {
-    text: data.choices[0].message.content,
-    finishReason: data.choices[0].finish_reason,
-    usage: data.usage,
-    // Extract citations from Live Search response (array of URLs)
-    citations: data.citations || [],
-    // Also capture num_sources_used for billing tracking
-    numSourcesUsed: data.usage?.num_sources_used || 0,
+    text: textContent || 'I apologize, but I was unable to generate a response. Please try again.',
+    finishReason: data.stop_reason || 'stop',
+    usage: data.usage || {},
+    citations: citations,
+    numSourcesUsed: citations.length,
+    toolCallsCount: toolCallsCount,
   };
 }
 

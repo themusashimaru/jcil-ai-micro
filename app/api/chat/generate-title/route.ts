@@ -61,7 +61,9 @@ Rules:
     });
 
     // Extract the title and clean it up
-    let title = result.text.trim();
+    // Handle both string and Promise<string> return types
+    const textContent = await Promise.resolve(result.text);
+    let title = textContent.trim();
     console.log('[API] Raw AI-generated title:', title);
 
     // Remove quotes if present
