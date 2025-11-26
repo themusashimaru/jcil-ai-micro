@@ -139,19 +139,23 @@ async function createDirectXAICompletion(options: ChatOptions) {
     msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
   );
 
+  // DISABLED: search_parameters is causing API errors even for simple queries
+  // The API returns "An error o..." instead of JSON, breaking chat
+  // TODO: Investigate proper search implementation - may need different endpoint
+  //
   // Enable search for text-only conversations
   // Disable search when images are present (not compatible with search_parameters)
-  if (!hasImages) {
-    requestBody.search_parameters = {
-      mode: 'on',  // Make search available - AI will use when appropriate
-      return_citations: true,
-      sources: [
-        { type: 'web' },
-        { type: 'x' },
-        { type: 'news' }
-      ]
-    };
-  }
+  // if (!hasImages) {
+  //   requestBody.search_parameters = {
+  //     mode: 'on',  // Make search available - AI will use when appropriate
+  //     return_citations: true,
+  //     sources: [
+  //       { type: 'web' },
+  //       { type: 'x' },
+  //       { type: 'news' }
+  //     ]
+  //   };
+  // }
 
   // Make direct API call to xAI
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
