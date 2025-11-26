@@ -131,17 +131,31 @@ async function createDirectXAICompletion(options: ChatOptions) {
     stream: false,
   };
 
-  // Enable search for all conversations
-  // This configuration was confirmed working - DO NOT MODIFY
-  requestBody.search_parameters = {
-    mode: 'on',  // Make search available - AI will use when appropriate
-    return_citations: true,
-    sources: [
-      { type: 'web' },
-      { type: 'x' },
-      { type: 'news' }
-    ]
-  };
+  // Check if any message contains images
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hasImages = messages.some((msg: any) =>
+    Array.isArray(msg.content) &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
+  );
+
+  // REALITY CHECK: search_parameters does NOT work for regular chat
+  // It ONLY works for specific tools: 'research', 'shopper', 'data'
+  // Regular chat (tool === undefined) does NOT support search_parameters
+  // Enabling it causes: "Unexpected token 'A', An error o..." API error
+  //
+  // Enable search ONLY for supported tools, and ONLY when no images present
+  if (!hasImages && (tool === 'research' || tool === 'shopper' || tool === 'data')) {
+    requestBody.search_parameters = {
+      mode: 'on',
+      return_citations: true,
+      sources: [
+        { type: 'web' },
+        { type: 'x' },
+        { type: 'news' }
+      ]
+    };
+  }
 
   // Make direct API call to xAI
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
