@@ -139,6 +139,9 @@ function convertMessageForXAI(message: any): any {
  * Make direct API call to xAI using the new Agentic Tool Calling API
  * This uses the /v1/responses endpoint with web_search and x_search tools
  * The model autonomously decides when to search and handles the full research loop
+ *
+ * NOTE: When images are present, we fall back to /v1/chat/completions
+ * because the Responses API doesn't support the image_url format
  */
 async function createDirectXAICompletion(options: ChatOptions) {
   const { messages, tool, temperature, maxTokens } = options;
@@ -152,6 +155,20 @@ async function createDirectXAICompletion(options: ChatOptions) {
 
   // Convert messages to xAI format (handles image format conversion)
   const convertedMessages = messages.map(convertMessageForXAI);
+
+  // Check if any message contains images
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hasImages = messages.some((msg: any) =>
+    Array.isArray(msg.content) &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
+  );
+
+  // If images are present, use chat/completions endpoint (Responses API doesn't support images well)
+  if (hasImages) {
+    console.log('[xAI API] Images detected - using chat/completions endpoint');
+    return createChatCompletionWithImages(convertedMessages, systemPrompt, modelName, effectiveTemperature, effectiveMaxTokens, apiKey);
+  }
 
   // Prepare input messages with system prompt for the Responses API
   // The Responses API uses 'input' instead of 'messages'
@@ -280,6 +297,65 @@ async function createDirectXAICompletion(options: ChatOptions) {
     citations: citations,
     numSourcesUsed: citations.length,
     toolCallsCount: toolCallsCount,
+  };
+}
+
+/**
+ * Handle image requests using /v1/chat/completions endpoint
+ * The Responses API doesn't support image_url format, so we use chat/completions for images
+ */
+async function createChatCompletionWithImages(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  convertedMessages: any[],
+  systemPrompt: string,
+  modelName: string,
+  temperature: number,
+  maxTokens: number,
+  apiKey: string
+) {
+  // Build messages array with system prompt
+  const messagesWithSystem = [
+    { role: 'system', content: systemPrompt },
+    ...convertedMessages,
+  ];
+
+  // Build request body for chat/completions endpoint
+  const requestBody = {
+    model: modelName,
+    messages: messagesWithSystem,
+    temperature: temperature,
+    max_tokens: maxTokens,
+  };
+
+  // Make API call to chat/completions endpoint
+  const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('[xAI API] Chat completions error:', error);
+    throw new Error(`xAI API error: ${error}`);
+  }
+
+  const data = await response.json();
+
+  // Extract text from chat/completions response format
+  const textContent = data.choices?.[0]?.message?.content || '';
+
+  // Return in standard format (no citations for image analysis)
+  return {
+    text: textContent || 'I apologize, but I was unable to analyze the image. Please try again.',
+    finishReason: data.choices?.[0]?.finish_reason || 'stop',
+    usage: data.usage || {},
+    citations: [],
+    numSourcesUsed: 0,
+    toolCallsCount: 0,
   };
 }
 
