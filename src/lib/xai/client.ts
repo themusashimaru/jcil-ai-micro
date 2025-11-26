@@ -132,7 +132,6 @@ async function createDirectXAICompletion(options: ChatOptions) {
   };
 
   // Check if any message contains images
-  // Images and search_parameters are incompatible - can't use both
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasImages = messages.some((msg: any) =>
     Array.isArray(msg.content) &&
@@ -140,11 +139,15 @@ async function createDirectXAICompletion(options: ChatOptions) {
     msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
   );
 
-  // Enable search for text-only queries
-  // Disable search when images present (causes API errors)
-  if (!hasImages) {
+  // REALITY CHECK: search_parameters does NOT work for regular chat
+  // It ONLY works for specific tools: 'research', 'shopper', 'data'
+  // Regular chat (tool === undefined) does NOT support search_parameters
+  // Enabling it causes: "Unexpected token 'A', An error o..." API error
+  //
+  // Enable search ONLY for supported tools, and ONLY when no images present
+  if (!hasImages && (tool === 'research' || tool === 'shopper' || tool === 'data')) {
     requestBody.search_parameters = {
-      mode: 'on',  // Make search available - AI will use when appropriate
+      mode: 'on',
       return_citations: true,
       sources: [
         { type: 'web' },
