@@ -131,28 +131,17 @@ async function createDirectXAICompletion(options: ChatOptions) {
     stream: false,
   };
 
-  // Check if any message contains images (image content is an array, not a string)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const hasImages = messages.some((msg: any) =>
-    Array.isArray(msg.content) &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
-  );
-
-  // Enable search ONLY for specific tools that support it (research, shopper, data)
-  // Do NOT enable for regular chat (tool === undefined) - causes API errors
-  // Also disable search when images are present (not compatible)
-  if (!hasImages && (tool === 'research' || tool === 'shopper' || tool === 'data')) {
-    requestBody.search_parameters = {
-      mode: 'on',  // Make search available
-      return_citations: true,
-      sources: [
-        { type: 'web' },
-        { type: 'x' },
-        { type: 'news' }
-      ]
-    };
-  }
+  // Enable search for all conversations
+  // This configuration was confirmed working - DO NOT MODIFY
+  requestBody.search_parameters = {
+    mode: 'on',  // Make search available - AI will use when appropriate
+    return_citations: true,
+    sources: [
+      { type: 'web' },
+      { type: 'x' },
+      { type: 'news' }
+    ]
+  };
 
   // Make direct API call to xAI
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
