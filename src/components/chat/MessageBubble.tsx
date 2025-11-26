@@ -243,6 +243,49 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
             {linkifyToReact(message.content)}
           </div>
 
+          {/* Citations/Sources from Live Search */}
+          {!isUser && message.citations && message.citations.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span>Sources ({message.citations.length})</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {message.citations.slice(0, 5).map((url, index) => {
+                  // Extract domain from URL for display
+                  let domain = url;
+                  try {
+                    domain = new URL(url).hostname.replace('www.', '');
+                  } catch {
+                    // Keep original URL if parsing fails
+                  }
+                  return (
+                    <a
+                      key={index}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs text-blue-400 hover:bg-white/10 hover:text-blue-300 transition-colors truncate max-w-[200px]"
+                      title={url}
+                    >
+                      <span className="truncate">{domain}</span>
+                      <svg className="h-2.5 w-2.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  );
+                })}
+                {message.citations.length > 5 && (
+                  <span className="px-2 py-0.5 text-xs text-gray-500">
+                    +{message.citations.length - 5} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Timestamp */}
           <div
             className={`mt-0 text-xs ${

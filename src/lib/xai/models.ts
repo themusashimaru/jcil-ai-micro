@@ -10,9 +10,9 @@ import { XAIModel, ToolType } from './types';
  */
 export function getModelForTool(tool?: ToolType): XAIModel {
   if (!tool) {
-    // Default chat model - grok-4-1-fast-reasoning with live_search support
-    // Same price as grok-4-fast-reasoning ($0.20/$0.50 per million tokens)
-    return 'grok-4-1-fast-reasoning';
+    // Default chat model - grok-4-fast recommended for agentic tool calling
+    // Supports web_search, x_search, and live search features
+    return 'grok-4-fast';
   }
 
   switch (tool) {
@@ -26,8 +26,8 @@ export function getModelForTool(tool?: ToolType): XAIModel {
       return 'grok-2-image-1212';
 
     case 'research':
-      // Research uses grok-4-1-fast-reasoning with live_search support
-      return 'grok-4-1-fast-reasoning';
+      // Research uses grok-4-fast with live_search support
+      return 'grok-4-fast';
 
     case 'email':
     case 'essay':
@@ -37,8 +37,8 @@ export function getModelForTool(tool?: ToolType): XAIModel {
     case 'scripture':
     case 'data':
     default:
-      // General chat model with reasoning capabilities and live_search support
-      return 'grok-4-1-fast-reasoning';
+      // General chat model - recommended for agentic tool calling
+      return 'grok-4-fast';
   }
 }
 
@@ -46,10 +46,8 @@ export function getModelForTool(tool?: ToolType): XAIModel {
  * Check if a model supports agentic tool calling
  */
 export function supportsAgenticTools(model: XAIModel): boolean {
-  return [
-    'grok-4-1-fast-reasoning',
-    'grok-4-fast',
-  ].includes(model);
+  // grok-4-fast is specifically trained for agentic tool calling
+  return model === 'grok-4-fast';
 }
 
 /**
