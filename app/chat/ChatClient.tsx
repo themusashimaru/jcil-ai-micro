@@ -400,37 +400,6 @@ export function ChatClient() {
     }
   };
 
-  // Check if query needs live search and provide a helpful message
-  const needsLiveSearch = (query: string): string | null => {
-    const lowerQuery = query.toLowerCase();
-
-    // Patterns that indicate live search is needed
-    const liveSearchPatterns = [
-      /what('s| is) (the )?(current )?time/i,
-      /what time is it/i,
-      /what('s| is) (today'?s?|the) date/i,
-      /what day is it/i,
-      /current (time|date)/i,
-      /today'?s? (date|time)/i,
-      /weather (in|at|for)/i,
-      /what('s| is) the weather/i,
-      /latest news/i,
-      /recent (news|events)/i,
-      /stock price/i,
-      /current (price|value)/i,
-      /happening (now|today)/i,
-    ];
-
-    // Check for live search patterns
-    for (const pattern of liveSearchPatterns) {
-      if (pattern.test(lowerQuery)) {
-        return "For real-time information like current time, date, weather, or latest news, please use the **Live Search** button below to get accurate, up-to-date results.";
-      }
-    }
-
-    return null;
-  };
-
   // Helper function to save message to database
   const saveMessageToDatabase = async (
     conversationId: string,
@@ -963,22 +932,6 @@ export function ChatClient() {
           content: contentParts,
         };
       });
-
-      // Check if query needs live search
-      const liveSearchMessage = needsLiveSearch(content);
-
-      if (liveSearchMessage) {
-        // Provide helpful message about using Live Search button
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: liveSearchMessage,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-        setIsStreaming(false);
-        return;
-      }
 
       // Build user context for personalization
       const userContext = hasProfile

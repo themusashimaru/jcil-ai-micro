@@ -19,6 +19,7 @@
 
 import { useState } from 'react';
 import type { Message } from '@/app/chat/types';
+import { linkifyToReact } from '@/lib/utils/linkify';
 
 interface MessageBubbleProps {
   message: Message;
@@ -238,7 +239,9 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
             isUser ? 'right bg-blue-600 text-white' : 'left'
           }`}
         >
-          <div className="whitespace-pre-wrap break-words">{message.content}</div>
+          <div className="whitespace-pre-wrap break-words">
+            {linkifyToReact(message.content)}
+          </div>
 
           {/* Timestamp */}
           <div

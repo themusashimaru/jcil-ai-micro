@@ -24,13 +24,14 @@ const TOOLS: Tool[] = [
     color: 'from-blue-500 to-cyan-500',
     description: 'Generate, debug, and optimize code',
   },
-  {
-    id: 'research',
-    icon: '🔍',
-    label: 'Research',
-    color: 'from-purple-500 to-pink-500',
-    description: 'Deep web research with citations',
-  },
+  // HIDDEN: Auto-search is now enabled for all conversations - no need for separate research tool
+  // {
+  //   id: 'research',
+  //   icon: '🔍',
+  //   label: 'Research',
+  //   color: 'from-purple-500 to-pink-500',
+  //   description: 'Deep web research with citations',
+  // },
   {
     id: 'image',
     icon: '🎨',

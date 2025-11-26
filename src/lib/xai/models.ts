@@ -10,7 +10,8 @@ import { XAIModel, ToolType } from './types';
  */
 export function getModelForTool(tool?: ToolType): XAIModel {
   if (!tool) {
-    // Default chat model
+    // Default chat model - grok-4-1-fast-reasoning with live_search support
+    // Same price as grok-4-fast-reasoning ($0.20/$0.50 per million tokens)
     return 'grok-4-1-fast-reasoning';
   }
 
@@ -25,7 +26,7 @@ export function getModelForTool(tool?: ToolType): XAIModel {
       return 'grok-2-image-1212';
 
     case 'research':
-      // Research benefits from reasoning model
+      // Research uses grok-4-1-fast-reasoning with live_search support
       return 'grok-4-1-fast-reasoning';
 
     case 'email':
@@ -36,7 +37,7 @@ export function getModelForTool(tool?: ToolType): XAIModel {
     case 'scripture':
     case 'data':
     default:
-      // General chat model for other tools
+      // General chat model with reasoning capabilities and live_search support
       return 'grok-4-1-fast-reasoning';
   }
 }

@@ -55,9 +55,10 @@ export async function createChatCompletion(options: ChatOptions) {
   // Get agentic tools for the tool type
   const agenticTools = getAgenticTools(tool);
 
-  // For research, shopper, and data tools with web search, use direct xAI API with search_parameters
-  // Note: search_parameters is a top-level field, not a tool
-  if ((tool === 'research' || tool === 'shopper' || tool === 'data') && !stream) {
+  // Use direct xAI API with intelligent auto-search for all non-streaming requests
+  // This enables AI to automatically search when questions need current information
+  // No need to click "Research" button - AI decides when search is needed
+  if (!stream) {
     return createDirectXAICompletion(options);
   }
 
@@ -119,7 +120,8 @@ async function createDirectXAICompletion(options: ChatOptions) {
     ...messages,
   ];
 
-  // Prepare request body
+  // Prepare request body with search_parameters (NOT in tools array!)
+  // search_parameters enables AI to automatically search when needed
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestBody: any = {
     model: modelName,
@@ -129,19 +131,20 @@ async function createDirectXAICompletion(options: ChatOptions) {
     stream: false,
   };
 
-  // Add search_parameters for research, shopper, and data tools
-  // Live Search is NOT a tool - it's a top-level search_parameters field
-  if (tool === 'research' || tool === 'shopper' || tool === 'data') {
-    requestBody.search_parameters = {
-      mode: 'on', // Force search on for live search button
-      return_citations: true,
-      sources: [
-        { type: 'web' },
-        { type: 'x' },
-        { type: 'news' }
-      ]
-    };
-  }
+  // DISABLED: search_parameters is causing API errors
+  // The API is returning "An error o..." instead of JSON
+  // Need to investigate the correct format for search_parameters with grok-4-1-fast-reasoning
+  // if (tool === 'research' || !tool) {
+  //   requestBody.search_parameters = {
+  //     mode: 'on',
+  //     return_citations: true,
+  //     sources: [
+  //       { type: 'web' },
+  //       { type: 'x' },
+  //       { type: 'news' }
+  //     ]
+  //   };
+  // }
 
   // Make direct API call to xAI
   const response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -158,7 +161,26 @@ async function createDirectXAICompletion(options: ChatOptions) {
     throw new Error(`xAI API error: ${error}`);
   }
 
-  const data = await response.json();
+  // Parse response with better error handling
+  const responseText = await response.text();
+
+  // Log first 200 chars of response for debugging
+  console.log('[xAI API] Response preview:', responseText.substring(0, 200));
+
+  // Check if response looks like an error message instead of JSON
+  if (responseText.startsWith('An error') || responseText.startsWith('Error') || !responseText.startsWith('{')) {
+    console.error('[xAI API] Non-JSON response received:', responseText);
+    throw new Error(`xAI API returned error: ${responseText.substring(0, 500)}`);
+  }
+
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (parseError) {
+    const errorMsg = parseError instanceof Error ? parseError.message : 'Unknown error';
+    console.error('[xAI API] Parse error. Full response:', responseText.substring(0, 1000));
+    throw new Error(`Failed to parse xAI API response: ${errorMsg}. Full response: ${responseText.substring(0, 300)}`);
+  }
 
   // Return in the same format as generateText
   return {
