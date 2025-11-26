@@ -132,7 +132,7 @@ async function createDirectXAICompletion(options: ChatOptions) {
   };
 
   // Enable search for all conversations
-  // The improved error handling will catch any API issues and show proper messages
+  // This configuration was confirmed working - DO NOT MODIFY
   requestBody.search_parameters = {
     mode: 'on',  // Make search available - AI will use when appropriate
     return_citations: true,
