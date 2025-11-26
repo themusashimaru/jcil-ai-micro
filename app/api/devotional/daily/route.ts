@@ -114,7 +114,9 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
     }
 
     // Parse the JSON response
-    let content = response.text.trim();
+    // Handle both string and Promise<string> return types
+    const textContent = await Promise.resolve(response.text);
+    let content = textContent.trim();
 
     // Remove markdown code blocks if present
     content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
