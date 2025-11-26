@@ -207,7 +207,9 @@ CRITICAL: Use live web search to get ACTUAL current news happening RIGHT NOW at 
     }
 
     // Return the raw text (could be JSON or markdown)
-    return response.text.trim();
+    // Handle both string and Promise<string> return types
+    const text = await Promise.resolve(response.text);
+    return text.trim();
   } catch (error) {
     console.error('Error generating breaking news:', error);
     throw error;
