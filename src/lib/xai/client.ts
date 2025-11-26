@@ -136,6 +136,76 @@ function convertMessageForXAI(message: any): any {
 }
 
 /**
+ * Strip images from older messages in conversation history
+ * Only keep images in the most recent user message to avoid:
+ * - Request size limits (base64 images are large)
+ * - API format issues with multiple images
+ * - Context confusion from old images
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function stripOldImagesFromHistory(messages: any[]): any[] {
+  // Find the index of the last user message with images
+  let lastImageMessageIndex = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === 'user' && Array.isArray(msg.content)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hasImage = msg.content.some((part: any) =>
+        part.type === 'image' || part.type === 'image_url'
+      );
+      if (hasImage) {
+        lastImageMessageIndex = i;
+        break;
+      }
+    }
+  }
+
+  // If no images found, return messages as-is
+  if (lastImageMessageIndex === -1) {
+    return messages;
+  }
+
+  // Process messages: strip images from all but the last image message
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return messages.map((msg: any, index: number) => {
+    // Keep the last image message intact
+    if (index === lastImageMessageIndex) {
+      return msg;
+    }
+
+    // For other messages with array content, strip images
+    if (Array.isArray(msg.content)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const filteredContent = msg.content.filter((part: any) =>
+        part.type !== 'image' && part.type !== 'image_url'
+      );
+
+      // If we removed images, add a placeholder text
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hadImages = msg.content.some((part: any) =>
+        part.type === 'image' || part.type === 'image_url'
+      );
+
+      if (hadImages && filteredContent.length === 0) {
+        // Message was only images, replace with placeholder
+        return {
+          ...msg,
+          content: '[User shared an image earlier in this conversation]',
+        };
+      } else if (hadImages) {
+        // Message had images and text, keep text only
+        return {
+          ...msg,
+          content: filteredContent,
+        };
+      }
+    }
+
+    return msg;
+  });
+}
+
+/**
  * Make direct API call to xAI using the new Agentic Tool Calling API
  * This uses the /v1/responses endpoint with web_search and x_search tools
  * The model autonomously decides when to search and handles the full research loop
@@ -357,10 +427,14 @@ async function createChatCompletionWithImages(
   maxTokens: number,
   apiKey: string
 ) {
+  // Strip old images from history to avoid API issues with multiple images
+  // Only keep images from the most recent user message
+  const cleanedMessages = stripOldImagesFromHistory(convertedMessages);
+
   // Build messages array with system prompt
   const messagesWithSystem = [
     { role: 'system', content: systemPrompt },
-    ...convertedMessages,
+    ...cleanedMessages,
   ];
 
   // Build request body for chat/completions endpoint
