@@ -294,12 +294,27 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = getModelForTool(tool as any);
 
-    // Return JSON response with the text
+    // Extract citations if available (from Live Search)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const citations = (result as any).citations || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const numSourcesUsed = (result as any).numSourcesUsed || 0;
+
+    // Log search usage for monitoring
+    if (citations.length > 0 || numSourcesUsed > 0) {
+      console.log(`[Chat API] Live Search used: ${numSourcesUsed} sources, ${citations.length} citations`);
+    }
+
+    // Return JSON response with the text and citations
     return new Response(
       JSON.stringify({
         type: 'text',
         content: result.text,
         model,
+        // Include citations from Live Search (array of source URLs)
+        citations: citations,
+        // Include source count for transparency
+        sourcesUsed: numSourcesUsed,
       }),
       {
         status: 200,

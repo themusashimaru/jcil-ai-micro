@@ -101,6 +101,41 @@ export async function createChatCompletion(options: ChatOptions) {
 }
 
 /**
+ * Convert Vercel AI SDK image format to xAI/OpenAI compatible format
+ * Vercel format: { type: 'image', image: 'data:...' }
+ * xAI format: { type: 'image_url', image_url: { url: 'data:...', detail: 'high' } }
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function convertMessageForXAI(message: any): any {
+  // If content is not an array, return as-is
+  if (!Array.isArray(message.content)) {
+    return message;
+  }
+
+  // Convert each content part
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const convertedContent = message.content.map((part: any) => {
+    // Convert Vercel AI SDK image format to OpenAI/xAI format
+    if (part.type === 'image' && part.image) {
+      return {
+        type: 'image_url',
+        image_url: {
+          url: part.image,
+          detail: 'high', // Use high detail for better image understanding
+        },
+      };
+    }
+    // Keep other parts (like text) as-is
+    return part;
+  });
+
+  return {
+    ...message,
+    content: convertedContent,
+  };
+}
+
+/**
  * Make direct API call to xAI for tool-enabled requests
  * This ensures web_search and other agentic tools work properly
  */
@@ -114,10 +149,13 @@ async function createDirectXAICompletion(options: ChatOptions) {
   const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
+  // Convert messages to xAI format (handles image format conversion)
+  const convertedMessages = messages.map(convertMessageForXAI);
+
   // Prepare messages with system prompt
   const apiMessages = [
     { role: 'system', content: systemPrompt },
-    ...messages,
+    ...convertedMessages,
   ];
 
   // Prepare request body with search_parameters (NOT in tools array!)
@@ -193,11 +231,15 @@ async function createDirectXAICompletion(options: ChatOptions) {
     throw new Error(`Failed to parse xAI API response: ${errorMsg}. Full response: ${responseText.substring(0, 300)}`);
   }
 
-  // Return in the same format as generateText
+  // Return in the same format as generateText, plus citations from Live Search
   return {
     text: data.choices[0].message.content,
     finishReason: data.choices[0].finish_reason,
     usage: data.usage,
+    // Extract citations from Live Search response (array of URLs)
+    citations: data.citations || [],
+    // Also capture num_sources_used for billing tracking
+    numSourcesUsed: data.usage?.num_sources_used || 0,
   };
 }
 
@@ -238,7 +280,8 @@ export async function analyzeImage(imageUrl: string, question: string) {
   // Get configured xAI provider
   const xai = getXAIProvider();
 
-  const model = xai('grok-4-1-fast-reasoning');
+  // grok-4-fast supports vision/image understanding
+  const model = xai('grok-4-fast');
 
   const result = await generateText({
     model,

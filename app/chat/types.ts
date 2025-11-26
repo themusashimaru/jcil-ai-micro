@@ -25,6 +25,8 @@ export interface Message {
   attachments?: Attachment[];
   imageUrl?: string; // For AI-generated images
   products?: ShopProduct[]; // For Amazon shopping results
+  citations?: string[]; // Source URLs from Live Search
+  sourcesUsed?: number; // Number of sources used in search
   timestamp: Date;
   isStreaming?: boolean;
 }

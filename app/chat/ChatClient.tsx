@@ -965,13 +965,20 @@ export function ChatClient() {
       // Parse JSON response (non-streaming)
       const data = await response.json();
 
-      // Create assistant message with the response
+      // Create assistant message with the response (including citations from Live Search)
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: data.content,
+        citations: data.citations || [], // Source URLs from Live Search
+        sourcesUsed: data.sourcesUsed || 0,
         timestamp: new Date(),
       };
+
+      // Log if search was used
+      if (data.citations?.length > 0 || data.sourcesUsed > 0) {
+        console.log(`[ChatClient] Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`);
+      }
 
       setMessages((prev) => [...prev, assistantMessage]);
       setIsStreaming(false);
