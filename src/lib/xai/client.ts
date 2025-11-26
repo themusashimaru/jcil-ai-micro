@@ -135,6 +135,7 @@ async function createDirectXAICompletion(options: ChatOptions) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hasImages = messages.some((msg: any) =>
     Array.isArray(msg.content) &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
   );
 
