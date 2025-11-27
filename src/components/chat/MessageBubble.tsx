@@ -20,6 +20,7 @@
 import { useState } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface MessageBubbleProps {
   message: Message;
@@ -239,8 +240,14 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
             isUser ? 'right bg-blue-600 text-white' : 'left'
           }`}
         >
-          <div className="whitespace-pre-wrap break-words">
-            {linkifyToReact(message.content)}
+          <div className="break-words">
+            {isUser ? (
+              // User messages: simple text with linkified URLs
+              <div className="whitespace-pre-wrap">{linkifyToReact(message.content)}</div>
+            ) : (
+              // AI messages: full markdown rendering
+              <MarkdownRenderer content={message.content} />
+            )}
           </div>
 
           {/* Citations/Sources from Live Search */}
