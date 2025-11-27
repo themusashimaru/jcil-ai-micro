@@ -6,22 +6,16 @@
  * - Same report for all users, refreshed every 30 minutes
  * - Uses AI to generate college-level news analysis
  *
- * PUBLIC ROUTES:
- * - GET /api/breaking-news - Returns cached news report
- * - POST /api/breaking-news - Generates new report (cron only)
+ * HOW IT WORKS:
+ * - GET /api/breaking-news - Returns cached news or generates fresh if expired
+ * - Cache lasts 30 minutes, stored in Supabase database
+ * - Same behavior for all subscription plans
  *
  * FEATURES:
  * - ✅ 30-minute caching (same for all users)
  * - ✅ Database-backed cache (survives serverless restarts)
- * - ✅ Instant loading for users (no 30-60s wait)
- * - ✅ 11 news categories
- * - ✅ Conservative perspective
+ * - ✅ 11 news categories with conservative perspective
  * - ✅ Credible source prioritization
- *
- * PERFORMANCE FIX:
- * - Replaced in-memory cache with Supabase database storage
- * - Cron pre-generates every 30 min → all users get instant results
- * - Eliminated loading delays caused by serverless architecture
  */
 
 import { createChatCompletion } from '@/lib/xai/client';
@@ -218,7 +212,7 @@ CRITICAL: Use live web search to get ACTUAL current news happening RIGHT NOW at 
 
 export async function GET() {
   try {
-    // Check if we have a valid cached report in database
+    // Check if we have valid cached news (less than 30 minutes old)
     const isValid = await isCacheValid();
     if (isValid) {
       const cachedNews = await getCachedNews();
@@ -232,13 +226,13 @@ export async function GET() {
       }
     }
 
-    console.log('[Breaking News] Cache miss or expired, generating new report');
+    // Cache expired or missing - generate fresh news
+    console.log('[Breaking News] Cache expired, generating fresh report...');
 
-    // Generate new report
     const content = await generateBreakingNews();
     const generatedAt = new Date();
 
-    // Save to database
+    // Save to database for next 30 minutes
     await setCachedNews(content, generatedAt);
 
     return NextResponse.json({
@@ -247,48 +241,9 @@ export async function GET() {
       cached: false,
     });
   } catch (error) {
-    console.error('[Breaking News] Error in GET:', error);
+    console.error('[Breaking News] Error:', error);
     return NextResponse.json(
       { error: 'Failed to load breaking news' },
-      { status: 500 }
-    );
-  }
-}
-
-// Cron endpoint to refresh every 30 minutes (Vercel Cron will call this)
-export async function POST(request: Request) {
-  try {
-    // Vercel Cron sends a special authorization header
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-
-    // Allow Vercel Cron or requests with valid secret
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    console.log('[Breaking News] Cron job triggered - generating new report');
-
-    const content = await generateBreakingNews();
-    const generatedAt = new Date();
-
-    // Save to database
-    await setCachedNews(content, generatedAt);
-
-    console.log('[Breaking News] Cron job completed successfully');
-
-    return NextResponse.json({
-      success: true,
-      generatedAt,
-      message: 'Breaking news updated successfully in database',
-    });
-  } catch (error) {
-    console.error('[Breaking News] Error in cron job:', error);
-    return NextResponse.json(
-      { error: 'Failed to refresh breaking news' },
       { status: 500 }
     );
   }
