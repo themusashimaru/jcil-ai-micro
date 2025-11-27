@@ -206,6 +206,47 @@ function stripOldImagesFromHistory(messages: any[]): any[] {
 }
 
 /**
+ * Get current time context string to inject into system prompt
+ * This ensures the AI always knows the correct current date and time
+ */
+function getCurrentTimeContext(): string {
+  const now = new Date();
+
+  // Format for multiple timezones
+  const utcTime = now.toUTCString();
+  const estTime = now.toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZoneName: 'short'
+  });
+  const cstTime = now.toLocaleString('en-US', {
+    timeZone: 'America/Chicago',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
+  const pstTime = now.toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
+
+  return `CURRENT DATE AND TIME (ACCURATE - USE THIS):
+Today is ${estTime}
+Other US timezones: ${cstTime} | ${pstTime}
+UTC: ${utcTime}
+
+IMPORTANT: Use these times as your reference. When users ask about time, use these values and adjust for their requested timezone. Do NOT rely on search results for current time - use this server time.`;
+}
+
+/**
  * Make direct API call to xAI using the new Agentic Tool Calling API
  * This uses the /v1/responses endpoint with web_search and x_search tools
  * The model autonomously decides when to search and handles the full research loop
@@ -219,9 +260,13 @@ async function createDirectXAICompletion(options: ChatOptions) {
 
   // Get configuration
   const modelName = getModelForTool(tool);
-  const systemPrompt = getSystemPromptForTool(tool);
+  const baseSystemPrompt = getSystemPromptForTool(tool);
   const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
+
+  // Inject current time context into system prompt
+  const timeContext = getCurrentTimeContext();
+  const systemPrompt = `${timeContext}\n\n${baseSystemPrompt}`;
 
   // Convert messages to xAI format (handles image format conversion)
   const convertedMessages = messages.map(convertMessageForXAI);
