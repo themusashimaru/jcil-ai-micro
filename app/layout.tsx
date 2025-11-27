@@ -2,7 +2,7 @@
  * ROOT LAYOUT
  *
  * PURPOSE:
- * - Root layout for the entire Delta-2 application
+ * - Root layout for the entire JCIL.AI application
  * - Provides global HTML structure, metadata, fonts, and theme configuration
  * - Wraps all pages with Supabase auth context and global providers
  *

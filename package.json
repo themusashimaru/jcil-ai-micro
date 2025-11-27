@@ -1,8 +1,8 @@
 {
-  "name": "delta-2",
+  "name": "jcil-ai",
   "version": "0.1.0",
   "private": true,
-  "description": "Delta-2 AI Chat Interface - Production PWA with Next.js, Supabase, OpenAI/XAI",
+  "description": "JCIL.AI - Christian Conservative AI Chat Interface - Production PWA with Next.js, Supabase, xAI",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"
