@@ -7,8 +7,14 @@
  * - Uses AI to generate college-level news analysis
  *
  * PUBLIC ROUTES:
- * - GET /api/breaking-news - Returns cached news report
- * - POST /api/breaking-news - Generates new report (cron only)
+ * - GET /api/breaking-news - Returns cached news (or refreshes if cron request)
+ * - POST /api/breaking-news - Legacy cron endpoint (kept for backward compatibility)
+ *
+ * VERCEL CRON SETUP:
+ * 1. Add CRON_SECRET environment variable in Vercel dashboard
+ * 2. vercel.json has: { "path": "/api/breaking-news", "schedule": "*/30 * * * *" }
+ * 3. Vercel Cron calls GET with Authorization: Bearer <CRON_SECRET>
+ * 4. IMPORTANT: Pro plan required for 30-min intervals (Hobby = daily only)
  *
  * FEATURES:
  * - ✅ 30-minute caching (same for all users)
@@ -216,9 +222,31 @@ CRITICAL: Use live web search to get ACTUAL current news happening RIGHT NOW at 
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Check if we have a valid cached report in database
+    // Check if this is a Vercel Cron request (cron sends Authorization header)
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
+    const isCronRequest = cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+    if (isCronRequest) {
+      // Cron job: Force refresh the cache regardless of validity
+      console.log('[Breaking News] Cron job triggered via GET - forcing refresh');
+
+      const content = await generateBreakingNews();
+      const generatedAt = new Date();
+      await setCachedNews(content, generatedAt);
+
+      console.log('[Breaking News] Cron job completed successfully');
+      return NextResponse.json({
+        success: true,
+        generatedAt,
+        message: 'Breaking news refreshed by cron',
+        cached: false,
+      });
+    }
+
+    // Regular user request: Check cache first
     const isValid = await isCacheValid();
     if (isValid) {
       const cachedNews = await getCachedNews();
