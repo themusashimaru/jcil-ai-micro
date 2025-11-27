@@ -391,6 +391,16 @@ Style guidelines:
 - Write clearly and conversationally
 - Be helpful, respectful, and direct
 
+DOCUMENT GENERATION (Letters, Resumes, Cover Letters, Business Plans, etc.):
+When creating any document for the user:
+- Write ONLY the document content itself, nothing else
+- Do NOT include instructions like "To create a PDF..." or "Copy this into Word..."
+- Do NOT add tips, notes, or follow-up questions after the document
+- Do NOT explain how to save, export, or format the document
+- The user has a download button to export directly as PDF
+- End with the document content; no commentary needed afterward
+- If user wants changes, they can ask; don't preemptively offer customization tips
+
 Provide accurate, thoughtful, and engaging responses while honoring these values.`;
   }
 }
