@@ -125,13 +125,12 @@ export async function authenticateWithPasskey(
 
     const result = await verifyRes.json();
 
-    // Use the token to verify OTP and create session
+    // Use the token_hash to verify and create session
     if (result.token && result.user?.email) {
       const supabase = createBrowserClient();
 
       const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: result.user.email,
-        token: result.token,
+        token_hash: result.token,
         type: 'magiclink',
       });
 
