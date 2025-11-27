@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signInWithEmail } from '@/lib/supabase/auth';
+import PasskeyLoginButton from '@/components/auth/PasskeyLoginButton';
 
 function LoginForm() {
   const router = useRouter();
@@ -151,6 +152,25 @@ function LoginForm() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          {/* Passkey / Face ID Login */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-transparent text-gray-500">or</span>
+              </div>
+            </div>
+            <div className="mt-4">
+              <PasskeyLoginButton
+                email={email}
+                onError={(err) => setError(err)}
+                className="bg-black/40 border-white/10 text-white hover:bg-white/10"
+              />
+            </div>
+          </div>
 
           {/* Sign Up Link */}
           <p className="text-center text-gray-500 text-sm mt-6">

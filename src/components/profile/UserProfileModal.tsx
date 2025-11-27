@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUserProfile, type UserProfile } from '@/contexts/UserProfileContext';
+import PasskeySettings from '@/components/auth/PasskeySettings';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -238,6 +239,17 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                 />
               </div>
             )}
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-white/10" />
+
+          {/* Passkey / Biometric Login Settings */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-300">
+              Security Settings
+            </label>
+            <PasskeySettings />
           </div>
 
           {/* Info Box */}

@@ -28,6 +28,7 @@ import { ChatComposer } from '@/components/chat/ChatComposer';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
 import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
@@ -42,6 +43,9 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { profile, hasProfile } = useUserProfile();
+  // Passkey prompt for Face ID / Touch ID setup
+  const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
+  const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
   // Selected tool (only one can be selected at a time)
   const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
   // Header logo from design settings
@@ -66,6 +70,17 @@ export function ChatClient() {
     };
     loadLogo();
   }, []);
+
+  // Show passkey prompt modal after a short delay on first load
+  useEffect(() => {
+    if (showPasskeyPrompt) {
+      // Wait 2 seconds after page load before showing the prompt
+      const timer = setTimeout(() => {
+        setIsPasskeyModalOpen(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showPasskeyPrompt]);
 
   // Detect screen size and set initial sidebar state
   useEffect(() => {
@@ -1190,6 +1205,19 @@ export function ChatClient() {
 
       {/* User Profile Modal */}
       <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+
+      {/* Passkey Setup Prompt Modal */}
+      <PasskeyPromptModal
+        isOpen={isPasskeyModalOpen}
+        onClose={() => {
+          setIsPasskeyModalOpen(false);
+          dismissPasskeyPrompt();
+        }}
+        onSuccess={() => {
+          setIsPasskeyModalOpen(false);
+          dismissPasskeyPrompt();
+        }}
+      />
     </div>
   );
 }
