@@ -155,36 +155,11 @@ export function ChatClient() {
   }, []);
 
   const handleNewChat = async () => {
-    const newChatId = Date.now().toString();
-    const newChat: Chat = {
-      id: newChatId,
-      title: 'New Chat',
-      isPinned: false,
-      lastMessage: '',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setChats([newChat, ...chats]);
-    setCurrentChatId(newChatId);
+    // Just reset to "new chat" state - don't create in database yet
+    // The chat will be created when user sends their first message
+    // This prevents blank/empty chats from accumulating
+    setCurrentChatId(null);
     setMessages([]);
-
-    // Create conversation in database immediately
-    try {
-      const dbConversationId = await createConversationInDatabase('New Chat', 'general');
-      // Update to use the database-generated UUID
-      if (dbConversationId && typeof dbConversationId === 'string') {
-        setCurrentChatId(dbConversationId);
-        setChats((prevChats) =>
-          prevChats.map((chat) =>
-            chat.id === newChatId ? { ...chat, id: dbConversationId } : chat
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
-      // Keep the local chat even if DB creation fails
-      // The conversation will be created when first message is sent
-    }
 
     // Auto-close sidebar on mobile after creating new chat
     if (window.innerWidth < 768) {
