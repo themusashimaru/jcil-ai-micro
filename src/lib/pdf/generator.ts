@@ -47,7 +47,7 @@ function removeHelperText(text: string): string {
  */
 function stripMarkdown(text: string): string {
   // First remove helper text
-  let cleaned = removeHelperText(text);
+  const cleaned = removeHelperText(text);
 
   return cleaned
     // Remove headers but keep the text
