@@ -6,28 +6,16 @@
  * - Same report for all users, refreshed every 30 minutes
  * - Uses AI to generate college-level news analysis
  *
- * PUBLIC ROUTES:
- * - GET /api/breaking-news - Returns cached news (or refreshes if cron request)
- * - POST /api/breaking-news - Legacy cron endpoint (kept for backward compatibility)
- *
- * VERCEL CRON SETUP:
- * 1. Add CRON_SECRET environment variable in Vercel dashboard
- * 2. vercel.json has: { "path": "/api/breaking-news", "schedule": "*/30 * * * *" }
- * 3. Vercel Cron calls GET with Authorization: Bearer <CRON_SECRET>
- * 4. IMPORTANT: Pro plan required for 30-min intervals (Hobby = daily only)
+ * HOW IT WORKS:
+ * - GET /api/breaking-news - Returns cached news or generates fresh if expired
+ * - Cache lasts 30 minutes, stored in Supabase database
+ * - Same behavior for all subscription plans
  *
  * FEATURES:
  * - ✅ 30-minute caching (same for all users)
  * - ✅ Database-backed cache (survives serverless restarts)
- * - ✅ Instant loading for users (no 30-60s wait)
- * - ✅ 11 news categories
- * - ✅ Conservative perspective
+ * - ✅ 11 news categories with conservative perspective
  * - ✅ Credible source prioritization
- *
- * PERFORMANCE FIX:
- * - Replaced in-memory cache with Supabase database storage
- * - Cron pre-generates every 30 min → all users get instant results
- * - Eliminated loading delays caused by serverless architecture
  */
 
 import { createChatCompletion } from '@/lib/xai/client';
@@ -222,31 +210,9 @@ CRITICAL: Use live web search to get ACTUAL current news happening RIGHT NOW at 
   }
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    // Check if this is a Vercel Cron request (cron sends Authorization header)
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    const isCronRequest = cronSecret && authHeader === `Bearer ${cronSecret}`;
-
-    if (isCronRequest) {
-      // Cron job: Force refresh the cache regardless of validity
-      console.log('[Breaking News] Cron job triggered via GET - forcing refresh');
-
-      const content = await generateBreakingNews();
-      const generatedAt = new Date();
-      await setCachedNews(content, generatedAt);
-
-      console.log('[Breaking News] Cron job completed successfully');
-      return NextResponse.json({
-        success: true,
-        generatedAt,
-        message: 'Breaking news refreshed by cron',
-        cached: false,
-      });
-    }
-
-    // Regular user request: Check cache first
+    // Check if we have valid cached news (less than 30 minutes old)
     const isValid = await isCacheValid();
     if (isValid) {
       const cachedNews = await getCachedNews();
@@ -260,13 +226,13 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log('[Breaking News] Cache miss or expired, generating new report');
+    // Cache expired or missing - generate fresh news
+    console.log('[Breaking News] Cache expired, generating fresh report...');
 
-    // Generate new report
     const content = await generateBreakingNews();
     const generatedAt = new Date();
 
-    // Save to database
+    // Save to database for next 30 minutes
     await setCachedNews(content, generatedAt);
 
     return NextResponse.json({
@@ -275,48 +241,9 @@ export async function GET(request: Request) {
       cached: false,
     });
   } catch (error) {
-    console.error('[Breaking News] Error in GET:', error);
+    console.error('[Breaking News] Error:', error);
     return NextResponse.json(
       { error: 'Failed to load breaking news' },
-      { status: 500 }
-    );
-  }
-}
-
-// Cron endpoint to refresh every 30 minutes (Vercel Cron will call this)
-export async function POST(request: Request) {
-  try {
-    // Vercel Cron sends a special authorization header
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-
-    // Allow Vercel Cron or requests with valid secret
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    console.log('[Breaking News] Cron job triggered - generating new report');
-
-    const content = await generateBreakingNews();
-    const generatedAt = new Date();
-
-    // Save to database
-    await setCachedNews(content, generatedAt);
-
-    console.log('[Breaking News] Cron job completed successfully');
-
-    return NextResponse.json({
-      success: true,
-      generatedAt,
-      message: 'Breaking news updated successfully in database',
-    });
-  } catch (error) {
-    console.error('[Breaking News] Error in cron job:', error);
-    return NextResponse.json(
-      { error: 'Failed to refresh breaking news' },
       { status: 500 }
     );
   }
