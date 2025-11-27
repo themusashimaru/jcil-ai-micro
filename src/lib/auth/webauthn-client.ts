@@ -13,6 +13,7 @@ import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
 } from '@simplewebauthn/browser';
+import { createBrowserClient } from '@/lib/supabase/client';
 
 export { browserSupportsWebAuthn, platformAuthenticatorIsAvailable };
 
@@ -88,7 +89,7 @@ export async function registerPasskey(): Promise<{ success: boolean; error?: str
  */
 export async function authenticateWithPasskey(
   email?: string
-): Promise<{ success: boolean; redirectUrl?: string; error?: string }> {
+): Promise<{ success: boolean; error?: string }> {
   try {
     // Get authentication options from server
     const optionsRes = await fetch('/api/auth/webauthn/authenticate', {
@@ -124,12 +125,25 @@ export async function authenticateWithPasskey(
 
     const result = await verifyRes.json();
 
-    // The server returns an action link to complete sign-in
-    if (result.actionLink) {
-      return { success: true, redirectUrl: result.actionLink };
+    // Use the token to verify OTP and create session
+    if (result.token && result.user?.email) {
+      const supabase = createBrowserClient();
+
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: result.user.email,
+        token: result.token,
+        type: 'magiclink',
+      });
+
+      if (verifyError) {
+        console.error('OTP verification error:', verifyError);
+        return { success: false, error: 'Failed to create session' };
+      }
+
+      return { success: true };
     }
 
-    return { success: true };
+    return { success: false, error: 'Invalid response from server' };
   } catch (error: unknown) {
     // Handle user cancellation
     if (error instanceof Error && error.name === 'NotAllowedError') {

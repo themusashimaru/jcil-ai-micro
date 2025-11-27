@@ -10,14 +10,12 @@ import {
 
 interface PasskeyLoginButtonProps {
   email?: string;
-  onSuccess?: () => void;
   onError?: (error: string) => void;
   className?: string;
 }
 
 export default function PasskeyLoginButton({
   email,
-  onSuccess,
   onError,
   className = '',
 }: PasskeyLoginButtonProps) {
@@ -44,12 +42,8 @@ export default function PasskeyLoginButton({
     const result = await authenticateWithPasskey(email);
 
     if (result.success) {
-      if (result.redirectUrl) {
-        // Redirect to complete sign-in
-        window.location.href = result.redirectUrl;
-      } else {
-        onSuccess?.();
-      }
+      // Session created successfully, redirect to chat
+      window.location.href = '/chat';
     } else {
       setIsLoading(false);
       onError?.(result.error || 'Authentication failed');
