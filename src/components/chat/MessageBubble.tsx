@@ -73,7 +73,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
       )}
 
       {/* Message Content */}
-      <div className={`space-y-0 overflow-x-hidden ${isUser ? 'max-w-[70%]' : 'flex-1 max-w-full'}`}>
+      <div className="space-y-0 overflow-x-hidden flex-1 max-w-full">
         {/* Tool Calls */}
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="flex flex-wrap gap-0">
