@@ -1,6 +1,6 @@
-# Delta-2 AI Chat Interface
+# JCIL.AI - Christian Conservative AI Chat
 
-Production-ready Next.js PWA with AI chat, advanced tools, and comprehensive admin panel.
+Production-ready Next.js PWA with AI chat through a Christian conservative lens, advanced tools, and comprehensive admin panel.
 
 ## Tech Stack
 
@@ -19,8 +19,8 @@ Production-ready Next.js PWA with AI chat, advanced tools, and comprehensive adm
 
 1. **Clone & Install**
    ```bash
-   git clone https://github.com/themusashimaru/delta2.git
-   cd delta2
+   git clone https://github.com/themusashimaru/jcil-ai-micro.git
+   cd jcil-ai-micro
    pnpm install
    ```
 
@@ -98,7 +98,7 @@ pnpm start
 ## Project Structure
 
 ```
-delta2/
+jcil-ai-micro/
 ├── app/                      # Next.js App Router
 │   ├── page.tsx             # Landing page
 │   ├── chat/                # Main chat app

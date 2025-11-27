@@ -1,7 +1,7 @@
 -- ============================================================
 -- JCIL-AI-MICRO COMPLETE DATABASE SCHEMA
 -- ============================================================
--- Purpose: Full database setup for Delta-2 AI Chat with:
+-- Purpose: Full database setup for JCIL.AI Chat with:
 -- - User authentication & profiles
 -- - Subscription management (Free, Basic, Pro, Executive)
 -- - Conversation & message storage with 3-month retention

@@ -37,7 +37,7 @@ Fixes live search functionality and cleans up project branches.
 
 ## Branch Cleanup Needed
 After merge, delete these 16 old branches (see BRANCH_CLEANUP.md):
-- `claude/check-delta-2-project-*` (dead-end rebuild)
+- `claude/check-delta-2-project-*` (old placeholder name, now JCIL.AI)
 - All other `claude/*` branches except `tools-launcher-pages`
 
 ## Deployment

@@ -1,6 +1,6 @@
 /**
  * SERVICE WORKER
- * PURPOSE: PWA offline support, cache management for Delta-2 AI Chat
+ * PURPOSE: PWA offline support, cache management for JCIL.AI Chat
  *
  * CACHING STRATEGY:
  * - Static assets (CSS, JS, fonts, images): Cache-First
@@ -18,7 +18,7 @@
  * - Auto-cleanup of oldest entries when limit reached
  */
 
-const CACHE_VERSION = 'delta-2-v1';
+const CACHE_VERSION = 'jcil-ai-v1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const CHAT_CACHE = `${CACHE_VERSION}-chats`;
 const MAX_CHAT_CACHE_ITEMS = 50;
@@ -62,7 +62,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           // Delete old cache versions
-          if (cacheName.startsWith('delta-2-') && cacheName !== STATIC_CACHE && cacheName !== CHAT_CACHE) {
+          if ((cacheName.startsWith('jcil-ai-') || cacheName.startsWith('delta-2-')) && cacheName !== STATIC_CACHE && cacheName !== CHAT_CACHE) {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
