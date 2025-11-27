@@ -2,60 +2,44 @@
  * PDF GENERATOR UTILITY
  *
  * PURPOSE:
- * - Generate PDF exports of chat conversations
- * - Clean formatting with JCIL.AI branding
- * - Handles markdown content conversion
- *
- * USAGE:
- * - generateChatPDF(messages, title) → triggers download
+ * - Generate clean PDF exports of AI responses
+ * - Professional document formatting (resumes, cover letters, etc.)
+ * - No branding or chat metadata - just the content
  */
 
 import { jsPDF } from 'jspdf';
 import type { Message } from '@/app/chat/types';
 
-interface PDFOptions {
-  title?: string;
-  includeTimestamps?: boolean;
-  includeCitations?: boolean;
-}
-
 /**
  * Strip markdown formatting for cleaner PDF text
+ * Preserves structure for professional documents
  */
 function stripMarkdown(text: string): string {
   return text
-    // Remove headers
+    // Remove headers but keep the text
     .replace(/^#{1,6}\s+/gm, '')
-    // Remove bold/italic
+    // Remove bold/italic markers but keep text
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
     .replace(/__([^_]+)__/g, '$1')
     .replace(/_([^_]+)_/g, '$1')
-    // Remove inline code
+    // Remove inline code backticks
     .replace(/`([^`]+)`/g, '$1')
-    // Remove code blocks
-    .replace(/```[\s\S]*?```/g, '[Code Block]')
+    // Handle code blocks - keep content, remove markers
+    .replace(/```[\w]*\n?([\s\S]*?)```/g, '$1')
     // Remove links but keep text
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    // Remove blockquotes
+    // Remove blockquote markers
     .replace(/^>\s+/gm, '')
+    // Remove horizontal rules
+    .replace(/^[-*_]{3,}$/gm, '')
+    // Clean bullet points to simple dashes
+    .replace(/^[\s]*[-*+]\s+/gm, '• ')
+    // Clean numbered lists
+    .replace(/^[\s]*\d+\.\s+/gm, (match) => match.trim() + ' ')
     // Clean up extra whitespace
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-}
-
-/**
- * Format timestamp for display
- */
-function formatTimestamp(date: Date): string {
-  return new Date(date).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
 }
 
 /**
@@ -95,17 +79,35 @@ function wrapText(doc: jsPDF, text: string, maxWidth: number): string[] {
 }
 
 /**
- * Generate and download PDF of chat conversation
+ * Extract a meaningful title from the content
+ * Looks for common document patterns
  */
-export async function generateChatPDF(
-  messages: Message[],
-  options: PDFOptions = {}
-): Promise<void> {
-  const {
-    title = 'JCIL.AI Conversation',
-    includeTimestamps = true,
-    includeCitations = true,
-  } = options;
+function extractTitle(content: string): string {
+  // Look for common document title patterns
+  const patterns = [
+    /^#\s+(.+)$/m,                           // Markdown header
+    /^(Cover Letter|Resume|CV|Business Plan|Proposal|Report)/im,
+    /^(Dear|To Whom)/im,                     // Letter opening
+  ];
+
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match) {
+      return match[1].substring(0, 40);
+    }
+  }
+
+  // Default: use first few words
+  const firstLine = content.split('\n')[0].substring(0, 40);
+  return firstLine || 'Document';
+}
+
+/**
+ * Generate and download a clean PDF of AI content
+ * No branding, no timestamps - just the document
+ */
+export async function generateMessagePDF(message: Message): Promise<void> {
+  const content = stripMarkdown(message.content);
 
   // Create PDF document (A4 size)
   const doc = new jsPDF({
@@ -116,7 +118,7 @@ export async function generateChatPDF(
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 20;
+  const margin = 25; // Professional document margins
   const contentWidth = pageWidth - margin * 2;
   let yPosition = margin;
 
@@ -130,130 +132,38 @@ export async function generateChatPDF(
     return false;
   };
 
-  // Header
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 0, 0);
-  doc.text('JCIL.AI', margin, yPosition);
-
-  yPosition += 8;
-
-  // Title
-  doc.setFontSize(14);
+  // Set up professional document styling
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(80, 80, 80);
-  doc.text(title, margin, yPosition);
+  doc.setFontSize(11);
+  doc.setTextColor(30, 30, 30);
 
-  yPosition += 6;
+  // Process content
+  const wrappedLines = wrapText(doc, content, contentWidth);
 
-  // Export date
-  doc.setFontSize(10);
-  doc.setTextColor(120, 120, 120);
-  doc.text(`Exported: ${formatTimestamp(new Date())}`, margin, yPosition);
+  for (const line of wrappedLines) {
+    checkPageBreak(6);
 
-  yPosition += 10;
+    // Detect if this might be a header (all caps or short line followed by blank)
+    const isHeader = line.length < 50 && line === line.toUpperCase() && line.trim().length > 0;
 
-  // Divider line
-  doc.setDrawColor(200, 200, 200);
-  doc.line(margin, yPosition, pageWidth - margin, yPosition);
-  yPosition += 10;
-
-  // Filter out system messages
-  const chatMessages = messages.filter((m) => m.role !== 'system');
-
-  // Process each message
-  for (const message of chatMessages) {
-    const isUser = message.role === 'user';
-    const cleanContent = stripMarkdown(message.content);
-
-    // Role label
-    checkPageBreak(20);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    // Blue for user (59, 130, 246), green for AI (34, 197, 94)
-    if (isUser) {
-      doc.setTextColor(59, 130, 246);
+    if (isHeader) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
     } else {
-      doc.setTextColor(34, 197, 94);
-    }
-    doc.text(isUser ? 'You' : 'JCIL.AI', margin, yPosition);
-
-    // Timestamp (if enabled)
-    if (includeTimestamps && message.timestamp) {
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(150, 150, 150);
-      doc.setFontSize(8);
-      const timestamp = formatTimestamp(message.timestamp);
-      const timestampWidth = doc.getTextWidth(timestamp);
-      doc.text(timestamp, pageWidth - margin - timestampWidth, yPosition);
+      doc.setFontSize(11);
     }
 
-    yPosition += 6;
-
-    // Message content
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(40, 40, 40);
-
-    const wrappedLines = wrapText(doc, cleanContent, contentWidth);
-
-    for (const line of wrappedLines) {
-      checkPageBreak(6);
-      doc.text(line, margin, yPosition);
-      yPosition += 5;
-    }
-
-    // Image indicator
-    if (message.imageUrl) {
-      checkPageBreak(8);
-      doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
-      doc.setFont('helvetica', 'italic');
-      doc.text('[AI-generated image attached]', margin, yPosition);
-      yPosition += 5;
-    }
-
-    // Citations (if enabled and present)
-    if (includeCitations && message.citations && message.citations.length > 0) {
-      checkPageBreak(10);
-      doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
-      doc.setFont('helvetica', 'italic');
-      doc.text(`Sources: ${message.citations.length} citation(s)`, margin, yPosition);
-      yPosition += 5;
-    }
-
-    // Spacing between messages
-    yPosition += 8;
+    doc.text(line, margin, yPosition);
+    yPosition += line === '' ? 4 : 5.5; // Slightly more space for empty lines
   }
 
-  // Footer on last page
-  doc.setFontSize(8);
-  doc.setTextColor(150, 150, 150);
-  doc.setFont('helvetica', 'normal');
-  const footerText = 'Generated by JCIL.AI - Christian Conservative AI Assistant';
-  const footerWidth = doc.getTextWidth(footerText);
-  doc.text(footerText, (pageWidth - footerWidth) / 2, pageHeight - 10);
-
-  // Generate filename
+  // Generate filename from content
+  const title = extractTitle(message.content);
   const dateStr = new Date().toISOString().split('T')[0];
-  const safeTitle = title.replace(/[^a-z0-9]/gi, '-').substring(0, 30);
-  const filename = `jcil-ai-${safeTitle}-${dateStr}.pdf`;
+  const safeTitle = title.replace(/[^a-z0-9]/gi, '-').toLowerCase().substring(0, 30);
+  const filename = `${safeTitle}-${dateStr}.pdf`;
 
   // Download the PDF
   doc.save(filename);
-}
-
-/**
- * Generate PDF of a single message (for individual exports)
- */
-export async function generateMessagePDF(
-  message: Message,
-  title?: string
-): Promise<void> {
-  return generateChatPDF([message], {
-    title: title || 'JCIL.AI Response',
-    includeTimestamps: true,
-    includeCitations: true,
-  });
 }
