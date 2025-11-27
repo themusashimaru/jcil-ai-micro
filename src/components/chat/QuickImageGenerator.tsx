@@ -22,10 +22,10 @@ export function QuickImageGenerator({ isGenerating = false, isSelected = false, 
           : 'bg-black text-white border-white/20 hover:bg-gray-800'
       }`}
       disabled={isGenerating}
-      aria-label="Image generation mode"
-      title={isSelected ? "Image mode active - describe your image" : "Select image generation mode"}
+      aria-label="Create image mode"
+      title={isSelected ? "Create image mode active - describe your image" : "Select create image mode"}
     >
-      {isSelected ? '✓ Image' : 'Image'}
+      {isSelected ? '✓ Create Image' : 'Create Image'}
     </button>
   );
 }
