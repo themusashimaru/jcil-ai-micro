@@ -11,11 +11,45 @@ import { jsPDF } from 'jspdf';
 import type { Message } from '@/app/chat/types';
 
 /**
+ * Remove AI helper text that shouldn't be in the document
+ * (instructions, follow-up questions, tips, etc.)
+ */
+function removeHelperText(text: string): string {
+  // Common patterns that indicate the start of helper/instructional text
+  const cutoffPatterns = [
+    /\n+This is a customizable template[\s\S]*/i,
+    /\n+To create a PDF[\s\S]*/i,
+    /\n+To save this[\s\S]*/i,
+    /\n+Related:\s*\n[\s\S]*/i,
+    /\n+If you (?:provide|need|want|have)[\s\S]*$/i,
+    /\n+Let me know if[\s\S]*/i,
+    /\n+Feel free to[\s\S]*/i,
+    /\n+I hope this helps[\s\S]*/i,
+    /\n+Is there anything else[\s\S]*/i,
+    /\n+Would you like me to[\s\S]*/i,
+    /\n+Here are some (?:tips|suggestions)[\s\S]*/i,
+    /\n+Tips?:\s*\n[\s\S]*/i,
+    /\n+Note:\s*\n[\s\S]*/i,
+    /\n+\*\*Note:\*\*[\s\S]*/i,
+  ];
+
+  let result = text;
+  for (const pattern of cutoffPatterns) {
+    result = result.replace(pattern, '');
+  }
+
+  return result.trim();
+}
+
+/**
  * Strip markdown formatting for cleaner PDF text
  * Preserves structure for professional documents
  */
 function stripMarkdown(text: string): string {
-  return text
+  // First remove helper text
+  const cleaned = removeHelperText(text);
+
+  return cleaned
     // Remove headers but keep the text
     .replace(/^#{1,6}\s+/gm, '')
     // Remove bold/italic markers but keep text
