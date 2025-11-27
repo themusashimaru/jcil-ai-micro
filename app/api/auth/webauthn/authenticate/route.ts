@@ -157,14 +157,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Create a magic link token for the user to sign in
-    // This is a workaround since Supabase doesn't have direct passkey support
+    // Generate a magic link for the user
     const { data: authData, error: authError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: userData.email,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/chat`,
-      },
     });
 
     if (authError || !authData) {
@@ -175,11 +171,24 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Extract the token from the action link
+    // Extract the token hash from the action link
+    // The action link format: https://xxx.supabase.co/auth/v1/verify?token=TOKEN&type=magiclink&redirect_to=...
     const actionLink = authData.properties?.action_link;
     if (!actionLink) {
       return NextResponse.json(
         { error: 'Failed to create session' },
+        { status: 500 }
+      );
+    }
+
+    // Parse the token from the URL
+    const url = new URL(actionLink);
+    const token = url.searchParams.get('token');
+    const type = url.searchParams.get('type');
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Failed to extract token' },
         { status: 500 }
       );
     }
@@ -192,7 +201,9 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      actionLink, // Client will use this to complete sign-in
+      // Return token info for client-side verification
+      token,
+      type: type || 'magiclink',
       user: {
         id: userData.id,
         email: userData.email,
