@@ -296,8 +296,8 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
 
           {/* Timestamp */}
           <div
-            className={`mt-0 text-xs ${
-              isUser ? 'text-white/70' : 'text-gray-500'
+            className={`mt-1 text-xs ${
+              isUser ? 'text-white/70' : 'text-gray-400'
             }`}
           >
             {new Date(message.timestamp).toLocaleTimeString([], {
