@@ -411,6 +411,31 @@ Faith-based AI tools for your everyday needs`;
 
               {newsContent && selectedCategory && (
                 <div className="prose prose-invert max-w-none">
+                  {/* Timestamp Header */}
+                  {lastUpdated && (
+                    <div className="mb-6 pb-4 border-b border-white/10">
+                      <div className="flex items-center gap-2 text-blue-400">
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-semibold">
+                          {lastUpdated.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-400 mt-1 ml-7">
+                        Updated at {lastUpdated.toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          timeZoneName: 'short',
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div
                     className="whitespace-pre-wrap text-gray-200 leading-relaxed"
                     dangerouslySetInnerHTML={{

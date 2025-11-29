@@ -14,7 +14,7 @@
       "schedule": "1 0 * * *"
     },
     {
-      "path": "/api/breaking-news",
+      "path": "/api/cron/breaking-news",
       "schedule": "*/30 * * * *"
     }
   ]
