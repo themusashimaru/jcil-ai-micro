@@ -8,15 +8,18 @@
  * - Uses batched generation for newspaper-grade quality
  *
  * BATCHED GENERATION:
- * - 11 category groups, each with focused API call
+ * - 11 category groups generated in parallel batches
  * - Each group gets ~8,000 tokens for thorough coverage
- * - Total generation time: ~3-5 minutes
+ * - Total generation time: ~2-3 minutes with parallelization
  * - Results combined into single cached report
  *
  * SECURITY:
  * - Vercel crons include CRON_SECRET header for verification
  * - Only accepts requests from Vercel's cron system
  */
+
+// Vercel Pro: Allow up to 5 minutes for batched generation
+export const maxDuration = 300;
 
 import { createChatCompletion } from '@/lib/xai/client';
 import { NextResponse } from 'next/server';
@@ -286,8 +289,8 @@ CRITICAL: You MUST search for CURRENT news from TODAY or the past 24 hours. Ever
 }
 
 /**
- * Generate all breaking news using batched API calls
- * Each category group gets focused attention for better quality
+ * Generate all breaking news using parallel batched API calls
+ * Groups are processed in parallel batches of 3 to balance speed vs rate limits
  */
 async function generateBreakingNews(): Promise<string> {
   const now = new Date();
@@ -302,18 +305,34 @@ async function generateBreakingNews(): Promise<string> {
     timeZone: 'America/New_York',
   });
 
-  console.log(`[Breaking News Cron] Starting batched generation at ${formattedDateTime}`);
-  console.log(`[Breaking News Cron] Generating ${CATEGORY_GROUPS.length} category groups...`);
+  console.log(`[Breaking News Cron] Starting parallel generation at ${formattedDateTime}`);
+  console.log(`[Breaking News Cron] Generating ${CATEGORY_GROUPS.length} category groups in parallel batches...`);
 
-  // Generate all category groups sequentially
+  // Process groups in parallel batches of 3 to avoid rate limiting
+  const BATCH_SIZE = 3;
   const allCategories: Record<string, string> = {};
 
-  for (const group of CATEGORY_GROUPS) {
-    const groupResults = await generateCategoryGroup(group, formattedDateTime);
-    Object.assign(allCategories, groupResults);
+  for (let i = 0; i < CATEGORY_GROUPS.length; i += BATCH_SIZE) {
+    const batch = CATEGORY_GROUPS.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+    const totalBatches = Math.ceil(CATEGORY_GROUPS.length / BATCH_SIZE);
 
-    // Small delay between groups to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log(`[Breaking News Cron] Processing batch ${batchNum}/${totalBatches}: ${batch.map(g => g.name).join(', ')}`);
+
+    // Run this batch in parallel
+    const batchResults = await Promise.all(
+      batch.map(group => generateCategoryGroup(group, formattedDateTime))
+    );
+
+    // Merge results
+    for (const result of batchResults) {
+      Object.assign(allCategories, result);
+    }
+
+    // Brief pause between batches to be nice to the API
+    if (i + BATCH_SIZE < CATEGORY_GROUPS.length) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
 
   // Combine into final JSON structure
