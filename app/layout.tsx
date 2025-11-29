@@ -73,18 +73,18 @@ export const metadata: Metadata = {
     description: 'Intelligent AI assistance built on your values. Chat, research, Bible study, writing tools, and more. Safe for families.',
     images: [
       {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
+        url: '/icon-512.png',
+        width: 512,
+        height: 512,
         alt: 'JCIL.AI - AI-Powered Tools for People of Faith',
       },
     ],
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title: 'JCIL.AI | AI-Powered Tools for People of Faith',
     description: 'Intelligent AI assistance built on your values. Safe for families. Enterprise-grade security.',
-    images: ['/og-image.png'],
+    images: ['/icon-512.png'],
   },
   robots: {
     index: true,
