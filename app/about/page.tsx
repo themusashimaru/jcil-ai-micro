@@ -122,7 +122,7 @@ export default function AboutPage() {
               <p className="text-gray-300">
                 We believe Scripture is the written Word of God. JCIL.AI is designed to be a
                 study aid that helps users explore the Bible, develop Bible studies, and deepen
-                their faith with an assistant that shares their reverence for God's Word.
+                their faith with an assistant that shares their reverence for God&apos;s Word.
               </p>
             </div>
           </div>
