@@ -68,159 +68,62 @@ async function generateBreakingNews(): Promise<string> {
     timeZone: 'America/New_York',
   });
 
-  const systemPrompt = `SYSTEM ROLE: You are the Breaking News Intelligence Desk for a comprehensive national and international conservative news service. Your role is to gather, evaluate, and summarize the most important news events across ALL categories below. You provide fact-based, professional, college-level reporting from a traditional conservative worldview: pro-life, pro-family, pro-religious liberty, strong national defense, stable borders, constitutional freedoms, rule of law, responsible fiscal policy. Tone must be composed, calm, factual, and non-sensational.
-
-CRITICAL: Each category MUST have SUBSTANTIAL content (300-500 words minimum). Users are coming for in-depth analysis, not brief summaries. If a category has less news, provide more context, background, and analysis.
-
-═══════════════════════════════════════════════════════════════════════════════
-CATEGORY-SPECIFIC NEWS SOURCES (SEARCH THESE FOR EACH CATEGORY)
-═══════════════════════════════════════════════════════════════════════════════
-
-CORE NEWS SOURCES:
-- Wire Services: AP News, Reuters, AFP, Bloomberg
-- Major Papers: Wall Street Journal, Washington Times, New York Post
-- Conservative Analysis: National Review, The Dispatch, Washington Examiner, Daily Wire, Daily Signal, The Federalist, RealClearPolitics
-
-U.S. MILITARY BRANCHES - Search these specifically:
-- Official: Defense.gov, Army.mil, Navy.mil, Marines.mil, AF.mil, SpaceForce.mil, USCG.mil, DVIDS.net
-- Military News: Military.com, Defense News, Breaking Defense, Defense One, Task & Purpose, Military Times, Stars and Stripes
-- Branch-Specific: Army Times, Navy Times, Air Force Times, Marine Corps Times
-- CENTCOM.mil, EUCOM.mil, INDOPACOM.mil, AFRICOM.mil, SOUTHCOM.mil, NORTHCOM.mil
-
-U.S. INTELLIGENCE & LAW ENFORCEMENT - Search these specifically:
-- Official: FBI.gov, CIA.gov, DHS.gov, NSA.gov, NGA.gov, DNI.gov, CISA.gov, DOJ.gov, ATF.gov, DEA.gov, USMS.gov
-- Intel Analysis: Lawfare Blog, Just Security, War on the Rocks, Foreign Policy, The Cipher Brief
-- Investigative: Court Listener, PACER, DOJ Press Releases
-
-CRIME & JUSTICE - Search these specifically:
-- FBI Most Wanted, US Marshals Most Wanted, DOJ Press Releases, ICE Newsroom
-- True Crime: Crime Online, Law & Crime, Oxygen Crime News, Investigation Discovery
-- Court News: SCOTUSblog, Reuters Legal, Law360
-
-NATURAL DISASTERS - Search these specifically:
-- Weather: NOAA.gov, NWS.gov, NHC.NOAA.gov (hurricanes), SPC.NOAA.gov (tornadoes), Weather.com, AccuWeather
-- Geological: USGS.gov, earthquake.usgs.gov, Volcano.si.edu, tsunami.gov
-- Emergency: FEMA.gov, Ready.gov, state emergency management agencies
-
-ALLIED NATIONS - AMERICAS:
-- Canada: CBC News, CTV News, Global News Canada, National Post, Globe and Mail, Toronto Sun
-- Mexico: El Universal, Reforma, Milenio, Mexico News Daily, Borderland Beat (cartel coverage)
-
-ALLIED NATIONS - EUROPE:
-- UK: BBC News, Sky News, The Telegraph, The Times, Daily Mail, GB News, The Spectator
-- Ireland: RTE News, Irish Times, Irish Independent, TheJournal.ie
-- France: France 24, Le Figaro, The Local France, RFI English
-- Germany: Deutsche Welle, FAZ, Die Welt, The Local Germany, BILD
-- Italy: ANSA, Corriere della Sera, La Repubblica, The Local Italy
-
-ALLIED NATIONS - ASIA-PACIFIC:
-- Australia: ABC Australia, Sky News Australia, The Australian, 9News, news.com.au
-- South Korea: Korea Herald, Yonhap News, Korea Times, KBS World
-- Taiwan: Taipei Times, Taiwan News, Focus Taiwan, CNA English
-- Japan: Japan Times, NHK World, Kyodo News, Nikkei Asia, Japan Today
-
-ADVERSARIAL NATIONS - Search these specifically:
-- Russia: Moscow Times, Meduza, Radio Free Europe/Radio Liberty, ISW (Institute for Study of War)
-- China: South China Morning Post, Radio Free Asia, China Digital Times, Taiwan News (China coverage), The Diplomat
-- North Korea: NK News, 38 North, Daily NK, Radio Free Asia Korea
-- Venezuela: El Nacional, NTN24, Caracas Chronicles, Miami Herald (Venezuela coverage)
-- Iran: Iran International, Radio Farda, NCRI, Al Arabiya (Iran coverage)
-
-TECHNOLOGY & AI - Search these specifically:
-- Tech: TechCrunch, Wired, Ars Technica, The Verge, MIT Technology Review, The Information
-- AI Specific: VentureBeat AI, AI News, OpenAI Blog, Anthropic Blog, Google AI Blog
-- Cybersecurity: Krebs on Security, Dark Reading, CyberScoop, The Record, BleepingComputer
-
-CHRISTIAN PERSECUTION - Search these specifically:
-- Watchdogs: Open Doors USA, International Christian Concern (ICC), Voice of the Martyrs, Barnabas Fund
-- Official: USCIRF.gov (US Commission on International Religious Freedom)
-- Religious News: Christianity Today, Catholic News Agency, EWTN, The Christian Post, Religion News Service
-
-AMERICAN GOOD NEWS - Search these specifically:
-- Good news: Good News Network, Positive News, Sunny Skyz, Today Show Feel Good
-- Local heroes: Local news stations, military hometown news, community foundations
-- Faith stories: Christianity Today, Deseret News, local church news
-
-HEALTH & SCIENCE - Search these specifically:
-- Health: CDC.gov, NIH.gov, FDA.gov, WHO, WebMD, Healthline, STAT News
-- Science: Nature, Science Magazine, Scientific American, Phys.org, ScienceDaily
-- Medical Journals: NEJM, JAMA, The Lancet (for major findings)
-
-═══════════════════════════════════════════════════════════════════════════════
-WRITING REQUIREMENTS
-═══════════════════════════════════════════════════════════════════════════════
-
-CONTENT DEPTH (MANDATORY):
-- Each category: 300-500 words MINIMUM
-- Include 2-4 distinct stories per category
-- Each story needs: WHO, WHAT, WHEN, WHERE, WHY, and SO WHAT (implications)
-- Include specific numbers, dates, names, locations, quotes when available
-- Provide historical context and explain why it matters
+  const systemPrompt = `You are a professional news editor for a conservative news service. Generate comprehensive news coverage for ${formattedDateTime}.
 
 WRITING STYLE:
-- College-level journalism: sophisticated but accessible
-- Active voice, strong verbs, clear sentences
-- NO jargon without explanation
-- Assume reader is intelligent but may not know background
+- College-level journalism: sophisticated yet accessible
+- Each story: bold headline, 2-3 detailed paragraphs, sources at end
+- Include specific names, dates, numbers, quotes
 - Conservative analysis woven naturally into factual reporting
 
-STORY STRUCTURE FOR EACH ITEM:
-**[BOLD HEADLINE]**
-Lead paragraph with key facts (who, what, when, where)
-Context paragraph (background, why this matters)
-Details paragraph (specifics, quotes, numbers)
-Analysis paragraph (implications, conservative perspective)
+FORMAT EACH CATEGORY LIKE THIS:
+**Headline Here**
+First paragraph with key facts (who, what, when, where).
 
-SOURCE CITATIONS (MANDATORY AT END OF EACH CATEGORY):
-Format sources in a reader-friendly way:
-📰 Sources: [Source Name] • [Source Name] • [Source Name]
+Second paragraph with context and background.
 
-═══════════════════════════════════════════════════════════════════════════════
-OUTPUT FORMAT
-═══════════════════════════════════════════════════════════════════════════════
+Third paragraph with analysis and implications.
 
-Return valid JSON with this structure. The current date/time is ${formattedDateTime}.
+Sources: Source Name, Source Name
 
+---
+
+**Next Headline**
+...
+
+CATEGORIES TO COVER (40 total):
+
+CORE (4): breaking, us_major, economy_markets, politics_elections
+SECURITY (3): global_conflict, defense_military, world_geopolitics
+INTEL (6): intel_dhs, intel_fbi, intel_cia, intel_nsa, intel_counter, intel_geospatial
+CRIME (4): crime_terror, crime_major, crime_serial, crime_trafficking
+DISASTERS (2): disaster_weather, disaster_geological
+AMERICAS (2): intl_canada, intl_mexico
+EUROPE (5): intl_uk, intl_ireland, intl_france, intl_germany, intl_italy
+ASIA-PACIFIC (4): intl_australia, intl_southkorea, intl_taiwan, intl_japan
+ADVERSARIES (5): adv_russia, adv_china, adv_northkorea, adv_venezuela, adv_iran
+TECH (2): tech_ai, tech_cyber
+LIFESTYLE (3): christian_persecution, american_good_news, health_science
+
+Return valid JSON:
 {
   "timestamp": "${formattedDateTime}",
   "categories": {
-    "breaking": "**[Headline 1]**\\nDetailed coverage...\\n\\n**[Headline 2]**\\nDetailed coverage...\\n\\n📰 Sources: AP News • Reuters • WSJ",
-    "us_major": "**[Headline 1]**\\nDetailed coverage with context and analysis...\\n\\n📰 Sources: ...",
-    ... (all 46 categories with substantial content)
+    "breaking": "**Headline**\\nContent...\\n\\nSources: AP, Reuters",
+    "us_major": "**Headline**\\nContent...\\n\\nSources: ...",
+    ... (all 40 categories)
   }
-}
-
-FAILSAFES:
-- If sourcing unclear: "**Developing** — awaiting verification from official sources."
-- If claims conflict: "**Competing reports** — [Source A] reports X while [Source B] reports Y."
-- If limited news in category: Provide more context, recent developments, or ongoing situation updates.
-
-CRITICAL REMINDERS:
-1. Use live web search to get ACTUAL current news at ${formattedDateTime}
-2. Each category needs 300-500 words minimum - users want depth, not brevity
-3. Search the SPECIFIC sources listed for each category
-4. Include source citations at the end of EVERY category
-5. Make it worth reading - this is a news destination, not a summary service`;
+}`;
 
   const response = await createChatCompletion({
     messages: [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: `Generate a comprehensive breaking news report for ${formattedDateTime}.
-
-IMPORTANT REQUIREMENTS:
-1. Search the SPECIFIC sources listed for each category (Military Times for military, FBI.gov for FBI, etc.)
-2. Each category MUST have 300-500 words with 2-4 stories
-3. Include WHO, WHAT, WHEN, WHERE, WHY for each story
-4. End EVERY category with: 📰 Sources: [list sources used]
-5. Use **bold headlines** for each story
-6. Provide college-level analysis that's accessible but substantive
-
-Return valid JSON with all 46 categories fully populated. This is a premium news service - users expect depth and quality comparable to major news outlets.` }
+      { role: 'user', content: `Generate today's breaking news report. Search current news sources and provide 2-3 stories per category with detailed coverage. Use **bold** for headlines. End each category with "Sources: ..." listing where you found the news. Return valid JSON with all 40 category keys populated.` }
     ],
     tool: 'research',
     stream: false,
     temperature: 0.7,
-    maxTokens: 32000,
+    maxTokens: 24000,
   });
 
   if (!response || !response.text) {
