@@ -1,35 +1,27 @@
 /**
- * BREAKING NEWS API ROUTE
+ * BREAKING NEWS CRON ENDPOINT
  *
  * PURPOSE:
- * - Provide comprehensive breaking news from conservative perspective
- * - Same report for all users, refreshed every 30 minutes via cron
- * - Uses AI to generate college-level news analysis
+ * - Dedicated endpoint for Vercel cron job
+ * - Always regenerates fresh news (ignores cache)
+ * - Runs every 30 minutes automatically
+ * - Generates comprehensive 46-category news report
  *
- * HOW IT WORKS:
- * - GET /api/breaking-news - Returns cached news (instant for users)
- * - Cache lasts 30 minutes, stored in Supabase database
- * - Cron job at /api/cron/breaking-news regenerates every 30 min
+ * CATEGORIES:
+ * - Core news, global security, military branches
+ * - Intelligence agencies, crime & justice, disasters
+ * - Allied nations (Americas, Europe, Asia-Pacific)
+ * - Adversarial nations (Russia, China, NK, Venezuela, Iran)
+ * - Technology, AI, faith & lifestyle
  *
- * FEATURES:
- * - ✅ 46 comprehensive news categories
- * - ✅ Core news, military branches, intelligence agencies
- * - ✅ International allied & adversarial nations coverage
- * - ✅ Crime, disasters, technology, faith categories
- * - ✅ Database-backed cache (survives serverless restarts)
- * - ✅ Credible source prioritization
+ * SECURITY:
+ * - Vercel crons include CRON_SECRET header for verification
+ * - Only accepts requests from Vercel's cron system
  */
 
 import { createChatCompletion } from '@/lib/xai/client';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-
-interface NewsReport {
-  content: string;
-  generatedAt: Date;
-}
-
-const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
 // Create Supabase admin client for database operations
 function getSupabaseAdmin() {
@@ -43,64 +35,23 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-async function getCachedNews(): Promise<NewsReport | null> {
-  try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from('breaking_news_cache')
-      .select('content, generated_at')
-      .eq('id', 1)
-      .single();
-
-    if (error || !data) {
-      console.log('[Breaking News] No cache found in database');
-      return null;
-    }
-
-    return {
-      content: data.content,
-      generatedAt: new Date(data.generated_at),
-    };
-  } catch (error) {
-    console.error('[Breaking News] Error reading cache:', error);
-    return null;
-  }
-}
-
 async function setCachedNews(content: string, generatedAt: Date): Promise<void> {
-  try {
-    const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseAdmin();
 
-    // Upsert the cache (insert or update row with id=1)
-    const { error } = await supabase
-      .from('breaking_news_cache')
-      .upsert({
-        id: 1,
-        content,
-        generated_at: generatedAt.toISOString(),
-      });
+  const { error } = await supabase
+    .from('breaking_news_cache')
+    .upsert({
+      id: 1,
+      content,
+      generated_at: generatedAt.toISOString(),
+    });
 
-    if (error) {
-      console.error('[Breaking News] Error saving cache:', error);
-      throw error;
-    }
-
-    console.log('[Breaking News] Cache saved to database');
-  } catch (error) {
-    console.error('[Breaking News] Error in setCachedNews:', error);
+  if (error) {
+    console.error('[Breaking News Cron] Error saving cache:', error);
     throw error;
   }
-}
 
-async function isCacheValid(): Promise<boolean> {
-  const cachedNews = await getCachedNews();
-  if (!cachedNews) return false;
-
-  const now = new Date().getTime();
-  const cacheTime = new Date(cachedNews.generatedAt).getTime();
-  const age = now - cacheTime;
-
-  return age < CACHE_DURATION_MS;
+  console.log('[Breaking News Cron] Cache saved to database');
 }
 
 async function generateBreakingNews(): Promise<string> {
@@ -261,73 +212,26 @@ FAILSAFES: If sourcing unclear: "**Developing** — awaiting verification." If c
 
 CRITICAL: Use live web search to get ACTUAL current news happening RIGHT NOW at ${formattedDateTime}. Do not use outdated information.`;
 
-  try {
-    const response = await createChatCompletion({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: 'Conduct comprehensive live web searches and generate detailed breaking news reports across ALL 46 categories. Each category should contain current news with specific facts, dates, and conservative perspective. Return the response in the exact JSON format specified, using real-time current data. Prioritize the most newsworthy categories but include content for ALL categories.' }
-      ],
-      tool: 'research',
-      stream: false,
-      temperature: 0.7,
-      maxTokens: 16000,
-    });
+  const response = await createChatCompletion({
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'Conduct comprehensive live web searches and generate detailed breaking news reports across ALL 46 categories. Each category should contain current news with specific facts, dates, and conservative perspective. Return the response in the exact JSON format specified, using real-time current data. Prioritize the most newsworthy categories but include content for ALL categories.' }
+    ],
+    tool: 'research',
+    stream: false,
+    temperature: 0.7,
+    maxTokens: 16000,
+  });
 
-    if (!response || !response.text) {
-      throw new Error('Failed to generate breaking news content');
-    }
-
-    // Return the raw text (could be JSON or markdown)
-    // Handle both string and Promise<string> return types
-    const text = await Promise.resolve(response.text);
-    return text.trim();
-  } catch (error) {
-    console.error('Error generating breaking news:', error);
-    throw error;
+  if (!response || !response.text) {
+    throw new Error('Failed to generate breaking news content');
   }
+
+  const text = await Promise.resolve(response.text);
+  return text.trim();
 }
 
-export async function GET() {
-  try {
-    // Check if we have valid cached news (less than 30 minutes old)
-    const isValid = await isCacheValid();
-    if (isValid) {
-      const cachedNews = await getCachedNews();
-      if (cachedNews) {
-        console.log('[Breaking News] Serving from cache');
-        return NextResponse.json({
-          content: cachedNews.content,
-          generatedAt: cachedNews.generatedAt,
-          cached: true,
-        });
-      }
-    }
-
-    // Cache expired or missing - generate fresh news
-    console.log('[Breaking News] Cache expired, generating fresh report...');
-
-    const content = await generateBreakingNews();
-    const generatedAt = new Date();
-
-    // Save to database for next 30 minutes
-    await setCachedNews(content, generatedAt);
-
-    return NextResponse.json({
-      content,
-      generatedAt,
-      cached: false,
-    });
-  } catch (error) {
-    console.error('[Breaking News] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to load breaking news' },
-      { status: 500 }
-    );
-  }
-}
-
-// POST handler for Vercel cron - always regenerates fresh news
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   try {
     // Verify this is from Vercel Cron (optional security check)
     const authHeader = request.headers.get('authorization');
@@ -356,6 +260,7 @@ export async function POST(request: Request) {
       success: true,
       generatedAt,
       duration: `${duration}s`,
+      message: 'Breaking news regenerated successfully',
     });
   } catch (error) {
     console.error('[Breaking News Cron] Error:', error);
