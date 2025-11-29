@@ -1,6 +1,6 @@
 /**
  * QUICK BREAKING NEWS
- * Full-page newspaper view with 11 news categories
+ * Full-page newspaper view with comprehensive news categories
  * Updates every 30 minutes with conservative news analysis
  */
 
@@ -9,19 +9,118 @@
 import { useState } from 'react';
 import { linkify } from '@/lib/utils/linkify';
 
-const CATEGORIES = [
-  { key: 'breaking', label: 'Breaking News' },
-  { key: 'us_major', label: 'U.S. Major News' },
-  { key: 'global_conflict', label: 'Global Conflict & Crisis' },
-  { key: 'defense_war', label: 'Department of Defense / War' },
-  { key: 'economy_markets', label: 'Economy & Markets' },
-  { key: 'world_geopolitics', label: 'World / Geopolitics' },
-  { key: 'politics_elections', label: 'Politics & Elections' },
-  { key: 'tech_cyber', label: 'Technology & Cybersecurity' },
-  { key: 'health_science', label: 'Health, Science & Environment' },
-  { key: 'christian_persecution', label: 'Christian Persecution' },
-  { key: 'american_good_news', label: 'American Good News' },
+// Organized category groups for the dropdown
+const CATEGORY_GROUPS = [
+  {
+    label: 'CORE NEWS',
+    categories: [
+      { key: 'breaking', label: 'Breaking News' },
+      { key: 'us_major', label: 'U.S. Major News' },
+      { key: 'economy_markets', label: 'Economy & Markets' },
+      { key: 'politics_elections', label: 'Politics & Elections' },
+    ],
+  },
+  {
+    label: 'GLOBAL SECURITY',
+    categories: [
+      { key: 'global_conflict', label: 'Global Conflict & Crisis' },
+      { key: 'defense_military', label: 'Defense & Military Operations' },
+      { key: 'world_geopolitics', label: 'World / Geopolitics' },
+    ],
+  },
+  {
+    label: 'U.S. MILITARY BRANCHES',
+    categories: [
+      { key: 'mil_army', label: 'U.S. Army' },
+      { key: 'mil_navy', label: 'U.S. Navy' },
+      { key: 'mil_marines', label: 'U.S. Marines' },
+      { key: 'mil_airforce', label: 'U.S. Air Force' },
+      { key: 'mil_spaceforce', label: 'U.S. Space Force' },
+      { key: 'mil_coastguard', label: 'U.S. Coast Guard' },
+    ],
+  },
+  {
+    label: 'U.S. INTELLIGENCE & LAW ENFORCEMENT',
+    categories: [
+      { key: 'intel_dhs', label: 'Homeland Security' },
+      { key: 'intel_fbi', label: 'FBI' },
+      { key: 'intel_cia', label: 'CIA' },
+      { key: 'intel_nsa', label: 'NSA' },
+      { key: 'intel_counter', label: 'Counter Intelligence' },
+      { key: 'intel_geospatial', label: 'Geospatial Intelligence' },
+    ],
+  },
+  {
+    label: 'CRIME & JUSTICE',
+    categories: [
+      { key: 'crime_terror', label: 'Terrorism & Domestic Threats' },
+      { key: 'crime_major', label: 'Major Crimes & Investigations' },
+      { key: 'crime_serial', label: 'Serial Killers' },
+      { key: 'crime_trafficking', label: 'Human Trafficking' },
+    ],
+  },
+  {
+    label: 'NATURAL DISASTERS',
+    categories: [
+      { key: 'disaster_weather', label: 'Severe Weather (Tornadoes, Hurricanes)' },
+      { key: 'disaster_geological', label: 'Geological (Earthquakes, Tsunamis, Volcanoes)' },
+    ],
+  },
+  {
+    label: 'ALLIED NATIONS - AMERICAS',
+    categories: [
+      { key: 'intl_canada', label: 'Canada' },
+      { key: 'intl_mexico', label: 'Mexico' },
+    ],
+  },
+  {
+    label: 'ALLIED NATIONS - EUROPE',
+    categories: [
+      { key: 'intl_uk', label: 'United Kingdom' },
+      { key: 'intl_ireland', label: 'Ireland' },
+      { key: 'intl_france', label: 'France' },
+      { key: 'intl_germany', label: 'Germany' },
+      { key: 'intl_italy', label: 'Italy' },
+    ],
+  },
+  {
+    label: 'ALLIED NATIONS - ASIA-PACIFIC',
+    categories: [
+      { key: 'intl_australia', label: 'Australia' },
+      { key: 'intl_southkorea', label: 'South Korea' },
+      { key: 'intl_taiwan', label: 'Taiwan' },
+      { key: 'intl_japan', label: 'Japan' },
+    ],
+  },
+  {
+    label: 'ADVERSARIAL NATIONS',
+    categories: [
+      { key: 'adv_russia', label: 'Russia Watch' },
+      { key: 'adv_china', label: 'China Watch' },
+      { key: 'adv_northkorea', label: 'North Korea Watch' },
+      { key: 'adv_venezuela', label: 'Venezuela Watch' },
+      { key: 'adv_iran', label: 'Iran Watch' },
+    ],
+  },
+  {
+    label: 'TECHNOLOGY',
+    categories: [
+      { key: 'tech_ai', label: 'AI News & Developments' },
+      { key: 'tech_cyber', label: 'Technology & Cybersecurity' },
+    ],
+  },
+  {
+    label: 'FAITH & LIFESTYLE',
+    categories: [
+      { key: 'christian_persecution', label: 'Christian Persecution' },
+      { key: 'american_good_news', label: 'American Good News' },
+      { key: 'health_science', label: 'Health & Science' },
+    ],
+  },
 ];
+
+// Flat list for backward compatibility and lookups
+const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(group => group.categories);
 
 export function QuickBreakingNews() {
   const [isOpen, setIsOpen] = useState(false);
@@ -102,19 +201,15 @@ export function QuickBreakingNews() {
 
       // If we have categories, format each one
       if (parsed.categories) {
-        const categoryTitles: Record<string, string> = {
-          breaking: '1. BREAKING NEWS',
-          us_major: '2. U.S. MAJOR NEWS',
-          global_conflict: '3. GLOBAL CONFLICT & CRISIS',
-          defense_war: '4. DEPARTMENT OF DEFENSE / WAR',
-          economy_markets: '5. ECONOMY & MARKETS',
-          world_geopolitics: '6. WORLD / GEOPOLITICS',
-          politics_elections: '7. POLITICS & ELECTIONS',
-          tech_cyber: '8. TECHNOLOGY & CYBERSECURITY',
-          health_science: '9. HEALTH, SCIENCE & ENVIRONMENT',
-          christian_persecution: '10. CHRISTIAN PERSECUTION',
-          american_good_news: '11. AMERICAN GOOD NEWS',
-        };
+        // Build category titles from the groups
+        const categoryTitles: Record<string, string> = {};
+        let index = 1;
+        CATEGORY_GROUPS.forEach(group => {
+          group.categories.forEach(cat => {
+            categoryTitles[cat.key] = `${index}. ${cat.label.toUpperCase()}`;
+            index++;
+          });
+        });
 
         Object.entries(categoryTitles).forEach(([key, title]) => {
           if (parsed.categories[key]) {
@@ -192,20 +287,11 @@ Faith-based AI tools for your everyday needs`;
       }
     } catch {
       // If JSON parsing fails, try to find the category in plain text
-      // Look for patterns like "## Breaking News" or "**1. BREAKING NEWS**"
-      const categoryLabels: Record<string, string[]> = {
-        breaking: ['BREAKING NEWS', 'Breaking News'],
-        us_major: ['U.S. MAJOR NEWS', 'U.S. Major News'],
-        global_conflict: ['GLOBAL CONFLICT', 'Global Conflict'],
-        defense_war: ['DEPARTMENT OF DEFENSE', 'Defense', 'War'],
-        economy_markets: ['ECONOMY', 'Markets'],
-        world_geopolitics: ['WORLD', 'Geopolitics'],
-        politics_elections: ['POLITICS', 'Elections'],
-        tech_cyber: ['TECHNOLOGY', 'Cybersecurity'],
-        health_science: ['HEALTH', 'Science', 'Environment'],
-        christian_persecution: ['CHRISTIAN PERSECUTION', 'Christian Persecution'],
-        american_good_news: ['AMERICAN GOOD NEWS', 'American Good News'],
-      };
+      // Build labels from the category groups
+      const categoryLabels: Record<string, string[]> = {};
+      ALL_CATEGORIES.forEach(cat => {
+        categoryLabels[cat.key] = [cat.label.toUpperCase(), cat.label];
+      });
 
       // Try to extract the section for this category
       const labels = categoryLabels[selectedCategory] || [];
@@ -358,13 +444,17 @@ Faith-based AI tools for your everyday needs`;
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full md:w-96 rounded-lg bg-white/10 border border-white/20 text-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full md:w-[480px] rounded-lg bg-white/10 border border-white/20 text-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="" className="bg-zinc-900">Select your topic...</option>
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat.key} value={cat.key} className="bg-zinc-900">
-                      {cat.label}
-                    </option>
+                  {CATEGORY_GROUPS.map((group) => (
+                    <optgroup key={group.label} label={group.label} className="bg-zinc-800 text-gray-400 font-semibold">
+                      {group.categories.map((cat) => (
+                        <option key={cat.key} value={cat.key} className="bg-zinc-900 text-white font-normal">
+                          {cat.label}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
                 <p className="text-[10px] text-gray-500 mt-1">Updated every 30min</p>
