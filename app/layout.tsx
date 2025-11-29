@@ -45,8 +45,8 @@ import { UserProfileProvider } from '@/contexts/UserProfileContext';
 import { FaviconUpdater } from '@/components/admin/FaviconUpdater';
 
 export const metadata: Metadata = {
-  title: 'JCIL.ai | AI Chat Interface',
-  description: 'AI-powered chat through a Christian conservative lens',
+  title: 'JCIL.AI | AI-Powered Tools for People of Faith',
+  description: 'Intelligent AI assistance built on your values. Chat, research, Bible study, writing tools, and more. Safe for families. Enterprise-grade security.',
   manifest: '/api/manifest',
   themeColor: '#000000',
   viewport: {
@@ -58,7 +58,37 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'JCIL.ai',
+    title: 'JCIL.AI',
+  },
+  keywords: ['AI', 'Christian', 'faith', 'Bible study', 'AI chat', 'family safe AI', 'values-based AI'],
+  authors: [{ name: 'JCIL.AI' }],
+  creator: 'JCIL.AI',
+  publisher: 'JCIL.AI',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://jcil.ai',
+    siteName: 'JCIL.AI',
+    title: 'JCIL.AI | AI-Powered Tools for People of Faith',
+    description: 'Intelligent AI assistance built on your values. Chat, research, Bible study, writing tools, and more. Safe for families.',
+    images: [
+      {
+        url: '/icon-512.png',
+        width: 512,
+        height: 512,
+        alt: 'JCIL.AI - AI-Powered Tools for People of Faith',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'JCIL.AI | AI-Powered Tools for People of Faith',
+    description: 'Intelligent AI assistance built on your values. Safe for families. Enterprise-grade security.',
+    images: ['/icon-512.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
