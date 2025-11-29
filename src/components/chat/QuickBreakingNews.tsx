@@ -24,19 +24,8 @@ const CATEGORY_GROUPS = [
     label: 'GLOBAL SECURITY',
     categories: [
       { key: 'global_conflict', label: 'Global Conflict & Crisis' },
-      { key: 'defense_military', label: 'Defense & Military Operations' },
+      { key: 'defense_military', label: 'Defense & Military' },
       { key: 'world_geopolitics', label: 'World / Geopolitics' },
-    ],
-  },
-  {
-    label: 'U.S. MILITARY BRANCHES',
-    categories: [
-      { key: 'mil_army', label: 'U.S. Army' },
-      { key: 'mil_navy', label: 'U.S. Navy' },
-      { key: 'mil_marines', label: 'U.S. Marines' },
-      { key: 'mil_airforce', label: 'U.S. Air Force' },
-      { key: 'mil_spaceforce', label: 'U.S. Space Force' },
-      { key: 'mil_coastguard', label: 'U.S. Coast Guard' },
     ],
   },
   {
@@ -527,11 +516,23 @@ Faith-based AI tools for your everyday needs`;
                     </div>
                   )}
                   <div
-                    className="whitespace-pre-wrap text-gray-200 leading-relaxed"
+                    className="whitespace-pre-wrap text-gray-200 leading-relaxed news-content"
                     dangerouslySetInnerHTML={{
                       __html: linkify(
                         getSelectedContent()
-                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          // Convert headlines (bold at start of line) to styled headers
+                          .replace(/^\*\*(.*?)\*\*$/gm, '<h3 class="text-xl font-bold text-white mt-6 mb-3 first:mt-0">$1</h3>')
+                          // Convert remaining bold text
+                          .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
+                          // Convert italic text (single asterisk, but not inside bold)
+                          .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>')
+                          // Convert underscored italic
+                          .replace(/_(.*?)_/g, '<em>$1</em>')
+                          // Convert horizontal rules
+                          .replace(/^---$/gm, '<hr class="border-white/20 my-4" />')
+                          // Convert Sources line to styled format
+                          .replace(/^(Sources?:.*?)$/gm, '<p class="text-sm text-gray-400 mt-3 italic">$1</p>')
+                          // Convert newlines to breaks
                           .replace(/\n/g, '<br />')
                       )
                     }}
