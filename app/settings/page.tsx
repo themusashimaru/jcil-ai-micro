@@ -40,8 +40,9 @@ import Link from 'next/link';
 import MembershipSection from '@/app/components/MembershipSection';
 import UsageMetricsSection from '@/app/components/UsageMetricsSection';
 import AccountSection from '@/app/components/AccountSection';
+import SupportSection from '@/app/components/SupportSection';
 
-type TabId = 'membership' | 'usage' | 'account' | 'preferences' | 'privacy';
+type TabId = 'membership' | 'usage' | 'account' | 'support' | 'preferences' | 'privacy';
 
 interface Tab {
   id: TabId;
@@ -53,6 +54,7 @@ const TABS: Tab[] = [
   { id: 'membership', label: 'Membership', icon: '💳' },
   { id: 'usage', label: 'Usage & Metrics', icon: '📊' },
   { id: 'account', label: 'Account', icon: '👤' },
+  { id: 'support', label: 'Support', icon: '💬' },
   { id: 'preferences', label: 'Preferences', icon: '⚙️' },
   { id: 'privacy', label: 'Data & Privacy', icon: '🔒' },
 ];
@@ -162,6 +164,10 @@ export default function SettingsPage() {
               </div>
               <AccountSection />
             </div>
+          )}
+
+          {activeTab === 'support' && (
+            <SupportSection />
           )}
 
           {activeTab === 'preferences' && (

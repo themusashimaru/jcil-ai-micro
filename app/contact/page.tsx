@@ -3,7 +3,8 @@
  *
  * PURPOSE:
  * - Professional contact form
- * - Multiple contact options
+ * - Submits to admin inbox
+ * - Multiple category options
  */
 
 'use client';
@@ -11,33 +12,60 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+const CATEGORIES = [
+  { value: 'general', label: 'General Inquiry' },
+  { value: 'technical_support', label: 'Technical Support' },
+  { value: 'bug_report', label: 'Bug Report' },
+  { value: 'feature_request', label: 'Feature Request' },
+  { value: 'billing', label: 'Billing Question' },
+  { value: 'feedback', label: 'Feedback' },
+  { value: 'partnership', label: 'Partnership Inquiry' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    subject: 'general',
+    category: 'general',
+    subject: '',
     message: '',
+    honeypot: '', // Spam protection
   });
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('sending');
+    setErrorMessage('');
 
-    // Create mailto link with form data
-    const subject = encodeURIComponent(`[${formData.subject.toUpperCase()}] Contact from ${formData.name}`);
-    const body = encodeURIComponent(
-      `Name: ${formData.name}\nEmail: ${formData.email}\nSubject: ${formData.subject}\n\nMessage:\n${formData.message}`
-    );
+    try {
+      const response = await fetch('/api/support/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderName: formData.name,
+          senderEmail: formData.email,
+          category: formData.category,
+          subject: formData.subject || `${CATEGORIES.find(c => c.value === formData.category)?.label} from ${formData.name}`,
+          message: formData.message,
+          honeypot: formData.honeypot,
+        }),
+      });
 
-    // Open email client
-    window.location.href = `mailto:support@jcil.ai?subject=${subject}&body=${body}`;
+      const data = await response.json();
 
-    // Show success state
-    setTimeout(() => {
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
+
       setStatus('sent');
-      setFormData({ name: '', email: '', subject: 'general', message: '' });
-    }, 500);
+      setFormData({ name: '', email: '', category: 'general', subject: '', message: '', honeypot: '' });
+    } catch (error) {
+      setStatus('error');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to send message');
+    }
   };
 
   return (
@@ -82,9 +110,9 @@ export default function ContactPage() {
             {status === 'sent' ? (
               <div className="text-center py-8">
                 <div className="text-4xl mb-4">✓</div>
-                <h3 className="text-xl font-semibold mb-2">Email Client Opened</h3>
+                <h3 className="text-xl font-semibold mb-2">Message Sent</h3>
                 <p className="text-gray-400">
-                  Complete sending the email in your email application.
+                  Thank you for reaching out. We typically respond within 24-48 hours.
                 </p>
                 <button
                   onClick={() => setStatus('idle')}
@@ -93,11 +121,36 @@ export default function ContactPage() {
                   Send another message
                 </button>
               </div>
+            ) : status === 'error' ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">!</div>
+                <h3 className="text-xl font-semibold mb-2 text-red-400">Error</h3>
+                <p className="text-gray-400 mb-4">
+                  {errorMessage || 'Something went wrong. Please try again.'}
+                </p>
+                <button
+                  onClick={() => setStatus('idle')}
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  Try again
+                </button>
+              </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Honeypot field - hidden from users, catches bots */}
+                <input
+                  type="text"
+                  name="website"
+                  value={formData.honeypot}
+                  onChange={(e) => setFormData({ ...formData, honeypot: e.target.value })}
+                  className="hidden"
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium mb-2">
-                    Name
+                    Name <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -112,7 +165,7 @@ export default function ContactPage() {
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium mb-2">
-                    Email
+                    Email <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="email"
@@ -126,26 +179,40 @@ export default function ContactPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="subject" className="block text-sm font-medium mb-2">
-                    Subject
+                  <label htmlFor="category" className="block text-sm font-medium mb-2">
+                    Category <span className="text-red-400">*</span>
                   </label>
                   <select
-                    id="subject"
-                    value={formData.subject}
-                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full rounded-lg bg-white/10 border border-white/20 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="general" className="bg-gray-900">General Inquiry</option>
-                    <option value="support" className="bg-gray-900">Technical Support</option>
-                    <option value="billing" className="bg-gray-900">Billing Question</option>
-                    <option value="feedback" className="bg-gray-900">Feedback</option>
-                    <option value="partnership" className="bg-gray-900">Partnership</option>
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat.value} value={cat.value} className="bg-gray-900">
+                        {cat.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
+                  <label htmlFor="subject" className="block text-sm font-medium mb-2">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    id="subject"
+                    value={formData.subject}
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    className="w-full rounded-lg bg-white/10 border border-white/20 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Brief description of your inquiry"
+                  />
+                </div>
+
+                <div>
                   <label htmlFor="message" className="block text-sm font-medium mb-2">
-                    Message
+                    Message <span className="text-red-400">*</span>
                   </label>
                   <textarea
                     id="message"
@@ -163,8 +230,12 @@ export default function ContactPage() {
                   disabled={status === 'sending'}
                   className="w-full rounded-lg bg-blue-500 py-3 font-semibold hover:bg-blue-600 transition disabled:opacity-50"
                 >
-                  {status === 'sending' ? 'Opening Email...' : 'Send Message'}
+                  {status === 'sending' ? 'Sending...' : 'Send Message'}
                 </button>
+
+                <p className="text-xs text-gray-500 text-center">
+                  Your message will be sent directly to our team. We never share your information.
+                </p>
               </form>
             )}
           </div>
