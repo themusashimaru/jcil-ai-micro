@@ -76,14 +76,28 @@ export async function createChatCompletion(options: ChatOptions) {
   const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
+  // Inject current time context into system prompt for streaming
+  const timeContext = getCurrentTimeContext();
+  const fullSystemPrompt = `${timeContext}\n\n${systemPrompt}`;
+
   // Configuration with agentic tools enabled
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestConfig: any = {
     model,
     messages, // Pass messages directly - they're already in the right format
-    system: systemPrompt,
+    system: fullSystemPrompt,
     temperature: effectiveTemperature,
     maxTokens: effectiveMaxTokens,
+    // Enable search via providerOptions for streaming mode
+    // The AI will automatically search when questions need current information
+    providerOptions: {
+      xai: {
+        searchParameters: {
+          mode: 'auto', // AI decides when to search
+          returnCitations: true,
+        },
+      },
+    },
   };
 
   // Add tools if available (enables web_search, x_search, code_execution)
@@ -92,12 +106,8 @@ export async function createChatCompletion(options: ChatOptions) {
     requestConfig.tools = agenticTools;
   }
 
-  // Return streaming or non-streaming response
-  if (stream) {
-    return streamText(requestConfig);
-  } else {
-    return generateText(requestConfig);
-  }
+  // Return streaming response
+  return streamText(requestConfig);
 }
 
 /**

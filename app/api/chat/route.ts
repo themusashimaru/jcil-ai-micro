@@ -444,58 +444,81 @@ export async function POST(request: NextRequest) {
       messagesWithContext = [userContextMessage, ...messagesWithContext];
     }
 
-    // Log messages for debugging image issues
-    console.log('[Chat API] Processing request with messages:', JSON.stringify(messagesWithContext.map(m => ({
-      role: m.role,
-      contentType: typeof m.content,
-      hasImages: Array.isArray(m.content) && m.content.some(c => c.type === 'image')
-    })), null, 2));
-
-    // Regular chat completion (non-streaming for now)
-    const result = await createChatCompletion({
-      messages: messagesWithContext,
+    // Check if any message contains images (need non-streaming for image analysis)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hasImages = messagesWithContext.some((msg: any) =>
+      Array.isArray(msg.content) &&
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tool: tool as any,
-      temperature,
-      maxTokens: max_tokens,
-      stream: false, // Disable streaming for now
+      msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
+    );
+
+    // Log messages for debugging
+    console.log('[Chat API] Processing request:', {
+      messageCount: messagesWithContext.length,
+      hasImages,
+      streaming: !hasImages,
     });
 
     // Get the model being used
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = getModelForTool(tool as any);
 
-    // Extract citations if available (from Live Search)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const citations = (result as any).citations || [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const numSourcesUsed = (result as any).numSourcesUsed || 0;
+    // Use non-streaming for image analysis (images need special handling)
+    if (hasImages) {
+      console.log('[Chat API] Using non-streaming mode for image analysis');
+      const result = await createChatCompletion({
+        messages: messagesWithContext,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tool: tool as any,
+        temperature,
+        maxTokens: max_tokens,
+        stream: false,
+      });
 
-    // Log search usage for monitoring
-    if (citations.length > 0 || numSourcesUsed > 0) {
-      console.log(`[Chat API] Live Search used: ${numSourcesUsed} sources, ${citations.length} citations`);
+      // Extract citations if available
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const citations = (result as any).citations || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const numSourcesUsed = (result as any).numSourcesUsed || 0;
+
+      return new Response(
+        JSON.stringify({
+          type: 'text',
+          content: result.text,
+          model,
+          citations: citations,
+          sourcesUsed: numSourcesUsed,
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Model-Used': model,
+            'X-Tool-Type': tool || 'default',
+          },
+        }
+      );
     }
 
-    // Return JSON response with the text and citations
-    return new Response(
-      JSON.stringify({
-        type: 'text',
-        content: result.text,
-        model,
-        // Include citations from Live Search (array of source URLs)
-        citations: citations,
-        // Include source count for transparency
-        sourcesUsed: numSourcesUsed,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Model-Used': model,
-          'X-Tool-Type': tool || 'default',
-        },
-      }
-    );
+    // Use streaming for regular text chat
+    console.log('[Chat API] Using streaming mode');
+    const result = await createChatCompletion({
+      messages: messagesWithContext,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tool: tool as any,
+      temperature,
+      maxTokens: max_tokens,
+      stream: true,
+    });
+
+    // Return streaming response using Vercel AI SDK's data stream format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (result as any).toDataStreamResponse({
+      headers: {
+        'X-Model-Used': model,
+        'X-Tool-Type': tool || 'default',
+      },
+    });
   } catch (error) {
     console.error('Chat API error:', error);
 
