@@ -882,9 +882,23 @@ export function ChatClient() {
     );
 
     try {
-      // Format messages for API (handle text + image attachments)
-      const apiMessages = [...messages, userMessage].map((msg) => {
-        // Check if message has image attachments
+      // Get all messages including the new one
+      const allMessages = [...messages, userMessage];
+
+      // Find the index of the last user message with images (should be the new one)
+      let lastImageMessageIndex = -1;
+      for (let i = allMessages.length - 1; i >= 0; i--) {
+        const msg = allMessages[i];
+        if (msg.role === 'user' && msg.attachments?.some(att => att.type.startsWith('image/'))) {
+          lastImageMessageIndex = i;
+          break;
+        }
+      }
+
+      // Format messages for API, stripping images from all but the most recent image message
+      // This prevents payload bloat from accumulated image history
+      const apiMessages = allMessages.map((msg, index) => {
+        // Check if this message has image attachments
         const imageAttachments = msg.attachments?.filter(
           (att) => att.type.startsWith('image/') && att.thumbnail
         );
@@ -894,6 +908,16 @@ export function ChatClient() {
           return {
             role: msg.role,
             content: msg.content,
+          };
+        }
+
+        // Only include images for the most recent image message
+        // Strip images from older messages to keep payload small
+        if (index !== lastImageMessageIndex) {
+          // Return text-only version with placeholder for stripped images
+          return {
+            role: msg.role,
+            content: msg.content || '[User shared an image]',
           };
         }
 
