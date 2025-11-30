@@ -200,6 +200,145 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* What's Coming Section */}
+      <section className="container mx-auto px-4 py-16 sm:py-20">
+        <div className="text-center mb-12">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-blue-500/20 text-blue-400 text-sm font-medium mb-4">
+            Coming Early 2026
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Protecting Our Community&apos;s Future</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">
+            We&apos;re building technology that ensures our faith community has access to AI that can never be
+            censored, shut down, or used against our values. True digital independence is coming.
+          </p>
+        </div>
+
+        {/* Main Products */}
+        <div className="grid gap-6 md:grid-cols-2 max-w-5xl mx-auto mb-8">
+          {/* Isolate */}
+          <div className="glass-morphism rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+            <div className="absolute top-4 right-4">
+              <span className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
+                January 2026
+              </span>
+            </div>
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-purple-500/20">
+              <svg className="h-7 w-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold mb-2">JCIL.AI Isolate</h3>
+            <p className="text-blue-400 text-sm font-medium mb-3">Offline Privacy Model</p>
+            <p className="text-gray-300 leading-relaxed mb-4">
+              A lightweight AI model that runs entirely on your device. Your queries never leave your phone
+              or computer. Works without internet - if the power goes out and you have a backup battery,
+              you still have AI. Complete privacy, absolute reliability.
+            </p>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                100% offline - no internet required
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Data never leaves your device
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Faith-aligned moderation built in
+              </li>
+            </ul>
+          </div>
+
+          {/* Slingshot 3.0 */}
+          <div className="glass-morphism rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+            <div className="absolute top-4 right-4">
+              <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium">
+                February 2026
+              </span>
+            </div>
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/20">
+              <svg className="h-7 w-7 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold mb-2">Slingshot 3.0</h3>
+            <p className="text-blue-400 text-sm font-medium mb-3">Independent AI - No Killswitch</p>
+            <p className="text-gray-300 leading-relaxed mb-4">
+              Our own standalone AI model, built from the ground up. Complete independence from third-party
+              providers means no one can censor, restrict, or shut down our service. Religious freedom
+              that can never be switched off.
+            </p>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Zero third-party dependencies
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Can never be censored or shut down
+              </li>
+              <li className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Built for Christians worldwide
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* In Development */}
+        <div className="max-w-5xl mx-auto">
+          <h3 className="text-center text-lg font-semibold text-gray-400 mb-6">Also In Development</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Education Program */}
+            <div className="flex items-start gap-4 rounded-xl bg-white/5 p-5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500/20">
+                <svg className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-1">Education Program</h4>
+                <p className="text-sm text-gray-400 leading-relaxed">
+                  Open source curriculum with AI tutoring for grades 1 through Bachelor&apos;s level.
+                  Safe learning environment for homeschoolers, supplemental tutoring, and students
+                  without educational access worldwide. Learning that never stops.
+                </p>
+              </div>
+            </div>
+
+            {/* Safe Gameplay */}
+            <div className="flex items-start gap-4 rounded-xl bg-white/5 p-5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pink-500/20">
+                <svg className="h-6 w-6 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-1">Safe Gameplay</h4>
+                <p className="text-sm text-gray-400 leading-relaxed">
+                  Isolated gaming environments that protect players from outside cyber risks.
+                  Popular games rebuilt with security and safety in mind for kids, teens, and families.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <PricingSection />
 
