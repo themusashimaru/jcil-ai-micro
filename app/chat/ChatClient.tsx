@@ -976,32 +976,134 @@ export function ChatClient() {
         throw new Error(`API error: ${errorData.details || response.statusText}`);
       }
 
-      // Parse JSON response (non-streaming)
-      const data = await response.json();
+      // Check content type to determine if streaming or JSON
+      const contentType = response.headers.get('content-type') || '';
+      const isJsonResponse = contentType.includes('application/json');
 
-      // Create assistant message with the response (including citations from Live Search)
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.content,
-        citations: data.citations || [], // Source URLs from Live Search
-        sourcesUsed: data.sourcesUsed || 0,
-        timestamp: new Date(),
-      };
+      let finalContent = '';
+      const assistantMessageId = (Date.now() + 1).toString();
 
-      // Log if search was used
-      if (data.citations?.length > 0 || data.sourcesUsed > 0) {
-        console.log(`[ChatClient] Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`);
+      if (isJsonResponse) {
+        // Non-streaming response (for images or fallback)
+        const data = await response.json();
+        finalContent = data.content;
+
+        const assistantMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: data.content,
+          citations: data.citations || [],
+          sourcesUsed: data.sourcesUsed || 0,
+          timestamp: new Date(),
+        };
+
+        if (data.citations?.length > 0 || data.sourcesUsed > 0) {
+          console.log(`[ChatClient] Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`);
+        }
+
+        setMessages((prev) => [...prev, assistantMessage]);
+      } else {
+        // Streaming response - read chunks and update progressively
+        console.log('[ChatClient] Processing streaming response');
+
+        // Create initial empty assistant message
+        const assistantMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Read the stream
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (reader) {
+          let accumulatedContent = '';
+
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              const chunk = decoder.decode(value, { stream: true });
+
+              // Parse the Vercel AI SDK data stream format
+              // Format: "0:text\n" for text chunks, "d:data\n" for finish data
+              const lines = chunk.split('\n');
+
+              for (const line of lines) {
+                if (!line.trim()) continue;
+
+                // Text chunk: "0:"text content""
+                if (line.startsWith('0:')) {
+                  try {
+                    // Parse the JSON string after "0:"
+                    const textContent = JSON.parse(line.slice(2));
+                    accumulatedContent += textContent;
+
+                    // Update the message with accumulated content
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === assistantMessageId
+                          ? { ...msg, content: accumulatedContent }
+                          : msg
+                      )
+                    );
+                  } catch {
+                    // Not valid JSON, might be partial chunk
+                    console.log('[ChatClient] Skipping non-JSON chunk:', line.slice(0, 50));
+                  }
+                }
+                // Source data: "2:[sources]"
+                else if (line.startsWith('2:')) {
+                  try {
+                    const sources = JSON.parse(line.slice(2));
+                    console.log('[ChatClient] Received sources:', sources);
+                    // Update message with citations if available
+                    if (Array.isArray(sources)) {
+                      setMessages((prev) =>
+                        prev.map((msg) =>
+                          msg.id === assistantMessageId
+                            ? { ...msg, citations: sources, sourcesUsed: sources.length }
+                            : msg
+                        )
+                      );
+                    }
+                  } catch {
+                    // Ignore parse errors for source data
+                  }
+                }
+                // Finish data: "d:{...}"
+                else if (line.startsWith('d:')) {
+                  console.log('[ChatClient] Stream finished');
+                }
+                // Error: "e:{...}"
+                else if (line.startsWith('e:')) {
+                  try {
+                    const errorData = JSON.parse(line.slice(2));
+                    console.error('[ChatClient] Stream error:', errorData);
+                  } catch {
+                    // Ignore parse errors
+                  }
+                }
+              }
+            }
+          } finally {
+            reader.releaseLock();
+          }
+
+          finalContent = accumulatedContent;
+        }
       }
 
-      setMessages((prev) => [...prev, assistantMessage]);
       setIsStreaming(false);
 
       // Save assistant message to database
-      await saveMessageToDatabase(newChatId, 'assistant', data.content, 'text');
+      await saveMessageToDatabase(newChatId, 'assistant', finalContent, 'text');
 
       // Generate chat title for new conversations
-      // Check if this is the first message exchange (we had 0 messages before adding user+assistant)
       const isNewConversation = messages.length === 0;
 
       console.log('[ChatClient] Title generation check:', {
@@ -1013,37 +1115,27 @@ export function ChatClient() {
       if (isNewConversation && newChatId) {
         console.log('[ChatClient] STARTING title generation for new conversation:', newChatId);
         try {
-          console.log('[ChatClient] Calling /api/chat/generate-title with:', {
-            userMessage: content,
-            assistantMessage: data.content?.slice(0, 100)
-          });
-
           const titleResponse = await fetch('/api/chat/generate-title', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               userMessage: content,
-              assistantMessage: data.content,
+              assistantMessage: finalContent,
             }),
           });
-
-          console.log('[ChatClient] Title API response status:', titleResponse.status);
 
           if (titleResponse.ok) {
             const titleData = await titleResponse.json();
             const generatedTitle = titleData.title || 'New Chat';
-            console.log('[ChatClient] Generated title:', generatedTitle, 'for chat ID:', newChatId);
+            console.log('[ChatClient] Generated title:', generatedTitle);
 
-            // Update chat title in sidebar
             setChats((prevChats) =>
               prevChats.map((chat) =>
                 chat.id === newChatId ? { ...chat, title: generatedTitle } : chat
               )
             );
 
-            // Update title in database
-            console.log('[ChatClient] Updating title in DB with ID:', newChatId);
-            const updateResponse = await fetch('/api/conversations', {
+            await fetch('/api/conversations', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -1051,20 +1143,10 @@ export function ChatClient() {
                 title: generatedTitle,
               }),
             });
-            const updateResult = await updateResponse.json();
-            console.log('[ChatClient] Title update result:', updateResult);
-          } else {
-            const errorData = await titleResponse.json();
-            console.error('[ChatClient] Title generation failed:', titleResponse.status, errorData);
           }
         } catch (titleError) {
           console.error('[ChatClient] Title generation error:', titleError);
-          if (titleError instanceof Error) {
-            console.error('[ChatClient] Error details:', titleError.message, titleError.stack);
-          }
         }
-      } else {
-        console.log('[ChatClient] Skipping title generation - existing conversation');
       }
     } catch (error) {
       console.error('Chat API error:', error);
