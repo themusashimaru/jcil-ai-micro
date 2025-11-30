@@ -13,11 +13,20 @@ import {
   type AuthenticationResponseJSON,
 } from '@/lib/auth/webauthn';
 
-// Use service role for database operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Create Supabase client inside functions to avoid build-time initialization
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase configuration');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 // In-memory challenge store (in production, use Redis or database)
 const challengeStore = new Map<string, { challenge: string; expires: number }>();
@@ -35,6 +44,7 @@ export async function POST(request: NextRequest) {
 
     // If email provided, get user's passkeys
     if (email) {
+      const supabase = getSupabaseAdmin();
       const { data: userData } = await supabase
         .from('users')
         .select('id')
@@ -102,6 +112,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const supabase = getSupabaseAdmin();
     // Find the passkey by credential ID
     const credentialId = response.id;
     const { data: passkey, error: findError } = await supabase
