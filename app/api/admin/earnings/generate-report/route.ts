@@ -30,8 +30,8 @@ interface ReportParams {
 
 export async function POST(request: NextRequest) {
   try {
-    // Require admin authentication
-    const auth = await requireAdmin();
+    // Require admin authentication with CSRF validation
+    const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
 
     const supabase = getSupabaseAdmin();

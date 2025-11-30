@@ -5,6 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/admin-guard';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 interface DesignSettings {
   mainLogo: string;
@@ -26,12 +30,20 @@ const DEFAULT_SETTINGS: DesignSettings = {
 
 // GET - Return default settings (actual settings loaded from localStorage on client)
 export async function GET() {
+  // Require admin authentication
+  const auth = await requireAdmin();
+  if (!auth.authorized) return auth.response;
+
   return NextResponse.json(DEFAULT_SETTINGS);
 }
 
 // POST - Acknowledge save (actual save happens in localStorage on client)
 export async function POST(request: NextRequest) {
   try {
+    // Require admin authentication with CSRF check
+    const auth = await requireAdmin(request);
+    if (!auth.authorized) return auth.response;
+
     const body = await request.json();
 
     // Just validate the structure
