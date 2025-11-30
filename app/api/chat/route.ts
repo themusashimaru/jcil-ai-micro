@@ -502,23 +502,62 @@ export async function POST(request: NextRequest) {
 
     // Use streaming for regular text chat
     console.log('[Chat API] Using streaming mode');
-    const result = await createChatCompletion({
-      messages: messagesWithContext,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tool: tool as any,
-      temperature,
-      maxTokens: max_tokens,
-      stream: true,
-    });
 
-    // Return streaming response using Vercel AI SDK's data stream format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (result as any).toDataStreamResponse({
-      headers: {
-        'X-Model-Used': model,
-        'X-Tool-Type': tool || 'default',
-      },
-    });
+    try {
+      const result = await createChatCompletion({
+        messages: messagesWithContext,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tool: tool as any,
+        temperature,
+        maxTokens: max_tokens,
+        stream: true,
+      });
+
+      // Return streaming response using Vercel AI SDK's data stream format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (result as any).toDataStreamResponse({
+        headers: {
+          'X-Model-Used': model,
+          'X-Tool-Type': tool || 'default',
+        },
+      });
+    } catch (streamError) {
+      // If streaming fails, fall back to non-streaming
+      console.error('[Chat API] Streaming failed, falling back to non-streaming:', streamError);
+
+      const result = await createChatCompletion({
+        messages: messagesWithContext,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tool: tool as any,
+        temperature,
+        maxTokens: max_tokens,
+        stream: false,
+      });
+
+      // Extract citations if available
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const citations = (result as any).citations || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const numSourcesUsed = (result as any).numSourcesUsed || 0;
+
+      return new Response(
+        JSON.stringify({
+          type: 'text',
+          content: result.text,
+          model,
+          citations: citations,
+          sourcesUsed: numSourcesUsed,
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Model-Used': model,
+            'X-Tool-Type': tool || 'default',
+          },
+        }
+      );
+    }
   } catch (error) {
     console.error('Chat API error:', error);
 

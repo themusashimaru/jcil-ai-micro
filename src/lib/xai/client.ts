@@ -12,7 +12,6 @@ import {
 } from './models';
 import {
   getSystemPromptForTool,
-  getAgenticTools,
 } from './tools';
 import type { ToolType } from './types';
 
@@ -52,17 +51,14 @@ function getXAIProvider() {
 export async function createChatCompletion(options: ChatOptions) {
   const { messages, tool, temperature, maxTokens, stream = true } = options;
 
-  // Get agentic tools for the tool type
-  const agenticTools = getAgenticTools(tool);
-
-  // Use direct xAI API with intelligent auto-search for all non-streaming requests
-  // This enables AI to automatically search when questions need current information
-  // No need to click "Research" button - AI decides when search is needed
+  // Use direct xAI API for non-streaming (has better search support)
+  // and for streaming (more reliable)
   if (!stream) {
     return createDirectXAICompletion(options);
   }
 
-  // Get configured xAI provider
+  // For streaming, use Vercel AI SDK with simple config (no search params)
+  // Search works better with the direct API in non-streaming mode
   const xai = getXAIProvider();
 
   // Determine the appropriate model
@@ -80,31 +76,14 @@ export async function createChatCompletion(options: ChatOptions) {
   const timeContext = getCurrentTimeContext();
   const fullSystemPrompt = `${timeContext}\n\n${systemPrompt}`;
 
-  // Configuration with agentic tools enabled
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const requestConfig: any = {
+  // Simple streaming config without search (search works better via direct API)
+  const requestConfig = {
     model,
-    messages, // Pass messages directly - they're already in the right format
+    messages,
     system: fullSystemPrompt,
     temperature: effectiveTemperature,
     maxTokens: effectiveMaxTokens,
-    // Enable search via providerOptions for streaming mode
-    // The AI will automatically search when questions need current information
-    providerOptions: {
-      xai: {
-        searchParameters: {
-          mode: 'auto', // AI decides when to search
-          returnCitations: true,
-        },
-      },
-    },
   };
-
-  // Add tools if available (enables web_search, x_search, code_execution)
-  // For xAI, tools are automatically used when provided - no need for toolCallMode
-  if (agenticTools && agenticTools.length > 0) {
-    requestConfig.tools = agenticTools;
-  }
 
   // Return streaming response
   return streamText(requestConfig);
