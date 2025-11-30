@@ -350,8 +350,59 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Users Table */}
-      <div className="glass-morphism rounded-2xl overflow-hidden">
+      {/* Mobile User Cards (visible on small screens) */}
+      <div className="lg:hidden space-y-4">
+        {filteredUsers.map((user) => (
+          <div key={user.id} className="glass-morphism rounded-xl p-4">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{user.full_name || 'No name'}</div>
+                <div className="text-sm text-gray-400 truncate">{user.email}</div>
+              </div>
+              <div className="flex gap-2 ml-2">
+                <span className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${getTierColor(user.subscription_tier || 'free')}`}>
+                  {(user.subscription_tier || 'free').charAt(0).toUpperCase() + (user.subscription_tier || 'free').slice(1)}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+              <div>
+                <span className="text-gray-400">Messages:</span>
+                <span className="ml-1 font-medium">{(user.total_messages || 0).toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Images:</span>
+                <span className="ml-1 font-medium">{(user.total_images || 0).toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Last Active:</span>
+                <span className="ml-1">{formatDate(user.last_message_date)}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Joined:</span>
+                <span className="ml-1">{new Date(user.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+
+            <a
+              href={`/admin/users/${user.id}`}
+              className="block w-full text-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 transition"
+            >
+              View Chats
+            </a>
+          </div>
+        ))}
+
+        {filteredUsers.length === 0 && users.length > 0 && (
+          <div className="glass-morphism rounded-xl p-8 text-center text-gray-400">
+            No users found matching your filters
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Users Table (hidden on small screens) */}
+      <div className="hidden lg:block glass-morphism rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-800 bg-black/50">

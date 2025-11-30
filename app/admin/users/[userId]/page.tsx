@@ -21,6 +21,8 @@ interface User {
   last_message_date: string | null;
   is_banned: boolean;
   ban_reason: string | null;
+  conversation_count: number;
+  actual_message_count: number;
 }
 
 interface Conversation {
@@ -48,15 +50,16 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch('/api/admin/users');
-      if (!response.ok) throw new Error('Failed to fetch users');
+      const response = await fetch(`/api/admin/users/${params.userId}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('User not found');
+        }
+        throw new Error('Failed to fetch user');
+      }
 
       const data = await response.json();
-      const userData = data.users.find((u: User) => u.id === params.userId);
-
-      if (!userData) throw new Error('User not found');
-
-      setUser(userData);
+      setUser(data.user);
     } catch (err) {
       console.error('Error fetching user:', err);
       setError(err instanceof Error ? err.message : 'Failed to load user');
@@ -171,14 +174,18 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div>
+            <div className="text-sm text-gray-400">Conversations</div>
+            <div className="text-xl font-bold">{(user.conversation_count || 0).toLocaleString()}</div>
+          </div>
           <div>
             <div className="text-sm text-gray-400">Total Messages</div>
-            <div className="text-xl font-bold">{user.total_messages.toLocaleString()}</div>
+            <div className="text-xl font-bold">{(user.actual_message_count || user.total_messages || 0).toLocaleString()}</div>
           </div>
           <div>
             <div className="text-sm text-gray-400">Total Images</div>
-            <div className="text-xl font-bold">{user.total_images.toLocaleString()}</div>
+            <div className="text-xl font-bold">{(user.total_images || 0).toLocaleString()}</div>
           </div>
           <div>
             <div className="text-sm text-gray-400">Joined</div>
@@ -188,6 +195,12 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
             <div className="text-sm text-gray-400">Last Active</div>
             <div className="text-sm">
               {user.last_message_date ? new Date(user.last_message_date).toLocaleDateString() : 'Never'}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-400">Status</div>
+            <div className="text-sm">
+              {user.subscription_status ? user.subscription_status.charAt(0).toUpperCase() + user.subscription_status.slice(1) : 'None'}
             </div>
           </div>
         </div>
@@ -201,36 +214,36 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
       </div>
 
       {/* Date Filters */}
-      <div className="glass-morphism rounded-2xl p-6 mb-6">
+      <div className="glass-morphism rounded-2xl p-4 md:p-6 mb-6">
         <h3 className="text-lg font-bold mb-4">Filter Conversations by Date</h3>
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[200px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
             <label className="block text-sm text-gray-400 mb-2">Start Date</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+              className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-blue-500"
             />
           </div>
-          <div className="flex-1 min-w-[200px]">
+          <div>
             <label className="block text-sm text-gray-400 mb-2">End Date</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+              className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white focus:outline-none focus:border-blue-500"
             />
           </div>
           <button
             onClick={handleApplyFilters}
-            className="rounded-lg bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
+            className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 font-medium"
           >
             Apply Filters
           </button>
           <button
             onClick={handleClearFilters}
-            className="rounded-lg bg-white/10 px-6 py-2 text-white hover:bg-white/20"
+            className="rounded-lg bg-white/10 px-6 py-3 text-white hover:bg-white/20"
           >
             Clear
           </button>
@@ -238,7 +251,7 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
       </div>
 
       {/* Conversations List */}
-      <div className="glass-morphism rounded-2xl p-6">
+      <div className="glass-morphism rounded-2xl p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold">
             Conversation History ({conversations.length})
@@ -247,7 +260,7 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
             onClick={fetchConversations}
             className="text-sm text-blue-400 hover:text-blue-300"
           >
-            🔄 Refresh
+            Refresh
           </button>
         </div>
 
@@ -267,32 +280,30 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
                 key={conv.id}
                 className="border border-white/10 rounded-lg p-4 hover:bg-white/5 transition"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <div className="font-medium mb-1">{conv.title}</div>
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium mb-2 truncate">{conv.title}</div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
                       <span className={`px-2 py-1 rounded ${getContextBadgeColor(conv.tool_context)}`}>
                         {conv.tool_context || 'general'}
                       </span>
                       <span>{conv.message_count} messages</span>
-                      <span>•</span>
+                      <span className="hidden sm:inline">•</span>
                       <span>{new Date(conv.created_at).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span>Last: {new Date(conv.last_message_at).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-full md:w-auto">
                     <Link
                       href={`/admin/conversations/${conv.id}`}
-                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+                      className="flex-1 md:flex-none text-center rounded-lg bg-blue-600 px-4 py-3 md:py-2 text-sm font-medium text-white hover:bg-blue-700"
                     >
                       View Chat
                     </Link>
                     <button
                       onClick={() => handleExportPDF(conv.id)}
-                      className="rounded-lg bg-purple-600 px-4 py-2 text-sm text-white hover:bg-purple-700"
+                      className="flex-1 md:flex-none text-center rounded-lg bg-purple-600 px-4 py-3 md:py-2 text-sm font-medium text-white hover:bg-purple-700"
                     >
-                      📄 Export PDF
+                      Export PDF
                     </button>
                   </div>
                 </div>
