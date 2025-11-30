@@ -251,33 +251,54 @@ export async function POST(request: NextRequest) {
     // Moderate user messages before forwarding to xAI
     const lastMessage = messages[messages.length - 1];
     if (lastMessage && lastMessage.role === 'user') {
-      const messageContent = typeof lastMessage.content === 'string'
-        ? lastMessage.content
-        : JSON.stringify(lastMessage.content);
-
-      const moderationResult = await moderateContent(messageContent);
-
-      if (moderationResult.flagged) {
-        return new Response(
-          JSON.stringify({
-            type: 'text',
-            content: moderationResult.message || 'Your message violates our content policy. Please rephrase your request in a respectful and appropriate manner.',
-            moderated: true,
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
+      // Extract only text content for moderation (not image data)
+      let messageContent: string;
+      if (typeof lastMessage.content === 'string') {
+        messageContent = lastMessage.content;
+      } else if (Array.isArray(lastMessage.content)) {
+        // Extract text parts only from multimodal messages
+        messageContent = lastMessage.content
+          .filter((part: { type: string }) => part.type === 'text')
+          .map((part: { type: string; text?: string }) => part.text || '')
+          .join(' ');
+      } else {
+        messageContent = '';
       }
+
+      // Only moderate if there's actual text content
+      if (messageContent.trim()) {
+        const moderationResult = await moderateContent(messageContent);
+
+        if (moderationResult.flagged) {
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: moderationResult.message || 'Your message violates our content policy. Please rephrase your request in a respectful and appropriate manner.',
+              moderated: true,
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        }
+      }
+      // If no text content (image-only), skip text moderation
     }
 
     // Check if user is asking about previous conversations
     let conversationHistory = '';
     const lastUserMessage = messages[messages.length - 1];
-    const lastUserContent = typeof lastUserMessage?.content === 'string'
-      ? lastUserMessage.content
-      : '';
+    // Extract text content for history detection (handle both string and array formats)
+    let lastUserContent = '';
+    if (typeof lastUserMessage?.content === 'string') {
+      lastUserContent = lastUserMessage.content;
+    } else if (Array.isArray(lastUserMessage?.content)) {
+      lastUserContent = lastUserMessage.content
+        .filter((part: { type: string }) => part.type === 'text')
+        .map((part: { type: string; text?: string }) => part.text || '')
+        .join(' ');
+    }
 
     if (lastUserContent && isAskingAboutHistory(lastUserContent)) {
       try {
