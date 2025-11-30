@@ -28,7 +28,7 @@
  *
  * TODO:
  * - [ ] Add authentication
- * - [ ] Implement rate limiting
+ * - [✓] Implement rate limiting (60/hr auth, 20/hr anon)
  * - [ ] Store messages in database
  * - [✓] Add content moderation (OpenAI omni-moderation-latest)
  * - [ ] Implement usage tracking
@@ -40,7 +40,88 @@ import { moderateContent } from '@/lib/openai/moderation';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+
+// Rate limits per hour
+const RATE_LIMIT_AUTHENTICATED = 60; // 60 messages/hour for logged-in users
+const RATE_LIMIT_ANONYMOUS = 20; // 20 messages/hour for anonymous users
+
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return null; // Rate limiting disabled if not configured
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+async function checkChatRateLimit(
+  identifier: string,
+  isAuthenticated: boolean
+): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    // If Supabase admin not configured, allow request (graceful degradation)
+    return { allowed: true, remaining: -1, resetIn: 0 };
+  }
+
+  const limit = isAuthenticated ? RATE_LIMIT_AUTHENTICATED : RATE_LIMIT_ANONYMOUS;
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+  try {
+    // Count recent chat messages from this identifier
+    const { count, error } = await supabase
+      .from('rate_limits')
+      .select('*', { count: 'exact', head: true })
+      .eq('identifier', identifier)
+      .eq('action', 'chat_message')
+      .gte('created_at', oneHourAgo);
+
+    if (error) {
+      console.error('[Chat API] Rate limit check error:', error);
+      // Allow request on error (fail open for availability)
+      return { allowed: true, remaining: -1, resetIn: 0 };
+    }
+
+    const currentCount = count || 0;
+    const remaining = Math.max(0, limit - currentCount - 1);
+
+    if (currentCount >= limit) {
+      // Get the oldest rate limit entry to calculate reset time
+      const { data: oldestEntry } = await supabase
+        .from('rate_limits')
+        .select('created_at')
+        .eq('identifier', identifier)
+        .eq('action', 'chat_message')
+        .gte('created_at', oneHourAgo)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
+
+      const resetIn = oldestEntry
+        ? Math.ceil((new Date(oldestEntry.created_at).getTime() + 60 * 60 * 1000 - Date.now()) / 1000)
+        : 3600;
+
+      return { allowed: false, remaining: 0, resetIn };
+    }
+
+    // Record this request
+    await supabase.from('rate_limits').insert({
+      identifier,
+      action: 'chat_message',
+    });
+
+    return { allowed: true, remaining, resetIn: 0 };
+  } catch (error) {
+    console.error('[Chat API] Rate limit error:', error);
+    // Allow request on error
+    return { allowed: true, remaining: -1, resetIn: 0 };
+  }
+}
 
 interface UserContext {
   name: string;
@@ -94,6 +175,75 @@ export async function POST(request: NextRequest) {
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Check rate limiting
+    // Get user auth status and identifier for rate limiting
+    let rateLimitIdentifier: string;
+    let isAuthenticated = false;
+
+    try {
+      const cookieStore = await cookies();
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll();
+            },
+            setAll(cookiesToSet) {
+              try {
+                cookiesToSet.forEach(({ name, value, options }) =>
+                  cookieStore.set(name, value, options)
+                );
+              } catch {
+                // Silently handle cookie errors
+              }
+            },
+          },
+        }
+      );
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        rateLimitIdentifier = user.id;
+        isAuthenticated = true;
+      } else {
+        // Fall back to IP for anonymous users
+        rateLimitIdentifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                              request.headers.get('x-real-ip') ||
+                              'anonymous';
+      }
+    } catch {
+      // If auth check fails, use IP
+      rateLimitIdentifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+                            request.headers.get('x-real-ip') ||
+                            'anonymous';
+    }
+
+    // Check rate limit
+    const rateLimit = await checkChatRateLimit(rateLimitIdentifier, isAuthenticated);
+
+    if (!rateLimit.allowed) {
+      console.log(`[Chat API] Rate limit exceeded for ${isAuthenticated ? 'user' : 'IP'}: ${rateLimitIdentifier}`);
+      return new Response(
+        JSON.stringify({
+          error: 'Rate limit exceeded',
+          message: `You've sent too many messages. Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before trying again.`,
+          retryAfter: rateLimit.resetIn,
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateLimit.resetIn),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + rateLimit.resetIn),
+          },
         }
       );
     }
