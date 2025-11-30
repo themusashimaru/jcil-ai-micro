@@ -352,17 +352,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Return detailed error for debugging
+    // Return generic error to client (detailed info already logged server-side)
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        fullError: error instanceof Error ? {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-          cause: error.cause
-        } : String(error),
+        message: 'An unexpected error occurred. Please try again.',
       }),
       {
         status: 500,
