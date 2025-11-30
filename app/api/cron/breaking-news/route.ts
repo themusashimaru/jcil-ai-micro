@@ -353,9 +353,9 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    // If CRON_SECRET is set, verify it matches
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      console.log('[Breaking News Cron] Unauthorized request');
+    // Always require CRON_SECRET - reject if not configured or doesn't match
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      console.log('[Breaking News Cron] Unauthorized request - missing or invalid secret');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
