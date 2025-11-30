@@ -238,7 +238,7 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
         {/* Message Bubble */}
         <div
           className={`chat-bubble chat-bubble-tail ${
-            isUser ? 'right bg-blue-600 text-white' : 'left border border-cyan-500/30'
+            isUser ? 'right bg-blue-600 text-white' : 'left border border-blue-500'
           }`}
         >
           <div className="break-words">
