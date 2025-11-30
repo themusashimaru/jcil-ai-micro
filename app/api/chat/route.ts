@@ -501,9 +501,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Use streaming for regular text chat
-    console.log('[Chat API] Using streaming mode');
+    console.log('[Chat API] Using streaming mode with model:', model);
 
     try {
+      console.log('[Chat API] Calling createChatCompletion with stream: true');
       const result = await createChatCompletion({
         messages: messagesWithContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -513,17 +514,39 @@ export async function POST(request: NextRequest) {
         stream: true,
       });
 
+      console.log('[Chat API] streamText returned, result type:', typeof result);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      console.log('[Chat API] result has toDataStreamResponse:', typeof (result as any).toDataStreamResponse);
+
       // Return streaming response using Vercel AI SDK's data stream format
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (result as any).toDataStreamResponse({
+      const streamResponse = (result as any).toDataStreamResponse({
         headers: {
           'X-Model-Used': model,
           'X-Tool-Type': tool || 'default',
         },
       });
+
+      console.log('[Chat API] Successfully created stream response');
+      return streamResponse;
     } catch (streamError) {
       // If streaming fails, fall back to non-streaming
-      console.error('[Chat API] Streaming failed, falling back to non-streaming:', streamError);
+      // Log detailed error info to diagnose streaming issues
+      console.error('[Chat API] Streaming failed, falling back to non-streaming');
+      if (streamError instanceof Error) {
+        console.error('[Chat API] Error name:', streamError.name);
+        console.error('[Chat API] Error message:', streamError.message);
+        console.error('[Chat API] Error stack:', streamError.stack);
+        // Check for API-specific error details
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const anyError = streamError as any;
+        if (anyError.cause) console.error('[Chat API] Error cause:', anyError.cause);
+        if (anyError.status) console.error('[Chat API] Error status:', anyError.status);
+        if (anyError.statusCode) console.error('[Chat API] Error statusCode:', anyError.statusCode);
+        if (anyError.response) console.error('[Chat API] Error response:', anyError.response);
+      } else {
+        console.error('[Chat API] Non-Error thrown:', streamError);
+      }
 
       const result = await createChatCompletion({
         messages: messagesWithContext,
