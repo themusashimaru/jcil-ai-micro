@@ -111,7 +111,8 @@ export async function PATCH(
   { params }: { params: { ticketId: string } }
 ) {
   try {
-    const auth = await requireAdmin();
+    // Include request for CSRF validation on state-changing operation
+    const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
 
     const { ticketId } = params;
@@ -174,7 +175,8 @@ export async function POST(
   { params }: { params: { ticketId: string } }
 ) {
   try {
-    const auth = await requireAdmin();
+    // Include request for CSRF validation on state-changing operation
+    const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
 
     const { ticketId } = params;
