@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { linkify } from '@/lib/utils/linkify';
+import DOMPurify from 'dompurify';
 
 // Organized category groups for the dropdown
 const CATEGORY_GROUPS = [
@@ -518,7 +519,7 @@ Faith-based AI tools for your everyday needs`;
                   <div
                     className="whitespace-pre-wrap text-gray-200 leading-relaxed news-content"
                     dangerouslySetInnerHTML={{
-                      __html: linkify(
+                      __html: DOMPurify.sanitize(linkify(
                         getSelectedContent()
                           // Convert headlines (bold at start of line) to styled headers
                           .replace(/^\*\*(.*?)\*\*$/gm, '<h3 class="text-xl font-bold text-white mt-6 mb-3 first:mt-0">$1</h3>')
@@ -534,7 +535,7 @@ Faith-based AI tools for your everyday needs`;
                           .replace(/^(Sources?:.*?)$/gm, '<p class="text-sm text-gray-400 mt-3 italic">$1</p>')
                           // Convert newlines to breaks
                           .replace(/\n/g, '<br />')
-                      )
+                      ), { ADD_ATTR: ['target', 'rel', 'class'] })
                     }}
                   />
                 </div>

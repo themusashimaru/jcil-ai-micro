@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react';
 import { useUserProfile, type UserProfile } from '@/contexts/UserProfileContext';
 import PasskeySettings from '@/components/auth/PasskeySettings';
+import DOMPurify from 'dompurify';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -231,10 +232,12 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                   className="whitespace-pre-wrap text-sm"
                   style={{ color: formData.signatureColor || '#FFFFFF' }}
                   dangerouslySetInnerHTML={{
-                    __html: formData.emailSignature
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                      .replace(/\n/g, '<br/>'),
+                    __html: DOMPurify.sanitize(
+                      formData.emailSignature
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/\n/g, '<br/>')
+                    ),
                   }}
                 />
               </div>

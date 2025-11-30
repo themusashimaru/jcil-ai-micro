@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import DOMPurify from 'dompurify';
 
 interface QuickEmailWriterProps {
   onEmailGenerated?: (email: string, subject: string) => void;
@@ -335,10 +336,12 @@ Return ONLY JSON (no markdown, no code blocks):
                             className="whitespace-pre-wrap text-xs"
                             style={{ color: profile.signatureColor || '#FFFFFF' }}
                             dangerouslySetInnerHTML={{
-                              __html: profile.emailSignature
-                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                                .replace(/\n/g, '<br/>'),
+                              __html: DOMPurify.sanitize(
+                                profile.emailSignature
+                                  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                  .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                  .replace(/\n/g, '<br/>')
+                              ),
                             }}
                           />
                         </div>
