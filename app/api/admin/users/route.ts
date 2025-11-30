@@ -77,68 +77,82 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch ALL users for accurate stats (separate query without pagination)
+    const { data: allUsers, error: allUsersError } = await supabase
+      .from('users')
+      .select(`
+        subscription_tier,
+        subscription_status,
+        messages_used_today,
+        images_generated_today,
+        total_messages,
+        total_images,
+        last_message_date
+      `);
+
+    if (allUsersError) {
+      console.error('[Admin API] Error fetching all users for stats:', allUsersError);
+    }
+
+    const statsUsers = allUsers || users || [];
+    const today = new Date().toISOString().split('T')[0];
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Calculate aggregate statistics from ALL users
+    const stats = {
+      totalUsers: totalCount || statsUsers.length,
+      usersByTier: {
+        free: statsUsers.filter(u => (u.subscription_tier || 'free') === 'free').length,
+        basic: statsUsers.filter(u => u.subscription_tier === 'basic').length,
+        pro: statsUsers.filter(u => u.subscription_tier === 'pro').length,
+        executive: statsUsers.filter(u => u.subscription_tier === 'executive').length,
+      },
+      usersByStatus: {
+        active: statsUsers.filter(u => u.subscription_status === 'active').length,
+        trialing: statsUsers.filter(u => u.subscription_status === 'trialing').length,
+        past_due: statsUsers.filter(u => u.subscription_status === 'past_due').length,
+        canceled: statsUsers.filter(u => u.subscription_status === 'canceled').length,
+      },
+      usage: {
+        totalMessagesToday: statsUsers.reduce((sum, u) => sum + (u.messages_used_today || 0), 0),
+        totalMessagesAllTime: statsUsers.reduce((sum, u) => sum + (u.total_messages || 0), 0),
+        totalImagesToday: statsUsers.reduce((sum, u) => sum + (u.images_generated_today || 0), 0),
+        totalImagesAllTime: statsUsers.reduce((sum, u) => sum + (u.total_images || 0), 0),
+      },
+      activeUsers: {
+        today: statsUsers.filter(u => u.last_message_date === today).length,
+        last7Days: statsUsers.filter(u => {
+          if (!u.last_message_date) return false;
+          const lastActive = new Date(u.last_message_date);
+          return lastActive >= sevenDaysAgo;
+        }).length,
+        last30Days: statsUsers.filter(u => {
+          if (!u.last_message_date) return false;
+          const lastActive = new Date(u.last_message_date);
+          return lastActive >= thirtyDaysAgo;
+        }).length,
+      },
+    };
+
     // Return empty array if no users
     if (!users || users.length === 0) {
       return NextResponse.json({
         users: [],
-        stats: {
-          totalUsers: 0,
-          usersByTier: { free: 0, basic: 0, pro: 0, executive: 0 },
-          usersByStatus: { active: 0, trialing: 0, past_due: 0, canceled: 0 },
-          usage: { totalMessagesToday: 0, totalMessagesAllTime: 0, totalImagesToday: 0, totalImagesAllTime: 0 },
-          activeUsers: { today: 0, last7Days: 0, last30Days: 0 },
-        },
+        stats,
         pagination: {
           page,
           limit,
-          totalCount: 0,
-          totalPages: 0,
+          totalCount: totalCount || 0,
+          totalPages: Math.ceil((totalCount || 0) / limit),
           hasNextPage: false,
           hasPreviousPage: false,
         },
         timestamp: new Date().toISOString(),
       });
     }
-
-    // Calculate aggregate statistics
-    const stats = {
-      totalUsers: users.length,
-      usersByTier: {
-        free: users.filter(u => (u.subscription_tier || 'free') === 'free').length,
-        basic: users.filter(u => u.subscription_tier === 'basic').length,
-        pro: users.filter(u => u.subscription_tier === 'pro').length,
-        executive: users.filter(u => u.subscription_tier === 'executive').length,
-      },
-      usersByStatus: {
-        active: users.filter(u => u.subscription_status === 'active').length,
-        trialing: users.filter(u => u.subscription_status === 'trialing').length,
-        past_due: users.filter(u => u.subscription_status === 'past_due').length,
-        canceled: users.filter(u => u.subscription_status === 'canceled').length,
-      },
-      usage: {
-        totalMessagesToday: users.reduce((sum, u) => sum + (u.messages_used_today || 0), 0),
-        totalMessagesAllTime: users.reduce((sum, u) => sum + (u.total_messages || 0), 0),
-        totalImagesToday: users.reduce((sum, u) => sum + (u.images_generated_today || 0), 0),
-        totalImagesAllTime: users.reduce((sum, u) => sum + (u.total_images || 0), 0),
-      },
-      activeUsers: {
-        today: users.filter(u => u.last_message_date === new Date().toISOString().split('T')[0]).length,
-        last7Days: users.filter(u => {
-          if (!u.last_message_date) return false;
-          const lastActive = new Date(u.last_message_date);
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-          return lastActive >= sevenDaysAgo;
-        }).length,
-        last30Days: users.filter(u => {
-          if (!u.last_message_date) return false;
-          const lastActive = new Date(u.last_message_date);
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          return lastActive >= thirtyDaysAgo;
-        }).length,
-      },
-    };
 
     return NextResponse.json({
       users,

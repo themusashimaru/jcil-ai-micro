@@ -16,11 +16,20 @@ import {
   type RegistrationResponseJSON,
 } from '@/lib/auth/webauthn';
 
-// Use service role for database operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Create Supabase client inside functions to avoid build-time initialization
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase configuration');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 // In-memory challenge store (in production, use Redis or database)
 const challengeStore = new Map<string, { challenge: string; expires: number }>();
@@ -36,6 +45,7 @@ export async function POST(_request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabase = getSupabaseAdmin();
     const userId = session.user.id;
     const userEmail = session.user.email || '';
 
@@ -134,6 +144,7 @@ export async function PUT(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || '';
     const deviceName = customDeviceName || getDeviceNameFromUserAgent(userAgent);
 
+    const supabase = getSupabaseAdmin();
     // Store the passkey in database
     const { error: insertError } = await supabase.from('user_passkeys').insert({
       user_id: userId,

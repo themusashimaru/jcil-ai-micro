@@ -8,11 +8,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from '@/lib/supabase/server-auth';
 
-// Use service role for database operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+// Create Supabase client inside functions to avoid build-time initialization
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase configuration');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 /**
  * GET - List user's registered passkeys
@@ -24,6 +33,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabase = getSupabaseAdmin();
     const { data: passkeys, error } = await supabase
       .from('user_passkeys')
       .select('id, device_name, created_at, last_used_at')
@@ -68,6 +78,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    const supabase = getSupabaseAdmin();
     // Delete the passkey (RLS ensures user can only delete their own)
     const { error } = await supabase
       .from('user_passkeys')

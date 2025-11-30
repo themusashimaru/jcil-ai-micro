@@ -178,25 +178,18 @@ export async function POST(
 
     console.log('[API] Message saved successfully:', message.id);
 
-    // Update conversation's last_message_at and increment message_count
-    // First get current count
-    const { data: conv } = await supabase
-      .from('conversations')
-      .select('message_count')
-      .eq('id', conversationId)
-      .single();
-
+    // Note: message_count is incremented by database trigger (increment_conversation_message_count)
+    // We only update last_message_at here to avoid duplicate counting
     const { error: updateError } = await supabase
       .from('conversations')
       .update({
         last_message_at: new Date().toISOString(),
-        message_count: (conv?.message_count || 0) + 1,
         updated_at: new Date().toISOString(),
       })
       .eq('id', conversationId);
 
     if (updateError) {
-      console.error('Error updating conversation:', updateError);
+      console.error('Error updating conversation timestamp:', updateError);
       // Don't fail the request if this fails
     }
 
