@@ -622,4 +622,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export const runtime = 'edge';
+// Use Node.js runtime for better streaming support and logging
+// Edge runtime can have issues with streaming responses
+export const runtime = 'nodejs';
+export const maxDuration = 60; // Allow up to 60 seconds for AI responses
