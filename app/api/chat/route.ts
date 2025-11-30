@@ -516,11 +516,12 @@ export async function POST(request: NextRequest) {
 
       console.log('[Chat API] streamText returned, result type:', typeof result);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      console.log('[Chat API] result has toDataStreamResponse:', typeof (result as any).toDataStreamResponse);
+      console.log('[Chat API] result has toTextStreamResponse:', typeof (result as any).toTextStreamResponse);
 
-      // Return streaming response using Vercel AI SDK's data stream format
+      // Return streaming response using simple text stream
+      // AI SDK v5 uses toTextStreamResponse instead of toDataStreamResponse
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const streamResponse = (result as any).toDataStreamResponse({
+      const streamResponse = (result as any).toTextStreamResponse({
         headers: {
           'X-Model-Used': model,
           'X-Tool-Type': tool || 'default',

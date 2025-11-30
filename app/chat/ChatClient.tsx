@@ -1004,7 +1004,8 @@ export function ChatClient() {
         setMessages((prev) => [...prev, assistantMessage]);
       } else {
         // Streaming response - read chunks and update progressively
-        console.log('[ChatClient] Processing streaming response');
+        // AI SDK v5 uses simple text streaming (not data stream format)
+        console.log('[ChatClient] Processing streaming response (text stream)');
 
         // Create initial empty assistant message
         const assistantMessage: Message = {
@@ -1027,73 +1028,24 @@ export function ChatClient() {
               const { done, value } = await reader.read();
               if (done) break;
 
+              // Simple text streaming - just decode and append
               const chunk = decoder.decode(value, { stream: true });
+              accumulatedContent += chunk;
 
-              // Parse the Vercel AI SDK data stream format
-              // Format: "0:text\n" for text chunks, "d:data\n" for finish data
-              const lines = chunk.split('\n');
-
-              for (const line of lines) {
-                if (!line.trim()) continue;
-
-                // Text chunk: "0:"text content""
-                if (line.startsWith('0:')) {
-                  try {
-                    // Parse the JSON string after "0:"
-                    const textContent = JSON.parse(line.slice(2));
-                    accumulatedContent += textContent;
-
-                    // Update the message with accumulated content
-                    setMessages((prev) =>
-                      prev.map((msg) =>
-                        msg.id === assistantMessageId
-                          ? { ...msg, content: accumulatedContent }
-                          : msg
-                      )
-                    );
-                  } catch {
-                    // Not valid JSON, might be partial chunk
-                    console.log('[ChatClient] Skipping non-JSON chunk:', line.slice(0, 50));
-                  }
-                }
-                // Source data: "2:[sources]"
-                else if (line.startsWith('2:')) {
-                  try {
-                    const sources = JSON.parse(line.slice(2));
-                    console.log('[ChatClient] Received sources:', sources);
-                    // Update message with citations if available
-                    if (Array.isArray(sources)) {
-                      setMessages((prev) =>
-                        prev.map((msg) =>
-                          msg.id === assistantMessageId
-                            ? { ...msg, citations: sources, sourcesUsed: sources.length }
-                            : msg
-                        )
-                      );
-                    }
-                  } catch {
-                    // Ignore parse errors for source data
-                  }
-                }
-                // Finish data: "d:{...}"
-                else if (line.startsWith('d:')) {
-                  console.log('[ChatClient] Stream finished');
-                }
-                // Error: "e:{...}"
-                else if (line.startsWith('e:')) {
-                  try {
-                    const errorData = JSON.parse(line.slice(2));
-                    console.error('[ChatClient] Stream error:', errorData);
-                  } catch {
-                    // Ignore parse errors
-                  }
-                }
-              }
+              // Update the message with accumulated content
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: accumulatedContent }
+                    : msg
+                )
+              );
             }
           } finally {
             reader.releaseLock();
           }
 
+          console.log('[ChatClient] Stream finished, total length:', accumulatedContent.length);
           finalContent = accumulatedContent;
         }
       }
