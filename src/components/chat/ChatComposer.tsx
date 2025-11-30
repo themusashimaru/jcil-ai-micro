@@ -88,6 +88,11 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
+
+    // Reset file inputs so user can upload again
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (photoInputRef.current) photoInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const handleFileSelect = (files: FileList | null) => {
