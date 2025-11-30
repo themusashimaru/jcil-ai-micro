@@ -47,18 +47,21 @@ function getXAIProvider() {
 
 /**
  * Create a chat completion with streaming support
+ *
+ * Uses Vercel AI SDK streamText with xAI provider options for:
+ * - web_search: Real-time web search capability (mode: 'auto')
+ * - x_search: X/Twitter search capability
+ * - Citations returned when stream completes
  */
 export async function createChatCompletion(options: ChatOptions) {
   const { messages, tool, temperature, maxTokens, stream = true } = options;
 
   // Use direct xAI API for non-streaming (has better search support)
-  // and for streaming (more reliable)
   if (!stream) {
     return createDirectXAICompletion(options);
   }
 
-  // For streaming, use Vercel AI SDK with simple config (no search params)
-  // Search works better with the direct API in non-streaming mode
+  // For streaming, use Vercel AI SDK with xAI provider options for search
   const xai = getXAIProvider();
 
   // Determine the appropriate model
@@ -76,14 +79,25 @@ export async function createChatCompletion(options: ChatOptions) {
   const timeContext = getCurrentTimeContext();
   const fullSystemPrompt = `${timeContext}\n\n${systemPrompt}`;
 
-  // Simple streaming config without search (search works better via direct API)
+  // Streaming config with search parameters enabled via providerOptions
+  // The model will autonomously decide when to use search (mode: 'auto')
   const requestConfig = {
     model,
     messages,
     system: fullSystemPrompt,
     temperature: effectiveTemperature,
     maxTokens: effectiveMaxTokens,
+    providerOptions: {
+      xai: {
+        searchParameters: {
+          mode: 'auto' as const, // Model decides when to search
+          returnCitations: true, // Include citation URLs
+        },
+      },
+    },
   };
+
+  console.log('[xAI Streaming] Using streamText with searchParameters:', modelName);
 
   // Return streaming response
   return streamText(requestConfig);
