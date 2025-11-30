@@ -12,10 +12,7 @@ import { cookies } from 'next/headers';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Rate limiting store (in production, use Redis)
-const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5; // 5 tickets per hour
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -52,20 +49,27 @@ async function getAuthenticatedClient() {
   );
 }
 
-function checkRateLimit(identifier: string): boolean {
-  const now = Date.now();
-  const record = rateLimitStore.get(identifier);
+async function checkRateLimit(supabase: ReturnType<typeof getSupabaseAdmin>, identifier: string): Promise<boolean> {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-  if (!record || record.resetAt < now) {
-    rateLimitStore.set(identifier, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    return true;
-  }
+  // Count recent tickets from this identifier
+  const { count } = await supabase
+    .from('rate_limits')
+    .select('*', { count: 'exact', head: true })
+    .eq('identifier', identifier)
+    .eq('action', 'support_ticket')
+    .gte('created_at', oneHourAgo);
 
-  if (record.count >= RATE_LIMIT) {
+  if ((count || 0) >= RATE_LIMIT) {
     return false;
   }
 
-  record.count++;
+  // Record this attempt
+  await supabase.from('rate_limits').insert({
+    identifier,
+    action: 'support_ticket',
+  });
+
   return true;
 }
 
@@ -124,6 +128,8 @@ export async function POST(request: NextRequest) {
                'unknown';
     const userAgent = request.headers.get('user-agent') || '';
 
+    const supabase = getSupabaseAdmin();
+
     // Check if user is authenticated
     const authClient = await getAuthenticatedClient();
     const { data: { user } } = await authClient.auth.getUser();
@@ -142,7 +148,6 @@ export async function POST(request: NextRequest) {
       rateLimitKey = user.id;
 
       // Get user's name from database
-      const supabase = getSupabaseAdmin();
       const { data: userData } = await supabase
         .from('users')
         .select('full_name')
@@ -166,8 +171,9 @@ export async function POST(request: NextRequest) {
       rateLimitKey = ip;
     }
 
-    // Check rate limit
-    if (!checkRateLimit(rateLimitKey)) {
+    // Check rate limit (database-backed, persists across restarts)
+    const withinLimit = await checkRateLimit(supabase, rateLimitKey);
+    if (!withinLimit) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429 }
@@ -175,7 +181,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the ticket
-    const supabase = getSupabaseAdmin();
     const { data: ticket, error } = await supabase
       .from('support_tickets')
       .insert({
