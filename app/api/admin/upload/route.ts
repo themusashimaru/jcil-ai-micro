@@ -5,9 +5,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/admin-guard';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
+    // Require admin authentication
+    const auth = await requireAdmin(request);
+    if (!auth.authorized) return auth.response;
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
