@@ -591,6 +591,205 @@ async function testSuno(token: string): Promise<{ valid: boolean; error?: string
   }
 }
 
+// Test Coinbase connection
+async function testCoinbase(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.coinbase.com/v2/user', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'CB-VERSION': '2024-01-01',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.data?.name || data.data?.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Coinbase API key.' };
+    } else {
+      return { valid: false, error: `Coinbase API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Coinbase. Check your network.' };
+  }
+}
+
+// Test Resend connection
+async function testResend(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.resend.com/domains', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Resend API key.' };
+    } else {
+      return { valid: false, error: `Resend API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Resend. Check your network.' };
+  }
+}
+
+// Test Cloudflare connection
+async function testCloudflare(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API token. Check your Cloudflare API token.' };
+    } else {
+      return { valid: false, error: `Cloudflare API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Cloudflare. Check your network.' };
+  }
+}
+
+// Test Upstash connection
+// Token format: REST_URL|REST_TOKEN
+async function testUpstash(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter REST URL and REST Token.' };
+    }
+
+    const [restUrl, restToken] = parts.map(p => p.trim());
+    const response = await fetch(restUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${restToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(['PING']),
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Upstash REST token.' };
+    } else {
+      return { valid: false, error: `Upstash API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Upstash. Check your REST URL and network.' };
+  }
+}
+
+// Test Klaviyo connection
+async function testKlaviyo(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://a.klaviyo.com/api/accounts/', {
+      headers: {
+        Authorization: `Klaviyo-API-Key ${token}`,
+        revision: '2024-02-15',
+      },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Klaviyo Private API key.' };
+    } else {
+      return { valid: false, error: `Klaviyo API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Klaviyo. Check your network.' };
+  }
+}
+
+// Test Printful connection
+async function testPrintful(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.printful.com/stores', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API token. Check your Printful API token.' };
+    } else {
+      return { valid: false, error: `Printful API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Printful. Check your network.' };
+  }
+}
+
+// Test n8n connection
+// Token format: HOST_URL|API_KEY
+async function testN8n(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter n8n Host URL and API Key.' };
+    }
+
+    const [rawHostUrl, apiKey] = parts.map(p => p.trim());
+    const hostUrl = rawHostUrl.endsWith('/') ? rawHostUrl.slice(0, -1) : rawHostUrl;
+
+    const response = await fetch(`${hostUrl}/api/v1/workflows?limit=1`, {
+      headers: { 'X-N8N-API-KEY': apiKey },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your n8n API key.' };
+    } else {
+      return { valid: false, error: `n8n API error: ${response.status}. Check your host URL.` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to n8n. Check your host URL and network.' };
+  }
+}
+
+// Test Buffer connection
+async function testBuffer(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch(`https://api.bufferapp.com/1/user.json?access_token=${token}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.name };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid access token. Check your Buffer access token.' };
+    } else {
+      return { valid: false, error: `Buffer API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Buffer. Check your network.' };
+  }
+}
+
+// Test Calendly connection
+async function testCalendly(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.calendly.com/users/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.resource?.name };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your Calendly Personal Access Token.' };
+    } else {
+      return { valid: false, error: `Calendly API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Calendly. Check your network.' };
+  }
+}
+
 // Test Vercel connection
 async function testVercel(token: string): Promise<{ valid: boolean; username?: string; teams?: Array<{id: string; name: string}>; error?: string }> {
   try {
@@ -808,6 +1007,33 @@ export async function POST(request: NextRequest) {
         break;
       case 'suno':
         result = await testSuno(token);
+        break;
+      case 'coinbase':
+        result = await testCoinbase(token);
+        break;
+      case 'resend':
+        result = await testResend(token);
+        break;
+      case 'cloudflare':
+        result = await testCloudflare(token);
+        break;
+      case 'upstash':
+        result = await testUpstash(token);
+        break;
+      case 'klaviyo':
+        result = await testKlaviyo(token);
+        break;
+      case 'printful':
+        result = await testPrintful(token);
+        break;
+      case 'n8n':
+        result = await testN8n(token);
+        break;
+      case 'buffer':
+        result = await testBuffer(token);
+        break;
+      case 'calendly':
+        result = await testCalendly(token);
         break;
       default:
         // For services we haven't implemented testing for yet, assume valid
