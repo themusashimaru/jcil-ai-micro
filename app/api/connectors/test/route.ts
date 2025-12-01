@@ -10,9 +10,10 @@ import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 export const runtime = 'nodejs';
 
 // Test GitHub connection
-async function testGitHub(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+async function testGitHub(token: string): Promise<{ valid: boolean; username?: string; repos?: Array<{name: string; full_name: string; private: boolean}>; error?: string }> {
   try {
-    const response = await fetch('https://api.github.com/user', {
+    // First, get the user info
+    const userResponse = await fetch('https://api.github.com/user', {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github.v3+json',
@@ -20,14 +21,36 @@ async function testGitHub(token: string): Promise<{ valid: boolean; username?: s
       },
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      return { valid: true, username: data.login };
-    } else if (response.status === 401) {
-      return { valid: false, error: 'Invalid token. Please check your Personal Access Token.' };
-    } else {
-      return { valid: false, error: `GitHub API error: ${response.status}` };
+    if (!userResponse.ok) {
+      if (userResponse.status === 401) {
+        return { valid: false, error: 'Invalid token. Please check your Personal Access Token.' };
+      }
+      return { valid: false, error: `GitHub API error: ${userResponse.status}` };
     }
+
+    const userData = await userResponse.json();
+    const username = userData.login;
+
+    // Now fetch the user's repos
+    const reposResponse = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'JCIL-AI-App',
+      },
+    });
+
+    let repos: Array<{name: string; full_name: string; private: boolean}> = [];
+    if (reposResponse.ok) {
+      const reposData = await reposResponse.json();
+      repos = reposData.map((repo: { name: string; full_name: string; private: boolean }) => ({
+        name: repo.name,
+        full_name: repo.full_name,
+        private: repo.private,
+      }));
+    }
+
+    return { valid: true, username, repos };
   } catch {
     return { valid: false, error: 'Failed to connect to GitHub. Check your network.' };
   }
@@ -147,7 +170,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Service and token are required' }, { status: 400 });
     }
 
-    let result: { valid: boolean; username?: string; shopName?: string; projectName?: string; error?: string };
+    let result: {
+      valid: boolean;
+      username?: string;
+      shopName?: string;
+      projectName?: string;
+      repos?: Array<{name: string; full_name: string; private: boolean}>;
+      error?: string;
+    };
 
     switch (service) {
       case 'github':
@@ -173,6 +203,7 @@ export async function POST(request: NextRequest) {
         message: 'Connection successful!',
         username: result.username || result.projectName,
         shopName: result.shopName,
+        repos: result.repos, // Include repos for GitHub
       });
     } else {
       return NextResponse.json({

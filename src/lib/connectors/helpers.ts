@@ -144,11 +144,15 @@ Now let me add this to your repository:
 - Delete record: [CONNECTOR_ACTION: supabase | delete_record | {"table": "posts", "filters": {"id": 1}}]
 
 **GITHUB ACTIONS** (if connected):
+The user's GitHub account is automatically linked. Just use the repo name - no need to specify the owner!
+
 - List repos: [CONNECTOR_ACTION: github | list_repos | {}]
-- List files: [CONNECTOR_ACTION: github | list_files | {"repo": "owner/repo", "path": "src"}]
-- Read file: [CONNECTOR_ACTION: github | read_file | {"repo": "owner/repo", "path": "README.md"}]
-- Create file: [CONNECTOR_ACTION: github | create_file | {"repo": "owner/repo", "path": "test.txt", "content": "hello", "message": "Add test file"}]
-- Update file: [CONNECTOR_ACTION: github | update_file | {"repo": "owner/repo", "path": "test.txt", "content": "updated content", "message": "Update test file"}]
+- List files: [CONNECTOR_ACTION: github | list_files | {"repo": "my-project", "path": "src"}]
+- Read file: [CONNECTOR_ACTION: github | read_file | {"repo": "my-project", "path": "README.md"}]
+- Create file: [CONNECTOR_ACTION: github | create_file | {"repo": "my-project", "path": "src/newfile.ts", "content": "// code here", "message": "Add new file"}]
+- Update file: [CONNECTOR_ACTION: github | update_file | {"repo": "my-project", "path": "src/file.ts", "content": "// updated code", "message": "Update file"}]
+
+Note: You can also use the full "owner/repo" format if needed (e.g., for repos owned by others).
 
 ALWAYS use this format when the user asks about their connected services. The user will click the "Run Action" button to execute and see results.
 `;
