@@ -64,6 +64,46 @@ async function testShopify(_token: string): Promise<{ valid: boolean; shopName?:
   return { valid: false, error: 'Shopify connection requires store URL. Coming soon.' };
 }
 
+// Test Supabase connection
+// Token format: project_url|service_role_key
+async function testSupabase(token: string): Promise<{ valid: boolean; projectName?: string; error?: string }> {
+  try {
+    // Parse the token (format: url|key)
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Use: https://xxx.supabase.co|your_service_role_key' };
+    }
+
+    const [projectUrl, serviceKey] = parts;
+
+    // Validate URL format
+    if (!projectUrl.includes('supabase.co') && !projectUrl.includes('supabase.com')) {
+      return { valid: false, error: 'Invalid Supabase URL. Should be like: https://xxx.supabase.co' };
+    }
+
+    // Test the connection by listing tables (using PostgREST)
+    const response = await fetch(`${projectUrl}/rest/v1/`, {
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+    });
+
+    if (response.ok) {
+      // Extract project name from URL
+      const urlParts = projectUrl.replace('https://', '').split('.');
+      const projectName = urlParts[0] || 'Supabase Project';
+      return { valid: true, projectName };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid service role key. Check your API settings.' };
+    } else {
+      return { valid: false, error: `Supabase API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Supabase. Check URL and network.' };
+  }
+}
+
 // POST - Test a connection
 export async function POST(request: NextRequest) {
   try {
@@ -81,7 +121,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Service and token are required' }, { status: 400 });
     }
 
-    let result: { valid: boolean; username?: string; shopName?: string; error?: string };
+    let result: { valid: boolean; username?: string; shopName?: string; projectName?: string; error?: string };
 
     switch (service) {
       case 'github':
@@ -93,6 +133,9 @@ export async function POST(request: NextRequest) {
       case 'shopify':
         result = await testShopify(token);
         break;
+      case 'supabase':
+        result = await testSupabase(token);
+        break;
       default:
         // For services we haven't implemented testing for yet, assume valid
         result = { valid: true };
@@ -102,7 +145,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Connection successful!',
-        username: result.username,
+        username: result.username || result.projectName,
         shopName: result.shopName,
       });
     } else {
