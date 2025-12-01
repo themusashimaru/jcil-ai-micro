@@ -17,11 +17,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { generateMessagePDF } from '@/lib/pdf/generator';
+import { ConnectorAction, parseConnectorActions } from './ConnectorAction';
 
 interface MessageBubbleProps {
   message: Message;
@@ -31,6 +32,14 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, isLast }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
+
+  // Parse connector actions from AI messages
+  const { cleanContent, actions } = useMemo(() => {
+    if (isUser) {
+      return { cleanContent: message.content, actions: [] };
+    }
+    return parseConnectorActions(message.content);
+  }, [message.content, isUser]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(message.content);
@@ -246,10 +255,25 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
               // User messages: simple text with linkified URLs
               <div className="whitespace-pre-wrap">{linkifyToReact(message.content)}</div>
             ) : (
-              // AI messages: full markdown rendering
-              <MarkdownRenderer content={message.content} />
+              // AI messages: full markdown rendering with clean content (action markers removed)
+              <MarkdownRenderer content={cleanContent} />
             )}
           </div>
+
+          {/* Connector Actions - Show interactive cards for any detected actions */}
+          {!isUser && actions.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {actions.map((actionItem, index) => (
+                <ConnectorAction
+                  key={`${actionItem.service}-${actionItem.action}-${index}`}
+                  service={actionItem.service}
+                  action={actionItem.action}
+                  params={actionItem.params}
+                  description={actionItem.description}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Citations/Sources from Live Search */}
           {!isUser && message.citations && message.citations.length > 0 && (

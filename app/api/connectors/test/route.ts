@@ -71,17 +71,40 @@ async function testSupabase(token: string): Promise<{ valid: boolean; projectNam
     // Parse the token (format: url|key)
     const parts = token.split('|');
     if (parts.length !== 2) {
-      return { valid: false, error: 'Invalid format. Use: https://xxx.supabase.co|your_service_role_key' };
+      return {
+        valid: false,
+        error: 'Invalid format. Paste your Project URL, then a pipe |, then your Service Role Key. Example: https://abc123.supabase.co|eyJhbG...'
+      };
     }
 
-    const [projectUrl, serviceKey] = parts;
+    let [projectUrl, serviceKey] = parts;
 
-    // Validate URL format
-    if (!projectUrl.includes('supabase.co') && !projectUrl.includes('supabase.com')) {
-      return { valid: false, error: 'Invalid Supabase URL. Should be like: https://xxx.supabase.co' };
+    // Clean up the URL
+    projectUrl = projectUrl.trim();
+    serviceKey = serviceKey.trim();
+
+    // Remove trailing slash if present
+    if (projectUrl.endsWith('/')) {
+      projectUrl = projectUrl.slice(0, -1);
     }
 
-    // Test the connection by listing tables (using PostgREST)
+    // Basic validation - just check it looks like a URL with supabase in it
+    if (!projectUrl.startsWith('https://') || !projectUrl.toLowerCase().includes('supabase')) {
+      return {
+        valid: false,
+        error: 'URL should start with https:// and contain supabase. Check your Project URL in Supabase dashboard.'
+      };
+    }
+
+    // Validate the service key looks like a JWT
+    if (!serviceKey.startsWith('eyJ')) {
+      return {
+        valid: false,
+        error: 'Service Role Key should start with "eyJ". Make sure you copied the full key from Supabase Settings > API.'
+      };
+    }
+
+    // Test the connection by making a simple API call
     const response = await fetch(`${projectUrl}/rest/v1/`, {
       headers: {
         apikey: serviceKey,
@@ -89,18 +112,21 @@ async function testSupabase(token: string): Promise<{ valid: boolean; projectNam
       },
     });
 
-    if (response.ok) {
+    // A 200 response means the connection works
+    // Even a 404 on /rest/v1/ is fine - it means the API is reachable
+    if (response.ok || response.status === 404 || response.status === 406) {
       // Extract project name from URL
-      const urlParts = projectUrl.replace('https://', '').split('.');
-      const projectName = urlParts[0] || 'Supabase Project';
+      const urlMatch = projectUrl.match(/https:\/\/([^.]+)/);
+      const projectName = urlMatch ? urlMatch[1] : 'Supabase Project';
       return { valid: true, projectName };
-    } else if (response.status === 401) {
-      return { valid: false, error: 'Invalid service role key. Check your API settings.' };
+    } else if (response.status === 401 || response.status === 403) {
+      return { valid: false, error: 'Invalid Service Role Key. Go to Supabase Dashboard > Settings > API and copy the service_role key.' };
     } else {
-      return { valid: false, error: `Supabase API error: ${response.status}` };
+      return { valid: false, error: `Connection failed (${response.status}). Check your Project URL.` };
     }
-  } catch {
-    return { valid: false, error: 'Failed to connect to Supabase. Check URL and network.' };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return { valid: false, error: `Failed to connect: ${message}. Check your URL and network.` };
   }
 }
 
