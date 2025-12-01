@@ -213,6 +213,46 @@ interface ChatRequestBody {
   conversationId?: string; // Current conversation ID to exclude from history
 }
 
+// Detect if user is requesting GitHub code operations (for routing to grok-code-fast)
+function isGitHubCodeOperation(messages: CoreMessage[], connectedServices: string[]): boolean {
+  // Only applies if GitHub is connected
+  if (!connectedServices.includes('github')) return false;
+
+  // Get the last user message
+  const lastMessage = messages[messages.length - 1];
+  if (!lastMessage || lastMessage.role !== 'user') return false;
+
+  const content = typeof lastMessage.content === 'string'
+    ? lastMessage.content
+    : Array.isArray(lastMessage.content)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? lastMessage.content.filter((p: any) => p.type === 'text').map((p: any) => p.text || '').join(' ')
+      : '';
+
+  const lowerContent = content.toLowerCase();
+
+  // Check for code-related GitHub operations
+  const codePatterns = [
+    /create.*file.*code/i,
+    /write.*code.*github/i,
+    /edit.*file.*github/i,
+    /update.*code.*github/i,
+    /add.*code.*repo/i,
+    /push.*code/i,
+    /create_file/i,
+    /update_file/i,
+    /write.*function/i,
+    /implement.*github/i,
+    /create.*component/i,
+    /add.*feature.*github/i,
+    /github.*create/i,
+    /github.*write/i,
+    /github.*add/i,
+  ];
+
+  return codePatterns.some(pattern => pattern.test(lowerContent));
+}
+
 // Detect if user is asking about previous conversations
 function isAskingAboutHistory(content: string): boolean {
   const lowerContent = content.toLowerCase();
@@ -523,8 +563,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Add connector awareness if user has connected services
+    // Also check if this is a GitHub code operation to route to grok-code-fast
+    let connectedServices: string[] = [];
+    let effectiveTool = tool;
+
     if (isAuthenticated && rateLimitIdentifier) {
-      const connectedServices = await getUserConnectedServices(rateLimitIdentifier);
+      connectedServices = await getUserConnectedServices(rateLimitIdentifier);
       if (connectedServices.length > 0) {
         const connectorPrompt = getConnectorSystemPrompt(connectedServices);
         const connectorSystemMessage = {
@@ -532,6 +576,12 @@ export async function POST(request: NextRequest) {
           content: connectorPrompt,
         };
         messagesWithContext = [connectorSystemMessage, ...messagesWithContext];
+
+        // Check if this is a GitHub code operation - route to grok-code-fast
+        if (isGitHubCodeOperation(messages, connectedServices)) {
+          effectiveTool = 'code';
+          console.log('[Chat API] GitHub code operation detected, routing to grok-code-fast');
+        }
       }
     }
 
@@ -548,11 +598,12 @@ export async function POST(request: NextRequest) {
       messageCount: messagesWithContext.length,
       hasImages,
       streaming: !hasImages,
+      effectiveTool,
     });
 
-    // Get the model being used
+    // Get the model being used (effectiveTool may be 'code' for GitHub operations)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const model = getModelForTool(tool as any);
+    const model = getModelForTool(effectiveTool as any);
 
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
@@ -560,7 +611,7 @@ export async function POST(request: NextRequest) {
       const result = await createChatCompletion({
         messages: messagesWithContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tool: tool as any,
+        tool: effectiveTool as any,
         temperature,
         maxTokens: max_tokens,
         stream: false,
@@ -586,7 +637,7 @@ export async function POST(request: NextRequest) {
           headers: {
             'Content-Type': 'application/json',
             'X-Model-Used': model,
-            'X-Tool-Type': tool || 'default',
+            'X-Tool-Type': effectiveTool || 'default',
           },
         }
       );
@@ -600,7 +651,7 @@ export async function POST(request: NextRequest) {
       const result = await createChatCompletion({
         messages: messagesWithContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tool: tool as any,
+        tool: effectiveTool as any,
         temperature,
         maxTokens: max_tokens,
         stream: true,
@@ -617,7 +668,7 @@ export async function POST(request: NextRequest) {
       const streamResponse = (result as any).toTextStreamResponse({
         headers: {
           'X-Model-Used': model,
-          'X-Tool-Type': tool || 'default',
+          'X-Tool-Type': effectiveTool || 'default',
         },
       });
 
@@ -645,7 +696,7 @@ export async function POST(request: NextRequest) {
       const result = await createChatCompletion({
         messages: messagesWithContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        tool: tool as any,
+        tool: effectiveTool as any,
         temperature,
         maxTokens: max_tokens,
         stream: false,
@@ -671,7 +722,7 @@ export async function POST(request: NextRequest) {
           headers: {
             'Content-Type': 'application/json',
             'X-Model-Used': model,
-            'X-Tool-Type': tool || 'default',
+            'X-Tool-Type': effectiveTool || 'default',
           },
         }
       );
