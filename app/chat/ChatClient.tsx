@@ -1223,7 +1223,8 @@ export function ChatClient() {
             {/* Connectors Button */}
             <button
               onClick={() => setIsConnectorsOpen(true)}
-              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5 focus:outline-none"
+              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5 focus:outline-none focus:bg-transparent active:bg-transparent"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
               aria-label="Connectors"
               title="Connect external services"
             >
@@ -1240,7 +1241,8 @@ export function ChatClient() {
             {/* Profile Button */}
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5"
+              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5 focus:outline-none focus:bg-transparent active:bg-transparent"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
               aria-label="User Profile"
             >
               <svg className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
