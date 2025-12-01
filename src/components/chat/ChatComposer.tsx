@@ -24,7 +24,6 @@ import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
 // import { QuickLiveSearch } from './QuickLiveSearch'; // HIDDEN: Auto-search now enabled for all conversations
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
-import { VoiceChatButton } from './VoiceChatButton';
 
 interface ChatComposerProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
@@ -35,12 +34,9 @@ interface ChatComposerProps {
   isStreaming: boolean;
   selectedTool?: 'image' | 'code' | 'search' | 'data' | null; // 'search' kept for backward compatibility
   onSelectTool?: (tool: 'image' | 'code' | 'search' | 'data' | null) => void;
-  lastAssistantMessage?: string;
-  voiceModeActive: boolean;
-  onVoiceModeChange: (active: boolean) => void;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete: _onSearchComplete, onDataAnalysisComplete, isStreaming, selectedTool, onSelectTool, lastAssistantMessage, voiceModeActive, onVoiceModeChange }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete: _onSearchComplete, onDataAnalysisComplete, isStreaming, selectedTool, onSelectTool }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -231,14 +227,6 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
     }
   };
 
-  // Voice chat auto-send handler
-  const handleVoiceTranscription = (text: string) => {
-    if (text && text.trim()) {
-      // Auto-send the transcribed text
-      onSendMessage(text.trim(), []);
-    }
-  };
-
   return (
     <div className="glass-morphism border-t border-white/10 py-0 px-1 md:p-4 pb-safe">
       <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
@@ -295,7 +283,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
 
         {/* Input Area */}
         <div
-          className={`relative rounded-lg border transition-colors ${
+          className={`rounded-lg border transition-colors ${
             isDragging
               ? 'border-white/40 bg-white/10'
               : 'border-white/10 bg-white/5'
@@ -304,17 +292,6 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          {/* Voice Chat Button - Top Right */}
-          <div className="absolute top-0.5 right-0.5 md:top-2 md:right-2 z-10">
-            <VoiceChatButton
-              onTranscriptionComplete={handleVoiceTranscription}
-              isStreaming={isStreaming}
-              lastAssistantMessage={lastAssistantMessage}
-              voiceModeActive={voiceModeActive}
-              onVoiceModeChange={onVoiceModeChange}
-            />
-          </div>
-
           <textarea
             ref={textareaRef}
             value={message}
