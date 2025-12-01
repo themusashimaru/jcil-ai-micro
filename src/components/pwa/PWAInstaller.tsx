@@ -40,6 +40,7 @@ export function PWAInstaller() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
 
   useEffect(() => {
     // Check if already installed
@@ -57,13 +58,20 @@ export function PWAInstaller() {
         .then((registration) => {
           console.log('[PWA] Service Worker registered:', registration.scope);
 
+          // Check if there's already a waiting worker
+          if (registration.waiting) {
+            setWaitingWorker(registration.waiting);
+            setShowUpdatePrompt(true);
+          }
+
           // Check for updates
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New service worker available
+                  // New service worker available and waiting
+                  setWaitingWorker(newWorker);
                   setShowUpdatePrompt(true);
                 }
               });
@@ -78,6 +86,12 @@ export function PWAInstaller() {
         .catch((error) => {
           console.error('[PWA] Service Worker registration failed:', error);
         });
+
+      // Listen for controller change (when new SW takes over)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('[PWA] New service worker activated, reloading...');
+        window.location.reload();
+      });
     }
 
     // Listen for beforeinstallprompt event (A2HS)
@@ -121,9 +135,10 @@ export function PWAInstaller() {
   };
 
   const handleUpdate = () => {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-      window.location.reload();
+    if (waitingWorker) {
+      // Tell the waiting worker to skip waiting and become active
+      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+      // The controllerchange listener will handle the reload
     }
   };
 
