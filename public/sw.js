@@ -44,9 +44,10 @@ self.addEventListener('install', (event) => {
     caches.open(STATIC_CACHE).then((cache) => {
       console.log('[SW] Precaching static assets');
       return cache.addAll(STATIC_ASSETS);
-    }).then(() => {
-      return self.skipWaiting();
     })
+    // Note: We do NOT call skipWaiting() here
+    // The new SW will wait until user clicks "Update Now"
+    // which sends the SKIP_WAITING message
   );
 });
 
