@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { CodeDiff } from './CodeDiff';
 
 interface ConnectorActionProps {
   service: string;
@@ -25,15 +26,37 @@ const SERVICE_COLORS: Record<string, string> = {
   default: 'border-blue-600 bg-blue-900/30',
 };
 
+// Check if this action involves code
+function isCodeAction(service: string, action: string): boolean {
+  if (service === 'github') {
+    return ['write_file', 'create_file', 'read_file'].includes(action);
+  }
+  return false;
+}
+
 export function ConnectorAction({ service, action, params, description }: ConnectorActionProps) {
   const [status, setStatus] = useState<'pending' | 'running' | 'success' | 'error'>('pending');
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showCode, setShowCode] = useState(true);
 
   const icon = SERVICE_ICONS[service] || SERVICE_ICONS.default;
   const colorClass = SERVICE_COLORS[service] || SERVICE_COLORS.default;
-  const hasParams = Object.keys(params).length > 0;
-  const paramsString = hasParams ? JSON.stringify(params, null, 2) : '';
+
+  // Check if this is a code-related action
+  const hasCodeContent = isCodeAction(service, action) && !!params.content;
+  const filename = (params.path as string) || 'file';
+
+  // Filter out code content from params display
+  const displayParams = useMemo(() => {
+    if (!hasCodeContent) return params;
+    const filtered = { ...params };
+    delete filtered.content;
+    return filtered;
+  }, [params, hasCodeContent]);
+
+  const hasParams = Object.keys(displayParams).length > 0;
+  const paramsString = hasParams ? JSON.stringify(displayParams, null, 2) : '';
 
   const executeAction = async () => {
     setStatus('running');
@@ -74,10 +97,38 @@ export function ConnectorAction({ service, action, params, description }: Connec
       {/* Description */}
       <p className="text-gray-300 text-sm mb-3">{description}</p>
 
-      {/* Parameters Preview */}
+      {/* Parameters Preview (excluding code content) */}
       {hasParams && (
         <div className="mb-3 p-2 bg-black/30 rounded text-xs font-mono text-gray-400 overflow-x-auto">
           <pre>{paramsString}</pre>
+        </div>
+      )}
+
+      {/* Code Preview for write/create file actions */}
+      {hasCodeContent && (
+        <div className="mb-3">
+          <button
+            onClick={() => setShowCode(!showCode)}
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white mb-2"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform ${showCode ? 'rotate-90' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            {showCode ? 'Hide' : 'Show'} Code Preview
+          </button>
+          {showCode && (
+            <CodeDiff
+              filename={filename}
+              code={params.content as string}
+              showLineNumbers={true}
+              maxHeight="300px"
+            />
+          )}
         </div>
       )}
 
