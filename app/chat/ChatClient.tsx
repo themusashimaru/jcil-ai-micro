@@ -78,8 +78,6 @@ export function ChatClient() {
   const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
-  // Voice chat mode
-  const [voiceModeActive, setVoiceModeActive] = useState(false);
 
   // Load header logo from design settings
   useEffect(() => {
@@ -1335,9 +1333,6 @@ export function ChatClient() {
             isStreaming={isStreaming}
             selectedTool={selectedTool}
             onSelectTool={setSelectedTool}
-            lastAssistantMessage={messages.filter(m => m.role === 'assistant').slice(-1)[0]?.content}
-            voiceModeActive={voiceModeActive}
-            onVoiceModeChange={setVoiceModeActive}
           />
         </main>
       </div>
