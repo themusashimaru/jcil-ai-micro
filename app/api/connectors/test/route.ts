@@ -1690,6 +1690,359 @@ async function testWave(token: string): Promise<{ valid: boolean; error?: string
   }
 }
 
+// Test HubSpot connection
+async function testHubSpot(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.hubapi.com/oauth/v1/access-tokens/' + token, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    // Try alternate endpoint for private app tokens
+    if (!response.ok) {
+      const altResponse = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=1', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (altResponse.ok) {
+        return { valid: true };
+      } else if (altResponse.status === 401) {
+        return { valid: false, error: 'Invalid token. Check your HubSpot Private App Access Token.' };
+      } else {
+        return { valid: false, error: `HubSpot API error: ${altResponse.status}` };
+      }
+    }
+
+    const data = await response.json();
+    return { valid: true, username: data.user || data.hub_domain };
+  } catch {
+    return { valid: false, error: 'Failed to connect to HubSpot. Check your network.' };
+  }
+}
+
+// Test Pipedrive connection
+async function testPipedrive(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch(`https://api.pipedrive.com/v1/users/me?api_token=${token}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.data?.name || data.data?.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API token. Check your Pipedrive API token.' };
+    } else {
+      return { valid: false, error: `Pipedrive API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Pipedrive. Check your network.' };
+  }
+}
+
+// Test Close CRM connection
+async function testCloseCRM(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const auth = Buffer.from(`${token}:`).toString('base64');
+    const response = await fetch('https://api.close.com/api/v1/me/', {
+      headers: {
+        Authorization: `Basic ${auth}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.first_name || data.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Close CRM API key.' };
+    } else {
+      return { valid: false, error: `Close CRM API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Close CRM. Check your network.' };
+  }
+}
+
+// Test Copper CRM connection
+// Token format: API_KEY|EMAIL
+async function testCopper(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter API Key and User Email.' };
+    }
+
+    const [apiKey, email] = parts.map(p => p.trim());
+
+    const response = await fetch('https://api.copper.com/developer_api/v1/account', {
+      headers: {
+        'X-PW-AccessToken': apiKey,
+        'X-PW-Application': 'developer_api',
+        'X-PW-UserEmail': email,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.name };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Copper API key and email.' };
+    } else {
+      return { valid: false, error: `Copper CRM API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Copper CRM. Check your network.' };
+  }
+}
+
+// Test Route4Me connection
+async function testRoute4Me(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch(`https://api.route4me.com/api.v4/user.php?api_key=${token}`);
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Route4Me API key.' };
+    } else {
+      return { valid: false, error: `Route4Me API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Route4Me. Check your network.' };
+  }
+}
+
+// Test Onfleet connection
+async function testOnfleet(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const auth = Buffer.from(`${token}:`).toString('base64');
+    const response = await fetch('https://onfleet.com/api/v2/organization', {
+      headers: {
+        Authorization: `Basic ${auth}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.name };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Onfleet API key.' };
+    } else {
+      return { valid: false, error: `Onfleet API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Onfleet. Check your network.' };
+  }
+}
+
+// Test Acuity Scheduling connection
+// Token format: USER_ID|API_KEY
+async function testAcuity(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter User ID and API Key.' };
+    }
+
+    const [userId, apiKey] = parts.map(p => p.trim());
+    const auth = Buffer.from(`${userId}:${apiKey}`).toString('base64');
+
+    const response = await fetch('https://acuityscheduling.com/api/v1/me', {
+      headers: {
+        Authorization: `Basic ${auth}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.firstName || data.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Acuity User ID and API Key.' };
+    } else {
+      return { valid: false, error: `Acuity API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Acuity Scheduling. Check your network.' };
+  }
+}
+
+// Test Typeform connection
+async function testTypeform(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.typeform.com/me', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.alias || data.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your Typeform Personal Access Token.' };
+    } else {
+      return { valid: false, error: `Typeform API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Typeform. Check your network.' };
+  }
+}
+
+// Test Jotform connection
+async function testJotform(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch(`https://api.jotform.com/user?apiKey=${token}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.content?.username || data.content?.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Jotform API key.' };
+    } else {
+      return { valid: false, error: `Jotform API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Jotform. Check your network.' };
+  }
+}
+
+// Test Crisp.chat connection
+// Token format: IDENTIFIER|KEY|WEBSITE_ID
+async function testCrisp(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 3) {
+      return { valid: false, error: 'Invalid format. Enter Token Identifier, Token Key, and Website ID.' };
+    }
+
+    const [identifier, key, websiteId] = parts.map(p => p.trim());
+    const auth = Buffer.from(`${identifier}:${key}`).toString('base64');
+
+    const response = await fetch(`https://api.crisp.chat/v1/website/${websiteId}`, {
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'X-Crisp-Tier': 'plugin',
+      },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Crisp API credentials.' };
+    } else {
+      return { valid: false, error: `Crisp API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Crisp.chat. Check your network.' };
+  }
+}
+
+// Test Tidio connection
+async function testTidio(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // Tidio has limited public API - validate token format
+    if (!token || token.length < 20) {
+      return { valid: false, error: 'Invalid API key format.' };
+    }
+    // Accept the token for now - will fail on first use if invalid
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Failed to validate Tidio credentials.' };
+  }
+}
+
+// Test Todoist connection
+async function testTodoist(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.todoist.com/rest/v2/projects', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your Todoist API token.' };
+    } else {
+      return { valid: false, error: `Todoist API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Todoist. Check your network.' };
+  }
+}
+
+// Test Clockify connection
+async function testClockify(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.clockify.me/api/v1/user', {
+      headers: {
+        'X-Api-Key': token,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.name || data.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Clockify API key.' };
+    } else {
+      return { valid: false, error: `Clockify API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Clockify. Check your network.' };
+  }
+}
+
+// Test Harvest connection
+// Token format: ACCOUNT_ID|ACCESS_TOKEN
+async function testHarvest(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter Account ID and Access Token.' };
+    }
+
+    const [accountId, accessToken] = parts.map(p => p.trim());
+
+    const response = await fetch('https://api.harvestapp.com/v2/users/me', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Harvest-Account-Id': accountId,
+        'User-Agent': 'JCIL AI App',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.first_name || data.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Harvest Account ID and Access Token.' };
+    } else {
+      return { valid: false, error: `Harvest API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Harvest. Check your network.' };
+  }
+}
+
+// Test Teachable connection
+async function testTeachable(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // Teachable API requires school subdomain + API key
+    // For now, validate token format
+    if (!token || token.length < 20) {
+      return { valid: false, error: 'Invalid API key format.' };
+    }
+    // Accept the token for now - will fail on first use if invalid
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Failed to validate Teachable credentials.' };
+  }
+}
+
 // POST - Test a connection
 export async function POST(request: NextRequest) {
   try {
@@ -1907,6 +2260,51 @@ export async function POST(request: NextRequest) {
         break;
       case 'wave':
         result = await testWave(token);
+        break;
+      case 'hubspot':
+        result = await testHubSpot(token);
+        break;
+      case 'pipedrive':
+        result = await testPipedrive(token);
+        break;
+      case 'closecrm':
+        result = await testCloseCRM(token);
+        break;
+      case 'copper':
+        result = await testCopper(token);
+        break;
+      case 'route4me':
+        result = await testRoute4Me(token);
+        break;
+      case 'onfleet':
+        result = await testOnfleet(token);
+        break;
+      case 'acuity':
+        result = await testAcuity(token);
+        break;
+      case 'typeform':
+        result = await testTypeform(token);
+        break;
+      case 'jotform':
+        result = await testJotform(token);
+        break;
+      case 'crisp':
+        result = await testCrisp(token);
+        break;
+      case 'tidio':
+        result = await testTidio(token);
+        break;
+      case 'todoist':
+        result = await testTodoist(token);
+        break;
+      case 'clockify':
+        result = await testClockify(token);
+        break;
+      case 'harvest':
+        result = await testHarvest(token);
+        break;
+      case 'teachable':
+        result = await testTeachable(token);
         break;
       default:
         // For services we haven't implemented testing for yet, assume valid
