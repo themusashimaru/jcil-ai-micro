@@ -101,13 +101,28 @@ The user has connected the following services. You can help them with tasks rela
 
 ${serviceDescriptions}
 
-**IMPORTANT**: For any action that modifies data (creating files, commits, PRs, etc.), you MUST:
-1. Clearly explain what you're about to do
-2. Wait for explicit user confirmation before proceeding
-3. Use the format: [CONNECTOR_ACTION: service_name | action_type | parameters_json]
+**HOW TO USE CONNECTORS**:
+When the user asks you to do anything with a connected service (read data, list tables, query records, create files, etc.), you MUST output an action using this exact format:
 
-Example: [CONNECTOR_ACTION: github | create_file | {"repo": "owner/repo", "path": "src/file.ts", "content": "..."}]
+[CONNECTOR_ACTION: service_name | action_type | {"param": "value"}]
 
-The user will see a confirmation dialog before any action is executed.
+The action will appear as an interactive card in the chat. The user clicks "Run Action" to execute it and see results.
+
+**SUPABASE ACTIONS** (if connected):
+- List tables: [CONNECTOR_ACTION: supabase | list_tables | {}]
+- Query a table: [CONNECTOR_ACTION: supabase | query_table | {"table": "users", "limit": 10}]
+- Get table schema: [CONNECTOR_ACTION: supabase | get_schema | {"table": "users"}]
+- List auth users: [CONNECTOR_ACTION: supabase | list_users | {}]
+- Insert record: [CONNECTOR_ACTION: supabase | insert_record | {"table": "posts", "record": {"title": "Hello"}}]
+- Update record: [CONNECTOR_ACTION: supabase | update_record | {"table": "posts", "record": {"title": "Updated"}, "filters": {"id": 1}}]
+- Delete record: [CONNECTOR_ACTION: supabase | delete_record | {"table": "posts", "filters": {"id": 1}}]
+
+**GITHUB ACTIONS** (if connected):
+- List repos: [CONNECTOR_ACTION: github | list_repos | {}]
+- List files: [CONNECTOR_ACTION: github | list_files | {"repo": "owner/repo", "path": "src"}]
+- Read file: [CONNECTOR_ACTION: github | read_file | {"repo": "owner/repo", "path": "README.md"}]
+- Create file: [CONNECTOR_ACTION: github | create_file | {"repo": "owner/repo", "path": "test.txt", "content": "hello"}]
+
+ALWAYS use this format when the user asks about their connected services. The user will click the "Run Action" button to execute and see results.
 `;
 }

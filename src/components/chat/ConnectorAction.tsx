@@ -139,7 +139,8 @@ export function parseConnectorActions(content: string): {
     description: string;
   }>;
 } {
-  const actionRegex = /\[CONNECTOR_ACTION:\s*(\w+)\s*\|\s*(\w+)\s*\|\s*(\{[^}]*\})\]/g;
+  // Match the pattern more flexibly - capture everything after the third pipe until closing bracket
+  const actionRegex = /\[CONNECTOR_ACTION:\s*(\w+)\s*\|\s*(\w+)\s*\|\s*(\{[\s\S]*?\})\s*\]/g;
   const actions: Array<{
     service: string;
     action: string;
@@ -147,11 +148,13 @@ export function parseConnectorActions(content: string): {
     description: string;
   }> = [];
 
+  let cleanContent = content;
+
   // Find all actions
   let match;
   while ((match = actionRegex.exec(content)) !== null) {
     try {
-      const [, service, action, paramsJson] = match;
+      const [fullMatch, service, action, paramsJson] = match;
       const params = JSON.parse(paramsJson);
       actions.push({
         service,
@@ -159,13 +162,12 @@ export function parseConnectorActions(content: string): {
         params,
         description: `Execute ${action.replace(/_/g, ' ')} on ${service}`,
       });
+      // Remove this action from the content
+      cleanContent = cleanContent.replace(fullMatch, '');
     } catch {
       // Invalid JSON, skip this action
     }
   }
 
-  // Remove action markers from content
-  const cleanContent = content.replace(actionRegex, '').trim();
-
-  return { cleanContent, actions };
+  return { cleanContent: cleanContent.trim(), actions };
 }

@@ -73,7 +73,7 @@ async function testSupabase(token: string): Promise<{ valid: boolean; projectNam
     if (parts.length !== 2) {
       return {
         valid: false,
-        error: 'Invalid format. Paste your Project URL, then a pipe |, then your Service Role Key. Example: https://abc123.supabase.co|eyJhbG...'
+        error: 'Invalid format. Make sure you entered both the Project URL and Service Role Key.'
       };
     }
 
@@ -88,19 +88,19 @@ async function testSupabase(token: string): Promise<{ valid: boolean; projectNam
       projectUrl = projectUrl.slice(0, -1);
     }
 
-    // Basic validation - just check it looks like a URL with supabase in it
-    if (!projectUrl.startsWith('https://') || !projectUrl.toLowerCase().includes('supabase')) {
+    // Basic URL validation
+    if (!projectUrl.startsWith('https://')) {
       return {
         valid: false,
-        error: 'URL should start with https:// and contain supabase. Check your Project URL in Supabase dashboard.'
+        error: 'Project URL should start with https://. Check your URL in Supabase dashboard.'
       };
     }
 
-    // Validate the service key looks like a JWT
-    if (!serviceKey.startsWith('eyJ')) {
+    // Make sure the key isn't empty
+    if (serviceKey.length < 20) {
       return {
         valid: false,
-        error: 'Service Role Key should start with "eyJ". Make sure you copied the full key from Supabase Settings > API.'
+        error: 'Service Role Key seems too short. Make sure you copied the full key.'
       };
     }
 
@@ -120,7 +120,7 @@ async function testSupabase(token: string): Promise<{ valid: boolean; projectNam
       const projectName = urlMatch ? urlMatch[1] : 'Supabase Project';
       return { valid: true, projectName };
     } else if (response.status === 401 || response.status === 403) {
-      return { valid: false, error: 'Invalid Service Role Key. Go to Supabase Dashboard > Settings > API and copy the service_role key.' };
+      return { valid: false, error: 'Invalid credentials. Make sure you copied the Service Role Key (not the anon key).' };
     } else {
       return { valid: false, error: `Connection failed (${response.status}). Check your Project URL.` };
     }
