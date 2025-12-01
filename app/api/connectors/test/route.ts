@@ -514,6 +514,83 @@ async function testTwilio(token: string): Promise<{ valid: boolean; error?: stri
   }
 }
 
+// Test Black Forest Labs connection
+async function testBFL(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // BFL doesn't have a simple validation endpoint, so we check if the key format looks valid
+    // A real validation would require making a generation request
+    if (!token || token.length < 20) {
+      return { valid: false, error: 'Invalid API key format. Check your Black Forest Labs API key.' };
+    }
+    // For now, accept the key - it will fail on first use if invalid
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Failed to validate. Check your network.' };
+  }
+}
+
+// Test Runway connection
+async function testRunway(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.runwayml.com/v1/tasks', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Runway-Version': '2024-11-06',
+      },
+    });
+
+    if (response.ok || response.status === 404) {
+      // 404 is ok - means auth worked but no tasks
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Runway API key.' };
+    } else {
+      return { valid: false, error: `Runway API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Runway. Check your network.' };
+  }
+}
+
+// Test Luma AI connection
+async function testLuma(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.lumalabs.ai/dream-machine/v1/generations?limit=1', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Luma AI API key.' };
+    } else {
+      return { valid: false, error: `Luma API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Luma AI. Check your network.' };
+  }
+}
+
+// Test Suno connection
+async function testSuno(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://studio-api.suno.ai/api/billing/info/', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Suno API key.' };
+    } else {
+      return { valid: false, error: `Suno API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Suno. Check your network.' };
+  }
+}
+
 // Test Vercel connection
 async function testVercel(token: string): Promise<{ valid: boolean; username?: string; teams?: Array<{id: string; name: string}>; error?: string }> {
   try {
@@ -719,6 +796,18 @@ export async function POST(request: NextRequest) {
         break;
       case 'twilio':
         result = await testTwilio(token);
+        break;
+      case 'bfl':
+        result = await testBFL(token);
+        break;
+      case 'runway':
+        result = await testRunway(token);
+        break;
+      case 'luma':
+        result = await testLuma(token);
+        break;
+      case 'suno':
+        result = await testSuno(token);
         break;
       default:
         // For services we haven't implemented testing for yet, assume valid
