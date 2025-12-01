@@ -34,6 +34,31 @@ import type { Chat, Message, Attachment } from './types';
 // Re-export types for convenience
 export type { Chat, Message, ToolCall, Attachment } from './types';
 
+/**
+ * Check if a chat title is generic/low-quality and should be regenerated
+ * Returns true if the title is generic like "Initial Greeting", "Hello", "New Chat", etc.
+ */
+function isGenericTitle(title: string | undefined): boolean {
+  if (!title) return true;
+
+  const genericPatterns = [
+    /^new chat$/i,
+    /^hello$/i,
+    /^hi$/i,
+    /^hey$/i,
+    /^greeting/i,
+    /^initial/i,
+    /^test/i,
+    /^quick question$/i,
+    /^general chat$/i,
+    /^untitled/i,
+    /^chat$/i,
+    /^conversation$/i,
+  ];
+
+  return genericPatterns.some(pattern => pattern.test(title.trim()));
+}
+
 export function ChatClient() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
@@ -1055,17 +1080,26 @@ export function ChatClient() {
       // Save assistant message to database
       await saveMessageToDatabase(newChatId, 'assistant', finalContent, 'text');
 
-      // Generate chat title for new conversations
+      // Generate chat title for new conversations OR regenerate if current title is generic
       const isNewConversation = messages.length === 0;
+
+      // Check if current chat has a generic title that should be regenerated
+      const currentChat = chats.find(c => c.id === newChatId);
+      const hasGenericTitle = currentChat && isGenericTitle(currentChat.title);
+      const isMeaningfulMessage = content.length > 20; // Skip short greetings
+      const shouldRegenerateTitle = hasGenericTitle && isMeaningfulMessage && messages.length > 0;
 
       console.log('[ChatClient] Title generation check:', {
         isNewConversation,
         messageCount: messages.length,
-        newChatId
+        newChatId,
+        currentTitle: currentChat?.title,
+        hasGenericTitle,
+        shouldRegenerateTitle
       });
 
-      if (isNewConversation && newChatId) {
-        console.log('[ChatClient] STARTING title generation for new conversation:', newChatId);
+      if ((isNewConversation || shouldRegenerateTitle) && newChatId) {
+        console.log('[ChatClient] STARTING title generation:', { isNewConversation, shouldRegenerateTitle });
         try {
           const titleResponse = await fetch('/api/chat/generate-title', {
             method: 'POST',
@@ -1081,20 +1115,23 @@ export function ChatClient() {
             const generatedTitle = titleData.title || 'New Chat';
             console.log('[ChatClient] Generated title:', generatedTitle);
 
-            setChats((prevChats) =>
-              prevChats.map((chat) =>
-                chat.id === newChatId ? { ...chat, title: generatedTitle } : chat
-              )
-            );
+            // Only update if the new title is better (not generic)
+            if (!isGenericTitle(generatedTitle) || isNewConversation) {
+              setChats((prevChats) =>
+                prevChats.map((chat) =>
+                  chat.id === newChatId ? { ...chat, title: generatedTitle } : chat
+                )
+              );
 
-            await fetch('/api/conversations', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: newChatId,
-                title: generatedTitle,
-              }),
-            });
+              await fetch('/api/conversations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: newChatId,
+                  title: generatedTitle,
+                }),
+              });
+            }
           }
         } catch (titleError) {
           console.error('[ChatClient] Title generation error:', titleError);
