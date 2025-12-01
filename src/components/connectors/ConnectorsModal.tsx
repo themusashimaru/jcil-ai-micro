@@ -11,6 +11,12 @@ interface UserConnection {
   created_at: string;
 }
 
+interface GitHubRepo {
+  name: string;
+  full_name: string;
+  private: boolean;
+}
+
 interface ConnectorsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -24,8 +30,12 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; username?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // GitHub-specific state
+  const [githubRepos, setGithubRepos] = useState<GitHubRepo[]>([]);
+  const [selectedRepos, setSelectedRepos] = useState<Set<string>>(new Set());
+  const [githubUsername, setGithubUsername] = useState<string | null>(null);
 
   // Check if connector uses multi-field inputs
   const hasMultipleFields = selectedConnector?.fields && selectedConnector.fields.length > 0;
@@ -79,6 +89,9 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
     setTesting(true);
     setTestResult(null);
     setError(null);
+    setGithubRepos([]);
+    setSelectedRepos(new Set());
+    setGithubUsername(null);
 
     const tokenToTest = getCombinedToken();
 
@@ -95,7 +108,17 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
         setTestResult({
           success: true,
           message: data.username ? `Connected as ${data.username}` : 'Connection successful!',
+          username: data.username,
         });
+
+        // For GitHub, store repos and username for selection
+        if (selectedConnector.id === 'github' && data.repos) {
+          setGithubRepos(data.repos);
+          setGithubUsername(data.username);
+          // Auto-select first 5 repos by default
+          const defaultSelected = new Set<string>(data.repos.slice(0, 5).map((r: GitHubRepo) => r.full_name));
+          setSelectedRepos(defaultSelected);
+        }
       } else {
         setTestResult({ success: false, message: data.error || 'Connection failed' });
       }
@@ -114,11 +137,24 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
 
     const tokenToSave = getCombinedToken();
 
+    // Build metadata based on connector type
+    let metadata: Record<string, unknown> = {};
+    if (selectedConnector.id === 'github' && githubUsername) {
+      metadata = {
+        owner: githubUsername,
+        selectedRepos: Array.from(selectedRepos),
+      };
+    }
+
     try {
       const response = await fetch('/api/connectors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ service: selectedConnector.id, token: tokenToSave }),
+        body: JSON.stringify({
+          service: selectedConnector.id,
+          token: tokenToSave,
+          metadata,
+        }),
       });
 
       const data = await response.json();
@@ -132,6 +168,9 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
         setToken('');
         setFieldValues({});
         setTestResult(null);
+        setGithubRepos([]);
+        setSelectedRepos(new Set());
+        setGithubUsername(null);
       } else {
         setError(data.error || 'Failed to save connection');
       }
@@ -208,6 +247,9 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
                   setFieldValues({});
                   setTestResult(null);
                   setError(null);
+                  setGithubRepos([]);
+                  setSelectedRepos(new Set());
+                  setGithubUsername(null);
                 }}
                 className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
               >
@@ -293,6 +335,57 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
                 {testResult && (
                   <div className={`mt-4 p-3 rounded-lg ${testResult.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                     {testResult.message}
+                  </div>
+                )}
+
+                {/* GitHub Repo Selection */}
+                {testResult?.success && selectedConnector?.id === 'github' && githubRepos.length > 0 && (
+                  <div className="mt-4 p-4 rounded-lg bg-zinc-800/50 border border-white/5">
+                    <h4 className="text-sm font-medium text-gray-300 mb-2">
+                      Select repositories to work with:
+                    </h4>
+                    <p className="text-xs text-gray-500 mb-3">
+                      The AI will be able to read and write to these repos. You can use just the repo name (e.g., &quot;my-project&quot;) instead of the full path.
+                    </p>
+                    <div className="max-h-48 overflow-y-auto space-y-2">
+                      {githubRepos.map((repo) => (
+                        <label
+                          key={repo.full_name}
+                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedRepos.has(repo.full_name)}
+                            onChange={(e) => {
+                              const newSelected = new Set(selectedRepos);
+                              if (e.target.checked) {
+                                newSelected.add(repo.full_name);
+                              } else {
+                                newSelected.delete(repo.full_name);
+                              }
+                              setSelectedRepos(newSelected);
+                            }}
+                            className="w-4 h-4 rounded border-gray-600 bg-zinc-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-white truncate">{repo.name}</span>
+                              {repo.private && (
+                                <span className="px-1.5 py-0.5 text-[10px] bg-yellow-500/20 text-yellow-400 rounded">
+                                  Private
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-500">{repo.full_name}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    {selectedRepos.size > 0 && (
+                      <p className="mt-2 text-xs text-gray-400">
+                        {selectedRepos.size} repo{selectedRepos.size !== 1 ? 's' : ''} selected
+                      </p>
+                    )}
                   </div>
                 )}
 
