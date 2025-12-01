@@ -305,7 +305,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
           onDrop={handleDrop}
         >
           {/* Voice Chat Button - Top Right */}
-          <div className="absolute -top-1 right-0.5 md:top-2 md:right-2 z-10">
+          <div className="absolute top-0.5 right-0.5 md:top-2 md:right-2 z-10">
             <VoiceChatButton
               onTranscriptionComplete={handleVoiceTranscription}
               isStreaming={isStreaming}
