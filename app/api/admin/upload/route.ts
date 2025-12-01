@@ -1,6 +1,7 @@
 /**
  * ADMIN UPLOAD API
- * Handles file uploads for logos and favicons using base64 encoding
+ * Handles file uploads for logos, favicons, and animated logos using base64 encoding
+ * Supports images (PNG, JPEG, ICO, GIF) and videos (MP4, WebM) for animated logos
  * (Vercel-compatible - no filesystem writes)
  */
 
@@ -9,6 +10,10 @@ import { requireAdmin } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+// Valid file types for upload
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/gif'];
+const VIDEO_TYPES = ['video/mp4', 'video/webm'];
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,19 +31,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file type first
+    const isVideo = VIDEO_TYPES.includes(file.type);
+    const isImage = IMAGE_TYPES.includes(file.type);
+
+    if (!isVideo && !isImage) {
       return NextResponse.json(
-        { error: 'File size must be less than 5MB' },
+        { error: 'Invalid file type. Please upload PNG, JPEG, GIF, ICO, MP4, or WebM files.' },
         { status: 400 }
       );
     }
 
-    // Validate file type
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/x-icon', 'image/vnd.microsoft.icon'];
-    if (!validTypes.includes(file.type)) {
+    // Validate file size - 5MB for images, 15MB for videos
+    const maxSize = isVideo ? 15 * 1024 * 1024 : 5 * 1024 * 1024;
+    const maxSizeLabel = isVideo ? '15MB' : '5MB';
+
+    if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'Invalid file type. Please upload PNG, JPEG, or ICO files.' },
+        { error: `File size must be less than ${maxSizeLabel}` },
         { status: 400 }
       );
     }
@@ -54,6 +64,7 @@ export async function POST(request: NextRequest) {
       url: dataUrl,
       type: file.type,
       size: file.size,
+      isVideo,
     });
   } catch (error) {
     console.error('Upload error:', error);

@@ -107,16 +107,28 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
         <div className="text-center">
           {/* JCIL.ai Logo */}
           <div className="mb-1">
-            {/* Logo Image - Dynamically loaded from database */}
+            {/* Logo - Dynamically loaded from database (supports images and videos) */}
             {isLogoLoading ? (
               // Show placeholder while loading to prevent flash
               <div className="h-36 md:h-72 w-auto mx-auto mb-2" />
             ) : mainLogo ? (
-              <img
-                src={mainLogo}
-                alt="JCIL.ai"
-                className="h-36 md:h-72 w-auto mx-auto mb-2"
-              />
+              // Check if logo is a video (MP4 or WebM)
+              mainLogo.startsWith('data:video/') ? (
+                <video
+                  src={mainLogo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="h-36 md:h-72 w-auto mx-auto mb-2"
+                />
+              ) : (
+                <img
+                  src={mainLogo}
+                  alt="JCIL.ai"
+                  className="h-36 md:h-72 w-auto mx-auto mb-2"
+                />
+              )
             ) : (
               <h1 className="text-6xl md:text-8xl font-bold mb-2">
                 <span className="text-white">JCIL</span>

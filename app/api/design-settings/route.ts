@@ -1,7 +1,7 @@
 /**
  * DESIGN SETTINGS API
  * Get and save site-wide branding settings
- * GET: Public (anyone can read branding)
+ * GET: Public (anyone can read branding) - Cached for 5 minutes
  * POST: Admin only (requires admin authentication)
  */
 
@@ -12,7 +12,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// GET - Public endpoint to fetch current design settings
+// GET - Public endpoint to fetch current design settings (cached for 5 minutes)
 export async function GET() {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -43,9 +43,14 @@ export async function GET() {
         site_name: 'JCIL.ai',
         subtitle: 'Your AI Assistant',
         model_name: '',
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
       });
     }
 
+    // Return with cache headers - 5 min cache, 10 min stale-while-revalidate
     return NextResponse.json(data || {
       main_logo: '/images/logo.png',
       header_logo: '',
@@ -54,6 +59,10 @@ export async function GET() {
       site_name: 'JCIL.ai',
       subtitle: 'Your AI Assistant',
       model_name: '',
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
     });
   } catch (error) {
     console.error('[Design Settings API] Error:', error);
@@ -66,6 +75,10 @@ export async function GET() {
       site_name: 'JCIL.ai',
       subtitle: 'Your AI Assistant',
       model_name: '',
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+      },
     });
   }
 }
