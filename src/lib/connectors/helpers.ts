@@ -685,6 +685,147 @@ Note: You can also use the full "owner/repo" format if needed (e.g., for repos o
 - List members: [CONNECTOR_ACTION: ghost | list_members | {"limit": 15}]
 - List users: [CONNECTOR_ACTION: ghost | list_users | {}]
 
+**DOCUSIGN E-SIGNATURE ACTIONS** (if connected):
+- List envelopes: [CONNECTOR_ACTION: docusign | list_envelopes | {"status": "completed"}]
+- Get envelope: [CONNECTOR_ACTION: docusign | get_envelope | {"envelopeId": "xxx"}]
+- Create envelope: [CONNECTOR_ACTION: docusign | create_envelope | {"templateId": "xxx", "recipients": [{"email": "signer@example.com", "name": "John Doe"}]}]
+- Send envelope: [CONNECTOR_ACTION: docusign | send_envelope | {"envelopeId": "xxx"}]
+- Get document: [CONNECTOR_ACTION: docusign | get_document | {"envelopeId": "xxx", "documentId": "1"}]
+- List recipients: [CONNECTOR_ACTION: docusign | list_recipients | {"envelopeId": "xxx"}]
+- Void envelope: [CONNECTOR_ACTION: docusign | void_envelope | {"envelopeId": "xxx", "voidReason": "Cancelled"}]
+- List templates: [CONNECTOR_ACTION: docusign | list_templates | {}]
+
+**DROPBOX SIGN (HELLOSIGN) E-SIGNATURE ACTIONS** (if connected):
+- Get account: [CONNECTOR_ACTION: hellosign | get_account | {}]
+- List signature requests: [CONNECTOR_ACTION: hellosign | list_signature_requests | {"pageSize": 20}]
+- Get signature request: [CONNECTOR_ACTION: hellosign | get_signature_request | {"signatureRequestId": "xxx"}]
+- Send signature request: [CONNECTOR_ACTION: hellosign | send_signature_request | {"title": "Contract", "signers": [{"email": "signer@example.com", "name": "John"}], "fileUrl": "https://..."}]
+- Cancel signature request: [CONNECTOR_ACTION: hellosign | cancel_signature_request | {"signatureRequestId": "xxx"}]
+- Download files: [CONNECTOR_ACTION: hellosign | download_files | {"signatureRequestId": "xxx"}]
+- List templates: [CONNECTOR_ACTION: hellosign | list_templates | {}]
+- Get template: [CONNECTOR_ACTION: hellosign | get_template | {"templateId": "xxx"}]
+
+**JOBBER FIELD SERVICE ACTIONS** (if connected):
+- Get account: [CONNECTOR_ACTION: jobber | get_account | {}]
+- List clients: [CONNECTOR_ACTION: jobber | list_clients | {"first": 20}]
+- Get client: [CONNECTOR_ACTION: jobber | get_client | {"clientId": "xxx"}]
+- Create client: [CONNECTOR_ACTION: jobber | create_client | {"firstName": "John", "lastName": "Doe", "email": "john@example.com"}]
+- List jobs: [CONNECTOR_ACTION: jobber | list_jobs | {"first": 20}]
+- Get job: [CONNECTOR_ACTION: jobber | get_job | {"jobId": "xxx"}]
+- Create job: [CONNECTOR_ACTION: jobber | create_job | {"clientId": "xxx", "title": "Service Call"}]
+- List quotes: [CONNECTOR_ACTION: jobber | list_quotes | {"first": 20}]
+- List invoices: [CONNECTOR_ACTION: jobber | list_invoices | {"first": 20}]
+- List visits: [CONNECTOR_ACTION: jobber | list_visits | {"first": 20}]
+
+**HOUSECALL PRO FIELD SERVICE ACTIONS** (if connected):
+- Get me: [CONNECTOR_ACTION: housecallpro | get_me | {}]
+- List customers: [CONNECTOR_ACTION: housecallpro | list_customers | {"limit": 20}]
+- Get customer: [CONNECTOR_ACTION: housecallpro | get_customer | {"customerId": "xxx"}]
+- Create customer: [CONNECTOR_ACTION: housecallpro | create_customer | {"first_name": "John", "last_name": "Doe", "email": "john@example.com"}]
+- List jobs: [CONNECTOR_ACTION: housecallpro | list_jobs | {"limit": 20}]
+- Get job: [CONNECTOR_ACTION: housecallpro | get_job | {"jobId": "xxx"}]
+- Create job: [CONNECTOR_ACTION: housecallpro | create_job | {"customer_id": "xxx", "description": "Service call"}]
+- List estimates: [CONNECTOR_ACTION: housecallpro | list_estimates | {"limit": 20}]
+- List invoices: [CONNECTOR_ACTION: housecallpro | list_invoices | {"limit": 20}]
+- List employees: [CONNECTOR_ACTION: housecallpro | list_employees | {}]
+
+**TOGGL TRACK TIME TRACKING ACTIONS** (if connected):
+- Get me: [CONNECTOR_ACTION: toggl | get_me | {}]
+- List workspaces: [CONNECTOR_ACTION: toggl | list_workspaces | {}]
+- Start time entry: [CONNECTOR_ACTION: toggl | start_time_entry | {"workspaceId": "xxx", "description": "Working on project"}]
+- Stop time entry: [CONNECTOR_ACTION: toggl | stop_time_entry | {"workspaceId": "xxx", "timeEntryId": "yyy"}]
+- Get current entry: [CONNECTOR_ACTION: toggl | get_current_entry | {}]
+- List time entries: [CONNECTOR_ACTION: toggl | list_time_entries | {"startDate": "2024-01-01", "endDate": "2024-01-31"}]
+- Create time entry: [CONNECTOR_ACTION: toggl | create_time_entry | {"workspaceId": "xxx", "description": "Task", "start": "2024-01-01T09:00:00Z", "duration": 3600}]
+- Update time entry: [CONNECTOR_ACTION: toggl | update_time_entry | {"workspaceId": "xxx", "timeEntryId": "yyy", "description": "Updated"}]
+- Delete time entry: [CONNECTOR_ACTION: toggl | delete_time_entry | {"workspaceId": "xxx", "timeEntryId": "yyy"}]
+- List projects: [CONNECTOR_ACTION: toggl | list_projects | {"workspaceId": "xxx"}]
+- List clients: [CONNECTOR_ACTION: toggl | list_clients | {"workspaceId": "xxx"}]
+- Get reports: [CONNECTOR_ACTION: toggl | get_summary_report | {"workspaceId": "xxx", "startDate": "2024-01-01", "endDate": "2024-01-31"}]
+
+**WORKYARD WORKFORCE MANAGEMENT ACTIONS** (if connected):
+- List employees: [CONNECTOR_ACTION: workyard | list_employees | {}]
+- Get employee: [CONNECTOR_ACTION: workyard | get_employee | {"employeeId": "xxx"}]
+- List projects: [CONNECTOR_ACTION: workyard | list_projects | {}]
+- Get project: [CONNECTOR_ACTION: workyard | get_project | {"projectId": "xxx"}]
+- List time entries: [CONNECTOR_ACTION: workyard | list_time_entries | {"startDate": "2024-01-01", "endDate": "2024-01-31"}]
+- Export timesheets: [CONNECTOR_ACTION: workyard | export_timesheets | {"startDate": "2024-01-01", "endDate": "2024-01-31"}]
+- Get labor costs: [CONNECTOR_ACTION: workyard | get_labor_costs | {"projectId": "xxx"}]
+
+**CANVA DESIGN ACTIONS** (if connected):
+- Get user: [CONNECTOR_ACTION: canva | get_user | {}]
+- List designs: [CONNECTOR_ACTION: canva | list_designs | {"limit": 20}]
+- Get design: [CONNECTOR_ACTION: canva | get_design | {"designId": "xxx"}]
+- Create design: [CONNECTOR_ACTION: canva | create_design | {"title": "My Design", "designType": "doc"}]
+- Export design: [CONNECTOR_ACTION: canva | export_design | {"designId": "xxx", "format": "png"}]
+- List folders: [CONNECTOR_ACTION: canva | list_folders | {}]
+- Upload asset: [CONNECTOR_ACTION: canva | upload_asset | {"name": "image.png", "url": "https://..."}]
+- List brand templates: [CONNECTOR_ACTION: canva | list_brand_templates | {}]
+
+**DESCRIPT AUDIO/VIDEO ACTIONS** (if connected):
+- List projects: [CONNECTOR_ACTION: descript | list_projects | {}]
+- Get project: [CONNECTOR_ACTION: descript | get_project | {"projectId": "xxx"}]
+- Create project: [CONNECTOR_ACTION: descript | create_project | {"name": "My Project"}]
+- Export project: [CONNECTOR_ACTION: descript | export_project | {"projectId": "xxx", "format": "mp4"}]
+- Get transcription: [CONNECTOR_ACTION: descript | get_transcription | {"projectId": "xxx"}]
+
+**TELEGRAM BOT ACTIONS** (if connected):
+- Get bot info: [CONNECTOR_ACTION: telegram | get_me | {}]
+- Send message: [CONNECTOR_ACTION: telegram | send_message | {"chatId": "123456789", "text": "Hello!"}]
+- Send photo: [CONNECTOR_ACTION: telegram | send_photo | {"chatId": "123456789", "photo": "https://...", "caption": "Check this out"}]
+- Send document: [CONNECTOR_ACTION: telegram | send_document | {"chatId": "123456789", "document": "https://...", "caption": "Here's the file"}]
+- Get updates: [CONNECTOR_ACTION: telegram | get_updates | {"limit": 10}]
+- Get chat: [CONNECTOR_ACTION: telegram | get_chat | {"chatId": "123456789"}]
+- Get chat members count: [CONNECTOR_ACTION: telegram | get_chat_members_count | {"chatId": "123456789"}]
+- Set webhook: [CONNECTOR_ACTION: telegram | set_webhook | {"url": "https://yourserver.com/webhook"}]
+- Delete webhook: [CONNECTOR_ACTION: telegram | delete_webhook | {}]
+- Send poll: [CONNECTOR_ACTION: telegram | send_poll | {"chatId": "123456789", "question": "What do you prefer?", "options": ["Option A", "Option B"]}]
+
+**EXPENSIFY EXPENSE ACTIONS** (if connected):
+- List policies: [CONNECTOR_ACTION: expensify | list_policies | {}]
+- Export reports: [CONNECTOR_ACTION: expensify | export_reports | {"policyId": "xxx", "startDate": "2024-01-01", "endDate": "2024-01-31"}]
+- Create expense: [CONNECTOR_ACTION: expensify | create_expense | {"policyId": "xxx", "merchant": "Coffee Shop", "amount": 500, "currency": "USD"}]
+- Get report: [CONNECTOR_ACTION: expensify | get_report | {"reportId": "xxx"}]
+- List employees: [CONNECTOR_ACTION: expensify | list_employees | {"policyId": "xxx"}]
+- Add employee: [CONNECTOR_ACTION: expensify | add_employee | {"policyId": "xxx", "email": "user@example.com"}]
+
+**YNAB BUDGETING ACTIONS** (if connected):
+- Get user: [CONNECTOR_ACTION: ynab | get_user | {}]
+- List budgets: [CONNECTOR_ACTION: ynab | list_budgets | {}]
+- Get budget: [CONNECTOR_ACTION: ynab | get_budget | {"budgetId": "xxx"}]
+- List accounts: [CONNECTOR_ACTION: ynab | list_accounts | {"budgetId": "xxx"}]
+- Get account: [CONNECTOR_ACTION: ynab | get_account | {"budgetId": "xxx", "accountId": "yyy"}]
+- List categories: [CONNECTOR_ACTION: ynab | list_categories | {"budgetId": "xxx"}]
+- Get category: [CONNECTOR_ACTION: ynab | get_category | {"budgetId": "xxx", "categoryId": "yyy"}]
+- List transactions: [CONNECTOR_ACTION: ynab | list_transactions | {"budgetId": "xxx", "sinceDate": "2024-01-01"}]
+- Create transaction: [CONNECTOR_ACTION: ynab | create_transaction | {"budgetId": "xxx", "accountId": "yyy", "amount": -5000, "payeeName": "Coffee Shop", "date": "2024-01-15"}]
+- Update transaction: [CONNECTOR_ACTION: ynab | update_transaction | {"budgetId": "xxx", "transactionId": "yyy", "memo": "Updated memo"}]
+- Get budget summary: [CONNECTOR_ACTION: ynab | get_budget_summary | {"budgetId": "xxx", "month": "2024-01-01"}]
+
+**PLAID FINANCIAL DATA ACTIONS** (if connected):
+- Create link token: [CONNECTOR_ACTION: plaid | create_link_token | {"userId": "user123"}]
+- Exchange public token: [CONNECTOR_ACTION: plaid | exchange_public_token | {"publicToken": "public-xxx"}]
+- Get accounts: [CONNECTOR_ACTION: plaid | get_accounts | {"accessToken": "access-xxx"}]
+- Get balance: [CONNECTOR_ACTION: plaid | get_balance | {"accessToken": "access-xxx"}]
+- Get transactions: [CONNECTOR_ACTION: plaid | get_transactions | {"accessToken": "access-xxx", "startDate": "2024-01-01", "endDate": "2024-01-31"}]
+- Get identity: [CONNECTOR_ACTION: plaid | get_identity | {"accessToken": "access-xxx"}]
+- Get institutions: [CONNECTOR_ACTION: plaid | get_institutions | {"count": 10}]
+- Search institutions: [CONNECTOR_ACTION: plaid | search_institutions | {"query": "Chase"}]
+
+**WAVE ACCOUNTING ACTIONS** (if connected):
+- Get user: [CONNECTOR_ACTION: wave | get_user | {}]
+- List businesses: [CONNECTOR_ACTION: wave | list_businesses | {}]
+- Get business: [CONNECTOR_ACTION: wave | get_business | {"businessId": "xxx"}]
+- List customers: [CONNECTOR_ACTION: wave | list_customers | {"businessId": "xxx"}]
+- Create customer: [CONNECTOR_ACTION: wave | create_customer | {"businessId": "xxx", "name": "John Doe", "email": "john@example.com"}]
+- List invoices: [CONNECTOR_ACTION: wave | list_invoices | {"businessId": "xxx"}]
+- Create invoice: [CONNECTOR_ACTION: wave | create_invoice | {"businessId": "xxx", "customerId": "yyy", "items": [{"description": "Service", "unitPrice": 100}]}]
+- Send invoice: [CONNECTOR_ACTION: wave | send_invoice | {"invoiceId": "xxx"}]
+- List products: [CONNECTOR_ACTION: wave | list_products | {"businessId": "xxx"}]
+- Create product: [CONNECTOR_ACTION: wave | create_product | {"businessId": "xxx", "name": "Service", "price": 100}]
+- Get profit and loss: [CONNECTOR_ACTION: wave | get_profit_and_loss | {"businessId": "xxx", "startDate": "2024-01-01", "endDate": "2024-12-31"}]
+- Get balance sheet: [CONNECTOR_ACTION: wave | get_balance_sheet | {"businessId": "xxx", "balanceDate": "2024-12-31"}]
+
 ALWAYS use this format when the user asks about their connected services. The user will click the "Run Action" button to execute and see results.
 `;
 }

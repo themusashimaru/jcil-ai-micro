@@ -1342,6 +1342,354 @@ async function testGhost(token: string): Promise<{ valid: boolean; siteName?: st
   }
 }
 
+// Test DocuSign connection
+// Token format: ACCOUNT_ID|INTEGRATION_KEY|ACCESS_TOKEN
+async function testDocuSign(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 3) {
+      return { valid: false, error: 'Invalid format. Enter Account ID, Integration Key, and Access Token.' };
+    }
+
+    const [accountId, , accessToken] = parts.map(p => p.trim());
+
+    const response = await fetch(`https://demo.docusign.net/restapi/v2.1/accounts/${accountId}/users`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Access Token.' };
+    } else {
+      return { valid: false, error: `DocuSign API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to DocuSign. Check your network.' };
+  }
+}
+
+// Test HelloSign (Dropbox Sign) connection
+async function testHelloSign(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.hellosign.com/v3/account', {
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${token}:`).toString('base64')}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.account?.email_address };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Dropbox Sign API key.' };
+    } else {
+      return { valid: false, error: `Dropbox Sign API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Dropbox Sign. Check your network.' };
+  }
+}
+
+// Test Jobber connection
+// Token format: CLIENT_ID|ACCESS_TOKEN
+async function testJobber(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter Client ID and Access Token.' };
+    }
+
+    const [, accessToken] = parts.map(p => p.trim());
+
+    const response = await fetch('https://api.getjobber.com/api/graphql', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: '{ account { name } }',
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.errors) {
+        return { valid: false, error: 'Invalid token. Check your Jobber access token.' };
+      }
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your Jobber OAuth access token.' };
+    } else {
+      return { valid: false, error: `Jobber API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Jobber. Check your network.' };
+  }
+}
+
+// Test Housecall Pro connection
+async function testHousecallPro(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.housecallpro.com/v1/me', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Housecall Pro API key.' };
+    } else {
+      return { valid: false, error: `Housecall Pro API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Housecall Pro. Check your network.' };
+  }
+}
+
+// Test Toggl Track connection
+async function testToggl(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const auth = Buffer.from(`${token}:api_token`).toString('base64');
+
+    const response = await fetch('https://api.track.toggl.com/api/v9/me', {
+      headers: {
+        Authorization: `Basic ${auth}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.fullname || data.email };
+    } else if (response.status === 401 || response.status === 403) {
+      return { valid: false, error: 'Invalid API token. Check your Toggl Track API token.' };
+    } else {
+      return { valid: false, error: `Toggl API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Toggl. Check your network.' };
+  }
+}
+
+// Test Workyard connection
+async function testWorkyard(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // Basic validation - Workyard API details may vary
+    if (!token || token.length < 10) {
+      return { valid: false, error: 'Invalid API key format.' };
+    }
+    // Accept the key for now - will fail on first use if invalid
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Failed to validate Workyard credentials.' };
+  }
+}
+
+// Test Canva connection
+// Token format: CLIENT_ID|CLIENT_SECRET|ACCESS_TOKEN
+async function testCanva(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 3) {
+      return { valid: false, error: 'Invalid format. Enter Client ID, Client Secret, and Access Token.' };
+    }
+
+    const [, , accessToken] = parts.map(p => p.trim());
+
+    const response = await fetch('https://api.canva.com/rest/v1/users/me', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Canva access token.' };
+    } else {
+      return { valid: false, error: `Canva API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Canva. Check your network.' };
+  }
+}
+
+// Test Descript connection
+async function testDescript(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // Basic validation - Descript API is partner-based
+    if (!token || token.length < 10) {
+      return { valid: false, error: 'Invalid API token format.' };
+    }
+    // Accept the token - will fail on first use if invalid
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Failed to validate Descript credentials.' };
+  }
+}
+
+// Test Telegram Bot connection
+async function testTelegram(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.ok) {
+        return { valid: true, username: data.result?.username || data.result?.first_name };
+      }
+      return { valid: false, error: 'Invalid bot token.' };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid bot token. Check your Telegram Bot Token from BotFather.' };
+    } else {
+      return { valid: false, error: `Telegram API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Telegram. Check your network.' };
+  }
+}
+
+// Test Expensify connection
+// Token format: PARTNER_USER_ID|PARTNER_USER_SECRET
+async function testExpensify(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter Partner User ID and Partner User Secret.' };
+    }
+
+    const [partnerUserID, partnerUserSecret] = parts.map(p => p.trim());
+
+    // Test with a simple API call
+    const formData = new URLSearchParams();
+    formData.append('requestJobDescription', JSON.stringify({
+      type: 'get',
+      credentials: { partnerUserID, partnerUserSecret },
+      inputSettings: { type: 'policyList' },
+    }));
+
+    const response = await fetch('https://integrations.expensify.com/Integration-Server/ExpensifyIntegrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData,
+    });
+
+    if (response.ok) {
+      const text = await response.text();
+      if (text.includes('error') && text.includes('401')) {
+        return { valid: false, error: 'Invalid credentials. Check your Expensify partner credentials.' };
+      }
+      return { valid: true };
+    } else {
+      return { valid: false, error: `Expensify API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Expensify. Check your network.' };
+  }
+}
+
+// Test YNAB connection
+async function testYNAB(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.ynab.com/v1/user', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.data?.user?.id };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your YNAB Personal Access Token.' };
+    } else {
+      return { valid: false, error: `YNAB API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to YNAB. Check your network.' };
+  }
+}
+
+// Test Plaid connection
+// Token format: CLIENT_ID|SECRET|ENV
+async function testPlaid(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length < 2) {
+      return { valid: false, error: 'Invalid format. Enter Client ID, Secret, and optionally Environment.' };
+    }
+
+    const [clientId, secret] = parts.map(p => p.trim());
+    const env = parts[2]?.trim() || 'sandbox';
+    const baseUrl = env === 'production' ? 'https://production.plaid.com' : 'https://sandbox.plaid.com';
+
+    const response = await fetch(`${baseUrl}/institutions/get`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        secret: secret,
+        count: 1,
+        offset: 0,
+        country_codes: ['US'],
+      }),
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 400) {
+      const data = await response.json();
+      if (data.error_code === 'INVALID_API_KEYS') {
+        return { valid: false, error: 'Invalid credentials. Check your Plaid Client ID and Secret.' };
+      }
+      return { valid: true }; // Other 400 errors might be valid auth
+    } else {
+      return { valid: false, error: `Plaid API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Plaid. Check your network.' };
+  }
+}
+
+// Test Wave Accounting connection
+async function testWave(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://gql.waveapps.com/graphql/public', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: '{ user { id firstName lastName } }',
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.errors) {
+        return { valid: false, error: 'Invalid token. Check your Wave OAuth token.' };
+      }
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your Wave Accounting OAuth token.' };
+    } else {
+      return { valid: false, error: `Wave API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Wave Accounting. Check your network.' };
+  }
+}
+
 // POST - Test a connection
 export async function POST(request: NextRequest) {
   try {
@@ -1520,6 +1868,45 @@ export async function POST(request: NextRequest) {
         break;
       case 'ghost':
         result = await testGhost(token);
+        break;
+      case 'docusign':
+        result = await testDocuSign(token);
+        break;
+      case 'hellosign':
+        result = await testHelloSign(token);
+        break;
+      case 'jobber':
+        result = await testJobber(token);
+        break;
+      case 'housecallpro':
+        result = await testHousecallPro(token);
+        break;
+      case 'toggl':
+        result = await testToggl(token);
+        break;
+      case 'workyard':
+        result = await testWorkyard(token);
+        break;
+      case 'canva':
+        result = await testCanva(token);
+        break;
+      case 'descript':
+        result = await testDescript(token);
+        break;
+      case 'telegram':
+        result = await testTelegram(token);
+        break;
+      case 'expensify':
+        result = await testExpensify(token);
+        break;
+      case 'ynab':
+        result = await testYNAB(token);
+        break;
+      case 'plaid':
+        result = await testPlaid(token);
+        break;
+      case 'wave':
+        result = await testWave(token);
         break;
       default:
         // For services we haven't implemented testing for yet, assume valid
