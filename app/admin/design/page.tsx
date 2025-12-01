@@ -230,7 +230,7 @@ export default function DesignSettings() {
             <span>🎨</span> Main Chat Logo
           </h3>
           <p className="text-sm text-gray-400 mb-4">
-            Upload your main logo for the chat page. Recommended: Square image (e.g., 512x512px) - PNG or JPEG
+            Upload your main logo for the chat page. Supports images (PNG, JPEG, GIF) and animated videos (MP4, WebM) for a living logo effect!
           </p>
 
           <div className="flex flex-col md:flex-row gap-6">
@@ -239,11 +239,22 @@ export default function DesignSettings() {
               <p className="text-xs text-gray-500 mb-2">Current Logo Preview:</p>
               <div className="bg-black border border-white/10 rounded-lg p-8 flex items-center justify-center min-h-[200px]">
                 {mainLogo ? (
-                  <img
-                    src={mainLogo}
-                    alt="Main Logo"
-                    className="h-24 w-auto"
-                  />
+                  mainLogo.startsWith('data:video/') ? (
+                    <video
+                      src={mainLogo}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="h-24 w-auto"
+                    />
+                  ) : (
+                    <img
+                      src={mainLogo}
+                      alt="Main Logo"
+                      className="h-24 w-auto"
+                    />
+                  )
                 ) : (
                   <p className="text-gray-500">No logo uploaded</p>
                 )}
@@ -255,7 +266,7 @@ export default function DesignSettings() {
               <input
                 type="file"
                 ref={mainLogoRef}
-                accept="image/png,image/jpeg,image/jpg"
+                accept="image/png,image/jpeg,image/jpg,image/gif,video/mp4,video/webm"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleFileUpload(file, 'main-logo');
@@ -269,7 +280,7 @@ export default function DesignSettings() {
               >
                 {isUploading === 'main-logo' ? 'Uploading...' : 'Choose Main Logo'}
               </button>
-              <p className="text-xs text-gray-500 mt-2">Max size: 2MB</p>
+              <p className="text-xs text-gray-500 mt-2">Max size: 5MB for images, 15MB for videos</p>
             </div>
           </div>
         </div>
