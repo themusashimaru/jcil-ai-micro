@@ -359,10 +359,10 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
                             }
                           }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <span className="text-2xl">{connector.icon}</span>
-                              <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="text-2xl flex-shrink-0">{connector.icon}</span>
+                              <div className="min-w-0">
                                 <h4 className="font-medium text-white">{connector.name}</h4>
                                 <p className="text-xs text-gray-400 line-clamp-1">{connector.description}</p>
                               </div>
@@ -374,16 +374,16 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
                                   e.stopPropagation();
                                   handleDisconnect(connector.id);
                                 }}
-                                className="px-3 py-1 text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-full transition-colors"
+                                className="px-3 py-1 text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-full transition-colors whitespace-nowrap flex-shrink-0"
                               >
                                 Disconnect
                               </button>
                             ) : isComingSoon ? (
-                              <span className="px-3 py-1 text-xs bg-zinc-700 text-gray-400 rounded-full">
+                              <span className="px-3 py-1 text-xs bg-zinc-700 text-gray-400 rounded-full whitespace-nowrap flex-shrink-0">
                                 Coming Soon
                               </span>
                             ) : (
-                              <span className="px-3 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full">
+                              <span className="px-3 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full whitespace-nowrap flex-shrink-0">
                                 Connect
                               </span>
                             )}
