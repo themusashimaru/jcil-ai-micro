@@ -29,6 +29,7 @@ import { NotificationProvider } from '@/components/notifications/NotificationPro
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
+import { ConnectorsModal } from '@/components/connectors/ConnectorsModal';
 import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
@@ -67,6 +68,7 @@ export function ChatClient() {
   // Start with sidebar collapsed on mobile, open on desktop
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isConnectorsOpen, setIsConnectorsOpen] = useState(false);
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -1218,6 +1220,24 @@ export function ChatClient() {
           </button>
 
           <div className="flex items-center gap-0.5">
+            {/* Connectors Button */}
+            <button
+              onClick={() => setIsConnectorsOpen(true)}
+              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5"
+              aria-label="Connectors"
+              title="Connect external services"
+            >
+              <svg className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
+              </svg>
+              <span className="hidden md:inline">Connectors</span>
+            </button>
+            {/* Profile Button */}
             <button
               onClick={() => setIsProfileOpen(true)}
               className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5"
@@ -1275,6 +1295,9 @@ export function ChatClient() {
 
       {/* User Profile Modal */}
       <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+
+      {/* Connectors Modal */}
+      <ConnectorsModal isOpen={isConnectorsOpen} onClose={() => setIsConnectorsOpen(false)} />
 
       {/* Passkey Setup Prompt Modal */}
       <PasskeyPromptModal

@@ -38,6 +38,7 @@ import { createChatCompletion, generateImage } from '@/lib/xai/client';
 import { getModelForTool } from '@/lib/xai/models';
 import { getApiKeyCount } from '@/lib/xai/api-key-manager';
 import { moderateContent } from '@/lib/openai/moderation';
+import { getUserConnectedServices, getConnectorSystemPrompt } from '@/lib/connectors/helpers';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
@@ -519,6 +520,19 @@ export async function POST(request: NextRequest) {
         content: `You are assisting ${userContext.name}, a ${userContext.role}${userContext.field ? ` in ${userContext.field}` : ''}. ${userContext.purpose ? `They use this AI for: ${userContext.purpose}. ` : ''}Tailor your responses to their background, adjusting complexity, terminology, and examples accordingly.`,
       };
       messagesWithContext = [userContextMessage, ...messagesWithContext];
+    }
+
+    // Add connector awareness if user has connected services
+    if (isAuthenticated && rateLimitIdentifier) {
+      const connectedServices = await getUserConnectedServices(rateLimitIdentifier);
+      if (connectedServices.length > 0) {
+        const connectorPrompt = getConnectorSystemPrompt(connectedServices);
+        const connectorSystemMessage = {
+          role: 'system' as const,
+          content: connectorPrompt,
+        };
+        messagesWithContext = [connectorSystemMessage, ...messagesWithContext];
+      }
     }
 
     // Check if any message contains images (need non-streaming for image analysis)
