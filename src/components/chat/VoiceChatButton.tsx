@@ -47,6 +47,7 @@ export function VoiceChatButton({
   const streamRef = useRef<MediaStream | null>(null);
   const lastPlayedMessageRef = useRef<string>(''); // Track last played message to avoid replaying
   const shouldAutoRestartRef = useRef<boolean>(false); // Track if we should auto-restart after TTS
+  const isRecordingRef = useRef<boolean>(false); // Track recording state for silence detection
 
   const SILENCE_THRESHOLD = 20; // Audio level below this is silence
   const SILENCE_DURATION = 1500; // 1.5 seconds of silence to trigger send
@@ -142,6 +143,7 @@ export function VoiceChatButton({
       setError(null);
       onVoiceModeChange(true);
       shouldAutoRestartRef.current = true; // Enable auto-restart for conversation flow
+      isRecordingRef.current = true; // Track recording for silence detection
 
       // Stop any playing audio (allows interruption)
       if (audioElementRef.current) {
@@ -183,6 +185,7 @@ export function VoiceChatButton({
       console.error('[VoiceChat] Error starting recording:', err);
       setError('Failed to access microphone. Please check permissions.');
       setVoiceState('idle');
+      isRecordingRef.current = false;
       onVoiceModeChange(false);
     }
   }, [onVoiceModeChange]);
@@ -194,7 +197,8 @@ export function VoiceChatButton({
     const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
     const checkAudioLevel = () => {
-      if (voiceState !== 'recording' || !analyserRef.current) return;
+      // Use ref instead of state to avoid stale closure
+      if (!isRecordingRef.current || !analyserRef.current) return;
 
       analyser.getByteFrequencyData(dataArray);
       const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
@@ -203,8 +207,10 @@ export function VoiceChatButton({
         // Silence detected - start timer if not already started
         if (!silenceTimerRef.current) {
           silenceTimerRef.current = setTimeout(() => {
-            // Auto-stop after silence
-            stopRecording();
+            // Auto-stop after silence and send
+            if (isRecordingRef.current) {
+              stopRecording();
+            }
           }, SILENCE_DURATION);
         }
       } else {
@@ -220,9 +226,12 @@ export function VoiceChatButton({
     };
 
     requestAnimationFrame(checkAudioLevel);
-  }, [voiceState]);
+  }, []);
 
   const stopRecording = useCallback(async () => {
+    // Stop the silence detection loop
+    isRecordingRef.current = false;
+
     // Clear silence timer
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -294,36 +303,48 @@ export function VoiceChatButton({
   const handleClick = async () => {
     if (isStreaming) return;
 
-    if (voiceState === 'idle') {
+    if (voiceState === 'idle' && !voiceModeActive) {
+      // Start voice conversation
       await startRecording();
-    } else if (voiceState === 'recording') {
-      await stopRecording();
-    } else if (voiceState === 'speaking') {
-      // Stop speaking and start listening (interruption)
-      if (audioElementRef.current) {
-        audioElementRef.current.pause();
-        audioElementRef.current = null;
-      }
-      // Start recording immediately for interruption
-      await startRecording();
+    } else if (voiceState === 'idle' && voiceModeActive) {
+      // Voice mode is on but idle - stop voice mode entirely
+      stopVoiceMode();
+    } else if (voiceState === 'recording' || voiceState === 'speaking') {
+      // Stop voice conversation entirely when clicked during recording or speaking
+      stopVoiceMode();
     }
   };
 
-  const handleDisableVoiceMode = () => {
+  const stopVoiceMode = () => {
     shouldAutoRestartRef.current = false; // Stop auto-restart
+    isRecordingRef.current = false;
     onVoiceModeChange(false);
+
+    // Stop any playing audio
     if (audioElementRef.current) {
       audioElementRef.current.pause();
       audioElementRef.current = null;
     }
-    // Also stop any ongoing recording
+
+    // Clear silence timer
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+
+    // Stop any ongoing recording
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
     }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
     setVoiceState('idle');
   };
 
@@ -335,24 +356,27 @@ export function VoiceChatButton({
         className={`
           relative rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-300
           ${voiceState === 'recording'
-            ? 'bg-gray-500 text-white'
+            ? 'bg-cyan-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.8)]'
             : voiceState === 'transcribing'
             ? 'bg-gray-600 text-white'
             : voiceState === 'speaking'
-            ? 'bg-green-500 text-white animate-pulse'
-            : 'bg-cyan-500/80 text-white hover:bg-cyan-400/90'
+            ? 'bg-green-500 text-white shadow-[0_0_15px_rgba(34,197,94,0.6)] animate-pulse'
+            : voiceModeActive
+            ? 'bg-cyan-500/80 text-white shadow-[0_0_15px_rgba(6,182,212,0.6)]'
+            : 'bg-cyan-500/80 text-white hover:bg-cyan-400/90 shadow-[0_0_15px_rgba(6,182,212,0.6)]'
           }
-          ${voiceState === 'idle' ? 'shadow-[0_0_15px_rgba(6,182,212,0.6)]' : ''}
           disabled:opacity-50 disabled:cursor-not-allowed
         `}
         title={
-          voiceState === 'idle'
+          voiceState === 'idle' && !voiceModeActive
             ? 'Start voice chat'
+            : voiceState === 'idle' && voiceModeActive
+            ? 'Click to end voice chat'
             : voiceState === 'recording'
-            ? 'Listening... (auto-sends after 1.5s silence)'
+            ? 'Listening... (click to stop)'
             : voiceState === 'transcribing'
             ? 'Processing...'
-            : 'AI is speaking (click to stop)'
+            : 'Playing response (click to stop)'
         }
       >
         {voiceState === 'transcribing' ? (
@@ -380,8 +404,8 @@ export function VoiceChatButton({
         ) : voiceState === 'recording' ? (
           <span className="flex items-center gap-1">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
             </span>
             Listening
           </span>
@@ -389,17 +413,6 @@ export function VoiceChatButton({
           'Talk'
         )}
       </button>
-
-      {/* Voice mode indicator */}
-      {voiceModeActive && voiceState === 'idle' && (
-        <button
-          onClick={handleDisableVoiceMode}
-          className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs hover:bg-red-600 transition-colors"
-          title="Disable voice mode"
-        >
-          ×
-        </button>
-      )}
 
       {/* Error message */}
       {error && (
