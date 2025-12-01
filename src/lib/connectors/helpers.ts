@@ -320,6 +320,36 @@ Note: You can also use the full "owner/repo" format if needed (e.g., for repos o
 - Get message: [CONNECTOR_ACTION: twilio | get_message | {"messageSid": "SMxxx"}]
 - List phone numbers: [CONNECTOR_ACTION: twilio | list_phone_numbers | {}]
 
+**BLACK FOREST LABS (FLUX) ACTIONS** (if connected):
+- Generate image (Pro): [CONNECTOR_ACTION: bfl | generate_image | {"prompt": "A beautiful landscape", "width": 1024, "height": 1024}]
+- Generate image (Dev): [CONNECTOR_ACTION: bfl | flux_dev | {"prompt": "A futuristic city"}]
+- Generate image (Fast): [CONNECTOR_ACTION: bfl | flux_schnell | {"prompt": "Quick concept art"}]
+- Image to image: [CONNECTOR_ACTION: bfl | image_to_image | {"prompt": "Make it more vibrant", "image_url": "https://..."}]
+- Inpaint: [CONNECTOR_ACTION: bfl | inpaint | {"prompt": "Add a tree", "image_url": "https://...", "mask_url": "https://..."}]
+
+**RUNWAY ACTIONS** (if connected):
+- Generate video from text: [CONNECTOR_ACTION: runway | generate_video | {"prompt": "A drone shot over mountains", "duration": 5}]
+- Generate video from image: [CONNECTOR_ACTION: runway | image_to_video | {"image_url": "https://...", "prompt": "Make it move", "duration": 5}]
+- Get task status: [CONNECTOR_ACTION: runway | get_task | {"taskId": "xxx"}]
+- Cancel task: [CONNECTOR_ACTION: runway | cancel_task | {"taskId": "xxx"}]
+
+**LUMA AI (DREAM MACHINE) ACTIONS** (if connected):
+- Generate video from text: [CONNECTOR_ACTION: luma | generate_video | {"prompt": "A cinematic shot of the ocean"}]
+- Generate video from image: [CONNECTOR_ACTION: luma | image_to_video | {"prompt": "Animate this", "image_url": "https://..."}]
+- Extend video: [CONNECTOR_ACTION: luma | extend_video | {"generation_id": "xxx", "prompt": "Continue the scene"}]
+- Get generation status: [CONNECTOR_ACTION: luma | get_generation | {"generationId": "xxx"}]
+- List generations: [CONNECTOR_ACTION: luma | list_generations | {}]
+- Get credits: [CONNECTOR_ACTION: luma | get_credits | {}]
+
+**SUNO ACTIONS** (if connected):
+- Generate song from lyrics: [CONNECTOR_ACTION: suno | generate_song | {"lyrics": "Verse 1...", "style": "pop, upbeat", "title": "My Song"}]
+- Generate from description: [CONNECTOR_ACTION: suno | generate_from_description | {"description": "An upbeat summer pop song about friendship"}]
+- Generate instrumental: [CONNECTOR_ACTION: suno | generate_song | {"prompt": "Epic orchestral", "instrumental": true}]
+- Extend song: [CONNECTOR_ACTION: suno | extend_song | {"clip_id": "xxx", "lyrics": "More lyrics..."}]
+- Get song status: [CONNECTOR_ACTION: suno | get_song | {"clipId": "xxx"}]
+- List songs: [CONNECTOR_ACTION: suno | list_songs | {}]
+- Get credits: [CONNECTOR_ACTION: suno | get_credits | {}]
+
 ALWAYS use this format when the user asks about their connected services. The user will click the "Run Action" button to execute and see results.
 `;
 }
