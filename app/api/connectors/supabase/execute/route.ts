@@ -57,36 +57,53 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'list_tables': {
-        // Query the information schema to get table names
-        // Using raw fetch since Supabase client types don't include information_schema
+        // Get table list from Supabase's OpenAPI spec
         try {
           const response = await fetch(
-            `${credentials.url}/rest/v1/rpc/get_tables`,
+            `${credentials.url}/rest/v1/`,
             {
-              method: 'POST',
+              method: 'GET',
               headers: {
                 apikey: credentials.key,
                 Authorization: `Bearer ${credentials.key}`,
-                'Content-Type': 'application/json',
+                'Accept': 'application/openapi+json',
               },
             }
           );
 
           if (response.ok) {
-            const data = await response.json();
-            result = data;
-          } else {
-            // RPC function doesn't exist, return helpful message
+            const spec = await response.json();
+            // Extract table names from the OpenAPI paths
+            const tables: string[] = [];
+            if (spec.paths) {
+              for (const path of Object.keys(spec.paths)) {
+                // Paths look like "/tablename" - extract just the table name
+                const tableName = path.replace('/', '');
+                if (tableName && !tableName.includes('/')) {
+                  tables.push(tableName);
+                }
+              }
+            }
             result = {
-              message: 'To list tables, create an RPC function called get_tables, or try querying a specific table.',
-              hint: 'Use query_table action with a known table name',
-              example: { action: 'query_table', params: { table: 'users', limit: 10 } },
+              tables: tables.sort(),
+              count: tables.length,
+              message: tables.length > 0
+                ? `Found ${tables.length} tables in your database`
+                : 'No tables found. Make sure your database has tables and RLS is configured correctly.',
+            };
+          } else {
+            // Try alternative: query a known system view
+            result = {
+              error: `Could not retrieve table list (${response.status})`,
+              hint: 'Try using query_table with a table name you know exists',
+              example: { action: 'query_table', params: { table: 'users', limit: 5 } },
             };
           }
-        } catch {
+        } catch (err) {
           result = {
-            message: 'Could not list tables. Try querying a specific table.',
-            hint: 'Use query_table action with a known table name',
+            error: 'Failed to list tables',
+            message: err instanceof Error ? err.message : 'Unknown error',
+            hint: 'Try using query_table with a table name you know exists',
           };
         }
         break;
