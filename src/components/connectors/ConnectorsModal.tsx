@@ -32,6 +32,8 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; username?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
   // GitHub-specific state
   const [githubRepos, setGithubRepos] = useState<GitHubRepo[]>([]);
   const [selectedRepos, setSelectedRepos] = useState<Set<string>>(new Set());
@@ -201,8 +203,17 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
     }
   };
 
+  // Filter connectors based on search query
+  const filteredConnectors = searchQuery.trim()
+    ? CONNECTORS.filter(connector =>
+        connector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        connector.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        connector.category.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : CONNECTORS;
+
   // Group connectors by category
-  const connectorsByCategory = CONNECTORS.reduce((acc, connector) => {
+  const connectorsByCategory = filteredConnectors.reduce((acc, connector) => {
     if (!acc[connector.category]) {
       acc[connector.category] = [];
     }
@@ -231,6 +242,44 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
           </button>
         </div>
 
+        {/* Search Bar - only show in grid view */}
+        {!selectedConnector && (
+          <div className="px-4 pt-4">
+            <div className="relative">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search connectors..."
+                className="w-full pl-10 pr-4 py-2.5 bg-zinc-800 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded"
+                >
+                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         <div className="overflow-y-auto max-h-[calc(85vh-120px)] p-4">
           {loading ? (
@@ -250,6 +299,7 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
                   setGithubRepos([]);
                   setSelectedRepos(new Set());
                   setGithubUsername(null);
+                  setSearchQuery('');
                 }}
                 className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
               >
@@ -426,6 +476,22 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
           ) : (
             // Connectors Grid View
             <div className="space-y-6">
+              {/* No results message */}
+              {searchQuery && Object.keys(connectorsByCategory).length === 0 && (
+                <div className="text-center py-8">
+                  <svg className="w-12 h-12 mx-auto text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <p className="text-gray-400 text-sm">No connectors found for &quot;{searchQuery}&quot;</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="mt-2 text-blue-400 hover:text-blue-300 text-sm"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              )}
+
               {Object.entries(connectorsByCategory).map(([category, connectors]) => (
                 <div key={category}>
                   <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">
