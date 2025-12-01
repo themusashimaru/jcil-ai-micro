@@ -45,6 +45,8 @@ export function VoiceChatButton({
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const lastPlayedMessageRef = useRef<string>(''); // Track last played message to avoid replaying
+  const shouldAutoRestartRef = useRef<boolean>(false); // Track if we should auto-restart after TTS
 
   const SILENCE_THRESHOLD = 20; // Audio level below this is silence
   const SILENCE_DURATION = 1500; // 1.5 seconds of silence to trigger send
@@ -63,9 +65,14 @@ export function VoiceChatButton({
   // Play TTS when assistant message arrives and voice mode is active
   useEffect(() => {
     if (voiceModeActive && lastAssistantMessage && !isStreaming && voiceState === 'idle') {
-      playTTS(lastAssistantMessage);
+      // Only play if this is a new message we haven't played yet
+      if (lastAssistantMessage !== lastPlayedMessageRef.current) {
+        lastPlayedMessageRef.current = lastAssistantMessage;
+        shouldAutoRestartRef.current = true; // Auto-restart listening after TTS
+        playTTS(lastAssistantMessage);
+      }
     }
-  }, [lastAssistantMessage, isStreaming, voiceModeActive]);
+  }, [lastAssistantMessage, isStreaming, voiceModeActive, voiceState]);
 
   const playTTS = async (text: string) => {
     if (!text || text.length < 2) return;
@@ -100,13 +107,27 @@ export function VoiceChatButton({
       audioElementRef.current = audio;
 
       audio.onended = () => {
-        setVoiceState('idle');
         URL.revokeObjectURL(audioUrl);
+        audioElementRef.current = null;
+        // Auto-restart recording for continuous conversation
+        if (shouldAutoRestartRef.current && voiceModeActive) {
+          // Small delay before restarting to feel natural
+          setTimeout(() => {
+            if (voiceModeActive) {
+              startRecording();
+            } else {
+              setVoiceState('idle');
+            }
+          }, 300);
+        } else {
+          setVoiceState('idle');
+        }
       };
 
       audio.onerror = () => {
         setVoiceState('idle');
         URL.revokeObjectURL(audioUrl);
+        audioElementRef.current = null;
       };
 
       await audio.play();
@@ -120,10 +141,12 @@ export function VoiceChatButton({
     try {
       setError(null);
       onVoiceModeChange(true);
+      shouldAutoRestartRef.current = true; // Enable auto-restart for conversation flow
 
-      // Stop any playing audio
+      // Stop any playing audio (allows interruption)
       if (audioElementRef.current) {
         audioElementRef.current.pause();
+        audioElementRef.current.currentTime = 0;
         audioElementRef.current = null;
       }
 
@@ -276,21 +299,32 @@ export function VoiceChatButton({
     } else if (voiceState === 'recording') {
       await stopRecording();
     } else if (voiceState === 'speaking') {
-      // Stop speaking
+      // Stop speaking and start listening (interruption)
       if (audioElementRef.current) {
         audioElementRef.current.pause();
         audioElementRef.current = null;
       }
-      setVoiceState('idle');
+      // Start recording immediately for interruption
+      await startRecording();
     }
   };
 
   const handleDisableVoiceMode = () => {
+    shouldAutoRestartRef.current = false; // Stop auto-restart
     onVoiceModeChange(false);
     if (audioElementRef.current) {
       audioElementRef.current.pause();
       audioElementRef.current = null;
     }
+    // Also stop any ongoing recording
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    }
+    setVoiceState('idle');
   };
 
   return (
