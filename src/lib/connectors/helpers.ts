@@ -350,6 +350,116 @@ Note: You can also use the full "owner/repo" format if needed (e.g., for repos o
 - List songs: [CONNECTOR_ACTION: suno | list_songs | {}]
 - Get credits: [CONNECTOR_ACTION: suno | get_credits | {}]
 
+**COINBASE ACTIONS** (if connected):
+- Get user info: [CONNECTOR_ACTION: coinbase | get_user | {}]
+- List accounts: [CONNECTOR_ACTION: coinbase | list_accounts | {}]
+- Get account: [CONNECTOR_ACTION: coinbase | get_account | {"accountId": "xxx"}]
+- Get prices: [CONNECTOR_ACTION: coinbase | get_prices | {"currency": "USD"}]
+- Get spot price: [CONNECTOR_ACTION: coinbase | get_spot_price | {"pair": "BTC-USD"}]
+- List transactions: [CONNECTOR_ACTION: coinbase | list_transactions | {"accountId": "xxx"}]
+- Send crypto: [CONNECTOR_ACTION: coinbase | send_money | {"accountId": "xxx", "to": "address", "amount": "0.01", "currency": "BTC"}]
+
+**KLAVIYO ACTIONS** (if connected):
+- List profiles: [CONNECTOR_ACTION: klaviyo | list_profiles | {"pageSize": 20}]
+- Get profile: [CONNECTOR_ACTION: klaviyo | get_profile | {"profileId": "xxx"}]
+- Create profile: [CONNECTOR_ACTION: klaviyo | create_profile | {"email": "user@example.com", "firstName": "John", "lastName": "Doe"}]
+- Update profile: [CONNECTOR_ACTION: klaviyo | update_profile | {"profileId": "xxx", "firstName": "Updated"}]
+- List lists: [CONNECTOR_ACTION: klaviyo | list_lists | {}]
+- Add to list: [CONNECTOR_ACTION: klaviyo | add_to_list | {"listId": "xxx", "profiles": [{"email": "user@example.com"}]}]
+- List campaigns: [CONNECTOR_ACTION: klaviyo | list_campaigns | {}]
+- List flows: [CONNECTOR_ACTION: klaviyo | list_flows | {}]
+- Track event: [CONNECTOR_ACTION: klaviyo | track_event | {"email": "user@example.com", "eventName": "Purchased", "properties": {"item": "T-Shirt"}}]
+- Get metrics: [CONNECTOR_ACTION: klaviyo | get_metrics | {}]
+
+**PRINTFUL ACTIONS** (if connected):
+- Get store info: [CONNECTOR_ACTION: printful | get_store | {}]
+- List products: [CONNECTOR_ACTION: printful | list_products | {"limit": 20}]
+- Get product: [CONNECTOR_ACTION: printful | get_product | {"productId": "xxx"}]
+- List orders: [CONNECTOR_ACTION: printful | list_orders | {"status": "fulfilled"}]
+- Get order: [CONNECTOR_ACTION: printful | get_order | {"orderId": "xxx"}]
+- Estimate costs: [CONNECTOR_ACTION: printful | estimate_costs | {"recipient": {...}, "items": [...]}]
+- Create order: [CONNECTOR_ACTION: printful | create_order | {"recipient": {...}, "items": [...]}]
+- Cancel order: [CONNECTOR_ACTION: printful | cancel_order | {"orderId": "xxx"}]
+- List catalog products: [CONNECTOR_ACTION: printful | list_catalog_products | {}]
+- Get shipping rates: [CONNECTOR_ACTION: printful | get_shipping_rates | {"recipient": {...}, "items": [...]}]
+
+**RESEND ACTIONS** (if connected):
+- Send email: [CONNECTOR_ACTION: resend | send_email | {"from": "you@yourdomain.com", "to": "recipient@email.com", "subject": "Hello", "html": "<p>Email content</p>"}]
+- Get email: [CONNECTOR_ACTION: resend | get_email | {"emailId": "xxx"}]
+- List domains: [CONNECTOR_ACTION: resend | list_domains | {}]
+- Add domain: [CONNECTOR_ACTION: resend | add_domain | {"name": "yourdomain.com"}]
+- Verify domain: [CONNECTOR_ACTION: resend | verify_domain | {"domainId": "xxx"}]
+
+**BUFFER ACTIONS** (if connected):
+- Get user: [CONNECTOR_ACTION: buffer | get_user | {}]
+- List profiles: [CONNECTOR_ACTION: buffer | list_profiles | {}]
+- Get profile: [CONNECTOR_ACTION: buffer | get_profile | {"profileId": "xxx"}]
+- Get schedules: [CONNECTOR_ACTION: buffer | get_schedules | {"profileId": "xxx"}]
+- List pending posts: [CONNECTOR_ACTION: buffer | list_pending_updates | {"profileId": "xxx"}]
+- List sent posts: [CONNECTOR_ACTION: buffer | list_sent_updates | {"profileId": "xxx"}]
+- Create post: [CONNECTOR_ACTION: buffer | create_update | {"profileIds": ["xxx"], "text": "Hello world!", "now": false}]
+- Get post: [CONNECTOR_ACTION: buffer | get_update | {"updateId": "xxx"}]
+- Update post: [CONNECTOR_ACTION: buffer | update_update | {"updateId": "xxx", "text": "Updated text"}]
+- Delete post: [CONNECTOR_ACTION: buffer | delete_update | {"updateId": "xxx"}]
+- Share now: [CONNECTOR_ACTION: buffer | share_now | {"updateId": "xxx"}]
+- Shuffle queue: [CONNECTOR_ACTION: buffer | shuffle_updates | {"profileId": "xxx"}]
+
+**CALENDLY ACTIONS** (if connected):
+- Get current user: [CONNECTOR_ACTION: calendly | get_current_user | {}]
+- List event types: [CONNECTOR_ACTION: calendly | list_event_types | {"userUri": "https://api.calendly.com/users/xxx"}]
+- Get event type: [CONNECTOR_ACTION: calendly | get_event_type | {"eventTypeUri": "https://api.calendly.com/event_types/xxx"}]
+- List scheduled events: [CONNECTOR_ACTION: calendly | list_scheduled_events | {"userUri": "https://...", "minStartTime": "2024-01-01T00:00:00Z"}]
+- Get scheduled event: [CONNECTOR_ACTION: calendly | get_scheduled_event | {"eventUri": "https://api.calendly.com/scheduled_events/xxx"}]
+- List event invitees: [CONNECTOR_ACTION: calendly | list_event_invitees | {"eventUri": "https://..."}]
+- Cancel event: [CONNECTOR_ACTION: calendly | cancel_event | {"eventUri": "https://...", "reason": "Rescheduling"}]
+- Get availability: [CONNECTOR_ACTION: calendly | get_availability | {"userUri": "https://..."}]
+- List webhooks: [CONNECTOR_ACTION: calendly | list_webhooks | {"organizationUri": "https://..."}]
+- Create webhook: [CONNECTOR_ACTION: calendly | create_webhook | {"url": "https://...", "events": ["invitee.created"], "scope": "organization", "organizationUri": "https://..."}]
+
+**CLOUDFLARE ACTIONS** (if connected):
+- List zones: [CONNECTOR_ACTION: cloudflare | list_zones | {}]
+- Get zone: [CONNECTOR_ACTION: cloudflare | get_zone | {"zoneId": "xxx"}]
+- List DNS records: [CONNECTOR_ACTION: cloudflare | list_dns_records | {"zoneId": "xxx"}]
+- Get DNS record: [CONNECTOR_ACTION: cloudflare | get_dns_record | {"zoneId": "xxx", "recordId": "yyy"}]
+- Create DNS record: [CONNECTOR_ACTION: cloudflare | create_dns_record | {"zoneId": "xxx", "type": "A", "name": "subdomain", "content": "1.2.3.4"}]
+- Update DNS record: [CONNECTOR_ACTION: cloudflare | update_dns_record | {"zoneId": "xxx", "recordId": "yyy", "content": "5.6.7.8"}]
+- Delete DNS record: [CONNECTOR_ACTION: cloudflare | delete_dns_record | {"zoneId": "xxx", "recordId": "yyy"}]
+- Purge cache: [CONNECTOR_ACTION: cloudflare | purge_cache | {"zoneId": "xxx", "purge_everything": true}]
+- List Workers: [CONNECTOR_ACTION: cloudflare | list_workers | {}]
+- Get analytics: [CONNECTOR_ACTION: cloudflare | get_analytics | {"zoneId": "xxx"}]
+
+**UPSTASH (REDIS) ACTIONS** (if connected):
+- Ping: [CONNECTOR_ACTION: upstash | ping | {}]
+- Get key: [CONNECTOR_ACTION: upstash | get | {"key": "mykey"}]
+- Set key: [CONNECTOR_ACTION: upstash | set | {"key": "mykey", "value": "myvalue", "ex": 3600}]
+- Delete key: [CONNECTOR_ACTION: upstash | del | {"key": "mykey"}]
+- Find keys: [CONNECTOR_ACTION: upstash | keys | {"pattern": "user:*"}]
+- Check exists: [CONNECTOR_ACTION: upstash | exists | {"key": "mykey"}]
+- Set expiration: [CONNECTOR_ACTION: upstash | expire | {"key": "mykey", "seconds": 3600}]
+- Get TTL: [CONNECTOR_ACTION: upstash | ttl | {"key": "mykey"}]
+- Increment: [CONNECTOR_ACTION: upstash | incr | {"key": "counter"}]
+- Decrement: [CONNECTOR_ACTION: upstash | decr | {"key": "counter"}]
+- Hash get: [CONNECTOR_ACTION: upstash | hget | {"key": "user:1", "field": "name"}]
+- Hash set: [CONNECTOR_ACTION: upstash | hset | {"key": "user:1", "field": "name", "value": "John"}]
+- Hash get all: [CONNECTOR_ACTION: upstash | hgetall | {"key": "user:1"}]
+- List push (left): [CONNECTOR_ACTION: upstash | lpush | {"key": "mylist", "value": "item"}]
+- List push (right): [CONNECTOR_ACTION: upstash | rpush | {"key": "mylist", "value": "item"}]
+- List range: [CONNECTOR_ACTION: upstash | lrange | {"key": "mylist", "start": 0, "stop": -1}]
+- Database size: [CONNECTOR_ACTION: upstash | dbsize | {}]
+- Server info: [CONNECTOR_ACTION: upstash | info | {}]
+
+**N8N ACTIONS** (if connected):
+- List workflows: [CONNECTOR_ACTION: n8n | list_workflows | {"active": true}]
+- Get workflow: [CONNECTOR_ACTION: n8n | get_workflow | {"workflowId": "xxx"}]
+- Activate workflow: [CONNECTOR_ACTION: n8n | activate_workflow | {"workflowId": "xxx"}]
+- Deactivate workflow: [CONNECTOR_ACTION: n8n | deactivate_workflow | {"workflowId": "xxx"}]
+- Execute workflow: [CONNECTOR_ACTION: n8n | execute_workflow | {"workflowId": "xxx", "data": {"key": "value"}}]
+- List executions: [CONNECTOR_ACTION: n8n | list_executions | {"workflowId": "xxx", "status": "success"}]
+- Get execution: [CONNECTOR_ACTION: n8n | get_execution | {"executionId": "xxx"}]
+- Delete execution: [CONNECTOR_ACTION: n8n | delete_execution | {"executionId": "xxx"}]
+- List credentials: [CONNECTOR_ACTION: n8n | list_credentials | {}]
+- Trigger webhook: [CONNECTOR_ACTION: n8n | trigger_webhook | {"webhookPath": "my-webhook-path", "data": {"key": "value"}}]
+
 ALWAYS use this format when the user asks about their connected services. The user will click the "Run Action" button to execute and see results.
 `;
 }
