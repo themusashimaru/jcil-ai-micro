@@ -1059,6 +1059,289 @@ async function testZapier(token: string): Promise<{ valid: boolean; error?: stri
   }
 }
 
+// Test Mixpanel connection
+// Token format: PROJECT_TOKEN|API_SECRET
+async function testMixpanel(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter Project Token and API Secret.' };
+    }
+
+    const [, apiSecret] = parts.map(p => p.trim());
+    const auth = Buffer.from(`${apiSecret}:`).toString('base64');
+
+    const response = await fetch('https://mixpanel.com/api/2.0/engage?page_size=1', {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+
+    if (response.ok || response.status === 402) {
+      // 402 means auth worked but might need payment
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Mixpanel API Secret.' };
+    } else {
+      return { valid: false, error: `Mixpanel API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Mixpanel. Check your network.' };
+  }
+}
+
+// Test Amplitude connection
+// Token format: API_KEY|SECRET_KEY
+async function testAmplitude(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter API Key and Secret Key.' };
+    }
+
+    const [apiKey, secretKey] = parts.map(p => p.trim());
+    const auth = Buffer.from(`${apiKey}:${secretKey}`).toString('base64');
+
+    const response = await fetch('https://amplitude.com/api/2/export?start=20240101T00&end=20240101T01', {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+
+    // Even a 400 (no data) means auth worked
+    if (response.ok || response.status === 400 || response.status === 404) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Amplitude API keys.' };
+    } else {
+      return { valid: false, error: `Amplitude API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Amplitude. Check your network.' };
+  }
+}
+
+// Test Asana connection
+async function testAsana(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://app.asana.com/api/1.0/users/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.data?.name || data.data?.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your Asana Personal Access Token.' };
+    } else {
+      return { valid: false, error: `Asana API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Asana. Check your network.' };
+  }
+}
+
+// Test Trello connection
+// Token format: API_KEY|TOKEN
+async function testTrello(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter API Key and Token.' };
+    }
+
+    const [apiKey, userToken] = parts.map(p => p.trim());
+
+    const response = await fetch(`https://api.trello.com/1/members/me?key=${apiKey}&token=${userToken}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.fullName || data.username };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Trello API Key and Token.' };
+    } else {
+      return { valid: false, error: `Trello API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Trello. Check your network.' };
+  }
+}
+
+// Test ClickUp connection
+async function testClickUp(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.clickup.com/api/v2/user', {
+      headers: { Authorization: token },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.user?.username || data.user?.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your ClickUp API Token.' };
+    } else {
+      return { valid: false, error: `ClickUp API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to ClickUp. Check your network.' };
+  }
+}
+
+// Test Monday.com connection
+async function testMonday(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.monday.com/v2', {
+      method: 'POST',
+      headers: {
+        Authorization: token,
+        'Content-Type': 'application/json',
+        'API-Version': '2024-01',
+      },
+      body: JSON.stringify({ query: '{ me { id name email } }' }),
+    });
+
+    if (!response.ok) {
+      return { valid: false, error: `Monday API error: ${response.status}` };
+    }
+
+    const data = await response.json();
+    if (data.errors) {
+      return { valid: false, error: 'Invalid API key. Check your Monday.com API key.' };
+    }
+
+    return { valid: true, username: data.data?.me?.name || data.data?.me?.email };
+  } catch {
+    return { valid: false, error: 'Failed to connect to Monday.com. Check your network.' };
+  }
+}
+
+// Test WordPress connection
+// Token format: SITE_URL|USERNAME|APP_PASSWORD
+async function testWordPress(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length < 2) {
+      return { valid: false, error: 'Invalid format. Enter Site URL, Username, and Application Password.' };
+    }
+
+    let siteUrl: string;
+    let auth: string;
+
+    if (parts.length === 3) {
+      siteUrl = parts[0].trim();
+      const username = parts[1].trim();
+      const appPassword = parts[2].trim();
+      auth = Buffer.from(`${username}:${appPassword}`).toString('base64');
+    } else if (parts.length === 2) {
+      siteUrl = parts[0].trim();
+      auth = Buffer.from(parts[1].trim()).toString('base64');
+    } else {
+      return { valid: false, error: 'Invalid token format.' };
+    }
+
+    siteUrl = siteUrl.replace(/\/$/, '');
+
+    const response = await fetch(`${siteUrl}/wp-json/wp/v2/users/me`, {
+      headers: {
+        Authorization: `Basic ${auth}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.name || data.slug };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your username and application password.' };
+    } else {
+      return { valid: false, error: `WordPress API error: ${response.status}. Check your site URL.` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to WordPress. Check your site URL and network.' };
+  }
+}
+
+// Test Webflow connection
+async function testWebflow(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.webflow.com/v2/user', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, username: data.firstName || data.email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your Webflow API Token.' };
+    } else {
+      return { valid: false, error: `Webflow API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Webflow. Check your network.' };
+  }
+}
+
+// Test Ghost connection
+// Token format: SITE_URL|ADMIN_API_KEY
+async function testGhost(token: string): Promise<{ valid: boolean; siteName?: string; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter Site URL and Admin API Key.' };
+    }
+
+    const [rawSiteUrl, apiKey] = parts.map(p => p.trim());
+    const siteUrl = rawSiteUrl.replace(/\/$/, '');
+
+    // Create JWT for Ghost Admin API
+    const keyParts = apiKey.split(':');
+    if (keyParts.length !== 2) {
+      return { valid: false, error: 'Invalid API Key format. It should be id:secret.' };
+    }
+
+    const [id, secret] = keyParts;
+    const crypto = await import('crypto');
+
+    const header = { alg: 'HS256', typ: 'JWT', kid: id };
+    const now = Math.floor(Date.now() / 1000);
+    const payload = { iat: now, exp: now + 5 * 60, aud: '/admin/' };
+
+    const base64url = (data: object) =>
+      Buffer.from(JSON.stringify(data))
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+
+    const headerEncoded = base64url(header);
+    const payloadEncoded = base64url(payload);
+    const secretBuffer = Buffer.from(secret, 'hex');
+    const signature = crypto
+      .createHmac('sha256', secretBuffer)
+      .update(`${headerEncoded}.${payloadEncoded}`)
+      .digest('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+    const jwtToken = `${headerEncoded}.${payloadEncoded}.${signature}`;
+
+    const response = await fetch(`${siteUrl}/ghost/api/admin/site/`, {
+      headers: { Authorization: `Ghost ${jwtToken}` },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, siteName: data.site?.title };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Ghost Admin API key.' };
+    } else {
+      return { valid: false, error: `Ghost API error: ${response.status}. Check your site URL.` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Ghost. Check your site URL and API key.' };
+  }
+}
+
 // POST - Test a connection
 export async function POST(request: NextRequest) {
   try {
@@ -1210,6 +1493,33 @@ export async function POST(request: NextRequest) {
         break;
       case 'zapier':
         result = await testZapier(token);
+        break;
+      case 'mixpanel':
+        result = await testMixpanel(token);
+        break;
+      case 'amplitude':
+        result = await testAmplitude(token);
+        break;
+      case 'asana':
+        result = await testAsana(token);
+        break;
+      case 'trello':
+        result = await testTrello(token);
+        break;
+      case 'clickup':
+        result = await testClickUp(token);
+        break;
+      case 'monday':
+        result = await testMonday(token);
+        break;
+      case 'wordpress':
+        result = await testWordPress(token);
+        break;
+      case 'webflow':
+        result = await testWebflow(token);
+        break;
+      case 'ghost':
+        result = await testGhost(token);
         break;
       default:
         // For services we haven't implemented testing for yet, assume valid
