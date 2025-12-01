@@ -1,12 +1,13 @@
 /**
  * ADMIN UPLOAD API
- * Handles file uploads for logos, favicons, and animated logos using base64 encoding
+ * Handles file uploads for logos, favicons, and animated logos
+ * Uploads to Supabase Storage for fast CDN delivery
  * Supports images (PNG, JPEG, ICO, GIF) and videos (MP4, WebM) for animated logos
- * (Vercel-compatible - no filesystem writes)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -14,6 +15,18 @@ export const runtime = 'nodejs';
 // Valid file types for upload
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/gif'];
 const VIDEO_TYPES = ['video/mp4', 'video/webm'];
+
+// Get Supabase admin client for storage operations
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +36,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const fileType = formData.get('type') as string; // e.g., 'main_logo', 'favicon', etc.
 
     if (!file) {
       return NextResponse.json(
@@ -53,18 +67,104 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to base64 data URL
+    // Get Supabase admin client
+    const supabase = getSupabaseAdmin();
+
+    if (!supabase) {
+      // Fallback to base64 if Supabase not configured
+      console.warn('[Upload] Supabase not configured, falling back to base64');
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const base64 = buffer.toString('base64');
+      const dataUrl = `data:${file.type};base64,${base64}`;
+
+      return NextResponse.json({
+        success: true,
+        url: dataUrl,
+        type: file.type,
+        size: file.size,
+        isVideo,
+      });
+    }
+
+    // Generate unique filename
+    const ext = file.name.split('.').pop() || (isVideo ? 'mp4' : 'png');
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    const filename = `${fileType || 'logo'}_${timestamp}_${randomStr}.${ext}`;
+
+    // Convert file to buffer for upload
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString('base64');
-    const dataUrl = `data:${file.type};base64,${base64}`;
+
+    // Upload to Supabase Storage 'branding' bucket
+    const { error } = await supabase.storage
+      .from('branding')
+      .upload(filename, buffer, {
+        contentType: file.type,
+        cacheControl: '31536000', // Cache for 1 year (immutable filename)
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('[Upload] Supabase Storage error:', error);
+
+      // If bucket doesn't exist, try to create it
+      if (error.message.includes('Bucket not found') || error.message.includes('bucket')) {
+        // Try creating the bucket
+        const { error: bucketError } = await supabase.storage.createBucket('branding', {
+          public: true,
+          fileSizeLimit: 15 * 1024 * 1024, // 15MB
+        });
+
+        if (bucketError && !bucketError.message.includes('already exists')) {
+          console.error('[Upload] Failed to create bucket:', bucketError);
+          return NextResponse.json(
+            { error: 'Storage not available. Please create "branding" bucket in Supabase.' },
+            { status: 500 }
+          );
+        }
+
+        // Retry upload
+        const retryResult = await supabase.storage
+          .from('branding')
+          .upload(filename, buffer, {
+            contentType: file.type,
+            cacheControl: '31536000',
+            upsert: false,
+          });
+
+        if (retryResult.error) {
+          console.error('[Upload] Retry failed:', retryResult.error);
+          return NextResponse.json(
+            { error: 'Failed to upload file to storage' },
+            { status: 500 }
+          );
+        }
+      } else {
+        return NextResponse.json(
+          { error: 'Failed to upload file to storage' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('branding')
+      .getPublicUrl(filename);
+
+    const publicUrl = urlData.publicUrl;
+
+    console.log('[Upload] File uploaded successfully:', publicUrl);
 
     return NextResponse.json({
       success: true,
-      url: dataUrl,
+      url: publicUrl,
       type: file.type,
       size: file.size,
       isVideo,
+      storage: 'supabase', // Indicate this is a CDN URL
     });
   } catch (error) {
     console.error('Upload error:', error);

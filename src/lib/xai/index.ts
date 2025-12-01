@@ -6,6 +6,17 @@
 // Client functions
 export { createChatCompletion, generateImage, analyzeImage } from './client';
 
+// API Key Manager (for load distribution across multiple keys)
+export {
+  discoverApiKeys,
+  getApiKeyCount,
+  getApiKeyByIndex,
+  getNextApiKeyIndex,
+  getApiKeyForUser,
+  getApiKeyStats,
+  validateApiKeyConfiguration,
+} from './api-key-manager';
+
 // Model utilities
 export {
   getModelForTool,
