@@ -1223,7 +1223,7 @@ export function ChatClient() {
             {/* Connectors Button */}
             <button
               onClick={() => setIsConnectorsOpen(true)}
-              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5"
+              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5 focus:outline-none"
               aria-label="Connectors"
               title="Connect external services"
             >
