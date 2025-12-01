@@ -21,10 +21,31 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
   const [loading, setLoading] = useState(true);
   const [selectedConnector, setSelectedConnector] = useState<ConnectorConfig | null>(null);
   const [token, setToken] = useState('');
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if connector uses multi-field inputs
+  const hasMultipleFields = selectedConnector?.fields && selectedConnector.fields.length > 0;
+
+  // Get the combined token value for multi-field connectors
+  const getCombinedToken = (): string => {
+    if (!selectedConnector) return '';
+    if (!hasMultipleFields) return token;
+
+    const separator = selectedConnector.fieldSeparator || '|';
+    const values = selectedConnector.fields!.map(field => fieldValues[field.key] || '');
+    return values.join(separator);
+  };
+
+  // Check if all required fields are filled
+  const isFormValid = (): boolean => {
+    if (!selectedConnector) return false;
+    if (!hasMultipleFields) return token.trim().length > 0;
+    return selectedConnector.fields!.every(field => (fieldValues[field.key] || '').trim().length > 0);
+  };
 
   // Fetch user's existing connections
   useEffect(() => {
@@ -53,17 +74,19 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
   };
 
   const handleTestConnection = async () => {
-    if (!selectedConnector || !token) return;
+    if (!selectedConnector || !isFormValid()) return;
 
     setTesting(true);
     setTestResult(null);
     setError(null);
 
+    const tokenToTest = getCombinedToken();
+
     try {
       const response = await fetch('/api/connectors/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ service: selectedConnector.id, token }),
+        body: JSON.stringify({ service: selectedConnector.id, token: tokenToTest }),
       });
 
       const data = await response.json();
@@ -84,16 +107,18 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
   };
 
   const handleSaveConnection = async () => {
-    if (!selectedConnector || !token) return;
+    if (!selectedConnector || !isFormValid()) return;
 
     setSaving(true);
     setError(null);
+
+    const tokenToSave = getCombinedToken();
 
     try {
       const response = await fetch('/api/connectors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ service: selectedConnector.id, token }),
+        body: JSON.stringify({ service: selectedConnector.id, token: tokenToSave }),
       });
 
       const data = await response.json();
@@ -105,6 +130,7 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
         }));
         setSelectedConnector(null);
         setToken('');
+        setFieldValues({});
         setTestResult(null);
       } else {
         setError(data.error || 'Failed to save connection');
@@ -179,6 +205,7 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
                 onClick={() => {
                   setSelectedConnector(null);
                   setToken('');
+                  setFieldValues({});
                   setTestResult(null);
                   setError(null);
                 }}
@@ -214,18 +241,40 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
                   </ul>
                 </div>
 
-                {/* Token Input */}
-                <div className="space-y-3">
-                  <label className="block">
-                    <span className="text-sm font-medium text-gray-300">{selectedConnector.tokenLabel}</span>
-                    <input
-                      type="password"
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                      placeholder={selectedConnector.placeholder}
-                      className="mt-1 w-full px-4 py-2.5 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </label>
+                {/* Token Input - Single or Multi-field */}
+                <div className="space-y-4">
+                  {hasMultipleFields ? (
+                    // Multi-field inputs (e.g., Supabase with URL + Key)
+                    <>
+                      {selectedConnector.fields!.map((field) => (
+                        <label key={field.key} className="block">
+                          <span className="text-sm font-medium text-gray-300">{field.label}</span>
+                          {field.helpText && (
+                            <span className="block text-xs text-gray-500 mt-0.5">{field.helpText}</span>
+                          )}
+                          <input
+                            type={field.type || 'password'}
+                            value={fieldValues[field.key] || ''}
+                            onChange={(e) => setFieldValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                            placeholder={field.placeholder}
+                            className="mt-1 w-full px-4 py-2.5 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </label>
+                      ))}
+                    </>
+                  ) : (
+                    // Single token input
+                    <label className="block">
+                      <span className="text-sm font-medium text-gray-300">{selectedConnector.tokenLabel}</span>
+                      <input
+                        type="password"
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                        placeholder={selectedConnector.placeholder}
+                        className="mt-1 w-full px-4 py-2.5 bg-zinc-800 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </label>
+                  )}
 
                   <a
                     href={selectedConnector.tokenHelpUrl}
@@ -233,7 +282,7 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300"
                   >
-                    How to get your {selectedConnector.tokenLabel.toLowerCase()}
+                    How to get your credentials
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
@@ -266,14 +315,14 @@ export function ConnectorsModal({ isOpen, onClose }: ConnectorsModalProps) {
                 <div className="flex gap-3 mt-6">
                   <button
                     onClick={handleTestConnection}
-                    disabled={!token || testing}
+                    disabled={!isFormValid() || testing}
                     className="flex-1 px-4 py-2.5 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
                   >
                     {testing ? 'Testing...' : 'Test Connection'}
                   </button>
                   <button
                     onClick={handleSaveConnection}
-                    disabled={!token || saving}
+                    disabled={!isFormValid() || saving}
                     className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
                   >
                     {saving ? 'Saving...' : 'Save & Connect'}

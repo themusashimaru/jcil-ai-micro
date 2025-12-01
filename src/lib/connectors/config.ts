@@ -3,6 +3,14 @@
  * Defines all available external service integrations
  */
 
+export interface ConnectorField {
+  key: string;
+  label: string;
+  placeholder: string;
+  type?: 'text' | 'password';
+  helpText?: string;
+}
+
 export interface ConnectorConfig {
   id: string;
   name: string;
@@ -15,6 +23,8 @@ export interface ConnectorConfig {
   placeholder: string; // Placeholder text for input
   capabilities: string[]; // What the AI can do with this connector
   comingSoon?: boolean; // If true, show as "Coming Soon"
+  fields?: ConnectorField[]; // For connectors that need multiple inputs (e.g., Supabase)
+  fieldSeparator?: string; // How to join multiple fields when storing (default: '|')
 }
 
 export const CONNECTORS: ConnectorConfig[] = [
@@ -79,9 +89,9 @@ export const CONNECTORS: ConnectorConfig[] = [
     category: 'code',
     icon: '⚡',
     color: '#3ecf8e',
-    tokenLabel: 'Project URL | Service Role Key',
+    tokenLabel: 'Project Credentials',
     tokenHelpUrl: 'https://supabase.com/dashboard/project/_/settings/api',
-    placeholder: 'https://xxx.supabase.co|eyJhbGciOiJIUzI1NiIs...',
+    placeholder: '', // Not used when fields is defined
     capabilities: [
       'List and query database tables',
       'Insert, update, delete records',
@@ -89,6 +99,23 @@ export const CONNECTORS: ConnectorConfig[] = [
       'List authenticated users',
       'Run custom queries',
     ],
+    fields: [
+      {
+        key: 'url',
+        label: 'Project URL',
+        placeholder: 'https://abcd1234.supabase.co',
+        type: 'text',
+        helpText: 'Find this in Settings → API → Project URL',
+      },
+      {
+        key: 'key',
+        label: 'Service Role Key',
+        placeholder: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        type: 'password',
+        helpText: 'Find this in Settings → API → service_role (secret)',
+      },
+    ],
+    fieldSeparator: '|',
   },
 
   // E-COMMERCE
