@@ -1,20 +1,48 @@
 /**
  * DESIGN SETTINGS API
  * Get and save site-wide branding settings
- * GET: Public (anyone can read branding) - Cached for 5 minutes
+ * GET: Public (anyone can read branding) - Redis cached for 5 minutes
  * POST: Admin only (requires admin authentication)
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { cacheGet, cacheSet, cacheDelete } from '@/lib/redis/client';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// GET - Public endpoint to fetch current design settings (cached for 5 minutes)
+// Cache key and TTL
+const CACHE_KEY = 'design_settings';
+const CACHE_TTL_SECONDS = 300; // 5 minutes
+
+// Default settings
+const DEFAULT_SETTINGS = {
+  main_logo: '/images/logo.png',
+  header_logo: '',
+  login_logo: '',
+  favicon: '',
+  site_name: 'JCIL.ai',
+  subtitle: 'Your AI Assistant',
+  model_name: '',
+};
+
+// GET - Public endpoint to fetch current design settings (Redis + HTTP cached)
 export async function GET() {
   try {
+    // Try Redis cache first
+    const cached = await cacheGet<typeof DEFAULT_SETTINGS>(CACHE_KEY);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'X-Cache': 'HIT',
+        },
+      });
+    }
+
+    // Cache miss - fetch from database
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -24,7 +52,6 @@ export async function GET() {
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Fetch the single design settings row
     const { data, error } = await supabase
       .from('design_settings')
       .select('*')
@@ -33,51 +60,33 @@ export async function GET() {
 
     if (error) {
       console.error('[Design Settings API] Error fetching settings:', error.code, error.message);
-
-      // Return defaults for any error (table doesn't exist, no rows, etc.)
-      return NextResponse.json({
-        main_logo: '/images/logo.png',
-        header_logo: '',
-        login_logo: '',
-        favicon: '',
-        site_name: 'JCIL.ai',
-        subtitle: 'Your AI Assistant',
-        model_name: '',
-      }, {
+      // Cache defaults on error to prevent repeated DB hits
+      await cacheSet(CACHE_KEY, DEFAULT_SETTINGS, 60); // Short TTL for errors
+      return NextResponse.json(DEFAULT_SETTINGS, {
         headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+          'X-Cache': 'MISS',
         },
       });
     }
 
-    // Return with cache headers - 5 min cache, 10 min stale-while-revalidate
-    return NextResponse.json(data || {
-      main_logo: '/images/logo.png',
-      header_logo: '',
-      login_logo: '',
-      favicon: '',
-      site_name: 'JCIL.ai',
-      subtitle: 'Your AI Assistant',
-      model_name: '',
-    }, {
+    const settings = data || DEFAULT_SETTINGS;
+
+    // Cache the result in Redis
+    await cacheSet(CACHE_KEY, settings, CACHE_TTL_SECONDS);
+
+    return NextResponse.json(settings, {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'X-Cache': 'MISS',
       },
     });
   } catch (error) {
     console.error('[Design Settings API] Error:', error);
-    // Return defaults on any error
-    return NextResponse.json({
-      main_logo: '/images/logo.png',
-      header_logo: '',
-      login_logo: '',
-      favicon: '',
-      site_name: 'JCIL.ai',
-      subtitle: 'Your AI Assistant',
-      model_name: '',
-    }, {
+    return NextResponse.json(DEFAULT_SETTINGS, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        'X-Cache': 'ERROR',
       },
     });
   }
@@ -174,7 +183,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Admin Audit] Design settings updated by admin');
+    // Invalidate cache and store new settings
+    await cacheDelete(CACHE_KEY);
+    await cacheSet(CACHE_KEY, result.data, CACHE_TTL_SECONDS);
+
+    console.log('[Admin Audit] Design settings updated by admin, cache invalidated');
 
     return NextResponse.json({
       success: true,
