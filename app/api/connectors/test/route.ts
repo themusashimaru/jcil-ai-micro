@@ -1289,8 +1289,8 @@ async function testGhost(token: string): Promise<{ valid: boolean; siteName?: st
       return { valid: false, error: 'Invalid format. Enter Site URL and Admin API Key.' };
     }
 
-    let [siteUrl, apiKey] = parts.map(p => p.trim());
-    siteUrl = siteUrl.replace(/\/$/, '');
+    const [rawSiteUrl, apiKey] = parts.map(p => p.trim());
+    const siteUrl = rawSiteUrl.replace(/\/$/, '');
 
     // Create JWT for Ghost Admin API
     const keyParts = apiKey.split(':');
