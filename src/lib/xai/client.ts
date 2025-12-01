@@ -1,6 +1,9 @@
 /**
  * xAI Client
  * Wrapper for xAI API using Vercel AI SDK
+ *
+ * Supports multiple API keys for load distribution.
+ * Users are assigned to specific API keys for consistency.
  */
 
 import { createXai } from '@ai-sdk/xai';
@@ -14,6 +17,7 @@ import {
   getSystemPromptForTool,
 } from './tools';
 import type { ToolType } from './types';
+import { getApiKeyForUser } from './api-key-manager';
 
 interface ChatOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,24 +26,22 @@ interface ChatOptions {
   temperature?: number;
   maxTokens?: number;
   stream?: boolean;
+  apiKeyIndex?: number | null; // User's assigned API key index
 }
 
 /**
- * Initialize xAI client with API key
+ * Get API key for a request
+ * Uses assigned key index if provided, otherwise falls back to first available
  */
-function getXAIApiKey(): string {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('XAI_API_KEY environment variable is not set');
-  }
-  return apiKey;
+function getXAIApiKey(assignedKeyIndex?: number | null): string {
+  return getApiKeyForUser(assignedKeyIndex ?? null);
 }
 
 /**
- * Get configured xAI provider
+ * Get configured xAI provider with specific API key
  */
-function getXAIProvider() {
-  const apiKey = getXAIApiKey();
+function getXAIProvider(apiKeyIndex?: number | null) {
+  const apiKey = getXAIApiKey(apiKeyIndex);
   return createXai({
     apiKey,
   });
@@ -53,7 +55,7 @@ function getXAIProvider() {
  * which uses the direct xAI Responses API with full search support.
  */
 export async function createChatCompletion(options: ChatOptions) {
-  const { messages, tool, temperature, maxTokens, stream = true } = options;
+  const { messages, tool, temperature, maxTokens, stream = true, apiKeyIndex } = options;
 
   // Use direct xAI API for non-streaming (has better search support)
   if (!stream) {
@@ -61,7 +63,7 @@ export async function createChatCompletion(options: ChatOptions) {
   }
 
   // For streaming, use Vercel AI SDK with xAI provider options for search
-  const xai = getXAIProvider();
+  const xai = getXAIProvider(apiKeyIndex);
 
   // Determine the appropriate model
   const modelName = getModelForTool(tool);
@@ -249,8 +251,8 @@ IMPORTANT: Use these times as your reference. When users ask about time, use the
  * because the Responses API doesn't support the image_url format
  */
 async function createDirectXAICompletion(options: ChatOptions) {
-  const { messages, tool, temperature, maxTokens } = options;
-  const apiKey = getXAIApiKey();
+  const { messages, tool, temperature, maxTokens, apiKeyIndex } = options;
+  const apiKey = getXAIApiKey(apiKeyIndex);
 
   // Get configuration
   const modelName = getModelForTool(tool);
@@ -519,9 +521,9 @@ async function createChatCompletionWithImages(
 /**
  * Generate an image using xAI
  */
-export async function generateImage(prompt: string) {
+export async function generateImage(prompt: string, apiKeyIndex?: number | null) {
   // Ensure API key is available
-  const apiKey = getXAIApiKey();
+  const apiKey = getXAIApiKey(apiKeyIndex);
 
   // Use OpenAI-compatible API for image generation
   const response = await fetch('https://api.x.ai/v1/images/generations', {
@@ -549,9 +551,9 @@ export async function generateImage(prompt: string) {
 /**
  * Analyze an image using xAI vision capabilities
  */
-export async function analyzeImage(imageUrl: string, question: string) {
+export async function analyzeImage(imageUrl: string, question: string, apiKeyIndex?: number | null) {
   // Get configured xAI provider
-  const xai = getXAIProvider();
+  const xai = getXAIProvider(apiKeyIndex);
 
   // grok-4-fast supports vision/image understanding
   const model = xai('grok-4-fast');

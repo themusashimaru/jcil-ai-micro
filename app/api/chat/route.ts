@@ -36,6 +36,7 @@
 
 import { createChatCompletion, generateImage } from '@/lib/xai/client';
 import { getModelForTool } from '@/lib/xai/models';
+import { getApiKeyCount } from '@/lib/xai/api-key-manager';
 import { moderateContent } from '@/lib/openai/moderation';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
@@ -123,6 +124,78 @@ async function checkChatRateLimit(
   }
 }
 
+/**
+ * Get or assign API key index for a user
+ * Users are permanently assigned to an API key for consistency
+ * New users get round-robin assigned to the next available key
+ */
+async function getOrAssignApiKeyIndex(userId: string): Promise<number | null> {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    // If Supabase admin not configured, return null (will use default key)
+    return null;
+  }
+
+  try {
+    // First, check if user already has an assigned key
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('assigned_api_key_index')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      console.error('[Chat API] Error fetching user API key assignment:', fetchError);
+      return null;
+    }
+
+    // If already assigned, return it
+    if (user?.assigned_api_key_index !== null && user?.assigned_api_key_index !== undefined) {
+      return user.assigned_api_key_index;
+    }
+
+    // Not assigned yet - assign using round-robin
+    const keyCount = getApiKeyCount();
+
+    if (keyCount === 0) {
+      console.error('[Chat API] No API keys configured');
+      return null;
+    }
+
+    // Get the highest currently assigned index
+    const { data: maxResult } = await supabase
+      .from('users')
+      .select('assigned_api_key_index')
+      .not('assigned_api_key_index', 'is', null)
+      .order('assigned_api_key_index', { ascending: false })
+      .limit(1)
+      .single();
+
+    const currentMax = maxResult?.assigned_api_key_index || 0;
+
+    // Calculate next index (round-robin)
+    const nextIndex = (currentMax % keyCount) + 1;
+
+    // Assign to user
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ assigned_api_key_index: nextIndex })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('[Chat API] Error assigning API key to user:', updateError);
+      return null;
+    }
+
+    console.log(`[Chat API] Assigned API key index ${nextIndex} to user ${userId}`);
+    return nextIndex;
+  } catch (error) {
+    console.error('[Chat API] Error in API key assignment:', error);
+    return null;
+  }
+}
+
 interface UserContext {
   name: string;
   role: 'student' | 'professional';
@@ -179,10 +252,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check rate limiting
+    // Check rate limiting and get API key assignment
     // Get user auth status and identifier for rate limiting
     let rateLimitIdentifier: string;
     let isAuthenticated = false;
+    let apiKeyIndex: number | null = null;
 
     try {
       const cookieStore = await cookies();
@@ -212,6 +286,9 @@ export async function POST(request: NextRequest) {
       if (user) {
         rateLimitIdentifier = user.id;
         isAuthenticated = true;
+
+        // Get or assign API key for this user (for load distribution)
+        apiKeyIndex = await getOrAssignApiKeyIndex(user.id);
       } else {
         // Fall back to IP for anonymous users
         rateLimitIdentifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
@@ -395,7 +472,7 @@ export async function POST(request: NextRequest) {
         : '';
 
       try {
-        const imageUrl = await generateImage(prompt);
+        const imageUrl = await generateImage(prompt, apiKeyIndex);
 
         return new Response(
           JSON.stringify({
@@ -473,6 +550,7 @@ export async function POST(request: NextRequest) {
         temperature,
         maxTokens: max_tokens,
         stream: false,
+        apiKeyIndex,
       });
 
       // Extract citations if available
@@ -512,6 +590,7 @@ export async function POST(request: NextRequest) {
         temperature,
         maxTokens: max_tokens,
         stream: true,
+        apiKeyIndex,
       });
 
       console.log('[Chat API] streamText returned, result type:', typeof result);
@@ -556,6 +635,7 @@ export async function POST(request: NextRequest) {
         temperature,
         maxTokens: max_tokens,
         stream: false,
+        apiKeyIndex,
       });
 
       // Extract citations if available
