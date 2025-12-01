@@ -79,15 +79,16 @@ export const CONNECTORS: ConnectorConfig[] = [
     category: 'code',
     icon: '⚡',
     color: '#3ecf8e',
-    tokenLabel: 'Service Role Key',
+    tokenLabel: 'Project URL | Service Role Key',
     tokenHelpUrl: 'https://supabase.com/dashboard/project/_/settings/api',
-    placeholder: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    placeholder: 'https://xxx.supabase.co|eyJhbGciOiJIUzI1NiIs...',
     capabilities: [
-      'Query database',
-      'Manage tables',
-      'View users',
+      'List and query database tables',
+      'Insert, update, delete records',
+      'View table schemas',
+      'List authenticated users',
+      'Run custom queries',
     ],
-    comingSoon: true,
   },
 
   // E-COMMERCE
