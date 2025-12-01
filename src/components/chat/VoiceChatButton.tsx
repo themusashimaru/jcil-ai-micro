@@ -48,6 +48,12 @@ export function VoiceChatButton({
   const lastPlayedMessageRef = useRef<string>(''); // Track last played message to avoid replaying
   const shouldAutoRestartRef = useRef<boolean>(false); // Track if we should auto-restart after TTS
   const isRecordingRef = useRef<boolean>(false); // Track recording state for silence detection
+  const voiceModeActiveRef = useRef<boolean>(false); // Track voice mode for closures
+
+  // Keep ref in sync with prop
+  useEffect(() => {
+    voiceModeActiveRef.current = voiceModeActive;
+  }, [voiceModeActive]);
 
   const SILENCE_THRESHOLD = 20; // Audio level below this is silence
   const SILENCE_DURATION = 1500; // 1.5 seconds of silence to trigger send
@@ -80,6 +86,7 @@ export function VoiceChatButton({
 
     try {
       setVoiceState('speaking');
+      console.log('[VoiceChat] Starting TTS for:', text.substring(0, 50) + '...');
 
       // Strip markdown and code blocks for cleaner speech
       const cleanText = text
@@ -97,10 +104,19 @@ export function VoiceChatButton({
       });
 
       if (!response.ok) {
-        throw new Error('TTS failed');
+        const errorText = await response.text();
+        console.error('[VoiceChat] TTS API error:', response.status, errorText);
+        throw new Error('TTS failed: ' + response.status);
       }
 
       const audioBlob = await response.blob();
+      console.log('[VoiceChat] Got audio blob:', audioBlob.size, 'bytes');
+
+      if (audioBlob.size < 100) {
+        console.error('[VoiceChat] Audio blob too small');
+        throw new Error('TTS returned empty audio');
+      }
+
       const audioUrl = URL.createObjectURL(audioBlob);
 
       // Play audio
@@ -108,13 +124,15 @@ export function VoiceChatButton({
       audioElementRef.current = audio;
 
       audio.onended = () => {
+        console.log('[VoiceChat] Audio playback ended');
         URL.revokeObjectURL(audioUrl);
         audioElementRef.current = null;
-        // Auto-restart recording for continuous conversation
-        if (shouldAutoRestartRef.current && voiceModeActive) {
+        // Auto-restart recording for continuous conversation using ref
+        if (shouldAutoRestartRef.current && voiceModeActiveRef.current) {
           // Small delay before restarting to feel natural
           setTimeout(() => {
-            if (voiceModeActive) {
+            if (voiceModeActiveRef.current) {
+              console.log('[VoiceChat] Auto-restarting recording');
               startRecording();
             } else {
               setVoiceState('idle');
@@ -125,16 +143,30 @@ export function VoiceChatButton({
         }
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('[VoiceChat] Audio playback error:', e);
         setVoiceState('idle');
         URL.revokeObjectURL(audioUrl);
         audioElementRef.current = null;
       };
 
+      audio.oncanplaythrough = () => {
+        console.log('[VoiceChat] Audio ready to play');
+      };
+
       await audio.play();
+      console.log('[VoiceChat] Audio playing');
     } catch (err) {
       console.error('[VoiceChat] TTS error:', err);
       setVoiceState('idle');
+      // If TTS fails, still try to continue conversation
+      if (shouldAutoRestartRef.current && voiceModeActiveRef.current) {
+        setTimeout(() => {
+          if (voiceModeActiveRef.current) {
+            startRecording();
+          }
+        }, 500);
+      }
     }
   };
 
@@ -261,8 +293,8 @@ export function VoiceChatButton({
           // Create audio blob
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
 
-          // Only transcribe if we have enough audio
-          if (audioBlob.size > 1000) {
+          // Only transcribe if we have enough audio (increased threshold)
+          if (audioBlob.size > 3000) {
             setVoiceState('transcribing');
 
             const formData = new FormData();
@@ -281,11 +313,26 @@ export function VoiceChatButton({
             const result = await response.json();
 
             if (result.text && result.text.trim()) {
-              // Send the transcribed text
-              onTranscriptionComplete(result.text.trim());
+              const text = result.text.trim();
+
+              // Filter out garbage/empty transcriptions
+              // Check for valid content (not just punctuation, not non-Latin characters for English)
+              const hasValidContent = text.length > 1 &&
+                /[a-zA-Z]/.test(text) && // Must have at least one Latin letter
+                !/^[\s.,!?]+$/.test(text); // Not just punctuation
+
+              if (hasValidContent) {
+                // Send the transcribed text
+                onTranscriptionComplete(text);
+              } else {
+                console.log('[VoiceChat] Filtered out garbage transcription:', text);
+              }
             }
+          } else {
+            console.log('[VoiceChat] Audio too short, skipping transcription');
           }
 
+          // Stay in voice mode - go back to listening
           setVoiceState('idle');
           resolve();
         } catch (err) {
@@ -354,16 +401,16 @@ export function VoiceChatButton({
         onClick={handleClick}
         disabled={isStreaming || voiceState === 'transcribing'}
         className={`
-          relative rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-300
+          relative rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-300
           ${voiceState === 'recording'
-            ? 'bg-cyan-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.8)]'
+            ? 'bg-cyan-700/90 text-white shadow-[0_0_12px_rgba(6,182,212,0.5)]'
             : voiceState === 'transcribing'
             ? 'bg-gray-600 text-white'
             : voiceState === 'speaking'
-            ? 'bg-green-500 text-white shadow-[0_0_15px_rgba(34,197,94,0.6)] animate-pulse'
+            ? 'bg-green-600/90 text-white shadow-[0_0_10px_rgba(34,197,94,0.4)] animate-pulse'
             : voiceModeActive
-            ? 'bg-cyan-500/80 text-white shadow-[0_0_15px_rgba(6,182,212,0.6)]'
-            : 'bg-cyan-500/80 text-white hover:bg-cyan-400/90 shadow-[0_0_15px_rgba(6,182,212,0.6)]'
+            ? 'bg-cyan-600/70 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]'
+            : 'bg-cyan-600/70 text-white hover:bg-cyan-500/80 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
           }
           disabled:opacity-50 disabled:cursor-not-allowed
         `}
