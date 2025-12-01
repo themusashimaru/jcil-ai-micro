@@ -901,6 +901,164 @@ async function testSupabase(token: string): Promise<{ valid: boolean; projectNam
   }
 }
 
+// Test Coinbase Advanced Trade connection
+// Token format: API_KEY|API_SECRET
+async function testCoinbaseTrade(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter API Key and API Secret.' };
+    }
+
+    const [apiKey, apiSecret] = parts.map(p => p.trim());
+
+    // Basic validation
+    if (!apiKey || !apiSecret) {
+      return { valid: false, error: 'Both API Key and API Secret are required.' };
+    }
+
+    // For Advanced Trade, we'd need to sign requests with HMAC
+    // For now, validate the format
+    if (apiKey.length < 10 || apiSecret.length < 20) {
+      return { valid: false, error: 'API credentials appear to be incomplete.' };
+    }
+
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Failed to validate. Check your credentials.' };
+  }
+}
+
+// Test Alpaca connection
+// Token format: API_KEY|API_SECRET|MODE
+async function testAlpaca(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length < 2) {
+      return { valid: false, error: 'Invalid format. Enter API Key ID and Secret Key.' };
+    }
+
+    const [apiKey, apiSecret] = parts.map(p => p.trim());
+    const isPaper = parts[2] !== 'live';
+
+    const baseUrl = isPaper
+      ? 'https://paper-api.alpaca.markets'
+      : 'https://api.alpaca.markets';
+
+    const response = await fetch(`${baseUrl}/v2/account`, {
+      headers: {
+        'APCA-API-KEY-ID': apiKey,
+        'APCA-API-SECRET-KEY': apiSecret,
+      },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401 || response.status === 403) {
+      return { valid: false, error: 'Invalid credentials. Check your Alpaca API keys.' };
+    } else {
+      return { valid: false, error: `Alpaca API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Alpaca. Check your network.' };
+  }
+}
+
+// Test Alpha Vantage connection
+async function testAlphaVantage(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=${token}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data['Error Message'] || data['Note']) {
+        return { valid: false, error: 'Invalid or rate-limited API key. Check your Alpha Vantage key.' };
+      }
+      return { valid: true };
+    } else {
+      return { valid: false, error: `Alpha Vantage API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Alpha Vantage. Check your network.' };
+  }
+}
+
+// Test CoinGecko connection
+async function testCoinGecko(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // CoinGecko can work without a key (free tier), but Pro requires one
+    const isPro = token && token.length > 10;
+    const baseUrl = isPro ? 'https://pro-api.coingecko.com' : 'https://api.coingecko.com';
+
+    const headers: Record<string, string> = { 'Accept': 'application/json' };
+    if (isPro) {
+      headers['x-cg-pro-api-key'] = token;
+    }
+
+    const response = await fetch(`${baseUrl}/api/v3/ping`, { headers });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your CoinGecko Pro API key.' };
+    } else {
+      return { valid: false, error: `CoinGecko API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to CoinGecko. Check your network.' };
+  }
+}
+
+// Test NewsAPI connection
+async function testNewsAPI(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch(`https://newsapi.org/v2/top-headlines?country=us&pageSize=1&apiKey=${token}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.status === 'error') {
+        return { valid: false, error: data.message || 'Invalid API key.' };
+      }
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your NewsAPI key.' };
+    } else {
+      return { valid: false, error: `NewsAPI error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to NewsAPI. Check your network.' };
+  }
+}
+
+// Test Zapier connection
+async function testZapier(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // Zapier can use either NLA API key (starts with sk-) or webhook URL
+    if (token.startsWith('https://hooks.zapier.com/')) {
+      // Webhook URL - we can't really test it without triggering
+      return { valid: true };
+    } else if (token.startsWith('sk-')) {
+      // NLA API key
+      const response = await fetch('https://nla.zapier.com/api/v1/exposed/', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        return { valid: true };
+      } else if (response.status === 401) {
+        return { valid: false, error: 'Invalid NLA API key. Check your Zapier API key.' };
+      } else {
+        return { valid: false, error: `Zapier API error: ${response.status}` };
+      }
+    } else {
+      // Accept any key format for flexibility
+      return { valid: true };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Zapier. Check your network.' };
+  }
+}
+
 // POST - Test a connection
 export async function POST(request: NextRequest) {
   try {
@@ -1034,6 +1192,24 @@ export async function POST(request: NextRequest) {
         break;
       case 'calendly':
         result = await testCalendly(token);
+        break;
+      case 'coinbase-trade':
+        result = await testCoinbaseTrade(token);
+        break;
+      case 'alpaca':
+        result = await testAlpaca(token);
+        break;
+      case 'alphavantage':
+        result = await testAlphaVantage(token);
+        break;
+      case 'coingecko':
+        result = await testCoinGecko(token);
+        break;
+      case 'newsapi':
+        result = await testNewsAPI(token);
+        break;
+      case 'zapier':
+        result = await testZapier(token);
         break;
       default:
         // For services we haven't implemented testing for yet, assume valid

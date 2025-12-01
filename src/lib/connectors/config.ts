@@ -15,7 +15,7 @@ export interface ConnectorConfig {
   id: string;
   name: string;
   description: string;
-  category: 'code' | 'ecommerce' | 'docs' | 'project' | 'analytics' | 'ai' | 'communication' | 'website';
+  category: 'code' | 'ecommerce' | 'docs' | 'project' | 'analytics' | 'ai' | 'communication' | 'website' | 'finance';
   icon: string; // We'll use simple text icons or could be URLs
   color: string; // Brand color for UI
   tokenLabel: string; // e.g., "Personal Access Token" or "API Key"
@@ -851,6 +851,157 @@ export const CONNECTORS: ConnectorConfig[] = [
     ],
   },
 
+  // FINANCE & TRADING
+  {
+    id: 'coinbase-trade',
+    name: 'Coinbase Advanced',
+    description: 'Full crypto trading with buy/sell capabilities',
+    category: 'finance',
+    icon: '📈',
+    color: '#0052ff',
+    tokenLabel: 'Advanced Trade API Credentials',
+    tokenHelpUrl: 'https://www.coinbase.com/settings/api',
+    placeholder: '',
+    capabilities: [
+      'Buy and sell crypto',
+      'View account balances',
+      'List orders and fills',
+      'Get market data and prices',
+      'Manage portfolio',
+    ],
+    fields: [
+      {
+        key: 'apiKey',
+        label: 'API Key',
+        placeholder: 'organizations/xxx/apiKeys/xxx',
+        type: 'text',
+        helpText: 'Found in Coinbase → Settings → API → Create API Key (Advanced Trade)',
+      },
+      {
+        key: 'apiSecret',
+        label: 'API Secret',
+        placeholder: '-----BEGIN EC PRIVATE KEY-----...',
+        type: 'password',
+        helpText: 'The private key generated when creating the API key',
+      },
+    ],
+    fieldSeparator: '|',
+  },
+  {
+    id: 'alpaca',
+    name: 'Alpaca',
+    description: 'Commission-free stock trading',
+    category: 'finance',
+    icon: '🦙',
+    color: '#fcd34d',
+    tokenLabel: 'API Credentials',
+    tokenHelpUrl: 'https://app.alpaca.markets/paper/dashboard/overview',
+    placeholder: '',
+    capabilities: [
+      'Buy and sell stocks',
+      'View portfolio and positions',
+      'Get stock quotes and bars',
+      'Manage orders',
+      'View market calendar',
+    ],
+    fields: [
+      {
+        key: 'apiKey',
+        label: 'API Key ID',
+        placeholder: 'PKxxxxxxxxxxxxxxxxxxxx',
+        type: 'text',
+        helpText: 'Found in Alpaca dashboard → Paper Trading or Live → API Keys',
+      },
+      {
+        key: 'apiSecret',
+        label: 'Secret Key',
+        placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        type: 'password',
+        helpText: 'Generated when creating API key',
+      },
+      {
+        key: 'mode',
+        label: 'Trading Mode',
+        placeholder: 'paper (or live)',
+        type: 'text',
+        helpText: 'Enter "paper" for paper trading or "live" for real money',
+      },
+    ],
+    fieldSeparator: '|',
+  },
+  {
+    id: 'alphavantage',
+    name: 'Alpha Vantage',
+    description: 'Stock market data and technical analysis',
+    category: 'finance',
+    icon: '📊',
+    color: '#4f46e5',
+    tokenLabel: 'API Key',
+    tokenHelpUrl: 'https://www.alphavantage.co/support/#api-key',
+    placeholder: 'xxxxxxxxxxxxxxxx',
+    capabilities: [
+      'Get stock quotes and prices',
+      'Historical data (daily, weekly, monthly)',
+      'Technical indicators (SMA, EMA, RSI, MACD)',
+      'Company fundamentals and earnings',
+      'Market news and sentiment',
+    ],
+  },
+  {
+    id: 'coingecko',
+    name: 'CoinGecko',
+    description: 'Comprehensive crypto market data',
+    category: 'finance',
+    icon: '🦎',
+    color: '#8dc647',
+    tokenLabel: 'API Key (optional for basic)',
+    tokenHelpUrl: 'https://www.coingecko.com/en/api',
+    placeholder: 'CG-xxxxxxxxxxxxxxxx',
+    capabilities: [
+      'Get crypto prices and market data',
+      'View trending coins',
+      'Historical charts and OHLC',
+      'Exchange and NFT data',
+      'Global market statistics',
+    ],
+  },
+  {
+    id: 'newsapi',
+    name: 'NewsAPI',
+    description: 'Real-time news aggregation',
+    category: 'finance',
+    icon: '📰',
+    color: '#4a5568',
+    tokenLabel: 'API Key',
+    tokenHelpUrl: 'https://newsapi.org/register',
+    placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    capabilities: [
+      'Get top headlines',
+      'Search news articles',
+      'Filter by category and source',
+      'Crypto, tech, AI, and business news',
+      'Stock and company news',
+    ],
+  },
+  {
+    id: 'zapier',
+    name: 'Zapier',
+    description: 'Connect to 6000+ apps via automation',
+    category: 'code',
+    icon: '⚡',
+    color: '#ff4a00',
+    tokenLabel: 'API Key or Webhook URL',
+    tokenHelpUrl: 'https://zapier.com/app/settings/integrations',
+    placeholder: 'sk-... or https://hooks.zapier.com/...',
+    capabilities: [
+      'Trigger webhooks',
+      'Execute Natural Language Actions (NLA)',
+      'Send emails via Zaps',
+      'Post to Slack via Zaps',
+      'Create tasks in any connected app',
+    ],
+  },
+
   // WEBSITES & CMS
   {
     id: 'wordpress',
@@ -931,4 +1082,5 @@ export const CATEGORY_LABELS: Record<ConnectorConfig['category'], string> = {
   ai: 'AI & Voice',
   communication: 'Communication',
   website: 'Websites & CMS',
+  finance: 'Finance & Trading',
 };
