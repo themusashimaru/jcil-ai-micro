@@ -1245,7 +1245,7 @@ export function ChatClient() {
                   setIsConnectorsOpen(true);
                   if (showConnectorsTip) dismissConnectorsTip();
                 }}
-                className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5 focus:outline-none"
+                className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center justify-center gap-0.5 focus:outline-none"
                 aria-label="Connectors"
                 title="Connect external services"
               >
@@ -1263,17 +1263,17 @@ export function ChatClient() {
               {/* Onboarding Tooltip */}
               {showConnectorsTip && (
                 <div className="absolute top-full right-0 mt-2 z-50 animate-slide-down">
-                  <div className="relative bg-blue-600 text-white text-xs rounded-lg px-3 py-2 shadow-lg max-w-[200px]">
+                  <div className="relative bg-blue-600 text-white text-sm rounded-xl px-4 py-3 shadow-lg w-[260px]">
                     {/* Arrow pointing up */}
-                    <div className="absolute -top-2 right-4 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[8px] border-b-blue-600" />
-                    <p className="font-medium mb-1">Add Connectors</p>
-                    <p className="text-blue-100 text-[11px] leading-tight">Connect apps like GitHub, Notion, Slack for full AI capabilities</p>
+                    <div className="absolute -top-2 right-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[10px] border-b-blue-600" />
+                    <p className="font-semibold mb-1">Add Connectors</p>
+                    <p className="text-blue-100 text-xs leading-relaxed">Connect your apps for full AI capabilities</p>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         dismissConnectorsTip();
                       }}
-                      className="mt-2 text-[10px] text-blue-200 hover:text-white underline"
+                      className="mt-3 text-xs text-blue-200 hover:text-white underline"
                     >
                       Got it
                     </button>
@@ -1284,8 +1284,7 @@ export function ChatClient() {
             {/* Profile Button */}
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center gap-0.5 focus:outline-none focus:bg-transparent active:bg-transparent"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
+              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center justify-center gap-0.5 focus:outline-none"
               aria-label="User Profile"
             >
               <svg className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
