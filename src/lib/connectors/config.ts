@@ -76,11 +76,12 @@ export const CONNECTORS: ConnectorConfig[] = [
     tokenHelpUrl: 'https://vercel.com/account/tokens',
     placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxx',
     capabilities: [
+      'List projects',
       'View deployments',
-      'Trigger deployments',
-      'Manage environment variables',
+      'Check deployment status',
+      'View environment variables',
+      'Trigger redeployments',
     ],
-    comingSoon: true,
   },
   {
     id: 'supabase',

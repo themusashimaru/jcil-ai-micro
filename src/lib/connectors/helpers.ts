@@ -154,6 +154,15 @@ The user's GitHub account is automatically linked. Just use the repo name - no n
 
 Note: You can also use the full "owner/repo" format if needed (e.g., for repos owned by others).
 
+**VERCEL ACTIONS** (if connected):
+- List projects: [CONNECTOR_ACTION: vercel | list_projects | {}]
+- List deployments: [CONNECTOR_ACTION: vercel | list_deployments | {"limit": 10}]
+- Get project details: [CONNECTOR_ACTION: vercel | get_project | {"projectId": "project-name-or-id"}]
+- Get deployment status: [CONNECTOR_ACTION: vercel | get_deployment | {"deploymentId": "dpl_xxx"}]
+- List environment variables: [CONNECTOR_ACTION: vercel | list_env_vars | {"projectId": "project-name"}]
+- List domains: [CONNECTOR_ACTION: vercel | list_domains | {"projectId": "project-name"}]
+- Redeploy: [CONNECTOR_ACTION: vercel | redeploy | {"deploymentId": "dpl_xxx"}]
+
 ALWAYS use this format when the user asks about their connected services. The user will click the "Run Action" button to execute and see results.
 `;
 }

@@ -87,6 +87,51 @@ async function testShopify(_token: string): Promise<{ valid: boolean; shopName?:
   return { valid: false, error: 'Shopify connection requires store URL. Coming soon.' };
 }
 
+// Test Vercel connection
+async function testVercel(token: string): Promise<{ valid: boolean; username?: string; teams?: Array<{id: string; name: string}>; error?: string }> {
+  try {
+    // Get user info
+    const userResponse = await fetch('https://api.vercel.com/v2/user', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!userResponse.ok) {
+      if (userResponse.status === 401 || userResponse.status === 403) {
+        return { valid: false, error: 'Invalid token. Please check your Vercel API Token.' };
+      }
+      return { valid: false, error: `Vercel API error: ${userResponse.status}` };
+    }
+
+    const userData = await userResponse.json();
+    const username = userData.user?.username || userData.user?.name || 'Vercel User';
+
+    // Get teams (optional)
+    let teams: Array<{id: string; name: string}> = [];
+    try {
+      const teamsResponse = await fetch('https://api.vercel.com/v2/teams', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (teamsResponse.ok) {
+        const teamsData = await teamsResponse.json();
+        teams = (teamsData.teams || []).map((team: { id: string; name: string }) => ({
+          id: team.id,
+          name: team.name,
+        }));
+      }
+    } catch {
+      // Teams fetch is optional, continue without it
+    }
+
+    return { valid: true, username, teams };
+  } catch {
+    return { valid: false, error: 'Failed to connect to Vercel. Check your network.' };
+  }
+}
+
 // Test Supabase connection
 // Token format: project_url|service_role_key
 async function testSupabase(token: string): Promise<{ valid: boolean; projectName?: string; error?: string }> {
@@ -176,6 +221,7 @@ export async function POST(request: NextRequest) {
       shopName?: string;
       projectName?: string;
       repos?: Array<{name: string; full_name: string; private: boolean}>;
+      teams?: Array<{id: string; name: string}>;
       error?: string;
     };
 
@@ -188,6 +234,9 @@ export async function POST(request: NextRequest) {
         break;
       case 'shopify':
         result = await testShopify(token);
+        break;
+      case 'vercel':
+        result = await testVercel(token);
         break;
       case 'supabase':
         result = await testSupabase(token);
