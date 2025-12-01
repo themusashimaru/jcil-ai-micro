@@ -260,6 +260,260 @@ async function testDiscord(token: string): Promise<{ valid: boolean; username?: 
   }
 }
 
+// Test OpenAI connection
+async function testOpenAI(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.openai.com/v1/models', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your OpenAI API key.' };
+    } else {
+      return { valid: false, error: `OpenAI API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to OpenAI. Check your network.' };
+  }
+}
+
+// Test Anthropic connection
+async function testAnthropic(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // Anthropic doesn't have a simple validation endpoint, so we make a minimal request
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': token,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'hi' }],
+      }),
+    });
+
+    // Any response other than 401 means the key is valid
+    if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Anthropic API key.' };
+    }
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Failed to connect to Anthropic. Check your network.' };
+  }
+}
+
+// Test xAI (Grok) connection
+async function testXAI(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.x.ai/v1/models', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your xAI API key.' };
+    } else {
+      return { valid: false, error: `xAI API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to xAI. Check your network.' };
+  }
+}
+
+// Test Groq connection
+async function testGroq(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Groq API key.' };
+    } else {
+      return { valid: false, error: `Groq API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Groq. Check your network.' };
+  }
+}
+
+// Test Mistral connection
+async function testMistral(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.mistral.ai/v1/models', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Mistral API key.' };
+    } else {
+      return { valid: false, error: `Mistral API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Mistral. Check your network.' };
+  }
+}
+
+// Test Perplexity connection
+async function testPerplexity(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    // Perplexity doesn't have a models endpoint, so we test with a minimal chat
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar',
+        messages: [{ role: 'user', content: 'hi' }],
+        max_tokens: 1,
+      }),
+    });
+
+    if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Perplexity API key.' };
+    }
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Failed to connect to Perplexity. Check your network.' };
+  }
+}
+
+// Test Replicate connection
+async function testReplicate(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.replicate.com/v1/predictions', {
+      headers: { Authorization: `Token ${token}` },
+    });
+
+    if (response.ok || response.status === 200) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API token. Check your Replicate API token.' };
+    } else {
+      return { valid: false, error: `Replicate API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Replicate. Check your network.' };
+  }
+}
+
+// Test Stability AI connection
+async function testStability(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.stability.ai/v1/engines/list', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your Stability AI API key.' };
+    } else {
+      return { valid: false, error: `Stability API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Stability AI. Check your network.' };
+  }
+}
+
+// Test ElevenLabs connection
+async function testElevenLabs(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.elevenlabs.io/v1/user', {
+      headers: { 'xi-api-key': token },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Check your ElevenLabs API key.' };
+    } else {
+      return { valid: false, error: `ElevenLabs API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to ElevenLabs. Check your network.' };
+  }
+}
+
+// Test GitLab connection
+async function testGitLab(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://gitlab.com/api/v4/user', {
+      headers: { 'PRIVATE-TOKEN': token },
+    });
+
+    if (response.ok) {
+      const user = await response.json();
+      return { valid: true, username: user.username };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your GitLab Personal Access Token.' };
+    } else {
+      return { valid: false, error: `GitLab API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to GitLab. Check your network.' };
+  }
+}
+
+// Test Airtable connection
+async function testAirtable(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.airtable.com/v0/meta/bases', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid token. Check your Airtable Personal Access Token.' };
+    } else {
+      return { valid: false, error: `Airtable API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Airtable. Check your network.' };
+  }
+}
+
+// Test Twilio connection
+async function testTwilio(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const separator = token.includes(':') ? ':' : '|';
+    const parts = token.split(separator);
+    if (parts.length !== 2) {
+      return { valid: false, error: 'Invalid format. Enter Account SID and Auth Token.' };
+    }
+
+    const [accountSid, authToken] = parts.map(p => p.trim());
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+
+    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your Account SID and Auth Token.' };
+    } else {
+      return { valid: false, error: `Twilio API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Twilio. Check your network.' };
+  }
+}
+
 // Test Vercel connection
 async function testVercel(token: string): Promise<{ valid: boolean; username?: string; teams?: Array<{id: string; name: string}>; error?: string }> {
   try {
@@ -429,6 +683,42 @@ export async function POST(request: NextRequest) {
         break;
       case 'supabase':
         result = await testSupabase(token);
+        break;
+      case 'openai':
+        result = await testOpenAI(token);
+        break;
+      case 'anthropic':
+        result = await testAnthropic(token);
+        break;
+      case 'xai':
+        result = await testXAI(token);
+        break;
+      case 'groq':
+        result = await testGroq(token);
+        break;
+      case 'mistral':
+        result = await testMistral(token);
+        break;
+      case 'perplexity':
+        result = await testPerplexity(token);
+        break;
+      case 'replicate':
+        result = await testReplicate(token);
+        break;
+      case 'stability':
+        result = await testStability(token);
+        break;
+      case 'elevenlabs':
+        result = await testElevenLabs(token);
+        break;
+      case 'gitlab':
+        result = await testGitLab(token);
+        break;
+      case 'airtable':
+        result = await testAirtable(token);
+        break;
+      case 'twilio':
+        result = await testTwilio(token);
         break;
       default:
         // For services we haven't implemented testing for yet, assume valid
