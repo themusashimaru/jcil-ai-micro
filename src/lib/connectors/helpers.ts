@@ -248,6 +248,78 @@ Note: You can also use the full "owner/repo" format if needed (e.g., for repos o
 - List roles: [CONNECTOR_ACTION: discord | list_roles | {"guildId": "xxx"}]
 - Create channel: [CONNECTOR_ACTION: discord | create_channel | {"guildId": "xxx", "name": "new-channel", "type": 0}]
 
+**OPENAI ACTIONS** (if connected):
+- Chat completion: [CONNECTOR_ACTION: openai | chat | {"prompt": "Hello", "model": "gpt-4o"}]
+- Generate image: [CONNECTOR_ACTION: openai | generate_image | {"prompt": "A sunset over mountains", "size": "1024x1024"}]
+- List models: [CONNECTOR_ACTION: openai | list_models | {}]
+- Create embeddings: [CONNECTOR_ACTION: openai | embeddings | {"input": "Text to embed", "model": "text-embedding-3-small"}]
+
+**ANTHROPIC ACTIONS** (if connected):
+- Chat/complete: [CONNECTOR_ACTION: anthropic | chat | {"prompt": "Hello", "model": "claude-3-sonnet-20240229"}]
+- List models: [CONNECTOR_ACTION: anthropic | list_models | {}]
+
+**XAI (GROK) ACTIONS** (if connected):
+- Chat completion: [CONNECTOR_ACTION: xai | chat | {"prompt": "Hello", "model": "grok-beta"}]
+- List models: [CONNECTOR_ACTION: xai | list_models | {}]
+- Generate image: [CONNECTOR_ACTION: xai | generate_image | {"prompt": "A futuristic city"}]
+
+**GROQ ACTIONS** (if connected):
+- Chat completion: [CONNECTOR_ACTION: groq | chat | {"prompt": "Hello", "model": "llama-3.1-70b-versatile"}]
+- List models: [CONNECTOR_ACTION: groq | list_models | {}]
+
+**MISTRAL ACTIONS** (if connected):
+- Chat completion: [CONNECTOR_ACTION: mistral | chat | {"prompt": "Hello", "model": "mistral-large-latest"}]
+- List models: [CONNECTOR_ACTION: mistral | list_models | {}]
+- Create embeddings: [CONNECTOR_ACTION: mistral | embeddings | {"input": "Text to embed"}]
+
+**PERPLEXITY ACTIONS** (if connected):
+- Search/chat: [CONNECTOR_ACTION: perplexity | search | {"prompt": "What is the latest news about AI?", "model": "sonar"}]
+- List models: [CONNECTOR_ACTION: perplexity | list_models | {}]
+
+**REPLICATE ACTIONS** (if connected):
+- Run model: [CONNECTOR_ACTION: replicate | run_model | {"model": "stability-ai/sdxl", "input": {"prompt": "A beautiful sunset"}}]
+- Get prediction: [CONNECTOR_ACTION: replicate | get_prediction | {"predictionId": "xxx"}]
+- List predictions: [CONNECTOR_ACTION: replicate | list_predictions | {}]
+- Search models: [CONNECTOR_ACTION: replicate | search_models | {"query": "text to image"}]
+
+**STABILITY AI ACTIONS** (if connected):
+- Generate image: [CONNECTOR_ACTION: stability | generate_image | {"prompt": "A majestic mountain", "width": 1024, "height": 1024}]
+- List engines: [CONNECTOR_ACTION: stability | list_engines | {}]
+- Get balance: [CONNECTOR_ACTION: stability | get_balance | {}]
+
+**ELEVENLABS ACTIONS** (if connected):
+- List voices: [CONNECTOR_ACTION: elevenlabs | list_voices | {}]
+- Get voice: [CONNECTOR_ACTION: elevenlabs | get_voice | {"voiceId": "xxx"}]
+- Text to speech: [CONNECTOR_ACTION: elevenlabs | text_to_speech | {"voiceId": "xxx", "text": "Hello world"}]
+- Get user info: [CONNECTOR_ACTION: elevenlabs | get_user | {}]
+- List models: [CONNECTOR_ACTION: elevenlabs | list_models | {}]
+
+**GITLAB ACTIONS** (if connected):
+- Get user info: [CONNECTOR_ACTION: gitlab | get_user | {}]
+- List projects: [CONNECTOR_ACTION: gitlab | list_projects | {"owned": true}]
+- Get project: [CONNECTOR_ACTION: gitlab | get_project | {"projectId": 123}]
+- List files: [CONNECTOR_ACTION: gitlab | list_files | {"projectId": 123, "path": "src"}]
+- Read file: [CONNECTOR_ACTION: gitlab | read_file | {"projectId": 123, "filePath": "README.md"}]
+- List merge requests: [CONNECTOR_ACTION: gitlab | list_merge_requests | {"projectId": 123, "state": "opened"}]
+- List issues: [CONNECTOR_ACTION: gitlab | list_issues | {"projectId": 123, "state": "opened"}]
+- List pipelines: [CONNECTOR_ACTION: gitlab | list_pipelines | {"projectId": 123}]
+
+**AIRTABLE ACTIONS** (if connected):
+- List bases: [CONNECTOR_ACTION: airtable | list_bases | {}]
+- Get base schema: [CONNECTOR_ACTION: airtable | get_base_schema | {"baseId": "appXXX"}]
+- List records: [CONNECTOR_ACTION: airtable | list_records | {"baseId": "appXXX", "tableId": "tblXXX"}]
+- Get record: [CONNECTOR_ACTION: airtable | get_record | {"baseId": "appXXX", "tableId": "tblXXX", "recordId": "recXXX"}]
+- Create record: [CONNECTOR_ACTION: airtable | create_record | {"baseId": "appXXX", "tableId": "tblXXX", "fields": {"Name": "New Record"}}]
+- Update record: [CONNECTOR_ACTION: airtable | update_record | {"baseId": "appXXX", "tableId": "tblXXX", "recordId": "recXXX", "fields": {"Name": "Updated"}}]
+- Delete record: [CONNECTOR_ACTION: airtable | delete_record | {"baseId": "appXXX", "tableId": "tblXXX", "recordId": "recXXX"}]
+
+**TWILIO ACTIONS** (if connected):
+- Get account info: [CONNECTOR_ACTION: twilio | get_account | {}]
+- Send SMS: [CONNECTOR_ACTION: twilio | send_sms | {"to": "+1234567890", "from": "+0987654321", "body": "Hello!"}]
+- List messages: [CONNECTOR_ACTION: twilio | list_messages | {"limit": 20}]
+- Get message: [CONNECTOR_ACTION: twilio | get_message | {"messageSid": "SMxxx"}]
+- List phone numbers: [CONNECTOR_ACTION: twilio | list_phone_numbers | {}]
+
 ALWAYS use this format when the user asks about their connected services. The user will click the "Run Action" button to execute and see results.
 `;
 }
