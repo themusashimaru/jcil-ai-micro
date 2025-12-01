@@ -79,12 +79,230 @@ async function testNotion(token: string): Promise<{ valid: boolean; error?: stri
 }
 
 // Test Shopify connection
-async function testShopify(_token: string): Promise<{ valid: boolean; shopName?: string; error?: string }> {
-  // Shopify tokens include the store domain - format: store.myshopify.com:shpat_xxx
-  // Or user might just provide the token if we store the shop separately
-  // For now, we'll need the shop domain in the token or metadata
-  // This is a placeholder - real implementation needs shop domain
-  return { valid: false, error: 'Shopify connection requires store URL. Coming soon.' };
+// Token format: store_domain|access_token
+async function testShopify(token: string): Promise<{ valid: boolean; shopName?: string; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 2) {
+      return {
+        valid: false,
+        error: 'Invalid format. Make sure you entered both the Store Domain and Access Token.'
+      };
+    }
+
+    let [storeDomain, accessToken] = parts;
+    storeDomain = storeDomain.trim();
+    accessToken = accessToken.trim();
+
+    // Ensure store domain has correct format
+    if (!storeDomain.includes('.myshopify.com')) {
+      storeDomain = `${storeDomain}.myshopify.com`;
+    }
+
+    const response = await fetch(`https://${storeDomain}/admin/api/2024-01/shop.json`, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return { valid: true, shopName: data.shop?.name || storeDomain };
+    } else if (response.status === 401 || response.status === 403) {
+      return { valid: false, error: 'Invalid access token. Make sure you copied the Admin API access token.' };
+    } else {
+      return { valid: false, error: `Connection failed (${response.status}). Check your store domain.` };
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return { valid: false, error: `Failed to connect: ${message}. Check your store URL and network.` };
+  }
+}
+
+// Test Stripe connection
+async function testStripe(token: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch('https://api.stripe.com/v1/balance', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid API key. Make sure you copied the Secret Key (not the Publishable key).' };
+    } else {
+      return { valid: false, error: `Stripe API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Stripe. Check your network.' };
+  }
+}
+
+// Test Linear connection
+async function testLinear(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const response = await fetch('https://api.linear.app/graphql', {
+      method: 'POST',
+      headers: {
+        Authorization: token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `{ viewer { id name email } }`,
+      }),
+    });
+
+    if (!response.ok) {
+      return { valid: false, error: `Linear API error: ${response.status}` };
+    }
+
+    const data = await response.json();
+    if (data.errors) {
+      return { valid: false, error: 'Invalid API key. Check your Linear API key.' };
+    }
+
+    return { valid: true, username: data.data?.viewer?.name || data.data?.viewer?.email };
+  } catch {
+    return { valid: false, error: 'Failed to connect to Linear. Check your network.' };
+  }
+}
+
+// Test Jira connection
+// Token format: site|email|api_token
+async function testJira(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    const parts = token.split('|');
+    if (parts.length !== 3) {
+      return {
+        valid: false,
+        error: 'Invalid format. Make sure you entered Site, Email, and API Token.'
+      };
+    }
+
+    let [siteDomain, email, apiToken] = parts;
+    siteDomain = siteDomain.trim();
+    email = email.trim();
+    apiToken = apiToken.trim();
+
+    if (!siteDomain.includes('.atlassian.net')) {
+      siteDomain = `${siteDomain}.atlassian.net`;
+    }
+
+    const auth = Buffer.from(`${email}:${apiToken}`).toString('base64');
+    const response = await fetch(`https://${siteDomain}/rest/api/3/myself`, {
+      headers: {
+        Authorization: `Basic ${auth}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const user = await response.json();
+      return { valid: true, username: user.displayName || email };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid credentials. Check your email and API token.' };
+    } else {
+      return { valid: false, error: `Jira API error: ${response.status}. Check your site domain.` };
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return { valid: false, error: `Failed to connect: ${message}` };
+  }
+}
+
+// Test Slack connection
+async function testSlack(token: string): Promise<{ valid: boolean; username?: string; team?: string; error?: string }> {
+  try {
+    const response = await fetch('https://slack.com/api/auth.test', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    if (data.ok) {
+      return { valid: true, username: data.user, team: data.team };
+    } else {
+      return { valid: false, error: `Slack error: ${data.error}. Check your Bot Token.` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Slack. Check your network.' };
+  }
+}
+
+// Test Discord connection
+async function testDiscord(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
+  try {
+    // Ensure token has Bot prefix
+    const authToken = token.startsWith('Bot ') ? token : `Bot ${token}`;
+
+    const response = await fetch('https://discord.com/api/v10/users/@me', {
+      headers: {
+        Authorization: authToken,
+      },
+    });
+
+    if (response.ok) {
+      const user = await response.json();
+      return { valid: true, username: user.username };
+    } else if (response.status === 401) {
+      return { valid: false, error: 'Invalid bot token. Check your Discord Bot Token.' };
+    } else {
+      return { valid: false, error: `Discord API error: ${response.status}` };
+    }
+  } catch {
+    return { valid: false, error: 'Failed to connect to Discord. Check your network.' };
+  }
+}
+
+// Test Vercel connection
+async function testVercel(token: string): Promise<{ valid: boolean; username?: string; teams?: Array<{id: string; name: string}>; error?: string }> {
+  try {
+    // Get user info
+    const userResponse = await fetch('https://api.vercel.com/v2/user', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!userResponse.ok) {
+      if (userResponse.status === 401 || userResponse.status === 403) {
+        return { valid: false, error: 'Invalid token. Please check your Vercel API Token.' };
+      }
+      return { valid: false, error: `Vercel API error: ${userResponse.status}` };
+    }
+
+    const userData = await userResponse.json();
+    const username = userData.user?.username || userData.user?.name || 'Vercel User';
+
+    // Get teams (optional)
+    let teams: Array<{id: string; name: string}> = [];
+    try {
+      const teamsResponse = await fetch('https://api.vercel.com/v2/teams', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (teamsResponse.ok) {
+        const teamsData = await teamsResponse.json();
+        teams = (teamsData.teams || []).map((team: { id: string; name: string }) => ({
+          id: team.id,
+          name: team.name,
+        }));
+      }
+    } catch {
+      // Teams fetch is optional, continue without it
+    }
+
+    return { valid: true, username, teams };
+  } catch {
+    return { valid: false, error: 'Failed to connect to Vercel. Check your network.' };
+  }
 }
 
 // Test Supabase connection
@@ -175,7 +393,9 @@ export async function POST(request: NextRequest) {
       username?: string;
       shopName?: string;
       projectName?: string;
+      team?: string;
       repos?: Array<{name: string; full_name: string; private: boolean}>;
+      teams?: Array<{id: string; name: string}>;
       error?: string;
     };
 
@@ -188,6 +408,24 @@ export async function POST(request: NextRequest) {
         break;
       case 'shopify':
         result = await testShopify(token);
+        break;
+      case 'stripe':
+        result = await testStripe(token);
+        break;
+      case 'linear':
+        result = await testLinear(token);
+        break;
+      case 'jira':
+        result = await testJira(token);
+        break;
+      case 'slack':
+        result = await testSlack(token);
+        break;
+      case 'discord':
+        result = await testDiscord(token);
+        break;
+      case 'vercel':
+        result = await testVercel(token);
         break;
       case 'supabase':
         result = await testSupabase(token);

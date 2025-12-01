@@ -154,6 +154,100 @@ The user's GitHub account is automatically linked. Just use the repo name - no n
 
 Note: You can also use the full "owner/repo" format if needed (e.g., for repos owned by others).
 
+**VERCEL ACTIONS** (if connected):
+- List projects: [CONNECTOR_ACTION: vercel | list_projects | {}]
+- List deployments: [CONNECTOR_ACTION: vercel | list_deployments | {"limit": 10}]
+- Get project details: [CONNECTOR_ACTION: vercel | get_project | {"projectId": "project-name-or-id"}]
+- Get deployment status: [CONNECTOR_ACTION: vercel | get_deployment | {"deploymentId": "dpl_xxx"}]
+- List environment variables: [CONNECTOR_ACTION: vercel | list_env_vars | {"projectId": "project-name"}]
+- List domains: [CONNECTOR_ACTION: vercel | list_domains | {"projectId": "project-name"}]
+- Redeploy: [CONNECTOR_ACTION: vercel | redeploy | {"deploymentId": "dpl_xxx"}]
+
+**NOTION ACTIONS** (if connected):
+- Search pages/databases: [CONNECTOR_ACTION: notion | search | {"query": "search term"}]
+- List databases: [CONNECTOR_ACTION: notion | list_databases | {}]
+- Query database: [CONNECTOR_ACTION: notion | query_database | {"databaseId": "xxx", "pageSize": 10}]
+- Get page: [CONNECTOR_ACTION: notion | get_page | {"pageId": "xxx"}]
+- Get page content: [CONNECTOR_ACTION: notion | get_page_content | {"pageId": "xxx"}]
+- Create page: [CONNECTOR_ACTION: notion | create_page | {"parentId": "xxx", "parentType": "database", "properties": {...}}]
+- Update page: [CONNECTOR_ACTION: notion | update_page | {"pageId": "xxx", "properties": {...}}]
+- Append content: [CONNECTOR_ACTION: notion | append_content | {"pageId": "xxx", "content": "text to append"}]
+
+**STRIPE ACTIONS** (if connected):
+- Get balance: [CONNECTOR_ACTION: stripe | get_balance | {}]
+- List customers: [CONNECTOR_ACTION: stripe | list_customers | {"limit": 10}]
+- Get customer: [CONNECTOR_ACTION: stripe | get_customer | {"customerId": "cus_xxx"}]
+- List payments/charges: [CONNECTOR_ACTION: stripe | list_charges | {"limit": 10}]
+- List subscriptions: [CONNECTOR_ACTION: stripe | list_subscriptions | {"status": "active"}]
+- Get subscription: [CONNECTOR_ACTION: stripe | get_subscription | {"subscriptionId": "sub_xxx"}]
+- List products: [CONNECTOR_ACTION: stripe | list_products | {"active": true}]
+- List prices: [CONNECTOR_ACTION: stripe | list_prices | {"productId": "prod_xxx"}]
+- List invoices: [CONNECTOR_ACTION: stripe | list_invoices | {"status": "paid"}]
+
+**SHOPIFY ACTIONS** (if connected):
+- Get shop info: [CONNECTOR_ACTION: shopify | get_shop | {}]
+- List products: [CONNECTOR_ACTION: shopify | list_products | {"limit": 10}]
+- Get product: [CONNECTOR_ACTION: shopify | get_product | {"productId": 123}]
+- List orders: [CONNECTOR_ACTION: shopify | list_orders | {"status": "open"}]
+- Get order: [CONNECTOR_ACTION: shopify | get_order | {"orderId": 123}]
+- List customers: [CONNECTOR_ACTION: shopify | list_customers | {"limit": 10}]
+- Get customer: [CONNECTOR_ACTION: shopify | get_customer | {"customerId": 123}]
+- List collections: [CONNECTOR_ACTION: shopify | list_collections | {}]
+- Update inventory: [CONNECTOR_ACTION: shopify | update_inventory | {"inventoryItemId": 123, "locationId": 456, "available": 10}]
+
+**LINEAR ACTIONS** (if connected):
+- Get user info: [CONNECTOR_ACTION: linear | get_viewer | {}]
+- List teams: [CONNECTOR_ACTION: linear | list_teams | {}]
+- List issues: [CONNECTOR_ACTION: linear | list_issues | {"teamId": "xxx", "first": 20}]
+- Get issue: [CONNECTOR_ACTION: linear | get_issue | {"issueId": "xxx"}]
+- Create issue: [CONNECTOR_ACTION: linear | create_issue | {"teamId": "xxx", "title": "Issue title", "description": "..."}]
+- Update issue: [CONNECTOR_ACTION: linear | update_issue | {"issueId": "xxx", "stateId": "yyy"}]
+- Add comment: [CONNECTOR_ACTION: linear | add_comment | {"issueId": "xxx", "body": "Comment text"}]
+- List projects: [CONNECTOR_ACTION: linear | list_projects | {}]
+- List workflow states: [CONNECTOR_ACTION: linear | list_workflow_states | {"teamId": "xxx"}]
+
+**JIRA ACTIONS** (if connected):
+- Get user info: [CONNECTOR_ACTION: jira | get_myself | {}]
+- List projects: [CONNECTOR_ACTION: jira | list_projects | {}]
+- Get project: [CONNECTOR_ACTION: jira | get_project | {"projectKey": "PROJ"}]
+- Search issues: [CONNECTOR_ACTION: jira | search_issues | {"projectKey": "PROJ", "status": "In Progress"}]
+- Get issue: [CONNECTOR_ACTION: jira | get_issue | {"issueKey": "PROJ-123"}]
+- Create issue: [CONNECTOR_ACTION: jira | create_issue | {"projectKey": "PROJ", "summary": "Issue title", "issueType": "Task"}]
+- Update issue: [CONNECTOR_ACTION: jira | update_issue | {"issueKey": "PROJ-123", "summary": "Updated title"}]
+- Transition issue: [CONNECTOR_ACTION: jira | transition_issue | {"issueKey": "PROJ-123", "transitionName": "Done"}]
+- Add comment: [CONNECTOR_ACTION: jira | add_comment | {"issueKey": "PROJ-123", "body": "Comment text"}]
+- List boards: [CONNECTOR_ACTION: jira | list_boards | {"projectKey": "PROJ"}]
+- List sprints: [CONNECTOR_ACTION: jira | list_sprints | {"boardId": 123, "state": "active"}]
+
+**SLACK ACTIONS** (if connected):
+- Get workspace: [CONNECTOR_ACTION: slack | get_workspace | {}]
+- List channels: [CONNECTOR_ACTION: slack | list_channels | {}]
+- Get channel: [CONNECTOR_ACTION: slack | get_channel | {"channelId": "C0xxx"}]
+- List messages: [CONNECTOR_ACTION: slack | list_messages | {"channelId": "C0xxx", "limit": 20}]
+- Send message: [CONNECTOR_ACTION: slack | send_message | {"channelId": "C0xxx", "text": "Hello!"}]
+- Update message: [CONNECTOR_ACTION: slack | update_message | {"channelId": "C0xxx", "ts": "1234.5678", "text": "Updated"}]
+- Delete message: [CONNECTOR_ACTION: slack | delete_message | {"channelId": "C0xxx", "ts": "1234.5678"}]
+- Add reaction: [CONNECTOR_ACTION: slack | add_reaction | {"channelId": "C0xxx", "ts": "1234.5678", "name": "thumbsup"}]
+- List users: [CONNECTOR_ACTION: slack | list_users | {}]
+- Get user: [CONNECTOR_ACTION: slack | get_user | {"userId": "U0xxx"}]
+- Search messages: [CONNECTOR_ACTION: slack | search_messages | {"query": "search term"}]
+- Create channel: [CONNECTOR_ACTION: slack | create_channel | {"name": "new-channel", "isPrivate": false}]
+
+**DISCORD ACTIONS** (if connected):
+- Get bot info: [CONNECTOR_ACTION: discord | get_bot | {}]
+- List servers: [CONNECTOR_ACTION: discord | list_servers | {}]
+- Get server: [CONNECTOR_ACTION: discord | get_server | {"guildId": "xxx"}]
+- List channels: [CONNECTOR_ACTION: discord | list_channels | {"guildId": "xxx"}]
+- Get channel: [CONNECTOR_ACTION: discord | get_channel | {"channelId": "xxx"}]
+- List messages: [CONNECTOR_ACTION: discord | list_messages | {"channelId": "xxx", "limit": 50}]
+- Send message: [CONNECTOR_ACTION: discord | send_message | {"channelId": "xxx", "content": "Hello!"}]
+- Edit message: [CONNECTOR_ACTION: discord | edit_message | {"channelId": "xxx", "messageId": "yyy", "content": "Edited"}]
+- Delete message: [CONNECTOR_ACTION: discord | delete_message | {"channelId": "xxx", "messageId": "yyy"}]
+- Add reaction: [CONNECTOR_ACTION: discord | add_reaction | {"channelId": "xxx", "messageId": "yyy", "emoji": "👍"}]
+- List members: [CONNECTOR_ACTION: discord | list_members | {"guildId": "xxx"}]
+- List roles: [CONNECTOR_ACTION: discord | list_roles | {"guildId": "xxx"}]
+- Create channel: [CONNECTOR_ACTION: discord | create_channel | {"guildId": "xxx", "name": "new-channel", "type": 0}]
+
 ALWAYS use this format when the user asks about their connected services. The user will click the "Run Action" button to execute and see results.
 `;
 }
