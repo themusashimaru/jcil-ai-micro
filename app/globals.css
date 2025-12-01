@@ -91,12 +91,24 @@
       min-width: 44px;
     }
 
+    /* Disable tap highlight on buttons */
+    button, a, [role="button"] {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      outline: none;
+    }
+
     /* Disable text selection for better UX */
     .no-select {
       -webkit-user-select: none;
       user-select: none;
       -webkit-touch-callout: none;
     }
+  }
+
+  /* Disable tap highlight globally for interactive elements */
+  button, a, [role="button"], .tap-none {
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Safe area insets for notched devices */
