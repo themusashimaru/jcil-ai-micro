@@ -106,8 +106,10 @@ export function isImageGenerationRequest(messageContent: string): boolean {
     'draw', 'generate image', 'create image', 'make image',
     'generate a picture', 'create a picture', 'make a picture',
     'generate an image', 'create an image', 'make an image',
+    'generate a pic', 'create a pic', 'make a pic', // Added "pic" variants
     'logo', 'thumbnail', 'illustration', 'artwork',
-    'design a', 'visualize', 'picture of'
+    'design a', 'visualize', 'picture of', 'pic of',
+    'create for me a', 'draw for me', 'make for me a' // "for me" patterns
   ];
 
   return imagePatterns.some(pattern => lowerContent.includes(pattern));

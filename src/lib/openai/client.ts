@@ -223,49 +223,30 @@ function normalizeMessageForAISDK(message: any): any {
     if (part.type === 'text') {
       return { type: 'text', text: part.text || '' };
     }
-    // If it's already in AI SDK image format, keep it clean
+    // If it's already in AI SDK image format, pass through
+    // AI SDK accepts: URL, data URL, base64 string, Uint8Array, Buffer
     if (part.type === 'image' && part.image) {
-      // Handle data URL format: extract base64 and mimeType
-      let imageData = part.image;
-      let mimeType = 'image/jpeg'; // Default
-
-      if (typeof imageData === 'string' && imageData.startsWith('data:')) {
-        const match = imageData.match(/^data:(image\/[^;]+);base64,(.+)$/);
-        if (match) {
-          mimeType = match[1];
-          imageData = match[2]; // Extract just the base64 part
-          console.log('[OpenAI] Extracted image from data URL:', {
-            mimeType,
-            base64Length: imageData.length,
-          });
-        }
-      }
-
-      // Return in AI SDK format with proper base64 (no data URL prefix)
+      console.log('[OpenAI] Processing image part:', {
+        hasImage: !!part.image,
+        imageType: typeof part.image,
+        startsWithData: typeof part.image === 'string' && part.image.startsWith('data:'),
+        imageLength: typeof part.image === 'string' ? part.image.length : 0,
+      });
+      // Keep the image data as-is - AI SDK handles data URLs and base64
       return {
         type: 'image',
-        image: imageData,
-        mimeType,
+        image: part.image,
       };
     }
     // If it's in OpenAI image_url format, convert to AI SDK format
     if (part.type === 'image_url' && part.image_url?.url) {
-      let imageData = part.image_url.url;
-      let mimeType = 'image/jpeg';
-
-      // Handle data URL format
-      if (typeof imageData === 'string' && imageData.startsWith('data:')) {
-        const match = imageData.match(/^data:(image\/[^;]+);base64,(.+)$/);
-        if (match) {
-          mimeType = match[1];
-          imageData = match[2];
-        }
-      }
-
+      console.log('[OpenAI] Converting image_url to image:', {
+        hasUrl: !!part.image_url.url,
+        urlLength: part.image_url.url?.length || 0,
+      });
       return {
         type: 'image',
-        image: imageData,
-        mimeType,
+        image: part.image_url.url,
       };
     }
     // Unknown part type - try to extract text
