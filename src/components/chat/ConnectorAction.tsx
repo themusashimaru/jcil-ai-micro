@@ -190,6 +190,11 @@ export function parseConnectorActions(content: string): {
     description: string;
   }>;
 } {
+  // Handle undefined/null content to prevent .trim() crash
+  if (!content) {
+    return { cleanContent: '', actions: [] };
+  }
+
   // Match the pattern more flexibly - capture everything after the third pipe until closing bracket
   const actionRegex = /\[CONNECTOR_ACTION:\s*(\w+)\s*\|\s*(\w+)\s*\|\s*(\{[\s\S]*?\})\s*\]/g;
   const actions: Array<{
