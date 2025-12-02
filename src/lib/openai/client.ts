@@ -128,32 +128,42 @@ IMPORTANT: Use these times as your reference for any time-related questions.`;
 }
 
 /**
- * Convert message format for OpenAI (handle image URLs)
+ * Normalize message format for AI SDK
+ * AI SDK expects { type: 'image', image: '...' } - it handles OpenAI conversion internally
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function convertMessageForOpenAI(message: any): any {
+function normalizeMessageForAISDK(message: any): any {
+  // If content is a string, return as-is
+  if (typeof message.content === 'string') {
+    return message;
+  }
+
+  // If content is not an array, return as-is
   if (!Array.isArray(message.content)) {
     return message;
   }
 
+  // Normalize content parts - ensure images are in AI SDK format
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const convertedContent = message.content.map((part: any) => {
-    // Convert Vercel AI SDK image format to OpenAI format
+  const normalizedContent = message.content.map((part: any) => {
+    // If it's already in AI SDK image format, keep it
     if (part.type === 'image' && part.image) {
+      return part;
+    }
+    // If it's in OpenAI image_url format, convert back to AI SDK format
+    if (part.type === 'image_url' && part.image_url?.url) {
       return {
-        type: 'image_url',
-        image_url: {
-          url: part.image,
-          detail: 'high',
-        },
+        type: 'image',
+        image: part.image_url.url,
       };
     }
+    // Keep text parts and other formats as-is
     return part;
   });
 
   return {
     ...message,
-    content: convertedContent,
+    content: normalizedContent,
   };
 }
 
@@ -258,7 +268,7 @@ export async function createChatCompletion(options: ChatOptions) {
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
   // Convert messages to OpenAI format (handles image URLs)
-  const convertedMessages = messages.map(convertMessageForOpenAI);
+  const convertedMessages = messages.map(normalizeMessageForAISDK);
 
   const requestConfig = {
     model,
@@ -296,7 +306,7 @@ async function createWebSearchCompletion(
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
   // Convert messages to OpenAI format
-  const convertedMessages = messages.map(convertMessageForOpenAI);
+  const convertedMessages = messages.map(normalizeMessageForAISDK);
 
   // Add system message at the beginning
   const messagesWithSystem = [
@@ -468,7 +478,7 @@ async function createDirectOpenAICompletion(
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
   // Convert messages to OpenAI format (handles image URLs)
-  const convertedMessages = messages.map(convertMessageForOpenAI);
+  const convertedMessages = messages.map(normalizeMessageForAISDK);
 
   // Retry loop
   let lastError: Error | null = null;
