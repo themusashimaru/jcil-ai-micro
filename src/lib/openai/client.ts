@@ -216,37 +216,43 @@ function normalizeMessageForAISDK(message: any): any {
     return { role, content: String(message.content) };
   }
 
-  // Normalize content parts - ensure images are in AI SDK format
+  // Normalize content parts - ensure images are in OpenAI format
+  // OpenAI expects: { type: "image_url", image_url: { url: "data:..." } }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalizedContent = message.content.map((part: any) => {
     // Handle text parts - only include type and text
     if (part.type === 'text') {
       return { type: 'text', text: part.text || '' };
     }
-    // If it's already in AI SDK image format, pass through
-    // AI SDK accepts: URL, data URL, base64 string, Uint8Array, Buffer
+    // Convert AI SDK image format to OpenAI image_url format
     if (part.type === 'image' && part.image) {
-      console.log('[OpenAI] Processing image part:', {
+      console.log('[OpenAI] Converting image to OpenAI format:', {
         hasImage: !!part.image,
         imageType: typeof part.image,
         startsWithData: typeof part.image === 'string' && part.image.startsWith('data:'),
         imageLength: typeof part.image === 'string' ? part.image.length : 0,
       });
-      // Keep the image data as-is - AI SDK handles data URLs and base64
+      // OpenAI expects { type: "image_url", image_url: { url: "..." } }
       return {
-        type: 'image',
-        image: part.image,
+        type: 'image_url',
+        image_url: {
+          url: part.image,
+          detail: 'auto', // Let OpenAI decide detail level
+        },
       };
     }
-    // If it's in OpenAI image_url format, convert to AI SDK format
+    // If it's already in OpenAI image_url format, keep it
     if (part.type === 'image_url' && part.image_url?.url) {
-      console.log('[OpenAI] Converting image_url to image:', {
+      console.log('[OpenAI] Keeping existing image_url format:', {
         hasUrl: !!part.image_url.url,
         urlLength: part.image_url.url?.length || 0,
       });
       return {
-        type: 'image',
-        image: part.image_url.url,
+        type: 'image_url',
+        image_url: {
+          url: part.image_url.url,
+          detail: part.image_url.detail || 'auto',
+        },
       };
     }
     // Unknown part type - try to extract text
