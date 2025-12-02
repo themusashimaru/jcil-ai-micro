@@ -410,6 +410,53 @@ export async function createChatCompletion(options: ChatOptions) {
   return streamText(requestConfig);
 }
 
+// Preferred domains for web search - authoritative sources by category
+// Note: Currently used for documentation; OpenAI's web_search may add domain filtering later
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const PREFERRED_SEARCH_DOMAINS = [
+  // Weather & Natural Disasters
+  'weather.gov', 'nhc.noaa.gov', 'spc.noaa.gov', 'climate.gov', 'airnow.gov',
+  // Geological Events
+  'earthquake.usgs.gov', 'volcanoes.usgs.gov', 'tsunami.gov', 'waterdata.usgs.gov',
+  // Space & Astronomy
+  'nasa.gov', 'spacex.com', 'cneos.jpl.nasa.gov', 'spaceflightnow.com',
+  // Financial & Economic
+  'finance.yahoo.com', 'nasdaq.com', 'sec.gov', 'federalreserve.gov',
+  'treasury.gov', 'bls.gov', 'bea.gov',
+  // Health & Medical
+  'cdc.gov', 'fda.gov', 'nih.gov', 'pubmed.ncbi.nlm.nih.gov', 'who.int',
+  // Government & Politics
+  'whitehouse.gov', 'congress.gov', 'supremecourt.gov', 'federalregister.gov', 'govtrack.us',
+  // World Facts & Intelligence
+  'cia.gov', 'state.gov', 'census.gov', 'worldbank.org', 'data.un.org',
+  // Travel & Transportation
+  'google.com', 'flightaware.com', 'faa.gov', 'amtrak.com', 'nhtsa.gov',
+  // Crime & Safety
+  'fbi.gov', 'amberalert.ojp.gov', 'ucr.fbi.gov',
+  // Sports
+  'nfl.com', 'nba.com', 'mlb.com', 'nhl.com', 'espn.com',
+  // News (Wire Services)
+  'apnews.com', 'reuters.com', 'c-span.org',
+  // Business & Local
+  'bbb.org', 'yelp.com',
+  // Reference
+  'wikipedia.org', 'wolframalpha.com', 'merriam-webster.com', 'scholar.google.com',
+  // Entertainment
+  'imdb.com', 'rottentomatoes.com', 'genius.com', 'goodreads.com',
+  // Real Estate
+  'zillow.com', 'redfin.com', 'apartments.com', 'bankrate.com',
+  // Jobs
+  'indeed.com', 'linkedin.com', 'glassdoor.com',
+  // Food
+  'allrecipes.com', 'foodnetwork.com',
+  // Education
+  'niche.com', 'usnews.com', 'coursera.org', 'edx.org', 'greatschools.org',
+  // Automotive
+  'kbb.com', 'caranddriver.com', 'edmunds.com', 'carfax.com',
+  // Shopping (for shopper tool)
+  'amazon.com', 'walmart.com', 'target.com', 'bestbuy.com', 'costco.com',
+];
+
 /**
  * Create completion with web search using OpenAI Responses API
  * Uses gpt-4o with web_search tool enabled
@@ -444,6 +491,15 @@ async function createWebSearchCompletion(
   // Extract query for caching (last user message)
   const lastUserMessage = getLastUserMessageText(messages);
 
+  // Build web search tool configuration with preferred domains
+  const webSearchTool = {
+    type: 'web_search',
+    // Note: OpenAI's web_search doesn't have domain filtering in the same way as Grok
+    // The domains are included in the system prompt for guidance instead
+    // If OpenAI adds domain filtering support, uncomment below:
+    // domains: { include: PREFERRED_SEARCH_DOMAINS },
+  };
+
   // Define the fetch function for caching
   const fetchWebSearch = async () => {
     let lastError: Error | null = null;
@@ -462,7 +518,7 @@ async function createWebSearchCompletion(
           body: JSON.stringify({
             model: modelName,
             input: messagesWithSystem,
-            tools: [{ type: 'web_search' }],
+            tools: [webSearchTool],
             temperature: effectiveTemperature,
             max_output_tokens: effectiveMaxTokens,
           }),
