@@ -9,6 +9,9 @@
  * - Web search via OpenAI Responses API
  * - Streaming support
  * - Retry logic with exponential backoff
+ * - Timeouts (30s request, 5s connect)
+ * - Structured logging with telemetry
+ * - Web search caching (30 min TTL)
  */
 
 import { createOpenAI } from '@ai-sdk/openai';
@@ -22,10 +25,17 @@ import {
 } from './models';
 import { getSystemPromptForTool } from './tools';
 import type { ToolType, OpenAIModel } from './types';
+import { httpWithTimeout } from '../http';
+import { logEvent, logImageGeneration } from '../log';
+import { cachedWebSearch } from '../cache';
 
 // Retry configuration
 const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
 const RETRYABLE_STATUS_CODES = [429, 500, 502, 503, 504];
+
+// Timeout configuration (per directive §0)
+const REQUEST_TIMEOUT_MS = 30_000; // 30 seconds
+const CONNECT_TIMEOUT_MS = 5_000;  // 5 seconds
 
 // Tools that should use web search
 const WEB_SEARCH_TOOLS: ToolType[] = ['research', 'shopper', 'data'];
@@ -45,6 +55,7 @@ interface ChatOptions {
   temperature?: number;
   maxTokens?: number;
   stream?: boolean;
+  userId?: string; // For logging and usage tracking
 }
 
 /**
@@ -263,14 +274,16 @@ export async function createChatCompletion(options: ChatOptions) {
 /**
  * Create completion with web search using OpenAI Responses API
  * Uses gpt-4o with web_search tool enabled
+ * Includes caching for repeated queries (30 min TTL)
  */
 async function createWebSearchCompletion(
   options: ChatOptions,
   modelName: OpenAIModel
 ) {
-  const { messages, tool, temperature, maxTokens } = options;
+  const { messages, tool, temperature, maxTokens, userId } = options;
   const apiKey = getOpenAIApiKey();
   const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+  const startTime = Date.now();
 
   // Get configuration
   const baseSystemPrompt = getSystemPromptForTool(tool);
@@ -289,105 +302,146 @@ async function createWebSearchCompletion(
     ...convertedMessages
   ];
 
-  // Retry loop
-  let lastError: Error | null = null;
+  // Extract query for caching (last user message)
+  const lastUserMessage = getLastUserMessageText(messages);
 
-  for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
-    try {
-      console.log('[OpenAI Web Search] Attempt', attempt + 1, 'with model:', modelName);
+  // Define the fetch function for caching
+  const fetchWebSearch = async () => {
+    let lastError: Error | null = null;
 
-      // Use the Responses API with web_search tool
-      const response = await fetch(`${baseURL}/responses`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: modelName,
-          input: messagesWithSystem,
-          tools: [{ type: 'web_search' }],
-          temperature: effectiveTemperature,
-          max_output_tokens: effectiveMaxTokens,
-        }),
-      });
+    for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+      try {
+        console.log('[OpenAI Web Search] Attempt', attempt + 1, 'with model:', modelName);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        const statusCode = response.status;
+        // Use the Responses API with web_search tool (with timeouts)
+        const response = await httpWithTimeout(`${baseURL}/responses`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: modelName,
+            input: messagesWithSystem,
+            tools: [{ type: 'web_search' }],
+            temperature: effectiveTemperature,
+            max_output_tokens: effectiveMaxTokens,
+          }),
+          timeoutMs: REQUEST_TIMEOUT_MS,
+          connectTimeoutMs: CONNECT_TIMEOUT_MS,
+        });
 
-        console.error('[OpenAI Web Search] Error response:', statusCode, errorText);
+        if (!response.ok) {
+          const errorText = await response.text();
+          const statusCode = response.status;
 
-        if (RETRYABLE_STATUS_CODES.includes(statusCode) && attempt < RETRY_DELAYS.length) {
-          const delay = RETRY_DELAYS[attempt];
-          console.log(`[OpenAI Web Search] Retrying in ${delay}ms...`);
-          await sleep(delay);
-          continue;
+          console.error('[OpenAI Web Search] Error response:', statusCode, errorText);
+
+          if (RETRYABLE_STATUS_CODES.includes(statusCode) && attempt < RETRY_DELAYS.length) {
+            const delay = RETRY_DELAYS[attempt];
+            console.log(`[OpenAI Web Search] Retrying in ${delay}ms...`);
+            await sleep(delay);
+            continue;
+          }
+
+          throw new Error(`OpenAI Responses API error (${statusCode}): ${errorText}`);
         }
 
-        throw new Error(`OpenAI Responses API error (${statusCode}): ${errorText}`);
-      }
+        const data = await response.json();
 
-      const data = await response.json();
+        // Extract text and citations from response
+        let responseText = '';
+        const citations: Array<{ url: string; title: string }> = [];
 
-      // Extract text and citations from response
-      let responseText = '';
-      const citations: Array<{ url: string; title: string }> = [];
-
-      // Parse the response output
-      if (data.output) {
-        for (const item of data.output) {
-          if (item.type === 'message' && item.content) {
-            for (const content of item.content) {
-              if (content.type === 'output_text') {
-                responseText += content.text;
-              }
-              // Extract annotations/citations
-              if (content.annotations) {
-                for (const annotation of content.annotations) {
-                  if (annotation.type === 'url_citation') {
-                    citations.push({
-                      url: annotation.url,
-                      title: annotation.title || annotation.url,
-                    });
+        // Parse the response output
+        if (data.output) {
+          for (const item of data.output) {
+            if (item.type === 'message' && item.content) {
+              for (const content of item.content) {
+                if (content.type === 'output_text') {
+                  responseText += content.text;
+                }
+                // Extract annotations/citations
+                if (content.annotations) {
+                  for (const annotation of content.annotations) {
+                    if (annotation.type === 'url_citation') {
+                      citations.push({
+                        url: annotation.url,
+                        title: annotation.title || annotation.url,
+                      });
+                    }
                   }
                 }
               }
             }
           }
         }
+
+        console.log('[OpenAI Web Search] Success, citations found:', citations.length);
+
+        return {
+          text: responseText,
+          finishReason: 'stop',
+          usage: data.usage || {},
+          citations: citations,
+          numSourcesUsed: citations.length,
+        };
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.error('[OpenAI Web Search] Error:', lastError.message);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const statusCode = (error as any)?.status || (error as any)?.statusCode;
+
+        if (statusCode && RETRYABLE_STATUS_CODES.includes(statusCode) && attempt < RETRY_DELAYS.length) {
+          const delay = RETRY_DELAYS[attempt];
+          console.log(`[OpenAI Web Search] Retrying in ${delay}ms...`);
+          await sleep(delay);
+          continue;
+        }
+
+        throw lastError;
       }
-
-      console.log('[OpenAI Web Search] Success, citations found:', citations.length);
-
-      return {
-        text: responseText,
-        finishReason: 'stop',
-        usage: data.usage || {},
-        citations: citations,
-        numSourcesUsed: citations.length,
-      };
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      console.error('[OpenAI Web Search] Error:', lastError.message);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const statusCode = (error as any)?.status || (error as any)?.statusCode;
-
-      if (statusCode && RETRYABLE_STATUS_CODES.includes(statusCode) && attempt < RETRY_DELAYS.length) {
-        const delay = RETRY_DELAYS[attempt];
-        console.log(`[OpenAI Web Search] Retrying in ${delay}ms...`);
-        await sleep(delay);
-        continue;
-      }
-
-      // Fall back to regular completion without web search
-      console.log('[OpenAI Web Search] Falling back to regular completion');
-      return createDirectOpenAICompletion(options, modelName);
     }
-  }
 
-  throw lastError || new Error('Max retries exceeded');
+    throw lastError || new Error('Max retries exceeded');
+  };
+
+  try {
+    // Try to get cached result first (30 min TTL)
+    const { data: result, cached } = await cachedWebSearch(lastUserMessage, fetchWebSearch, 1800);
+
+    // Log the request
+    logEvent({
+      user_id: userId,
+      model: modelName,
+      tool_name: tool,
+      tokens_in: result.usage?.prompt_tokens,
+      tokens_out: result.usage?.completion_tokens,
+      latency_ms: Date.now() - startTime,
+      ok: true,
+      web_search: true,
+      cached,
+    });
+
+    return result;
+  } catch (error) {
+    // Log the error
+    logEvent({
+      user_id: userId,
+      model: modelName,
+      tool_name: tool,
+      latency_ms: Date.now() - startTime,
+      ok: false,
+      err_code: 'WEB_SEARCH_FAILED',
+      err_message: error instanceof Error ? error.message : String(error),
+      web_search: true,
+    });
+
+    // Fall back to regular completion without web search
+    console.log('[OpenAI Web Search] Falling back to regular completion');
+    return createDirectOpenAICompletion(options, modelName);
+  }
 }
 
 /**
@@ -469,17 +523,30 @@ async function createDirectOpenAICompletion(
 
 /**
  * Generate an image using DALL-E 3
+ * Logs image generation separately for billing
  */
-export async function generateImage(prompt: string, size: '1024x1024' | '512x512' | '256x256' = '1024x1024'): Promise<string> {
+export async function generateImage(
+  prompt: string,
+  size: '1024x1024' | '512x512' | '256x256' = '1024x1024',
+  userId?: string
+): Promise<string> {
   const apiKey = getOpenAIApiKey();
   const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+  const startTime = Date.now();
+
+  // Image costs (approximate)
+  const imageCosts: Record<string, number> = {
+    '1024x1024': 0.04,
+    '512x512': 0.018,
+    '256x256': 0.016,
+  };
 
   // Retry loop
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
     try {
-      const response = await fetch(`${baseURL}/images/generations`, {
+      const response = await httpWithTimeout(`${baseURL}/images/generations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -491,6 +558,8 @@ export async function generateImage(prompt: string, size: '1024x1024' | '512x512
           n: 1,
           size,
         }),
+        timeoutMs: 60_000, // 60s for image generation
+        connectTimeoutMs: CONNECT_TIMEOUT_MS,
       });
 
       if (!response.ok) {
@@ -508,7 +577,19 @@ export async function generateImage(prompt: string, size: '1024x1024' | '512x512
       }
 
       const data = await response.json();
-      return data.data[0]?.url || null;
+      const imageUrl = data.data[0]?.url || null;
+
+      // Log successful image generation
+      logImageGeneration(
+        userId || 'anonymous',
+        'dall-e-3',
+        size,
+        imageCosts[size] || 0.04,
+        true,
+        Date.now() - startTime
+      );
+
+      return imageUrl;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error('[DALL-E 3] Error:', lastError.message);
@@ -520,6 +601,16 @@ export async function generateImage(prompt: string, size: '1024x1024' | '512x512
       }
     }
   }
+
+  // Log failed image generation
+  logImageGeneration(
+    userId || 'anonymous',
+    'dall-e-3',
+    size,
+    0,
+    false,
+    Date.now() - startTime
+  );
 
   throw lastError || new Error('Image generation failed after retries');
 }
