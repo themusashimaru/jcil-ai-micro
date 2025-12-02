@@ -105,6 +105,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="google-site-verification" content="suQkOhSeAz8m1aB0yup8Ct1P7fzTMCzKta8HnI_Ez3s" />
       </head>
       <body className="bg-black text-white antialiased">
         <UserProfileProvider>
