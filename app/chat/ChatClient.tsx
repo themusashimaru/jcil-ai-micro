@@ -1097,27 +1097,54 @@ export function ChatClient() {
       const isJsonResponse = contentType.includes('application/json');
 
       let finalContent = '';
+      let isImageResponse = false;
       const assistantMessageId = (Date.now() + 1).toString();
 
       if (isJsonResponse) {
         // Non-streaming response (for images or fallback)
         const data = await response.json();
-        finalContent = data.content;
 
-        const assistantMessage: Message = {
-          id: assistantMessageId,
-          role: 'assistant',
-          content: data.content,
-          citations: data.citations || [],
-          sourcesUsed: data.sourcesUsed || 0,
-          timestamp: new Date(),
-        };
+        // Check if this is an image generation response
+        if (data.type === 'image' && data.url) {
+          isImageResponse = true;
+          console.log('[ChatClient] Received image generation response:', {
+            prompt: data.prompt,
+            model: data.model,
+            hasUrl: !!data.url,
+          });
 
-        if (data.citations?.length > 0 || data.sourcesUsed > 0) {
-          console.log(`[ChatClient] Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`);
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: `Here's your generated image based on: "${data.prompt || content}"`,
+            imageUrl: data.url,
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          finalContent = assistantMessage.content;
+
+          // Save the image message to database
+          await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'image', data.url);
+        } else {
+          // Regular text response
+          finalContent = data.content || '';
+
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: data.content || '',
+            citations: data.citations || [],
+            sourcesUsed: data.sourcesUsed || 0,
+            timestamp: new Date(),
+          };
+
+          if (data.citations?.length > 0 || data.sourcesUsed > 0) {
+            console.log(`[ChatClient] Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`);
+          }
+
+          setMessages((prev) => [...prev, assistantMessage]);
         }
-
-        setMessages((prev) => [...prev, assistantMessage]);
       } else {
         // Streaming response - read chunks and update progressively
         // AI SDK v5 uses simple text streaming (not data stream format)
@@ -1168,8 +1195,10 @@ export function ChatClient() {
 
       setIsStreaming(false);
 
-      // Save assistant message to database
-      await saveMessageToDatabase(newChatId, 'assistant', finalContent, 'text');
+      // Save assistant message to database (skip for images - already saved above)
+      if (!isImageResponse) {
+        await saveMessageToDatabase(newChatId, 'assistant', finalContent, 'text');
+      }
 
       // Generate chat title for new conversations OR regenerate if current title is generic
       const isNewConversation = messages.length === 0;

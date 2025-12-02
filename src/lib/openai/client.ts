@@ -542,6 +542,18 @@ async function createDirectOpenAICompletion(
   // Convert messages to OpenAI format (handles image URLs)
   const convertedMessages = messages.map(normalizeMessageForAISDK);
 
+  // Log converted messages to verify images are preserved
+  const convertedSummary = convertedMessages.map((m, i) => ({
+    index: i,
+    role: m.role,
+    hasArrayContent: Array.isArray(m.content),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contentTypes: Array.isArray(m.content) ? m.content.map((c: any) => c.type) : 'string',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    imageDataLength: Array.isArray(m.content) ? m.content.filter((c: any) => c.type === 'image').map((c: any) => c.image?.length || 0) : [],
+  }));
+  console.log('[OpenAI Direct] Converted messages:', convertedSummary);
+
   // Retry loop
   let lastError: Error | null = null;
 
