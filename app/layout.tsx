@@ -37,24 +37,26 @@
  * - Check theme variables are applied globally
  */
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { PWAInstaller } from '@/components/pwa/PWAInstaller';
 import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
 import { FaviconUpdater } from '@/components/admin/FaviconUpdater';
 
+// Viewport configuration (separate export per Next.js 14 spec)
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#000000',
+};
+
 export const metadata: Metadata = {
   title: 'JCIL.AI | AI-Powered Tools for People of Faith',
   description: 'Intelligent AI assistance built on your values. Chat, research, Bible study, writing tools, and more. Safe for families. Enterprise-grade security.',
   manifest: '/api/manifest',
-  themeColor: '#000000',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
