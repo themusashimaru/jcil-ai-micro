@@ -269,6 +269,7 @@ export async function createChatCompletion(options: ChatOptions) {
 
   // Use non-streaming for image analysis or when explicitly requested
   if (!stream || hasImageContent(messages)) {
+    console.log('[OpenAI] Using non-streaming mode for images, model:', modelName);
     return createDirectOpenAICompletion(options, modelName);
   }
 
@@ -482,6 +483,23 @@ async function createDirectOpenAICompletion(
   modelName: OpenAIModel
 ) {
   const { messages, tool, temperature, maxTokens } = options;
+
+  // Log detailed info about the request for debugging
+  const messagesSummary = messages.map((m, i) => ({
+    index: i,
+    role: m.role,
+    hasArrayContent: Array.isArray(m.content),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contentTypes: Array.isArray(m.content) ? m.content.map((c: any) => c.type) : ['string'],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    imageDataLength: Array.isArray(m.content) ? m.content.filter((c: any) => c.type === 'image').map((c: any) => c.image?.length || 0) : [],
+  }));
+  console.log('[OpenAI Direct] Creating completion:', {
+    model: modelName,
+    tool,
+    messageCount: messages.length,
+    messagesSummary,
+  });
 
   const openai = getOpenAIProvider();
   const model = openai(modelName);
