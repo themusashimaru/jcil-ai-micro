@@ -36,15 +36,74 @@ const RETRYABLE_STATUS_CODES = [429, 500, 502, 503, 504];
 const REQUEST_TIMEOUT_MS = 30_000; // 30 seconds
 const CONNECT_TIMEOUT_MS = 5_000;  // 5 seconds
 
-// Tools that should use web search
+// Tools that should always use web search
 const WEB_SEARCH_TOOLS: ToolType[] = ['research', 'shopper', 'data'];
 
+// Patterns that indicate need for real-time web information
+const WEB_SEARCH_PATTERNS = [
+  // Weather - simple location patterns
+  /\b(weather|forecast)\s+(in|for|at)\s+\w+/i,
+  /\bweather\s+\w+/i,  // "weather LA", "weather london"
+  /\b(what'?s|what is|how'?s|how is)\s+(the\s+)?(weather|temp)/i,
+  /\b(weather|forecast|temperature|rain|snow|humid|sunny|cloudy)\b.*(today|tomorrow|this week|now|current)/i,
+
+  // News and current events
+  /\b(latest|recent|current|today'?s|breaking|new)\s+(news|headlines|updates|events|stories)/i,
+  /\b(what'?s|what is)\s+(happening|going on|new)\s+(in|with|at|today)/i,
+  /\b(did|has|have)\s+.{0,30}\s+(happen|announce|release|launch)/i,
+
+  // Prices and stocks
+  /\b(stock|share|ticker)\s+(price|value)/i,
+  /\b(price|cost|how much)\s+(of|is|does|for)\b/i,
+  /\b(bitcoin|btc|ethereum|eth|crypto)\s+(price|value)/i,
+  /\$[A-Z]{1,5}\b/,  // Stock tickers like $AAPL
+
+  // Sports scores and results
+  /\b(score|result|won|lost|win|lose)\s+.{0,20}\s+(game|match|today|yesterday|last night)/i,
+  /\b(who won|who'?s winning|final score)/i,
+
+  // Time-sensitive lookups
+  /\b(hours|open|closed|schedule|when does|what time)\b.*(today|now|currently)/i,
+  /\b(is|are)\s+.{0,20}\s+(open|closed|available)\s*(today|now|right now)?/i,
+
+  // Search intent patterns
+  /\b(search|look up|find|google)\s+(for|about)?\s+/i,
+  /\b(what'?s|what is|who is|where is)\s+the\s+(latest|newest|current|recent)/i,
+
+  // Real-time data
+  /\b(live|real.?time|up.?to.?date|current)\s+(data|info|information|status)/i,
+  /\b(exchange rate|currency|convert)\b/i,
+  /\b(traffic|delays|road conditions)\b/i,
+
+  // Explicit research requests
+  /\b(research|investigate|find out|look into)\b/i,
+];
+
 /**
- * Check if tool type should use web search
+ * Check if content requires web search based on patterns
  */
-function shouldUseWebSearch(tool?: ToolType): boolean {
-  if (!tool) return false;
-  return WEB_SEARCH_TOOLS.includes(tool);
+function contentNeedsWebSearch(content: string): boolean {
+  if (!content || content.length < 5) return false;
+
+  return WEB_SEARCH_PATTERNS.some(pattern => pattern.test(content));
+}
+
+/**
+ * Check if tool type or content should use web search
+ */
+function shouldUseWebSearch(tool?: ToolType, messageContent?: string): boolean {
+  // Tool-based check (explicit tool selection)
+  if (tool && WEB_SEARCH_TOOLS.includes(tool)) {
+    return true;
+  }
+
+  // Content-based check (auto-detection for general queries)
+  if (messageContent && contentNeedsWebSearch(messageContent)) {
+    console.log('[OpenAI] Web search triggered by content pattern');
+    return true;
+  }
+
+  return false;
 }
 
 interface ChatOptions {
@@ -166,11 +225,48 @@ function normalizeMessageForAISDK(message: any): any {
     }
     // If it's already in AI SDK image format, keep it clean
     if (part.type === 'image' && part.image) {
-      return { type: 'image', image: part.image };
+      // Handle data URL format: extract base64 and mimeType
+      let imageData = part.image;
+      let mimeType = 'image/jpeg'; // Default
+
+      if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+        const match = imageData.match(/^data:(image\/[^;]+);base64,(.+)$/);
+        if (match) {
+          mimeType = match[1];
+          imageData = match[2]; // Extract just the base64 part
+          console.log('[OpenAI] Extracted image from data URL:', {
+            mimeType,
+            base64Length: imageData.length,
+          });
+        }
+      }
+
+      // Return in AI SDK format with proper base64 (no data URL prefix)
+      return {
+        type: 'image',
+        image: imageData,
+        mimeType,
+      };
     }
     // If it's in OpenAI image_url format, convert to AI SDK format
     if (part.type === 'image_url' && part.image_url?.url) {
-      return { type: 'image', image: part.image_url.url };
+      let imageData = part.image_url.url;
+      let mimeType = 'image/jpeg';
+
+      // Handle data URL format
+      if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+        const match = imageData.match(/^data:(image\/[^;]+);base64,(.+)$/);
+        if (match) {
+          mimeType = match[1];
+          imageData = match[2];
+        }
+      }
+
+      return {
+        type: 'image',
+        image: imageData,
+        mimeType,
+      };
     }
     // Unknown part type - try to extract text
     if (part.text) {
@@ -280,17 +376,21 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
 export async function createChatCompletion(options: ChatOptions) {
   const { messages, tool, temperature, maxTokens, stream = true } = options;
 
+  // Get the last user message text for routing decisions
+  const lastUserText = getLastUserMessageText(messages);
+
   // Determine the best model
   const modelName = determineModel(messages, tool);
 
-  // Check if we should use web search
-  const useWebSearch = shouldUseWebSearch(tool);
+  // Check if we should use web search (tool-based OR content-based)
+  const useWebSearch = shouldUseWebSearch(tool, lastUserText);
 
-  console.log('[OpenAI] Using model:', modelName, 'stream:', stream, 'webSearch:', useWebSearch);
+  console.log('[OpenAI] Using model:', modelName, 'stream:', stream, 'webSearch:', useWebSearch, 'query:', lastUserText?.slice(0, 50));
 
-  // Use Responses API with web search for research/shopper/data tools
+  // Use Responses API with web search (either tool-based or content-based trigger)
   if (useWebSearch) {
-    console.log('[OpenAI] Using Responses API with web search for tool:', tool);
+    const triggerReason = tool && WEB_SEARCH_TOOLS.includes(tool) ? `tool: ${tool}` : 'content pattern';
+    console.log('[OpenAI] Using Responses API with web search, trigger:', triggerReason);
     return createWebSearchCompletion(options, 'gpt-4o'); // Always use gpt-4o for web search
   }
 
