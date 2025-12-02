@@ -806,11 +806,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Return generic error to client (detailed info already logged server-side)
+    // Return error with details to help debug
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
         message: 'An unexpected error occurred. Please try again.',
+        details: errorMessage, // Include actual error for debugging
       }),
       {
         status: 500,
