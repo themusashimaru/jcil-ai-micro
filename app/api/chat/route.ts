@@ -662,7 +662,13 @@ export async function POST(request: NextRequest) {
 
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
-      console.log('[Chat API] Using non-streaming mode for image analysis');
+      console.log('[Chat API] Using non-streaming mode for image analysis - will route to gpt-4o');
+      console.log('[Chat API] Messages being sent:', JSON.stringify(messagesWithContext.slice(-2).map(m => ({
+        role: m.role,
+        hasArrayContent: Array.isArray(m.content),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        contentTypes: Array.isArray(m.content) ? m.content.map((c: any) => c.type) : 'string',
+      }))));
       const result = await createChatCompletion({
         messages: messagesWithContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -678,11 +684,15 @@ export async function POST(request: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
 
+      // For image analysis, we always use gpt-4o (determined inside createChatCompletion)
+      const actualModel = hasImages ? 'gpt-4o' : model;
+      console.log('[Chat API] Image analysis complete, model used:', actualModel);
+
       return new Response(
         JSON.stringify({
           type: 'text',
           content: result.text,
-          model,
+          model: actualModel,
           citations: citations,
           sourcesUsed: numSourcesUsed,
         }),
@@ -690,8 +700,9 @@ export async function POST(request: NextRequest) {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'X-Model-Used': model,
+            'X-Model-Used': actualModel,
             'X-Tool-Type': effectiveTool || 'default',
+            'X-Has-Images': 'true',
           },
         }
       );
