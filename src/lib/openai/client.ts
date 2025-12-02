@@ -216,43 +216,38 @@ function normalizeMessageForAISDK(message: any): any {
     return { role, content: String(message.content) };
   }
 
-  // Normalize content parts - ensure images are in OpenAI format
-  // OpenAI expects: { type: "image_url", image_url: { url: "data:..." } }
+  // Normalize content parts - ensure images are in AI SDK format
+  // AI SDK expects: { type: "image", image: "data:..." or URL or base64 }
+  // The SDK will convert to OpenAI format internally
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalizedContent = message.content.map((part: any) => {
     // Handle text parts - only include type and text
     if (part.type === 'text') {
       return { type: 'text', text: part.text || '' };
     }
-    // Convert AI SDK image format to OpenAI image_url format
+    // AI SDK image format - pass through data URLs, URLs, or base64
     if (part.type === 'image' && part.image) {
-      console.log('[OpenAI] Converting image to OpenAI format:', {
-        hasImage: !!part.image,
+      console.log('[OpenAI] Processing image for AI SDK:', {
         imageType: typeof part.image,
-        startsWithData: typeof part.image === 'string' && part.image.startsWith('data:'),
+        isDataUrl: typeof part.image === 'string' && part.image.startsWith('data:'),
+        isHttpUrl: typeof part.image === 'string' && part.image.startsWith('http'),
         imageLength: typeof part.image === 'string' ? part.image.length : 0,
       });
-      // OpenAI expects { type: "image_url", image_url: { url: "..." } }
+      // AI SDK handles data URLs, http URLs, and base64 strings
       return {
-        type: 'image_url',
-        image_url: {
-          url: part.image,
-          detail: 'auto', // Let OpenAI decide detail level
-        },
+        type: 'image',
+        image: part.image,
       };
     }
-    // If it's already in OpenAI image_url format, keep it
+    // Convert OpenAI image_url format to AI SDK image format
     if (part.type === 'image_url' && part.image_url?.url) {
-      console.log('[OpenAI] Keeping existing image_url format:', {
-        hasUrl: !!part.image_url.url,
+      console.log('[OpenAI] Converting image_url to AI SDK format:', {
         urlLength: part.image_url.url?.length || 0,
+        isDataUrl: part.image_url.url?.startsWith('data:'),
       });
       return {
-        type: 'image_url',
-        image_url: {
-          url: part.image_url.url,
-          detail: part.image_url.detail || 'auto',
-        },
+        type: 'image',
+        image: part.image_url.url,
       };
     }
     // Unknown part type - try to extract text
