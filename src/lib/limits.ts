@@ -191,7 +191,7 @@ export function getLimitWarningMessage(usage: UsageResult): string | null {
  */
 export async function trackTokenUsage(
   userId: string,
-  model: string,
+  _model: string,
   tokensIn: number,
   tokensOut: number
 ): Promise<void> {
