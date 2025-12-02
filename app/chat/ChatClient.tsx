@@ -970,6 +970,18 @@ export function ChatClient() {
         }
       }
 
+      // Debug: Log attachment info
+      console.log('[ChatClient] Message formatting:', {
+        totalMessages: allMessages.length,
+        lastImageMessageIndex,
+        newMessageAttachments: userMessage.attachments?.map(a => ({
+          name: a.name,
+          type: a.type,
+          hasThumbnail: !!a.thumbnail,
+          thumbnailLength: a.thumbnail?.length || 0,
+        })),
+      });
+
       // Format messages for API, stripping images from all but the most recent image message
       // This prevents payload bloat from accumulated image history
       const apiMessages = allMessages.map((msg, index) => {
@@ -1021,6 +1033,18 @@ export function ChatClient() {
           content: contentParts,
         };
       });
+
+      // Debug: Log the formatted API messages
+      const messagesWithImages = apiMessages.filter(m => Array.isArray(m.content));
+      if (messagesWithImages.length > 0) {
+        console.log('[ChatClient] Messages with images being sent:', messagesWithImages.map(m => ({
+          role: m.role,
+          contentTypes: Array.isArray(m.content) ? m.content.map((c: { type: string }) => c.type) : 'string',
+          imageDataLength: Array.isArray(m.content)
+            ? m.content.filter((c: { type: string }) => c.type === 'image').map((c: { image?: string }) => c.image?.length || 0)
+            : 0,
+        })));
+      }
 
       // Build user context for personalization
       const userContext = hasProfile
