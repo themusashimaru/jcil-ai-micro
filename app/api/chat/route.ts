@@ -228,6 +228,7 @@ export async function POST(request: NextRequest) {
     // Get user auth status and identifier for rate limiting
     let rateLimitIdentifier: string;
     let isAuthenticated = false;
+    let isAdmin = false;
 
     try {
       const cookieStore = await cookies();
@@ -257,6 +258,15 @@ export async function POST(request: NextRequest) {
       if (user) {
         rateLimitIdentifier = user.id;
         isAuthenticated = true;
+
+        // Check if user is admin for bypass
+        const { data: userData } = await supabase
+          .from('users')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+
+        isAdmin = userData?.is_admin === true;
       } else {
         // Fall back to IP for anonymous users
         rateLimitIdentifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
@@ -270,49 +280,54 @@ export async function POST(request: NextRequest) {
                             'anonymous';
     }
 
-    // Check rate limit
-    const rateLimit = await checkChatRateLimit(rateLimitIdentifier, isAuthenticated);
+    // Admin bypass: skip rate limiting and usage limits for admins
+    if (!isAdmin) {
+      // Check rate limit
+      const rateLimit = await checkChatRateLimit(rateLimitIdentifier, isAuthenticated);
 
-    if (!rateLimit.allowed) {
-      console.log(`[Chat API] Rate limit exceeded for ${isAuthenticated ? 'user' : 'IP'}: ${rateLimitIdentifier}`);
-      return new Response(
-        JSON.stringify({
-          error: 'Rate limit exceeded',
-          message: `You've sent too many messages. Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before trying again.`,
-          retryAfter: rateLimit.resetIn,
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': String(rateLimit.resetIn),
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + rateLimit.resetIn),
-          },
-        }
-      );
-    }
+      if (!rateLimit.allowed) {
+        console.log(`[Chat API] Rate limit exceeded for ${isAuthenticated ? 'user' : 'IP'}: ${rateLimitIdentifier}`);
+        return new Response(
+          JSON.stringify({
+            error: 'Rate limit exceeded',
+            message: `You've sent too many messages. Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before trying again.`,
+            retryAfter: rateLimit.resetIn,
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': String(rateLimit.resetIn),
+              'X-RateLimit-Remaining': '0',
+              'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + rateLimit.resetIn),
+            },
+          }
+        );
+      }
 
-    // Check daily usage limits (warn at 80%, stop at 100%)
-    const usage = await incrementUsage(rateLimitIdentifier, isAuthenticated ? 'basic' : 'free');
+      // Check daily usage limits (warn at 80%, stop at 100%)
+      const usage = await incrementUsage(rateLimitIdentifier, isAuthenticated ? 'basic' : 'free');
 
-    if (usage.stop) {
-      console.log(`[Chat API] Daily limit reached for ${isAuthenticated ? 'user' : 'anon'}: ${rateLimitIdentifier}`);
-      return new Response(
-        JSON.stringify({
-          error: 'Daily limit reached',
-          message: getLimitWarningMessage(usage),
-          usage: { used: usage.used, limit: usage.limit, remaining: 0 },
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Usage-Limit': String(usage.limit),
-            'X-Usage-Remaining': '0',
-          },
-        }
-      );
+      if (usage.stop) {
+        console.log(`[Chat API] Daily limit reached for ${isAuthenticated ? 'user' : 'anon'}: ${rateLimitIdentifier}`);
+        return new Response(
+          JSON.stringify({
+            error: 'Daily limit reached',
+            message: getLimitWarningMessage(usage),
+            usage: { used: usage.used, limit: usage.limit, remaining: 0 },
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Usage-Limit': String(usage.limit),
+              'X-Usage-Remaining': '0',
+            },
+          }
+        );
+      }
+    } else {
+      console.log(`[Chat API] Admin bypass for user: ${rateLimitIdentifier}`);
     }
 
     // Moderate user messages before sending to OpenAI
