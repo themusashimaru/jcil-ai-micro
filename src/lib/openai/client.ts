@@ -181,6 +181,7 @@ function hasImageContent(messages: any[]): boolean {
     if (hasImage) {
       console.log('[OpenAI] Found image in message:', {
         role: msg.role,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         contentTypes: msg.content.map((c: any) => c.type),
       });
     }
