@@ -215,3 +215,117 @@ export async function trackTokenUsage(
     console.error('[Limits] Error tracking tokens:', error);
   }
 }
+
+// ========================================
+// IMAGE-SPECIFIC LIMITS
+// ========================================
+
+// Image limits per day (separate from message limits)
+const IMAGE_LIMITS: Record<string, number> = {
+  free: 5,
+  basic: 25,
+  pro: 100,
+  enterprise: 500,
+};
+
+export interface ImageUsageResult {
+  used: number;
+  limit: number;
+  remaining: number;
+  warn: boolean;
+  stop: boolean;
+  percentage: number;
+}
+
+/**
+ * Get image generation limit for a plan
+ */
+export function getImageLimit(planKey: string): number {
+  return IMAGE_LIMITS[planKey] || IMAGE_LIMITS.free;
+}
+
+/**
+ * Increment image usage counter and check limits
+ */
+export async function incrementImageUsage(
+  userId: string,
+  planKey: string = 'free'
+): Promise<ImageUsageResult> {
+  const limit = getImageLimit(planKey);
+  const dateKey = getDateKey();
+  const key = `images:${userId}:${dateKey}`;
+
+  try {
+    const r = await getRedis();
+    const used = await r.incr(key);
+
+    // Set expiry on first use (48 hours for safety)
+    if (used === 1) {
+      await r.expire(key, 60 * 60 * 48);
+    }
+
+    const percentage = Math.round((used / limit) * 100);
+    const warn = percentage >= 80 && percentage < 100;
+    const stop = used > limit;
+    const remaining = Math.max(0, limit - used);
+
+    return { used, limit, remaining, warn, stop, percentage };
+  } catch (error) {
+    console.error('[Limits] Error incrementing image usage:', error);
+    return {
+      used: 0,
+      limit,
+      remaining: limit,
+      warn: false,
+      stop: false,
+      percentage: 0,
+    };
+  }
+}
+
+/**
+ * Get current image usage without incrementing
+ */
+export async function getImageUsage(
+  userId: string,
+  planKey: string = 'free'
+): Promise<ImageUsageResult> {
+  const limit = getImageLimit(planKey);
+  const dateKey = getDateKey();
+  const key = `images:${userId}:${dateKey}`;
+
+  try {
+    const r = await getRedis();
+    const used = (await r.get(key)) || 0;
+
+    const percentage = Math.round((used / limit) * 100);
+    const warn = percentage >= 80 && percentage < 100;
+    const stop = used > limit;
+    const remaining = Math.max(0, limit - used);
+
+    return { used, limit, remaining, warn, stop, percentage };
+  } catch (error) {
+    console.error('[Limits] Error getting image usage:', error);
+    return {
+      used: 0,
+      limit,
+      remaining: limit,
+      warn: false,
+      stop: false,
+      percentage: 0,
+    };
+  }
+}
+
+/**
+ * Format image limit warning message
+ */
+export function getImageLimitWarningMessage(usage: ImageUsageResult): string | null {
+  if (usage.stop) {
+    return `You've reached your daily limit of ${usage.limit} images. Try again tomorrow or upgrade your plan.`;
+  }
+  if (usage.warn) {
+    return `You're at ${usage.percentage}% of your daily image limit. ${usage.remaining} images remaining.`;
+  }
+  return null;
+}
