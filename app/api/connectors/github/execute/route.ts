@@ -2,19 +2,34 @@
  * GITHUB ACTION EXECUTION API
  * Execute GitHub actions after user confirmation
  * POST: Execute a specific GitHub action
+ *
+ * Features:
+ * - Normalized responses via toolWrap
+ * - Idempotency keys for write operations
+ * - Dry-run support for previewing actions
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { getUserConnection } from '@/lib/connectors/helpers';
 import * as github from '@/lib/connectors/github';
+import { toolWrap, normalizeResponse, type ToolResponse } from '@/lib/toolWrap';
+import { newIdempotencyKey, seenIdempotent } from '@/lib/idempotency';
 
 export const runtime = 'nodejs';
 
 interface ExecuteRequest {
   action: string;
   params: Record<string, unknown>;
+  dry_run?: boolean;          // Preview action without executing
+  idempotency_key?: string;   // Prevent duplicate writes
 }
+
+// Actions that modify data (require idempotency protection)
+const WRITE_ACTIONS = [
+  'write_file', 'create_file', 'update_file',
+  'create_branch', 'create_pull_request', 'create_issue'
+];
 
 // Helper to parse owner from repo string or get from metadata
 function resolveOwner(params: Record<string, unknown>, metadata: Record<string, unknown>): string | null {
@@ -66,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: ExecuteRequest = await request.json();
-    const { action, params } = body;
+    const { action, params, dry_run, idempotency_key } = body;
 
     if (!action) {
       return NextResponse.json({ error: 'Action is required' }, { status: 400 });
@@ -74,11 +89,42 @@ export async function POST(request: NextRequest) {
 
     const token = connection.token;
     const metadata = connection.metadata || {};
-    let result: unknown;
+    const isWriteAction = WRITE_ACTIONS.includes(action);
+
+    // Check idempotency for write operations
+    if (isWriteAction && !dry_run) {
+      const idemKey = idempotency_key || newIdempotencyKey({ action, params, user: user.id });
+      const isFirstTime = await seenIdempotent(idemKey);
+
+      if (!isFirstTime) {
+        console.log('[GitHub Execute] Duplicate request blocked:', idemKey);
+        return NextResponse.json({
+          ok: false,
+          error: { code: 'DUPLICATE', message: 'This action was already performed' },
+        }, { status: 409 });
+      }
+    }
+
+    // Handle dry-run mode for write actions
+    if (dry_run && isWriteAction) {
+      console.log('[GitHub Execute] Dry-run for action:', action);
+      return NextResponse.json({
+        ok: true,
+        data: {
+          dry_run: true,
+          action,
+          params,
+          message: `Would execute: ${action}`,
+        },
+      });
+    }
+
+    let result: ToolResponse<unknown>;
 
     switch (action) {
       case 'list_repos': {
-        result = await github.listRepos(token);
+        const rawResult = await github.listRepos(token);
+        result = normalizeResponse(rawResult);
         break;
       }
 
@@ -87,9 +133,10 @@ export async function POST(request: NextRequest) {
         const repo = resolveRepo(params);
         const path = params.path as string | undefined;
         if (!owner || !repo) {
-          return NextResponse.json({ error: 'repo is required (format: "repo-name" or "owner/repo")' }, { status: 400 });
+          return NextResponse.json({ ok: false, error: { code: 'VALIDATION', message: 'repo is required (format: "repo-name" or "owner/repo")' } }, { status: 400 });
         }
-        result = await github.listFiles(token, owner, repo, path || '');
+        const rawResult = await github.listFiles(token, owner, repo, path || '');
+        result = normalizeResponse(rawResult);
         break;
       }
 
@@ -98,9 +145,10 @@ export async function POST(request: NextRequest) {
         const repo = resolveRepo(params);
         const path = params.path as string;
         if (!owner || !repo || !path) {
-          return NextResponse.json({ error: 'repo and path are required' }, { status: 400 });
+          return NextResponse.json({ ok: false, error: { code: 'VALIDATION', message: 'repo and path are required' } }, { status: 400 });
         }
-        result = await github.readFile(token, owner, repo, path);
+        const rawResult = await github.readFile(token, owner, repo, path);
+        result = normalizeResponse(rawResult);
         break;
       }
 
@@ -117,11 +165,14 @@ export async function POST(request: NextRequest) {
         };
         if (!owner || !repo || !path || !content || !message) {
           return NextResponse.json(
-            { error: 'repo, path, content, and message are required' },
+            { ok: false, error: { code: 'VALIDATION', message: 'repo, path, content, and message are required' } },
             { status: 400 }
           );
         }
-        result = await github.writeFile(token, owner, repo, path, content, message, sha);
+        result = await toolWrap(
+          () => github.writeFile(token, owner, repo, path, content, message, sha),
+          { tool_name: action, user_id: user.id }
+        );
         break;
       }
 
@@ -133,9 +184,12 @@ export async function POST(request: NextRequest) {
           fromBranch?: string;
         };
         if (!owner || !repo || !branchName) {
-          return NextResponse.json({ error: 'repo and branchName are required' }, { status: 400 });
+          return NextResponse.json({ ok: false, error: { code: 'VALIDATION', message: 'repo and branchName are required' } }, { status: 400 });
         }
-        result = await github.createBranch(token, owner, repo, branchName, fromBranch);
+        result = await toolWrap(
+          () => github.createBranch(token, owner, repo, branchName, fromBranch),
+          { tool_name: action, user_id: user.id }
+        );
         break;
       }
 
@@ -149,9 +203,12 @@ export async function POST(request: NextRequest) {
           base?: string;
         };
         if (!owner || !repo || !title || !head) {
-          return NextResponse.json({ error: 'repo, title, and head are required' }, { status: 400 });
+          return NextResponse.json({ ok: false, error: { code: 'VALIDATION', message: 'repo, title, and head are required' } }, { status: 400 });
         }
-        result = await github.createPullRequest(token, owner, repo, title, prBody || '', head, base);
+        result = await toolWrap(
+          () => github.createPullRequest(token, owner, repo, title, prBody || '', head, base),
+          { tool_name: action, user_id: user.id }
+        );
         break;
       }
 
@@ -160,9 +217,10 @@ export async function POST(request: NextRequest) {
         const repo = resolveRepo(params);
         const { state } = params as { state?: 'open' | 'closed' | 'all' };
         if (!owner || !repo) {
-          return NextResponse.json({ error: 'repo is required' }, { status: 400 });
+          return NextResponse.json({ ok: false, error: { code: 'VALIDATION', message: 'repo is required' } }, { status: 400 });
         }
-        result = await github.listIssues(token, owner, repo, state);
+        const rawResult = await github.listIssues(token, owner, repo, state);
+        result = normalizeResponse(rawResult);
         break;
       }
 
@@ -174,24 +232,26 @@ export async function POST(request: NextRequest) {
           body: string;
         };
         if (!owner || !repo || !title) {
-          return NextResponse.json({ error: 'repo and title are required' }, { status: 400 });
+          return NextResponse.json({ ok: false, error: { code: 'VALIDATION', message: 'repo and title are required' } }, { status: 400 });
         }
-        result = await github.createIssue(token, owner, repo, title, issueBody || '');
+        result = await toolWrap(
+          () => github.createIssue(token, owner, repo, title, issueBody || ''),
+          { tool_name: action, user_id: user.id }
+        );
         break;
       }
 
       default:
-        return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
+        return NextResponse.json({ ok: false, error: { code: 'UNKNOWN_ACTION', message: `Unknown action: ${action}` } }, { status: 400 });
     }
 
-    // Check if result is an error
-    if (github.isError(result)) {
-      return NextResponse.json({ error: result.error }, { status: result.status || 500 });
-    }
-
-    return NextResponse.json({ success: true, result });
+    // Return normalized response
+    return NextResponse.json(result, { status: result.ok ? 200 : 500 });
   } catch (error) {
     console.error('[GitHub Execute API] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: { code: 'INTERNAL', message: 'Internal server error' } },
+      { status: 500 }
+    );
   }
 }

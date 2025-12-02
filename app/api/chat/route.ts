@@ -1,10 +1,9 @@
 /**
- * CHAT API ROUTE - xAI Streaming Integration
+ * CHAT API ROUTE - OpenAI Streaming Integration
  *
  * PURPOSE:
  * - Handle chat message requests with streaming responses
- * - Integrate with xAI API (Grok models)
- * - Support agentic tool calling (web search, code execution, etc.)
+ * - Integrate with OpenAI API (GPT-4o family)
  * - Route to appropriate models based on tool type
  *
  * PUBLIC ROUTES:
@@ -12,33 +11,35 @@
  *
  * SECURITY/RLS NOTES:
  * - Input sanitization for prompts
- * - Rate limiting (TODO)
- * - Content moderation (TODO)
+ * - Rate limiting
+ * - Content moderation
  *
  * DEPENDENCIES/ENVS:
- * - XAI_API_KEY (required)
+ * - OPENAI_API_KEY (required)
  * - NEXT_PUBLIC_SUPABASE_URL (optional, for future auth)
  *
  * FEATURES:
  * - ✅ Streaming responses with SSE
- * - ✅ Model routing (chat/code/image)
- * - ✅ Agentic tool calling (web_search, x_search, code_execution)
+ * - ✅ Model routing (gpt-4o-mini default, gpt-4o for complex tasks)
+ * - ✅ Image generation with DALL-E 3
  * - ✅ Tool-specific system prompts
  * - ✅ Temperature and token optimization per tool
+ * - ✅ Retry logic with exponential backoff
  *
  * TODO:
  * - [ ] Add authentication
  * - [✓] Implement rate limiting (60/hr auth, 20/hr anon)
  * - [ ] Store messages in database
  * - [✓] Add content moderation (OpenAI omni-moderation-latest)
- * - [ ] Implement usage tracking
+ * - [✓] Implement usage tracking (daily limits with 80% warning)
  */
 
-import { createChatCompletion, generateImage } from '@/lib/xai/client';
-import { getModelForTool } from '@/lib/xai/models';
-import { getApiKeyCount } from '@/lib/xai/api-key-manager';
+import { createChatCompletion } from '@/lib/openai/client';
+import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
+import { generateImageWithFallback } from '@/lib/openai/images';
 import { getUserConnectedServices, getConnectorSystemPrompt } from '@/lib/connectors/helpers';
+import { incrementUsage, getLimitWarningMessage } from '@/lib/limits';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
@@ -122,78 +123,6 @@ async function checkChatRateLimit(
     console.error('[Chat API] Rate limit error:', error);
     // Allow request on error
     return { allowed: true, remaining: -1, resetIn: 0 };
-  }
-}
-
-/**
- * Get or assign API key index for a user
- * Users are permanently assigned to an API key for consistency
- * New users get round-robin assigned to the next available key
- */
-async function getOrAssignApiKeyIndex(userId: string): Promise<number | null> {
-  const supabase = getSupabaseAdmin();
-
-  if (!supabase) {
-    // If Supabase admin not configured, return null (will use default key)
-    return null;
-  }
-
-  try {
-    // First, check if user already has an assigned key
-    const { data: user, error: fetchError } = await supabase
-      .from('users')
-      .select('assigned_api_key_index')
-      .eq('id', userId)
-      .single();
-
-    if (fetchError) {
-      console.error('[Chat API] Error fetching user API key assignment:', fetchError);
-      return null;
-    }
-
-    // If already assigned, return it
-    if (user?.assigned_api_key_index !== null && user?.assigned_api_key_index !== undefined) {
-      return user.assigned_api_key_index;
-    }
-
-    // Not assigned yet - assign using round-robin
-    const keyCount = getApiKeyCount();
-
-    if (keyCount === 0) {
-      console.error('[Chat API] No API keys configured');
-      return null;
-    }
-
-    // Get the highest currently assigned index
-    const { data: maxResult } = await supabase
-      .from('users')
-      .select('assigned_api_key_index')
-      .not('assigned_api_key_index', 'is', null)
-      .order('assigned_api_key_index', { ascending: false })
-      .limit(1)
-      .single();
-
-    const currentMax = maxResult?.assigned_api_key_index || 0;
-
-    // Calculate next index (round-robin)
-    const nextIndex = (currentMax % keyCount) + 1;
-
-    // Assign to user
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ assigned_api_key_index: nextIndex })
-      .eq('id', userId);
-
-    if (updateError) {
-      console.error('[Chat API] Error assigning API key to user:', updateError);
-      return null;
-    }
-
-    console.log(`[Chat API] Assigned API key index ${nextIndex} to user ${userId}`);
-    return nextIndex;
-  } catch (error) {
-    console.error('[Chat API] Error in API key assignment:', error);
-    return null;
   }
 }
 
@@ -293,11 +222,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check rate limiting and get API key assignment
+    // Check rate limiting
     // Get user auth status and identifier for rate limiting
     let rateLimitIdentifier: string;
     let isAuthenticated = false;
-    let apiKeyIndex: number | null = null;
 
     try {
       const cookieStore = await cookies();
@@ -327,9 +255,6 @@ export async function POST(request: NextRequest) {
       if (user) {
         rateLimitIdentifier = user.id;
         isAuthenticated = true;
-
-        // Get or assign API key for this user (for load distribution)
-        apiKeyIndex = await getOrAssignApiKeyIndex(user.id);
       } else {
         // Fall back to IP for anonymous users
         rateLimitIdentifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
@@ -366,7 +291,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Moderate user messages before forwarding to xAI
+    // Check daily usage limits (warn at 80%, stop at 100%)
+    const usage = await incrementUsage(rateLimitIdentifier, isAuthenticated ? 'basic' : 'free');
+
+    if (usage.stop) {
+      console.log(`[Chat API] Daily limit reached for ${isAuthenticated ? 'user' : 'anon'}: ${rateLimitIdentifier}`);
+      return new Response(
+        JSON.stringify({
+          error: 'Daily limit reached',
+          message: getLimitWarningMessage(usage),
+          usage: { used: usage.used, limit: usage.limit, remaining: 0 },
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Usage-Limit': String(usage.limit),
+            'X-Usage-Remaining': '0',
+          },
+        }
+      );
+    }
+
+    // Moderate user messages before sending to OpenAI
     const lastMessage = messages[messages.length - 1];
     if (lastMessage && lastMessage.role === 'user') {
       // Extract only text content for moderation (not image data)
@@ -512,29 +459,34 @@ export async function POST(request: NextRequest) {
         ? lastMessage.content
         : '';
 
-      try {
-        const imageUrl = await generateImage(prompt, apiKeyIndex);
+      // Use new fallback-enabled image generation
+      const imageResult = await generateImageWithFallback(prompt, '1024x1024', rateLimitIdentifier);
 
+      if (imageResult.ok) {
         return new Response(
           JSON.stringify({
             type: 'image',
-            url: imageUrl,
-            model: 'grok-2-image-1212',
+            url: imageResult.image,
+            model: imageResult.model,
+            size: imageResult.size,
           }),
           {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           }
         );
-      } catch (error) {
-        console.error('Image generation error:', error);
+      } else {
+        // Return text fallback instead of error
         return new Response(
           JSON.stringify({
-            error: 'Image generation failed',
-            details: error instanceof Error ? error.message : 'Unknown error',
+            type: 'image_fallback',
+            content: imageResult.fallbackText,
+            retryHint: imageResult.retryHint,
+            suggestedPrompts: imageResult.suggestedPrompts,
+            error: imageResult.error,
           }),
           {
-            status: 500,
+            status: 200, // 200 because we're providing useful fallback content
             headers: { 'Content-Type': 'application/json' },
           }
         );
@@ -577,10 +529,10 @@ export async function POST(request: NextRequest) {
         };
         messagesWithContext = [connectorSystemMessage, ...messagesWithContext];
 
-        // Check if this is a GitHub code operation - route to grok-code-fast
+        // Check if this is a GitHub code operation - route to gpt-4o
         if (isGitHubCodeOperation(messages, connectedServices)) {
           effectiveTool = 'code';
-          console.log('[Chat API] GitHub code operation detected, routing to grok-code-fast');
+          console.log('[Chat API] GitHub code operation detected, routing to gpt-4o');
         }
       }
     }
@@ -615,7 +567,6 @@ export async function POST(request: NextRequest) {
         temperature,
         maxTokens: max_tokens,
         stream: false,
-        apiKeyIndex,
       });
 
       // Extract citations if available
@@ -655,7 +606,6 @@ export async function POST(request: NextRequest) {
         temperature,
         maxTokens: max_tokens,
         stream: true,
-        apiKeyIndex,
       });
 
       console.log('[Chat API] streamText returned, result type:', typeof result);
@@ -700,7 +650,6 @@ export async function POST(request: NextRequest) {
         temperature,
         maxTokens: max_tokens,
         stream: false,
-        apiKeyIndex,
       });
 
       // Extract citations if available
@@ -744,7 +693,7 @@ export async function POST(request: NextRequest) {
         return new Response(
           JSON.stringify({
             error: 'API configuration error',
-            details: 'XAI_API_KEY is not configured',
+            details: 'OPENAI_API_KEY is not configured',
           }),
           {
             status: 500,
