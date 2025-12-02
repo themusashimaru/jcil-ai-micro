@@ -33,20 +33,23 @@ export interface RouteDecision {
  * Matches requests like "generate/create/draw/make an image/picture/logo..."
  */
 const IMAGE_INTENT_PATTERNS = [
-  // Direct image generation requests
-  /\b(generate|create|make|draw|render|design|paint|sketch|illustrate)\b.*\b(image|picture|logo|poster|icon|thumbnail|art|artwork|illustration|photo|graphic|banner|avatar|portrait|scene|landscape)\b/i,
+  // Direct image generation requests (including "pic" shorthand)
+  /\b(generate|create|make|draw|render|design|paint|sketch|illustrate)\b.*\b(image|picture|pic|logo|poster|icon|thumbnail|art|artwork|illustration|photo|graphic|banner|avatar|portrait|scene|landscape)\b/i,
 
-  // Reverse order: "image of...", "picture of..."
-  /\b(image|picture|logo|poster|icon|thumbnail|art|artwork|illustration|photo|graphic|banner|avatar|portrait)\b.*\b(of|showing|depicting|with)\b/i,
+  // Reverse order: "image of...", "picture of...", "pic of..."
+  /\b(image|picture|pic|logo|poster|icon|thumbnail|art|artwork|illustration|photo|graphic|banner|avatar|portrait)\b.*\b(of|showing|depicting|with)\b/i,
 
   // "Can you draw/create..." style
-  /\bcan you\b.*\b(draw|create|generate|make|design|render)\b.*\b(image|picture|logo|art|illustration)\b/i,
+  /\bcan you\b.*\b(draw|create|generate|make|design|render)\b.*\b(image|picture|pic|logo|art|illustration)\b/i,
 
   // "I want/need an image of..."
-  /\b(i want|i need|i'd like|give me|show me)\b.*\b(image|picture|logo|illustration|art)\b/i,
+  /\b(i want|i need|i'd like|give me|show me)\b.*\b(image|picture|pic|logo|illustration|art)\b/i,
 
   // Emoji prefix pattern (from button)
   /^🎨\s*Generate image:/i,
+
+  // "create/make/draw for me" patterns
+  /\b(draw|create|make|generate)\s+(for\s+me|me)\s+(a|an)\b/i,
 
   // Simple patterns: "draw me a...", "make a logo"
   /\b(draw me|make me|create me)\b.*\b(a|an|the)\b/i,
@@ -57,6 +60,9 @@ const IMAGE_INTENT_PATTERNS = [
   // Logo specific
   /\b(logo|brand|branding)\b.*\b(for|design|create|with)\b/i,
   /\b(create|design|make)\b.*\blogo\b/i,
+
+  // Direct "pic of" or "picture of" at start
+  /^(a\s+)?(pic|picture|image)\s+(of|showing)\s+/i,
 ];
 
 /**
