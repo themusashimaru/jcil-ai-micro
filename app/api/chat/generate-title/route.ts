@@ -18,31 +18,31 @@ interface GenerateTitleRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateTitleRequest = await request.json();
-    const { userMessage, assistantMessage } = body;
+    const userMessage = body?.userMessage || '';
+    const assistantMessage = body?.assistantMessage || '';
 
     console.log('[API] Generate title request:', {
-      userMessage: userMessage?.slice(0, 100),
-      assistantMessage: assistantMessage?.slice(0, 100),
+      userMessage: userMessage.slice(0, 100),
+      assistantMessage: assistantMessage.slice(0, 100),
     });
 
-    if (!userMessage) {
-      console.error('[API] No user message provided for title generation');
+    if (!userMessage.trim()) {
+      console.log('[API] No user message provided, returning fallback title');
       return new Response(
-        JSON.stringify({ error: 'User message is required' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ title: 'New Conversation' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
     // Generate a concise title using AI
     console.log('[API] Calling AI to generate title...');
-    const result = await createChatCompletion({
-      messages: [
-        {
-          role: 'system',
-          content: `You are a chat title generator. Based on the user's message and assistant's response, create a short, descriptive title for this conversation.
+    let result;
+    try {
+      result = await createChatCompletion({
+        messages: [
+          {
+            role: 'system',
+            content: `You are a chat title generator. Based on the user's message and assistant's response, create a short, descriptive title for this conversation.
 
 Rules:
 - Keep it 3-6 words maximum
@@ -51,18 +51,35 @@ Rules:
 - Be specific, not generic
 - No quotes, no punctuation at end
 - Examples: "Email Writing Help", "Python Code Review", "Daily Devotional", "Bible Study Questions"`,
-        },
-        {
-          role: 'user',
-          content: `User: ${userMessage}\n\nAssistant: ${assistantMessage.slice(0, 300)}...\n\nGenerate a short title (3-6 words) for this conversation:`,
-        },
-      ],
-      stream: false,
-    });
+          },
+          {
+            role: 'user',
+            content: `User: ${userMessage}\n\nAssistant: ${assistantMessage.slice(0, 300)}...\n\nGenerate a short title (3-6 words) for this conversation:`,
+          },
+        ],
+        stream: false,
+      });
+    } catch (aiError) {
+      console.error('[API] AI call failed:', aiError);
+      // Return a generated fallback title based on the user message
+      const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
+      return new Response(
+        JSON.stringify({ title: fallbackTitle }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Extract the title and clean it up
     // Handle both string and Promise<string> return types
-    const textContent = await Promise.resolve(result.text);
+    const textContent = await Promise.resolve(result?.text || '');
+    if (!textContent) {
+      console.log('[API] No text returned from AI, using fallback title');
+      const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
+      return new Response(
+        JSON.stringify({ title: fallbackTitle }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     let title = textContent.trim();
     console.log('[API] Raw AI-generated title:', title);
 
