@@ -144,7 +144,7 @@ interface ChatRequestBody {
   conversationId?: string; // Current conversation ID to exclude from history
 }
 
-// Detect if user is requesting GitHub code operations (for routing to grok-code-fast)
+// Detect if user is requesting GitHub code operations (for routing to GPT-5.1)
 function isGitHubCodeOperation(messages: CoreMessage[], connectedServices: string[]): boolean {
   // Only applies if GitHub is connected
   if (!connectedServices.includes('github')) return false;
@@ -613,7 +613,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add connector awareness if user has connected services
-    // Also check if this is a GitHub code operation to route to grok-code-fast
+    // Also check if this is a GitHub code operation to route to GPT-5.1
     let connectedServices: string[] = [];
     let effectiveTool = tool;
 
@@ -633,10 +633,10 @@ export async function POST(request: NextRequest) {
       };
       messagesWithContext = [slingshotSystemMessage, ...messagesWithContext];
 
-      // Check if this is a GitHub code operation - route to gpt-4o
+      // Check if this is a GitHub code operation - route to GPT-5.1
       if (connectedServices.length > 0 && isGitHubCodeOperation(messages, connectedServices)) {
         effectiveTool = 'code';
-        console.log('[Chat API] GitHub code operation detected, routing to gpt-4o');
+        console.log('[Chat API] GitHub code operation detected, routing to GPT-5.1');
       }
     }
 

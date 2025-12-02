@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       costsByModel[usage.model_name].cost += parseFloat(String(usage.total_cost)) || 0;
     });
 
-    // Prepare data for Grok-4
+    // Prepare data for GPT-5.1
     const financialData = {
       period: {
         type: reportType,
@@ -145,10 +145,10 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // Generate report using Grok-4
-    const xaiApiKey = process.env.XAI_API_KEY;
-    if (!xaiApiKey) {
-      throw new Error('XAI_API_KEY not configured');
+    // Generate report using OpenAI GPT-5.1
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY not configured');
     }
 
     const prompt = `You are a business analyst for JCIL.ai, an AI chat platform. Generate a comprehensive ${reportType} business report based on the following financial data:
@@ -168,7 +168,7 @@ Please provide:
    - Customer acquisition and retention insights
 
 3. **Cost Analysis**
-   - API costs breakdown by model (grok-4, grok-4-fast-reasoning, grok-2-vision, grok-code-fast)
+   - API costs breakdown by model (gpt-5.1, gpt-4o, dall-e-3, whisper-1, tts-1-hd)
    - News page costs (updated every 30 min)
    - Cost efficiency metrics
    - Areas of high spend
@@ -196,14 +196,14 @@ Please provide:
 
 Format the report professionally with clear sections, bullet points where appropriate, and actionable insights. Use specific numbers from the data provided.`;
 
-    const grokResponse = await fetch('https://api.x.ai/v1/chat/completions', {
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${xaiApiKey}`,
+        Authorization: `Bearer ${openaiApiKey}`,
       },
       body: JSON.stringify({
-        model: 'grok-4-0709',
+        model: 'gpt-5.1',
         messages: [
           {
             role: 'system',
@@ -219,13 +219,13 @@ Format the report professionally with clear sections, bullet points where approp
       }),
     });
 
-    if (!grokResponse.ok) {
-      const errorData = await grokResponse.json();
-      throw new Error(`Grok API error: ${errorData.error?.message || 'Unknown error'}`);
+    if (!openaiResponse.ok) {
+      const errorData = await openaiResponse.json();
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
     }
 
-    const grokData = await grokResponse.json();
-    const reportContent = grokData.choices[0].message.content;
+    const openaiData = await openaiResponse.json();
+    const reportContent = openaiData.choices[0].message.content;
 
     // Save report to database
     const { data: savedReport, error: saveError } = await supabase

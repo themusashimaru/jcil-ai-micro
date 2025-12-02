@@ -17,7 +17,7 @@
  * - ✅ Includes meditation, prayer, and application
  */
 
-import { createChatCompletion } from '@/lib/xai/client';
+import { createChatCompletion } from '@/lib/openai/client';
 import { NextResponse } from 'next/server';
 
 interface Devotional {

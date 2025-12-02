@@ -2,9 +2,9 @@
  * OpenAI Client
  * Wrapper for OpenAI API using Vercel AI SDK
  *
- * Implements:
- * - GPT-4o for complex tasks, images, coding, web search
- * - GPT-4o-mini for lightweight chat (default)
+ * Implements (per Master Directive):
+ * - GPT-5.1 for chat and reasoning (primary)
+ * - GPT-4o for vision/image analysis (multimodal)
  * - DALL-E 3 for image generation
  * - Web search via OpenAI Responses API
  * - Streaming support
@@ -321,18 +321,19 @@ function getLastUserMessageText(messages: any[]): string {
 
 /**
  * Determine the best model based on content and tool
+ * Per directive: GPT-5.1 is the primary model, GPT-4o for vision/images
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
   // First check tool-based routing
   const toolBasedModel = getModelForTool(tool);
 
-  // If tool already routes to gpt-4o, use it
-  if (toolBasedModel === 'gpt-4o' || toolBasedModel === 'dall-e-3') {
+  // If tool routes to DALL-E 3, use it
+  if (toolBasedModel === 'dall-e-3') {
     return toolBasedModel;
   }
 
-  // Check content-based routing
+  // Check content-based routing - images require gpt-4o for vision
   const hasImages = hasImageContent(messages);
   const messageText = getLastUserMessageText(messages);
 
@@ -343,13 +344,14 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
     messageTextLength: messageText.length,
   });
 
+  // Images require GPT-4o for vision capabilities
   if (shouldUseGPT4o(hasImages, false, false, messageText)) {
-    console.log('[OpenAI] Routing to gpt-4o due to:', hasImages ? 'images' : 'content analysis');
+    console.log('[OpenAI] Routing to gpt-4o due to image content');
     return 'gpt-4o';
   }
 
-  // Default to mini
-  return 'gpt-4o-mini';
+  // Default to GPT-5.1 per directive
+  return 'gpt-5.1';
 }
 
 /**
@@ -373,7 +375,7 @@ export async function createChatCompletion(options: ChatOptions) {
   if (useWebSearch) {
     const triggerReason = tool && WEB_SEARCH_TOOLS.includes(tool) ? `tool: ${tool}` : 'content pattern';
     console.log('[OpenAI] Using Responses API with web search, trigger:', triggerReason);
-    return createWebSearchCompletion(options, 'gpt-4o'); // Always use gpt-4o for web search
+    return createWebSearchCompletion(options, 'gpt-5.1'); // Use GPT-5.1 for web search per directive
   }
 
   // Use non-streaming for image analysis or when explicitly requested
@@ -411,8 +413,8 @@ export async function createChatCompletion(options: ChatOptions) {
 }
 
 // Note: Preferred domains for web search are defined in the system prompt
-// (see src/lib/openai/tools.ts and src/lib/xai/tools.ts)
-// OpenAI's web_search tool doesn't currently support domain filtering like Grok did
+// (see src/lib/openai/tools.ts)
+// OpenAI's web_search tool handles domain filtering through system prompts
 
 /**
  * Create completion with web search using OpenAI Responses API
@@ -451,7 +453,7 @@ async function createWebSearchCompletion(
   // Build web search tool configuration with preferred domains
   const webSearchTool = {
     type: 'web_search',
-    // Note: OpenAI's web_search doesn't have domain filtering in the same way as Grok
+    // Note: OpenAI's web_search handles domain preferences through system prompts
     // The domains are included in the system prompt for guidance instead
     // If OpenAI adds domain filtering support, uncomment below:
     // domains: { include: PREFERRED_SEARCH_DOMAINS },
@@ -686,8 +688,8 @@ async function createDirectOpenAICompletion(
         continue;
       }
 
-      // If it's a 4o error, try falling back to mini (only for text-only requests)
-      if (modelName === 'gpt-4o' && !hasImageContent(messages)) {
+      // If it's a GPT-5.1 or GPT-4o error, try falling back to mini (only for text-only requests)
+      if ((modelName === 'gpt-5.1' || modelName === 'gpt-4o') && !hasImageContent(messages)) {
         console.log('[OpenAI API] Falling back to gpt-4o-mini');
         return createDirectOpenAICompletion(
           options,

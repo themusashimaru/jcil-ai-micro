@@ -2,10 +2,13 @@
  * OpenAI Model Routing
  * Determines which model to use based on tool type, content, and request
  *
- * Routing Strategy:
- * - gpt-4o-mini: Default for most conversations (fast, cheap)
- * - gpt-4o: Complex tasks, images, coding, research
+ * Routing Strategy (per Master Directive):
+ * - gpt-5.1: Primary chat and reasoning model (default)
+ * - gpt-4o: Vision/image analysis, complex multimodal tasks
+ * - gpt-4o-realtime-preview: Real-time voice conversations
  * - dall-e-3: Image generation
+ * - whisper-1: Speech-to-text
+ * - tts-1-hd: Text-to-speech
  */
 
 import { OpenAIModel, ToolType } from './types';
@@ -15,14 +18,14 @@ import { OpenAIModel, ToolType } from './types';
  */
 export function getModelForTool(tool?: ToolType): OpenAIModel {
   if (!tool) {
-    // Default chat model - gpt-4o-mini for cost efficiency
-    return 'gpt-4o-mini';
+    // Default chat model - gpt-5.1 per directive
+    return 'gpt-5.1';
   }
 
   switch (tool) {
     case 'code':
-      // Coding tasks need the full model
-      return 'gpt-4o';
+      // Coding tasks use GPT-5.1 for reasoning
+      return 'gpt-5.1';
 
     case 'image':
     case 'video':
@@ -30,12 +33,12 @@ export function getModelForTool(tool?: ToolType): OpenAIModel {
       return 'dall-e-3';
 
     case 'research':
-      // Research may need web browsing (gpt-4o)
-      return 'gpt-4o';
+      // Research uses GPT-5.1 for reasoning
+      return 'gpt-5.1';
 
     case 'data':
-      // Data analysis benefits from stronger reasoning
-      return 'gpt-4o';
+      // Data analysis uses GPT-5.1 for reasoning
+      return 'gpt-5.1';
 
     case 'email':
     case 'essay':
@@ -44,55 +47,33 @@ export function getModelForTool(tool?: ToolType): OpenAIModel {
     case 'shopper':
     case 'scripture':
     default:
-      // General tasks use mini for cost efficiency
-      return 'gpt-4o-mini';
+      // General tasks use GPT-5.1 per directive
+      return 'gpt-5.1';
   }
 }
 
 /**
  * Determine if request should use gpt-4o based on content analysis
- * This is called in addition to tool-based routing
+ * GPT-4o is used specifically for vision/image analysis (multimodal)
+ * All other tasks use GPT-5.1 per the directive
  */
 export function shouldUseGPT4o(
   hasImages: boolean,
   hasFiles: boolean,
   hasAudio: boolean,
-  messageContent: string
+  _messageContent: string
 ): boolean {
-  // Images require gpt-4o
-  if (hasImages || hasFiles || hasAudio) {
+  // Images require gpt-4o for vision analysis
+  if (hasImages || hasFiles) {
     return true;
   }
 
-  const lowerContent = messageContent.toLowerCase();
-
-  // Coding/infrastructure keywords
-  const codingPatterns = [
-    'deploy', 'github', 'typescript', 'javascript', 'python',
-    'rewrite function', 'sql', 'supabase', 'vercel', 'upstash',
-    'resend', 'pull request', 'pr', 'commit', 'merge',
-    'debug', 'refactor', 'implement', 'create file', 'update file',
-    'api', 'endpoint', 'database', 'schema', 'migration'
-  ];
-
-  for (const pattern of codingPatterns) {
-    if (lowerContent.includes(pattern)) {
-      return true;
-    }
+  // Audio content requires gpt-4o for audio understanding
+  if (hasAudio) {
+    return true;
   }
 
-  // Complex reasoning indicators
-  const complexPatterns = [
-    'analyze', 'compare', 'evaluate', 'explain in detail',
-    'step by step', 'comprehensive', 'research', 'investigate'
-  ];
-
-  for (const pattern of complexPatterns) {
-    if (lowerContent.includes(pattern)) {
-      return true;
-    }
-  }
-
+  // All other cases use GPT-5.1 (default)
   return false;
 }
 
@@ -117,6 +98,7 @@ export function isImageGenerationRequest(messageContent: string): boolean {
 
 /**
  * Get recommended temperature for model
+ * Per directive: temperature 0.8 for chat
  */
 export function getRecommendedTemperature(model: OpenAIModel, tool?: ToolType): number {
   // Code generation should be more deterministic
@@ -126,12 +108,12 @@ export function getRecommendedTemperature(model: OpenAIModel, tool?: ToolType): 
 
   // Creative tasks can be more varied
   if (tool === 'essay' || tool === 'email' || tool === 'sms') {
-    return 0.7;
+    return 0.8;
   }
 
   // Research and factual tasks should be balanced
   if (tool === 'research' || tool === 'scripture' || tool === 'translate') {
-    return 0.5;
+    return 0.6;
   }
 
   // Image generation
@@ -139,45 +121,56 @@ export function getRecommendedTemperature(model: OpenAIModel, tool?: ToolType): 
     return 1.0; // DALL-E doesn't use temperature the same way
   }
 
-  // Default balanced temperature
-  return 0.6;
+  // Default temperature per directive
+  return 0.8;
 }
 
 /**
  * Get max tokens for model/tool combination
- * Following directive: mini=900, 4o=1200-1800
+ * Per directive: max_tokens 2000 for GPT-5.1 chat
  */
 export function getMaxTokens(model: OpenAIModel, tool?: ToolType): number {
-  // For gpt-4o-mini, cap at 900 tokens
+  // For gpt-5.1, use 2000 tokens per directive
+  if (model === 'gpt-5.1') {
+    if (tool === 'sms') return 256;
+    if (tool === 'email') return 1000;
+    if (tool === 'code') return 2000;
+    if (tool === 'essay') return 2000;
+    if (tool === 'research') return 2000;
+    if (tool === 'data') return 2000;
+    return 2000;
+  }
+
+  // For gpt-4o (vision/multimodal), allow more tokens
+  if (model === 'gpt-4o') {
+    if (tool === 'code') return 2000;
+    if (tool === 'essay') return 2000;
+    if (tool === 'research') return 2000;
+    if (tool === 'data') return 2000;
+    return 1500;
+  }
+
+  // For gpt-4o-mini (fallback), cap at 900 tokens
   if (model === 'gpt-4o-mini') {
     if (tool === 'sms') return 256;
     if (tool === 'email') return 700;
     return 900;
   }
 
-  // For gpt-4o, allow more tokens
-  if (model === 'gpt-4o') {
-    if (tool === 'code') return 1800;
-    if (tool === 'essay') return 1800;
-    if (tool === 'research') return 1500;
-    if (tool === 'data') return 1500;
-    return 1200;
-  }
-
   // Default
-  return 900;
+  return 2000;
 }
 
 /**
  * Check if a model supports vision/images
  */
 export function supportsVision(model: OpenAIModel): boolean {
-  return model === 'gpt-4o' || model === 'gpt-4o-mini';
+  return model === 'gpt-4o' || model === 'gpt-4o-mini' || model === 'gpt-5.1';
 }
 
 /**
  * Check if a model supports tool/function calling
  */
 export function supportsToolCalling(model: OpenAIModel): boolean {
-  return model === 'gpt-4o' || model === 'gpt-4o-mini';
+  return model === 'gpt-5.1' || model === 'gpt-4o' || model === 'gpt-4o-mini';
 }

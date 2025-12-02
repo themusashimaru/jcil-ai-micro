@@ -307,25 +307,6 @@ async function testAnthropic(token: string): Promise<{ valid: boolean; error?: s
   }
 }
 
-// Test xAI (Grok) connection
-async function testXAI(token: string): Promise<{ valid: boolean; error?: string }> {
-  try {
-    const response = await fetch('https://api.x.ai/v1/models', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (response.ok) {
-      return { valid: true };
-    } else if (response.status === 401) {
-      return { valid: false, error: 'Invalid API key. Check your xAI API key.' };
-    } else {
-      return { valid: false, error: `xAI API error: ${response.status}` };
-    }
-  } catch {
-    return { valid: false, error: 'Failed to connect to xAI. Check your network.' };
-  }
-}
-
 // Test Groq connection
 async function testGroq(token: string): Promise<{ valid: boolean; error?: string }> {
   try {
@@ -2107,9 +2088,6 @@ export async function POST(request: NextRequest) {
         break;
       case 'anthropic':
         result = await testAnthropic(token);
-        break;
-      case 'xai':
-        result = await testXAI(token);
         break;
       case 'groq':
         result = await testGroq(token);

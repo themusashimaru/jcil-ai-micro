@@ -21,7 +21,7 @@
 // Vercel Pro: Allow up to 5 minutes for batched generation
 export const maxDuration = 300;
 
-import { createChatCompletion } from '@/lib/xai/client';
+import { createChatCompletion } from '@/lib/openai/client';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
