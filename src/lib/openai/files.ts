@@ -39,7 +39,8 @@ export async function uploadFile(
   purpose: FilePurpose = 'assistants'
 ): Promise<UploadedFile> {
   const formData = new FormData();
-  formData.append('file', new Blob([file]), filename);
+  // Type assertion needed for Node.js 24+ strict ArrayBuffer typing
+  formData.append('file', new Blob([file as unknown as BlobPart]), filename);
   formData.append('purpose', purpose);
 
   const response = await httpWithTimeout(`${OPENAI_BASE_URL}/files`, {

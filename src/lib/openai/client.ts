@@ -479,7 +479,7 @@ async function createDirectOpenAICompletion(
         messages: convertedMessages,
         system: systemPrompt,
         temperature: effectiveTemperature,
-        maxTokens: effectiveMaxTokens,
+        maxOutputTokens: effectiveMaxTokens,
       });
 
       return {

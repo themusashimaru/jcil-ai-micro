@@ -171,6 +171,7 @@ export async function markdownToPdf(
 
   try {
     // Dynamic import to avoid issues if puppeteer isn't installed
+    // @ts-expect-error puppeteer types not installed in production
     const puppeteer = await import('puppeteer');
     const browser = await puppeteer.default.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -215,6 +216,7 @@ export async function htmlToPdf(
   const { format = 'Letter', printBackground = true } = options;
 
   try {
+    // @ts-expect-error puppeteer types not installed in production
     const puppeteer = await import('puppeteer');
     const browser = await puppeteer.default.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
