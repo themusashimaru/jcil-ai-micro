@@ -462,6 +462,15 @@ export function ChatClient() {
     imageUrl?: string,
     attachmentUrls?: string[]
   ) => {
+    // Skip saving if content is empty and no attachments
+    const hasContent = content && content.trim().length > 0;
+    const hasAttachments = (attachmentUrls && attachmentUrls.length > 0) || imageUrl;
+
+    if (!hasContent && !hasAttachments) {
+      console.log('[ChatClient] Skipping save - no content or attachments');
+      return null;
+    }
+
     try {
       const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
