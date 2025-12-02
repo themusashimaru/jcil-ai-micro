@@ -15,7 +15,7 @@
  */
 
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, generateText, convertToModelMessages } from 'ai';
+import { streamText, generateText } from 'ai';
 import {
   getModelForTool,
   getRecommendedTemperature,
@@ -257,13 +257,12 @@ export async function createChatCompletion(options: ChatOptions) {
   const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
-  // Convert messages: first to OpenAI format (for images), then to model format
+  // Convert messages to OpenAI format (handles image URLs)
   const convertedMessages = messages.map(convertMessageForOpenAI);
-  const modelMessages = convertToModelMessages(convertedMessages);
 
   const requestConfig = {
     model,
-    messages: modelMessages,
+    messages: convertedMessages,
     system: fullSystemPrompt,
     temperature: effectiveTemperature,
     maxTokens: effectiveMaxTokens,
@@ -468,9 +467,8 @@ async function createDirectOpenAICompletion(
   const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
-  // Convert messages to model format, then to OpenAI format for images
+  // Convert messages to OpenAI format (handles image URLs)
   const convertedMessages = messages.map(convertMessageForOpenAI);
-  const modelMessages = convertToModelMessages(convertedMessages);
 
   // Retry loop
   let lastError: Error | null = null;
@@ -481,7 +479,7 @@ async function createDirectOpenAICompletion(
 
       const result = await generateText({
         model,
-        messages: modelMessages,
+        messages: convertedMessages,
         system: systemPrompt,
         temperature: effectiveTemperature,
         maxOutputTokens: effectiveMaxTokens,
