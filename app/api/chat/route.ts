@@ -34,9 +34,10 @@
  * - [✓] Implement usage tracking (daily limits with 80% warning)
  */
 
-import { createChatCompletion, generateImage } from '@/lib/openai/client';
+import { createChatCompletion } from '@/lib/openai/client';
 import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
+import { generateImageWithFallback } from '@/lib/openai/images';
 import { getUserConnectedServices, getConnectorSystemPrompt } from '@/lib/connectors/helpers';
 import { incrementUsage, getLimitWarningMessage } from '@/lib/limits';
 import { NextRequest } from 'next/server';
@@ -458,29 +459,34 @@ export async function POST(request: NextRequest) {
         ? lastMessage.content
         : '';
 
-      try {
-        const imageUrl = await generateImage(prompt);
+      // Use new fallback-enabled image generation
+      const imageResult = await generateImageWithFallback(prompt, '1024x1024', rateLimitIdentifier);
 
+      if (imageResult.ok) {
         return new Response(
           JSON.stringify({
             type: 'image',
-            url: imageUrl,
-            model: 'dall-e-3',
+            url: imageResult.image,
+            model: imageResult.model,
+            size: imageResult.size,
           }),
           {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           }
         );
-      } catch (error) {
-        console.error('Image generation error:', error);
+      } else {
+        // Return text fallback instead of error
         return new Response(
           JSON.stringify({
-            error: 'Image generation failed',
-            details: error instanceof Error ? error.message : 'Unknown error',
+            type: 'image_fallback',
+            content: imageResult.fallbackText,
+            retryHint: imageResult.retryHint,
+            suggestedPrompts: imageResult.suggestedPrompts,
+            error: imageResult.error,
           }),
           {
-            status: 500,
+            status: 200, // 200 because we're providing useful fallback content
             headers: { 'Content-Type': 'application/json' },
           }
         );

@@ -19,6 +19,7 @@
     "test": "echo \"Tests to be implemented\" && exit 0"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.75",
     "@ai-sdk/xai": "^2.0.31",
     "@google/generative-ai": "^0.7.0",
     "@simplewebauthn/browser": "^13.2.2",
