@@ -7,7 +7,7 @@
  * - Creates concise, meaningful titles (3-6 words)
  */
 
-import { createChatCompletion } from '@/lib/xai/client';
+import { createChatCompletion } from '@/lib/openai/client';
 import { NextRequest } from 'next/server';
 
 interface GenerateTitleRequest {
@@ -102,4 +102,4 @@ Rules:
   }
 }
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
