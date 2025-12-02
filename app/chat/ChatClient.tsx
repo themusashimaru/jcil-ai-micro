@@ -435,7 +435,25 @@ export function ChatClient() {
     }
   };
 
-  // Helper function to save message to database
+  /**
+   * Helper to safely parse JSON response and extract error message
+   */
+  const safeJsonParse = async (res: Response): Promise<{
+    ok: boolean;
+    data?: unknown;
+    error?: { code?: string; message?: string };
+  } | null> => {
+    try {
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Helper function to save message to database
+   * Supports both JSON (for text-only) and FormData (for file attachments)
+   */
   const saveMessageToDatabase = async (
     conversationId: string,
     role: 'user' | 'assistant' | 'system',
@@ -445,7 +463,7 @@ export function ChatClient() {
     attachmentUrls?: string[]
   ) => {
     try {
-      await fetch(`/api/conversations/${conversationId}/messages`, {
+      const response = await fetch(`/api/conversations/${conversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -456,8 +474,20 @@ export function ChatClient() {
           attachment_urls: attachmentUrls,
         }),
       });
+
+      const data = await safeJsonParse(response);
+
+      if (!response.ok || data?.ok === false) {
+        const errorMsg = data?.error?.message || `HTTP ${response.status}`;
+        const errorCode = data?.error?.code || 'UNKNOWN';
+        console.error(`[ChatClient] Save message failed: ${errorCode}: ${errorMsg}`);
+        throw new Error(`${errorCode}: ${errorMsg}`);
+      }
+
+      return data;
     } catch (error) {
       console.error('Error saving message to database:', error);
+      // Don't re-throw - message display still works even if save fails
     }
   };
 
@@ -1017,8 +1047,14 @@ export function ChatClient() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`API error: ${errorData.details || response.statusText}`);
+        const errorData = await safeJsonParse(response);
+        const errorMsg =
+          errorData?.error?.message ||
+          (errorData as { details?: string })?.details ||
+          (errorData as { message?: string })?.message ||
+          `HTTP ${response.status}`;
+        const errorCode = errorData?.error?.code || 'API_ERROR';
+        throw new Error(`${errorCode}: ${errorMsg}`);
       }
 
       // Check content type to determine if streaming or JSON
