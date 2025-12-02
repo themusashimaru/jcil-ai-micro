@@ -3,11 +3,33 @@
  *
  * GET - Load all messages for a conversation
  * POST - Save a new message to a conversation
+ *
+ * Supports both JSON and multipart/form-data for file uploads
  */
 
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+
+// Force Node runtime for file Buffer support
+export const runtime = 'nodejs';
+// Avoid static optimization; we accept uploads
+export const dynamic = 'force-dynamic';
+
+/**
+ * Structured error response helper
+ */
+function errorResponse(
+  status: number,
+  code: string,
+  message: string,
+  extra?: unknown
+) {
+  return NextResponse.json(
+    { ok: false, error: { code, message, extra } },
+    { status }
+  );
+}
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -90,6 +112,10 @@ export async function GET(
 /**
  * POST /api/conversations/[id]/messages
  * Save a new message to a conversation
+ *
+ * Supports both JSON and multipart/form-data:
+ * - JSON: { role, content, content_type, attachment_urls, ... }
+ * - FormData: text, role, files[], attachments_json
  */
 export async function POST(
   request: NextRequest,
@@ -102,28 +128,139 @@ export async function POST(
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
-    const body = await request.json();
-    const {
-      role,
-      content,
-      content_type = 'text',
-      model_used = null,
-      temperature = null,
-      tokens_used = null,
-      attachment_urls = null,
-      image_url = null, // For AI-generated images
-      prompt = null, // For image generation requests
-      type = 'text', // Message type: text, image, tool
-    } = body;
+    const contentType = request.headers.get('content-type') || '';
+
+    // Variables to hold parsed data
+    let role = 'user';
+    let content = '';
+    let content_type_field = 'text';
+    let model_used: string | null = null;
+    let temperature: number | null = null;
+    let tokens_used: number | null = null;
+    let attachment_urls: string[] = [];
+    let image_url: string | null = null;
+    let prompt: string | null = null;
+    let type = 'text';
+
+    // Handle multipart/form-data (file uploads)
+    if (contentType.includes('multipart/form-data')) {
+      let formData: FormData;
+      try {
+        formData = await request.formData();
+      } catch (e) {
+        console.error('[API] FormData parse error:', e);
+        return errorResponse(400, 'BAD_FORMDATA', 'Failed to parse form data');
+      }
+
+      // Extract text content from multiple possible field names
+      const textValue =
+        (formData.get('text') as string | null) ??
+        (formData.get('message') as string | null) ??
+        (formData.get('content') as string | null) ??
+        '';
+      content = textValue;
+
+      // Extract role
+      const roleValue = (formData.get('role') as string | null) ?? 'user';
+      if (['user', 'system', 'assistant'].includes(roleValue)) {
+        role = roleValue;
+      }
+
+      // Process file uploads
+      const fileKeys = ['files', 'file', 'attachment', 'attachments[]'];
+      for (const key of fileKeys) {
+        const files = formData.getAll(key);
+        for (const file of files) {
+          if (file instanceof File && file.size > 0) {
+            try {
+              // Convert file to base64 data URL for storage
+              const arrayBuffer = await file.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              const base64 = buffer.toString('base64');
+              const mimeType = file.type || 'application/octet-stream';
+              const dataUrl = `data:${mimeType};base64,${base64}`;
+              attachment_urls.push(dataUrl);
+            } catch (fileError) {
+              console.error('[API] File processing error:', fileError);
+              // Continue with other files
+            }
+          }
+        }
+      }
+
+      // Also support JSON attachments in a field (for base64 uploads via form)
+      const attachmentsJson = formData.get('attachments_json') as string | null;
+      if (attachmentsJson) {
+        try {
+          const arr = JSON.parse(attachmentsJson) as Array<{
+            name?: string;
+            mime?: string;
+            base64: string;
+            url?: string;
+          }>;
+          for (const att of arr) {
+            if (att.base64) {
+              const mime = att.mime || 'application/octet-stream';
+              attachment_urls.push(`data:${mime};base64,${att.base64}`);
+            } else if (att.url) {
+              attachment_urls.push(att.url);
+            }
+          }
+        } catch (jsonError) {
+          console.error('[API] attachments_json parse error:', jsonError);
+          return errorResponse(400, 'BAD_ATTACHMENTS_JSON', 'attachments_json is not valid JSON');
+        }
+      }
+    } else {
+      // Handle JSON request
+      let body: Record<string, unknown>;
+      try {
+        body = await request.json();
+      } catch (e) {
+        console.error('[API] JSON parse error:', e);
+        return errorResponse(400, 'BAD_JSON', 'Request body is not valid JSON');
+      }
+
+      // Safely extract fields with defaults
+      role = typeof body.role === 'string' ? body.role : 'user';
+      content = typeof body.content === 'string' ? body.content : '';
+      content_type_field = typeof body.content_type === 'string' ? body.content_type : 'text';
+      model_used = typeof body.model_used === 'string' ? body.model_used : null;
+      temperature = typeof body.temperature === 'number' ? body.temperature : null;
+      tokens_used = typeof body.tokens_used === 'number' ? body.tokens_used : null;
+      image_url = typeof body.image_url === 'string' ? body.image_url : null;
+      prompt = typeof body.prompt === 'string' ? body.prompt : null;
+      type = typeof body.type === 'string' ? body.type : 'text';
+
+      // Handle attachment URLs
+      if (Array.isArray(body.attachment_urls)) {
+        attachment_urls = body.attachment_urls.filter(
+          (url): url is string => typeof url === 'string'
+        );
+      }
+    }
 
     // Normalize content: handle different message types
-    // For image messages, content might be undefined but prompt exists
-    const normalizedContent = typeof content === 'string'
-      ? content
-      : (typeof prompt === 'string' ? prompt : '');
+    // For image messages, content might be empty but prompt exists
+    const normalizedContent =
+      content && content.trim()
+        ? content
+        : prompt && typeof prompt === 'string'
+          ? prompt
+          : '';
+
+    // Include image_url in attachments if present
+    if (image_url) {
+      attachment_urls.push(image_url);
+    }
+
+    // Validate: require at least text or attachments
+    if (!normalizedContent && attachment_urls.length === 0) {
+      return errorResponse(400, 'EMPTY_MESSAGE', 'Provide text or at least one file');
+    }
 
     // Verify conversation belongs to user
     const { data: conversation, error: convError } = await supabase
@@ -134,21 +271,18 @@ export async function POST(
       .single();
 
     if (convError || !conversation) {
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+      return errorResponse(404, 'NOT_FOUND', 'Conversation not found');
     }
 
     // Calculate retention date (30 days from now by default)
     const retentionDate = new Date();
     retentionDate.setDate(retentionDate.getDate() + 30);
 
-    // Handle attachment URLs (include image_url if present)
-    const allAttachments = attachment_urls ? [...attachment_urls] : [];
-    if (image_url) {
-      allAttachments.push(image_url);
-    }
-
-    // Safe preview for logging (never call slice on undefined)
-    const contentPreview = normalizedContent.slice(0, 50) || '[no content]';
+    // Safe preview for logging
+    const contentPreview =
+      normalizedContent.length > 0
+        ? normalizedContent.slice(0, 50)
+        : '[no text content]';
 
     console.log('[API] Attempting to save message:', {
       conversation_id: conversationId,
@@ -156,6 +290,7 @@ export async function POST(
       role,
       type,
       content_preview: contentPreview,
+      attachment_count: attachment_urls.length,
     });
 
     // Save message with normalized content
@@ -166,12 +301,12 @@ export async function POST(
         user_id: user.id,
         role,
         content: normalizedContent,
-        content_type: type === 'image' ? 'image' : content_type,
+        content_type: type === 'image' ? 'image' : content_type_field,
         model_used,
         temperature,
         tokens_used,
-        has_attachments: allAttachments.length > 0,
-        attachment_urls: allAttachments.length > 0 ? allAttachments : null,
+        has_attachments: attachment_urls.length > 0,
+        attachment_urls: attachment_urls.length > 0 ? attachment_urls : null,
         retention_until: retentionDate.toISOString(),
       })
       .select()
@@ -185,7 +320,7 @@ export async function POST(
         details: error.details,
         hint: error.hint,
       });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return errorResponse(500, 'DB_ERROR', error.message || 'Failed to save message');
     }
 
     console.log('[API] Message saved successfully:', message.id);
@@ -205,12 +340,24 @@ export async function POST(
       // Don't fail the request if this fails
     }
 
-    return NextResponse.json({ message });
+    // Return structured success response
+    return NextResponse.json({
+      ok: true,
+      message,
+      data: {
+        conversationId,
+        role,
+        content: normalizedContent || null,
+        attachments: attachment_urls.map((url, i) => ({
+          index: i,
+          hasData: url.startsWith('data:'),
+        })),
+      },
+    });
   } catch (error) {
     console.error('Error in POST /api/conversations/[id]/messages:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown server error';
+    return errorResponse(500, 'INTERNAL', errorMessage);
   }
 }
