@@ -38,7 +38,8 @@ import { createChatCompletion } from '@/lib/openai/client';
 import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
-import { getUserConnectedServices, getConnectorSystemPrompt } from '@/lib/connectors/helpers';
+import { getUserConnectedServices } from '@/lib/connectors/helpers';
+import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
 import { incrementUsage, getLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { NextRequest } from 'next/server';
@@ -618,41 +619,26 @@ export async function POST(request: NextRequest) {
 
     if (isAuthenticated && rateLimitIdentifier) {
       connectedServices = await getUserConnectedServices(rateLimitIdentifier);
-      if (connectedServices.length > 0) {
-        const connectorPrompt = getConnectorSystemPrompt(connectedServices);
-        const connectorSystemMessage = {
-          role: 'system' as const,
-          content: connectorPrompt,
-        };
-        messagesWithContext = [connectorSystemMessage, ...messagesWithContext];
 
-        // Check if this is a GitHub code operation - route to gpt-4o
-        if (isGitHubCodeOperation(messages, connectedServices)) {
-          effectiveTool = 'code';
-          console.log('[Chat API] GitHub code operation detected, routing to gpt-4o');
-        }
+      // Build the unified Slingshot 2.0 system prompt
+      // This includes connector awareness, routing logic, and behavior guidelines
+      const slingshotPrompt = buildFullSystemPrompt(connectedServices, {
+        includeImageCapability: true,
+        includeConnectorFormat: connectedServices.length > 0,
+      });
+
+      const slingshotSystemMessage = {
+        role: 'system' as const,
+        content: slingshotPrompt,
+      };
+      messagesWithContext = [slingshotSystemMessage, ...messagesWithContext];
+
+      // Check if this is a GitHub code operation - route to gpt-4o
+      if (connectedServices.length > 0 && isGitHubCodeOperation(messages, connectedServices)) {
+        effectiveTool = 'code';
+        console.log('[Chat API] GitHub code operation detected, routing to gpt-4o');
       }
     }
-
-    // ========================================
-    // CAPABILITY REPLY FIX: Image Tool Awareness
-    // ========================================
-    // Add system prompt to tell the AI it CAN create images
-    // This prevents the AI from saying "I can't create images" when the tool is enabled
-    const imageCapabilityMessage = {
-      role: 'system' as const,
-      content: `IMPORTANT CAPABILITY NOTICE:
-You have access to an image generation tool (DALL-E 3) that can create images.
-When a user asks you to create, generate, draw, design, or make an image, picture, logo, poster, icon, or any visual content:
-1. DO NOT say you cannot create images
-2. DO NOT say you can only describe images
-3. Instead, acknowledge the request and describe what kind of image you would create
-4. The system will automatically route image generation requests to DALL-E 3
-
-If the user asks "can you create an image?" or similar, respond positively and ask what they'd like you to create.
-Example: "Yes, I can create images! What would you like me to design for you?"`,
-    };
-    messagesWithContext = [imageCapabilityMessage, ...messagesWithContext];
 
     // Check if any message contains images (need non-streaming for image analysis)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
