@@ -3,9 +3,10 @@
  * Wrapper for OpenAI API using Vercel AI SDK
  *
  * Implements:
- * - GPT-4o for complex tasks, images, coding
+ * - GPT-4o for complex tasks, images, coding, web search
  * - GPT-4o-mini for lightweight chat (default)
  * - DALL-E 3 for image generation
+ * - Web search via OpenAI Responses API
  * - Streaming support
  * - Retry logic with exponential backoff
  */
@@ -25,6 +26,17 @@ import type { ToolType, OpenAIModel } from './types';
 // Retry configuration
 const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
 const RETRYABLE_STATUS_CODES = [429, 500, 502, 503, 504];
+
+// Tools that should use web search
+const WEB_SEARCH_TOOLS: ToolType[] = ['research', 'shopper', 'data'];
+
+/**
+ * Check if tool type should use web search
+ */
+function shouldUseWebSearch(tool?: ToolType): boolean {
+  if (!tool) return false;
+  return WEB_SEARCH_TOOLS.includes(tool);
+}
 
 interface ChatOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,7 +219,16 @@ export async function createChatCompletion(options: ChatOptions) {
   // Determine the best model
   const modelName = determineModel(messages, tool);
 
-  console.log('[OpenAI] Using model:', modelName, 'stream:', stream);
+  // Check if we should use web search
+  const useWebSearch = shouldUseWebSearch(tool);
+
+  console.log('[OpenAI] Using model:', modelName, 'stream:', stream, 'webSearch:', useWebSearch);
+
+  // Use Responses API with web search for research/shopper/data tools
+  if (useWebSearch) {
+    console.log('[OpenAI] Using Responses API with web search for tool:', tool);
+    return createWebSearchCompletion(options, 'gpt-4o'); // Always use gpt-4o for web search
+  }
 
   // Use non-streaming for image analysis or when explicitly requested
   if (!stream || hasImageContent(messages)) {
@@ -237,6 +258,136 @@ export async function createChatCompletion(options: ChatOptions) {
   console.log('[OpenAI Streaming] Starting with model:', modelName);
 
   return streamText(requestConfig);
+}
+
+/**
+ * Create completion with web search using OpenAI Responses API
+ * Uses gpt-4o with web_search tool enabled
+ */
+async function createWebSearchCompletion(
+  options: ChatOptions,
+  modelName: OpenAIModel
+) {
+  const { messages, tool, temperature, maxTokens } = options;
+  const apiKey = getOpenAIApiKey();
+  const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+
+  // Get configuration
+  const baseSystemPrompt = getSystemPromptForTool(tool);
+  const timeContext = getCurrentTimeContext();
+  const systemPrompt = `${timeContext}\n\n${baseSystemPrompt}`;
+
+  const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
+  const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
+
+  // Convert messages to OpenAI format
+  const convertedMessages = messages.map(convertMessageForOpenAI);
+
+  // Add system message at the beginning
+  const messagesWithSystem = [
+    { role: 'system', content: systemPrompt },
+    ...convertedMessages
+  ];
+
+  // Retry loop
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
+    try {
+      console.log('[OpenAI Web Search] Attempt', attempt + 1, 'with model:', modelName);
+
+      // Use the Responses API with web_search tool
+      const response = await fetch(`${baseURL}/responses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelName,
+          input: messagesWithSystem,
+          tools: [{ type: 'web_search' }],
+          temperature: effectiveTemperature,
+          max_output_tokens: effectiveMaxTokens,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const statusCode = response.status;
+
+        console.error('[OpenAI Web Search] Error response:', statusCode, errorText);
+
+        if (RETRYABLE_STATUS_CODES.includes(statusCode) && attempt < RETRY_DELAYS.length) {
+          const delay = RETRY_DELAYS[attempt];
+          console.log(`[OpenAI Web Search] Retrying in ${delay}ms...`);
+          await sleep(delay);
+          continue;
+        }
+
+        throw new Error(`OpenAI Responses API error (${statusCode}): ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      // Extract text and citations from response
+      let responseText = '';
+      const citations: Array<{ url: string; title: string }> = [];
+
+      // Parse the response output
+      if (data.output) {
+        for (const item of data.output) {
+          if (item.type === 'message' && item.content) {
+            for (const content of item.content) {
+              if (content.type === 'output_text') {
+                responseText += content.text;
+              }
+              // Extract annotations/citations
+              if (content.annotations) {
+                for (const annotation of content.annotations) {
+                  if (annotation.type === 'url_citation') {
+                    citations.push({
+                      url: annotation.url,
+                      title: annotation.title || annotation.url,
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      console.log('[OpenAI Web Search] Success, citations found:', citations.length);
+
+      return {
+        text: responseText,
+        finishReason: 'stop',
+        usage: data.usage || {},
+        citations: citations,
+        numSourcesUsed: citations.length,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error('[OpenAI Web Search] Error:', lastError.message);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const statusCode = (error as any)?.status || (error as any)?.statusCode;
+
+      if (statusCode && RETRYABLE_STATUS_CODES.includes(statusCode) && attempt < RETRY_DELAYS.length) {
+        const delay = RETRY_DELAYS[attempt];
+        console.log(`[OpenAI Web Search] Retrying in ${delay}ms...`);
+        await sleep(delay);
+        continue;
+      }
+
+      // Fall back to regular completion without web search
+      console.log('[OpenAI Web Search] Falling back to regular completion');
+      return createDirectOpenAICompletion(options, modelName);
+    }
+  }
+
+  throw lastError || new Error('Max retries exceeded');
 }
 
 /**
