@@ -13,16 +13,9 @@ const PLAN_LIMITS: Record<string, number> = {
   enterprise: 2000,
 };
 
-// Redis client interface (optional - graceful fallback if not configured)
-interface RedisClient {
-  incr: (key: string) => Promise<number>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  get: (key: string) => Promise<any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  set: (key: string, value: unknown) => Promise<any>;
-  expire: (key: string, seconds: number) => Promise<boolean>;
-}
-let redis: RedisClient | null = null;
+// Redis client (optional - graceful fallback if not configured)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let redis: any = null;
 
 // In-memory fallback
 const memoryUsage = new Map<string, number>();
