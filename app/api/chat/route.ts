@@ -290,7 +290,7 @@ export async function POST(request: NextRequest) {
         return new Response(
           JSON.stringify({
             error: 'Rate limit exceeded',
-            message: `You've sent too many messages. Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before trying again.`,
+            message: `You've sent a high volume of messages. Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before continuing. This helps ensure quality service for all users.`,
             retryAfter: rateLimit.resetIn,
           }),
           {
@@ -471,17 +471,30 @@ export async function POST(request: NextRequest) {
     // ========================================
     // UNIFIED IMAGE ROUTING (Chat + Button)
     // ========================================
-    // Use decideRoute to determine if this is an image request
-    // This handles both:
-    // 1. Explicit tool selection (image button pressed)
-    // 2. Auto-detection from chat message intent
-    const routeDecision = decideRoute(lastUserContent, tool);
+    // First, check if the message contains uploaded images (for analysis)
+    // If so, skip image generation routing and use GPT-4o for vision
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messageHasUploadedImages = messages.some((msg: any) =>
+      Array.isArray(msg.content) &&
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
+    );
+
+    // Only route to image generation if there are NO uploaded images
+    // (uploaded images = user wants analysis, not generation)
+    const routeDecision = messageHasUploadedImages
+      ? { target: '4o' as const, reason: 'image-analysis' as const, confidence: 1.0 }
+      : decideRoute(lastUserContent, tool);
 
     // Log the routing decision for telemetry
     logRouteDecision(rateLimitIdentifier, routeDecision, lastUserContent);
 
-    // Check if we should route to image generation
-    if (routeDecision.target === 'image') {
+    if (messageHasUploadedImages) {
+      console.log('[Chat API] Detected uploaded image - routing to GPT-4o for analysis');
+    }
+
+    // Check if we should route to image generation (only if no uploaded images)
+    if (routeDecision.target === 'image' && !messageHasUploadedImages) {
       // Check image-specific daily limits (warn at 80%, stop at 100%)
       const imageUsage = await incrementImageUsage(
         rateLimitIdentifier,
