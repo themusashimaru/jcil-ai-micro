@@ -37,9 +37,10 @@
 import { createChatCompletion } from '@/lib/openai/client';
 import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
-import { generateImageWithFallback } from '@/lib/openai/images';
+import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { getUserConnectedServices, getConnectorSystemPrompt } from '@/lib/connectors/helpers';
-import { incrementUsage, getLimitWarningMessage } from '@/lib/limits';
+import { incrementUsage, getLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
+import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
@@ -451,28 +452,119 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if this is an image generation request
-    if (tool === 'image' || tool === 'video') {
+    // ========================================
+    // UNIFIED IMAGE ROUTING (Chat + Button)
+    // ========================================
+    // Use decideRoute to determine if this is an image request
+    // This handles both:
+    // 1. Explicit tool selection (image button pressed)
+    // 2. Auto-detection from chat message intent
+    const routeDecision = decideRoute(lastUserContent, tool);
+
+    // Log the routing decision for telemetry
+    logRouteDecision(rateLimitIdentifier, routeDecision, lastUserContent);
+
+    // Check if we should route to image generation
+    if (routeDecision.target === 'image') {
+      // Check image-specific daily limits (warn at 80%, stop at 100%)
+      const imageUsage = await incrementImageUsage(
+        rateLimitIdentifier,
+        isAuthenticated ? 'basic' : 'free'
+      );
+
+      if (imageUsage.stop) {
+        console.log('[Chat API] Image limit reached for:', rateLimitIdentifier);
+        return new Response(
+          JSON.stringify({
+            error: 'Daily image limit reached',
+            message: getImageLimitWarningMessage(imageUsage),
+            usage: { used: imageUsage.used, limit: imageUsage.limit, remaining: 0 },
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Image-Limit': String(imageUsage.limit),
+              'X-Image-Remaining': '0',
+            },
+          }
+        );
+      }
+
       // Extract prompt from last message
       const lastMessage = messages[messages.length - 1];
-      const prompt = typeof lastMessage.content === 'string'
+      let prompt = typeof lastMessage.content === 'string'
         ? lastMessage.content
         : '';
 
+      // Clean up prompt if it starts with emoji prefix from button
+      if (prompt.startsWith('🎨 Generate image:')) {
+        prompt = prompt.replace(/^🎨\s*Generate image:\s*/i, '').trim();
+      }
+
+      // Parse size from user text (supports 256, 512, 1024)
+      const size: ImageSize = parseSizeFromText(prompt);
+
+      // Log image request with user, model, promptHash, size
+      const promptHash = prompt.slice(0, 32).replace(/\s+/g, '_');
+      console.log('[Chat API] Image generation request:', {
+        user_id: rateLimitIdentifier,
+        type: 'image',
+        model: 'dall-e-3',
+        promptHash,
+        size,
+        reason: routeDecision.reason,
+        confidence: routeDecision.confidence,
+        imageUsage: {
+          used: imageUsage.used,
+          limit: imageUsage.limit,
+          warn: imageUsage.warn,
+        },
+      });
+
       // Use new fallback-enabled image generation
-      const imageResult = await generateImageWithFallback(prompt, '1024x1024', rateLimitIdentifier);
+      const startTime = Date.now();
+      const imageResult = await generateImageWithFallback(prompt, size, rateLimitIdentifier);
+      const latencyMs = Date.now() - startTime;
+
+      // Log completion
+      console.log('[Chat API] Image generation complete:', {
+        user_id: rateLimitIdentifier,
+        type: 'image',
+        model: 'dall-e-3',
+        promptHash,
+        size,
+        ok: imageResult.ok,
+        latency_ms: latencyMs,
+      });
 
       if (imageResult.ok) {
+        // Include usage warning if at 80%
+        const usageWarning = getImageLimitWarningMessage(imageUsage);
+
         return new Response(
           JSON.stringify({
             type: 'image',
             url: imageResult.image,
+            prompt,
             model: imageResult.model,
             size: imageResult.size,
+            routeReason: routeDecision.reason,
+            ...(usageWarning && { usageWarning }),
+            usage: {
+              used: imageUsage.used,
+              limit: imageUsage.limit,
+              remaining: imageUsage.remaining,
+            },
           }),
           {
             status: 200,
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Route-Target': 'image',
+              'X-Route-Reason': routeDecision.reason,
+              'X-Image-Remaining': String(imageUsage.remaining),
+            },
           }
         );
       } else {
@@ -484,10 +576,15 @@ export async function POST(request: NextRequest) {
             retryHint: imageResult.retryHint,
             suggestedPrompts: imageResult.suggestedPrompts,
             error: imageResult.error,
+            routeReason: routeDecision.reason,
           }),
           {
             status: 200, // 200 because we're providing useful fallback content
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Route-Target': 'image',
+              'X-Route-Reason': routeDecision.reason,
+            },
           }
         );
       }
@@ -536,6 +633,26 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    // ========================================
+    // CAPABILITY REPLY FIX: Image Tool Awareness
+    // ========================================
+    // Add system prompt to tell the AI it CAN create images
+    // This prevents the AI from saying "I can't create images" when the tool is enabled
+    const imageCapabilityMessage = {
+      role: 'system' as const,
+      content: `IMPORTANT CAPABILITY NOTICE:
+You have access to an image generation tool (DALL-E 3) that can create images.
+When a user asks you to create, generate, draw, design, or make an image, picture, logo, poster, icon, or any visual content:
+1. DO NOT say you cannot create images
+2. DO NOT say you can only describe images
+3. Instead, acknowledge the request and describe what kind of image you would create
+4. The system will automatically route image generation requests to DALL-E 3
+
+If the user asks "can you create an image?" or similar, respond positively and ask what they'd like you to create.
+Example: "Yes, I can create images! What would you like me to design for you?"`,
+    };
+    messagesWithContext = [imageCapabilityMessage, ...messagesWithContext];
 
     // Check if any message contains images (need non-streaming for image analysis)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
