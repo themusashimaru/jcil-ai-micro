@@ -130,41 +130,68 @@ IMPORTANT: Use these times as your reference for any time-related questions.`;
 /**
  * Normalize message format for AI SDK
  * AI SDK expects { type: 'image', image: '...' } - it handles OpenAI conversion internally
+ * IMPORTANT: AI SDK is strict - only include role and content, nothing else!
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeMessageForAISDK(message: any): any {
-  // If content is a string, return as-is
-  if (typeof message.content === 'string') {
-    return message;
+  const role = message.role;
+
+  // Handle missing or invalid role
+  if (!role || !['user', 'assistant', 'system'].includes(role)) {
+    console.warn('[OpenAI] Invalid message role:', role);
+    return { role: 'user', content: '' };
   }
 
-  // If content is not an array, return as-is
+  // If content is a string, return clean message with only role + content
+  if (typeof message.content === 'string') {
+    return { role, content: message.content };
+  }
+
+  // If content is null/undefined, return empty string content
+  if (!message.content) {
+    return { role, content: '' };
+  }
+
+  // If content is not an array, try to convert to string
   if (!Array.isArray(message.content)) {
-    return message;
+    return { role, content: String(message.content) };
   }
 
   // Normalize content parts - ensure images are in AI SDK format
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalizedContent = message.content.map((part: any) => {
-    // If it's already in AI SDK image format, keep it
+    // Handle text parts - only include type and text
+    if (part.type === 'text') {
+      return { type: 'text', text: part.text || '' };
+    }
+    // If it's already in AI SDK image format, keep it clean
     if (part.type === 'image' && part.image) {
-      return part;
+      return { type: 'image', image: part.image };
     }
-    // If it's in OpenAI image_url format, convert back to AI SDK format
+    // If it's in OpenAI image_url format, convert to AI SDK format
     if (part.type === 'image_url' && part.image_url?.url) {
-      return {
-        type: 'image',
-        image: part.image_url.url,
-      };
+      return { type: 'image', image: part.image_url.url };
     }
-    // Keep text parts and other formats as-is
-    return part;
-  });
+    // Unknown part type - try to extract text
+    if (part.text) {
+      return { type: 'text', text: part.text };
+    }
+    // Skip invalid parts
+    return null;
+  }).filter(Boolean); // Remove null entries
 
-  return {
-    ...message,
-    content: normalizedContent,
-  };
+  // If no valid content parts, return empty string
+  if (normalizedContent.length === 0) {
+    return { role, content: '' };
+  }
+
+  // If only one text part, simplify to string content
+  if (normalizedContent.length === 1 && normalizedContent[0].type === 'text') {
+    return { role, content: normalizedContent[0].text };
+  }
+
+  // Return clean message with only role + content array
+  return { role, content: normalizedContent };
 }
 
 /**
