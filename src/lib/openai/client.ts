@@ -411,9 +411,9 @@ export async function createChatCompletion(options: ChatOptions) {
 }
 
 // Preferred domains for web search - authoritative sources by category
-// Note: Currently used for documentation; OpenAI's web_search may add domain filtering later
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PREFERRED_SEARCH_DOMAINS = [
+// Note: Currently for documentation; OpenAI's web_search may add domain filtering later
+// Prefixed with underscore to indicate intentionally unused (ready for future use)
+const _PREFERRED_SEARCH_DOMAINS = [
   // Weather & Natural Disasters
   'weather.gov', 'nhc.noaa.gov', 'spc.noaa.gov', 'climate.gov', 'airnow.gov',
   // Geological Events
