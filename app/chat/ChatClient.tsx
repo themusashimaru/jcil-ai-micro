@@ -1048,11 +1048,11 @@ export function ChatClient() {
 
       if (!response.ok) {
         const errorData = await safeJsonParse(response);
-        // Handle both { error: 'string' } and { error: { message: 'string' } } formats
+        // Prioritize 'details' field for debugging, then other error formats
         const errorMsg =
+          (errorData as { details?: string })?.details ||
           (typeof errorData?.error === 'string' ? errorData.error : null) ||
           errorData?.error?.message ||
-          (errorData as { details?: string })?.details ||
           (errorData as { message?: string })?.message ||
           `HTTP ${response.status}`;
         const errorCode = errorData?.error?.code || 'API_ERROR';
