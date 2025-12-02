@@ -172,13 +172,22 @@ function normalizeMessageForAISDK(message: any): any {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function hasImageContent(messages: any[]): boolean {
-  return messages.some(msg =>
-    Array.isArray(msg.content) &&
+  const result = messages.some(msg => {
+    if (!Array.isArray(msg.content)) return false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    msg.content.some((item: any) =>
+    const hasImage = msg.content.some((item: any) =>
       item.type === 'image_url' || item.type === 'image'
-    )
-  );
+    );
+    if (hasImage) {
+      console.log('[OpenAI] Found image in message:', {
+        role: msg.role,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        contentTypes: msg.content.map((c: any) => c.type),
+      });
+    }
+    return hasImage;
+  });
+  return result;
 }
 
 /**
@@ -222,7 +231,15 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
   const hasImages = hasImageContent(messages);
   const messageText = getLastUserMessageText(messages);
 
+  console.log('[OpenAI] determineModel:', {
+    tool,
+    toolBasedModel,
+    hasImages,
+    messageTextLength: messageText.length,
+  });
+
   if (shouldUseGPT4o(hasImages, false, false, messageText)) {
+    console.log('[OpenAI] Routing to gpt-4o due to:', hasImages ? 'images' : 'content analysis');
     return 'gpt-4o';
   }
 
