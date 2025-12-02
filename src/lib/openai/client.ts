@@ -410,52 +410,9 @@ export async function createChatCompletion(options: ChatOptions) {
   return streamText(requestConfig);
 }
 
-// Preferred domains for web search - authoritative sources by category
-// Note: Currently for documentation; OpenAI's web_search may add domain filtering later
-// Prefixed with underscore to indicate intentionally unused (ready for future use)
-const _PREFERRED_SEARCH_DOMAINS = [
-  // Weather & Natural Disasters
-  'weather.gov', 'nhc.noaa.gov', 'spc.noaa.gov', 'climate.gov', 'airnow.gov',
-  // Geological Events
-  'earthquake.usgs.gov', 'volcanoes.usgs.gov', 'tsunami.gov', 'waterdata.usgs.gov',
-  // Space & Astronomy
-  'nasa.gov', 'spacex.com', 'cneos.jpl.nasa.gov', 'spaceflightnow.com',
-  // Financial & Economic
-  'finance.yahoo.com', 'nasdaq.com', 'sec.gov', 'federalreserve.gov',
-  'treasury.gov', 'bls.gov', 'bea.gov',
-  // Health & Medical
-  'cdc.gov', 'fda.gov', 'nih.gov', 'pubmed.ncbi.nlm.nih.gov', 'who.int',
-  // Government & Politics
-  'whitehouse.gov', 'congress.gov', 'supremecourt.gov', 'federalregister.gov', 'govtrack.us',
-  // World Facts & Intelligence
-  'cia.gov', 'state.gov', 'census.gov', 'worldbank.org', 'data.un.org',
-  // Travel & Transportation
-  'google.com', 'flightaware.com', 'faa.gov', 'amtrak.com', 'nhtsa.gov',
-  // Crime & Safety
-  'fbi.gov', 'amberalert.ojp.gov', 'ucr.fbi.gov',
-  // Sports
-  'nfl.com', 'nba.com', 'mlb.com', 'nhl.com', 'espn.com',
-  // News (Wire Services)
-  'apnews.com', 'reuters.com', 'c-span.org',
-  // Business & Local
-  'bbb.org', 'yelp.com',
-  // Reference
-  'wikipedia.org', 'wolframalpha.com', 'merriam-webster.com', 'scholar.google.com',
-  // Entertainment
-  'imdb.com', 'rottentomatoes.com', 'genius.com', 'goodreads.com',
-  // Real Estate
-  'zillow.com', 'redfin.com', 'apartments.com', 'bankrate.com',
-  // Jobs
-  'indeed.com', 'linkedin.com', 'glassdoor.com',
-  // Food
-  'allrecipes.com', 'foodnetwork.com',
-  // Education
-  'niche.com', 'usnews.com', 'coursera.org', 'edx.org', 'greatschools.org',
-  // Automotive
-  'kbb.com', 'caranddriver.com', 'edmunds.com', 'carfax.com',
-  // Shopping (for shopper tool)
-  'amazon.com', 'walmart.com', 'target.com', 'bestbuy.com', 'costco.com',
-];
+// Note: Preferred domains for web search are defined in the system prompt
+// (see src/lib/openai/tools.ts and src/lib/xai/tools.ts)
+// OpenAI's web_search tool doesn't currently support domain filtering like Grok did
 
 /**
  * Create completion with web search using OpenAI Responses API
