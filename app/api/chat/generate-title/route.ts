@@ -70,7 +70,8 @@ Rules:
     }
 
     // Extract the title and clean it up
-    const textContent = result?.text || '';
+    // Handle both string and Promise<string> return types
+    const textContent = await Promise.resolve(result?.text || '');
     if (!textContent) {
       console.log('[API] No text returned from AI, using fallback title');
       const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
