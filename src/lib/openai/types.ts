@@ -4,11 +4,13 @@
  */
 
 export type OpenAIModel =
+  | 'gpt-5.1'                 // Primary chat and reasoning model
   | 'gpt-4o'                  // Heavy multimodal - images, complex reasoning, coding
-  | 'gpt-4o-mini'             // Lightweight chat - default for most conversations
+  | 'gpt-4o-mini'             // Lightweight chat - fallback for simple tasks
+  | 'gpt-4o-realtime-preview' // Real-time voice conversations
   | 'dall-e-3'                // Image generation
   | 'whisper-1'               // Speech-to-text
-  | 'tts-1';                  // Text-to-speech
+  | 'tts-1-hd';               // High-quality text-to-speech
 
 export type ToolType =
   | 'email'

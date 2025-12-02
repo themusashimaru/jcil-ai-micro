@@ -38,12 +38,17 @@ async function getSupabaseClient() {
   );
 }
 
-// Tier limits configuration
+// Tier limits configuration - per Master Directive
+// Plan Configuration:
+// - free: $0/mo, 10 daily chat, 0 monthly images, no realtime voice
+// - basic: $12/mo, 40 daily chat, 50 monthly images, realtime voice enabled
+// - pro: $30/mo, 100 daily chat, 200 monthly images, realtime voice enabled
+// - executive: $150/mo, 400 daily chat, 500 monthly images, realtime voice enabled
 const TIER_LIMITS = {
-  free: { messages: 10, images: 0 },
-  basic: { messages: 100, images: 0 },
-  pro: { messages: 200, images: 5 },
-  executive: { messages: 1000, images: 10 },
+  free: { messages: 10, images: 0, realtime_voice: false },
+  basic: { messages: 40, images: 50, realtime_voice: true },
+  pro: { messages: 100, images: 200, realtime_voice: true },
+  executive: { messages: 400, images: 500, realtime_voice: true },
 } as const;
 
 export async function GET() {
@@ -98,6 +103,7 @@ export async function GET() {
         limit: limits.images,
         remaining: Math.max(0, limits.images - (userData.images_generated_today || 0)),
       },
+      realtime_voice: limits.realtime_voice,
       hasReachedLimit: (userData.messages_used_today || 0) >= limits.messages,
     });
   } catch (error) {

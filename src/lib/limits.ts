@@ -1,16 +1,22 @@
 /**
  * Usage Limits & Daily Ceilings
  *
- * Tracks per-user usage and enforces daily limits
+ * Tracks per-user usage and enforces daily limits per Master Directive
  * Warns at 80%, hard stops at 100%
+ *
+ * Plan Configuration (Supabase user_plans table):
+ * - free: $0/mo, 10 daily chat, 0 monthly images, no realtime voice
+ * - basic: $12/mo, 40 daily chat, 50 monthly images, realtime voice enabled
+ * - pro: $30/mo, 100 daily chat, 200 monthly images, realtime voice enabled
+ * - executive: $150/mo, 400 daily chat, 500 monthly images, realtime voice enabled
  */
 
-// Plan limits (messages per day)
+// Plan limits (messages per day) - per directive
 const PLAN_LIMITS: Record<string, number> = {
-  free: 20,
-  basic: 100,
-  pro: 500,
-  enterprise: 2000,
+  free: 10,
+  basic: 40,
+  pro: 100,
+  executive: 400,
 };
 
 // Redis client (optional - graceful fallback if not configured)
@@ -217,15 +223,15 @@ export async function trackTokenUsage(
 }
 
 // ========================================
-// IMAGE-SPECIFIC LIMITS
+// IMAGE-SPECIFIC LIMITS (Monthly per directive)
 // ========================================
 
-// Image limits per day (separate from message limits)
+// Image limits per month - per directive
 const IMAGE_LIMITS: Record<string, number> = {
-  free: 5,
-  basic: 25,
-  pro: 100,
-  enterprise: 500,
+  free: 0,
+  basic: 50,
+  pro: 200,
+  executive: 500,
 };
 
 export interface ImageUsageResult {
