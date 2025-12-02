@@ -228,7 +228,7 @@ SUGGESTED PROMPTS:
 /**
  * Create a basic fallback when even text generation fails
  */
-function createBasicFallback(prompt: string, errorMessage: string): ImageFallbackResult {
+function createBasicFallback(prompt: string, _errorMessage: string): ImageFallbackResult {
   return {
     ok: false,
     error: 'image-generation-failed',

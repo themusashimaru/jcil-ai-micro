@@ -7,8 +7,13 @@
 
 import { createHash } from 'crypto';
 
-// Redis client (optional - graceful fallback if not configured)
-let redis: { set: Function; get: Function } | null = null;
+// Redis client interface (optional - graceful fallback if not configured)
+interface RedisClient {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  set: (key: string, value: string, options?: { ex?: number }) => Promise<any>;
+  get: (key: string) => Promise<string | null>;
+}
+let redis: RedisClient | null = null;
 
 // In-memory cache fallback
 const memoryCache = new Map<string, { value: string; expiry: number }>();
@@ -140,7 +145,8 @@ export async function invalidateCache(key: string): Promise<void> {
   try {
     const r = await getRedis();
     if (r && 'del' in r) {
-      await (r as { del: Function }).del(key);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (r as { del: (key: string) => Promise<any> }).del(key);
     }
     memoryCache.delete(key);
   } catch (error) {

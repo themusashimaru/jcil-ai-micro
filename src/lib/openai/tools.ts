@@ -219,7 +219,7 @@ Provide accurate, thoughtful, and engaging responses while honoring these values
 /**
  * Check if tool type should use function calling
  */
-export function shouldUseFunctionCalling(toolType?: ToolType): boolean {
+export function shouldUseFunctionCalling(_toolType?: ToolType): boolean {
   // For now, we don't have custom function tools
   // This can be expanded when connectors are added
   return false;

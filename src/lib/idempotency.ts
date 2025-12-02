@@ -7,8 +7,13 @@
 
 import { createHash, randomUUID } from 'crypto';
 
-// Redis client (optional - graceful fallback if not configured)
-let redis: { set: Function; get: Function } | null = null;
+// Redis client interface (optional - graceful fallback if not configured)
+interface RedisClient {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  set: (key: string, value: string, options?: { nx?: boolean; ex?: number }) => Promise<any>;
+  get: (key: string) => Promise<string | null>;
+}
+let redis: RedisClient | null = null;
 
 async function getRedis() {
   if (redis) return redis;

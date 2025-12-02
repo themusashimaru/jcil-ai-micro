@@ -193,7 +193,7 @@ export async function markdownToPdf(
 
     await browser.close();
     return Buffer.from(pdf);
-  } catch (error) {
+  } catch {
     // Fallback: return HTML if Puppeteer not available
     console.error('[PDF] Puppeteer not available, returning HTML');
     throw new Error(
@@ -237,7 +237,7 @@ export async function htmlToPdf(
 
     await browser.close();
     return Buffer.from(pdf);
-  } catch (error) {
+  } catch {
     throw new Error(
       'PDF generation requires Puppeteer. Install with: npm install puppeteer'
     );

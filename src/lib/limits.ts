@@ -13,8 +13,16 @@ const PLAN_LIMITS: Record<string, number> = {
   enterprise: 2000,
 };
 
-// Redis client (optional - graceful fallback if not configured)
-let redis: { incr: Function; get: Function; set: Function; expire: Function } | null = null;
+// Redis client interface (optional - graceful fallback if not configured)
+interface RedisClient {
+  incr: (key: string) => Promise<number>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get: (key: string) => Promise<any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  set: (key: string, value: unknown) => Promise<any>;
+  expire: (key: string, seconds: number) => Promise<boolean>;
+}
+let redis: RedisClient | null = null;
 
 // In-memory fallback
 const memoryUsage = new Map<string, number>();

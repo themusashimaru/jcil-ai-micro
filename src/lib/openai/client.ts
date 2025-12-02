@@ -21,7 +21,6 @@ import {
   getRecommendedTemperature,
   getMaxTokens,
   shouldUseGPT4o,
-  isImageGenerationRequest,
 } from './models';
 import { getSystemPromptForTool } from './tools';
 import type { ToolType, OpenAIModel } from './types';

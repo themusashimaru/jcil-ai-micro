@@ -5,6 +5,8 @@
  * Captures: user_id, model, tool_name, tokens, latency, errors
  */
 
+import { createHash } from 'crypto';
+
 export interface TelemetryEvent {
   user_id?: string;
   model?: string;
@@ -122,7 +124,6 @@ export function logImageGeneration(
  * Create a hash of parameters for logging (redacts sensitive data)
  */
 export function hashParams(params: Record<string, unknown>): string {
-  const { createHash } = require('crypto');
   // Remove sensitive fields before hashing
   const sanitized = { ...params };
   delete sanitized.token;
