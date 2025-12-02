@@ -1048,7 +1048,9 @@ export function ChatClient() {
 
       if (!response.ok) {
         const errorData = await safeJsonParse(response);
+        // Handle both { error: 'string' } and { error: { message: 'string' } } formats
         const errorMsg =
+          (typeof errorData?.error === 'string' ? errorData.error : null) ||
           errorData?.error?.message ||
           (errorData as { details?: string })?.details ||
           (errorData as { message?: string })?.message ||
