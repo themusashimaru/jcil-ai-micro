@@ -885,6 +885,80 @@ export function ChatClient() {
         }
       }
 
+      // Check for [GENERATE_PDF: ...] marker in the response
+      // This allows the AI to create downloadable PDF documents
+      const pdfMarkerMatch = finalContent.match(/\[GENERATE_PDF:\s*(.+?)\]/s);
+      if (pdfMarkerMatch) {
+        const pdfTitle = pdfMarkerMatch[1].trim();
+        console.log('[ChatClient] Detected GENERATE_PDF marker, title:', pdfTitle);
+
+        // Extract the content after the marker (the markdown content for the PDF)
+        const markerEnd = finalContent.indexOf(']', finalContent.indexOf('[GENERATE_PDF:')) + 1;
+        const pdfContent = finalContent.slice(markerEnd).trim();
+
+        // Remove the marker from the displayed text but keep the content
+        const cleanedContent = finalContent.replace(/\[GENERATE_PDF:\s*.+?\]/s, '📄 **Generating PDF: ' + pdfTitle + '**\n\n').trim();
+
+        // Update the message to show PDF generation status
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: cleanedContent }
+              : msg
+          )
+        );
+        finalContent = cleanedContent;
+
+        // Trigger PDF generation
+        try {
+          const pdfResponse = await fetch('/api/documents/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: pdfContent,
+              title: pdfTitle,
+              format: 'pdf',
+            }),
+          });
+
+          if (pdfResponse.ok) {
+            const pdfData = await pdfResponse.json();
+            if (pdfData.dataUrl) {
+              console.log('[ChatClient] PDF generated successfully');
+
+              // Add a message with the download link
+              const pdfMessage: Message = {
+                id: (Date.now() + 3).toString(),
+                role: 'assistant',
+                content: `📥 **Your PDF is ready!**\n\n[Click here to download: ${pdfTitle}.pdf](${pdfData.dataUrl})`,
+                timestamp: new Date(),
+              };
+              setMessages((prev) => [...prev, pdfMessage]);
+
+              // Also trigger download automatically
+              const link = document.createElement('a');
+              link.href = pdfData.dataUrl;
+              link.download = pdfData.filename || `${pdfTitle}.pdf`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }
+          } else {
+            console.error('[ChatClient] PDF generation failed:', await pdfResponse.text());
+            // Show error message
+            const errorMsg: Message = {
+              id: (Date.now() + 3).toString(),
+              role: 'assistant',
+              content: '⚠️ Sorry, I couldn\'t generate the PDF. The formatted content is shown above - you can copy it into a document editor.',
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, errorMsg]);
+          }
+        } catch (pdfError) {
+          console.error('[ChatClient] Error during PDF generation:', pdfError);
+        }
+      }
+
       setIsStreaming(false);
 
       // Save assistant message to database (skip for images - already saved above)
