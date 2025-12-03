@@ -95,9 +95,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const { voice = 'alloy' } = body;
 
-    // Try GA endpoint first (/v1/realtime/sessions with GA model)
-    // The GA model is gpt-4o-realtime-preview-2024-12-17
-    const gaModel = 'gpt-4o-realtime-preview-2024-12-17';
+    // Use the GA model: gpt-realtime (released Dec 2024)
+    // This replaces the older gpt-4o-realtime-preview
+    const gaModel = 'gpt-realtime';
 
     console.log('[Voice Realtime API] Attempting to create session with GA model:', gaModel);
 
