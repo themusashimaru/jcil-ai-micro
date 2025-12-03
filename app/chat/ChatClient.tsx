@@ -78,8 +78,8 @@ export function ChatClient() {
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
-  // Selected tool (only one can be selected at a time)
-  const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
+  // Selected tool (only image tool remains - code/data handled in regular chat)
+  const [selectedTool, setSelectedTool] = useState<'image' | null>(null);
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
 
@@ -401,144 +401,43 @@ export function ChatClient() {
     setMessages((prev) => [...prev, userMessage, imageMessage]);
   };
 
+  /* REMOVED: Code and Data handlers - GPT-4.1 handles these in regular chat
   const handleCodeGenerated = (response: string, request: string) => {
-    // Add user message with request
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: request,
       timestamp: new Date(),
     };
-
-    // Add assistant message with code response
     const codeMessage: Message = {
       id: (Date.now() + 1).toString(),
       role: 'assistant',
       content: response,
       timestamp: new Date(),
     };
-
     setMessages((prev) => [...prev, userMessage, codeMessage]);
   };
 
   const handleSearchComplete = (response: string, query: string) => {
-    // Add user message with search query
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
       content: `Search: ${query}`,
       timestamp: new Date(),
     };
-
-    // Add assistant message with search results
     const searchMessage: Message = {
       id: (Date.now() + 1).toString(),
       role: 'assistant',
       content: response,
       timestamp: new Date(),
     };
-
     setMessages((prev) => [...prev, userMessage, searchMessage]);
   };
 
   const handleDataAnalysisComplete = async (response: string, source: string, type: 'file' | 'url') => {
-    const timestamp = new Date();
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: `📊 Data Analysis: ${type === 'file' ? source : 'URL'}`,
-      timestamp,
-    };
-
-    const analysisMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: response,
-      timestamp,
-    };
-
-    const nextLastMessage = `📊 Analysis: ${source.slice(0, 40)}`;
-
-    if (!currentChatId) {
-      const newChatId = Date.now().toString();
-      const newChat: Chat = {
-        id: newChatId,
-        title: `Data Analysis: ${source}`.slice(0, 40),
-        isPinned: false,
-        lastMessage: nextLastMessage.slice(0, 60),
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      };
-
-      setChats((prevChats) => [newChat, ...prevChats]);
-      setCurrentChatId(newChatId);
-      setMessages([userMessage, analysisMessage]);
-
-      // Create conversation in database
-      try {
-        const dbConversationId = await createConversationInDatabase(
-          `Data Analysis: ${source}`.slice(0, 40),
-          'data'
-        );
-        // Update to use the database-generated UUID
-        if (dbConversationId && typeof dbConversationId === 'string') {
-          setCurrentChatId(dbConversationId);
-          setChats((prevChats) =>
-            prevChats.map((chat) =>
-              chat.id === newChatId ? { ...chat, id: dbConversationId } : chat
-            )
-          );
-        }
-      } catch (error) {
-        console.error('Failed to create conversation for data analysis:', error);
-      }
-
-      return;
-    }
-
-    setMessages((prev) => [...prev, userMessage, analysisMessage]);
-
-    // Generate title for conversations that still have "New Chat" as title
-    let shouldGenerateTitle = false;
-    setChats((prevChats) => {
-      const currentChat = prevChats.find(c => c.id === currentChatId);
-      shouldGenerateTitle = currentChat?.title === 'New Chat';
-      return prevChats.map((chat) =>
-        chat.id === currentChatId
-          ? {
-              ...chat,
-              lastMessage: nextLastMessage.slice(0, 60),
-              updatedAt: timestamp,
-            }
-          : chat
-      );
-    });
-
-    if (shouldGenerateTitle) {
-      const generatedTitle = `Data Analysis: ${source}`.slice(0, 40);
-
-      setChats((prevChats) =>
-        prevChats.map((chat) =>
-          chat.id === currentChatId ? { ...chat, title: generatedTitle } : chat
-        )
-      );
-
-      // Update title in database
-      try {
-        await fetch('/api/conversations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: currentChatId,
-            title: generatedTitle,
-          }),
-        });
-      } catch (titleError) {
-        console.error('Title update error:', titleError);
-      }
-    }
+    // Data analysis now handled in regular chat
   };
+  */
 
   /**
    * Helper to safely parse JSON response and extract error message
@@ -816,88 +715,10 @@ export function ChatClient() {
           setIsStreaming(false);
         }
         return;
+      /* REMOVED: Code tool - GPT-4.1 handles code in regular chat
       } else if (toolType === 'code') {
-        // Code generation
-        try {
-          const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: [{ role: 'user', content: content }],
-              tool: 'code',
-            }),
-          });
-          if (!response.ok) throw new Error('Code generation failed');
-          const data = await response.json();
-          if (data.content) {
-            // Add only the assistant response
-            const codeMessage: Message = {
-              id: Date.now().toString(),
-              role: 'assistant',
-              content: data.content,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, codeMessage]);
-
-            // Save message to database
-            await saveMessageToDatabase(chatId, 'assistant', data.content, 'code');
-
-            // Generate title for conversations that still have "New Chat" as title
-            let shouldGenerateTitle = false;
-            setChats((prevChats) => {
-              const currentChat = prevChats.find(c => c.id === chatId);
-              shouldGenerateTitle = !currentChat || currentChat.title === 'New Chat';
-              return prevChats;
-            });
-
-            if (shouldGenerateTitle) {
-              try {
-                const titleResponse = await fetch('/api/chat/generate-title', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    userMessage: content,
-                    assistantMessage: data.content,
-                  }),
-                });
-
-                if (titleResponse.ok) {
-                  const titleData = await titleResponse.json();
-                  const generatedTitle = titleData.title || 'Code Assistant';
-
-                  setChats((prevChats) =>
-                    prevChats.map((chat) =>
-                      chat.id === chatId ? { ...chat, title: generatedTitle } : chat
-                    )
-                  );
-
-                  await fetch('/api/conversations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      id: chatId,
-                      title: generatedTitle,
-                    }),
-                  });
-                }
-              } catch (titleError) {
-                console.error('Title generation error:', titleError);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Code error:', error);
-          const errorMsg: Message = {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `Failed to generate code: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, errorMsg]);
-        } finally {
-          setIsStreaming(false);
-        }
-        return;
+        // Code generation - now handled in regular chat
+      */
       } else if (toolType === 'search') {
         // Live search
         try {
@@ -980,28 +801,12 @@ export function ChatClient() {
           setIsStreaming(false);
         }
         return;
-      } else if (toolType === 'data') {
-        // Data analysis
-        if (attachments.length > 0) {
-          const file = attachments[0];
-          handleDataAnalysisComplete(`Analysis of ${file.name}:\n\n[Analysis results would appear here based on file type: ${file.type}]`, file.name, 'file');
-        } else if (content.trim()) {
-          const urlPattern = /^(https?:\/\/)?([\w-]+(\.[\w-]+)+)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?$/;
-          if (urlPattern.test(content.trim())) {
-            handleDataAnalysisComplete(`Analysis of URL:\n\n[Analysis results would appear here for: ${content}]`, content, 'url');
-          } else {
-            const errorMsg: Message = {
-              id: Date.now().toString(),
-              role: 'assistant',
-              content: 'Please attach a file (CSV, XLSX, etc.) or paste a valid URL for data analysis.',
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, errorMsg]);
-          }
-        }
-        setIsStreaming(false);
-        return;
       }
+      /* REMOVED: Data tool - GPT-4.1 handles data analysis in regular chat
+      } else if (toolType === 'data') {
+        // Data analysis - now handled in regular chat
+      }
+      */
     }
 
     let newChatId: string;
@@ -1532,9 +1337,6 @@ export function ChatClient() {
           <ChatComposer
             onSendMessage={handleSendMessage}
             onImageGenerated={handleImageGenerated}
-            onCodeGenerated={handleCodeGenerated}
-            onSearchComplete={handleSearchComplete}
-            onDataAnalysisComplete={handleDataAnalysisComplete}
             isStreaming={isStreaming}
             selectedTool={selectedTool}
             onSelectTool={setSelectedTool}

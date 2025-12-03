@@ -21,7 +21,8 @@
 import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import type { Attachment } from '@/app/chat/types';
 import { QuickImageGenerator } from './QuickImageGenerator';
-import { QuickCodingAssistant } from './QuickCodingAssistant';
+// REMOVED: Code and Data buttons - GPT-4.1 handles these in regular chat
+// import { QuickCodingAssistant } from './QuickCodingAssistant';
 // import { QuickLiveSearch } from './QuickLiveSearch'; // HIDDEN: Auto-search now enabled for all conversations
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
@@ -29,15 +30,14 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 interface ChatComposerProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
   onImageGenerated?: (imageUrl: string, prompt: string) => void;
-  onCodeGenerated?: (response: string, request: string) => void;
+  // REMOVED: onCodeGenerated, onDataAnalysisComplete - GPT-4.1 handles these in regular chat
   onSearchComplete?: (response: string, query: string) => void; // Kept for backward compatibility but not used
-  onDataAnalysisComplete?: (response: string, source: string, type: 'file' | 'url') => void;
   isStreaming: boolean;
-  selectedTool?: 'image' | 'code' | 'search' | 'data' | null; // 'search' kept for backward compatibility
-  onSelectTool?: (tool: 'image' | 'code' | 'search' | 'data' | null) => void;
+  selectedTool?: 'image' | null; // Simplified - only image tool remains
+  onSelectTool?: (tool: 'image' | null) => void;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete: _onSearchComplete, onDataAnalysisComplete, isStreaming, selectedTool, onSelectTool }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onSearchComplete: _onSearchComplete, isStreaming, selectedTool, onSelectTool }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -294,10 +294,6 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 ? 'Drop files here...'
                 : selectedTool === 'image'
                 ? '🎨 Describe the image you want to create...'
-                : selectedTool === 'code'
-                ? '💻 What code do you need help with?'
-                : selectedTool === 'data'
-                ? '📊 Attach a file (CSV, XLSX, etc.) or paste a URL'
                 : 'Type your message...'
             }
             className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[40px]"
@@ -362,42 +358,8 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
                 />
               )}
 
-              {/* Quick Coding Assistant */}
-              {onCodeGenerated && onSelectTool && (
-                <QuickCodingAssistant
-                  onCodeGenerated={onCodeGenerated}
-                  isGenerating={isStreaming}
-                  isSelected={selectedTool === 'code'}
-                  onSelect={() => onSelectTool(selectedTool === 'code' ? null : 'code')}
-                />
-              )}
-
-              {/* Quick Live Search - HIDDEN: Auto-search now enabled for all conversations */}
-              {/* {onSearchComplete && onSelectTool && (
-                <QuickLiveSearch
-                  onSearchComplete={onSearchComplete}
-                  isSearching={isStreaming}
-                  isSelected={selectedTool === 'search'}
-                  onSelect={() => onSelectTool(selectedTool === 'search' ? null : 'search')}
-                />
-              )} */}
-
-              {/* Quick Data Analysis */}
-              {onDataAnalysisComplete && onSelectTool && (
-                <button
-                  onClick={() => onSelectTool(selectedTool === 'data' ? null : 'data')}
-                  className={`rounded-lg px-3 py-2 text-xs font-medium transition disabled:opacity-50 disabled:cursor-not-allowed border whitespace-nowrap flex items-center justify-center ${
-                    selectedTool === 'data'
-                      ? 'bg-white text-black border-white'
-                      : 'bg-black text-white border-white/20 hover:bg-gray-800'
-                  }`}
-                  disabled={isStreaming}
-                  aria-label="Data analysis mode"
-                  title={selectedTool === 'data' ? "Data analysis mode active - attach file or paste URL" : "Select data analysis mode"}
-                >
-                  {selectedTool === 'data' ? '✓ Data' : 'Data'}
-                </button>
-              )}
+              {/* REMOVED: Quick Coding Assistant and Data Analysis buttons
+                  GPT-4.1 handles code and data analysis in regular chat */}
             </div>
 
             <div className="flex items-center justify-center gap-0 md:gap-2 shrink-0">
