@@ -176,9 +176,9 @@ CONTENT RESTRICTIONS:
           },
           turn_detection: {
             type: 'server_vad',
-            threshold: 0.6,           // Higher threshold = less sensitive (0.0-1.0)
-            prefix_padding_ms: 300,   // Audio to include before speech
-            silence_duration_ms: 800  // Wait longer before considering turn complete
+            threshold: 0.85,          // Much higher threshold = less sensitive to noise (0.0-1.0)
+            prefix_padding_ms: 500,   // More audio context before speech
+            silence_duration_ms: 1200 // Wait longer (1.2s) before considering turn complete
           }
         }
       }));
@@ -223,10 +223,7 @@ CONTENT RESTRICTIONS:
         }
       }
 
-      // Also handle input_audio_buffer.speech_started for immediate barge-in
-      if (type === 'input_audio_buffer.speech_started') {
-        this.cancelAssistantResponse();
-      }
+      // Note: Removed speech_started barge-in - was too sensitive to background noise
 
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {
