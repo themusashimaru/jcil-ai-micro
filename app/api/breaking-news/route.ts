@@ -403,34 +403,35 @@ async function generateBreakingNews(): Promise<string> {
 
 export async function GET() {
   try {
-    // Check if we have valid cached news (less than 30 minutes old)
-    const isValid = await isCacheValid();
-    if (isValid) {
-      const cachedNews = await getCachedNews();
-      if (cachedNews) {
-        console.log('[Breaking News] Serving from cache');
-        return NextResponse.json({
-          content: cachedNews.content,
-          generatedAt: cachedNews.generatedAt,
-          cached: true,
-        });
-      }
+    // Always try to serve from cache first - this should be instant
+    const cachedNews = await getCachedNews();
+
+    if (cachedNews && cachedNews.content) {
+      // Check if cache is valid (less than 30 minutes old)
+      const now = new Date().getTime();
+      const cacheTime = new Date(cachedNews.generatedAt).getTime();
+      const age = now - cacheTime;
+      const isValid = age < CACHE_DURATION_MS;
+
+      console.log(`[Breaking News] Serving from cache (age: ${Math.round(age / 60000)} min, valid: ${isValid})`);
+
+      return NextResponse.json({
+        content: cachedNews.content,
+        generatedAt: cachedNews.generatedAt,
+        cached: true,
+        cacheAge: Math.round(age / 60000), // age in minutes
+      });
     }
 
-    // Cache expired or missing - generate fresh news
-    console.log('[Breaking News] Cache expired, generating fresh report...');
-
-    const content = await generateBreakingNews();
-    const generatedAt = new Date();
-
-    // Save to database for next 30 minutes
-    await setCachedNews(content, generatedAt);
+    // No cache available - return error (don't try to generate - that's what cron is for)
+    console.log('[Breaking News] No cache available - cron job may not have run yet');
 
     return NextResponse.json({
-      content,
-      generatedAt,
-      cached: false,
-    });
+      error: 'News is being prepared. Please try again in a few minutes.',
+      message: 'The news service is warming up. News will be available shortly.',
+      retryAfter: 60, // suggest retry in 60 seconds
+    }, { status: 503 }); // 503 Service Unavailable
+
   } catch (error) {
     console.error('[Breaking News] Error:', error);
     return NextResponse.json(
