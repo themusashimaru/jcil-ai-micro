@@ -25,7 +25,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
-import { RealtimeVoiceButton } from '@/components/chat/RealtimeVoiceButton';
+import VoiceButton from './VoiceButton';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useUserProfile } from '@/contexts/UserProfileContext';
@@ -80,18 +80,37 @@ export function ChatClient() {
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
 
-  // Handle voice conversation messages (speech-to-speech)
-  const handleVoiceConversationMessage = useCallback((role: 'user' | 'assistant', text: string) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      role,
-      content: text,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, newMessage]);
+  // Handle voice conversation streaming messages (speech-to-speech)
+  // This handles both delta updates and final messages for realtime voice
+  const upsertVoiceStreaming = useCallback((role: 'user' | 'assistant', delta: string, done?: boolean) => {
+    setMessages((prev) => {
+      const last = prev[prev.length - 1];
+      // Check if we need a new message or can append to existing
+      const lastIsStreaming = last?.isStreaming;
+      const needsNew = !last || last.role !== role || !lastIsStreaming || done;
 
-    // TODO: Save voice messages to database if currentChatId exists
-    // For now, voice conversations are ephemeral until manually saved
+      if (needsNew) {
+        // Create new message
+        const newMessage: Message = {
+          id: crypto.randomUUID?.() || Date.now().toString(),
+          role,
+          content: delta,
+          timestamp: new Date(),
+          isStreaming: !done,
+        };
+        return [...prev, newMessage];
+      } else {
+        // Append to existing streaming message
+        const next = [...prev];
+        const lastMsg = next[next.length - 1];
+        next[next.length - 1] = {
+          ...lastMsg,
+          content: lastMsg.content + delta,
+          isStreaming: !done
+        };
+        return next;
+      }
+    });
   }, []);
 
   // Load header logo from design settings
@@ -1450,9 +1469,9 @@ export function ChatClient() {
             onSelectTool={setSelectedTool}
           />
           {/* Floating Voice Button - Real-time speech-to-speech conversation */}
-          <RealtimeVoiceButton
-            onConversationMessage={handleVoiceConversationMessage}
-            disabled={isStreaming}
+          <VoiceButton
+            onUserText={(delta, done) => upsertVoiceStreaming('user', delta, done)}
+            onAssistantText={(delta, done) => upsertVoiceStreaming('assistant', delta, done)}
           />
         </main>
       </div>
