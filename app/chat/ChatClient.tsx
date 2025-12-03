@@ -113,6 +113,25 @@ export function ChatClient() {
     });
   }, []);
 
+  // Start a voice chat - creates a new chat if needed
+  const startVoiceChat = useCallback(() => {
+    if (!currentChatId) {
+      const newChatId = Date.now().toString();
+      const timestamp = new Date();
+      const newChat: Chat = {
+        id: newChatId,
+        title: 'Voice Conversation',
+        isPinned: false,
+        lastMessage: '🎤 Voice conversation started',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      setChats((prevChats) => [newChat, ...prevChats]);
+      setCurrentChatId(newChatId);
+      setMessages([]);
+    }
+  }, [currentChatId]);
+
   // Load header logo from design settings
   useEffect(() => {
     const loadLogo = async () => {
@@ -1470,6 +1489,7 @@ export function ChatClient() {
           />
           {/* Floating Voice Button - Real-time speech-to-speech conversation */}
           <VoiceButton
+            onStart={startVoiceChat}
             onUserText={(delta, done) => upsertVoiceStreaming('user', delta, done)}
             onAssistantText={(delta, done) => upsertVoiceStreaming('assistant', delta, done)}
           />

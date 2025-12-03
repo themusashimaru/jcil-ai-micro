@@ -6,15 +6,20 @@ import { recordOneUtterance } from './localRecorder';
 export default function VoiceButton({
   onUserText,
   onAssistantText,
+  onStart,
 }: {
   onUserText: (delta: string, done?: boolean) => void;
   onAssistantText: (delta: string, done?: boolean) => void;
+  onStart?: () => void;
 }) {
   const rtc = useRef<RealtimeClient | null>(null);
   const [live, setLive] = useState(false);
   const [status, setStatus] = useState<string>('idle');
 
   async function start() {
+    // Trigger chat creation/opening first
+    onStart?.();
+
     rtc.current = new RealtimeClient({
       voice: 'verse',
       onStatus: setStatus,
