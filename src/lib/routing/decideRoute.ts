@@ -20,13 +20,79 @@ export type RouteReason =
   | 'research-task'
   | 'file-operation'
   | 'complex-reasoning'
-  | 'light-chat';
+  | 'light-chat'
+  | 'document-request';
 
 export interface RouteDecision {
   target: RouteTarget;
   reason: RouteReason;
   confidence: number; // 0-1 confidence score
   matchedPattern?: string; // The pattern that matched, for debugging
+}
+
+/**
+ * Document/text output patterns - these should NEVER route to DALL-E
+ * DALL-E creates artwork/visual images, NOT readable text documents
+ *
+ * Rule: If the primary output should be READABLE TEXT, don't use DALL-E
+ */
+const DOCUMENT_PATTERNS = [
+  // Explicit document formats
+  /\b(pdf|document|doc|docx|word|text file|txt)\b/i,
+
+  // Business documents
+  /\b(memo|memorandum|letter|report|summary|brief|briefing)\b/i,
+  /\b(contract|agreement|proposal|quote|quotation|estimate)\b/i,
+  /\b(invoice|receipt|bill|statement|order)\b/i,
+  /\b(certificate|diploma|license|permit|authorization)\b/i,
+  /\b(policy|procedure|guideline|manual|handbook)\b/i,
+
+  // Professional documents
+  /\b(resume|résumé|cv|curriculum vitae|cover letter|bio|biography)\b/i,
+  /\b(business card|letterhead|form|application)\b/i,
+
+  // Meeting/notes
+  /\b(meeting notes|minutes|agenda|schedule|itinerary|plan)\b/i,
+  /\b(notes|outline|checklist|todo|to-do|task list)\b/i,
+
+  // Academic/educational
+  /\b(essay|paper|thesis|dissertation|assignment|homework)\b/i,
+  /\b(syllabus|lesson plan|course|curriculum)\b/i,
+
+  // Communications
+  /\b(email|e-mail|newsletter|announcement|notice|memo)\b/i,
+  /\b(press release|article|blog post|content)\b/i,
+
+  // Data/structured content
+  /\b(spreadsheet|excel|csv|table|chart|graph)\b/i,
+  /\b(database|record|entry|log|inventory)\b/i,
+
+  // QR/barcodes (need functional generation, not pictures of them)
+  /\bqr\s*code\b/i,
+  /\bbarcode\b/i,
+
+  // Legal
+  /\b(nda|non-disclosure|terms|conditions|disclaimer|waiver)\b/i,
+
+  // Financial
+  /\b(budget|forecast|projection|analysis|financial)\b/i,
+
+  // Scripts/presentations
+  /\b(script|screenplay|presentation|slides|powerpoint|deck)\b/i,
+
+  // "Write me" / "Draft" patterns (text output intent)
+  /\b(write|draft|compose|type|prepare)\s+(me\s+)?(a|an|the)\b/i,
+
+  // "Create a [document type] for/about/to"
+  /\bcreate\s+(a|an)\s+\w+\s+(for|about|to|regarding)\b/i,
+];
+
+/**
+ * Check if request is for a document/text output (not an image)
+ * Returns true if this should NOT go to DALL-E
+ */
+function isDocumentRequest(text: string): boolean {
+  return DOCUMENT_PATTERNS.some(pattern => pattern.test(text));
 }
 
 /**
@@ -49,16 +115,10 @@ const IMAGE_INTENT_PATTERNS = [
   // Emoji prefix pattern (from button)
   /^🎨\s*Generate image:/i,
 
-  // "create/make/draw for me" patterns
-  /\b(draw|create|make|generate)\s+(for\s+me|me)\s+(a|an)\b/i,
-
-  // Simple patterns: "draw me a...", "make a logo"
-  /\b(draw me|make me|create me)\b.*\b(a|an|the)\b/i,
-
-  // Poster/banner specific
+  // Poster/banner specific (visual design)
   /\b(design|create|make)\b.*\b(poster|banner|flyer|cover|thumbnail)\b/i,
 
-  // Logo specific
+  // Logo specific (visual design)
   /\b(logo|brand|branding)\b.*\b(for|design|create|with)\b/i,
   /\b(create|design|make)\b.*\blogo\b/i,
 
@@ -112,10 +172,20 @@ export function parseSizeFromText(text: string): '1024x1024' | '512x512' | '256x
 
 /**
  * Check if a message indicates image generation intent
+ * IMPORTANT: Document requests are EXCLUDED even if they match image patterns
  */
-export function hasImageIntent(text: string): { isImage: boolean; matchedPattern?: string } {
+export function hasImageIntent(text: string): { isImage: boolean; matchedPattern?: string; excludedReason?: string } {
   const normalizedText = text.trim();
 
+  // FIRST: Check if this is a document request - these should NEVER go to DALL-E
+  if (isDocumentRequest(normalizedText)) {
+    return {
+      isImage: false,
+      excludedReason: 'document-request'
+    };
+  }
+
+  // Then check for image generation patterns
   for (const pattern of IMAGE_INTENT_PATTERNS) {
     if (pattern.test(normalizedText)) {
       return {
