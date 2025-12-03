@@ -1534,12 +1534,13 @@ export function ChatClient() {
             selectedTool={selectedTool}
             onSelectTool={setSelectedTool}
           />
-          {/* Floating Voice Button - Real-time speech-to-speech conversation */}
+          {/* Voice Button - Hidden until feature is production-ready
           <VoiceButton
             onStart={startVoiceChat}
             onUserText={addUserVoiceMessage}
             onAssistantText={upsertAssistantStreaming}
           />
+          */}
         </main>
       </div>
 
