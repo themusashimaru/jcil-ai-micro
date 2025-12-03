@@ -221,17 +221,6 @@ async function setCachedNews(content: string, generatedAt: Date): Promise<void> 
   }
 }
 
-async function isCacheValid(): Promise<boolean> {
-  const cachedNews = await getCachedNews();
-  if (!cachedNews) return false;
-
-  const now = new Date().getTime();
-  const cacheTime = new Date(cachedNews.generatedAt).getTime();
-  const age = now - cacheTime;
-
-  return age < CACHE_DURATION_MS;
-}
-
 /**
  * Generate news for a single category group
  * Each group gets focused attention and specific source guidance
