@@ -1,11 +1,11 @@
 /**
  * Document Generation API
  *
- * Generates downloadable PDF documents from markdown content.
- * Uploads to Supabase Storage and returns a signed URL for secure download.
+ * Generates downloadable PDF and Word documents from markdown content.
+ * Uploads to Supabase Storage and returns signed URLs for secure download.
  *
  * SECURITY:
- * - PDFs are stored in user-specific paths: documents/{userId}/{filename}
+ * - Documents are stored in user-specific paths: documents/{userId}/{filename}
  * - Uses signed URLs with 1-hour expiration
  * - Only the document owner can access their files
  */
@@ -16,6 +16,15 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import QRCode from 'qrcode';
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+  BorderStyle,
+} from 'docx';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -23,7 +32,7 @@ export const maxDuration = 30;
 interface DocumentRequest {
   content: string;
   title?: string;
-  format?: 'pdf';
+  format?: 'pdf' | 'word' | 'both';
 }
 
 // Get authenticated user ID from session (more secure than trusting request body)
@@ -241,6 +250,212 @@ function cleanMarkdown(text: string): { text: string; bold: boolean; italic: boo
   return { text: normalizedText, bold, italic };
 }
 
+/**
+ * Generate a Word document from parsed markdown elements
+ */
+async function generateWordDocument(
+  elements: Array<{
+    type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote' | 'qr';
+    text: string;
+    items?: string[];
+    rows?: string[][];
+    qrData?: string;
+    qrCount?: number;
+  }>,
+  isResume: boolean
+): Promise<Buffer> {
+  const children: Paragraph[] = [];
+  let isFirstElement = true;
+  let resumeHeaderDone = false;
+
+  for (const element of elements) {
+    switch (element.type) {
+      case 'h1':
+        if (isResume && isFirstElement) {
+          // Resume: Centered name
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: cleanMarkdown(element.text).text,
+                  bold: true,
+                  size: 48, // 24pt
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 100 },
+            })
+          );
+        } else {
+          children.push(
+            new Paragraph({
+              text: cleanMarkdown(element.text).text,
+              heading: HeadingLevel.HEADING_1,
+              spacing: { after: 200 },
+            })
+          );
+        }
+        isFirstElement = false;
+        break;
+
+      case 'h2':
+        if (isResume) {
+          // Resume: Section headers - uppercase with border
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: cleanMarkdown(element.text).text.toUpperCase(),
+                  bold: true,
+                  size: 24, // 12pt
+                }),
+              ],
+              border: {
+                bottom: { style: BorderStyle.SINGLE, size: 6, color: '666666' },
+              },
+              spacing: { before: 240, after: 120 },
+            })
+          );
+        } else {
+          children.push(
+            new Paragraph({
+              text: cleanMarkdown(element.text).text,
+              heading: HeadingLevel.HEADING_2,
+              spacing: { after: 160 },
+            })
+          );
+        }
+        resumeHeaderDone = true;
+        break;
+
+      case 'h3':
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanMarkdown(element.text).text,
+                bold: true,
+                size: isResume ? 22 : 26,
+              }),
+            ],
+            spacing: { before: 160, after: 80 },
+          })
+        );
+        break;
+
+      case 'p':
+        const cleaned = cleanMarkdown(element.text);
+        if (isResume && !resumeHeaderDone) {
+          // Resume: Contact info centered
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: cleaned.text,
+                  size: 20, // 10pt
+                  color: '444444',
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200 },
+            })
+          );
+        } else {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: cleaned.text,
+                  bold: cleaned.bold,
+                  italics: cleaned.italic,
+                  size: isResume ? 20 : 22,
+                }),
+              ],
+              spacing: { after: isResume ? 80 : 120 },
+            })
+          );
+        }
+        break;
+
+      case 'li':
+        if (element.items) {
+          for (const item of element.items) {
+            const itemCleaned = cleanMarkdown(item);
+            children.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `• ${itemCleaned.text}`,
+                    bold: itemCleaned.bold,
+                    italics: itemCleaned.italic,
+                    size: isResume ? 20 : 22,
+                  }),
+                ],
+                indent: { left: 360 }, // 0.25 inch
+                spacing: { after: isResume ? 40 : 80 },
+              })
+            );
+          }
+        }
+        break;
+
+      case 'blockquote':
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: cleanMarkdown(element.text).text,
+                italics: true,
+                color: '666666',
+              }),
+            ],
+            indent: { left: 720 }, // 0.5 inch
+            spacing: { after: 120 },
+          })
+        );
+        break;
+
+      case 'qr':
+        // QR codes can't be embedded in Word easily - add placeholder text
+        if (element.qrData) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `[QR Code: ${element.qrData}]`,
+                  italics: true,
+                  color: '999999',
+                }),
+              ],
+              spacing: { after: 120 },
+            })
+          );
+        }
+        break;
+    }
+  }
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: {
+              top: isResume ? 720 : 1440, // 0.5" or 1" margins
+              right: isResume ? 720 : 1440,
+              bottom: isResume ? 720 : 1440,
+              left: isResume ? 720 : 1440,
+            },
+          },
+        },
+        children,
+      },
+    ],
+  });
+
+  return await Packer.toBuffer(doc);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: DocumentRequest = await request.json();
@@ -309,7 +524,7 @@ export async function POST(request: NextRequest) {
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0); // Black for professional look
             doc.text(cleanMarkdown(element.text).text, pageWidth / 2, y, { align: 'center' });
-            y += 10;
+            y += 6; // Tight spacing - contact info goes right below name
             resumeHeaderDone = false; // Next paragraph might be contact info
           } else {
             // Standard H1
@@ -567,114 +782,103 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate filename
+    // Generate filenames
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 8);
     const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const filename = `${safeTitle}_${timestamp}_${randomStr}.pdf`;
+    const pdfFilename = `${safeTitle}_${timestamp}_${randomStr}.pdf`;
+    const wordFilename = `${safeTitle}_${timestamp}_${randomStr}.docx`;
+
+    // Generate PDF buffer
+    const pdfBuffer = doc.output('arraybuffer');
+
+    // Generate Word document for resumes (or if explicitly requested)
+    let wordBuffer: Buffer | null = null;
+    if (isResume) {
+      try {
+        wordBuffer = await generateWordDocument(elements, isResume);
+        console.log('[Documents API] Word document generated');
+      } catch (wordError) {
+        console.error('[Documents API] Word generation error:', wordError);
+        // Continue without Word doc
+      }
+    }
 
     // If Supabase is available and userId provided, upload for secure download
     if (supabase && userId) {
-      // Generate PDF as ArrayBuffer for upload
-      const pdfBuffer = doc.output('arraybuffer');
+      // Ensure bucket exists
+      try {
+        await supabase.storage.createBucket('documents', {
+          public: false,
+          fileSizeLimit: 10 * 1024 * 1024,
+        });
+      } catch {
+        // Bucket might already exist, that's fine
+      }
 
-      // Store in user-specific path for security
-      const storagePath = `${userId}/${filename}`;
-
-      // Upload to 'documents' bucket
-      const { error: uploadError } = await supabase.storage
+      // Upload PDF
+      const pdfPath = `${userId}/${pdfFilename}`;
+      const { error: pdfUploadError } = await supabase.storage
         .from('documents')
-        .upload(storagePath, pdfBuffer, {
+        .upload(pdfPath, pdfBuffer, {
           contentType: 'application/pdf',
-          cacheControl: '3600', // Cache for 1 hour
+          cacheControl: '3600',
           upsert: false,
         });
 
-      if (uploadError) {
-        console.error('[Documents API] Upload error:', uploadError);
-
-        // If bucket doesn't exist, try to create it (private by default)
-        if (uploadError.message.includes('Bucket not found') || uploadError.message.includes('bucket')) {
-          const { error: bucketError } = await supabase.storage.createBucket('documents', {
-            public: false, // PRIVATE bucket - requires signed URLs
-            fileSizeLimit: 10 * 1024 * 1024, // 10MB max
-          });
-
-          if (bucketError && !bucketError.message.includes('already exists')) {
-            console.error('[Documents API] Failed to create bucket:', bucketError);
-            // Fall back to data URL
-            const pdfBase64 = doc.output('datauristring');
-            return NextResponse.json({
-              success: true,
-              format: 'pdf',
-              title,
-              dataUrl: pdfBase64,
-              filename,
-              storage: 'fallback',
-            });
-          }
-
-          // Retry upload
-          const retryResult = await supabase.storage
-            .from('documents')
-            .upload(storagePath, pdfBuffer, {
-              contentType: 'application/pdf',
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (retryResult.error) {
-            console.error('[Documents API] Retry upload failed:', retryResult.error);
-            const pdfBase64 = doc.output('datauristring');
-            return NextResponse.json({
-              success: true,
-              format: 'pdf',
-              title,
-              dataUrl: pdfBase64,
-              filename,
-              storage: 'fallback',
-            });
-          }
-        } else {
-          // Other upload error - fall back to data URL
-          const pdfBase64 = doc.output('datauristring');
-          return NextResponse.json({
-            success: true,
-            format: 'pdf',
-            title,
-            dataUrl: pdfBase64,
-            filename,
-            storage: 'fallback',
-          });
-        }
-      }
-
-      // Generate signed URL with 1-hour expiration
-      const { data: signedData, error: signError } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(storagePath, 3600); // 1 hour expiration
-
-      if (signError || !signedData) {
-        console.error('[Documents API] Signed URL error:', signError);
+      if (pdfUploadError) {
+        console.error('[Documents API] PDF upload error:', pdfUploadError);
+        // Fallback to data URL
         const pdfBase64 = doc.output('datauristring');
         return NextResponse.json({
           success: true,
           format: 'pdf',
           title,
           dataUrl: pdfBase64,
-          filename,
+          filename: pdfFilename,
           storage: 'fallback',
         });
       }
 
-      console.log('[Documents API] PDF uploaded successfully:', storagePath);
+      // Get signed URL for PDF
+      const { data: pdfSignedData } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(pdfPath, 3600);
 
+      // Upload Word doc if generated
+      let wordDownloadUrl: string | null = null;
+      if (wordBuffer) {
+        const wordPath = `${userId}/${wordFilename}`;
+        const { error: wordUploadError } = await supabase.storage
+          .from('documents')
+          .upload(wordPath, wordBuffer, {
+            contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (!wordUploadError) {
+          const { data: wordSignedData } = await supabase.storage
+            .from('documents')
+            .createSignedUrl(wordPath, 3600);
+          wordDownloadUrl = wordSignedData?.signedUrl || null;
+          console.log('[Documents API] Word document uploaded successfully');
+        }
+      }
+
+      console.log('[Documents API] PDF uploaded successfully:', pdfPath);
+
+      // Return both PDF and Word URLs for resumes
       return NextResponse.json({
         success: true,
-        format: 'pdf',
+        format: isResume ? 'both' : 'pdf',
         title,
-        filename,
-        downloadUrl: signedData.signedUrl,
+        // PDF
+        filename: pdfFilename,
+        downloadUrl: pdfSignedData?.signedUrl,
+        // Word (if resume)
+        wordFilename: wordBuffer ? wordFilename : undefined,
+        wordDownloadUrl: wordDownloadUrl || undefined,
         expiresIn: '1 hour',
         storage: 'supabase',
       });
@@ -687,7 +891,7 @@ export async function POST(request: NextRequest) {
       format: 'pdf',
       title,
       dataUrl: pdfBase64,
-      filename,
+      filename: pdfFilename,
       storage: 'local',
     });
 

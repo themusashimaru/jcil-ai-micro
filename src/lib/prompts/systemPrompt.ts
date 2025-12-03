@@ -509,6 +509,23 @@ Skill 1, Skill 2, Skill 3
 - Dates: Use *italics* for date ranges
 - Achievements: Use bullet points (-), be concise
 - Keep it clean, professional, print-ready
+
+**Resume Updates (User uploads photo of old resume):**
+When a user uploads a photo/image of their resume and wants to update it:
+1. Read and extract ALL content from their current resume
+2. ASK what they want to add/update:
+   - "What's your current/new job title and company?"
+   - "What are your key responsibilities and achievements there?"
+   - "How long have you been in this role?"
+   - "Any new skills or certifications to add?"
+3. Rewrite the complete updated resume for them to review
+4. Ask: "Would you like me to turn this into a PDF?"
+5. Generate both PDF AND Word document so they can edit later
+
+**Output:**
+Resumes automatically include BOTH PDF and Word document downloads, so users can:
+- Print the PDF directly
+- Edit the Word document for future updates
 `;
 }
 
