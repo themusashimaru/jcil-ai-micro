@@ -78,8 +78,7 @@ export function ChatClient() {
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
-  // Selected tool (only image tool remains - code/data handled in regular chat)
-  const [selectedTool, setSelectedTool] = useState<'image' | null>(null);
+  // REMOVED: selectedTool state - all tools now handled naturally in chat
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
 
@@ -380,28 +379,7 @@ export function ChatClient() {
     setChats(chats.map((chat) => (chat.id === chatId ? { ...chat, folder } : chat)));
   };
 
-  const handleImageGenerated = (imageUrl: string, prompt: string) => {
-    // Add user message with prompt
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: `Generate image: ${prompt}`,
-      timestamp: new Date(),
-    };
-
-    // Add assistant message with generated image
-    const imageMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: `Here's your generated image based on: "${prompt}"`,
-      imageUrl,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage, imageMessage]);
-  };
-
-  /* REMOVED: Code and Data handlers - GPT-4.1 handles these in regular chat
+  /* REMOVED: handleImageGenerated, Code and Data handlers - all handled naturally in chat
   const handleCodeGenerated = (response: string, request: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -548,266 +526,7 @@ export function ChatClient() {
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
     if (!content.trim() && attachments.length === 0) return;
 
-    // Handle tool-specific requests
-    if (selectedTool) {
-      const toolType = selectedTool;
-      setSelectedTool(null); // Clear selection
-
-      // Auto-create chat if none exists (important for first-time tool use)
-      let chatId: string;
-
-      if (!currentChatId) {
-        chatId = Date.now().toString();
-        const newChat: Chat = {
-          id: chatId,
-          title: 'New Chat',
-          isPinned: false,
-          lastMessage: content.slice(0, 50),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        setChats([newChat, ...chats]);
-        setCurrentChatId(chatId);
-
-        // Create conversation in database
-        try {
-          const dbConversationId = await createConversationInDatabase(
-            'New Chat',
-            toolType
-          );
-          // Update chatId to use the database-generated UUID
-          if (dbConversationId && typeof dbConversationId === 'string') {
-            chatId = dbConversationId;
-            setCurrentChatId(dbConversationId);
-            setChats((prevChats) =>
-              prevChats.map((chat) =>
-                chat.id !== dbConversationId ? chat : { ...chat, id: dbConversationId }
-              )
-            );
-          }
-        } catch (error) {
-          console.error('Failed to create conversation for tool:', error);
-          // Continue anyway - conversation will be created when message is saved
-        }
-      } else {
-        chatId = currentChatId;
-      }
-
-      // Add user message to chat first
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: toolType === 'image'
-          ? `🎨 Generate image: ${content}`
-          : toolType === 'code'
-          ? `💻 Coding help: ${content}`
-          : toolType === 'search'
-          ? `🔍 Search: ${content}`
-          : toolType === 'data'
-          ? `📊 Data analysis: ${content}`
-          : content,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, userMessage]);
-      setIsStreaming(true);
-
-      // Save user message to database
-      await saveMessageToDatabase(chatId, 'user', content, 'text');
-
-      if (toolType === 'image') {
-        // Image generation
-        try {
-          const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: [{ role: 'user', content: content }],
-              tool: 'image',
-            }),
-          });
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.details || errorData.error || 'Image generation failed');
-          }
-          const data = await response.json();
-
-          if (data.url) {
-            // Add only the assistant response with image
-            const imageMessage: Message = {
-              id: Date.now().toString(),
-              role: 'assistant',
-              content: `Here's your generated image based on: "${content}"`,
-              imageUrl: data.url,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, imageMessage]);
-
-            // Save assistant message to database
-            await saveMessageToDatabase(
-              chatId,
-              'assistant',
-              imageMessage.content,
-              'image',
-              data.url
-            );
-
-            // Generate title for conversations that still have "New Chat" as title
-            let shouldGenerateTitleForImage = false;
-            setChats((prevChats) => {
-              const currentChatForImage = prevChats.find(c => c.id === chatId);
-              shouldGenerateTitleForImage = !currentChatForImage || currentChatForImage.title === 'New Chat';
-              return prevChats; // No changes, just checking
-            });
-
-            if (shouldGenerateTitleForImage) {
-              try {
-                const titleResponse = await fetch('/api/chat/generate-title', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    userMessage: content,
-                    assistantMessage: imageMessage.content,
-                  }),
-                });
-
-                if (titleResponse.ok) {
-                  const titleData = await titleResponse.json();
-                  const generatedTitle = titleData.title || 'Image Generation';
-
-                  // Update chat title in sidebar
-                  setChats((prevChats) =>
-                    prevChats.map((chat) =>
-                      chat.id === chatId ? { ...chat, title: generatedTitle } : chat
-                    )
-                  );
-
-                  // Update title in database
-                  await fetch('/api/conversations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      id: chatId,
-                      title: generatedTitle,
-                    }),
-                  });
-                }
-              } catch (titleError) {
-                console.error('Title generation error:', titleError);
-              }
-            }
-          } else {
-            // Handle case where no URL was returned
-            throw new Error(data.error || 'No image URL returned from API');
-          }
-        } catch (error) {
-          console.error('Image error:', error);
-          const errorMsg: Message = {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, errorMsg]);
-
-          // Save error message to database
-          await saveMessageToDatabase(chatId, 'assistant', errorMsg.content, 'error');
-        } finally {
-          setIsStreaming(false);
-        }
-        return;
-      /* REMOVED: Code tool - GPT-4.1 handles code in regular chat
-      } else if (toolType === 'code') {
-        // Code generation - now handled in regular chat
-      */
-      } else if (toolType === 'search') {
-        // Live search
-        try {
-          const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              messages: [{ role: 'user', content: content }],
-              tool: 'research',
-            }),
-          });
-          if (!response.ok) throw new Error('Search failed');
-          const data = await response.json();
-          if (data.content) {
-            // Add only the assistant response
-            const searchMessage: Message = {
-              id: Date.now().toString(),
-              role: 'assistant',
-              content: data.content,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, searchMessage]);
-
-            // Save message to database
-            await saveMessageToDatabase(chatId, 'assistant', data.content, 'text');
-
-            // Generate title for conversations that still have "New Chat" as title
-            let shouldGenerateTitle = false;
-            setChats((prevChats) => {
-              const currentChat = prevChats.find(c => c.id === chatId);
-              shouldGenerateTitle = !currentChat || currentChat.title === 'New Chat';
-              return prevChats;
-            });
-
-            if (shouldGenerateTitle) {
-              try {
-                const titleResponse = await fetch('/api/chat/generate-title', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    userMessage: content,
-                    assistantMessage: data.content,
-                  }),
-                });
-
-                if (titleResponse.ok) {
-                  const titleData = await titleResponse.json();
-                  const generatedTitle = titleData.title || 'Web Search';
-
-                  setChats((prevChats) =>
-                    prevChats.map((chat) =>
-                      chat.id === chatId ? { ...chat, title: generatedTitle } : chat
-                    )
-                  );
-
-                  await fetch('/api/conversations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      id: chatId,
-                      title: generatedTitle,
-                    }),
-                  });
-                }
-              } catch (titleError) {
-                console.error('Title generation error:', titleError);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Search error:', error);
-          const errorMsg: Message = {
-            id: Date.now().toString(),
-            role: 'assistant',
-            content: `Search failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, errorMsg]);
-        } finally {
-          setIsStreaming(false);
-        }
-        return;
-      }
-      /* REMOVED: Data tool - GPT-4.1 handles data analysis in regular chat
-      } else if (toolType === 'data') {
-        // Data analysis - now handled in regular chat
-      }
-      */
-    }
+    // REMOVED: Tool-specific handling - all tools now handled naturally in chat
 
     let newChatId: string;
 
@@ -1400,10 +1119,7 @@ export function ChatClient() {
           />
           <ChatComposer
             onSendMessage={handleSendMessage}
-            onImageGenerated={handleImageGenerated}
             isStreaming={isStreaming}
-            selectedTool={selectedTool}
-            onSelectTool={setSelectedTool}
           />
           {/* Voice Button - Hidden until feature is production-ready
           <VoiceButton
