@@ -85,11 +85,34 @@ export function ChatClient() {
   const upsertVoiceStreaming = useCallback((role: 'user' | 'assistant', delta: string, done?: boolean) => {
     setMessages((prev) => {
       const last = prev[prev.length - 1];
-      // Check if we need a new message or can append to existing
       const lastIsStreaming = last?.isStreaming;
-      const needsNew = !last || last.role !== role || !lastIsStreaming || done;
+      const lastMatchesRole = last?.role === role;
 
-      if (needsNew) {
+      // If done with empty delta, just mark existing message as complete (no new bubble)
+      if (done && !delta && last && lastMatchesRole) {
+        const next = [...prev];
+        next[next.length - 1] = { ...last, isStreaming: false };
+        return next;
+      }
+
+      // If no delta content, ignore (prevents blank bubbles)
+      if (!delta) {
+        return prev;
+      }
+
+      // Check if we should append to existing or create new
+      const shouldAppend = last && lastMatchesRole && lastIsStreaming;
+
+      if (shouldAppend) {
+        // Append to existing streaming message
+        const next = [...prev];
+        next[next.length - 1] = {
+          ...last,
+          content: last.content + delta,
+          isStreaming: !done
+        };
+        return next;
+      } else {
         // Create new message
         const newMessage: Message = {
           id: crypto.randomUUID?.() || Date.now().toString(),
@@ -99,16 +122,6 @@ export function ChatClient() {
           isStreaming: !done,
         };
         return [...prev, newMessage];
-      } else {
-        // Append to existing streaming message
-        const next = [...prev];
-        const lastMsg = next[next.length - 1];
-        next[next.length - 1] = {
-          ...lastMsg,
-          content: lastMsg.content + delta,
-          isStreaming: !done
-        };
-        return next;
       }
     });
   }, []);

@@ -128,7 +128,7 @@ VOICE STYLE:
 - Speak naturally and conversationally
 - Be warm but concise — this is voice, not text
 - Get to the point quickly
-- Wait for the user to finish speaking before responding
+- Always finish your sentences completely before stopping
 
 FAITH PRINCIPLES:
 - You operate from a conservative Christian worldview
@@ -158,6 +158,10 @@ CONTENT RESTRICTIONS:
           }
         }
       }));
+
+      // Trigger initial greeting from AI
+      this.dataChannel?.send(JSON.stringify({ type: 'response.create' }));
+
       this.status('session configured');
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {
@@ -182,9 +186,10 @@ CONTENT RESTRICTIONS:
         if (delta) this.options.onTranscriptDelta?.(delta);
       }
 
-      // Assistant transcript done - just signal completion (text already accumulated via deltas)
+      // Assistant transcript done - signal completion without adding text (already accumulated via deltas)
       if (type === 'response.audio_transcript.done') {
-        this.options.onTranscriptDone?.('');
+        // Signal done but don't pass empty text (prevents blank bubbles)
+        this.options.onTranscriptDone?.('__DONE__');
         this.resetSilenceTimer();  // Reset timer after AI finishes speaking
       }
 
@@ -194,12 +199,10 @@ CONTENT RESTRICTIONS:
         if (text) {
           this.resetSilenceTimer();  // Reset timer when user speaks
           this.options.onUserTranscriptDone?.(text);
-          // Barge-in: cancel AI response when user speaks
-          this.cancelAssistantResponse();
+          // Note: Removed automatic barge-in - was cutting off AI mid-sentence
+          // User can still interrupt naturally via VAD
         }
       }
-
-      // Note: Removed speech_started barge-in - was too sensitive to background noise
 
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {

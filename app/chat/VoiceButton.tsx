@@ -33,7 +33,14 @@ export default function VoiceButton({
       onUserTranscriptDelta: (t) => onUserText(t, false),
       onUserTranscriptDone: (t) => onUserText(t || '', true),
       onTranscriptDelta: (t) => onAssistantText(t, false),
-      onTranscriptDone: (t) => onAssistantText(t || '', true),
+      onTranscriptDone: (t) => {
+        // '__DONE__' signals end of message without adding text (prevents blank bubbles)
+        if (t === '__DONE__') {
+          onAssistantText('', true);  // Just mark as done, no new content
+        } else if (t) {
+          onAssistantText(t, true);
+        }
+      },
       onSilenceTimeout: () => {
         // Auto-shutoff after prolonged silence
         stop();
