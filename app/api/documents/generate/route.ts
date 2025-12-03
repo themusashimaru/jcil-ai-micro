@@ -2,11 +2,19 @@
  * Document Generation API
  *
  * Generates downloadable PDF documents from markdown content.
- * Returns a data URL that can be downloaded directly.
+ * Uploads to Supabase Storage and returns a signed URL for secure download.
+ *
+ * SECURITY:
+ * - PDFs are stored in user-specific paths: documents/{userId}/{filename}
+ * - Uses signed URLs with 1-hour expiration
+ * - Only the document owner can access their files
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { jsPDF } from 'jspdf';
+import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -15,6 +23,51 @@ interface DocumentRequest {
   content: string;
   title?: string;
   format?: 'pdf';
+}
+
+// Get authenticated user ID from session (more secure than trusting request body)
+async function getAuthenticatedUserId(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Cookie operations may fail
+            }
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) return null;
+    return user.id;
+  } catch {
+    return null;
+  }
+}
+
+// Get Supabase admin client for storage operations
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
 }
 
 /**
@@ -138,6 +191,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Get authenticated user ID from session (secure - not from request body)
+    const userId = await getAuthenticatedUserId();
+
+    // Get Supabase client for storage
+    const supabase = getSupabaseAdmin();
 
     // Create PDF
     const doc = new jsPDF({
@@ -314,15 +373,128 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate PDF as base64
-    const pdfBase64 = doc.output('datauristring');
+    // Generate filename
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `${safeTitle}_${timestamp}_${randomStr}.pdf`;
 
+    // If Supabase is available and userId provided, upload for secure download
+    if (supabase && userId) {
+      // Generate PDF as ArrayBuffer for upload
+      const pdfBuffer = doc.output('arraybuffer');
+
+      // Store in user-specific path for security
+      const storagePath = `${userId}/${filename}`;
+
+      // Upload to 'documents' bucket
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(storagePath, pdfBuffer, {
+          contentType: 'application/pdf',
+          cacheControl: '3600', // Cache for 1 hour
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[Documents API] Upload error:', uploadError);
+
+        // If bucket doesn't exist, try to create it (private by default)
+        if (uploadError.message.includes('Bucket not found') || uploadError.message.includes('bucket')) {
+          const { error: bucketError } = await supabase.storage.createBucket('documents', {
+            public: false, // PRIVATE bucket - requires signed URLs
+            fileSizeLimit: 10 * 1024 * 1024, // 10MB max
+          });
+
+          if (bucketError && !bucketError.message.includes('already exists')) {
+            console.error('[Documents API] Failed to create bucket:', bucketError);
+            // Fall back to data URL
+            const pdfBase64 = doc.output('datauristring');
+            return NextResponse.json({
+              success: true,
+              format: 'pdf',
+              title,
+              dataUrl: pdfBase64,
+              filename,
+              storage: 'fallback',
+            });
+          }
+
+          // Retry upload
+          const retryResult = await supabase.storage
+            .from('documents')
+            .upload(storagePath, pdfBuffer, {
+              contentType: 'application/pdf',
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (retryResult.error) {
+            console.error('[Documents API] Retry upload failed:', retryResult.error);
+            const pdfBase64 = doc.output('datauristring');
+            return NextResponse.json({
+              success: true,
+              format: 'pdf',
+              title,
+              dataUrl: pdfBase64,
+              filename,
+              storage: 'fallback',
+            });
+          }
+        } else {
+          // Other upload error - fall back to data URL
+          const pdfBase64 = doc.output('datauristring');
+          return NextResponse.json({
+            success: true,
+            format: 'pdf',
+            title,
+            dataUrl: pdfBase64,
+            filename,
+            storage: 'fallback',
+          });
+        }
+      }
+
+      // Generate signed URL with 1-hour expiration
+      const { data: signedData, error: signError } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(storagePath, 3600); // 1 hour expiration
+
+      if (signError || !signedData) {
+        console.error('[Documents API] Signed URL error:', signError);
+        const pdfBase64 = doc.output('datauristring');
+        return NextResponse.json({
+          success: true,
+          format: 'pdf',
+          title,
+          dataUrl: pdfBase64,
+          filename,
+          storage: 'fallback',
+        });
+      }
+
+      console.log('[Documents API] PDF uploaded successfully:', storagePath);
+
+      return NextResponse.json({
+        success: true,
+        format: 'pdf',
+        title,
+        filename,
+        downloadUrl: signedData.signedUrl,
+        expiresIn: '1 hour',
+        storage: 'supabase',
+      });
+    }
+
+    // Fallback: Return data URL if no Supabase or no userId
+    const pdfBase64 = doc.output('datauristring');
     return NextResponse.json({
       success: true,
       format: 'pdf',
       title,
       dataUrl: pdfBase64,
-      filename: `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
+      filename,
+      storage: 'local',
     });
 
   } catch (error) {

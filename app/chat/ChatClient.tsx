@@ -929,25 +929,40 @@ export function ChatClient() {
 
           if (pdfResponse.ok) {
             const pdfData = await pdfResponse.json();
-            if (pdfData.dataUrl) {
-              console.log('[ChatClient] PDF generated successfully');
 
-              // Trigger download automatically
-              const link = document.createElement('a');
-              link.href = pdfData.dataUrl;
-              link.download = pdfData.filename || `${pdfTitle}.pdf`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
+            // Check for downloadUrl (Supabase Storage) or dataUrl (fallback)
+            const downloadUrl = pdfData.downloadUrl || pdfData.dataUrl;
+            const isSupabaseUrl = !!pdfData.downloadUrl;
 
-              // Add a simple confirmation message (NO data URL link - those break)
-              const pdfMessage: Message = {
-                id: (Date.now() + 3).toString(),
-                role: 'assistant',
-                content: `✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder. If you need another copy, just ask me to generate it again.`,
-                timestamp: new Date(),
-              };
-              setMessages((prev) => [...prev, pdfMessage]);
+            if (downloadUrl) {
+              console.log('[ChatClient] PDF generated successfully, storage:', pdfData.storage);
+
+              if (isSupabaseUrl) {
+                // Supabase Storage: Show clickable download link
+                const pdfMessage: Message = {
+                  id: (Date.now() + 3).toString(),
+                  role: 'assistant',
+                  content: `✅ **Your PDF is ready!**\n\n📄 **[Download ${pdfData.filename || pdfTitle + '.pdf'}](${downloadUrl})**\n\n*Link expires in 1 hour. If you need it later, just ask me to generate it again.*`,
+                  timestamp: new Date(),
+                };
+                setMessages((prev) => [...prev, pdfMessage]);
+              } else {
+                // Data URL fallback: Trigger auto-download
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = pdfData.filename || `${pdfTitle}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                const pdfMessage: Message = {
+                  id: (Date.now() + 3).toString(),
+                  role: 'assistant',
+                  content: `✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder. If you need another copy, just ask me to generate it again.`,
+                  timestamp: new Date(),
+                };
+                setMessages((prev) => [...prev, pdfMessage]);
+              }
             }
           } else {
             console.error('[ChatClient] PDF generation failed:', await pdfResponse.text());
