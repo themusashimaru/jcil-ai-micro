@@ -22,9 +22,10 @@ import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { useUserProfile } from '@/contexts/UserProfileContext';
-import { QuickEmailWriter } from './QuickEmailWriter';
+// REMOVED: Email and Essay tools - GPT-5.1 handles these in regular chat
+// import { QuickEmailWriter } from './QuickEmailWriter';
 // import { QuickResearchTool } from './QuickResearchTool'; // HIDDEN: Auto-search is now enabled for all conversations
-import { QuickEssayWriter } from './QuickEssayWriter';
+// import { QuickEssayWriter } from './QuickEssayWriter';
 import { QuickDailyDevotional } from './QuickDailyDevotional';
 import { QuickBibleStudy } from './QuickBibleStudy';
 import { QuickBreakingNews } from './QuickBreakingNews';
@@ -158,15 +159,8 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
             </p>
           )}
 
-          {/* Main Tools */}
-          <div className="flex flex-wrap justify-center gap-1 mb-1 mt-2">
-            <QuickEmailWriter />
-            {/* <QuickResearchTool /> - HIDDEN: Auto-search now enabled for all conversations */}
-            <QuickEssayWriter />
-          </div>
-
           {/* Bible Tools */}
-          <div className="flex justify-center gap-1 mb-1">
+          <div className="flex justify-center gap-1 mb-1 mt-2">
             <QuickDailyDevotional />
             <QuickBibleStudy />
           </div>

@@ -2,16 +2,89 @@
  * QUICK BIBLE STUDY
  *
  * PURPOSE:
- * - Provide in-depth theological answers to Scripture questions
- * - Master's degree level biblical scholarship
+ * - Provide comprehensive theological study tools
+ * - Multiple study types: Verse, Topic, Word, Book, Character, Doctrine
+ * - Bible version selection
+ * - Depth level customization
+ * - Seminary-level biblical scholarship
  * - Hebrew/Greek word studies and exegesis
- * - Apologetically sound responses
- * - Deep teachings of Christ
+ * - Powered by GPT-5.1 for accuracy
  */
 
 'use client';
 
 import { useState } from 'react';
+
+type StudyType = 'verse' | 'topic' | 'word' | 'book' | 'character' | 'doctrine';
+type BibleVersion = 'KJV' | 'NKJV' | 'ESV' | 'NIV' | 'NASB';
+type DepthLevel = 'basic' | 'intermediate' | 'seminary';
+
+interface StudyTypeOption {
+  id: StudyType;
+  label: string;
+  icon: string;
+  description: string;
+  placeholder: string;
+}
+
+const STUDY_TYPES: StudyTypeOption[] = [
+  {
+    id: 'verse',
+    label: 'Verse Study',
+    icon: '📖',
+    description: 'Deep dive into specific Scripture passages',
+    placeholder: 'e.g., John 3:16, Romans 8:28-30, Psalm 23',
+  },
+  {
+    id: 'topic',
+    label: 'Topic Study',
+    icon: '🔍',
+    description: 'Explore biblical themes across Scripture',
+    placeholder: 'e.g., Grace, Salvation, Prayer, Faith, Covenant',
+  },
+  {
+    id: 'word',
+    label: 'Word Study',
+    icon: '📚',
+    description: 'Hebrew/Greek word analysis and etymology',
+    placeholder: 'e.g., Agape (love), Hesed (mercy), Shalom (peace)',
+  },
+  {
+    id: 'book',
+    label: 'Book Overview',
+    icon: '📜',
+    description: 'Comprehensive book introductions',
+    placeholder: 'e.g., Romans, Genesis, Revelation, Psalms',
+  },
+  {
+    id: 'character',
+    label: 'Character Study',
+    icon: '👤',
+    description: 'Study biblical figures in depth',
+    placeholder: 'e.g., David, Moses, Paul, Mary, Abraham',
+  },
+  {
+    id: 'doctrine',
+    label: 'Doctrine Study',
+    icon: '⛪',
+    description: 'Systematic theological exploration',
+    placeholder: 'e.g., Trinity, Justification, Sanctification, Eschatology',
+  },
+];
+
+const BIBLE_VERSIONS: { id: BibleVersion; label: string }[] = [
+  { id: 'KJV', label: 'King James Version' },
+  { id: 'NKJV', label: 'New King James Version' },
+  { id: 'ESV', label: 'English Standard Version' },
+  { id: 'NIV', label: 'New International Version' },
+  { id: 'NASB', label: 'New American Standard' },
+];
+
+const DEPTH_LEVELS: { id: DepthLevel; label: string; description: string }[] = [
+  { id: 'basic', label: 'Basic', description: 'Clear, accessible explanations' },
+  { id: 'intermediate', label: 'Intermediate', description: 'Deeper context and analysis' },
+  { id: 'seminary', label: 'Seminary', description: 'Academic theological depth' },
+];
 
 interface QuickBibleStudyProps {
   onStudyComplete?: (response: string, question: string) => void;
@@ -19,15 +92,116 @@ interface QuickBibleStudyProps {
 
 export function QuickBibleStudy({ onStudyComplete }: QuickBibleStudyProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [studyType, setStudyType] = useState<StudyType>('verse');
+  const [bibleVersion, setBibleVersion] = useState<BibleVersion>('KJV');
+  const [depthLevel, setDepthLevel] = useState<DepthLevel>('intermediate');
   const [question, setQuestion] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [isStudying, setIsStudying] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const currentStudyType = STUDY_TYPES.find((t) => t.id === studyType)!;
+
+  const getStudyPrompt = () => {
+    const depthInstructions = {
+      basic: 'Write at a high school reading level. Focus on clear, practical explanations that any believer can understand. Avoid technical jargon.',
+      intermediate: 'Write at a college reading level. Include historical context, cross-references, and moderate theological depth. Balance accessibility with substance.',
+      seminary: 'Write at a graduate/seminary level. Include detailed Hebrew/Greek analysis, engagement with scholarly perspectives, systematic theology connections, and advanced hermeneutical principles.',
+    };
+
+    const typePrompts: Record<StudyType, string> = {
+      verse: `Provide a comprehensive verse-by-verse study of: ${question}
+
+Using the ${bibleVersion} as the primary text, include:
+1. **Full Text**: Quote the passage in ${bibleVersion}
+2. **Historical Context**: When was this written, to whom, and why?
+3. **Literary Context**: What comes before and after? How does it fit the book's structure?
+4. **Word Studies**: Key Hebrew/Greek terms with lexical analysis
+5. **Cross-References**: Related passages that illuminate the meaning
+6. **Theological Significance**: What doctrines does this teach?
+7. **Christological Connection**: How does this point to Christ?
+8. **Practical Application**: How should believers respond to this truth?
+
+${depthInstructions[depthLevel]}`,
+
+      topic: `Provide a comprehensive topical study on: ${question}
+
+Include:
+1. **Definition**: Biblical definition and scope of this topic
+2. **Old Testament Foundation**: Key OT passages and development (${bibleVersion})
+3. **New Testament Fulfillment**: How Christ and the NT address this topic
+4. **Systematic Theology**: How major doctrines connect to this topic
+5. **Key Passages**: 5-7 central Scripture references with brief commentary
+6. **Common Misconceptions**: Address popular misunderstandings
+7. **Practical Application**: How this truth transforms daily life
+
+${depthInstructions[depthLevel]}`,
+
+      word: `Provide an in-depth word study on: ${question}
+
+Include:
+1. **Original Language**: Hebrew (OT) or Greek (NT) word(s) used
+2. **Transliteration & Pronunciation**: How to say the word
+3. **Lexical Definition**: Dictionary meaning with semantic range
+4. **Etymology**: Word origin and development
+5. **Usage in Scripture**: How it's used across the Bible (${bibleVersion} references)
+6. **Theological Significance**: What this word reveals about God
+7. **Related Words**: Synonyms, antonyms, and word family
+8. **Translation Variations**: How different versions render it
+
+${depthInstructions[depthLevel]}`,
+
+      book: `Provide a comprehensive introduction to the book of: ${question}
+
+Include:
+1. **Author & Date**: Who wrote it and when (traditional and scholarly views)
+2. **Historical Background**: What was happening when this was written?
+3. **Purpose & Theme**: Why was this book written? Main message?
+4. **Outline**: Chapter-by-chapter structure overview
+5. **Key Verses**: 5-7 central passages (${bibleVersion})
+6. **Theological Themes**: Major doctrines taught in this book
+7. **Christ in This Book**: How does it point to Jesus?
+8. **Practical Value**: Why should believers study this book today?
+
+${depthInstructions[depthLevel]}`,
+
+      character: `Provide a comprehensive character study on: ${question}
+
+Include:
+1. **Name Meaning**: Hebrew/Greek origin and significance
+2. **Family & Background**: Who were they? Where did they come from?
+3. **Timeline**: Key events in their life chronologically
+4. **Key Scripture Passages**: Primary texts about them (${bibleVersion})
+5. **Character Traits**: Strengths and weaknesses demonstrated
+6. **Relationship with God**: How did they encounter and respond to God?
+7. **Christological Connection**: How does their life point to Christ?
+8. **Lessons for Today**: What can we learn from their example?
+
+${depthInstructions[depthLevel]}`,
+
+      doctrine: `Provide a comprehensive doctrinal study on: ${question}
+
+Include:
+1. **Definition**: What is this doctrine and what does it affirm?
+2. **Biblical Foundation**: Key Scripture passages (${bibleVersion})
+3. **Historical Development**: How has the church understood this?
+4. **Systematic Connections**: How does this relate to other doctrines?
+5. **Major Views**: Different Christian perspectives (Reformed, Arminian, etc.)
+6. **Common Objections**: How do skeptics challenge this? How do we respond?
+7. **Practical Implications**: How does this doctrine affect Christian living?
+8. **Summary Statement**: A clear, concise affirmation of this truth
+
+${depthInstructions[depthLevel]}`,
+    };
+
+    return typePrompts[studyType];
+  };
 
   const handleStudy = async () => {
     if (!question.trim()) {
-      setError('Please enter a question about Scripture');
+      setError('Please enter your study topic or question');
       return;
     }
 
@@ -36,19 +210,7 @@ export function QuickBibleStudy({ onStudyComplete }: QuickBibleStudyProps) {
     setResponse(null);
 
     try {
-      const studyPrompt = `Provide a comprehensive theological answer to this question about Scripture, demonstrating deep biblical knowledge, expertise in Hebrew and Greek, systematic theology, and sound exegesis:
-
-${question}
-
-Please provide:
-1. **Biblical Foundation**: Cite relevant KJV Scripture passages with proper exegesis
-2. **Original Languages**: Include Hebrew/Greek word studies where applicable (lexical analysis, manuscript insights)
-3. **Theological Analysis**: Engage with systematic theology, biblical theology, and historical context
-4. **Christological Focus**: Connect to the teachings and person of Christ
-5. **Apologetic Considerations**: Address potential objections or alternative interpretations
-6. **Practical Application**: How this truth impacts Christian life and discipleship
-
-Use seminary-level theological sophistication, proper hermeneutical principles, and engage with church tradition while remaining biblically grounded. Write with the depth and accuracy expected from advanced theological scholarship.`;
+      const studyPrompt = getStudyPrompt();
 
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -65,7 +227,7 @@ Use seminary-level theological sophistication, proper hermeneutical principles, 
       });
 
       if (!res.ok) {
-        throw new Error('Failed to process question');
+        throw new Error('Failed to process study request');
       }
 
       const data = await res.json();
@@ -77,29 +239,39 @@ Use seminary-level theological sophistication, proper hermeneutical principles, 
         onStudyComplete(answer, question);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process question');
+      setError(err instanceof Error ? err.message : 'Failed to process request');
     }
 
     setIsStudying(false);
   };
 
+  const handleCopy = async () => {
+    if (!response) return;
+    try {
+      await navigator.clipboard.writeText(response);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Failed to copy to clipboard');
+    }
+  };
+
   const handleSendEmail = () => {
     if (!response) return;
 
-    const subject = `Bible Study: ${question}`;
-    const body = `Question: ${question}\n\n${response}`;
+    const subject = `Bible Study: ${currentStudyType.label} - ${question}`;
+    const body = `${currentStudyType.label}: ${question}\n\nBible Version: ${bibleVersion}\nDepth Level: ${depthLevel}\n\n${response}\n\n---\nGenerated by JCIL.ai Slingshot 2.0`;
 
     const mailto = `mailto:${recipientEmail || ''}?subject=${encodeURIComponent(
       subject
     )}&body=${encodeURIComponent(body)}`;
 
-    // Use anchor element to prevent auth session disruption
     const link = document.createElement('a');
     link.href = mailto;
     link.click();
   };
 
-  const handleNewQuestion = () => {
+  const handleNewStudy = () => {
     setQuestion('');
     setResponse(null);
     setError(null);
@@ -119,7 +291,7 @@ Use seminary-level theological sophistication, proper hermeneutical principles, 
       <button
         onClick={() => setIsOpen(true)}
         className="rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800 border border-white/20"
-        title="In-depth Bible study and theological questions"
+        title="Comprehensive Bible study tools"
       >
         <span className="flex items-center gap-1.5">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -133,16 +305,15 @@ Use seminary-level theological sophistication, proper hermeneutical principles, 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/70 backdrop-blur-sm">
           <div className="flex justify-center px-3 pb-4 pt-20 sm:px-6 sm:pb-10">
-            <div className="w-full max-w-3xl overflow-hidden rounded-t-3xl border border-white/10 bg-zinc-950/95 shadow-2xl">
-              <div className="flex max-h-[85vh] flex-col">
+            <div className="w-full max-w-4xl overflow-hidden rounded-t-3xl border border-white/10 bg-zinc-950/95 shadow-2xl">
+              <div className="flex max-h-[90vh] flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-white/10 px-6 pt-5 pb-4">
                   <div className="flex items-center gap-3">
-                    <span
-                      className="hidden h-1.5 w-16 rounded-full bg-white/10 sm:block"
-                      aria-hidden="true"
-                    />
                     <h2 className="text-lg font-semibold sm:text-xl">📖 Bible Study</h2>
+                    {!response && (
+                      <span className="text-xs text-gray-400 hidden sm:inline">Powered by GPT-5.1</span>
+                    )}
                   </div>
                   <button
                     onClick={handleClose}
@@ -161,25 +332,82 @@ Use seminary-level theological sophistication, proper hermeneutical principles, 
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto px-6 pb-6 pt-4">
-                  <div className="space-y-4">
-                    {/* Question Input */}
+                  <div className="space-y-5">
+                    {/* Study Options - Only show when no response */}
                     {!response && (
                       <>
+                        {/* Study Type Selection */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">Study Type</label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {STUDY_TYPES.map((type) => (
+                              <button
+                                key={type.id}
+                                onClick={() => setStudyType(type.id)}
+                                className={`flex items-center gap-2 rounded-xl border p-3 text-left transition ${
+                                  studyType === type.id
+                                    ? 'border-amber-500 bg-amber-500/10 text-white'
+                                    : 'border-white/10 bg-white/5 text-gray-300 hover:border-white/20 hover:bg-white/10'
+                                }`}
+                              >
+                                <span className="text-xl">{type.icon}</span>
+                                <div>
+                                  <div className="text-sm font-medium">{type.label}</div>
+                                  <div className="text-xs text-gray-500 hidden sm:block">{type.description}</div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Bible Version & Depth Level */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Bible Version */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-300">Bible Version</label>
+                            <select
+                              value={bibleVersion}
+                              onChange={(e) => setBibleVersion(e.target.value as BibleVersion)}
+                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-white/20 focus:outline-none"
+                            >
+                              {BIBLE_VERSIONS.map((version) => (
+                                <option key={version.id} value={version.id} className="bg-zinc-900">
+                                  {version.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Depth Level */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-300">Study Depth</label>
+                            <select
+                              value={depthLevel}
+                              onChange={(e) => setDepthLevel(e.target.value as DepthLevel)}
+                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white focus:border-white/20 focus:outline-none"
+                            >
+                              {DEPTH_LEVELS.map((level) => (
+                                <option key={level.id} value={level.id} className="bg-zinc-900">
+                                  {level.label} - {level.description}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Question Input */}
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-gray-300">
-                            Ask Your Theological Question
+                            {currentStudyType.label}
                           </label>
                           <textarea
                             value={question}
                             onChange={(e) => setQuestion(e.target.value)}
-                            placeholder="e.g., What is the biblical theology of the covenant? How does justification by faith relate to sanctification? What does Romans 8:28-30 teach about God's sovereignty?"
+                            placeholder={currentStudyType.placeholder}
                             className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none resize-none"
-                            rows={4}
+                            rows={3}
                             disabled={isStudying}
                           />
-                          <p className="text-xs text-gray-500">
-                            Get in-depth theological answers with Hebrew/Greek insights
-                          </p>
                         </div>
 
                         {/* Error Message */}
@@ -193,87 +421,106 @@ Use seminary-level theological sophistication, proper hermeneutical principles, 
                         <button
                           onClick={handleStudy}
                           disabled={!question.trim() || isStudying}
-                          className="w-full rounded-xl bg-white px-4 py-3 font-semibold text-black transition hover:bg-gray-200 disabled:opacity-50"
+                          className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-4 font-semibold text-white transition hover:from-amber-600 hover:to-orange-600 disabled:opacity-50"
                         >
-                          {isStudying ? 'Studying Scripture...' : 'Study Scripture'}
+                          {isStudying ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              Studying Scripture...
+                            </span>
+                          ) : (
+                            `Begin ${currentStudyType.label}`
+                          )}
                         </button>
-
-                        {/* Help Text */}
-                        <div className="rounded-xl bg-white/5 p-4 text-xs text-gray-400">
-                          <p className="font-semibold text-gray-300 mb-2">You&apos;ll receive:</p>
-                          <ul className="space-y-1 list-disc list-inside">
-                            <li>Biblical foundation with KJV passages</li>
-                            <li>Hebrew/Greek word studies and etymology</li>
-                            <li>Theological analysis and systematic theology</li>
-                            <li>Christological connections and teachings</li>
-                            <li>Apologetic considerations and defense</li>
-                            <li>Practical application for Christian living</li>
-                          </ul>
-                        </div>
                       </>
                     )}
 
                     {/* Response Display */}
                     {response && (
                       <>
+                        {/* Study Header */}
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2 text-amber-400">
+                            <span className="text-xl">{currentStudyType.icon}</span>
+                            <span className="font-semibold">{currentStudyType.label}</span>
+                            <span className="text-gray-400">•</span>
+                            <span className="text-gray-400">{bibleVersion}</span>
+                          </div>
+                          <button
+                            onClick={handleCopy}
+                            className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition"
+                          >
+                            {copied ? (
+                              <>
+                                <svg className="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                </svg>
+                                Copy
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Question */}
+                        <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
+                          <p className="text-amber-300 font-medium">{question}</p>
+                        </div>
+
+                        {/* Response Content */}
                         <div className="rounded-xl bg-white/5 p-6 border border-white/10">
-                          <p className="text-sm font-semibold text-amber-400 mb-3">
-                            Question: {question}
-                          </p>
                           <div className="prose prose-invert max-w-none text-sm leading-relaxed text-gray-200 whitespace-pre-line">
                             {response}
                           </div>
                         </div>
 
-                        {/* Recipient Email */}
+                        {/* Email Option */}
                         <div className="space-y-2">
                           <label className="block text-sm font-medium text-gray-300">
-                            Recipient Email (Optional)
+                            Share via Email (Optional)
                           </label>
-                          <input
-                            type="email"
-                            value={recipientEmail}
-                            onChange={(e) => setRecipientEmail(e.target.value)}
-                            placeholder="e.g., studygroup@church.org"
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
-                          />
-                          <p className="text-xs text-gray-500">
-                            Required only if you want to use the &quot;Send Email&quot; button
-                          </p>
+                          <div className="flex gap-2">
+                            <input
+                              type="email"
+                              value={recipientEmail}
+                              onChange={(e) => setRecipientEmail(e.target.value)}
+                              placeholder="Enter recipient email..."
+                              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+                            />
+                            <button
+                              onClick={handleSendEmail}
+                              className="rounded-xl bg-blue-500 px-4 py-3 font-medium text-white hover:bg-blue-600 transition flex items-center gap-2"
+                            >
+                              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                              Send
+                            </button>
+                          </div>
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-col gap-3">
-                          <div className="flex gap-3">
-                            <button
-                              onClick={handleNewQuestion}
-                              className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20"
-                            >
-                              Ask Another Question
-                            </button>
-                            <button
-                              onClick={handleClose}
-                              className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20"
-                            >
-                              Close
-                            </button>
-                          </div>
-
-                          {/* Send Email Button */}
+                        <div className="flex gap-3">
                           <button
-                            onClick={handleSendEmail}
-                            className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-3 font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition flex items-center justify-center gap-2"
-                            title={!recipientEmail ? 'Enter recipient email to enable' : 'Open in your default email client'}
+                            onClick={handleNewStudy}
+                            className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-semibold text-white transition hover:from-amber-600 hover:to-orange-600"
                           >
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                              />
-                            </svg>
-                            {recipientEmail ? 'Send Email' : 'Send Email (Add Recipient Email)'}
+                            New Study
+                          </button>
+                          <button
+                            onClick={handleClose}
+                            className="flex-1 rounded-xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20"
+                          >
+                            Close
                           </button>
                         </div>
                       </>
