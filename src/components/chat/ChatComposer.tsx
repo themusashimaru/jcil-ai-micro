@@ -20,24 +20,16 @@
 
 import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import type { Attachment } from '@/app/chat/types';
-import { QuickImageGenerator } from './QuickImageGenerator';
-// REMOVED: Code and Data buttons - GPT-4.1 handles these in regular chat
-// import { QuickCodingAssistant } from './QuickCodingAssistant';
-// import { QuickLiveSearch } from './QuickLiveSearch'; // HIDDEN: Auto-search now enabled for all conversations
+// REMOVED: QuickImageGenerator - chat now handles image generation naturally
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 
 interface ChatComposerProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
-  onImageGenerated?: (imageUrl: string, prompt: string) => void;
-  // REMOVED: onCodeGenerated, onDataAnalysisComplete - GPT-4.1 handles these in regular chat
-  onSearchComplete?: (response: string, query: string) => void; // Kept for backward compatibility but not used
   isStreaming: boolean;
-  selectedTool?: 'image' | null; // Simplified - only image tool remains
-  onSelectTool?: (tool: 'image' | null) => void;
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onSearchComplete: _onSearchComplete, isStreaming, selectedTool, onSelectTool }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -292,8 +284,6 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onSearchComplete
                 ? 'Listening...'
                 : isDragging
                 ? 'Drop files here...'
-                : selectedTool === 'image'
-                ? '🎨 Describe the image you want to create...'
                 : 'Type your message...'
             }
             className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[40px]"
@@ -348,18 +338,8 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onSearchComplete
                 </svg>
               </button>
 
-              {/* Quick Image Generator */}
-              {onImageGenerated && onSelectTool && (
-                <QuickImageGenerator
-                  onImageGenerated={onImageGenerated}
-                  isGenerating={isStreaming}
-                  isSelected={selectedTool === 'image'}
-                  onSelect={() => onSelectTool(selectedTool === 'image' ? null : 'image')}
-                />
-              )}
-
-              {/* REMOVED: Quick Coding Assistant and Data Analysis buttons
-                  GPT-4.1 handles code and data analysis in regular chat */}
+              {/* REMOVED: Quick Image Generator, Coding Assistant, Data Analysis buttons
+                  Chat now handles all of these naturally through conversation */}
             </div>
 
             <div className="flex items-center justify-center gap-0 md:gap-2 shrink-0">
