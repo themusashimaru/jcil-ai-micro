@@ -134,6 +134,7 @@ export function getMaxTokens(model: OpenAIModel, tool?: ToolType): number {
     if (tool === 'essay') return 2000;
     if (tool === 'research') return 2000;
     if (tool === 'data') return 2000;
+    if (tool === 'scripture') return 4000; // Bible studies need more tokens for comprehensive analysis
     return 2000;
   }
 
