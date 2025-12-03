@@ -162,11 +162,11 @@ export function RealtimeVoiceButton({ onConversationMessage, disabled }: Realtim
 
       if (!sessionResponse.ok) {
         const errorData = await sessionResponse.json();
-        throw new Error(errorData.error || 'Failed to get session token');
+        throw new Error(errorData.details || errorData.error || 'Failed to get session token');
       }
 
-      const { session } = await sessionResponse.json();
-      console.log('[RealtimeVoice] Got session:', session.id);
+      const { session, endpoint } = await sessionResponse.json();
+      console.log('[RealtimeVoice] Got session:', session.id, 'model:', session.model);
 
       // 2. Create audio context
       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
@@ -184,9 +184,9 @@ export function RealtimeVoiceButton({ onConversationMessage, disabled }: Realtim
 
       // 4. Connect to OpenAI Realtime WebSocket
       // Use subprotocol for authentication (browser WebSockets can't set headers)
-      console.log('[RealtimeVoice] Connecting to WebSocket...');
+      console.log('[RealtimeVoice] Connecting to WebSocket:', endpoint);
       const ws = new WebSocket(
-        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
+        endpoint,
         ['realtime', `openai-insecure-api-key.${session.token}`]
       );
       wsRef.current = ws;

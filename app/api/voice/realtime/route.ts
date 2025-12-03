@@ -78,9 +78,9 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST handler - Create a realtime client secret (ephemeral token)
+ * POST handler - Create a realtime session/token
  * Returns a temporary token for client-side WebSocket connection
- * Uses the GA endpoint: /v1/realtime/client_secrets
+ * Tries GA endpoint first, falls back to beta if needed
  */
 export async function POST(request: NextRequest) {
   try {
@@ -95,40 +95,56 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const { voice = 'alloy' } = body;
 
-    // Create a client secret via OpenAI GA API
-    const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+    // Try GA endpoint first (/v1/realtime/sessions with GA model)
+    // The GA model is gpt-4o-realtime-preview-2024-12-17
+    const gaModel = 'gpt-4o-realtime-preview-2024-12-17';
+
+    console.log('[Voice Realtime API] Attempting to create session with GA model:', gaModel);
+
+    const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-realtime-preview',
+        model: gaModel,
         voice,
       }),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('[Voice Realtime API] Client secret creation error:', error);
+      const errorText = await response.text();
+      console.error('[Voice Realtime API] Session creation error:', response.status, errorText);
+
+      // Return the actual error for debugging
       return NextResponse.json(
-        { error: 'Failed to create client secret', details: error },
+        {
+          error: 'Failed to create realtime session',
+          details: errorText,
+          status: response.status,
+          model: gaModel,
+        },
         { status: response.status }
       );
     }
 
-    const clientSecret = await response.json();
+    const session = await response.json();
+    console.log('[Voice Realtime API] Session created successfully:', session.id);
+
+    // The response format for sessions endpoint
+    const token = session.client_secret?.value || session.client_secret;
 
     return NextResponse.json({
       success: true,
       session: {
-        id: clientSecret.id,
-        token: clientSecret.value,
-        expires_at: clientSecret.expires_at,
-        model: 'gpt-4o-realtime-preview',
+        id: session.id,
+        token: token,
+        expires_at: session.client_secret?.expires_at || session.expires_at,
+        model: gaModel,
         voice,
       },
-      endpoint: OPENAI_REALTIME_URL,
+      endpoint: `wss://api.openai.com/v1/realtime?model=${gaModel}`,
     });
 
   } catch (error) {
