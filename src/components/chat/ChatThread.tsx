@@ -28,7 +28,8 @@ import { useUserProfile } from '@/contexts/UserProfileContext';
 // import { QuickEssayWriter } from './QuickEssayWriter';
 import { QuickDailyDevotional } from './QuickDailyDevotional';
 import { QuickBibleStudy } from './QuickBibleStudy';
-import { QuickBreakingNews } from './QuickBreakingNews';
+// REMOVED: Breaking News - too complex, causing issues
+// import { QuickBreakingNews } from './QuickBreakingNews';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -164,11 +165,6 @@ export function ChatThread({ messages, isStreaming, currentChatId, onSubmitPromp
           <div className="flex justify-center gap-1 mb-1 mt-2">
             <QuickDailyDevotional />
             <QuickBibleStudy onSubmitPrompt={onSubmitPrompt} />
-          </div>
-
-          {/* Breaking News - Centered below Bible Tools */}
-          <div className="flex justify-center">
-            <QuickBreakingNews />
           </div>
         </div>
       </div>

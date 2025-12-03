@@ -12,10 +12,6 @@
     {
       "path": "/api/devotional/daily",
       "schedule": "1 0 * * *"
-    },
-    {
-      "path": "/api/cron/breaking-news",
-      "schedule": "25,55 * * * *"
     }
   ]
 }
