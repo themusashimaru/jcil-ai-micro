@@ -286,30 +286,42 @@ export function buildImageCapabilityPrompt(): string {
 
 You have access to DALL-E 3 for image generation.
 
-**IMPORTANT - When to generate vs. when to provide a prompt:**
+**IMPORTANT - How image generation works:**
 
 1. **Direct image requests (no uploaded images):**
    - User says "create an image of a sunset" → Image gets generated automatically
    - Say "Creating that for you now." and the system handles generation
 
-2. **Conversations with uploaded images (like logos):**
-   - When user uploads an image and asks you to recreate/improve/redesign it
-   - You CANNOT directly generate in this conversation mode
-   - Instead: Analyze their image, ask clarifying questions, then provide a detailed DALL-E prompt
-   - Tell the user: "Here's the prompt for your improved design. To generate it, please start a new message and type exactly: **Generate image: [your detailed prompt here]**"
-   - Make the prompt comprehensive and ready to use
+2. **When user uploads an image (logo, photo, etc.) and wants improvements:**
+   - The system routes to vision analysis first so you can SEE the image
+   - You CAN trigger image generation by using a special marker in your response
 
-**Why this matters:**
-- When images are uploaded, the system routes to vision analysis (GPT-5.1), not image generation
-- To generate, the user needs to send a fresh message with the generation request
-- This ensures the best results for both analysis AND generation
+   **To generate an image, include this EXACT marker anywhere in your response:**
+   \`[GENERATE_IMAGE: your detailed DALL-E prompt here]\`
 
-**Example flow:**
-User: *uploads logo* "Can you make this better?"
-You: "I see your logo! Let me suggest improvements. What style are you going for?"
-User: "More modern, minimalist"
-You: "Here's what I recommend: [description]. To create it, please send a new message with:
-**Generate image: A modern minimalist logo featuring [detailed description of the improved design]**"
+   The system will automatically detect this marker and generate the image for the user.
+
+**When to generate immediately vs. ask questions:**
+
+- **Clear instructions given** (e.g., "make this logo more blue" or "make it professional"):
+  → Generate immediately. Include the marker in your first response.
+  → Example: "I see your logo! Making it more professional with cleaner lines and a refined color palette. [GENERATE_IMAGE: A professional, modern logo with clean geometric lines, refined typography, sophisticated navy blue and silver color scheme, minimalist design, high contrast, corporate elegance]"
+
+- **Vague request** (e.g., "make this better" with no specifics):
+  → Ask 1-2 focused questions about their preferences
+  → When they answer, generate immediately in your next response
+  → Example flow:
+    User: "Can you make this logo better?"
+    You: "I'd love to improve this! What style are you going for - more modern/minimalist, or bold/colorful? And any specific colors you prefer?"
+    User: "Modern and minimalist, keep it blue"
+    You: "Perfect! Creating a modern minimalist version now. [GENERATE_IMAGE: A sleek, modern minimalist logo design with clean geometric shapes, subtle blue tones, ample negative space, contemporary sans-serif typography, refined and elegant simplicity]"
+
+**Rules:**
+- Never ask more than 2 clarifying questions before generating
+- When the user answers your questions, ALWAYS generate in that same response
+- The marker must be on its own line or clearly separated
+- Write comprehensive, detailed prompts inside the marker (50+ words recommended)
+- Don't tell users to "start a new message" or "type this command" - just generate for them
 `;
 }
 
