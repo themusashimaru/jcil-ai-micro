@@ -21,7 +21,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
@@ -80,49 +80,63 @@ export function ChatClient() {
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
 
-  // Handle voice conversation streaming messages (speech-to-speech)
-  // This handles both delta updates and final messages for realtime voice
-  const upsertVoiceStreaming = useCallback((role: 'user' | 'assistant', delta: string, done?: boolean) => {
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      const lastIsStreaming = last?.isStreaming;
-      const lastMatchesRole = last?.role === role;
+  // Track current streaming message IDs for voice (prevents interleaving)
+  const currentAssistantMsgId = useRef<string | null>(null);
+  const currentUserMsgId = useRef<string | null>(null);
 
-      // If done with empty delta, just mark existing message as complete (no new bubble)
-      if (done && !delta && last && lastMatchesRole) {
-        const next = [...prev];
-        next[next.length - 1] = { ...last, isStreaming: false };
-        return next;
+  // Handle voice conversation streaming messages (speech-to-speech)
+  // Messages are tracked by ID to prevent interleaving when both speak simultaneously
+  const upsertVoiceStreaming = useCallback((role: 'user' | 'assistant', delta: string, done?: boolean) => {
+    const msgIdRef = role === 'assistant' ? currentAssistantMsgId : currentUserMsgId;
+
+    setMessages((prev) => {
+      // If done with empty delta, find and mark the tracked message as complete
+      if (done && !delta) {
+        if (msgIdRef.current) {
+          const msgIndex = prev.findIndex(m => m.id === msgIdRef.current);
+          if (msgIndex >= 0) {
+            const next = [...prev];
+            next[msgIndex] = { ...next[msgIndex], isStreaming: false };
+            msgIdRef.current = null;  // Clear the ref
+            return next;
+          }
+        }
+        return prev;
       }
 
-      // If no delta content, ignore (prevents blank bubbles)
+      // If no delta content, ignore
       if (!delta) {
         return prev;
       }
 
-      // Check if we should append to existing or create new
-      const shouldAppend = last && lastMatchesRole && lastIsStreaming;
-
-      if (shouldAppend) {
-        // Append to existing streaming message
-        const next = [...prev];
-        next[next.length - 1] = {
-          ...last,
-          content: last.content + delta,
-          isStreaming: !done
-        };
-        return next;
-      } else {
-        // Create new message
-        const newMessage: Message = {
-          id: crypto.randomUUID?.() || Date.now().toString(),
-          role,
-          content: delta,
-          timestamp: new Date(),
-          isStreaming: !done,
-        };
-        return [...prev, newMessage];
+      // Check if we have an existing streaming message for this role
+      if (msgIdRef.current) {
+        const msgIndex = prev.findIndex(m => m.id === msgIdRef.current);
+        if (msgIndex >= 0 && prev[msgIndex].isStreaming) {
+          // Append to existing message (found by ID, not position)
+          const next = [...prev];
+          next[msgIndex] = {
+            ...next[msgIndex],
+            content: next[msgIndex].content + delta,
+            isStreaming: !done
+          };
+          if (done) msgIdRef.current = null;
+          return next;
+        }
       }
+
+      // Create new message and track its ID
+      const newId = crypto.randomUUID?.() || Date.now().toString();
+      msgIdRef.current = done ? null : newId;
+
+      const newMessage: Message = {
+        id: newId,
+        role,
+        content: delta,
+        timestamp: new Date(),
+        isStreaming: !done,
+      };
+      return [...prev, newMessage];
     });
   }, []);
 
