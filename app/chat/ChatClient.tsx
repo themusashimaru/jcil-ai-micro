@@ -21,10 +21,11 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
+import { RealtimeVoiceButton } from '@/components/chat/RealtimeVoiceButton';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useUserProfile } from '@/contexts/UserProfileContext';
@@ -78,6 +79,17 @@ export function ChatClient() {
   const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
+  // Voice transcript from real-time voice button
+  const [voiceTranscript, setVoiceTranscript] = useState<string>('');
+
+  // Handle voice transcript from RealtimeVoiceButton
+  const handleVoiceTranscript = useCallback((text: string) => {
+    setVoiceTranscript(text);
+  }, []);
+
+  const handleVoiceTranscriptUsed = useCallback(() => {
+    setVoiceTranscript('');
+  }, []);
 
   // Load header logo from design settings
   useEffect(() => {
@@ -1418,7 +1430,7 @@ export function ChatClient() {
         />
 
         {/* Chat thread area */}
-        <main className="flex flex-1 flex-col overflow-hidden">
+        <main className="flex flex-1 flex-col overflow-hidden relative">
           <ChatThread
             messages={messages}
             isStreaming={isStreaming}
@@ -1433,6 +1445,13 @@ export function ChatClient() {
             isStreaming={isStreaming}
             selectedTool={selectedTool}
             onSelectTool={setSelectedTool}
+            voiceTranscript={voiceTranscript}
+            onVoiceTranscriptUsed={handleVoiceTranscriptUsed}
+          />
+          {/* Floating Voice Button */}
+          <RealtimeVoiceButton
+            onTranscript={handleVoiceTranscript}
+            disabled={isStreaming}
           />
         </main>
       </div>

@@ -18,7 +18,7 @@
 
 'use client';
 
-import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
+import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import type { Attachment } from '@/app/chat/types';
 import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
@@ -35,9 +35,11 @@ interface ChatComposerProps {
   isStreaming: boolean;
   selectedTool?: 'image' | 'code' | 'search' | 'data' | null; // 'search' kept for backward compatibility
   onSelectTool?: (tool: 'image' | 'code' | 'search' | 'data' | null) => void;
+  voiceTranscript?: string; // Text from real-time voice input
+  onVoiceTranscriptUsed?: () => void; // Called when voice transcript has been applied
 }
 
-export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete: _onSearchComplete, onDataAnalysisComplete, isStreaming, selectedTool, onSelectTool }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated, onSearchComplete: _onSearchComplete, onDataAnalysisComplete, isStreaming, selectedTool, onSelectTool, voiceTranscript, onVoiceTranscriptUsed }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -50,6 +52,16 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
 
   // Audio recording
   const { recordingState, error: recordingError, startRecording, stopRecording } = useAudioRecorder();
+
+  // Handle voice transcript injection
+  useEffect(() => {
+    if (voiceTranscript) {
+      setMessage(prev => prev ? `${prev} ${voiceTranscript}` : voiceTranscript);
+      onVoiceTranscriptUsed?.();
+      // Focus textarea so user can edit
+      textareaRef.current?.focus();
+    }
+  }, [voiceTranscript, onVoiceTranscriptUsed]);
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {
