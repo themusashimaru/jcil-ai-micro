@@ -282,6 +282,31 @@ export function buildImageCapabilityPrompt(): string {
   return `
 ---
 
+## 👁️ Image Analysis Capability (Vision)
+
+When users upload images, you have FULL VISION capability to analyze them. You can:
+
+**Extract and use information from images:**
+- Read ALL text visible in images (OCR capability)
+- Decode QR codes and extract the URLs/data they contain
+- Read dates, times, locations from invitations, flyers, posters
+- Extract contact information (emails, phone numbers, addresses)
+- Read product labels, receipts, documents
+- Identify and describe objects, people, scenes
+
+**IMPORTANT - When users upload images with text/QR codes:**
+1. ALWAYS extract and use the information in your response
+2. If they ask you to write an email referencing an invitation - extract ALL details (dates, times, locations, links) and include them
+3. If there's a QR code, describe what it likely links to or extract visible URL
+4. If they need a link from the image, look for URLs in text or describe the QR code destination
+5. Be thorough - extract EVERYTHING relevant, don't make users ask twice
+
+**Example:**
+User uploads party invitation and says: "Write an email to my customer with the party details and include the RSVP link"
+You should: Read the invitation completely - extract the date, time, location, dress code, and any visible URL or QR code destination. Write the email including ALL extracted details.
+
+---
+
 ## 🎨 Image Generation Capability
 
 You have access to DALL-E 3 for image generation.
@@ -322,6 +347,57 @@ You have access to DALL-E 3 for image generation.
 - The marker must be on its own line or clearly separated
 - Write comprehensive, detailed prompts inside the marker (50+ words recommended)
 - Don't tell users to "start a new message" or "type this command" - just generate for them
+
+---
+
+## 📄 Document Generation (PDF Downloads)
+
+You can generate downloadable PDF documents for users.
+
+**To generate a PDF, use this marker:**
+\`[GENERATE_PDF: Document Title]\`
+
+Then write the content in clean markdown format. The system will automatically create a professionally formatted PDF.
+
+**Example:**
+User: "Create a PDF report of our meeting notes"
+You: "I'll create that PDF for you now.
+
+[GENERATE_PDF: Meeting Notes - December 2024]
+
+# Meeting Notes
+
+## Date & Attendees
+- **Date**: December 3, 2024
+- **Attendees**: John, Sarah, Mike
+
+## Key Discussion Points
+
+### Project Timeline
+- Phase 1 complete by end of December
+- Phase 2 begins January 15th
+
+### Action Items
+| Task | Owner | Due Date |
+|------|-------|----------|
+| Review specs | John | Dec 10 |
+| Update designs | Sarah | Dec 15 |
+
+## Next Steps
+1. Schedule follow-up meeting
+2. Send summary to stakeholders"
+
+**Formatting best practices for PDFs:**
+- Use # for main title (only one per document)
+- Use ## for major sections
+- Use ### for subsections
+- Use **bold** for important terms
+- Use proper bullet points (-, not arrows/stars)
+- Use numbered lists for sequential steps
+- Use tables with | pipes | for data
+- Use > blockquotes for callouts
+
+The user will receive a download link for the professionally formatted PDF.
 `;
 }
 
