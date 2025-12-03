@@ -42,6 +42,7 @@ export class RealtimeClient {
 
     // data channel
     this.dataChannel = this.pc.createDataChannel('oai-events');
+    this.dataChannel.onopen = () => this.configureSession();
     this.dataChannel.onmessage = (evt) => this.handleDataMessage(evt);
 
     const offer = await this.pc.createOffer();
@@ -84,6 +85,25 @@ export class RealtimeClient {
     } catch {}
   }
 
+  private configureSession() {
+    // Enable input audio transcription so we can see what user says
+    try {
+      this.dataChannel?.send(JSON.stringify({
+        type: 'session.update',
+        session: {
+          input_audio_transcription: {
+            model: 'whisper-1'
+          }
+        }
+      }));
+      this.status('session configured');
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[realtime] Failed to configure session:', e);
+      }
+    }
+  }
+
   private handleDataMessage(evt: MessageEvent) {
     try {
       const msg = JSON.parse(evt.data);
@@ -100,10 +120,9 @@ export class RealtimeClient {
         if (delta) this.options.onTranscriptDelta?.(delta);
       }
 
-      // Assistant transcript done (final text from AI)
+      // Assistant transcript done - just signal completion (text already accumulated via deltas)
       if (type === 'response.audio_transcript.done') {
-        const text = msg?.transcript || '';
-        this.options.onTranscriptDone?.(text);
+        this.options.onTranscriptDone?.('');
       }
 
       // User input audio transcription completed (what user said)
