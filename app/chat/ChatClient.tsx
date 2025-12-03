@@ -1333,6 +1333,7 @@ export function ChatClient() {
             messages={messages}
             isStreaming={isStreaming}
             currentChatId={currentChatId}
+            onSubmitPrompt={(prompt) => handleSendMessage(prompt, [])}
           />
           <ChatComposer
             onSendMessage={handleSendMessage}

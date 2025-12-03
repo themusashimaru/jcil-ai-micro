@@ -34,9 +34,10 @@ interface ChatThreadProps {
   messages: Message[];
   isStreaming: boolean;
   currentChatId: string | null;
+  onSubmitPrompt?: (prompt: string) => void;
 }
 
-export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadProps) {
+export function ChatThread({ messages, isStreaming, currentChatId, onSubmitPrompt }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -162,7 +163,7 @@ export function ChatThread({ messages, isStreaming, currentChatId }: ChatThreadP
           {/* Bible Tools */}
           <div className="flex justify-center gap-1 mb-1 mt-2">
             <QuickDailyDevotional />
-            <QuickBibleStudy />
+            <QuickBibleStudy onSubmitPrompt={onSubmitPrompt} />
           </div>
 
           {/* Breaking News - Centered below Bible Tools */}
