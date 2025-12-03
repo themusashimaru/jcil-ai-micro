@@ -311,12 +311,39 @@ CRITICAL: You MUST search for CURRENT news from TODAY or the past 24 hours. Ever
       const parsed = JSON.parse(cleanedText);
       console.log(`[Breaking News] ✓ ${group.name} complete`);
       return parsed;
-    } catch {
-      // If JSON parsing fails, try to extract content
-      console.warn(`[Breaking News] JSON parse failed for ${group.name}, using raw content`);
+    } catch (jsonError) {
+      // If JSON parsing fails, try to extract JSON from the response
+      console.warn(`[Breaking News] JSON parse failed for ${group.name}, attempting extraction...`);
+      console.log(`[Breaking News] Raw response preview: ${cleanedText.substring(0, 500)}...`);
+
+      // Try to find JSON object in the response
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const extracted = JSON.parse(jsonMatch[0]);
+          console.log(`[Breaking News] ✓ ${group.name} extracted from response`);
+          return extracted;
+        } catch {
+          console.error(`[Breaking News] Extracted JSON also invalid for ${group.name}`);
+        }
+      }
+
+      // Last resort: try to build content from the raw response
+      if (cleanedText.length > 200 && group.categories.some(c => c.key === 'breaking')) {
+        console.log(`[Breaking News] Using raw response for ${group.name}`);
+        const result: Record<string, string> = {};
+        result[group.categories[0].key] = cleanedText;
+        for (let i = 1; i < group.categories.length; i++) {
+          result[group.categories[i].key] = `**${group.categories[i].label}**\n\nNews content is being processed. Please refresh shortly.\n\nSources: Processing`;
+        }
+        return result;
+      }
+
+      // Complete failure
+      console.error(`[Breaking News] Complete JSON failure for ${group.name}`);
       const result: Record<string, string> = {};
       for (const cat of group.categories) {
-        result[cat.key] = `Content generation in progress for ${cat.label}. Please refresh in a few minutes.`;
+        result[cat.key] = `**${cat.label} Update**\n\nNews content is temporarily unavailable for this category. Please check back shortly.\n\nSources: Unavailable`;
       }
       return result;
     }
