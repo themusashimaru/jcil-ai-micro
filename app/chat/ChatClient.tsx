@@ -83,7 +83,7 @@ export function ChatClient() {
   // Track current streaming assistant message ID for voice
   const currentAssistantMsgId = useRef<string | null>(null);
 
-  // Add a complete user voice message
+  // Add a complete user voice message - inserts BEFORE current AI response if one is streaming
   const addUserVoiceMessage = useCallback((text: string) => {
     if (!text.trim()) return;
 
@@ -94,7 +94,21 @@ export function ChatClient() {
       timestamp: new Date(),
       isStreaming: false,
     };
-    setMessages((prev) => [...prev, newMessage]);
+
+    setMessages((prev) => {
+      // If there's a streaming AI message, insert user message BEFORE it
+      if (currentAssistantMsgId.current) {
+        const aiMsgIndex = prev.findIndex(m => m.id === currentAssistantMsgId.current);
+        if (aiMsgIndex >= 0) {
+          // Insert user message before the AI message
+          const next = [...prev];
+          next.splice(aiMsgIndex, 0, newMessage);
+          return next;
+        }
+      }
+      // Otherwise append at the end
+      return [...prev, newMessage];
+    });
   }, []);
 
   // Handle assistant voice streaming (delta updates)
