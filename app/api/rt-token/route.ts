@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const RT_ENDPOINT = 'https://api.openai.com/v1/realtime?model=gpt-4o-realtime';
+const RT_ENDPOINT = 'https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17';
 
 export async function POST(req: NextRequest) {
   try {
