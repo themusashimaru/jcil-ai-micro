@@ -1,5 +1,5 @@
 /**
- * REALTIME VOICE API - OpenAI GPT-4o Realtime Preview
+ * REALTIME VOICE API - OpenAI GPT-4o Realtime (GA)
  *
  * PURPOSE:
  * - Bridge WebSocket connections to OpenAI's realtime voice API
@@ -7,6 +7,7 @@
  *
  * PUBLIC ROUTES:
  * - GET /api/voice/realtime - WebSocket upgrade endpoint
+ * - POST /api/voice/realtime - Get ephemeral client secret
  *
  * DEPENDENCIES/ENVS:
  * - OPENAI_API_KEY (required)
@@ -77,8 +78,9 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST handler - Create a realtime session token
- * Returns a temporary session token for client-side WebSocket connection
+ * POST handler - Create a realtime client secret (ephemeral token)
+ * Returns a temporary token for client-side WebSocket connection
+ * Uses the GA endpoint: /v1/realtime/client_secrets
  */
 export async function POST(request: NextRequest) {
   try {
@@ -93,8 +95,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const { voice = 'alloy' } = body;
 
-    // Create a realtime session via OpenAI API
-    const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
+    // Create a client secret via OpenAI GA API
+    const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,21 +110,21 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('[Voice Realtime API] Session creation error:', error);
+      console.error('[Voice Realtime API] Client secret creation error:', error);
       return NextResponse.json(
-        { error: 'Failed to create realtime session', details: error },
+        { error: 'Failed to create client secret', details: error },
         { status: response.status }
       );
     }
 
-    const session = await response.json();
+    const clientSecret = await response.json();
 
     return NextResponse.json({
       success: true,
       session: {
-        id: session.id,
-        token: session.client_secret?.value,
-        expires_at: session.client_secret?.expires_at,
+        id: clientSecret.id,
+        token: clientSecret.value,
+        expires_at: clientSecret.expires_at,
         model: 'gpt-4o-realtime-preview',
         voice,
       },
