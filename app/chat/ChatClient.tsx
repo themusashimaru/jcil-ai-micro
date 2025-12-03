@@ -79,16 +79,19 @@ export function ChatClient() {
   const [selectedTool, setSelectedTool] = useState<'image' | 'code' | 'search' | 'data' | null>(null);
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
-  // Voice transcript from real-time voice button
-  const [voiceTranscript, setVoiceTranscript] = useState<string>('');
 
-  // Handle voice transcript from RealtimeVoiceButton
-  const handleVoiceTranscript = useCallback((text: string) => {
-    setVoiceTranscript(text);
-  }, []);
+  // Handle voice conversation messages (speech-to-speech)
+  const handleVoiceConversationMessage = useCallback((role: 'user' | 'assistant', text: string) => {
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      role,
+      content: text,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, newMessage]);
 
-  const handleVoiceTranscriptUsed = useCallback(() => {
-    setVoiceTranscript('');
+    // TODO: Save voice messages to database if currentChatId exists
+    // For now, voice conversations are ephemeral until manually saved
   }, []);
 
   // Load header logo from design settings
@@ -1445,12 +1448,10 @@ export function ChatClient() {
             isStreaming={isStreaming}
             selectedTool={selectedTool}
             onSelectTool={setSelectedTool}
-            voiceTranscript={voiceTranscript}
-            onVoiceTranscriptUsed={handleVoiceTranscriptUsed}
           />
-          {/* Floating Voice Button */}
+          {/* Floating Voice Button - Real-time speech-to-speech conversation */}
           <RealtimeVoiceButton
-            onTranscript={handleVoiceTranscript}
+            onConversationMessage={handleVoiceConversationMessage}
             disabled={isStreaming}
           />
         </main>
