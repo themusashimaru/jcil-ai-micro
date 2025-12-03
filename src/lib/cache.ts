@@ -75,15 +75,21 @@ export async function cachedWebSearch<T>(
     if (r) {
       const hit = await r.get(key);
       if (hit) {
+        // eslint-disable-next-line no-console
         console.log('[Cache] Web search cache HIT for query');
-        return { data: JSON.parse(hit as string), cached: true };
+        // Upstash Redis auto-parses JSON, so check if it's already an object
+        // If it's a string, parse it; if it's already an object, use it directly
+        const data = typeof hit === 'string' ? JSON.parse(hit) : hit;
+        return { data: data as T, cached: true };
       }
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('[Cache] Redis get error:', error);
   }
 
   // Cache miss - fetch fresh data
+  // eslint-disable-next-line no-console
   console.log('[Cache] Web search cache MISS, fetching fresh');
   const data = await fetchFn();
 
@@ -94,6 +100,7 @@ export async function cachedWebSearch<T>(
       await r.set(key, JSON.stringify(data), { ex: ttlSec });
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('[Cache] Redis set error:', error);
   }
 
@@ -113,10 +120,13 @@ export async function cached<T>(
     if (r) {
       const hit = await r.get(key);
       if (hit) {
-        return { data: JSON.parse(hit as string), cached: true };
+        // Upstash Redis auto-parses JSON, so check if it's already an object
+        const data = typeof hit === 'string' ? JSON.parse(hit) : hit;
+        return { data: data as T, cached: true };
       }
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('[Cache] Redis get error:', error);
   }
 
@@ -128,6 +138,7 @@ export async function cached<T>(
       await r.set(key, JSON.stringify(data), { ex: ttlSec });
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('[Cache] Redis set error:', error);
   }
 
