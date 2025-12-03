@@ -131,9 +131,18 @@ export function QuickBreakingNews() {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      if (!response.ok) throw new Error('Failed to fetch breaking news');
-
       const data = await response.json();
+
+      // Handle 503 - news service warming up
+      if (response.status === 503) {
+        setError(data.message || 'News is being prepared. Please try again in a few minutes.');
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch breaking news');
+      }
+
       setNewsContent(data.content);
       setLastUpdated(new Date(data.generatedAt));
 
