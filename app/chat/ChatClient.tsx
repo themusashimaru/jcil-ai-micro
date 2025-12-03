@@ -1103,6 +1103,69 @@ export function ChatClient() {
         }
       }
 
+      // Check for [GENERATE_IMAGE: ...] marker in the response
+      // This allows the AI to trigger image generation during vision/analysis conversations
+      const imageMarkerMatch = finalContent.match(/\[GENERATE_IMAGE:\s*(.+?)\]/s);
+      if (imageMarkerMatch) {
+        const imagePrompt = imageMarkerMatch[1].trim();
+        console.log('[ChatClient] Detected GENERATE_IMAGE marker, triggering generation:', imagePrompt.slice(0, 100));
+
+        // Remove the marker from the displayed text
+        const cleanedContent = finalContent.replace(/\[GENERATE_IMAGE:\s*.+?\]/s, '').trim();
+
+        // Update the message to remove the marker
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: cleanedContent }
+              : msg
+          )
+        );
+        finalContent = cleanedContent;
+
+        // Trigger image generation
+        try {
+          const imageResponse = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              messages: [{ role: 'user', content: imagePrompt }],
+              tool: 'image',
+            }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            if (imageData.url) {
+              console.log('[ChatClient] Auto-generated image successfully');
+
+              // Add the generated image as a new message
+              const imageMessage: Message = {
+                id: (Date.now() + 2).toString(),
+                role: 'assistant',
+                content: '', // No additional text needed
+                imageUrl: imageData.url,
+                timestamp: new Date(),
+              };
+              setMessages((prev) => [...prev, imageMessage]);
+
+              // Save the image message to database
+              await saveMessageToDatabase(
+                newChatId,
+                'assistant',
+                `Generated image based on: "${imagePrompt.slice(0, 100)}..."`,
+                'image',
+                imageData.url
+              );
+            }
+          } else {
+            console.error('[ChatClient] Auto-image generation failed:', await imageResponse.text());
+          }
+        } catch (imageError) {
+          console.error('[ChatClient] Error during auto-image generation:', imageError);
+        }
+      }
+
       setIsStreaming(false);
 
       // Save assistant message to database (skip for images - already saved above)
