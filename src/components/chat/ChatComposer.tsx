@@ -48,7 +48,7 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Audio recording
+  // Audio recording (mic-to-text using Whisper)
   const { recordingState, error: recordingError, startRecording, stopRecording } = useAudioRecorder();
 
   // Auto-resize textarea
