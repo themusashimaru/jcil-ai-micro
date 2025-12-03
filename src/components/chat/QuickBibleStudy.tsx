@@ -3,9 +3,10 @@
  *
  * PURPOSE:
  * - Provide comprehensive theological study tools
- * - Multiple study types: Verse, Topic, Word, Book, Character, Doctrine
+ * - Multiple study types: Verse, Topic, Word, Book, Figure, Doctrine
  * - Bible version selection
  * - Depth level customization
+ * - Additional context for personalized studies
  * - Seminary-level biblical scholarship
  * - Hebrew/Greek word studies and exegesis
  * - Powered by GPT-5.1 for accuracy
@@ -15,7 +16,7 @@
 
 import { useState } from 'react';
 
-type StudyType = 'verse' | 'topic' | 'word' | 'book' | 'character' | 'doctrine';
+type StudyType = 'verse' | 'topic' | 'word' | 'book' | 'figure' | 'doctrine';
 type BibleVersion = 'KJV' | 'NKJV' | 'ESV' | 'NIV' | 'NASB';
 type DepthLevel = 'basic' | 'intermediate' | 'seminary';
 
@@ -57,8 +58,8 @@ const STUDY_TYPES: StudyTypeOption[] = [
     placeholder: 'e.g., Romans, Genesis, Revelation, Psalms',
   },
   {
-    id: 'character',
-    label: 'Character Study',
+    id: 'figure',
+    label: 'Figure Study',
     icon: '👤',
     description: 'Study biblical figures in depth',
     placeholder: 'e.g., David, Moses, Paul, Mary, Abraham',
@@ -82,7 +83,7 @@ const BIBLE_VERSIONS: { id: BibleVersion; label: string }[] = [
 
 const DEPTH_LEVELS: { id: DepthLevel; label: string; description: string }[] = [
   { id: 'basic', label: 'Basic', description: 'Clear, accessible explanations' },
-  { id: 'intermediate', label: 'Intermediate', description: 'Deeper context and analysis' },
+  { id: 'intermediate', label: 'Intermediate', description: 'Deeper context and research' },
   { id: 'seminary', label: 'Seminary', description: 'Academic theological depth' },
 ];
 
@@ -96,6 +97,7 @@ export function QuickBibleStudy({ onStudyComplete }: QuickBibleStudyProps) {
   const [bibleVersion, setBibleVersion] = useState<BibleVersion>('KJV');
   const [depthLevel, setDepthLevel] = useState<DepthLevel>('intermediate');
   const [question, setQuestion] = useState('');
+  const [additionalContext, setAdditionalContext] = useState('');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [isStudying, setIsStudying] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
@@ -167,7 +169,7 @@ Include:
 
 ${depthInstructions[depthLevel]}`,
 
-      character: `Provide a comprehensive character study on: ${question}
+      figure: `Provide a comprehensive study on the biblical figure: ${question}
 
 Include:
 1. **Name Meaning**: Hebrew/Greek origin and significance
@@ -196,7 +198,14 @@ Include:
 ${depthInstructions[depthLevel]}`,
     };
 
-    return typePrompts[studyType];
+    let prompt = typePrompts[studyType];
+
+    // Add additional context if provided
+    if (additionalContext.trim()) {
+      prompt += `\n\n**IMPORTANT ADDITIONAL CONTEXT FROM THE USER:**\n${additionalContext.trim()}\n\nPlease tailor this study to address the specific context, questions, or needs mentioned above.`;
+    }
+
+    return prompt;
   };
 
   const handleStudy = async () => {
@@ -226,12 +235,19 @@ ${depthInstructions[depthLevel]}`,
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error('Failed to process study request');
+        // Extract error message from response
+        const errorMsg = data.error || data.message || 'Failed to process study request';
+        throw new Error(errorMsg);
       }
 
-      const data = await res.json();
       const answer = data.content as string;
+
+      if (!answer || answer.trim().length === 0) {
+        throw new Error('No study content was generated. Please try again.');
+      }
 
       setResponse(answer);
 
@@ -239,7 +255,17 @@ ${depthInstructions[depthLevel]}`,
         onStudyComplete(answer, question);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process request');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process request';
+      // Provide user-friendly error messages for common issues
+      if (errorMessage.includes('pattern') || errorMessage.includes('match')) {
+        setError('The study could not be completed due to a temporary issue. Please try again.');
+      } else if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+        setError('Too many requests. Please wait a moment and try again.');
+      } else if (errorMessage.includes('timeout')) {
+        setError('The request took too long. Please try a shorter study topic.');
+      } else {
+        setError(errorMessage);
+      }
     }
 
     setIsStudying(false);
@@ -273,6 +299,7 @@ ${depthInstructions[depthLevel]}`,
 
   const handleNewStudy = () => {
     setQuestion('');
+    setAdditionalContext('');
     setResponse(null);
     setError(null);
   };
@@ -280,6 +307,7 @@ ${depthInstructions[depthLevel]}`,
   const handleClose = () => {
     setIsOpen(false);
     setQuestion('');
+    setAdditionalContext('');
     setRecipientEmail('');
     setResponse(null);
     setError(null);
@@ -408,6 +436,24 @@ ${depthInstructions[depthLevel]}`,
                             rows={3}
                             disabled={isStudying}
                           />
+                        </div>
+
+                        {/* Additional Context - Optional */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-300">
+                            Additional Focus or Context <span className="text-gray-500">(Optional)</span>
+                          </label>
+                          <textarea
+                            value={additionalContext}
+                            onChange={(e) => setAdditionalContext(e.target.value)}
+                            placeholder="e.g., I'm teaching this to my youth group, I'm having a discussion with family about this topic, I want to understand this from a Reformed perspective, I'm preparing a sermon..."
+                            className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none resize-none text-sm"
+                            rows={2}
+                            disabled={isStudying}
+                          />
+                          <p className="text-xs text-gray-500">
+                            Share your specific situation, audience, or questions to personalize the study.
+                          </p>
                         </div>
 
                         {/* Error Message */}
