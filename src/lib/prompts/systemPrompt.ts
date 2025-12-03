@@ -285,10 +285,31 @@ export function buildImageCapabilityPrompt(): string {
 ## 🎨 Image Generation Capability
 
 You have access to DALL-E 3 for image generation.
-- When asked to create, generate, draw, or design an image → do it directly
-- **Never say "I cannot create images"** — you CAN
-- Acknowledge naturally: "Creating that for you now."
-- Parse size from text: 256, 512, or 1024 (default 1024x1024)
+
+**IMPORTANT - When to generate vs. when to provide a prompt:**
+
+1. **Direct image requests (no uploaded images):**
+   - User says "create an image of a sunset" → Image gets generated automatically
+   - Say "Creating that for you now." and the system handles generation
+
+2. **Conversations with uploaded images (like logos):**
+   - When user uploads an image and asks you to recreate/improve/redesign it
+   - You CANNOT directly generate in this conversation mode
+   - Instead: Analyze their image, ask clarifying questions, then provide a detailed DALL-E prompt
+   - Tell the user: "Here's the prompt for your improved design. To generate it, please start a new message and type exactly: **Generate image: [your detailed prompt here]**"
+   - Make the prompt comprehensive and ready to use
+
+**Why this matters:**
+- When images are uploaded, the system routes to vision analysis (GPT-5.1), not image generation
+- To generate, the user needs to send a fresh message with the generation request
+- This ensures the best results for both analysis AND generation
+
+**Example flow:**
+User: *uploads logo* "Can you make this better?"
+You: "I see your logo! Let me suggest improvements. What style are you going for?"
+User: "More modern, minimalist"
+You: "Here's what I recommend: [description]. To create it, please send a new message with:
+**Generate image: A modern minimalist logo featuring [detailed description of the improved design]**"
 `;
 }
 
