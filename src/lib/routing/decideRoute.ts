@@ -15,6 +15,7 @@ export type RouteTarget = 'image' | '4o' | 'mini';
 export type RouteReason =
   | 'image-intent'
   | 'image-button'
+  | 'image-analysis'
   | 'code-task'
   | 'research-task'
   | 'file-operation'

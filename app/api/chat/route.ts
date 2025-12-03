@@ -1,10 +1,14 @@
 /**
- * CHAT API ROUTE - OpenAI Streaming Integration
+ * CHAT API ROUTE - OpenAI GPT-5.1 Integration
  *
  * PURPOSE:
  * - Handle chat message requests with streaming responses
- * - Integrate with OpenAI API (GPT-4o family)
- * - Route to appropriate models based on tool type
+ * - Integrate with OpenAI API (GPT-5.1 for all chat tasks)
+ * - Route image generation to DALL-E 3
+ *
+ * MODEL ROUTING (per Master Directive):
+ * - GPT-5.1: ALL chat tasks including vision, code, research, PDFs
+ * - DALL-E 3: Image generation only
  *
  * PUBLIC ROUTES:
  * - POST /api/chat
@@ -13,18 +17,20 @@
  * - Input sanitization for prompts
  * - Rate limiting
  * - Content moderation
+ * - Admin bypass for limits
  *
  * DEPENDENCIES/ENVS:
  * - OPENAI_API_KEY (required)
- * - NEXT_PUBLIC_SUPABASE_URL (optional, for future auth)
+ * - NEXT_PUBLIC_SUPABASE_URL (optional, for auth)
  *
  * FEATURES:
  * - ✅ Streaming responses with SSE
- * - ✅ Model routing (gpt-4o-mini default, gpt-4o for complex tasks)
+ * - ✅ GPT-5.1 for all chat (vision, code, research, etc.)
  * - ✅ Image generation with DALL-E 3
  * - ✅ Tool-specific system prompts
  * - ✅ Temperature and token optimization per tool
  * - ✅ Retry logic with exponential backoff
+ * - ✅ Admin bypass for rate/usage limits
  *
  * TODO:
  * - [ ] Add authentication
@@ -290,7 +296,7 @@ export async function POST(request: NextRequest) {
         return new Response(
           JSON.stringify({
             error: 'Rate limit exceeded',
-            message: `You've sent too many messages. Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before trying again.`,
+            message: `You've sent a high volume of messages. Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before continuing. This helps ensure quality service for all users.`,
             retryAfter: rateLimit.resetIn,
           }),
           {
@@ -471,17 +477,31 @@ export async function POST(request: NextRequest) {
     // ========================================
     // UNIFIED IMAGE ROUTING (Chat + Button)
     // ========================================
-    // Use decideRoute to determine if this is an image request
-    // This handles both:
-    // 1. Explicit tool selection (image button pressed)
-    // 2. Auto-detection from chat message intent
-    const routeDecision = decideRoute(lastUserContent, tool);
+    // First, check if the message contains uploaded images (for analysis)
+    // If so, skip image generation routing and use GPT-4o for vision
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messageHasUploadedImages = messages.some((msg: any) =>
+      Array.isArray(msg.content) &&
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
+    );
+
+    // Only route to image generation if there are NO uploaded images
+    // (uploaded images = user wants analysis, not generation)
+    // Per directive: ALL chat goes to GPT-5.1, including image analysis
+    const routeDecision = messageHasUploadedImages
+      ? { target: 'mini' as const, reason: 'image-analysis' as const, confidence: 1.0 }
+      : decideRoute(lastUserContent, tool);
 
     // Log the routing decision for telemetry
     logRouteDecision(rateLimitIdentifier, routeDecision, lastUserContent);
 
-    // Check if we should route to image generation
-    if (routeDecision.target === 'image') {
+    if (messageHasUploadedImages) {
+      console.log('[Chat API] Detected uploaded image - routing to GPT-5.1 for analysis');
+    }
+
+    // Check if we should route to image generation (only if no uploaded images)
+    if (routeDecision.target === 'image' && !messageHasUploadedImages) {
       // Check image-specific daily limits (warn at 80%, stop at 100%)
       const imageUsage = await incrementImageUsage(
         rateLimitIdentifier,
@@ -677,7 +697,7 @@ export async function POST(request: NextRequest) {
 
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
-      console.log('[Chat API] Using non-streaming mode for image analysis - will route to gpt-4o');
+      console.log('[Chat API] Using non-streaming mode for image analysis - routing to GPT-5.1');
       console.log('[Chat API] Messages being sent:', JSON.stringify(messagesWithContext.slice(-2).map(m => ({
         role: m.role,
         hasArrayContent: Array.isArray(m.content),
@@ -699,8 +719,8 @@ export async function POST(request: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
 
-      // For image analysis, we always use gpt-4o (determined inside createChatCompletion)
-      const actualModel = hasImages ? 'gpt-4o' : model;
+      // Per directive: ALL chat uses GPT-5.1, including image analysis
+      const actualModel = hasImages ? 'gpt-5.1' : model;
       console.log('[Chat API] Image analysis complete, model used:', actualModel);
 
       return new Response(

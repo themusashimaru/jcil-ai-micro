@@ -184,10 +184,10 @@ export async function canMakeRequest(userId: string, planKey: string = 'free'): 
  */
 export function getLimitWarningMessage(usage: UsageResult): string | null {
   if (usage.stop) {
-    return `You've reached your daily limit of ${usage.limit} messages. Try again tomorrow or upgrade your plan.`;
+    return `You've reached your daily limit of ${usage.limit} messages. To continue chatting today, please visit Settings and upgrade to a higher tier plan. Your limit will also reset at midnight UTC.`;
   }
   if (usage.warn) {
-    return `You're at ${usage.percentage}% of your daily limit. ${usage.remaining} messages remaining.`;
+    return `Heads up: You're at ${usage.percentage}% of your daily message limit (${usage.remaining} messages remaining). Consider upgrading your plan for more messages.`;
   }
   return null;
 }
@@ -328,10 +328,10 @@ export async function getImageUsage(
  */
 export function getImageLimitWarningMessage(usage: ImageUsageResult): string | null {
   if (usage.stop) {
-    return `You've reached your daily limit of ${usage.limit} images. Try again tomorrow or upgrade your plan.`;
+    return `You've reached your monthly limit of ${usage.limit} image generations. To create more images, please visit Settings and upgrade to a higher tier plan with additional image credits.`;
   }
   if (usage.warn) {
-    return `You're at ${usage.percentage}% of your daily image limit. ${usage.remaining} images remaining.`;
+    return `Heads up: You're at ${usage.percentage}% of your monthly image limit (${usage.remaining} images remaining). Consider upgrading your plan for more image generations.`;
   }
   return null;
 }

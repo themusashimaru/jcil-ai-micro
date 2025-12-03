@@ -324,7 +324,7 @@ function generateReportHTML(report: {
 
   <div class="footer">
     <p><strong>JCIL.ai</strong> - AI-Powered Business Intelligence</p>
-    <p>This report was generated automatically using Grok-4 AI</p>
+    <p>This report was generated automatically using GPT-5.1 AI</p>
     <p>Confidential - For Internal Use Only</p>
   </div>
 
