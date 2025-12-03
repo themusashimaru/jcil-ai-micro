@@ -54,26 +54,22 @@ export function getModelForTool(tool?: ToolType): OpenAIModel {
 
 /**
  * Determine if request should use gpt-4o based on content analysis
- * GPT-4o is used specifically for vision/image analysis (multimodal)
- * All other tasks use GPT-5.1 per the directive
+ * Per Master Directive: ALL chat tasks use GPT-5.1, including:
+ * - Image analysis (vision)
+ * - PDF/document processing
+ * - File operations
+ * - All other tasks
+ *
+ * GPT-5.1 supports vision natively, so no need to route to GPT-4o
  */
 export function shouldUseGPT4o(
-  hasImages: boolean,
-  hasFiles: boolean,
-  hasAudio: boolean,
+  _hasImages: boolean,
+  _hasFiles: boolean,
+  _hasAudio: boolean,
   _messageContent: string
 ): boolean {
-  // Images require gpt-4o for vision analysis
-  if (hasImages || hasFiles) {
-    return true;
-  }
-
-  // Audio content requires gpt-4o for audio understanding
-  if (hasAudio) {
-    return true;
-  }
-
-  // All other cases use GPT-5.1 (default)
+  // Per directive: ALL chat goes to GPT-5.1
+  // GPT-5.1 supports vision/images natively
   return false;
 }
 

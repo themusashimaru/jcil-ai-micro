@@ -3,9 +3,13 @@
  * Wrapper for OpenAI API using Vercel AI SDK
  *
  * Implements (per Master Directive):
- * - GPT-5.1 for chat and reasoning (primary)
- * - GPT-4o for vision/image analysis (multimodal)
- * - DALL-E 3 for image generation
+ * - GPT-5.1 for ALL chat tasks including:
+ *   - Text chat and reasoning
+ *   - Vision/image analysis
+ *   - PDF/document processing
+ *   - Code generation
+ *   - Research and web search
+ * - DALL-E 3 for image GENERATION only
  * - Web search via OpenAI Responses API
  * - Streaming support
  * - Retry logic with exponential backoff
@@ -20,7 +24,6 @@ import {
   getModelForTool,
   getRecommendedTemperature,
   getMaxTokens,
-  shouldUseGPT4o,
 } from './models';
 import { getSystemPromptForTool } from './tools';
 import type { ToolType, OpenAIModel } from './types';
@@ -321,19 +324,26 @@ function getLastUserMessageText(messages: any[]): string {
 
 /**
  * Determine the best model based on content and tool
- * Per directive: GPT-5.1 is the primary model, GPT-4o for vision/images
+ * Per Master Directive: GPT-5.1 is used for ALL chat tasks including:
+ * - Image/vision analysis
+ * - PDF/document processing
+ * - Code generation
+ * - Research
+ * - All other chat tasks
+ *
+ * Only DALL-E 3 is used for image GENERATION
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
   // First check tool-based routing
   const toolBasedModel = getModelForTool(tool);
 
-  // If tool routes to DALL-E 3, use it
+  // If tool routes to DALL-E 3, use it for image generation
   if (toolBasedModel === 'dall-e-3') {
     return toolBasedModel;
   }
 
-  // Check content-based routing - images require gpt-4o for vision
+  // Log for debugging
   const hasImages = hasImageContent(messages);
   const messageText = getLastUserMessageText(messages);
 
@@ -344,13 +354,12 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
     messageTextLength: messageText.length,
   });
 
-  // Images require GPT-4o for vision capabilities
-  if (shouldUseGPT4o(hasImages, false, false, messageText)) {
-    console.log('[OpenAI] Routing to gpt-4o due to image content');
-    return 'gpt-4o';
+  // Per directive: ALL chat goes to GPT-5.1 (including vision/images)
+  // GPT-5.1 supports vision natively
+  if (hasImages) {
+    console.log('[OpenAI] Image content detected - using GPT-5.1 for vision analysis');
   }
 
-  // Default to GPT-5.1 per directive
   return 'gpt-5.1';
 }
 
@@ -799,11 +808,12 @@ export async function generateImage(
 }
 
 /**
- * Analyze an image using GPT-4o vision
+ * Analyze an image using GPT-5.1 vision
+ * Per directive: ALL chat tasks use GPT-5.1, including image analysis
  */
 export async function analyzeImage(imageUrl: string, question: string) {
   const openai = getOpenAIProvider();
-  const model = openai('gpt-4o');
+  const model = openai('gpt-5.1');
 
   const result = await generateText({
     model,
