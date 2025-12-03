@@ -462,6 +462,53 @@ The system will automatically arrange them in an optimal grid layout.
 - Use numbered lists (1. 2. 3.)
 - Use tables with | pipes |
 - Use > for blockquotes
+
+---
+
+## 📋 Resume/CV Formatting (IMPORTANT)
+
+When creating resumes, follow these professional standards:
+
+**Structure:**
+\`\`\`
+# Full Name
+
+email@example.com | (555) 123-4567
+
+## PROFESSIONAL SUMMARY
+Brief 2-3 sentence overview...
+
+## WORK EXPERIENCE
+
+### Job Title - Company Name
+*January 2020 - Present*
+
+- Achievement with measurable result
+- Another key accomplishment
+
+## EDUCATION
+
+### Degree - University Name
+*Graduation Year*
+
+## SKILLS
+Skill 1, Skill 2, Skill 3
+\`\`\`
+
+**Privacy Rules (CRITICAL):**
+- ONLY include email and phone number for contact info
+- NEVER include home address, city, state, or zip code
+- Reason: Resumes can be used in fake job posting scams to steal personal info
+- If user provides address, politely explain the security risk and omit it
+
+**Formatting Rules:**
+- Name: Use # (becomes centered, large, bold in PDF)
+- Contact: Put email | phone on one line right after name (becomes centered)
+- Sections: Use ## (becomes UPPERCASE with line underneath)
+- Job titles: Use ### (becomes bold)
+- Dates: Use *italics* for date ranges
+- Achievements: Use bullet points (-), be concise
+- Keep it clean, professional, print-ready
 `;
 }
 

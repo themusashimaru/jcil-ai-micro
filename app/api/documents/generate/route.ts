@@ -259,6 +259,16 @@ export async function POST(request: NextRequest) {
     // Get Supabase client for storage
     const supabase = getSupabaseAdmin();
 
+    // Detect document type for special formatting
+    const lowerTitle = title.toLowerCase();
+    const lowerContent = content.toLowerCase();
+    const isResume = lowerTitle.includes('resume') ||
+                     lowerTitle.includes('résumé') ||
+                     lowerTitle.includes('cv') ||
+                     lowerContent.includes('work experience') ||
+                     lowerContent.includes('professional experience') ||
+                     lowerContent.includes('education') && lowerContent.includes('skills');
+
     // Create PDF
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -266,12 +276,14 @@ export async function POST(request: NextRequest) {
       format: 'a4',
     });
 
-    // Page settings
+    // Page settings - tighter margins for resumes
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
+    const margin = isResume ? 15 : 20;
     const contentWidth = pageWidth - (margin * 2);
     let y = margin;
+    let isFirstElement = true;
+    let resumeHeaderDone = false;
 
     // Helper to add new page if needed
     const checkPageBreak = (neededHeight: number) => {
@@ -291,63 +303,105 @@ export async function POST(request: NextRequest) {
       switch (element.type) {
         case 'h1':
           checkPageBreak(15);
-          doc.setFontSize(20);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(30, 64, 175); // Blue color
-          doc.text(cleanMarkdown(element.text).text, margin, y);
-          y += 12;
-          // Underline
-          doc.setDrawColor(30, 64, 175);
-          doc.setLineWidth(0.5);
-          doc.line(margin, y - 3, pageWidth - margin, y - 3);
-          y += 5;
+          if (isResume && isFirstElement) {
+            // RESUME: Centered name at top, larger and bold
+            doc.setFontSize(24);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 0, 0); // Black for professional look
+            doc.text(cleanMarkdown(element.text).text, pageWidth / 2, y, { align: 'center' });
+            y += 10;
+            resumeHeaderDone = false; // Next paragraph might be contact info
+          } else {
+            // Standard H1
+            doc.setFontSize(20);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 64, 175);
+            doc.text(cleanMarkdown(element.text).text, margin, y);
+            y += 12;
+            doc.setDrawColor(30, 64, 175);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y - 3, pageWidth - margin, y - 3);
+            y += 5;
+          }
+          isFirstElement = false;
           break;
 
         case 'h2':
           checkPageBreak(12);
-          doc.setFontSize(16);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(30, 64, 175);
-          doc.text(cleanMarkdown(element.text).text, margin, y);
-          y += 10;
+          if (isResume) {
+            // RESUME: Section headers - bold, with subtle line
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 0, 0);
+            doc.text(cleanMarkdown(element.text).text.toUpperCase(), margin, y);
+            y += 1;
+            doc.setDrawColor(100, 100, 100);
+            doc.setLineWidth(0.3);
+            doc.line(margin, y, pageWidth - margin, y);
+            y += 5;
+          } else {
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 64, 175);
+            doc.text(cleanMarkdown(element.text).text, margin, y);
+            y += 10;
+          }
+          resumeHeaderDone = true;
           break;
 
         case 'h3':
           checkPageBreak(10);
-          doc.setFontSize(13);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(71, 85, 105); // Gray color
-          doc.text(cleanMarkdown(element.text).text, margin, y);
-          y += 8;
+          if (isResume) {
+            // RESUME: Job title / subsection - bold
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 0, 0);
+            doc.text(cleanMarkdown(element.text).text, margin, y);
+            y += 5;
+          } else {
+            doc.setFontSize(13);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(71, 85, 105);
+            doc.text(cleanMarkdown(element.text).text, margin, y);
+            y += 8;
+          }
           break;
 
         case 'p':
           const cleaned = cleanMarkdown(element.text);
-          doc.setFontSize(11);
-          // Handle bold, italic, or bolditalic
-          let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
-          if (cleaned.bold && cleaned.italic) fontStyle = 'bolditalic';
-          else if (cleaned.bold) fontStyle = 'bold';
-          else if (cleaned.italic) fontStyle = 'italic';
-          doc.setFont('helvetica', fontStyle);
-          doc.setTextColor(51, 51, 51);
 
-          // Split text to fit width
-          const splitText = doc.splitTextToSize(cleaned.text, contentWidth);
-          const textHeight = splitText.length * 5;
-          checkPageBreak(textHeight);
+          if (isResume && !resumeHeaderDone) {
+            // RESUME: Contact info - centered, smaller
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(60, 60, 60);
+            doc.text(cleaned.text, pageWidth / 2, y, { align: 'center' });
+            y += 6;
+          } else {
+            // Standard paragraph
+            doc.setFontSize(isResume ? 10 : 11);
+            let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
+            if (cleaned.bold && cleaned.italic) fontStyle = 'bolditalic';
+            else if (cleaned.bold) fontStyle = 'bold';
+            else if (cleaned.italic) fontStyle = 'italic';
+            doc.setFont('helvetica', fontStyle);
+            doc.setTextColor(51, 51, 51);
 
-          doc.text(splitText, margin, y);
-          y += textHeight + 3;
+            const splitText = doc.splitTextToSize(cleaned.text, contentWidth);
+            const textHeight = splitText.length * (isResume ? 4 : 5);
+            checkPageBreak(textHeight);
+
+            doc.text(splitText, margin, y);
+            y += textHeight + (isResume ? 2 : 3);
+          }
           break;
 
         case 'li':
           if (element.items) {
             for (const item of element.items) {
               const itemCleaned = cleanMarkdown(item);
-              checkPageBreak(7);
-              doc.setFontSize(11);
-              // Handle bold, italic, or bolditalic
+              checkPageBreak(isResume ? 5 : 7);
+              doc.setFontSize(isResume ? 10 : 11);
               let itemFontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
               if (itemCleaned.bold && itemCleaned.italic) itemFontStyle = 'bolditalic';
               else if (itemCleaned.bold) itemFontStyle = 'bold';
@@ -355,16 +409,16 @@ export async function POST(request: NextRequest) {
               doc.setFont('helvetica', itemFontStyle);
               doc.setTextColor(51, 51, 51);
 
-              // Simple bullet point (black, not blue)
+              // Bullet point
               doc.setFillColor(51, 51, 51);
-              doc.circle(margin + 2, y - 1.5, 0.8, 'F');
+              doc.circle(margin + 2, y - 1.5, isResume ? 0.6 : 0.8, 'F');
 
-              // Item text
+              // Item text - tighter for resumes
               const itemText = doc.splitTextToSize(itemCleaned.text, contentWidth - 10);
               doc.text(itemText, margin + 8, y);
-              y += itemText.length * 5 + 2;
+              y += itemText.length * (isResume ? 4 : 5) + (isResume ? 1 : 2);
             }
-            y += 2;
+            y += isResume ? 1 : 2;
           }
           break;
 
