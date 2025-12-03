@@ -17,13 +17,14 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
-  {
-    id: 'code',
-    icon: '💻',
-    label: 'Code',
-    color: 'from-blue-500 to-cyan-500',
-    description: 'Generate, debug, and optimize code',
-  },
+  // REMOVED: Code and Data tools - GPT-5.1 handles these in regular chat
+  // {
+  //   id: 'code',
+  //   icon: '💻',
+  //   label: 'Code',
+  //   color: 'from-blue-500 to-cyan-500',
+  //   description: 'Generate, debug, and optimize code',
+  // },
   // HIDDEN: Auto-search is now enabled for all conversations - no need for separate research tool
   // {
   //   id: 'research',
@@ -46,20 +47,21 @@ const TOOLS: Tool[] = [
     color: 'from-green-500 to-emerald-500',
     description: 'Create AI videos',
   },
-  {
-    id: 'email',
-    icon: '✉️',
-    label: 'Email',
-    color: 'from-indigo-500 to-blue-500',
-    description: 'Draft professional emails',
-  },
-  {
-    id: 'essay',
-    icon: '📝',
-    label: 'Essay',
-    color: 'from-violet-500 to-purple-500',
-    description: 'Write essays and articles',
-  },
+  // REMOVED: Email and Essay tools - GPT-5.1 handles these in regular chat
+  // {
+  //   id: 'email',
+  //   icon: '✉️',
+  //   label: 'Email',
+  //   color: 'from-indigo-500 to-blue-500',
+  //   description: 'Draft professional emails',
+  // },
+  // {
+  //   id: 'essay',
+  //   icon: '📝',
+  //   label: 'Essay',
+  //   color: 'from-violet-500 to-purple-500',
+  //   description: 'Write essays and articles',
+  // },
   {
     id: 'sms',
     icon: '💬',
@@ -88,13 +90,14 @@ const TOOLS: Tool[] = [
     color: 'from-amber-500 to-yellow-500',
     description: 'Study Bible verses',
   },
-  {
-    id: 'data',
-    icon: '📊',
-    label: 'Data',
-    color: 'from-emerald-500 to-green-500',
-    description: 'Analyze data and charts',
-  },
+  // REMOVED: Data tool - GPT-5.1 handles data analysis in regular chat
+  // {
+  //   id: 'data',
+  //   icon: '📊',
+  //   label: 'Data',
+  //   color: 'from-emerald-500 to-green-500',
+  //   description: 'Analyze data and charts',
+  // },
 ];
 
 export function ToolsBar() {
