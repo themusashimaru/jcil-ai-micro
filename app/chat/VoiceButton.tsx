@@ -7,8 +7,8 @@ export default function VoiceButton({
   onAssistantText,
   onStart,
 }: {
-  onUserText: (delta: string, done?: boolean) => void;
-  onAssistantText: (delta: string, done?: boolean) => void;
+  onUserText: (text: string) => void;  // Complete user message
+  onAssistantText: (delta: string, done?: boolean) => void;  // Streaming AI text
   onStart?: () => void;
 }) {
   const rtc = useRef<RealtimeClient | null>(null);
@@ -28,24 +28,30 @@ export default function VoiceButton({
 
     rtc.current = new RealtimeClient({
       voice: 'verse',
-      silenceTimeoutMs: 30000,  // 30 seconds of silence before auto-shutoff
+      silenceTimeoutMs: 30000,
       onStatus: setStatus,
-      onUserTranscriptDelta: (t) => onUserText(t, false),
-      onUserTranscriptDone: (t) => onUserText(t || '', true),
-      onTranscriptDelta: (t) => onAssistantText(t, false),
-      onTranscriptDone: (t) => {
-        // '__DONE__' signals end of message without adding text (prevents blank bubbles)
-        if (t === '__DONE__') {
-          onAssistantText('', true);  // Just mark as done, no new content
-        } else if (t) {
-          onAssistantText(t, true);
-        }
+
+      // User's complete transcription (already filtered for hallucinations)
+      onUserTranscript: (text) => {
+        onUserText(text);
       },
+
+      // AI transcript streaming
+      onTranscriptDelta: (delta) => {
+        onAssistantText(delta, false);
+      },
+
+      // AI transcript complete
+      onTranscriptDone: () => {
+        onAssistantText('', true);  // Signal done, no new content
+      },
+
+      // Auto-shutoff after prolonged silence
       onSilenceTimeout: () => {
-        // Auto-shutoff after prolonged silence
         stop();
       },
     });
+
     await rtc.current.start();
     setLive(true);
   }
@@ -59,15 +65,15 @@ export default function VoiceButton({
         flex items-center justify-center
         shadow-lg transition-all duration-300 ease-out
         ${live
-          ? 'bg-red-500 hover:bg-red-600'
+          ? 'bg-red-500 hover:bg-red-600 animate-pulse'
           : 'bg-[#0096FF]/80 hover:bg-[#0096FF] hover:scale-105 shadow-[#0096FF]/20'
         }
       `}
       aria-label={live ? 'Stop voice' : 'Start voice'}
-      title={`${status} - ${live ? 'Click to stop' : 'Click to start voice conversation'}`}
+      title={live ? `Voice active (${status})` : 'Start voice conversation'}
     >
       {live ? (
-        /* Stop/X icon when active */
+        /* Stop icon when active */
         <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>

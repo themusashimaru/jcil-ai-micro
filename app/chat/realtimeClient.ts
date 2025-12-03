@@ -1,15 +1,46 @@
 'use client';
 
+// Common Whisper hallucinations to filter out
+const HALLUCINATION_PATTERNS = [
+  /^thanks?(\s+for\s+watching)?\.?$/i,
+  /^thank\s+you\.?$/i,
+  /^i\s+love\s+you\.?$/i,
+  /^bye\.?$/i,
+  /^goodbye\.?$/i,
+  /^hello\.?$/i,
+  /^hey\.?$/i,
+  /^hi\.?$/i,
+  /^okay\.?$/i,
+  /^ok\.?$/i,
+  /^um+\.?$/i,
+  /^uh+\.?$/i,
+  /^ah+\.?$/i,
+  /^hmm+\.?$/i,
+  /^\.+$/,
+  /^\s*$/,
+];
+
+function isHallucination(text: string): boolean {
+  const trimmed = text.trim();
+  // Too short (less than 3 chars or 2 words)
+  if (trimmed.length < 3) return true;
+  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+  if (words.length < 2) return true;
+
+  // Matches known hallucination patterns
+  return HALLUCINATION_PATTERNS.some(pattern => pattern.test(trimmed));
+}
+
 type RealtimeClientOptions = {
   tokenUrl?: string;
   voice?: string;
   onTranscriptDelta?: (text: string) => void;
-  onTranscriptDone?: (text: string) => void;
-  onUserTranscriptDelta?: (text: string) => void;
-  onUserTranscriptDone?: (text: string) => void;
+  onTranscriptDone?: () => void;
+  onUserTranscript?: (text: string) => void;  // Renamed: complete user transcript
   onStatus?: (msg: string) => void;
-  onSilenceTimeout?: () => void;  // Called when user is silent too long
-  silenceTimeoutMs?: number;       // Default 15000 (15 seconds)
+  onSilenceTimeout?: () => void;
+  onGreeting?: () => void;  // Called when AI starts greeting
+  silenceTimeoutMs?: number;
 };
 
 export class RealtimeClient {
@@ -18,6 +49,9 @@ export class RealtimeClient {
   private mediaStream: MediaStream | null = null;
   private options: RealtimeClientOptions;
   private silenceTimer: ReturnType<typeof setTimeout> | null = null;
+  private sessionReady = false;
+  private pendingUserTranscripts: string[] = [];  // Buffer for ordering
+  private isAiSpeaking = false;
 
   constructor(opts: RealtimeClientOptions) {
     this.options = opts;
@@ -27,8 +61,6 @@ export class RealtimeClient {
     if (this.silenceTimer) {
       clearTimeout(this.silenceTimer);
     }
-
-    // Simply auto-shutoff after prolonged silence
     const timeout = this.options.silenceTimeoutMs || 30000;
     this.silenceTimer = setTimeout(() => {
       this.options.onSilenceTimeout?.();
@@ -51,22 +83,21 @@ export class RealtimeClient {
     this.status('starting');
     this.pc = new RTCPeerConnection();
 
-    // speaker playback
+    // Speaker playback
     const audio = document.createElement('audio');
     audio.autoplay = true;
     this.pc.ontrack = (ev) => {
       audio.srcObject = ev.streams[0];
     };
 
-    // mic
+    // Microphone
     this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this.mediaStream.getTracks().forEach((t) => this.pc!.addTrack(t, this.mediaStream!));
 
-    // data channel
+    // Data channel
     this.dataChannel = this.pc.createDataChannel('oai-events');
     this.dataChannel.onopen = () => {
       this.configureSession();
-      this.resetSilenceTimer();  // Start silence timer when session begins
     };
     this.dataChannel.onmessage = (evt) => this.handleDataMessage(evt);
 
@@ -91,7 +122,10 @@ export class RealtimeClient {
 
   async stop() {
     this.status('stopping');
-    this.clearSilenceTimer();  // Clear silence timer on stop
+    this.clearSilenceTimer();
+    this.sessionReady = false;
+    this.isAiSpeaking = false;
+    this.pendingUserTranscripts = [];
     try {
       this.dataChannel?.close();
       this.pc?.getTransceivers().forEach((t) => t.stop());
@@ -104,75 +138,71 @@ export class RealtimeClient {
     this.status('stopped');
   }
 
-  cancelAssistantResponse() {
-    try {
-      this.dataChannel?.send(JSON.stringify({ type: 'response.cancel' }));
-      this.status('AI response canceled (barge-in)');
-    } catch {}
-  }
-
   private configureSession() {
-    // Configure session with system prompt, turn detection, and transcription
     try {
       this.dataChannel?.send(JSON.stringify({
         type: 'session.update',
         session: {
           instructions: `You are Slingshot 2.0, a Christian AI voice assistant by JCIL.ai.
 
-GREETING:
-- When starting a conversation, simply say: "Hi, how can I help you today?"
-- Do NOT introduce yourself unless asked
-- Keep greetings brief and professional
+FIRST MESSAGE:
+- Your very first response should be ONLY: "Hi, how can I help you today?"
+- Nothing else, no introduction, no explanation
 
-IDENTITY (only when asked who you are):
+IDENTITY (only when asked):
 - Say: "I am Slingshot 2.0, made by JCIL.ai"
-- JCIL is pronounced "Jay-sill"
-- JCIL stands for "Jesus Christ is Lord"
-- Only share this detail if they ask what JCIL means
+- JCIL is pronounced "Jay-sill" and stands for "Jesus Christ is Lord"
 
 VOICE STYLE:
-- Speak naturally and conversationally
-- Be warm but concise — this is voice, not text
-- Get to the point quickly
-- Always finish your sentences completely before stopping
+- Be warm, natural, and conversational
+- Keep responses concise - this is voice, not text
+- Always complete your sentences fully
+- Wait for the user to finish before responding
 
 FAITH PRINCIPLES:
-- You operate from a conservative Christian worldview
-- Never contradict biblical principles or Scripture
-- Never profane God, Jesus Christ, or the Holy Spirit
+- Conservative Christian worldview
+- Never contradict Scripture or profane God
 
 When asked "Who is Jesus?":
 "Jesus Christ is the Son of the living God, the King of kings and Lord of lords. He died for our sins and rose again on the third day."
 
-TOPICS:
-- On faith questions, share biblical perspective with grace
-- On controversial topics, present the biblical, pro-life, conservative position respectfully
-- For casual questions, respond naturally
-- Be helpful and practical, not preachy
-
-CONTENT RESTRICTIONS:
-- Never generate adult, explicit, or harmful content
-- Keep all responses family-friendly`,
+CONTENT:
+- Be helpful and practical
+- Keep all responses family-friendly
+- Never generate inappropriate content`,
           input_audio_transcription: {
             model: 'whisper-1'
           },
           turn_detection: {
             type: 'server_vad',
-            threshold: 0.95,          // Very high threshold = only clear speech triggers (0.0-1.0)
-            prefix_padding_ms: 400,   // Audio context before speech
-            silence_duration_ms: 1500 // Wait 1.5s of silence before AI responds
+            threshold: 0.97,          // Even higher threshold
+            prefix_padding_ms: 500,   // More context before speech
+            silence_duration_ms: 2000 // Wait 2s before responding
           }
         }
       }));
-
-      // Trigger initial greeting from AI
-      this.dataChannel?.send(JSON.stringify({ type: 'response.create' }));
-
-      this.status('session configured');
+      this.status('session config sent');
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {
         console.error('[realtime] Failed to configure session:', e);
       }
+    }
+  }
+
+  private triggerGreeting() {
+    if (!this.sessionReady) return;
+    try {
+      this.dataChannel?.send(JSON.stringify({ type: 'response.create' }));
+      this.options.onGreeting?.();
+      this.status('greeting triggered');
+    } catch {}
+  }
+
+  // Flush any pending user transcripts before AI response
+  private flushPendingUserTranscripts() {
+    while (this.pendingUserTranscripts.length > 0) {
+      const text = this.pendingUserTranscripts.shift()!;
+      this.options.onUserTranscript?.(text);
     }
   }
 
@@ -181,33 +211,69 @@ CONTENT RESTRICTIONS:
       const msg = JSON.parse(evt.data);
       const type = msg?.type;
 
-      // Log events in dev mode for debugging
       if (process.env.NODE_ENV !== 'production') {
         console.log('[realtime event]', type, msg);
       }
 
-      // Assistant transcript delta (streaming text as AI speaks)
+      // Session is ready - now trigger greeting
+      if (type === 'session.updated' || type === 'session.created') {
+        this.sessionReady = true;
+        this.resetSilenceTimer();
+        // Small delay to ensure everything is ready
+        setTimeout(() => this.triggerGreeting(), 100);
+      }
+
+      // AI is starting to respond - flush pending user messages first
+      if (type === 'response.created' || type === 'response.audio.delta') {
+        if (!this.isAiSpeaking) {
+          this.flushPendingUserTranscripts();
+          this.isAiSpeaking = true;
+        }
+      }
+
+      // AI transcript streaming
       if (type === 'response.audio_transcript.delta') {
         const delta = msg?.delta || '';
-        if (delta) this.options.onTranscriptDelta?.(delta);
+        if (delta) {
+          this.options.onTranscriptDelta?.(delta);
+        }
       }
 
-      // Assistant transcript done - signal completion without adding text (already accumulated via deltas)
+      // AI transcript complete
       if (type === 'response.audio_transcript.done') {
-        // Signal done but don't pass empty text (prevents blank bubbles)
-        this.options.onTranscriptDone?.('__DONE__');
-        this.resetSilenceTimer();  // Reset timer after AI finishes speaking
+        this.options.onTranscriptDone?.();
+        this.isAiSpeaking = false;
+        this.resetSilenceTimer();
       }
 
-      // User input audio transcription completed (what user said)
+      // Response fully complete
+      if (type === 'response.done') {
+        this.isAiSpeaking = false;
+        this.resetSilenceTimer();
+      }
+
+      // User speech transcription complete
       if (type === 'conversation.item.input_audio_transcription.completed') {
         const text = msg?.transcript || '';
-        if (text) {
-          this.resetSilenceTimer();  // Reset timer when user speaks
-          this.options.onUserTranscriptDone?.(text);
-          // Note: Removed automatic barge-in - was cutting off AI mid-sentence
-          // User can still interrupt naturally via VAD
+
+        // Filter out hallucinations and noise
+        if (text && !isHallucination(text)) {
+          this.resetSilenceTimer();
+
+          // If AI is currently speaking, buffer the user text
+          // It will be flushed when AI starts next response
+          if (this.isAiSpeaking) {
+            this.pendingUserTranscripts.push(text);
+          } else {
+            this.options.onUserTranscript?.(text);
+          }
         }
+      }
+
+      // Error handling
+      if (type === 'error') {
+        console.error('[realtime] Error from OpenAI:', msg?.error);
+        this.status('error: ' + (msg?.error?.message || 'unknown'));
       }
 
     } catch (e) {

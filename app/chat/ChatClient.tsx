@@ -80,24 +80,34 @@ export function ChatClient() {
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
 
-  // Track current streaming message IDs for voice (prevents interleaving)
+  // Track current streaming assistant message ID for voice
   const currentAssistantMsgId = useRef<string | null>(null);
-  const currentUserMsgId = useRef<string | null>(null);
 
-  // Handle voice conversation streaming messages (speech-to-speech)
-  // Messages are tracked by ID to prevent interleaving when both speak simultaneously
-  const upsertVoiceStreaming = useCallback((role: 'user' | 'assistant', delta: string, done?: boolean) => {
-    const msgIdRef = role === 'assistant' ? currentAssistantMsgId : currentUserMsgId;
+  // Add a complete user voice message
+  const addUserVoiceMessage = useCallback((text: string) => {
+    if (!text.trim()) return;
 
+    const newMessage: Message = {
+      id: crypto.randomUUID?.() || Date.now().toString(),
+      role: 'user',
+      content: text,
+      timestamp: new Date(),
+      isStreaming: false,
+    };
+    setMessages((prev) => [...prev, newMessage]);
+  }, []);
+
+  // Handle assistant voice streaming (delta updates)
+  const upsertAssistantStreaming = useCallback((delta: string, done?: boolean) => {
     setMessages((prev) => {
-      // If done with empty delta, find and mark the tracked message as complete
+      // If done with empty delta, mark existing message as complete
       if (done && !delta) {
-        if (msgIdRef.current) {
-          const msgIndex = prev.findIndex(m => m.id === msgIdRef.current);
+        if (currentAssistantMsgId.current) {
+          const msgIndex = prev.findIndex(m => m.id === currentAssistantMsgId.current);
           if (msgIndex >= 0) {
             const next = [...prev];
             next[msgIndex] = { ...next[msgIndex], isStreaming: false };
-            msgIdRef.current = null;  // Clear the ref
+            currentAssistantMsgId.current = null;
             return next;
           }
         }
@@ -105,38 +115,34 @@ export function ChatClient() {
       }
 
       // If no delta content, ignore
-      if (!delta) {
-        return prev;
-      }
+      if (!delta) return prev;
 
-      // Check if we have an existing streaming message for this role
-      if (msgIdRef.current) {
-        const msgIndex = prev.findIndex(m => m.id === msgIdRef.current);
+      // Check if we have an existing streaming message
+      if (currentAssistantMsgId.current) {
+        const msgIndex = prev.findIndex(m => m.id === currentAssistantMsgId.current);
         if (msgIndex >= 0 && prev[msgIndex].isStreaming) {
-          // Append to existing message (found by ID, not position)
           const next = [...prev];
           next[msgIndex] = {
             ...next[msgIndex],
             content: next[msgIndex].content + delta,
             isStreaming: !done
           };
-          if (done) msgIdRef.current = null;
+          if (done) currentAssistantMsgId.current = null;
           return next;
         }
       }
 
-      // Create new message and track its ID
+      // Create new message
       const newId = crypto.randomUUID?.() || Date.now().toString();
-      msgIdRef.current = done ? null : newId;
+      currentAssistantMsgId.current = done ? null : newId;
 
-      const newMessage: Message = {
+      return [...prev, {
         id: newId,
-        role,
+        role: 'assistant' as const,
         content: delta,
         timestamp: new Date(),
         isStreaming: !done,
-      };
-      return [...prev, newMessage];
+      }];
     });
   }, []);
 
@@ -1517,8 +1523,8 @@ export function ChatClient() {
           {/* Floating Voice Button - Real-time speech-to-speech conversation */}
           <VoiceButton
             onStart={startVoiceChat}
-            onUserText={(delta, done) => upsertVoiceStreaming('user', delta, done)}
-            onAssistantText={(delta, done) => upsertVoiceStreaming('assistant', delta, done)}
+            onUserText={addUserVoiceMessage}
+            onAssistantText={upsertAssistantStreaming}
           />
         </main>
       </div>
