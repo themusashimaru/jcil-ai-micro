@@ -959,6 +959,67 @@ export function ChatClient() {
         }
       }
 
+      // Check for [GENERATE_QR: ...] marker in the response
+      // This allows the AI to create functional QR codes
+      const qrMarkerMatch = finalContent.match(/\[GENERATE_QR:\s*(.+?)\]/s);
+      if (qrMarkerMatch) {
+        const qrData = qrMarkerMatch[1].trim();
+        console.log('[ChatClient] Detected GENERATE_QR marker, data:', qrData.slice(0, 100));
+
+        // Remove the marker from the displayed text
+        const cleanedContent = finalContent.replace(/\[GENERATE_QR:\s*.+?\]/s, '🔲 **Generating QR Code...**\n\n').trim();
+
+        // Update the message
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: cleanedContent }
+              : msg
+          )
+        );
+        finalContent = cleanedContent;
+
+        // Trigger QR code generation
+        try {
+          const qrResponse = await fetch('/api/qrcode/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              data: qrData,
+              size: 300,
+            }),
+          });
+
+          if (qrResponse.ok) {
+            const qrResult = await qrResponse.json();
+            if (qrResult.dataUrl) {
+              console.log('[ChatClient] QR code generated successfully');
+
+              // Add a message with the QR code image
+              const qrMessage: Message = {
+                id: (Date.now() + 4).toString(),
+                role: 'assistant',
+                content: `📱 **Your QR Code is ready!**\n\nScan this code to access: ${qrData.length > 50 ? qrData.slice(0, 50) + '...' : qrData}`,
+                imageUrl: qrResult.dataUrl,
+                timestamp: new Date(),
+              };
+              setMessages((prev) => [...prev, qrMessage]);
+            }
+          } else {
+            console.error('[ChatClient] QR generation failed:', await qrResponse.text());
+            const errorMsg: Message = {
+              id: (Date.now() + 4).toString(),
+              role: 'assistant',
+              content: `⚠️ Sorry, I couldn't generate the QR code. Here's the data you can use: ${qrData}`,
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, errorMsg]);
+          }
+        } catch (qrError) {
+          console.error('[ChatClient] Error during QR generation:', qrError);
+        }
+      }
+
       setIsStreaming(false);
 
       // Save assistant message to database (skip for images - already saved above)
