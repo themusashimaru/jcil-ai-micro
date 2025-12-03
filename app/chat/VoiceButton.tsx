@@ -1,7 +1,6 @@
 'use client';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { RealtimeClient } from './realtimeClient';
-import { recordOneUtterance } from './localRecorder';
 
 export default function VoiceButton({
   onUserText,
@@ -16,38 +15,32 @@ export default function VoiceButton({
   const [live, setLive] = useState(false);
   const [status, setStatus] = useState<string>('idle');
 
+  const stop = useCallback(async () => {
+    await rtc.current?.stop();
+    rtc.current = null;
+    setLive(false);
+    setStatus('idle');
+  }, []);
+
   async function start() {
     // Trigger chat creation/opening first
     onStart?.();
 
     rtc.current = new RealtimeClient({
       voice: 'verse',
+      silenceTimeoutMs: 5000,  // 5 seconds of silence before asking
       onStatus: setStatus,
       onUserTranscriptDelta: (t) => onUserText(t, false),
       onUserTranscriptDone: (t) => onUserText(t || '', true),
       onTranscriptDelta: (t) => onAssistantText(t, false),
       onTranscriptDone: (t) => onAssistantText(t || '', true),
+      onSilenceTimeout: () => {
+        // Auto-shutoff after prolonged silence
+        stop();
+      },
     });
     await rtc.current.start();
     setLive(true);
-  }
-
-  async function stop() {
-    try {
-      // whisper fallback
-      const blob = await recordOneUtterance(1200);
-      const fd = new FormData();
-      fd.append('file', new File([blob], 'user.webm', { type: 'audio/webm' }));
-      const r = await fetch('/api/whisper', { method: 'POST', body: fd });
-      if (r.ok) {
-        const { text } = await r.json();
-        if (text?.trim()) onUserText(text, true);
-      }
-    } catch {}
-    await rtc.current?.stop();
-    rtc.current = null;
-    setLive(false);
-    setStatus('idle');
   }
 
   return (

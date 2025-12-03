@@ -8,6 +8,8 @@ type RealtimeClientOptions = {
   onUserTranscriptDelta?: (text: string) => void;
   onUserTranscriptDone?: (text: string) => void;
   onStatus?: (msg: string) => void;
+  onSilenceTimeout?: () => void;  // Called when user is silent too long
+  silenceTimeoutMs?: number;       // Default 15000 (15 seconds)
 };
 
 export class RealtimeClient {
@@ -15,9 +17,54 @@ export class RealtimeClient {
   private dataChannel: RTCDataChannel | null = null;
   private mediaStream: MediaStream | null = null;
   private options: RealtimeClientOptions;
+  private silenceTimer: ReturnType<typeof setTimeout> | null = null;
+  private hasAskedIfStillThere = false;
 
   constructor(opts: RealtimeClientOptions) {
     this.options = opts;
+  }
+
+  private resetSilenceTimer() {
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+    }
+    this.hasAskedIfStillThere = false;
+
+    const timeout = this.options.silenceTimeoutMs || 15000;
+    this.silenceTimer = setTimeout(() => {
+      if (!this.hasAskedIfStillThere) {
+        // First timeout - ask if still there
+        this.hasAskedIfStillThere = true;
+        this.sendTextMessage("Are you there?");
+
+        // Set another timer for final timeout
+        this.silenceTimer = setTimeout(() => {
+          this.options.onSilenceTimeout?.();
+        }, 3000); // 3 more seconds before auto-shutoff
+      }
+    }, timeout);
+  }
+
+  private clearSilenceTimer() {
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
+    }
+  }
+
+  private sendTextMessage(text: string) {
+    try {
+      // Send a text message to trigger AI response
+      this.dataChannel?.send(JSON.stringify({
+        type: 'conversation.item.create',
+        item: {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text }]
+        }
+      }));
+      this.dataChannel?.send(JSON.stringify({ type: 'response.create' }));
+    } catch {}
   }
 
   private status(msg: string) {
@@ -42,7 +89,10 @@ export class RealtimeClient {
 
     // data channel
     this.dataChannel = this.pc.createDataChannel('oai-events');
-    this.dataChannel.onopen = () => this.configureSession();
+    this.dataChannel.onopen = () => {
+      this.configureSession();
+      this.resetSilenceTimer();  // Start silence timer when session begins
+    };
     this.dataChannel.onmessage = (evt) => this.handleDataMessage(evt);
 
     const offer = await this.pc.createOffer();
@@ -66,6 +116,7 @@ export class RealtimeClient {
 
   async stop() {
     this.status('stopping');
+    this.clearSilenceTimer();  // Clear silence timer on stop
     try {
       this.dataChannel?.close();
       this.pc?.getTransceivers().forEach((t) => t.stop());
@@ -86,13 +137,48 @@ export class RealtimeClient {
   }
 
   private configureSession() {
-    // Enable input audio transcription so we can see what user says
+    // Configure session with system prompt, turn detection, and transcription
     try {
       this.dataChannel?.send(JSON.stringify({
         type: 'session.update',
         session: {
+          instructions: `You are Slingshot 2.0, the official AI voice assistant of JCIL.ai — a non-denominational Christian knowledge companion.
+
+VOICE STYLE:
+- Speak naturally and conversationally, like talking to a friend
+- Be warm, calm, and compassionate
+- Keep responses concise — this is voice, not text
+- Get to the point quickly
+
+IDENTITY:
+When asked who you are, say: "I'm Slingshot 2.0 by JCIL.ai — a Christian AI assistant here to help you learn and grow with integrity and faith."
+
+FAITH PRINCIPLES:
+- You operate from a conservative Christian worldview
+- Never contradict biblical principles or Scripture
+- Never profane God, Jesus Christ, or the Holy Spirit
+
+When asked "Who is Jesus?":
+"Jesus Christ is the Son of the living God. He is the King of kings and Lord of lords. He was without sin, sacrificed on the cross for the forgiveness of sins, died, and on the third day rose again. Jesus will return again soon."
+
+TOPICS:
+- On faith questions, share biblical perspective with grace
+- On controversial topics (abortion, marriage, gender), present the biblical, pro-life, conservative position respectfully
+- For casual questions, respond naturally without forcing Scripture
+- Be helpful and practical, not preachy
+
+CONTENT RESTRICTIONS:
+- Never generate adult, explicit, or harmful content
+- Never promote violence or profanity
+- Keep all responses family-friendly`,
           input_audio_transcription: {
             model: 'whisper-1'
+          },
+          turn_detection: {
+            type: 'server_vad',
+            threshold: 0.6,           // Higher threshold = less sensitive (0.0-1.0)
+            prefix_padding_ms: 300,   // Audio to include before speech
+            silence_duration_ms: 800  // Wait longer before considering turn complete
           }
         }
       }));
@@ -123,12 +209,14 @@ export class RealtimeClient {
       // Assistant transcript done - just signal completion (text already accumulated via deltas)
       if (type === 'response.audio_transcript.done') {
         this.options.onTranscriptDone?.('');
+        this.resetSilenceTimer();  // Reset timer after AI finishes speaking
       }
 
       // User input audio transcription completed (what user said)
       if (type === 'conversation.item.input_audio_transcription.completed') {
         const text = msg?.transcript || '';
         if (text) {
+          this.resetSilenceTimer();  // Reset timer when user speaks
           this.options.onUserTranscriptDone?.(text);
           // Barge-in: cancel AI response when user speaks
           this.cancelAssistantResponse();
