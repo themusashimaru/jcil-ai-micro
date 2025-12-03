@@ -896,10 +896,16 @@ export function ChatClient() {
         const markerEnd = finalContent.indexOf(']', finalContent.indexOf('[GENERATE_PDF:')) + 1;
         const pdfContent = finalContent.slice(markerEnd).trim();
 
-        // Remove the marker from the displayed text but keep the content
-        const cleanedContent = finalContent.replace(/\[GENERATE_PDF:\s*.+?\]/s, '📄 **Generating PDF: ' + pdfTitle + '**\n\n').trim();
+        // Get any text BEFORE the marker (intro text like "Creating your PDF now.")
+        const textBeforeMarker = finalContent.slice(0, finalContent.indexOf('[GENERATE_PDF:')).trim();
 
-        // Update the message to show PDF generation status
+        // Show ONLY the intro text + generating status - NOT the full content again
+        // User already saw the content in the previous message
+        const cleanedContent = textBeforeMarker
+          ? `${textBeforeMarker}\n\n📄 **Generating PDF: ${pdfTitle}...**`
+          : `📄 **Generating PDF: ${pdfTitle}...**`;
+
+        // Update the message to show just the status (hide redundant content)
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMessageId
@@ -926,22 +932,22 @@ export function ChatClient() {
             if (pdfData.dataUrl) {
               console.log('[ChatClient] PDF generated successfully');
 
-              // Add a message with the download link
-              const pdfMessage: Message = {
-                id: (Date.now() + 3).toString(),
-                role: 'assistant',
-                content: `📥 **Your PDF is ready!**\n\n[Click here to download: ${pdfTitle}.pdf](${pdfData.dataUrl})`,
-                timestamp: new Date(),
-              };
-              setMessages((prev) => [...prev, pdfMessage]);
-
-              // Also trigger download automatically
+              // Trigger download automatically
               const link = document.createElement('a');
               link.href = pdfData.dataUrl;
               link.download = pdfData.filename || `${pdfTitle}.pdf`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
+
+              // Add a simple confirmation message (NO data URL link - those break)
+              const pdfMessage: Message = {
+                id: (Date.now() + 3).toString(),
+                role: 'assistant',
+                content: `✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder. If you need another copy, just ask me to generate it again.`,
+                timestamp: new Date(),
+              };
+              setMessages((prev) => [...prev, pdfMessage]);
             }
           } else {
             console.error('[ChatClient] PDF generation failed:', await pdfResponse.text());
