@@ -24,6 +24,7 @@ import { QuickImageGenerator } from './QuickImageGenerator';
 import { QuickCodingAssistant } from './QuickCodingAssistant';
 // import { QuickLiveSearch } from './QuickLiveSearch'; // HIDDEN: Auto-search now enabled for all conversations
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 
 interface ChatComposerProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
@@ -95,14 +96,13 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
-  const handleFileSelect = (files: FileList | null) => {
+  const handleFileSelect = async (files: FileList | null) => {
     if (!files) return;
 
     // Clear previous errors
     setFileError(null);
 
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
-    const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB total for all files
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file (before compression)
     const MAX_FILE_COUNT = 10; // 10 files maximum (API limit)
     const newAttachments: Attachment[] = [];
     const fileArray = Array.from(files);
@@ -111,19 +111,6 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
     const totalFileCount = attachments.length + fileArray.length;
     if (totalFileCount > MAX_FILE_COUNT) {
       setFileError(`Maximum ${MAX_FILE_COUNT} files allowed. You currently have ${attachments.length} file(s). Remove some files first.`);
-      setTimeout(() => setFileError(null), 5000);
-      return;
-    }
-
-    // Calculate total size of new files
-    const newFilesSize = fileArray.reduce((sum, file) => sum + file.size, 0);
-    const existingFilesSize = attachments.reduce((sum, att) => sum + att.size, 0);
-    const totalSize = newFilesSize + existingFilesSize;
-
-    // Check total size limit
-    if (totalSize > MAX_TOTAL_SIZE) {
-      const totalMB = (totalSize / (1024 * 1024)).toFixed(1);
-      setFileError(`Total file size (${totalMB}MB) exceeds 10MB limit. Please remove some files and try again.`);
       setTimeout(() => setFileError(null), 5000);
       return;
     }
@@ -157,29 +144,32 @@ export function ChatComposer({ onSendMessage, onImageGenerated, onCodeGenerated,
         return;
       }
 
-      const attachment: Attachment = {
-        id: `${Date.now()}-${file.name}`,
-        name: file.name,
-        type: file.type,
-        size: file.size,
-      };
-
-      // Generate thumbnail for images
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const base64Data = e.target?.result as string;
-          attachment.thumbnail = base64Data;
-          attachment.url = base64Data; // Also set url for compatibility
+      // Process images with compression to avoid 413 errors
+      if (isImageFile(file)) {
+        try {
+          const compressed = await compressImage(file);
+          const attachment: Attachment = {
+            id: `${Date.now()}-${file.name}`,
+            name: file.name,
+            type: 'image/jpeg', // Compressed images are always JPEG
+            size: compressed.compressedSize,
+            thumbnail: compressed.dataUrl,
+            url: compressed.dataUrl,
+          };
           setAttachments((prev) => [...prev, attachment]);
-        };
-        reader.onerror = () => {
-          console.error('[ChatComposer] Failed to read file:', file.name);
-          setFileError(`Failed to read "${file.name}". Please try again.`);
+        } catch (error) {
+          console.error('[ChatComposer] Failed to compress image:', file.name, error);
+          setFileError(`Failed to process "${file.name}". Please try a different image.`);
           setTimeout(() => setFileError(null), 5000);
-        };
-        reader.readAsDataURL(file);
+        }
       } else {
+        // Non-image files don't need compression
+        const attachment: Attachment = {
+          id: `${Date.now()}-${file.name}`,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+        };
         newAttachments.push(attachment);
       }
     }
