@@ -18,7 +18,6 @@ export class RealtimeClient {
   private mediaStream: MediaStream | null = null;
   private options: RealtimeClientOptions;
   private silenceTimer: ReturnType<typeof setTimeout> | null = null;
-  private hasAskedIfStillThere = false;
 
   constructor(opts: RealtimeClientOptions) {
     this.options = opts;
@@ -28,20 +27,11 @@ export class RealtimeClient {
     if (this.silenceTimer) {
       clearTimeout(this.silenceTimer);
     }
-    this.hasAskedIfStillThere = false;
 
-    const timeout = this.options.silenceTimeoutMs || 15000;
+    // Simply auto-shutoff after prolonged silence
+    const timeout = this.options.silenceTimeoutMs || 30000;
     this.silenceTimer = setTimeout(() => {
-      if (!this.hasAskedIfStillThere) {
-        // First timeout - ask if still there
-        this.hasAskedIfStillThere = true;
-        this.sendTextMessage("Are you there?");
-
-        // Set another timer for final timeout
-        this.silenceTimer = setTimeout(() => {
-          this.options.onSilenceTimeout?.();
-        }, 3000); // 3 more seconds before auto-shutoff
-      }
+      this.options.onSilenceTimeout?.();
     }, timeout);
   }
 
@@ -50,21 +40,6 @@ export class RealtimeClient {
       clearTimeout(this.silenceTimer);
       this.silenceTimer = null;
     }
-  }
-
-  private sendTextMessage(text: string) {
-    try {
-      // Send a text message to trigger AI response
-      this.dataChannel?.send(JSON.stringify({
-        type: 'conversation.item.create',
-        item: {
-          type: 'message',
-          role: 'user',
-          content: [{ type: 'input_text', text }]
-        }
-      }));
-      this.dataChannel?.send(JSON.stringify({ type: 'response.create' }));
-    } catch {}
   }
 
   private status(msg: string) {
@@ -142,16 +117,18 @@ export class RealtimeClient {
       this.dataChannel?.send(JSON.stringify({
         type: 'session.update',
         session: {
-          instructions: `You are Slingshot 2.0, the official AI voice assistant of JCIL.ai — a non-denominational Christian knowledge companion.
+          instructions: `You are Slingshot 2.0, a Christian AI voice assistant by JCIL.ai.
+
+GREETING:
+- When starting a conversation, simply say: "Hi, how can I help you today?"
+- Do NOT introduce yourself with your full name or describe what you are
+- Keep greetings brief and professional
 
 VOICE STYLE:
-- Speak naturally and conversationally, like talking to a friend
-- Be warm, calm, and compassionate
-- Keep responses concise — this is voice, not text
+- Speak naturally and conversationally
+- Be warm but concise — this is voice, not text
 - Get to the point quickly
-
-IDENTITY:
-When asked who you are, say: "I'm Slingshot 2.0 by JCIL.ai — a Christian AI assistant here to help you learn and grow with integrity and faith."
+- Wait for the user to finish speaking before responding
 
 FAITH PRINCIPLES:
 - You operate from a conservative Christian worldview
@@ -159,26 +136,25 @@ FAITH PRINCIPLES:
 - Never profane God, Jesus Christ, or the Holy Spirit
 
 When asked "Who is Jesus?":
-"Jesus Christ is the Son of the living God. He is the King of kings and Lord of lords. He was without sin, sacrificed on the cross for the forgiveness of sins, died, and on the third day rose again. Jesus will return again soon."
+"Jesus Christ is the Son of the living God, the King of kings and Lord of lords. He died for our sins and rose again on the third day."
 
 TOPICS:
 - On faith questions, share biblical perspective with grace
-- On controversial topics (abortion, marriage, gender), present the biblical, pro-life, conservative position respectfully
-- For casual questions, respond naturally without forcing Scripture
+- On controversial topics, present the biblical, pro-life, conservative position respectfully
+- For casual questions, respond naturally
 - Be helpful and practical, not preachy
 
 CONTENT RESTRICTIONS:
 - Never generate adult, explicit, or harmful content
-- Never promote violence or profanity
 - Keep all responses family-friendly`,
           input_audio_transcription: {
             model: 'whisper-1'
           },
           turn_detection: {
             type: 'server_vad',
-            threshold: 0.85,          // Much higher threshold = less sensitive to noise (0.0-1.0)
-            prefix_padding_ms: 500,   // More audio context before speech
-            silence_duration_ms: 1200 // Wait longer (1.2s) before considering turn complete
+            threshold: 0.95,          // Very high threshold = only clear speech triggers (0.0-1.0)
+            prefix_padding_ms: 400,   // Audio context before speech
+            silence_duration_ms: 1500 // Wait 1.5s of silence before AI responds
           }
         }
       }));

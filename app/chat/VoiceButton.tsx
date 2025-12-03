@@ -28,7 +28,7 @@ export default function VoiceButton({
 
     rtc.current = new RealtimeClient({
       voice: 'verse',
-      silenceTimeoutMs: 10000,  // 10 seconds of silence before asking "Are you there?"
+      silenceTimeoutMs: 30000,  // 30 seconds of silence before auto-shutoff
       onStatus: setStatus,
       onUserTranscriptDelta: (t) => onUserText(t, false),
       onUserTranscriptDone: (t) => onUserText(t || '', true),
