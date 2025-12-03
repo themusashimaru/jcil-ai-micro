@@ -87,40 +87,44 @@ export class RealtimeClient {
   private handleDataMessage(evt: MessageEvent) {
     try {
       const msg = JSON.parse(evt.data);
+      const type = msg?.type;
 
-      // assistant deltas
-      const aiDelta =
-        msg?.type === 'response.delta' ? msg?.delta :
-        msg?.type === 'output_text.delta' ? msg?.delta :
-        (msg?.type === 'transcript.delta' && msg?.speaker === 'assistant') ? msg?.text :
-        '';
+      // Log events in dev mode for debugging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[realtime event]', type, msg);
+      }
 
-      if (aiDelta) this.options.onTranscriptDelta?.(aiDelta);
+      // Assistant transcript delta (streaming text as AI speaks)
+      if (type === 'response.audio_transcript.delta') {
+        const delta = msg?.delta || '';
+        if (delta) this.options.onTranscriptDelta?.(delta);
+      }
 
-      const aiDone =
-        msg?.type === 'response.completed' ||
-        msg?.type === 'response.done' ||
-        msg?.type === 'output_text.completed' ||
-        (msg?.type === 'transcript.completed' && msg?.speaker === 'assistant');
+      // Assistant transcript done (final text from AI)
+      if (type === 'response.audio_transcript.done') {
+        const text = msg?.transcript || '';
+        this.options.onTranscriptDone?.(text);
+      }
 
-      if (aiDone) this.options.onTranscriptDone?.(msg?.text ?? '');
+      // User input audio transcription completed (what user said)
+      if (type === 'conversation.item.input_audio_transcription.completed') {
+        const text = msg?.transcript || '';
+        if (text) {
+          this.options.onUserTranscriptDone?.(text);
+          // Barge-in: cancel AI response when user speaks
+          this.cancelAssistantResponse();
+        }
+      }
 
-      // user deltas
-      const userDelta =
-        (msg?.type === 'transcript.delta' && msg?.speaker === 'user') ? msg?.text :
-        (msg?.type === 'input_transcript.delta' ? msg?.text : '');
-
-      if (userDelta) {
-        this.options.onUserTranscriptDelta?.(userDelta);
-        // barge-in: if AI currently speaking, cancel it
+      // Also handle input_audio_buffer.speech_started for immediate barge-in
+      if (type === 'input_audio_buffer.speech_started') {
         this.cancelAssistantResponse();
       }
 
-      const userDone =
-        (msg?.type === 'transcript.completed' && msg?.speaker === 'user') ||
-        msg?.type === 'input_transcript.completed';
-
-      if (userDone) this.options.onUserTranscriptDone?.(msg?.text ?? '');
-    } catch {}
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[realtime] Failed to parse event:', e);
+      }
+    }
   }
 }
