@@ -21,11 +21,14 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
+// Voice Chat imports - Hidden until feature is production-ready
+// import { useCallback, useRef } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
-import VoiceButton from './VoiceButton';
+// Voice Button - Hidden until feature is production-ready
+// import VoiceButton from './VoiceButton';
 import { NotificationProvider } from '@/components/notifications/NotificationProvider';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useUserProfile } from '@/contexts/UserProfileContext';
@@ -80,6 +83,7 @@ export function ChatClient() {
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
 
+  /* Voice Chat - Hidden until feature is production-ready
   // Track current streaming assistant message ID for voice
   const currentAssistantMsgId = useRef<string | null>(null);
 
@@ -178,6 +182,7 @@ export function ChatClient() {
       setMessages([]);
     }
   }, [currentChatId]);
+  */
 
   // Load header logo from design settings
   useEffect(() => {
