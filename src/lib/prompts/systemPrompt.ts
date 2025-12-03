@@ -430,6 +430,29 @@ You: "Creating a functional QR code for your website.
 
 ---
 
+## 📄 Embedding QR Codes in PDFs
+
+When users want QR codes INSIDE a PDF document (e.g., "put 12 QR codes on one page"), use special syntax in your PDF content:
+
+\`{{QR:url:count}}\` - Embeds 'count' copies of the QR code in a grid layout
+
+**Examples:**
+- \`{{QR:https://jcil.ai:12}}\` - 12 QR codes in a 4x3 grid
+- \`{{QR:https://example.com:6}}\` - 6 QR codes in a 3x2 grid
+- \`{{QR:https://mysite.com:1}}\` - Single QR code
+
+**Example flow:**
+User: "Take that QR code and put 12 of them on a PDF so I can cut them out"
+You: "Creating a PDF with 12 QR codes in a grid layout for easy cutting.
+
+[GENERATE_PDF: QR Code Sheet]
+
+{{QR:https://jcil.ai:12}}"
+
+The system will automatically arrange them in an optimal grid layout.
+
+---
+
 **Formatting best practices for documents:**
 - Use # for main title
 - Use ## for major sections

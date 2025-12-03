@@ -15,6 +15,7 @@ import { jsPDF } from 'jspdf';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import QRCode from 'qrcode';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -72,19 +73,24 @@ function getSupabaseAdmin() {
 
 /**
  * Parse markdown to structured content for PDF
+ * Supports special QR code syntax: {{QR:url}} or {{QR:url:count}} for multiple QR codes
  */
 function parseMarkdown(markdown: string): Array<{
-  type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote';
+  type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote' | 'qr';
   text: string;
   items?: string[];
   rows?: string[][];
+  qrData?: string;
+  qrCount?: number;
 }> {
   const lines = markdown.split('\n');
   const elements: Array<{
-    type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote';
+    type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote' | 'qr';
     text: string;
     items?: string[];
     rows?: string[][];
+    qrData?: string;
+    qrCount?: number;
   }> = [];
 
   let currentList: string[] = [];
@@ -125,6 +131,18 @@ function parseMarkdown(markdown: string): Array<{
     // Blockquote
     if (line.startsWith('> ')) {
       elements.push({ type: 'blockquote', text: line.slice(2) });
+      continue;
+    }
+
+    // QR Code syntax: {{QR:url}} or {{QR:url:count}}
+    const qrMatch = line.match(/\{\{QR:(.+?)(?::(\d+))?\}\}/i);
+    if (qrMatch) {
+      elements.push({
+        type: 'qr',
+        text: '',
+        qrData: qrMatch[1].trim(),
+        qrCount: qrMatch[2] ? parseInt(qrMatch[2], 10) : 1
+      });
       continue;
     }
 
@@ -169,15 +187,58 @@ function parseMarkdown(markdown: string): Array<{
 }
 
 /**
+ * Normalize special characters for PDF compatibility
+ * Fixes em dashes, smart quotes, and other problematic characters
+ */
+function normalizeText(text: string): string {
+  return text
+    // Em dashes and en dashes to regular dashes
+    .replace(/—/g, '-')
+    .replace(/–/g, '-')
+    // Smart quotes to regular quotes
+    .replace(/[""]/g, '"')
+    .replace(/['']/g, "'")
+    // Ellipsis
+    .replace(/…/g, '...')
+    // Non-breaking spaces
+    .replace(/\u00A0/g, ' ')
+    // Other common problematic characters
+    .replace(/•/g, '-')
+    .replace(/·/g, '-')
+    .trim();
+}
+
+/**
  * Clean markdown formatting from text
  */
-function cleanMarkdown(text: string): { text: string; bold: boolean } {
-  // Check for bold markers
-  const boldMatch = text.match(/\*\*(.+?)\*\*/);
-  if (boldMatch) {
-    return { text: text.replace(/\*\*(.+?)\*\*/g, '$1'), bold: true };
+function cleanMarkdown(text: string): { text: string; bold: boolean; italic: boolean } {
+  let normalizedText = normalizeText(text);
+  let bold = false;
+  let italic = false;
+
+  // Check for bold markers **text**
+  if (normalizedText.match(/\*\*(.+?)\*\*/)) {
+    normalizedText = normalizedText.replace(/\*\*(.+?)\*\*/g, '$1');
+    bold = true;
   }
-  return { text: text.replace(/\*(.+?)\*/g, '$1'), bold: false };
+
+  // Check for italic markers *text* (single asterisk)
+  if (normalizedText.match(/\*(.+?)\*/)) {
+    normalizedText = normalizedText.replace(/\*(.+?)\*/g, '$1');
+    italic = true;
+  }
+
+  // Also handle _italic_ and __bold__
+  if (normalizedText.match(/__(.+?)__/)) {
+    normalizedText = normalizedText.replace(/__(.+?)__/g, '$1');
+    bold = true;
+  }
+  if (normalizedText.match(/_(.+?)_/)) {
+    normalizedText = normalizedText.replace(/_(.+?)_/g, '$1');
+    italic = true;
+  }
+
+  return { text: normalizedText, bold, italic };
 }
 
 export async function POST(request: NextRequest) {
@@ -263,7 +324,12 @@ export async function POST(request: NextRequest) {
         case 'p':
           const cleaned = cleanMarkdown(element.text);
           doc.setFontSize(11);
-          doc.setFont('helvetica', cleaned.bold ? 'bold' : 'normal');
+          // Handle bold, italic, or bolditalic
+          let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
+          if (cleaned.bold && cleaned.italic) fontStyle = 'bolditalic';
+          else if (cleaned.bold) fontStyle = 'bold';
+          else if (cleaned.italic) fontStyle = 'italic';
+          doc.setFont('helvetica', fontStyle);
           doc.setTextColor(51, 51, 51);
 
           // Split text to fit width
@@ -281,19 +347,24 @@ export async function POST(request: NextRequest) {
               const itemCleaned = cleanMarkdown(item);
               checkPageBreak(7);
               doc.setFontSize(11);
-              doc.setFont('helvetica', itemCleaned.bold ? 'bold' : 'normal');
+              // Handle bold, italic, or bolditalic
+              let itemFontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
+              if (itemCleaned.bold && itemCleaned.italic) itemFontStyle = 'bolditalic';
+              else if (itemCleaned.bold) itemFontStyle = 'bold';
+              else if (itemCleaned.italic) itemFontStyle = 'italic';
+              doc.setFont('helvetica', itemFontStyle);
               doc.setTextColor(51, 51, 51);
 
-              // Bullet point
-              doc.setFillColor(30, 64, 175);
-              doc.circle(margin + 2, y - 1.5, 1, 'F');
+              // Simple bullet point (black, not blue)
+              doc.setFillColor(51, 51, 51);
+              doc.circle(margin + 2, y - 1.5, 0.8, 'F');
 
               // Item text
               const itemText = doc.splitTextToSize(itemCleaned.text, contentWidth - 10);
               doc.text(itemText, margin + 8, y);
               y += itemText.length * 5 + 2;
             }
-            y += 3;
+            y += 2;
           }
           break;
 
@@ -355,22 +426,91 @@ export async function POST(request: NextRequest) {
           doc.text(quoteText, margin + 8, y);
           y += quoteHeight + 3;
           break;
+
+        case 'qr':
+          if (element.qrData) {
+            const qrCount = Math.min(element.qrCount || 1, 20); // Max 20 QR codes
+
+            // Calculate grid layout
+            // For 12 QR codes: 4 columns x 3 rows works well on A4
+            // For fewer, adjust columns
+            let cols: number;
+            if (qrCount <= 2) cols = qrCount;
+            else if (qrCount <= 4) cols = 2;
+            else if (qrCount <= 6) cols = 3;
+            else cols = 4;
+
+            const rows = Math.ceil(qrCount / cols);
+
+            // Calculate QR size based on available space
+            const qrSize = Math.min(
+              (contentWidth - (cols - 1) * 5) / cols, // Fit width with 5mm gaps
+              (pageHeight - margin * 2 - y - 10) / rows, // Fit remaining height
+              45 // Max size 45mm
+            );
+
+            // Generate QR code image
+            try {
+              const qrDataUrl = await QRCode.toDataURL(element.qrData, {
+                width: 300,
+                margin: 1,
+                color: { dark: '#000000', light: '#ffffff' },
+                errorCorrectionLevel: 'M',
+              });
+
+              // Check if we need a new page for the grid
+              const gridHeight = rows * (qrSize + 5);
+              checkPageBreak(gridHeight);
+
+              // Draw QR codes in grid
+              for (let i = 0; i < qrCount; i++) {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+
+                const x = margin + col * (qrSize + 5);
+                const qrY = y + row * (qrSize + 5);
+
+                // Check page break for each row
+                if (qrY + qrSize > pageHeight - margin) {
+                  doc.addPage();
+                  y = margin;
+                }
+
+                const finalY = row === 0 ? y : margin + row * (qrSize + 5);
+
+                // Add QR code image
+                doc.addImage(qrDataUrl, 'PNG', x, finalY, qrSize, qrSize);
+              }
+
+              y += gridHeight + 5;
+            } catch (qrError) {
+              console.error('[Documents API] QR generation error:', qrError);
+              // Fallback: show text placeholder
+              doc.setFontSize(10);
+              doc.setTextColor(150, 150, 150);
+              doc.text(`[QR Code: ${element.qrData}]`, margin, y);
+              y += 10;
+            }
+          }
+          break;
       }
     }
 
-    // Add footer
+    // Add simple page numbers only (no branding - just what user asked for)
     const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(148, 163, 184);
-      doc.text(
-        `Page ${i} of ${pageCount} | Generated by JCIL.ai`,
-        pageWidth / 2,
-        pageHeight - 10,
-        { align: 'center' }
-      );
+    if (pageCount > 1) {
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(148, 163, 184);
+        doc.text(
+          `${i} / ${pageCount}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+      }
     }
 
     // Generate filename
