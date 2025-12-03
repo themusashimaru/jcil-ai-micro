@@ -165,7 +165,7 @@ export function RealtimeVoiceButton({ onConversationMessage, disabled }: Realtim
         throw new Error(errorData.error || 'Failed to get session token');
       }
 
-      const { session, endpoint } = await sessionResponse.json();
+      const { session } = await sessionResponse.json();
       console.log('[RealtimeVoice] Got session:', session.id);
 
       // 2. Create audio context
@@ -183,9 +183,12 @@ export function RealtimeVoiceButton({ onConversationMessage, disabled }: Realtim
       });
 
       // 4. Connect to OpenAI Realtime WebSocket
+      // Use subprotocol for authentication (browser WebSockets can't set headers)
       console.log('[RealtimeVoice] Connecting to WebSocket...');
-      const wsUrl = `${endpoint}&session_token=${session.token}`;
-      const ws = new WebSocket(wsUrl);
+      const ws = new WebSocket(
+        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
+        ['realtime', `openai-insecure-api-key.${session.token}`]
+      );
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -433,12 +436,12 @@ export function RealtimeVoiceButton({ onConversationMessage, disabled }: Realtim
         </div>
       )}
 
-      {/* Floating Voice Button */}
+      {/* Floating Voice Button - positioned above the send button area */}
       <button
         onClick={toggleConversation}
         disabled={disabled || isConnecting}
         className={`
-          fixed bottom-20 right-4 z-50
+          fixed bottom-[9.5rem] right-4 z-50
           w-14 h-14 rounded-full
           flex items-center justify-center
           shadow-lg transition-all duration-300 ease-out
@@ -460,15 +463,19 @@ export function RealtimeVoiceButton({ onConversationMessage, disabled }: Realtim
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
         ) : isActive ? (
-          /* Phone hang up icon */
-          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.28 3H5z" />
+          /* Stop/X icon when active */
+          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
-          /* Voice/Call icon */
-          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-          </svg>
+          /* Voice wave icon */
+          <div className="flex items-center gap-0.5">
+            <div className="w-1 h-3 bg-white rounded-full" />
+            <div className="w-1 h-5 bg-white rounded-full" />
+            <div className="w-1 h-6 bg-white rounded-full" />
+            <div className="w-1 h-5 bg-white rounded-full" />
+            <div className="w-1 h-3 bg-white rounded-full" />
+          </div>
         )}
       </button>
 
