@@ -761,18 +761,54 @@ export async function POST(request: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       console.log('[Chat API] result has toTextStreamResponse:', typeof (result as any).toTextStreamResponse);
 
-      // Return streaming response using simple text stream
-      // AI SDK v5 uses toTextStreamResponse instead of toDataStreamResponse
+      // Check if result is a streaming object (has toTextStreamResponse method)
+      // Web search and some other operations return non-streaming results
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const streamResponse = (result as any).toTextStreamResponse({
-        headers: {
-          'X-Model-Used': model,
-          'X-Tool-Type': effectiveTool || 'default',
-        },
-      });
+      if (typeof (result as any).toTextStreamResponse === 'function') {
+        // Return streaming response using simple text stream
+        // AI SDK v5 uses toTextStreamResponse instead of toDataStreamResponse
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const streamResponse = (result as any).toTextStreamResponse({
+          headers: {
+            'X-Model-Used': model,
+            'X-Tool-Type': effectiveTool || 'default',
+          },
+        });
 
-      console.log('[Chat API] Successfully created stream response');
-      return streamResponse;
+        console.log('[Chat API] Successfully created stream response');
+        return streamResponse;
+      } else {
+        // Non-streaming result (from web search, etc.)
+        console.log('[Chat API] Non-streaming result detected, returning JSON response');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const citations = (result as any).citations || [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const numSourcesUsed = (result as any).numSourcesUsed || 0;
+
+        // Convert citation objects to URLs for client compatibility
+        const citationUrls = citations.map((c: { url?: string } | string) =>
+          typeof c === 'string' ? c : c.url || ''
+        ).filter(Boolean);
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            content: (result as any).text || '',
+            model,
+            citations: citationUrls,
+            sourcesUsed: numSourcesUsed,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': model,
+              'X-Tool-Type': effectiveTool || 'default',
+            },
+          }
+        );
+      }
     } catch (streamError) {
       // If streaming fails, fall back to non-streaming
       // Log detailed error info to diagnose streaming issues
@@ -803,16 +839,21 @@ export async function POST(request: NextRequest) {
 
       // Extract citations if available
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const citations = (result as any).citations || [];
+      const rawCitations = (result as any).citations || [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
+
+      // Convert citation objects to URLs for client compatibility
+      const citationUrls = rawCitations.map((c: { url?: string } | string) =>
+        typeof c === 'string' ? c : c.url || ''
+      ).filter(Boolean);
 
       return new Response(
         JSON.stringify({
           type: 'text',
           content: result.text,
           model,
-          citations: citations,
+          citations: citationUrls,
           sourcesUsed: numSourcesUsed,
         }),
         {
