@@ -100,7 +100,8 @@ export async function POST(request: NextRequest) {
 
     console.log('[Voice Realtime API] Creating client secret for GA model:', gaModel);
 
-    // Use /v1/realtime/client_secrets for GA API (not /v1/realtime/sessions which is beta)
+    // Use /v1/realtime/client_secrets for GA API
+    // Note: model is NOT passed in the body - it's specified in the WebSocket URL
     const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
@@ -108,7 +109,6 @@ export async function POST(request: NextRequest) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: gaModel,
         voice,
       }),
     });
