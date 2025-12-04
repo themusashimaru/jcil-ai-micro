@@ -22,7 +22,7 @@ import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { useUserProfile } from '@/contexts/UserProfileContext';
-// REMOVED: Email and Essay tools - GPT-5.1 handles these in regular chat
+// REMOVED: Email and Essay tools - gpt-5-mini handles these in regular chat
 // import { QuickEmailWriter } from './QuickEmailWriter';
 // import { QuickResearchTool } from './QuickResearchTool'; // HIDDEN: Auto-search is now enabled for all conversations
 // import { QuickEssayWriter } from './QuickEssayWriter';

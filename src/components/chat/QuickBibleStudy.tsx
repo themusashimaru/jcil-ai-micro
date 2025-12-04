@@ -8,7 +8,7 @@
  * - Depth level customization
  * - Additional context for personalized studies
  * - Submits prompt to chat for streaming response
- * - Powered by GPT-5.1 for accuracy
+ * - Powered by gpt-5-mini for accuracy
  */
 
 'use client';
@@ -255,7 +255,7 @@ ${depthInstructions[depthLevel]}`,
                 <div className="flex items-center justify-between border-b border-white/10 px-6 pt-5 pb-4">
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg font-semibold sm:text-xl">📖 Bible Study</h2>
-                    <span className="text-xs text-gray-400 hidden sm:inline">Powered by GPT-5.1</span>
+                    <span className="text-xs text-gray-400 hidden sm:inline">Powered by gpt-5-mini</span>
                   </div>
                   <button
                     onClick={handleClose}

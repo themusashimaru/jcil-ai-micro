@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
     content_type TEXT CHECK (content_type IN ('text', 'image', 'code', 'error')) DEFAULT 'text',
 
     -- AI model info
-    model_used TEXT, -- e.g., 'gpt-5.1'
+    model_used TEXT, -- e.g., 'gpt-5-mini'
     temperature REAL,
     tokens_used INTEGER,
 

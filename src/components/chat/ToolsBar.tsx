@@ -17,7 +17,7 @@ interface Tool {
 }
 
 const TOOLS: Tool[] = [
-  // REMOVED: Code and Data tools - GPT-5.1 handles these in regular chat
+  // REMOVED: Code and Data tools - gpt-5-mini handles these in regular chat
   // {
   //   id: 'code',
   //   icon: '💻',
@@ -47,7 +47,7 @@ const TOOLS: Tool[] = [
     color: 'from-green-500 to-emerald-500',
     description: 'Create AI videos',
   },
-  // REMOVED: Email and Essay tools - GPT-5.1 handles these in regular chat
+  // REMOVED: Email and Essay tools - gpt-5-mini handles these in regular chat
   // {
   //   id: 'email',
   //   icon: '✉️',
@@ -90,7 +90,7 @@ const TOOLS: Tool[] = [
     color: 'from-amber-500 to-yellow-500',
     description: 'Study Bible verses',
   },
-  // REMOVED: Data tool - GPT-5.1 handles data analysis in regular chat
+  // REMOVED: Data tool - gpt-5-mini handles data analysis in regular chat
   // {
   //   id: 'data',
   //   icon: '📊',

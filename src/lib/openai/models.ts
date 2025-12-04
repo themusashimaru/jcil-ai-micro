@@ -3,7 +3,7 @@
  * Determines which model to use based on tool type, content, and request
  *
  * Routing Strategy (per Master Directive):
- * - gpt-5.1: Primary chat and reasoning model (default)
+ * - gpt-5-mini: Primary chat and reasoning model (default, cost-effective)
  * - gpt-4o: Vision/image analysis, complex multimodal tasks
  * - gpt-4o-realtime-preview: Real-time voice conversations
  * - dall-e-3: Image generation
@@ -18,14 +18,14 @@ import { OpenAIModel, ToolType } from './types';
  */
 export function getModelForTool(tool?: ToolType): OpenAIModel {
   if (!tool) {
-    // Default chat model - gpt-5.1 per directive
-    return 'gpt-5.1';
+    // Default chat model - gpt-5-mini per directive
+    return 'gpt-5-mini';
   }
 
   switch (tool) {
     case 'code':
-      // Coding tasks use GPT-5.1 for reasoning
-      return 'gpt-5.1';
+      // Coding tasks use gpt-5-mini for reasoning
+      return 'gpt-5-mini';
 
     case 'image':
     case 'video':
@@ -33,12 +33,12 @@ export function getModelForTool(tool?: ToolType): OpenAIModel {
       return 'dall-e-3';
 
     case 'research':
-      // Research uses GPT-5.1 for reasoning
-      return 'gpt-5.1';
+      // Research uses gpt-5-mini for reasoning
+      return 'gpt-5-mini';
 
     case 'data':
-      // Data analysis uses GPT-5.1 for reasoning
-      return 'gpt-5.1';
+      // Data analysis uses gpt-5-mini for reasoning
+      return 'gpt-5-mini';
 
     case 'email':
     case 'essay':
@@ -47,20 +47,20 @@ export function getModelForTool(tool?: ToolType): OpenAIModel {
     case 'shopper':
     case 'scripture':
     default:
-      // General tasks use GPT-5.1 per directive
-      return 'gpt-5.1';
+      // General tasks use gpt-5-mini per directive
+      return 'gpt-5-mini';
   }
 }
 
 /**
  * Determine if request should use gpt-4o based on content analysis
- * Per Master Directive: ALL chat tasks use GPT-5.1, including:
+ * Per Master Directive: ALL chat tasks use gpt-5-mini, including:
  * - Image analysis (vision)
  * - PDF/document processing
  * - File operations
  * - All other tasks
  *
- * GPT-5.1 supports vision natively, so no need to route to GPT-4o
+ * gpt-5-mini supports vision natively, so no need to route to GPT-4o
  */
 export function shouldUseGPT4o(
   _hasImages: boolean,
@@ -68,8 +68,8 @@ export function shouldUseGPT4o(
   _hasAudio: boolean,
   _messageContent: string
 ): boolean {
-  // Per directive: ALL chat goes to GPT-5.1
-  // GPT-5.1 supports vision/images natively
+  // Per directive: ALL chat goes to gpt-5-mini
+  // gpt-5-mini supports vision/images natively
   return false;
 }
 
@@ -123,11 +123,11 @@ export function getRecommendedTemperature(model: OpenAIModel, tool?: ToolType): 
 
 /**
  * Get max tokens for model/tool combination
- * Per directive: max_tokens 2000 for GPT-5.1 chat
+ * Per directive: max_tokens 2000 for gpt-5-mini chat
  */
 export function getMaxTokens(model: OpenAIModel, tool?: ToolType): number {
-  // For gpt-5.1, use 2000 tokens per directive
-  if (model === 'gpt-5.1') {
+  // For gpt-5-mini, use 2000 tokens per directive
+  if (model === 'gpt-5-mini') {
     if (tool === 'sms') return 256;
     if (tool === 'email') return 1000;
     if (tool === 'code') return 2000;
@@ -162,12 +162,12 @@ export function getMaxTokens(model: OpenAIModel, tool?: ToolType): number {
  * Check if a model supports vision/images
  */
 export function supportsVision(model: OpenAIModel): boolean {
-  return model === 'gpt-4o' || model === 'gpt-4o-mini' || model === 'gpt-5.1';
+  return model === 'gpt-4o' || model === 'gpt-4o-mini' || model === 'gpt-5-mini';
 }
 
 /**
  * Check if a model supports tool/function calling
  */
 export function supportsToolCalling(model: OpenAIModel): boolean {
-  return model === 'gpt-5.1' || model === 'gpt-4o' || model === 'gpt-4o-mini';
+  return model === 'gpt-5-mini' || model === 'gpt-4o' || model === 'gpt-4o-mini';
 }
