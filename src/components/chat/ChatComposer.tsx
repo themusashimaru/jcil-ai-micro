@@ -385,10 +385,10 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
             }}
           />
           <div
-            className={`relative rounded-lg border transition-colors ${
+            className={`relative rounded-lg transition-colors ${
               isDragging
-                ? 'border-white/40 bg-white/10'
-                : 'border-[#4DFFFF]/30 bg-black/80'
+                ? 'bg-white/10'
+                : 'bg-black/80'
             }`}
             style={{
               boxShadow: '0 0 20px rgba(77, 255, 255, 0.15), inset 0 0 20px rgba(77, 255, 255, 0.05)',
@@ -426,7 +426,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
           </div>
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between border-t border-white/10 py-2 px-1 md:p-2">
+          <div className="flex items-center justify-between py-2 px-1 md:p-2">
             <div className="relative flex items-center gap-1 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
               {/* Hidden file inputs */}
               <input
