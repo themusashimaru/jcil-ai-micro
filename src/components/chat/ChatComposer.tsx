@@ -29,6 +29,33 @@ interface ChatComposerProps {
   isStreaming: boolean;
 }
 
+/**
+ * Read file content as text (for CSV, TXT) or base64 (for XLSX, PDF)
+ * This enables the AI to analyze uploaded documents
+ */
+async function readFileContent(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result);
+    };
+
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
+
+    // Read text files as text, binary files as base64
+    if (file.type === 'text/plain' || file.type === 'text/csv') {
+      reader.readAsText(file);
+    } else {
+      // PDF, XLSX - read as base64 data URL
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
 // Rotating placeholder suggestions to showcase AI capabilities
 const PLACEHOLDER_SUGGESTIONS = [
   'Type your message...',
@@ -198,14 +225,22 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
           setTimeout(() => setFileError(null), 5000);
         }
       } else {
-        // Non-image files don't need compression
-        const attachment: Attachment = {
-          id: `${Date.now()}-${file.name}`,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-        };
-        newAttachments.push(attachment);
+        // Non-image files: Read content for data analysis
+        try {
+          const fileContent = await readFileContent(file);
+          const attachment: Attachment = {
+            id: `${Date.now()}-${file.name}`,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            url: fileContent, // Store file content for API
+          };
+          newAttachments.push(attachment);
+        } catch (error) {
+          console.error('[ChatComposer] Failed to read file:', file.name, error);
+          setFileError(`Failed to read "${file.name}". Please try again.`);
+          setTimeout(() => setFileError(null), 5000);
+        }
       }
     }
 

@@ -143,20 +143,20 @@ export function ChatThread({ messages, isStreaming, currentChatId, onSubmitPromp
                 {modelName}
               </p>
             )}
-            <p className="text-xs md:text-sm text-gray-400 italic">
+            <p className="text-xs md:text-sm text-white italic">
               {subtitle}
             </p>
           </div>
 
           {/* Personalized greeting if profile exists */}
           {hasProfile && currentChatId && (
-            <p className="mb-1 text-xs md:text-lg text-gray-300">
+            <p className="mb-1 text-xs md:text-lg text-white">
               Hi {profile.name}! How can I help you today?
             </p>
           )}
 
           {!currentChatId && (
-            <p className="mb-2 text-xs md:text-sm text-gray-400">
+            <p className="mb-2 text-xs md:text-sm text-white">
               Start a new chat or select an existing conversation
             </p>
           )}
