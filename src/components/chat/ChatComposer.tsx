@@ -299,10 +299,26 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
       // Stop recording and transcribe
       try {
         const transcribedText = await stopRecording();
-        // Append transcribed text to current message
-        setMessage((prev) => (prev ? prev + ' ' + transcribedText : transcribedText));
-        // Adjust textarea height after adding text
-        setTimeout(adjustTextareaHeight, 0);
+
+        // Validate transcription - skip if empty or contains mostly non-Latin characters
+        // This prevents random characters from appearing when no speech is detected
+        if (transcribedText && transcribedText.trim()) {
+          const trimmed = transcribedText.trim();
+
+          // Check if text is mostly Latin characters (English)
+          // Count Latin letters vs total characters
+          const latinChars = (trimmed.match(/[a-zA-Z]/g) || []).length;
+          const totalChars = trimmed.replace(/\s/g, '').length;
+          const latinRatio = totalChars > 0 ? latinChars / totalChars : 0;
+
+          // Only add if at least 30% Latin characters or very short (could be numbers/punctuation)
+          if (latinRatio >= 0.3 || totalChars <= 3) {
+            setMessage((prev) => (prev ? prev + ' ' + trimmed : trimmed));
+            setTimeout(adjustTextareaHeight, 0);
+          } else {
+            console.log('[Mic] Skipping non-English transcription:', trimmed);
+          }
+        }
       } catch (error) {
         console.error('Transcription failed:', error);
       }
@@ -492,11 +508,11 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               <button
                 onClick={handleMicClick}
                 disabled={isStreaming || recordingState === 'transcribing'}
-                className={`rounded-lg p-1 md:p-2 transition shrink-0 flex items-center justify-center ${
-                  recordingState === 'recording'
-                    ? 'bg-red-500 text-white animate-pulse'
-                    : 'text-[#4DFFFF] hover:bg-white/10 hover:text-white'
-                } disabled:opacity-50`}
+                className="rounded-lg p-1 md:p-2 transition-all shrink-0 flex items-center justify-center text-[#4DFFFF] hover:bg-white/10 disabled:opacity-50"
+                style={{
+                  animation: recordingState === 'recording' ? 'mic-pulse-glow 1.5s ease-in-out infinite' : 'none',
+                  boxShadow: recordingState === 'recording' ? '0 0 10px #4DFFFF, 0 0 20px rgba(77, 255, 255, 0.5)' : 'none',
+                }}
                 title={
                   recordingState === 'idle'
                     ? 'Start recording'
@@ -506,7 +522,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                 }
               >
                 {recordingState === 'transcribing' ? (
-                  <svg className="h-4 w-4 md:h-5 md:w-5 animate-spin" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 md:h-5 md:w-5 animate-spin text-[#4DFFFF]" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -533,6 +549,18 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                   </svg>
                 )}
               </button>
+
+              {/* Microphone pulse glow animation */}
+              <style jsx>{`
+                @keyframes mic-pulse-glow {
+                  0%, 100% {
+                    box-shadow: 0 0 10px #4DFFFF, 0 0 20px rgba(77, 255, 255, 0.4);
+                  }
+                  50% {
+                    box-shadow: 0 0 20px #4DFFFF, 0 0 35px rgba(77, 255, 255, 0.6), 0 0 50px rgba(77, 255, 255, 0.3);
+                  }
+                }
+              `}</style>
 
               <button
                 onClick={handleSend}
