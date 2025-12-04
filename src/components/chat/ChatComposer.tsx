@@ -108,8 +108,8 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Audio recording (mic-to-text using Whisper)
-  const { recordingState, error: recordingError, startRecording, stopRecording } = useAudioRecorder();
+  // Speech recognition (mic-to-text using native browser API)
+  const { recordingState, error: recordingError, startRecording, stopRecording, isSupported: isSpeechSupported } = useAudioRecorder();
 
   // Typewriter effect - type out each character
   useEffect(() => {
@@ -298,52 +298,20 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
 
   const handleMicClick = async () => {
     if (recordingState === 'idle') {
-      // Start recording
+      // Start speech recognition
       await startRecording();
     } else if (recordingState === 'recording') {
-      // Stop recording and transcribe
+      // Stop and get transcribed text
       try {
         const transcribedText = await stopRecording();
 
-        // Validate transcription - skip if empty or appears to be hallucination
-        // Whisper can produce weird output when no speech is detected
+        // Add transcribed text to message if we got something
         if (transcribedText && transcribedText.trim()) {
-          const trimmed = transcribedText.trim();
-
-          // Skip if it's a known hallucination pattern
-          const hallucinationPatterns = [
-            /^\.+$/,                           // Just dots
-            /^,+$/,                           // Just commas
-            /^\s*$/,                           // Just whitespace
-            /^(you|thank|thanks|bye|okay|ok)\.?$/i,  // Common hallucination words alone
-            /^[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]+$/,  // Only CJK characters
-            /^[\u0600-\u06ff]+$/,              // Only Arabic characters
-            /^[\u0400-\u04ff]+$/,              // Only Cyrillic characters
-          ];
-
-          // Check if it matches any hallucination pattern
-          const isHallucination = hallucinationPatterns.some(pattern => pattern.test(trimmed));
-
-          if (isHallucination) {
-            console.log('[Mic] Skipping likely hallucination:', trimmed);
-            return;
-          }
-
-          // Check if text is mostly Latin characters (English)
-          const latinChars = (trimmed.match(/[a-zA-Z]/g) || []).length;
-          const totalChars = trimmed.replace(/\s/g, '').length;
-          const latinRatio = totalChars > 0 ? latinChars / totalChars : 0;
-
-          // Only add if at least 30% Latin characters or very short (numbers/punctuation)
-          if (latinRatio >= 0.3 || totalChars <= 3) {
-            setMessage((prev) => (prev ? prev + ' ' + trimmed : trimmed));
-            // useEffect will handle textarea height adjustment
-          } else {
-            console.log('[Mic] Skipping non-English transcription:', trimmed);
-          }
+          setMessage((prev) => (prev ? prev + ' ' + transcribedText.trim() : transcribedText.trim()));
+          // useEffect will handle textarea height adjustment
         }
       } catch (error) {
-        console.error('Transcription failed:', error);
+        console.error('Speech recognition failed:', error);
       }
     }
   };
@@ -530,17 +498,19 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               {/* Microphone Button - no background, just glowing icon */}
               <button
                 onClick={handleMicClick}
-                disabled={isStreaming || recordingState === 'transcribing'}
+                disabled={isStreaming || recordingState === 'transcribing' || !isSpeechSupported}
                 className="p-1 md:p-2 transition-all shrink-0 flex items-center justify-center text-[#4DFFFF] hover:opacity-80 disabled:opacity-50 bg-transparent"
                 style={{
                   background: 'transparent',
                 }}
                 title={
-                  recordingState === 'idle'
-                    ? 'Start recording'
+                  !isSpeechSupported
+                    ? 'Speech recognition not supported in this browser'
+                    : recordingState === 'idle'
+                    ? 'Start dictation'
                     : recordingState === 'recording'
-                    ? 'Stop recording'
-                    : 'Transcribing...'
+                    ? 'Stop dictation'
+                    : 'Processing...'
                 }
               >
                 {recordingState === 'transcribing' ? (
