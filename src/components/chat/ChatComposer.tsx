@@ -49,7 +49,11 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
   const [isDragging, setIsDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  // Typewriter animation state
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [displayedText, setDisplayedText] = useState('');
+  const [charIndex, setCharIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -58,13 +62,29 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
   // Audio recording (mic-to-text using Whisper)
   const { recordingState, error: recordingError, startRecording, stopRecording } = useAudioRecorder();
 
-  // Rotate placeholder text every 3 seconds
+  // Typewriter effect - type out each character
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % PLACEHOLDER_SUGGESTIONS.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    if (isFocused || message) return; // Don't animate when focused or has content
+
+    const currentText = PLACEHOLDER_SUGGESTIONS[placeholderIndex];
+
+    if (charIndex < currentText.length) {
+      // Type next character
+      const timer = setTimeout(() => {
+        setDisplayedText(currentText.slice(0, charIndex + 1));
+        setCharIndex(charIndex + 1);
+      }, 50); // 50ms per character for smooth typing
+      return () => clearTimeout(timer);
+    } else {
+      // Finished typing, wait then move to next suggestion
+      const timer = setTimeout(() => {
+        setPlaceholderIndex((prev) => (prev + 1) % PLACEHOLDER_SUGGESTIONS.length);
+        setDisplayedText('');
+        setCharIndex(0);
+      }, 2000); // Wait 2 seconds before next suggestion
+      return () => clearTimeout(timer);
+    }
+  }, [charIndex, placeholderIndex, isFocused, message]);
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {
@@ -297,23 +317,39 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              recordingState === 'recording'
-                ? 'Listening...'
-                : isDragging
-                ? 'Drop files here...'
-                : PLACEHOLDER_SUGGESTIONS[placeholderIndex]
-            }
-            className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-[#38BDF8] focus:outline-none min-h-[40px]"
-            rows={1}
-            disabled={isStreaming}
-            style={{ fontSize: '16px' }}
-          />
+          <div className="relative">
+            {/* Typewriter placeholder overlay */}
+            {!isFocused && !message && recordingState !== 'recording' && !isDragging && (
+              <div
+                className="absolute inset-0 flex items-center pointer-events-none py-1.5 px-2 md:p-4"
+                style={{ fontSize: '16px' }}
+              >
+                <span className="text-[#00D4FF] font-medium">
+                  {displayedText}
+                  <span className="animate-pulse">|</span>
+                </span>
+              </div>
+            )}
+            <textarea
+              ref={textareaRef}
+              value={message}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={
+                recordingState === 'recording'
+                  ? 'Listening...'
+                  : isDragging
+                  ? 'Drop files here...'
+                  : ''
+              }
+              className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-[#00D4FF] focus:outline-none min-h-[40px]"
+              rows={1}
+              disabled={isStreaming}
+              style={{ fontSize: '16px' }}
+            />
+          </div>
 
           {/* Action Bar */}
           <div className="flex items-center justify-between border-t border-white/10 py-2 px-1 md:p-2">
