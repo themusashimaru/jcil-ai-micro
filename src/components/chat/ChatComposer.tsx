@@ -299,10 +299,26 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
       // Stop recording and transcribe
       try {
         const transcribedText = await stopRecording();
-        // Append transcribed text to current message
-        setMessage((prev) => (prev ? prev + ' ' + transcribedText : transcribedText));
-        // Adjust textarea height after adding text
-        setTimeout(adjustTextareaHeight, 0);
+
+        // Validate transcription - skip if empty or contains mostly non-Latin characters
+        // This prevents random characters from appearing when no speech is detected
+        if (transcribedText && transcribedText.trim()) {
+          const trimmed = transcribedText.trim();
+
+          // Check if text is mostly Latin characters (English)
+          // Count Latin letters vs total characters
+          const latinChars = (trimmed.match(/[a-zA-Z]/g) || []).length;
+          const totalChars = trimmed.replace(/\s/g, '').length;
+          const latinRatio = totalChars > 0 ? latinChars / totalChars : 0;
+
+          // Only add if at least 30% Latin characters or very short (could be numbers/punctuation)
+          if (latinRatio >= 0.3 || totalChars <= 3) {
+            setMessage((prev) => (prev ? prev + ' ' + trimmed : trimmed));
+            setTimeout(adjustTextareaHeight, 0);
+          } else {
+            console.log('[Mic] Skipping non-English transcription:', trimmed);
+          }
+        }
       } catch (error) {
         console.error('Transcription failed:', error);
       }
