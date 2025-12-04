@@ -504,14 +504,13 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
 
             <div className="flex items-center justify-center gap-0 md:gap-2 shrink-0">
 
-              {/* Microphone Button */}
+              {/* Microphone Button - no background, just glowing icon */}
               <button
                 onClick={handleMicClick}
                 disabled={isStreaming || recordingState === 'transcribing'}
-                className="rounded-lg p-1 md:p-2 transition-all shrink-0 flex items-center justify-center text-[#4DFFFF] hover:bg-white/10 disabled:opacity-50"
+                className="p-1 md:p-2 transition-all shrink-0 flex items-center justify-center text-[#4DFFFF] hover:opacity-80 disabled:opacity-50 bg-transparent"
                 style={{
-                  animation: recordingState === 'recording' ? 'mic-pulse-glow 1.5s ease-in-out infinite' : 'none',
-                  boxShadow: recordingState === 'recording' ? '0 0 10px #4DFFFF, 0 0 20px rgba(77, 255, 255, 0.5)' : 'none',
+                  background: 'transparent',
                 }}
                 title={
                   recordingState === 'idle'
@@ -539,7 +538,18 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                     />
                   </svg>
                 ) : (
-                  <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    className="h-4 w-4 md:h-5 md:w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    style={{
+                      filter: recordingState === 'recording'
+                        ? 'drop-shadow(0 0 8px #4DFFFF) drop-shadow(0 0 15px #4DFFFF)'
+                        : 'none',
+                      animation: recordingState === 'recording' ? 'mic-icon-glow 1.5s ease-in-out infinite' : 'none',
+                    }}
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -550,14 +560,14 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                 )}
               </button>
 
-              {/* Microphone pulse glow animation */}
+              {/* Microphone icon glow animation */}
               <style jsx>{`
-                @keyframes mic-pulse-glow {
+                @keyframes mic-icon-glow {
                   0%, 100% {
-                    box-shadow: 0 0 10px #4DFFFF, 0 0 20px rgba(77, 255, 255, 0.4);
+                    filter: drop-shadow(0 0 6px #4DFFFF) drop-shadow(0 0 12px rgba(77, 255, 255, 0.5));
                   }
                   50% {
-                    box-shadow: 0 0 20px #4DFFFF, 0 0 35px rgba(77, 255, 255, 0.6), 0 0 50px rgba(77, 255, 255, 0.3);
+                    filter: drop-shadow(0 0 12px #4DFFFF) drop-shadow(0 0 25px rgba(77, 255, 255, 0.7)) drop-shadow(0 0 35px rgba(77, 255, 255, 0.4));
                   }
                 }
               `}</style>
