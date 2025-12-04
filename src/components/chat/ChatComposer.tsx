@@ -339,13 +339,13 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                     </svg>
                   </div>
                 )}
-                {/* Always visible delete button */}
+                {/* Always visible delete button - small and subtle */}
                 <button
                   onClick={() => removeAttachment(attachment.id)}
-                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 shadow-lg hover:bg-red-600 transition-colors"
+                  className="absolute -right-0.5 -top-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 shadow hover:bg-red-600 transition-colors"
                   aria-label="Remove attachment"
                 >
-                  <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <svg className="h-1.5 w-1.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
