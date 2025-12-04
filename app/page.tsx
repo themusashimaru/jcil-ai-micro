@@ -405,9 +405,9 @@ export default function HomePage() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="hover:text-white transition">
-                    Contact
-                  </Link>
+                  <a href="mailto:info@jcil.ai" className="hover:text-white transition">
+                    info@jcil.ai
+                  </a>
                 </li>
               </ul>
             </div>

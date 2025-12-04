@@ -29,7 +29,7 @@ import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
 // Voice Button - Hidden until feature is production-ready
 // import VoiceButton from './VoiceButton';
-import { NotificationProvider } from '@/components/notifications/NotificationProvider';
+// REMOVED: Notification system - users have built-in phone notifications
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
@@ -1318,7 +1318,6 @@ export function ChatClient() {
               </svg>
               {hasProfile ? profile.name : 'Profile'}
             </button>
-            <NotificationProvider />
           </div>
         </div>
       </header>
