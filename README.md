@@ -10,7 +10,7 @@ Production-ready Next.js PWA with AI chat through a Christian conservative lens,
 - **Storage**: Supabase Storage
 - **Caching/Queues**: Upstash Redis / Vercel KV
 - **Payments**: Stripe Subscriptions
-- **AI Providers**: OpenAI + XAI (Grok/Grok Vision)
+- **AI Providers**: OpenAI (GPT-5.1, GPT-4o, DALL-E 3, Whisper, TTS)
 - **APIs**: Google Maps, Places, Geocoding, Weather
 - **Package Manager**: pnpm
 - **Node Version**: 20.x
@@ -52,9 +52,8 @@ STRIPE_SECRET_KEY=sk_live_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxx
 
-# AI Providers
+# AI Provider
 OPENAI_API_KEY=sk-xxx
-XAI_API_KEY=xai-xxx
 
 # Google APIs
 GOOGLE_MAPS_API_KEY=xxx
