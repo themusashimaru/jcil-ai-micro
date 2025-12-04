@@ -10,7 +10,7 @@ Production-ready Next.js PWA with AI chat through a Christian conservative lens,
 - **Storage**: Supabase Storage
 - **Caching/Queues**: Upstash Redis / Vercel KV
 - **Payments**: Stripe Subscriptions
-- **AI Providers**: OpenAI (GPT-5.1, GPT-4o, DALL-E 3, Whisper, TTS)
+- **AI Providers**: OpenAI (gpt-5-mini, GPT-4o, DALL-E 3, Whisper, TTS)
 - **APIs**: Google Maps, Places, Geocoding, Weather
 - **Package Manager**: pnpm
 - **Node Version**: 20.x

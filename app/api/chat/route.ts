@@ -719,8 +719,8 @@ export async function POST(request: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
 
-      // Per directive: ALL chat uses GPT-5.1, including image analysis
-      const actualModel = hasImages ? 'gpt-5.1' : model;
+      // Per directive: ALL chat uses gpt-5-mini, including image analysis
+      const actualModel = hasImages ? 'gpt-5-mini' : model;
       console.log('[Chat API] Image analysis complete, model used:', actualModel);
 
       return new Response(

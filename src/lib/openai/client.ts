@@ -354,13 +354,13 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
     messageTextLength: messageText.length,
   });
 
-  // Per directive: ALL chat goes to GPT-5.1 (including vision/images)
-  // GPT-5.1 supports vision natively
+  // Per directive: ALL chat goes to gpt-5-mini (including vision/images)
+  // gpt-5-mini supports vision natively
   if (hasImages) {
-    console.log('[OpenAI] Image content detected - using GPT-5.1 for vision analysis');
+    console.log('[OpenAI] Image content detected - using gpt-5-mini for vision analysis');
   }
 
-  return 'gpt-5.1';
+  return 'gpt-5-mini';
 }
 
 /**
@@ -384,7 +384,7 @@ export async function createChatCompletion(options: ChatOptions) {
   if (useWebSearch) {
     const triggerReason = tool && WEB_SEARCH_TOOLS.includes(tool) ? `tool: ${tool}` : 'content pattern';
     console.log('[OpenAI] Using Responses API with web search, trigger:', triggerReason);
-    return createWebSearchCompletion(options, 'gpt-5.1'); // Use GPT-5.1 for web search per directive
+    return createWebSearchCompletion(options, 'gpt-5-mini'); // Use gpt-5-mini for web search per directive
   }
 
   // Use non-streaming for image analysis or when explicitly requested
@@ -697,8 +697,8 @@ async function createDirectOpenAICompletion(
         continue;
       }
 
-      // If it's a GPT-5.1 or GPT-4o error, try falling back to mini (only for text-only requests)
-      if ((modelName === 'gpt-5.1' || modelName === 'gpt-4o') && !hasImageContent(messages)) {
+      // If it's a gpt-5-mini or GPT-4o error, try falling back to mini (only for text-only requests)
+      if ((modelName === 'gpt-5-mini' || modelName === 'gpt-4o') && !hasImageContent(messages)) {
         console.log('[OpenAI API] Falling back to gpt-4o-mini');
         return createDirectOpenAICompletion(
           options,
@@ -808,12 +808,12 @@ export async function generateImage(
 }
 
 /**
- * Analyze an image using GPT-5.1 vision
- * Per directive: ALL chat tasks use GPT-5.1, including image analysis
+ * Analyze an image using gpt-5-mini vision
+ * Per directive: ALL chat tasks use gpt-5-mini, including image analysis
  */
 export async function analyzeImage(imageUrl: string, question: string) {
   const openai = getOpenAIProvider();
-  const model = openai('gpt-5.1');
+  const model = openai('gpt-5-mini');
 
   const result = await generateText({
     model,

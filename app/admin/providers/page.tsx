@@ -1,7 +1,7 @@
 /**
  * ADMIN PROVIDERS & ROUTING
  * PURPOSE: OpenAI provider management, key pools, health monitoring, per-user pinning
- * Models: GPT-5.1, GPT-4o, DALL-E 3, Whisper-1, TTS-1-HD, GPT-4o-realtime-preview
+ * Models: gpt-5-mini, GPT-4o, DALL-E 3, Whisper-1, TTS-1-HD, GPT-4o-realtime-preview
  * TODO: Provider config, key pool management, health dashboard, routing rules
  */
 
