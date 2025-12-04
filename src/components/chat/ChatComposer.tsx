@@ -373,17 +373,30 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
           </div>
         )}
 
-        {/* Input Area */}
-        <div
-          className={`rounded-lg border transition-colors ${
-            isDragging
-              ? 'border-white/40 bg-white/10'
-              : 'border-white/10 bg-white/5'
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
+        {/* Input Area with living glow effect */}
+        <div className="relative">
+          {/* Subtle living glow aura */}
+          <div
+            className="absolute -inset-[2px] rounded-lg blur-sm pointer-events-none"
+            style={{
+              background: 'linear-gradient(90deg, #4DFFFF, #00BFFF, #4DFFFF)',
+              backgroundSize: '200% 100%',
+              animation: 'living-glow 4s ease-in-out infinite',
+            }}
+          />
+          <div
+            className={`relative rounded-lg border transition-colors ${
+              isDragging
+                ? 'border-white/40 bg-white/10'
+                : 'border-[#4DFFFF]/30 bg-black/80'
+            }`}
+            style={{
+              boxShadow: '0 0 20px rgba(77, 255, 255, 0.15), inset 0 0 20px rgba(77, 255, 255, 0.05)',
+            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
           <div className="relative">
             {/* Typewriter placeholder overlay */}
             {!isFocused && !message && !isDragging && (
@@ -482,7 +495,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                 </svg>
               </button>
 
-              {/* Pulse glow animation styles */}
+              {/* Animation styles */}
               <style jsx>{`
                 @keyframes pulse-glow {
                   0%, 100% {
@@ -492,8 +505,25 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                     box-shadow: 0 0 20px #4DFFFF, 0 0 30px rgba(77, 255, 255, 0.6), 0 0 40px rgba(77, 255, 255, 0.3);
                   }
                 }
+                @keyframes living-glow {
+                  0%, 100% {
+                    opacity: 0.4;
+                    background-position: 0% 50%;
+                  }
+                  25% {
+                    opacity: 0.6;
+                  }
+                  50% {
+                    opacity: 0.5;
+                    background-position: 100% 50%;
+                  }
+                  75% {
+                    opacity: 0.7;
+                  }
+                }
               `}</style>
             </div>
+          </div>
           </div>
         </div>
 
