@@ -190,3 +190,20 @@ export function supportsVision(model: OpenAIModel): boolean {
 export function supportsToolCalling(model: OpenAIModel): boolean {
   return model === 'gpt-5-nano' || model === 'gpt-5-mini';
 }
+
+/**
+ * Check if a model is a reasoning model
+ * Reasoning models do NOT support temperature parameter
+ */
+export function isReasoningModel(model: OpenAIModel): boolean {
+  // gpt-5-nano and gpt-5-mini are reasoning models
+  return model === 'gpt-5-nano' || model === 'gpt-5-mini';
+}
+
+/**
+ * Check if a model supports temperature parameter
+ * Reasoning models (gpt-5-nano, gpt-5-mini) do NOT support temperature
+ */
+export function supportsTemperature(model: OpenAIModel): boolean {
+  return !isReasoningModel(model);
+}

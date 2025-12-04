@@ -22,6 +22,7 @@ import {
   getRecommendedTemperature,
   getMaxTokens,
   shouldEscalateToMini,
+  supportsTemperature,
 } from './models';
 import { getSystemPromptForTool } from './tools';
 import type { ToolType, OpenAIModel } from './types';
@@ -411,21 +412,26 @@ export async function createChatCompletion(options: ChatOptions) {
   const timeContext = getCurrentTimeContext();
   const fullSystemPrompt = `${timeContext}\n\n${systemPrompt}`;
 
-  const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
   // Convert messages to OpenAI format (handles image URLs)
   const convertedMessages = messages.map(normalizeMessageForAISDK);
 
-  const requestConfig = {
+  // Build request config - exclude temperature for reasoning models
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requestConfig: any = {
     model,
     messages: convertedMessages,
     system: fullSystemPrompt,
-    temperature: effectiveTemperature,
     maxTokens: effectiveMaxTokens,
   };
 
-  console.log('[OpenAI Streaming] Starting with model:', modelName);
+  // Only add temperature for non-reasoning models
+  if (supportsTemperature(modelName)) {
+    requestConfig.temperature = temperature ?? getRecommendedTemperature(modelName, tool);
+  }
+
+  console.log('[OpenAI Streaming] Starting with model:', modelName, 'supportsTemp:', supportsTemperature(modelName));
 
   return streamText(requestConfig);
 }
@@ -453,7 +459,6 @@ async function createWebSearchCompletion(
   const timeContext = getCurrentTimeContext();
   const systemPrompt = `${timeContext}\n\n${baseSystemPrompt}`;
 
-  const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
   // Convert messages to OpenAI format
@@ -483,7 +488,21 @@ async function createWebSearchCompletion(
 
     for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
       try {
-        console.log('[OpenAI Web Search] Attempt', attempt + 1, 'with model:', modelName);
+        console.log('[OpenAI Web Search] Attempt', attempt + 1, 'with model:', modelName, 'supportsTemp:', supportsTemperature(modelName));
+
+        // Build request body - exclude temperature for reasoning models
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const requestBody: any = {
+          model: modelName,
+          input: messagesWithSystem,
+          tools: [webSearchTool],
+          max_output_tokens: effectiveMaxTokens,
+        };
+
+        // Only add temperature for non-reasoning models
+        if (supportsTemperature(modelName)) {
+          requestBody.temperature = temperature ?? getRecommendedTemperature(modelName, tool);
+        }
 
         // Use the Responses API with web_search tool (with timeouts)
         const response = await httpWithTimeout(`${baseURL}/responses`, {
@@ -492,13 +511,7 @@ async function createWebSearchCompletion(
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,
           },
-          body: JSON.stringify({
-            model: modelName,
-            input: messagesWithSystem,
-            tools: [webSearchTool],
-            temperature: effectiveTemperature,
-            max_output_tokens: effectiveMaxTokens,
-          }),
+          body: JSON.stringify(requestBody),
           timeoutMs: REQUEST_TIMEOUT_MS,
           connectTimeoutMs: CONNECT_TIMEOUT_MS,
         });
@@ -651,7 +664,6 @@ async function createDirectOpenAICompletion(
   const timeContext = getCurrentTimeContext();
   const systemPrompt = `${timeContext}\n\n${baseSystemPrompt}`;
 
-  const effectiveTemperature = temperature ?? getRecommendedTemperature(modelName, tool);
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
   // Convert messages to OpenAI format (handles image URLs)
@@ -674,15 +686,23 @@ async function createDirectOpenAICompletion(
 
   for (let attempt = 0; attempt <= RETRY_DELAYS.length; attempt++) {
     try {
-      console.log('[OpenAI API] Attempt', attempt + 1, 'with model:', modelName);
+      console.log('[OpenAI API] Attempt', attempt + 1, 'with model:', modelName, 'supportsTemp:', supportsTemperature(modelName));
 
-      const result = await generateText({
+      // Build request config - exclude temperature for reasoning models
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const generateConfig: any = {
         model,
         messages: convertedMessages,
         system: systemPrompt,
-        temperature: effectiveTemperature,
         maxOutputTokens: effectiveMaxTokens,
-      });
+      };
+
+      // Only add temperature for non-reasoning models
+      if (supportsTemperature(modelName)) {
+        generateConfig.temperature = temperature ?? getRecommendedTemperature(modelName, tool);
+      }
+
+      const result = await generateText(generateConfig);
 
       return {
         text: result.text,

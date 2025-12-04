@@ -127,6 +127,7 @@ export async function makeDocProfile(id: string, rawText: string): Promise<DocPr
     if (apiKey) {
       const openai = createOpenAI({ apiKey });
       const result = await generateText({
+        // Note: gpt-5-mini is a reasoning model and does not support temperature
         model: openai('gpt-5-mini'),
         prompt: `Summarize the following document for retrieval.
 Return ~350 tokens, include key entities, sections and terms:
@@ -135,7 +136,6 @@ ${snippet}
 
 If needed, add "...(more sections not shown)".`,
         maxOutputTokens: 600,
-        temperature: 0.2,
       });
       synopsis = result.text || 'Synopsis unavailable.';
     }
