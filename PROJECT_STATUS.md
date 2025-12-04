@@ -163,8 +163,6 @@
     client.ts - (needs creation)
   /openai
     moderation.ts - Content moderation (existing)
-  /xai
-    client.ts - xAI integration (existing)
 
 /supabase-schema.sql - Full database schema ✅
 /supabase-rls-policies.sql - Security policies ✅

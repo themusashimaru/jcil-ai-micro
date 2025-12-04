@@ -2,7 +2,7 @@
   "name": "jcil-ai",
   "version": "0.1.0",
   "private": true,
-  "description": "JCIL.AI - Christian Conservative AI Chat Interface - Production PWA with Next.js, Supabase, xAI",
+  "description": "JCIL.AI - Christian Conservative AI Chat Interface - Production PWA with Next.js, Supabase, OpenAI",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"
@@ -20,7 +20,6 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.75",
-    "@ai-sdk/xai": "^2.0.31",
     "@google/generative-ai": "^0.7.0",
     "@simplewebauthn/browser": "^13.2.2",
     "@simplewebauthn/server": "^13.2.2",
