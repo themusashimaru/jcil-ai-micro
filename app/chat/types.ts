@@ -27,6 +27,7 @@ export interface Message {
   products?: ShopProduct[]; // For Amazon shopping results
   citations?: string[]; // Source URLs from Live Search
   sourcesUsed?: number; // Number of sources used in search
+  model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
   timestamp: Date;
   isStreaming?: boolean;
 }

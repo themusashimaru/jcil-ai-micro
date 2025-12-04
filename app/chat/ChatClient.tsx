@@ -778,6 +778,9 @@ export function ChatClient() {
       const contentType = response.headers.get('content-type') || '';
       const isJsonResponse = contentType.includes('application/json');
 
+      // Get model used from response header (for admin debugging)
+      const modelUsed = response.headers.get('X-Model-Used') || undefined;
+
       let finalContent = '';
       let isImageResponse = false;
       const assistantMessageId = (Date.now() + 1).toString();
@@ -800,6 +803,7 @@ export function ChatClient() {
             role: 'assistant',
             content: `Here's your generated image based on: "${data.prompt || content}"`,
             imageUrl: data.url,
+            model: data.model || modelUsed,
             timestamp: new Date(),
           };
 
@@ -818,6 +822,7 @@ export function ChatClient() {
             content: data.content || '',
             citations: data.citations || [],
             sourcesUsed: data.sourcesUsed || 0,
+            model: data.model || modelUsed,
             timestamp: new Date(),
           };
 
@@ -837,6 +842,7 @@ export function ChatClient() {
           id: assistantMessageId,
           role: 'assistant',
           content: '',
+          model: modelUsed,
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
@@ -1343,6 +1349,7 @@ export function ChatClient() {
             messages={messages}
             isStreaming={isStreaming}
             currentChatId={currentChatId}
+            isAdmin={isAdmin}
             onSubmitPrompt={(prompt) => handleSendMessage(prompt, [])}
           />
           <ChatComposer
