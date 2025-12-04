@@ -127,7 +127,7 @@ export async function makeDocProfile(id: string, rawText: string): Promise<DocPr
     if (apiKey) {
       const openai = createOpenAI({ apiKey });
       const result = await generateText({
-        model: openai('gpt-4o-mini'),
+        model: openai('gpt-5-mini'),
         prompt: `Summarize the following document for retrieval.
 Return ~350 tokens, include key entities, sections and terms:
 

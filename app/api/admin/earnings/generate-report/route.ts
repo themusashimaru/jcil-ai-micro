@@ -168,7 +168,7 @@ Please provide:
    - Customer acquisition and retention insights
 
 3. **Cost Analysis**
-   - API costs breakdown by model (gpt-5-mini, gpt-4o, dall-e-3, whisper-1, tts-1-hd)
+   - API costs breakdown by model (gpt-5-nano, gpt-5-mini, dall-e-3, whisper-1, tts-1-hd)
    - News page costs (updated every 30 min)
    - Cost efficiency metrics
    - Areas of high spend

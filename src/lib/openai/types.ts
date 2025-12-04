@@ -4,9 +4,8 @@
  */
 
 export type OpenAIModel =
-  | 'gpt-5-mini'              // Primary chat and reasoning model (cost-effective)
-  | 'gpt-4o'                  // Heavy multimodal - images, complex reasoning, coding
-  | 'gpt-4o-mini'             // Lightweight chat - fallback for simple tasks
+  | 'gpt-5-nano'              // Lightweight chat - basic Q&A, greetings, simple tasks (cost-optimized)
+  | 'gpt-5-mini'              // Primary model - search, files, complex reasoning, fallback for nano
   | 'gpt-4o-realtime-preview' // Real-time voice conversations
   | 'dall-e-3'                // Image generation
   | 'whisper-1'               // Speech-to-text

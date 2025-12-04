@@ -183,7 +183,7 @@ SUGGESTED PROMPTS:
 3. [A simpler version that's more likely to succeed]`;
 
     const result = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-5-mini'),
       prompt: fallbackPrompt,
       maxOutputTokens: 500,
       temperature: 0.3,
