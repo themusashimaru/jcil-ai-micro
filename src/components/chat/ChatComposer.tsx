@@ -339,20 +339,19 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                     </svg>
                   </div>
                 )}
-                {/* Small delete button in top-right corner */}
+                {/* Bold red X in top-right corner */}
                 <button
                   onClick={() => removeAttachment(attachment.id)}
-                  className="absolute right-0.5 top-0.5 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 transition-colors"
-                  style={{ width: '14px', height: '14px' }}
+                  className="absolute right-1 top-0.5 p-0.5 hover:opacity-70 transition-opacity"
                   aria-label="Remove attachment"
                 >
                   <svg
-                    className="text-white"
-                    style={{ width: '8px', height: '8px' }}
+                    className="text-red-500 drop-shadow-md"
+                    style={{ width: '12px', height: '12px' }}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                    strokeWidth={3}
+                    strokeWidth={4}
                   >
                     <path
                       strokeLinecap="round"
