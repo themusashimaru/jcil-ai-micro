@@ -41,7 +41,7 @@
  * - [✓] Implement usage tracking (daily limits with 80% warning)
  */
 
-import { createChatCompletion } from '@/lib/openai/client';
+import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from '@/lib/openai/client';
 import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
@@ -692,9 +692,17 @@ export async function POST(request: NextRequest) {
       effectiveTool,
     });
 
-    // Get the model being used (effectiveTool may be 'code' for GitHub operations)
+    // Get the initial model (may be overridden by web search routing)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const model = getModelForTool(effectiveTool as any);
+    const initialModel = getModelForTool(effectiveTool as any);
+
+    // Check if web search will be triggered - this always uses gpt-5-mini
+    const lastUserText = getLastUserMessageText(messagesWithContext);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const willUseWebSearch = shouldUseWebSearch(effectiveTool as any, lastUserText);
+
+    // Determine actual model: web search always uses mini, images use mini
+    const actualModel = willUseWebSearch ? 'gpt-5-mini' : (hasImages ? 'gpt-5-mini' : initialModel);
 
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
@@ -714,21 +722,21 @@ export async function POST(request: NextRequest) {
         stream: false,
       });
 
-      // Extract citations if available
+      // Extract citations and actual model used from result
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const citations = (result as any).citations || [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resultModel = (result as any).model || actualModel;
 
-      // Per directive: ALL chat uses gpt-5-mini, including image analysis
-      const actualModel = hasImages ? 'gpt-5-mini' : model;
-      console.log('[Chat API] Image analysis complete, model used:', actualModel);
+      console.log('[Chat API] Image analysis complete, model used:', resultModel);
 
       return new Response(
         JSON.stringify({
           type: 'text',
           content: result.text,
-          model: actualModel,
+          model: resultModel,
           citations: citations,
           sourcesUsed: numSourcesUsed,
         }),
@@ -736,7 +744,7 @@ export async function POST(request: NextRequest) {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'X-Model-Used': actualModel,
+            'X-Model-Used': resultModel,
             'X-Tool-Type': effectiveTool || 'default',
             'X-Has-Images': 'true',
           },
@@ -745,7 +753,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use streaming for regular text chat
-    console.log('[Chat API] Using streaming mode with model:', model);
+    console.log('[Chat API] Using streaming mode with model:', actualModel, 'webSearch:', willUseWebSearch);
 
     try {
       console.log('[Chat API] Calling createChatCompletion with stream: true');
@@ -771,16 +779,18 @@ export async function POST(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const streamResponse = (result as any).toTextStreamResponse({
           headers: {
-            'X-Model-Used': model,
+            'X-Model-Used': actualModel,
             'X-Tool-Type': effectiveTool || 'default',
           },
         });
 
-        console.log('[Chat API] Successfully created stream response');
+        console.log('[Chat API] Successfully created stream response with model:', actualModel);
         return streamResponse;
       } else {
         // Non-streaming result (from web search, etc.)
-        console.log('[Chat API] Non-streaming result detected, returning JSON response');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resultModel = (result as any).model || actualModel;
+        console.log('[Chat API] Non-streaming result detected, model used:', resultModel);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const citations = (result as any).citations || [];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -796,7 +806,7 @@ export async function POST(request: NextRequest) {
             type: 'text',
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             content: (result as any).text || '',
-            model,
+            model: resultModel,
             citations: citationUrls,
             sourcesUsed: numSourcesUsed,
           }),
@@ -804,7 +814,7 @@ export async function POST(request: NextRequest) {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'X-Model-Used': model,
+              'X-Model-Used': resultModel,
               'X-Tool-Type': effectiveTool || 'default',
             },
           }
@@ -838,11 +848,13 @@ export async function POST(request: NextRequest) {
         stream: false,
       });
 
-      // Extract citations if available
+      // Extract citations and actual model used from result
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawCitations = (result as any).citations || [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fallbackModel = (result as any).model || actualModel;
 
       // Convert citation objects to URLs for client compatibility
       const citationUrls = rawCitations.map((c: { url?: string } | string) =>
@@ -853,7 +865,7 @@ export async function POST(request: NextRequest) {
         JSON.stringify({
           type: 'text',
           content: result.text,
-          model,
+          model: fallbackModel,
           citations: citationUrls,
           sourcesUsed: numSourcesUsed,
         }),
@@ -861,7 +873,7 @@ export async function POST(request: NextRequest) {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            'X-Model-Used': model,
+            'X-Model-Used': fallbackModel,
             'X-Tool-Type': effectiveTool || 'default',
           },
         }
