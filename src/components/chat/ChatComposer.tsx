@@ -144,6 +144,11 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
     textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
   };
 
+  // Watch for message changes and adjust textarea height (needed for mic transcription)
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [message]);
+
   const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     adjustTextareaHeight();
@@ -300,21 +305,39 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
       try {
         const transcribedText = await stopRecording();
 
-        // Validate transcription - skip if empty or contains mostly non-Latin characters
-        // This prevents random characters from appearing when no speech is detected
+        // Validate transcription - skip if empty or appears to be hallucination
+        // Whisper can produce weird output when no speech is detected
         if (transcribedText && transcribedText.trim()) {
           const trimmed = transcribedText.trim();
 
+          // Skip if it's a known hallucination pattern
+          const hallucinationPatterns = [
+            /^\.+$/,                           // Just dots
+            /^,+$/,                           // Just commas
+            /^\s*$/,                           // Just whitespace
+            /^(you|thank|thanks|bye|okay|ok)\.?$/i,  // Common hallucination words alone
+            /^[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]+$/,  // Only CJK characters
+            /^[\u0600-\u06ff]+$/,              // Only Arabic characters
+            /^[\u0400-\u04ff]+$/,              // Only Cyrillic characters
+          ];
+
+          // Check if it matches any hallucination pattern
+          const isHallucination = hallucinationPatterns.some(pattern => pattern.test(trimmed));
+
+          if (isHallucination) {
+            console.log('[Mic] Skipping likely hallucination:', trimmed);
+            return;
+          }
+
           // Check if text is mostly Latin characters (English)
-          // Count Latin letters vs total characters
           const latinChars = (trimmed.match(/[a-zA-Z]/g) || []).length;
           const totalChars = trimmed.replace(/\s/g, '').length;
           const latinRatio = totalChars > 0 ? latinChars / totalChars : 0;
 
-          // Only add if at least 30% Latin characters or very short (could be numbers/punctuation)
+          // Only add if at least 30% Latin characters or very short (numbers/punctuation)
           if (latinRatio >= 0.3 || totalChars <= 3) {
             setMessage((prev) => (prev ? prev + ' ' + trimmed : trimmed));
-            setTimeout(adjustTextareaHeight, 0);
+            // useEffect will handle textarea height adjustment
           } else {
             console.log('[Mic] Skipping non-English transcription:', trimmed);
           }
