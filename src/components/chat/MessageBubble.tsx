@@ -272,10 +272,15 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
         {/* Message Bubble */}
         <div
           className={`chat-bubble chat-bubble-tail ${
-            isUser ? 'right bg-blue-600 text-white' : 'left border border-blue-500'
+            isUser ? 'right bg-blue-600 text-white' : 'left border border-[#4DFFFF]'
           }`}
+          style={{
+            userSelect: 'text',
+            WebkitUserSelect: 'text',
+            ...(isUser ? { border: 'none' } : {})
+          }}
         >
-          <div className="break-words">
+          <div className="break-words select-text">
             {isUser ? (
               // User messages: simple text with linkified URLs
               <div className="whitespace-pre-wrap">{linkifyToReact(message.content)}</div>
