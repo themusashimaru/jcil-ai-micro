@@ -4,13 +4,13 @@
  * Determines the appropriate model/target based on user message content.
  * Logs routing decisions for telemetry.
  *
- * Routes:
+ * Routes (GPT-5 Edition):
  * - image: DALL-E 3 for image generation requests
- * - 4o: GPT-4o for complex tasks (code, research, file operations)
- * - mini: GPT-4o-mini for light chat (default)
+ * - mini: gpt-5-mini for complex tasks (search, code, files, reasoning)
+ * - nano: gpt-5-nano for basic chat (default, cost-optimized)
  */
 
-export type RouteTarget = 'image' | '4o' | 'mini';
+export type RouteTarget = 'image' | 'mini' | 'nano';
 
 export type RouteReason =
   | 'image-intent'
@@ -267,19 +267,19 @@ export function decideRoute(
     };
   }
 
-  // Check for complex tasks requiring GPT-4o
+  // Check for complex tasks requiring gpt-5-mini
   const complexCheck = requiresComplexTask(lastUserText);
   if (complexCheck.isComplex && complexCheck.reason) {
     return {
-      target: '4o',
+      target: 'mini',
       reason: complexCheck.reason,
       confidence: 0.85,
     };
   }
 
-  // Default to mini for light chat
+  // Default to nano for light chat (cost-optimized)
   return {
-    target: 'mini',
+    target: 'nano',
     reason: 'light-chat',
     confidence: 0.7,
   };

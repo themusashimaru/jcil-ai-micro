@@ -2,17 +2,14 @@
  * OpenAI Client
  * Wrapper for OpenAI API using Vercel AI SDK
  *
- * Implements (per Master Directive):
- * - GPT-5.1 for ALL chat tasks including:
- *   - Text chat and reasoning
- *   - Vision/image analysis
- *   - PDF/document processing
- *   - Code generation
- *   - Research and web search
+ * Implements (GPT-5 Edition):
+ * - gpt-5-nano: Basic chat, greetings, simple Q&A (cost-optimized)
+ * - gpt-5-mini: Search, files, complex reasoning, code, AND fallback for nano
  * - DALL-E 3 for image GENERATION only
  * - Web search via OpenAI Responses API
  * - Streaming support
  * - Retry logic with exponential backoff
+ * - Auto-escalation: nano errors → retry with mini
  * - Timeouts (30s request, 5s connect)
  * - Structured logging with telemetry
  * - Web search caching (30 min TTL)
@@ -24,6 +21,7 @@ import {
   getModelForTool,
   getRecommendedTemperature,
   getMaxTokens,
+  shouldEscalateToMini,
 } from './models';
 import { getSystemPromptForTool } from './tools';
 import type { ToolType, OpenAIModel } from './types';
@@ -324,43 +322,54 @@ function getLastUserMessageText(messages: any[]): string {
 
 /**
  * Determine the best model based on content and tool
- * Per Master Directive: GPT-5.1 is used for ALL chat tasks including:
- * - Image/vision analysis
- * - PDF/document processing
- * - Code generation
- * - Research
- * - All other chat tasks
+ * GPT-5 Edition routing:
+ * - gpt-5-nano: Basic chat, greetings, simple Q&A
+ * - gpt-5-mini: Search, files, images, complex reasoning, code
+ * - DALL-E 3: Image generation only
  *
- * Only DALL-E 3 is used for image GENERATION
+ * Escalation triggers (nano → mini):
+ * - Images or files present
+ * - Search/lookup intent detected
+ * - Complex reasoning required
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
-  // First check tool-based routing
-  const toolBasedModel = getModelForTool(tool);
+  const hasImages = hasImageContent(messages);
+  const messageText = getLastUserMessageText(messages);
+
+  // First check tool-based routing (includes message content analysis)
+  const toolBasedModel = getModelForTool(tool, messageText);
 
   // If tool routes to DALL-E 3, use it for image generation
   if (toolBasedModel === 'dall-e-3') {
     return toolBasedModel;
   }
 
-  // Log for debugging
-  const hasImages = hasImageContent(messages);
-  const messageText = getLastUserMessageText(messages);
+  // Check if we need to escalate to mini
+  const needsMini = shouldEscalateToMini(hasImages, false, false, messageText);
 
   console.log('[OpenAI] determineModel:', {
     tool,
     toolBasedModel,
     hasImages,
+    needsMini,
     messageTextLength: messageText.length,
   });
 
-  // Per directive: ALL chat goes to gpt-5-mini (including vision/images)
-  // gpt-5-mini supports vision natively
+  // Images always need mini (vision capability)
   if (hasImages) {
     console.log('[OpenAI] Image content detected - using gpt-5-mini for vision analysis');
+    return 'gpt-5-mini';
   }
 
-  return 'gpt-5-mini';
+  // Use content-aware routing result
+  if (needsMini) {
+    console.log('[OpenAI] Complex content detected - using gpt-5-mini');
+    return 'gpt-5-mini';
+  }
+
+  // Return the tool-based model (nano for simple, mini for complex)
+  return toolBasedModel;
 }
 
 /**
@@ -427,7 +436,7 @@ export async function createChatCompletion(options: ChatOptions) {
 
 /**
  * Create completion with web search using OpenAI Responses API
- * Uses gpt-4o with web_search tool enabled
+ * Uses gpt-5-mini with web_search tool enabled
  * Includes caching for repeated queries (30 min TTL)
  */
 async function createWebSearchCompletion(
@@ -697,12 +706,12 @@ async function createDirectOpenAICompletion(
         continue;
       }
 
-      // If it's a gpt-5-mini or GPT-4o error, try falling back to mini (only for text-only requests)
-      if ((modelName === 'gpt-5-mini' || modelName === 'gpt-4o') && !hasImageContent(messages)) {
-        console.log('[OpenAI API] Falling back to gpt-4o-mini');
+      // If it's a gpt-5-nano error, escalate to gpt-5-mini (our fallback model)
+      if (modelName === 'gpt-5-nano') {
+        console.log('[OpenAI API] Nano failed - escalating to gpt-5-mini');
         return createDirectOpenAICompletion(
           options,
-          'gpt-4o-mini'
+          'gpt-5-mini'
         );
       }
 

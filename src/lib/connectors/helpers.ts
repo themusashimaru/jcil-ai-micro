@@ -322,7 +322,7 @@ Note: Replace "actual-repo-name" with the REAL repo name from the conversation. 
 - Create channel: [CONNECTOR_ACTION: discord | create_channel | {"guildId": "xxx", "name": "new-channel", "type": 0}]
 
 **OPENAI ACTIONS** (if connected):
-- Chat completion: [CONNECTOR_ACTION: openai | chat | {"prompt": "Hello", "model": "gpt-4o"}]
+- Chat completion: [CONNECTOR_ACTION: openai | chat | {"prompt": "Hello", "model": "gpt-5-mini"}]
 - Generate image: [CONNECTOR_ACTION: openai | generate_image | {"prompt": "A sunset over mountains", "size": "1024x1024"}]
 - List models: [CONNECTOR_ACTION: openai | list_models | {}]
 - Create embeddings: [CONNECTOR_ACTION: openai | embeddings | {"input": "Text to embed", "model": "text-embedding-3-small"}]

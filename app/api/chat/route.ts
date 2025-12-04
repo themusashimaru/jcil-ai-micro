@@ -1,13 +1,14 @@
 /**
- * CHAT API ROUTE - OpenAI GPT-5.1 Integration
+ * CHAT API ROUTE - OpenAI GPT-5 Edition
  *
  * PURPOSE:
  * - Handle chat message requests with streaming responses
- * - Integrate with OpenAI API (GPT-5.1 for all chat tasks)
+ * - Integrate with OpenAI API (GPT-5-nano/mini tiered routing)
  * - Route image generation to DALL-E 3
  *
- * MODEL ROUTING (per Master Directive):
- * - GPT-5.1: ALL chat tasks including vision, code, research, PDFs
+ * MODEL ROUTING (GPT-5 Edition):
+ * - gpt-5-nano: Basic chat, greetings, simple Q&A (cost-optimized)
+ * - gpt-5-mini: Search, files, images, complex reasoning, code, AND fallback
  * - DALL-E 3: Image generation only
  *
  * PUBLIC ROUTES:
@@ -25,7 +26,7 @@
  *
  * FEATURES:
  * - ✅ Streaming responses with SSE
- * - ✅ GPT-5.1 for all chat (vision, code, research, etc.)
+ * - ✅ GPT-5-nano/mini tiered routing with auto-escalation
  * - ✅ Image generation with DALL-E 3
  * - ✅ Tool-specific system prompts
  * - ✅ Temperature and token optimization per tool
@@ -150,7 +151,7 @@ interface ChatRequestBody {
   conversationId?: string; // Current conversation ID to exclude from history
 }
 
-// Detect if user is requesting GitHub code operations (for routing to GPT-5.1)
+// Detect if user is requesting GitHub code operations (for routing to gpt-5-mini)
 function isGitHubCodeOperation(messages: CoreMessage[], connectedServices: string[]): boolean {
   // Only applies if GitHub is connected
   if (!connectedServices.includes('github')) return false;
@@ -488,7 +489,7 @@ export async function POST(request: NextRequest) {
 
     // Only route to image generation if there are NO uploaded images
     // (uploaded images = user wants analysis, not generation)
-    // Per directive: ALL chat goes to GPT-5.1, including image analysis
+    // Images always route to gpt-5-mini for vision capability
     const routeDecision = messageHasUploadedImages
       ? { target: 'mini' as const, reason: 'image-analysis' as const, confidence: 1.0 }
       : decideRoute(lastUserContent, tool);
@@ -497,7 +498,7 @@ export async function POST(request: NextRequest) {
     logRouteDecision(rateLimitIdentifier, routeDecision, lastUserContent);
 
     if (messageHasUploadedImages) {
-      console.log('[Chat API] Detected uploaded image - routing to GPT-5.1 for analysis');
+      console.log('[Chat API] Detected uploaded image - routing to gpt-5-mini for analysis');
     }
 
     // Check if we should route to image generation (only if no uploaded images)
@@ -648,7 +649,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add connector awareness if user has connected services
-    // Also check if this is a GitHub code operation to route to GPT-5.1
+    // Also check if this is a GitHub code operation to route to gpt-5-mini
     let connectedServices: string[] = [];
     let effectiveTool = tool;
 
@@ -668,10 +669,10 @@ export async function POST(request: NextRequest) {
       };
       messagesWithContext = [slingshotSystemMessage, ...messagesWithContext];
 
-      // Check if this is a GitHub code operation - route to GPT-5.1
+      // Check if this is a GitHub code operation - route to gpt-5-mini
       if (connectedServices.length > 0 && isGitHubCodeOperation(messages, connectedServices)) {
         effectiveTool = 'code';
-        console.log('[Chat API] GitHub code operation detected, routing to GPT-5.1');
+        console.log('[Chat API] GitHub code operation detected, routing to gpt-5-mini');
       }
     }
 
@@ -697,7 +698,7 @@ export async function POST(request: NextRequest) {
 
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
-      console.log('[Chat API] Using non-streaming mode for image analysis - routing to GPT-5.1');
+      console.log('[Chat API] Using non-streaming mode for image analysis - routing to gpt-5-mini');
       console.log('[Chat API] Messages being sent:', JSON.stringify(messagesWithContext.slice(-2).map(m => ({
         role: m.role,
         hasArrayContent: Array.isArray(m.content),
