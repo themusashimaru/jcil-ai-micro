@@ -324,7 +324,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                 className="absolute inset-0 flex items-center pointer-events-none py-1.5 px-2 md:p-4"
                 style={{ fontSize: '16px' }}
               >
-                <span className="text-[#00D4FF] font-medium">
+                <span className="text-[#4DFFFF] font-medium">
                   {displayedText}
                   <span className="animate-pulse">|</span>
                 </span>
@@ -344,7 +344,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                   ? 'Drop files here...'
                   : ''
               }
-              className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-[#00D4FF] focus:outline-none min-h-[40px]"
+              className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-[#4DFFFF] focus:outline-none min-h-[40px]"
               rows={1}
               disabled={isStreaming}
               style={{ fontSize: '16px' }}
@@ -384,7 +384,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               <button
                 onClick={() => setShowAttachMenu(!showAttachMenu)}
                 disabled={isStreaming}
-                className="rounded-lg p-1 md:p-2 text-gray-400 hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
+                className="rounded-lg p-1 md:p-2 text-[#4DFFFF] hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
                 title="Attach files"
               >
                 <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -410,7 +410,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                 className={`rounded-lg p-1 md:p-2 transition shrink-0 flex items-center justify-center ${
                   recordingState === 'recording'
                     ? 'bg-red-500 text-white animate-pulse'
-                    : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                    : 'text-[#4DFFFF] hover:bg-white/10 hover:text-white'
                 } disabled:opacity-50`}
                 title={
                   recordingState === 'idle'
@@ -452,7 +452,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-black border-2 border-[#00D4FF] p-0.5 md:p-2.5 text-[#00D4FF] transition-all hover:bg-[#00D4FF]/10 disabled:opacity-50 disabled:animate-none shrink-0 flex items-center justify-center animate-pulse-glow"
+                className="rounded-full bg-black border-2 border-[#4DFFFF] p-0.5 md:p-2.5 text-[#4DFFFF] transition-all hover:bg-[#4DFFFF]/10 disabled:opacity-50 disabled:animate-none shrink-0 flex items-center justify-center animate-pulse-glow"
                 title={isStreaming ? 'Sending...' : 'Send message'}
                 style={{
                   animation: (!message.trim() && attachments.length === 0) || isStreaming ? 'none' : 'pulse-glow 2s ease-in-out infinite',
@@ -467,10 +467,10 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               <style jsx>{`
                 @keyframes pulse-glow {
                   0%, 100% {
-                    box-shadow: 0 0 5px #00D4FF, 0 0 10px rgba(0, 212, 255, 0.3);
+                    box-shadow: 0 0 5px #4DFFFF, 0 0 10px rgba(77, 255, 255, 0.3);
                   }
                   50% {
-                    box-shadow: 0 0 15px #00D4FF, 0 0 25px rgba(0, 212, 255, 0.5), 0 0 35px rgba(0, 212, 255, 0.3);
+                    box-shadow: 0 0 15px #4DFFFF, 0 0 25px rgba(77, 255, 255, 0.5), 0 0 35px rgba(77, 255, 255, 0.3);
                   }
                 }
               `}</style>
