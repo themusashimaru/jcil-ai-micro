@@ -452,13 +452,18 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-black border-2 border-[#4DFFFF] p-0.5 md:p-2.5 text-[#4DFFFF] transition-all hover:bg-[#4DFFFF]/10 disabled:opacity-50 disabled:animate-none shrink-0 flex items-center justify-center animate-pulse-glow"
+                className="rounded-full bg-black border-2 border-[#4DFFFF] p-0.5 md:p-2.5 text-[#4DFFFF] transition-all hover:bg-[#4DFFFF]/10 disabled:opacity-50 disabled:animate-none shrink-0 flex items-center justify-center"
                 title={isStreaming ? 'Sending...' : 'Send message'}
                 style={{
+                  borderColor: '#4DFFFF',
+                  color: '#4DFFFF',
+                  boxShadow: (!message.trim() && attachments.length === 0) || isStreaming
+                    ? 'none'
+                    : '0 0 8px #4DFFFF, 0 0 15px rgba(77, 255, 255, 0.4)',
                   animation: (!message.trim() && attachments.length === 0) || isStreaming ? 'none' : 'pulse-glow 2s ease-in-out infinite',
                 }}
               >
-                <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="#4DFFFF" viewBox="0 0 24 24">
                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                 </svg>
               </button>
@@ -467,10 +472,10 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               <style jsx>{`
                 @keyframes pulse-glow {
                   0%, 100% {
-                    box-shadow: 0 0 5px #4DFFFF, 0 0 10px rgba(77, 255, 255, 0.3);
+                    box-shadow: 0 0 8px #4DFFFF, 0 0 15px rgba(77, 255, 255, 0.4);
                   }
                   50% {
-                    box-shadow: 0 0 15px #4DFFFF, 0 0 25px rgba(77, 255, 255, 0.5), 0 0 35px rgba(77, 255, 255, 0.3);
+                    box-shadow: 0 0 20px #4DFFFF, 0 0 30px rgba(77, 255, 255, 0.6), 0 0 40px rgba(77, 255, 255, 0.3);
                   }
                 }
               `}</style>
