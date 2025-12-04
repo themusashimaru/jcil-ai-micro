@@ -30,30 +30,52 @@ interface ChatComposerProps {
 }
 
 /**
- * Read file content as text (for CSV, TXT) or base64 (for XLSX, PDF)
- * This enables the AI to analyze uploaded documents
+ * Read file content and parse if needed
+ * - CSV/TXT: Read as text directly
+ * - XLSX/PDF: Send to server for parsing to extract readable text
  */
 async function readFileContent(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result);
-    };
-
-    reader.onerror = () => {
-      reject(new Error('Failed to read file'));
-    };
-
-    // Read text files as text, binary files as base64
-    if (file.type === 'text/plain' || file.type === 'text/csv') {
+  // For text files, read directly
+  if (file.type === 'text/plain' || file.type === 'text/csv') {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsText(file);
-    } else {
-      // PDF, XLSX - read as base64 data URL
-      reader.readAsDataURL(file);
-    }
+    });
+  }
+
+  // For Excel and PDF, read as base64 then parse server-side
+  const base64Content = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
   });
+
+  // Send to parsing API
+  try {
+    const response = await fetch('/api/files/parse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        content: base64Content,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to parse file');
+    }
+
+    const result = await response.json();
+    return result.parsedText || base64Content;
+  } catch (error) {
+    console.error('[ChatComposer] File parsing failed, using raw content:', error);
+    // Fall back to base64 if parsing fails
+    return base64Content;
+  }
 }
 
 // Rotating placeholder suggestions to showcase AI capabilities

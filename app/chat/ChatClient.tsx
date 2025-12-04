@@ -662,18 +662,21 @@ export function ChatClient() {
         if (index === allMessages.length - 1 && documentAttachments && documentAttachments.length > 0) {
           documentAttachments.forEach((doc) => {
             const fileContent = doc.url || '';
-            // For text files (CSV, TXT), include the raw content
-            if (doc.type === 'text/plain' || doc.type === 'text/csv') {
-              messageContent = `[File: ${doc.name}]\n\n${fileContent}\n\n${messageContent}`;
-            } else if (doc.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                       doc.type === 'application/vnd.ms-excel') {
-              // For Excel files, we have base64 - include with note
-              messageContent = `[Excel File: ${doc.name} - Please analyze this spreadsheet data]\n\n${messageContent}`;
-              // Note: For full Excel support, we'd need server-side parsing
-            } else if (doc.type === 'application/pdf') {
-              // For PDF files, include with note
-              messageContent = `[PDF File: ${doc.name} - Please analyze this document]\n\n${messageContent}`;
-              // Note: For full PDF support, we'd need server-side text extraction
+
+            // Check if content is base64 (unparsed) or text (parsed)
+            const isBase64 = fileContent.startsWith('data:');
+
+            if (isBase64) {
+              // File wasn't parsed - just note it exists
+              messageContent = `[File: ${doc.name} - Unable to extract content]\n\n${messageContent}`;
+            } else {
+              // File was parsed - include the actual content
+              const fileLabel = doc.type.includes('spreadsheet') || doc.type.includes('excel')
+                ? 'Spreadsheet'
+                : doc.type.includes('pdf')
+                  ? 'Document'
+                  : 'File';
+              messageContent = `[${fileLabel}: ${doc.name}]\n\n${fileContent}\n\n---\n\n${messageContent}`;
             }
           });
         }
