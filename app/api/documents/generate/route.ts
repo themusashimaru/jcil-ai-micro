@@ -16,14 +16,6 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import QRCode from 'qrcode';
-import {
-  Document,
-  Packer,
-  Paragraph,
-  TextRun,
-  AlignmentType,
-  BorderStyle,
-} from 'docx';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -249,274 +241,6 @@ function cleanMarkdown(text: string): { text: string; bold: boolean; italic: boo
   return { text: normalizedText, bold, italic };
 }
 
-/**
- * Generate a Word document from parsed markdown elements
- * Formatting matches the PDF output for consistency
- */
-async function generateWordDocument(
-  elements: Array<{
-    type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote' | 'qr';
-    text: string;
-    items?: string[];
-    rows?: string[][];
-    qrData?: string;
-    qrCount?: number;
-  }>,
-  isResume: boolean,
-  title: string
-): Promise<Buffer> {
-  const children: Paragraph[] = [];
-  let isFirstElement = true;
-  let resumeHeaderDone = false;
-
-  for (const element of elements) {
-    switch (element.type) {
-      case 'h1':
-        if (isResume && isFirstElement) {
-          // Resume: Centered name - matches PDF (24pt bold, centered)
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: cleanMarkdown(element.text).text,
-                  bold: true,
-                  size: 48, // 24pt (Word uses half-points)
-                  font: 'Calibri',
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 60 }, // Tight spacing like PDF (6mm equivalent)
-            })
-          );
-        } else {
-          // Standard H1 - blue header with underline style
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: cleanMarkdown(element.text).text,
-                  bold: true,
-                  size: 40, // 20pt
-                  color: '1E40AF', // Blue like PDF
-                  font: 'Calibri',
-                }),
-              ],
-              border: {
-                bottom: { style: BorderStyle.SINGLE, size: 8, color: '1E40AF' },
-              },
-              spacing: { after: 200 },
-            })
-          );
-        }
-        isFirstElement = false;
-        break;
-
-      case 'h2':
-        if (isResume) {
-          // Resume: Section headers - UPPERCASE with gray underline (matches PDF)
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: cleanMarkdown(element.text).text.toUpperCase(),
-                  bold: true,
-                  size: 24, // 12pt
-                  font: 'Calibri',
-                }),
-              ],
-              border: {
-                bottom: { style: BorderStyle.SINGLE, size: 6, color: '646464' },
-              },
-              spacing: { before: 200, after: 100 },
-            })
-          );
-        } else {
-          // Standard H2 - blue, slightly smaller
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: cleanMarkdown(element.text).text,
-                  bold: true,
-                  size: 32, // 16pt
-                  color: '1E40AF',
-                  font: 'Calibri',
-                }),
-              ],
-              spacing: { before: 160, after: 120 },
-            })
-          );
-        }
-        resumeHeaderDone = true;
-        break;
-
-      case 'h3':
-        // Job titles / subsections - bold
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: cleanMarkdown(element.text).text,
-                bold: true,
-                size: isResume ? 22 : 26, // 11pt or 13pt
-                font: 'Calibri',
-              }),
-            ],
-            spacing: { before: 120, after: 60 },
-          })
-        );
-        break;
-
-      case 'p':
-        const cleaned = cleanMarkdown(element.text);
-        if (isResume && !resumeHeaderDone) {
-          // Resume: Contact info - centered, smaller, gray (matches PDF)
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: cleaned.text,
-                  size: 20, // 10pt
-                  color: '3C3C3C', // Dark gray
-                  font: 'Calibri',
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 160 },
-            })
-          );
-        } else {
-          // Standard paragraph
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: cleaned.text,
-                  bold: cleaned.bold,
-                  italics: cleaned.italic,
-                  size: isResume ? 20 : 22, // 10pt or 11pt
-                  font: 'Calibri',
-                }),
-              ],
-              spacing: { after: isResume ? 60 : 100 },
-            })
-          );
-        }
-        break;
-
-      case 'li':
-        if (element.items) {
-          for (const item of element.items) {
-            const itemCleaned = cleanMarkdown(item);
-            children.push(
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `• ${itemCleaned.text}`,
-                    bold: itemCleaned.bold,
-                    italics: itemCleaned.italic,
-                    size: isResume ? 20 : 22,
-                    font: 'Calibri',
-                  }),
-                ],
-                indent: { left: 360 }, // 0.25 inch
-                spacing: { after: isResume ? 30 : 60 }, // Tighter for resumes
-              })
-            );
-          }
-        }
-        break;
-
-      case 'table':
-        // Tables - render as formatted text rows for now
-        // Full table support would require docx Table objects
-        if (element.rows && element.rows.length > 0) {
-          for (let rowIdx = 0; rowIdx < element.rows.length; rowIdx++) {
-            const row = element.rows[rowIdx];
-            const isHeader = rowIdx === 0;
-            children.push(
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: row.map(cell => cleanMarkdown(cell).text).join('  |  '),
-                    bold: isHeader,
-                    size: 20,
-                    font: 'Calibri',
-                  }),
-                ],
-                spacing: { after: 40 },
-              })
-            );
-          }
-          // Add spacing after table
-          children.push(new Paragraph({ spacing: { after: 100 } }));
-        }
-        break;
-
-      case 'blockquote':
-        children.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: cleanMarkdown(element.text).text,
-                italics: true,
-                color: '475569', // Slate gray
-                font: 'Calibri',
-              }),
-            ],
-            indent: { left: 720 }, // 0.5 inch
-            spacing: { after: 100 },
-            shading: { fill: 'F8FAFC' }, // Light background
-          })
-        );
-        break;
-
-      case 'qr':
-        // QR codes can't be embedded in Word - add clear instruction
-        if (element.qrData) {
-          children.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `📱 QR Code Link: ${element.qrData}`,
-                  color: '1E40AF',
-                  font: 'Calibri',
-                  size: 20,
-                }),
-              ],
-              spacing: { after: 100 },
-            })
-          );
-        }
-        break;
-    }
-  }
-
-  const doc = new Document({
-    title: title,
-    creator: 'JCIL.AI',
-    sections: [
-      {
-        properties: {
-          page: {
-            margin: {
-              // Match PDF margins: 15mm for resume, 20mm for regular docs
-              // Word uses twentieths of a point (1440 = 1 inch)
-              top: isResume ? 567 : 1134, // ~10mm or ~20mm
-              right: isResume ? 567 : 1134,
-              bottom: isResume ? 567 : 1134,
-              left: isResume ? 567 : 1134,
-            },
-          },
-        },
-        children,
-      },
-    ],
-  });
-
-  return await Packer.toBuffer(doc);
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body: DocumentRequest = await request.json();
@@ -538,12 +262,22 @@ export async function POST(request: NextRequest) {
     // Detect document type for special formatting
     const lowerTitle = title.toLowerCase();
     const lowerContent = content.toLowerCase();
+
     const isResume = lowerTitle.includes('resume') ||
                      lowerTitle.includes('résumé') ||
                      lowerTitle.includes('cv') ||
                      lowerContent.includes('work experience') ||
                      lowerContent.includes('professional experience') ||
                      lowerContent.includes('education') && lowerContent.includes('skills');
+
+    const isInvoice = lowerTitle.includes('invoice') ||
+                      lowerTitle.includes('receipt') ||
+                      lowerTitle.includes('bill') ||
+                      lowerContent.includes('invoice #') ||
+                      lowerContent.includes('invoice:') ||
+                      lowerContent.includes('bill to') ||
+                      lowerContent.includes('total due') ||
+                      lowerContent.includes('amount due');
 
     // Create PDF
     const doc = new jsPDF({
@@ -552,7 +286,7 @@ export async function POST(request: NextRequest) {
       format: 'a4',
     });
 
-    // Page settings - tighter margins for resumes
+    // Page settings - tighter margins for resumes, standard for invoices
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = isResume ? 15 : 20;
@@ -587,6 +321,18 @@ export async function POST(request: NextRequest) {
             doc.text(cleanMarkdown(element.text).text, pageWidth / 2, y, { align: 'center' });
             y += 6; // Tight spacing - contact info goes right below name
             resumeHeaderDone = false; // Next paragraph might be contact info
+          } else if (isInvoice && isFirstElement) {
+            // INVOICE: Large bold title, right-aligned or centered
+            doc.setFontSize(28);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 64, 175); // Professional blue
+            doc.text(cleanMarkdown(element.text).text.toUpperCase(), pageWidth - margin, y, { align: 'right' });
+            y += 12;
+            // Add a subtle line under title
+            doc.setDrawColor(30, 64, 175);
+            doc.setLineWidth(0.8);
+            doc.line(pageWidth - 80, y - 3, pageWidth - margin, y - 3);
+            y += 8;
           } else {
             // Standard H1
             doc.setFontSize(20);
@@ -615,6 +361,13 @@ export async function POST(request: NextRequest) {
             doc.setLineWidth(0.3);
             doc.line(margin, y, pageWidth - margin, y);
             y += 5;
+          } else if (isInvoice) {
+            // INVOICE: Section headers (Services/Items, etc.)
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 64, 175);
+            doc.text(cleanMarkdown(element.text).text.toUpperCase(), margin, y);
+            y += 8;
           } else {
             doc.setFontSize(16);
             doc.setFont('helvetica', 'bold');
@@ -645,6 +398,7 @@ export async function POST(request: NextRequest) {
 
         case 'p':
           const cleaned = cleanMarkdown(element.text);
+          const lowerText = cleaned.text.toLowerCase();
 
           if (isResume && !resumeHeaderDone) {
             // RESUME: Contact info - centered, smaller
@@ -653,6 +407,24 @@ export async function POST(request: NextRequest) {
             doc.setTextColor(60, 60, 60);
             doc.text(cleaned.text, pageWidth / 2, y, { align: 'center' });
             y += 6;
+          } else if (isInvoice && (lowerText.includes('total due') || lowerText.includes('amount due') || lowerText.includes('balance due'))) {
+            // INVOICE: Total Due - Large, bold, right-aligned, with background
+            checkPageBreak(15);
+            doc.setFillColor(30, 64, 175);
+            doc.rect(pageWidth - margin - 80, y - 5, 80, 12, 'F');
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(255, 255, 255);
+            doc.text(cleaned.text, pageWidth - margin - 4, y + 2, { align: 'right' });
+            y += 15;
+          } else if (isInvoice && (lowerText.includes('subtotal') || lowerText.includes('tax'))) {
+            // INVOICE: Subtotal/Tax - Right-aligned, bold
+            checkPageBreak(8);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(51, 51, 51);
+            doc.text(cleaned.text, pageWidth - margin, y, { align: 'right' });
+            y += 7;
           } else {
             // Standard paragraph
             doc.setFontSize(isResume ? 10 : 11);
@@ -701,38 +473,89 @@ export async function POST(request: NextRequest) {
         case 'table':
           if (element.rows && element.rows.length > 0) {
             const colCount = element.rows[0].length;
-            const colWidth = contentWidth / colCount;
-            const rowHeight = 8;
+            const rowHeight = isInvoice ? 9 : 8;
+
+            // For invoices: Use custom column widths (Description wider, numbers narrower)
+            let colWidths: number[];
+            if (isInvoice && colCount === 4) {
+              // Invoice table: Description | Qty | Rate | Amount
+              colWidths = [contentWidth * 0.45, contentWidth * 0.15, contentWidth * 0.2, contentWidth * 0.2];
+            } else {
+              // Equal widths for other tables
+              const colWidth = contentWidth / colCount;
+              colWidths = Array(colCount).fill(colWidth);
+            }
 
             checkPageBreak(element.rows.length * rowHeight + 5);
+
+            // For invoices: Add top border
+            if (isInvoice) {
+              doc.setDrawColor(30, 64, 175);
+              doc.setLineWidth(0.5);
+              doc.line(margin, y - 5, pageWidth - margin, y - 5);
+            }
 
             for (let rowIdx = 0; rowIdx < element.rows.length; rowIdx++) {
               const row = element.rows[rowIdx];
               const isHeader = rowIdx === 0;
+              const isLastRow = rowIdx === element.rows.length - 1;
 
               // Background for header
               if (isHeader) {
-                doc.setFillColor(241, 245, 249);
+                if (isInvoice) {
+                  doc.setFillColor(30, 64, 175); // Blue header for invoices
+                } else {
+                  doc.setFillColor(241, 245, 249);
+                }
+                doc.rect(margin, y - 5, contentWidth, rowHeight, 'F');
+              } else if (isInvoice && rowIdx % 2 === 0) {
+                // Alternating row colors for invoices
+                doc.setFillColor(248, 250, 252);
                 doc.rect(margin, y - 5, contentWidth, rowHeight, 'F');
               }
 
               // Cell borders
-              doc.setDrawColor(203, 213, 225);
+              doc.setDrawColor(isInvoice ? 200 : 203, isInvoice ? 200 : 213, isInvoice ? 200 : 225);
               doc.setLineWidth(0.3);
               doc.line(margin, y + 3, pageWidth - margin, y + 3);
 
               // Cell content
+              let cellX = margin;
               for (let colIdx = 0; colIdx < row.length; colIdx++) {
                 const cellCleaned = cleanMarkdown(row[colIdx]);
-                doc.setFontSize(10);
-                doc.setFont('helvetica', isHeader ? 'bold' : 'normal');
-                doc.setTextColor(isHeader ? 30 : 51, isHeader ? 64 : 51, isHeader ? 175 : 51);
+                doc.setFontSize(isInvoice ? 10 : 10);
 
-                const cellX = margin + (colIdx * colWidth) + 2;
-                doc.text(cellCleaned.text.slice(0, 25), cellX, y);
+                if (isHeader) {
+                  doc.setFont('helvetica', 'bold');
+                  doc.setTextColor(isInvoice ? 255 : 30, isInvoice ? 255 : 64, isInvoice ? 255 : 175);
+                } else {
+                  doc.setFont('helvetica', 'normal');
+                  doc.setTextColor(51, 51, 51);
+                }
+
+                // Right-align numbers (last 3 columns for invoices)
+                const isNumberColumn = isInvoice && colIdx > 0;
+                const textAlign = isNumberColumn ? 'right' : 'left';
+                const textX = isNumberColumn ? cellX + colWidths[colIdx] - 2 : cellX + 2;
+
+                const cellText = cellCleaned.text.slice(0, 35);
+                if (textAlign === 'right') {
+                  doc.text(cellText, textX, y, { align: 'right' });
+                } else {
+                  doc.text(cellText, textX, y);
+                }
+
+                cellX += colWidths[colIdx];
               }
 
               y += rowHeight;
+
+              // For invoices: Add bottom border after last row
+              if (isInvoice && isLastRow) {
+                doc.setDrawColor(30, 64, 175);
+                doc.setLineWidth(0.5);
+                doc.line(margin, y - 5, pageWidth - margin, y - 5);
+              }
             }
             y += 5;
           }
@@ -843,27 +666,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate filenames
+    // Generate filename
     const timestamp = Date.now();
     const randomStr = Math.random().toString(36).substring(2, 8);
     const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const pdfFilename = `${safeTitle}_${timestamp}_${randomStr}.pdf`;
-    const wordFilename = `${safeTitle}_${timestamp}_${randomStr}.docx`;
 
     // Generate PDF buffer
     const pdfBuffer = doc.output('arraybuffer');
-
-    // Generate Word document for resumes (or if explicitly requested)
-    let wordBuffer: Buffer | null = null;
-    if (isResume) {
-      try {
-        wordBuffer = await generateWordDocument(elements, isResume, title);
-        console.log('[Documents API] Word document generated, size:', wordBuffer.length);
-      } catch (wordError) {
-        console.error('[Documents API] Word generation error:', wordError);
-        // Continue without Word doc
-      }
-    }
 
     // If Supabase is available and userId provided, upload for secure download
     if (supabase && userId) {
@@ -901,69 +711,22 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Upload Word doc if generated
-      let wordDownloadUrl: string | null = null;
-      if (wordBuffer) {
-        const wordPath = `${userId}/${wordFilename}`;
-        console.log('[Documents API] Uploading Word document:', wordPath, 'size:', wordBuffer.length);
-
-        const { error: wordUploadError } = await supabase.storage
-          .from('documents')
-          .upload(wordPath, wordBuffer, {
-            contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            cacheControl: '3600',
-            upsert: true, // Changed to upsert to allow overwrites
-          });
-
-        if (wordUploadError) {
-          console.error('[Documents API] Word upload failed:', wordUploadError.message);
-        } else {
-          const { data: wordSignedData, error: wordSignError } = await supabase.storage
-            .from('documents')
-            .createSignedUrl(wordPath, 3600);
-
-          if (wordSignError) {
-            console.error('[Documents API] Word signed URL failed:', wordSignError.message);
-          } else {
-            wordDownloadUrl = wordSignedData?.signedUrl || null;
-            console.log('[Documents API] Word document uploaded successfully, signed URL generated');
-          }
-        }
-      }
-
       console.log('[Documents API] PDF uploaded successfully:', pdfPath);
 
-      // Generate clean proxy URLs that hide Supabase details
-      // Fall back to request origin if NEXT_PUBLIC_APP_URL is not set
+      // Generate clean proxy URL that hides Supabase details
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
                       request.headers.get('origin') ||
                       'https://jcil.ai';
 
-      // Encode tokens for proxy URLs
       const pdfToken = Buffer.from(JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })).toString('base64url');
       const pdfProxyUrl = `${baseUrl}/api/documents/download?token=${pdfToken}`;
 
-      let wordProxyUrl: string | undefined;
-      // Check if Word document was successfully uploaded (wordDownloadUrl is the signed URL)
-      if (wordDownloadUrl && wordBuffer) {
-        const wordToken = Buffer.from(JSON.stringify({ u: userId, f: wordFilename, t: 'docx' })).toString('base64url');
-        wordProxyUrl = `${baseUrl}/api/documents/download?token=${wordToken}`;
-        console.log('[Documents API] Word proxy URL generated:', wordProxyUrl.substring(0, 50) + '...');
-      } else if (wordBuffer && !wordDownloadUrl) {
-        console.warn('[Documents API] Word buffer exists but upload failed - no URL generated');
-      }
-
-      // Return both PDF and Word URLs for resumes (using proxy URLs)
       return NextResponse.json({
         success: true,
-        format: isResume ? 'both' : 'pdf',
+        format: 'pdf',
         title,
-        // PDF - use proxy URL
         filename: pdfFilename,
         downloadUrl: pdfProxyUrl,
-        // Word (if resume) - use proxy URL
-        wordFilename: wordBuffer ? wordFilename : undefined,
-        wordDownloadUrl: wordProxyUrl,
         expiresIn: '1 hour',
         storage: 'supabase',
       });
