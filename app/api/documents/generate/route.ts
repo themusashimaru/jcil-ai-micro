@@ -21,7 +21,6 @@ import {
   Packer,
   Paragraph,
   TextRun,
-  HeadingLevel,
   AlignmentType,
   BorderStyle,
 } from 'docx';
@@ -901,11 +900,6 @@ export async function POST(request: NextRequest) {
           storage: 'fallback',
         });
       }
-
-      // Get signed URL for PDF
-      const { data: pdfSignedData } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(pdfPath, 3600);
 
       // Upload Word doc if generated
       let wordDownloadUrl: string | null = null;

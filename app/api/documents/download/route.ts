@@ -18,12 +18,7 @@ import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 
-// Simple encoding/decoding for file paths (not encryption, but obfuscation)
-function encodeToken(userId: string, filename: string, type: 'pdf' | 'docx'): string {
-  const data = JSON.stringify({ u: userId, f: filename, t: type });
-  return Buffer.from(data).toString('base64url');
-}
-
+// Decode token (encoded as base64url JSON with userId, filename, type)
 function decodeToken(token: string): { userId: string; filename: string; type: 'pdf' | 'docx' } | null {
   try {
     const data = JSON.parse(Buffer.from(token, 'base64url').toString());
@@ -131,5 +126,3 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Export the encoding function for use in document generation
-export { encodeToken };
