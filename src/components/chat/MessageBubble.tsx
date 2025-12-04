@@ -26,9 +26,10 @@ import { ConnectorAction, parseConnectorActions } from './ConnectorAction';
 interface MessageBubbleProps {
   message: Message;
   isLast: boolean;
+  isAdmin?: boolean;
 }
 
-export function MessageBubble({ message, isLast }: MessageBubbleProps) {
+export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
 
@@ -348,16 +349,29 @@ export function MessageBubble({ message, isLast }: MessageBubbleProps) {
             </div>
           )}
 
-          {/* Timestamp */}
-          <div
-            className={`mt-1 text-xs ${
-              isUser ? 'text-white/70' : 'text-gray-400'
-            }`}
-          >
-            {new Date(message.timestamp).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+          {/* Timestamp and Admin Model Badge */}
+          <div className={`mt-1 flex items-center gap-2 text-xs ${isUser ? 'text-white/70' : 'text-gray-400'}`}>
+            <span>
+              {new Date(message.timestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+            {/* Admin-only model indicator */}
+            {isAdmin && !isUser && message.model && (
+              <span
+                className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                  message.model.includes('nano')
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : message.model.includes('mini')
+                    ? 'bg-blue-500/20 text-blue-400'
+                    : 'bg-purple-500/20 text-purple-400'
+                }`}
+                title={`Model: ${message.model}`}
+              >
+                {message.model.replace('gpt-5-', '')}
+              </span>
+            )}
           </div>
         </div>
 

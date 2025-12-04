@@ -35,10 +35,11 @@ interface ChatThreadProps {
   messages: Message[];
   isStreaming: boolean;
   currentChatId: string | null;
+  isAdmin?: boolean;
   onSubmitPrompt?: (prompt: string) => void;
 }
 
-export function ChatThread({ messages, isStreaming, currentChatId, onSubmitPrompt }: ChatThreadProps) {
+export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSubmitPrompt }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -190,6 +191,7 @@ export function ChatThread({ messages, isStreaming, currentChatId, onSubmitPromp
               <MessageBubble
                 message={message}
                 isLast={index === messages.length - 1}
+                isAdmin={isAdmin}
               />
             </div>
           );
