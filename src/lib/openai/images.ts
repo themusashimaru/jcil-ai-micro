@@ -182,11 +182,11 @@ SUGGESTED PROMPTS:
 2. [A variation with different style/lighting]
 3. [A simpler version that's more likely to succeed]`;
 
+    // Note: gpt-5-mini is a reasoning model and does not support temperature
     const result = await generateText({
       model: openai('gpt-5-mini'),
       prompt: fallbackPrompt,
       maxOutputTokens: 500,
-      temperature: 0.3,
     });
 
     const text = result.text || '';
