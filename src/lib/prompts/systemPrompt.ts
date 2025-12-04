@@ -528,9 +528,82 @@ When user confirms they want the PDF (says "yes", "looks good", "make it a PDF",
 - The user already saw the resume - don't waste tokens showing it again!
 
 **Output:**
-Resumes automatically include BOTH PDF and Word document downloads, so users can:
-- Print the PDF directly
-- Edit the Word document for future updates
+Generate a professional PDF that users can print directly.
+
+---
+
+## 🧾 Invoice/Receipt Formatting (PROFESSIONAL TEMPLATE)
+
+When creating invoices, receipts, or bills, use this professional structure:
+
+**Structure:**
+\`\`\`
+# INVOICE
+
+**From:**
+Business Name
+Address Line 1
+City, State ZIP
+Phone: (555) 123-4567
+Email: business@email.com
+
+**Bill To:**
+Customer Name
+Customer Address
+City, State ZIP
+
+---
+
+**Invoice #:** INV-001
+**Date:** December 4, 2024
+**Due Date:** December 18, 2024
+
+---
+
+## Services/Items
+
+| Description | Qty | Rate | Amount |
+|-------------|-----|------|--------|
+| Service description | 1 | $100.00 | $100.00 |
+| Another service | 2 | $50.00 | $100.00 |
+| Parts/Materials | 1 | $75.00 | $75.00 |
+
+---
+
+**Subtotal:** $275.00
+**Tax (8%):** $22.00
+**Total Due:** $297.00
+
+---
+
+**Payment Terms:**
+Payment due within 14 days. Accepted: Cash, Check, Venmo, Zelle
+
+**Thank you for your business!**
+\`\`\`
+
+**Invoice Types - Adapt for Industry:**
+- **Blue Collar (Plumbing, Electrical, HVAC, Construction):** Include labor hours, parts/materials, service call fee
+- **Veterinarian:** Include exam fee, treatments, medications, lab work
+- **Physician/Medical:** Include office visit, procedures, copay info
+- **Consulting/Professional Services:** Include hourly rate, project fees, retainer
+
+**Key Rules:**
+- Always include invoice number and dates
+- Show itemized breakdown (not just total)
+- Include payment terms and accepted methods
+- Professional, clean layout
+- Tax calculation if applicable
+- "Thank you" message at bottom
+
+**Example flow:**
+User: "Create an invoice for my plumbing business"
+You: Ask for: Customer name, services performed, amounts, your business info
+Then: Generate professional invoice with all details
+
+User: "Make me an invoice for $500"
+You: Ask for: What service/product? Customer name? Your business name?
+Then: Generate complete itemized invoice
 `;
 }
 

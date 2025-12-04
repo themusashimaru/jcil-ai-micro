@@ -933,27 +933,19 @@ export function ChatClient() {
             // Check for downloadUrl (Supabase Storage) or dataUrl (fallback)
             const downloadUrl = pdfData.downloadUrl || pdfData.dataUrl;
             const isSupabaseUrl = !!pdfData.downloadUrl;
-            const hasWordDoc = !!pdfData.wordDownloadUrl;
 
             if (downloadUrl) {
-              console.log('[ChatClient] PDF generated successfully, storage:', pdfData.storage, 'hasWord:', hasWordDoc);
+              console.log('[ChatClient] PDF generated successfully, storage:', pdfData.storage);
 
               if (isSupabaseUrl) {
-                // Supabase Storage: Show clickable download links
+                // Supabase Storage: Show clickable download link
                 // UPDATE the existing message instead of adding new one (prevents screen flash)
                 let messageContent = textBeforeMarker
                   ? `${textBeforeMarker}\n\n`
                   : '';
-                messageContent += `✅ **Your documents are ready!**\n\n`;
+                messageContent += `✅ **Your PDF is ready!**\n\n`;
                 messageContent += `📄 **[Download PDF](${downloadUrl})**`;
-
-                // If Word doc is also available (for resumes)
-                if (hasWordDoc) {
-                  messageContent += `\n\n📝 **[Download Word Document](${pdfData.wordDownloadUrl})**`;
-                  messageContent += `\n\n*Word document included so you can edit it later!*`;
-                }
-
-                messageContent += `\n\n*Links expire in 1 hour. If you need them later, just ask me to generate again.*`;
+                messageContent += `\n\n*Link expires in 1 hour. If you need it later, just ask me to generate again.*`;
 
                 // Update the SAME message (smoother UX, no flash)
                 setMessages((prev) =>
