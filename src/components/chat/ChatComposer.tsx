@@ -452,13 +452,28 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-black border border-white/20 p-0.5 md:p-2.5 text-white transition hover:bg-gray-900 disabled:opacity-50 shrink-0 flex items-center justify-center"
+                className="rounded-full bg-black border-2 border-[#00D4FF] p-0.5 md:p-2.5 text-[#00D4FF] transition-all hover:bg-[#00D4FF]/10 disabled:opacity-50 disabled:animate-none shrink-0 flex items-center justify-center animate-pulse-glow"
                 title={isStreaming ? 'Sending...' : 'Send message'}
+                style={{
+                  animation: (!message.trim() && attachments.length === 0) || isStreaming ? 'none' : 'pulse-glow 2s ease-in-out infinite',
+                }}
               >
                 <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                 </svg>
               </button>
+
+              {/* Pulse glow animation styles */}
+              <style jsx>{`
+                @keyframes pulse-glow {
+                  0%, 100% {
+                    box-shadow: 0 0 5px #00D4FF, 0 0 10px rgba(0, 212, 255, 0.3);
+                  }
+                  50% {
+                    box-shadow: 0 0 15px #00D4FF, 0 0 25px rgba(0, 212, 255, 0.5), 0 0 35px rgba(0, 212, 255, 0.3);
+                  }
+                }
+              `}</style>
             </div>
           </div>
         </div>
