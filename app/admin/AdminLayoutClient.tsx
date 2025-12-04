@@ -24,7 +24,6 @@ export default function AdminLayoutClient({
     { name: 'Conversations', href: '/admin/conversations', icon: '💬', disabled: true },
     { name: 'Earnings', href: '/admin/earnings', icon: '💰' },
     { name: 'Design', href: '/admin/design', icon: '🎨' },
-    { name: 'Notifications', href: '/admin/notifications', icon: '🔔' },
     { name: 'Billing', href: '/admin/billing', icon: '💳', disabled: true },
     { name: 'Plans', href: '/admin/plans', icon: '📋', disabled: true },
     { name: 'Branding', href: '/admin/branding', icon: '🏷️', disabled: true },
