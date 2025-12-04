@@ -600,6 +600,7 @@ export async function POST(request: NextRequest) {
               'Content-Type': 'application/json',
               'X-Route-Target': 'image',
               'X-Route-Reason': routeDecision.reason,
+              'X-Model-Used': imageResult.model || 'dall-e-3',
               'X-Image-Remaining': String(imageUsage.remaining),
             },
           }

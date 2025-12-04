@@ -365,11 +365,15 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
                     ? 'bg-emerald-500/20 text-emerald-400'
                     : message.model.includes('mini')
                     ? 'bg-blue-500/20 text-blue-400'
+                    : message.model.includes('dall-e')
+                    ? 'bg-pink-500/20 text-pink-400'
                     : 'bg-purple-500/20 text-purple-400'
                 }`}
                 title={`Model: ${message.model}`}
               >
-                {message.model.replace('gpt-5-', '')}
+                {message.model.includes('dall-e')
+                  ? 'dall-e'
+                  : message.model.replace('gpt-5-', '')}
               </span>
             )}
           </div>
