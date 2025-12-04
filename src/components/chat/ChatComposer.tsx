@@ -492,11 +492,11 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               <button
                 onClick={handleMicClick}
                 disabled={isStreaming || recordingState === 'transcribing'}
-                className={`rounded-lg p-1 md:p-2 transition shrink-0 flex items-center justify-center ${
-                  recordingState === 'recording'
-                    ? 'bg-red-500 text-white animate-pulse'
-                    : 'text-[#4DFFFF] hover:bg-white/10 hover:text-white'
-                } disabled:opacity-50`}
+                className="rounded-lg p-1 md:p-2 transition-all shrink-0 flex items-center justify-center text-[#4DFFFF] hover:bg-white/10 disabled:opacity-50"
+                style={{
+                  animation: recordingState === 'recording' ? 'mic-pulse-glow 1.5s ease-in-out infinite' : 'none',
+                  boxShadow: recordingState === 'recording' ? '0 0 10px #4DFFFF, 0 0 20px rgba(77, 255, 255, 0.5)' : 'none',
+                }}
                 title={
                   recordingState === 'idle'
                     ? 'Start recording'
@@ -506,7 +506,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                 }
               >
                 {recordingState === 'transcribing' ? (
-                  <svg className="h-4 w-4 md:h-5 md:w-5 animate-spin" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 md:h-5 md:w-5 animate-spin text-[#4DFFFF]" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -533,6 +533,18 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                   </svg>
                 )}
               </button>
+
+              {/* Microphone pulse glow animation */}
+              <style jsx>{`
+                @keyframes mic-pulse-glow {
+                  0%, 100% {
+                    box-shadow: 0 0 10px #4DFFFF, 0 0 20px rgba(77, 255, 255, 0.4);
+                  }
+                  50% {
+                    box-shadow: 0 0 20px #4DFFFF, 0 0 35px rgba(77, 255, 255, 0.6), 0 0 50px rgba(77, 255, 255, 0.3);
+                  }
+                }
+              `}</style>
 
               <button
                 onClick={handleSend}
