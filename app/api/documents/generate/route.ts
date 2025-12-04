@@ -76,7 +76,7 @@ function getSupabaseAdmin() {
  * Supports special QR code syntax: {{QR:url}} or {{QR:url:count}} for multiple QR codes
  */
 function parseMarkdown(markdown: string): Array<{
-  type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote' | 'qr';
+  type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote' | 'qr' | 'hr';
   text: string;
   items?: string[];
   rows?: string[][];
@@ -85,7 +85,7 @@ function parseMarkdown(markdown: string): Array<{
 }> {
   const lines = markdown.split('\n');
   const elements: Array<{
-    type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote' | 'qr';
+    type: 'h1' | 'h2' | 'h3' | 'p' | 'li' | 'table' | 'blockquote' | 'qr' | 'hr';
     text: string;
     items?: string[];
     rows?: string[][];
@@ -125,6 +125,12 @@ function parseMarkdown(markdown: string): Array<{
     }
     if (line.startsWith('### ')) {
       elements.push({ type: 'h3', text: line.slice(4) });
+      continue;
+    }
+
+    // Horizontal rule (---, ***, ___)
+    if (line.match(/^[-*_]{3,}$/)) {
+      elements.push({ type: 'hr', text: '' });
       continue;
     }
 
@@ -425,9 +431,40 @@ export async function POST(request: NextRequest) {
             doc.setTextColor(51, 51, 51);
             doc.text(cleaned.text, pageWidth - margin, y, { align: 'right' });
             y += 7;
+          } else if (isInvoice && (
+            lowerText.startsWith('from:') ||
+            lowerText.startsWith('bill to:') ||
+            lowerText.includes('invoice #') ||
+            lowerText.includes('invoice:') ||
+            lowerText.startsWith('date:') ||
+            lowerText.startsWith('due date:') ||
+            lowerText.startsWith('payment terms:') ||
+            lowerText.startsWith('accepted payment') ||
+            lowerText.includes('thank you')
+          )) {
+            // INVOICE: Header labels (From:, Bill To:, Invoice #, etc.) - Bold, tight spacing
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 64, 175);
+            doc.text(cleaned.text, margin, y);
+            y += 5; // Tight spacing for labels
+          } else if (isInvoice && (
+            // Detect address/contact lines: contains phone, email, city/state patterns, or is short text after From:/Bill To:
+            lowerText.includes('phone:') ||
+            lowerText.includes('email:') ||
+            lowerText.match(/[a-z]+,\s*[a-z]{2}\s*\d{5}/i) || // City, ST ZIP pattern
+            lowerText.match(/^\d+\s+\w+/) || // Street address pattern (123 Main St)
+            (cleaned.text.length < 50 && !lowerText.includes(':') && y < 120) // Short lines in header area
+          )) {
+            // INVOICE: Address/contact lines - Normal weight, single-spaced
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(51, 51, 51);
+            doc.text(cleaned.text, margin, y);
+            y += 4; // Single-spaced for address lines
           } else {
             // Standard paragraph
-            doc.setFontSize(isResume ? 10 : 11);
+            doc.setFontSize(isResume ? 10 : (isInvoice ? 10 : 11));
             let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
             if (cleaned.bold && cleaned.italic) fontStyle = 'bolditalic';
             else if (cleaned.bold) fontStyle = 'bold';
@@ -436,11 +473,11 @@ export async function POST(request: NextRequest) {
             doc.setTextColor(51, 51, 51);
 
             const splitText = doc.splitTextToSize(cleaned.text, contentWidth);
-            const textHeight = splitText.length * (isResume ? 4 : 5);
+            const textHeight = splitText.length * (isResume ? 4 : (isInvoice ? 4 : 5));
             checkPageBreak(textHeight);
 
             doc.text(splitText, margin, y);
-            y += textHeight + (isResume ? 2 : 3);
+            y += textHeight + (isResume ? 2 : (isInvoice ? 1 : 3));
           }
           break;
 
@@ -578,6 +615,25 @@ export async function POST(request: NextRequest) {
           doc.setTextColor(71, 85, 105);
           doc.text(quoteText, margin + 8, y);
           y += quoteHeight + 3;
+          break;
+
+        case 'hr':
+          // Horizontal rule - minimal spacing for invoices, normal for others
+          if (isInvoice) {
+            // For invoices: subtle gray line with minimal spacing
+            y += 2;
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.3);
+            doc.line(margin, y, pageWidth - margin, y);
+            y += 4;
+          } else {
+            // For other documents: more visible line with spacing
+            y += 3;
+            doc.setDrawColor(203, 213, 225);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y, pageWidth - margin, y);
+            y += 6;
+          }
           break;
 
         case 'qr':

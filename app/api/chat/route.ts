@@ -877,32 +877,14 @@ export async function POST(request: NextRequest) {
       console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     }
 
-    // Check for specific error types
-    if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        return new Response(
-          JSON.stringify({
-            error: 'API configuration error',
-            details: 'OPENAI_API_KEY is not configured',
-          }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-    }
-
-    // Return error with details to help debug
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // Return user-friendly error (keep technical details in server logs only)
     return new Response(
       JSON.stringify({
-        error: 'Internal server error',
-        message: 'An unexpected error occurred. Please try again.',
-        details: errorMessage, // Include actual error for debugging
+        error: 'Service temporarily unavailable',
+        message: 'Due to high traffic, please try again in a few seconds.',
       }),
       {
-        status: 500,
+        status: 503,
         headers: { 'Content-Type': 'application/json' },
       }
     );

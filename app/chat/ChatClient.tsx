@@ -1126,18 +1126,18 @@ export function ChatClient() {
     } catch (error) {
       console.error('Chat API error:', error);
 
-      // Show error message
+      // Show user-friendly error message (no technical details)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the console and Vercel logs.`,
+        content: `Due to high traffic, I wasn't able to process your request. Please try again in a few seconds.`,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, errorMessage]);
       setIsStreaming(false);
 
-      // Save error message to database
+      // Save error message to database (keep technical details in logs only)
       await saveMessageToDatabase(newChatId, 'assistant', errorMessage.content, 'error');
     }
   };
