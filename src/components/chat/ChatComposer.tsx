@@ -20,8 +20,6 @@
 
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import type { Attachment } from '@/app/chat/types';
-// REMOVED: QuickImageGenerator - chat now handles image generation naturally
-import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 
 interface ChatComposerProps {
@@ -107,9 +105,6 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  // Speech recognition (mic-to-text using native browser API)
-  const { recordingState, error: recordingError, startRecording, stopRecording, isSupported: isSpeechSupported } = useAudioRecorder();
 
   // Typewriter effect - type out each character
   useEffect(() => {
@@ -296,26 +291,6 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
     setAttachments(attachments.filter((a) => a.id !== id));
   };
 
-  const handleMicClick = async () => {
-    if (recordingState === 'idle') {
-      // Start speech recognition
-      await startRecording();
-    } else if (recordingState === 'recording') {
-      // Stop and get transcribed text
-      try {
-        const transcribedText = await stopRecording();
-
-        // Add transcribed text to message if we got something
-        if (transcribedText && transcribedText.trim()) {
-          setMessage((prev) => (prev ? prev + ' ' + transcribedText.trim() : transcribedText.trim()));
-          // useEffect will handle textarea height adjustment
-        }
-      } catch (error) {
-        console.error('Speech recognition failed:', error);
-      }
-    }
-  };
-
   return (
     <div className="glass-morphism border-t border-white/10 py-0 px-1 md:p-4 pb-safe">
       <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
@@ -411,7 +386,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
         >
           <div className="relative">
             {/* Typewriter placeholder overlay */}
-            {!isFocused && !message && recordingState !== 'recording' && !isDragging && (
+            {!isFocused && !message && !isDragging && (
               <div
                 className="absolute inset-0 flex items-center pointer-events-none py-1.5 px-2 md:p-4"
                 style={{ fontSize: '16px' }}
@@ -429,13 +404,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               onKeyDown={handleKeyDown}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              placeholder={
-                recordingState === 'recording'
-                  ? 'Listening...'
-                  : isDragging
-                  ? 'Drop files here...'
-                  : ''
-              }
+              placeholder={isDragging ? 'Drop files here...' : ''}
               className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-[#4DFFFF] focus:outline-none min-h-[40px]"
               rows={1}
               disabled={isStreaming}
@@ -493,82 +462,11 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                   Chat now handles all of these naturally through conversation */}
             </div>
 
-            <div className="flex items-center justify-center gap-0 md:gap-2 shrink-0">
-
-              {/* Microphone Button - no background, just glowing icon */}
-              <button
-                onClick={handleMicClick}
-                disabled={isStreaming || recordingState === 'transcribing' || !isSpeechSupported}
-                className="p-1 md:p-2 transition-all shrink-0 flex items-center justify-center text-[#4DFFFF] hover:opacity-80 disabled:opacity-50 bg-transparent"
-                style={{
-                  background: 'transparent',
-                }}
-                title={
-                  !isSpeechSupported
-                    ? 'Speech recognition not supported in this browser'
-                    : recordingState === 'idle'
-                    ? 'Start dictation'
-                    : recordingState === 'recording'
-                    ? 'Stop dictation'
-                    : 'Processing...'
-                }
-              >
-                {recordingState === 'transcribing' ? (
-                  <svg className="h-4 w-4 md:h-5 md:w-5 animate-spin text-[#4DFFFF]" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className="h-4 w-4 md:h-5 md:w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    style={{
-                      filter: recordingState === 'recording'
-                        ? 'drop-shadow(0 0 8px #4DFFFF) drop-shadow(0 0 15px #4DFFFF)'
-                        : 'none',
-                      animation: recordingState === 'recording' ? 'mic-icon-glow 1.5s ease-in-out infinite' : 'none',
-                    }}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                    />
-                  </svg>
-                )}
-              </button>
-
-              {/* Microphone icon glow animation */}
-              <style jsx>{`
-                @keyframes mic-icon-glow {
-                  0%, 100% {
-                    filter: drop-shadow(0 0 6px #4DFFFF) drop-shadow(0 0 12px rgba(77, 255, 255, 0.5));
-                  }
-                  50% {
-                    filter: drop-shadow(0 0 12px #4DFFFF) drop-shadow(0 0 25px rgba(77, 255, 255, 0.7)) drop-shadow(0 0 35px rgba(77, 255, 255, 0.4));
-                  }
-                }
-              `}</style>
-
+            <div className="flex items-center justify-center shrink-0">
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-black border-2 border-[#4DFFFF] p-0.5 md:p-2.5 text-[#4DFFFF] transition-all hover:bg-[#4DFFFF]/10 disabled:opacity-50 disabled:animate-none shrink-0 flex items-center justify-center"
+                className="rounded-full bg-black border-2 p-0.5 md:p-2.5 transition-all hover:bg-[#4DFFFF]/10 shrink-0 flex items-center justify-center"
                 title={isStreaming ? 'Sending...' : 'Send message'}
                 style={{
                   borderColor: '#4DFFFF',
@@ -598,13 +496,6 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
             </div>
           </div>
         </div>
-
-        {/* Recording Error */}
-        {recordingError && (
-          <p className="mt-0 text-xs text-red-400">
-            {recordingError}
-          </p>
-        )}
 
         {/* File Upload Error */}
         {fileError && (
