@@ -21,7 +21,6 @@ import {
   Packer,
   Paragraph,
   TextRun,
-  HeadingLevel,
   AlignmentType,
   BorderStyle,
 } from 'docx';
@@ -252,6 +251,7 @@ function cleanMarkdown(text: string): { text: string; bold: boolean; italic: boo
 
 /**
  * Generate a Word document from parsed markdown elements
+ * Formatting matches the PDF output for consistency
  */
 async function generateWordDocument(
   elements: Array<{
@@ -262,7 +262,8 @@ async function generateWordDocument(
     qrData?: string;
     qrCount?: number;
   }>,
-  isResume: boolean
+  isResume: boolean,
+  title: string
 ): Promise<Buffer> {
   const children: Paragraph[] = [];
   let isFirstElement = true;
@@ -272,25 +273,37 @@ async function generateWordDocument(
     switch (element.type) {
       case 'h1':
         if (isResume && isFirstElement) {
-          // Resume: Centered name
+          // Resume: Centered name - matches PDF (24pt bold, centered)
           children.push(
             new Paragraph({
               children: [
                 new TextRun({
                   text: cleanMarkdown(element.text).text,
                   bold: true,
-                  size: 48, // 24pt
+                  size: 48, // 24pt (Word uses half-points)
+                  font: 'Calibri',
                 }),
               ],
               alignment: AlignmentType.CENTER,
-              spacing: { after: 100 },
+              spacing: { after: 60 }, // Tight spacing like PDF (6mm equivalent)
             })
           );
         } else {
+          // Standard H1 - blue header with underline style
           children.push(
             new Paragraph({
-              text: cleanMarkdown(element.text).text,
-              heading: HeadingLevel.HEADING_1,
+              children: [
+                new TextRun({
+                  text: cleanMarkdown(element.text).text,
+                  bold: true,
+                  size: 40, // 20pt
+                  color: '1E40AF', // Blue like PDF
+                  font: 'Calibri',
+                }),
+              ],
+              border: {
+                bottom: { style: BorderStyle.SINGLE, size: 8, color: '1E40AF' },
+              },
               spacing: { after: 200 },
             })
           );
@@ -300,7 +313,7 @@ async function generateWordDocument(
 
       case 'h2':
         if (isResume) {
-          // Resume: Section headers - uppercase with border
+          // Resume: Section headers - UPPERCASE with gray underline (matches PDF)
           children.push(
             new Paragraph({
               children: [
@@ -308,20 +321,29 @@ async function generateWordDocument(
                   text: cleanMarkdown(element.text).text.toUpperCase(),
                   bold: true,
                   size: 24, // 12pt
+                  font: 'Calibri',
                 }),
               ],
               border: {
-                bottom: { style: BorderStyle.SINGLE, size: 6, color: '666666' },
+                bottom: { style: BorderStyle.SINGLE, size: 6, color: '646464' },
               },
-              spacing: { before: 240, after: 120 },
+              spacing: { before: 200, after: 100 },
             })
           );
         } else {
+          // Standard H2 - blue, slightly smaller
           children.push(
             new Paragraph({
-              text: cleanMarkdown(element.text).text,
-              heading: HeadingLevel.HEADING_2,
-              spacing: { after: 160 },
+              children: [
+                new TextRun({
+                  text: cleanMarkdown(element.text).text,
+                  bold: true,
+                  size: 32, // 16pt
+                  color: '1E40AF',
+                  font: 'Calibri',
+                }),
+              ],
+              spacing: { before: 160, after: 120 },
             })
           );
         }
@@ -329,16 +351,18 @@ async function generateWordDocument(
         break;
 
       case 'h3':
+        // Job titles / subsections - bold
         children.push(
           new Paragraph({
             children: [
               new TextRun({
                 text: cleanMarkdown(element.text).text,
                 bold: true,
-                size: isResume ? 22 : 26,
+                size: isResume ? 22 : 26, // 11pt or 13pt
+                font: 'Calibri',
               }),
             ],
-            spacing: { before: 160, after: 80 },
+            spacing: { before: 120, after: 60 },
           })
         );
         break;
@@ -346,21 +370,23 @@ async function generateWordDocument(
       case 'p':
         const cleaned = cleanMarkdown(element.text);
         if (isResume && !resumeHeaderDone) {
-          // Resume: Contact info centered
+          // Resume: Contact info - centered, smaller, gray (matches PDF)
           children.push(
             new Paragraph({
               children: [
                 new TextRun({
                   text: cleaned.text,
                   size: 20, // 10pt
-                  color: '444444',
+                  color: '3C3C3C', // Dark gray
+                  font: 'Calibri',
                 }),
               ],
               alignment: AlignmentType.CENTER,
-              spacing: { after: 200 },
+              spacing: { after: 160 },
             })
           );
         } else {
+          // Standard paragraph
           children.push(
             new Paragraph({
               children: [
@@ -368,10 +394,11 @@ async function generateWordDocument(
                   text: cleaned.text,
                   bold: cleaned.bold,
                   italics: cleaned.italic,
-                  size: isResume ? 20 : 22,
+                  size: isResume ? 20 : 22, // 10pt or 11pt
+                  font: 'Calibri',
                 }),
               ],
-              spacing: { after: isResume ? 80 : 120 },
+              spacing: { after: isResume ? 60 : 100 },
             })
           );
         }
@@ -389,13 +416,40 @@ async function generateWordDocument(
                     bold: itemCleaned.bold,
                     italics: itemCleaned.italic,
                     size: isResume ? 20 : 22,
+                    font: 'Calibri',
                   }),
                 ],
                 indent: { left: 360 }, // 0.25 inch
-                spacing: { after: isResume ? 40 : 80 },
+                spacing: { after: isResume ? 30 : 60 }, // Tighter for resumes
               })
             );
           }
+        }
+        break;
+
+      case 'table':
+        // Tables - render as formatted text rows for now
+        // Full table support would require docx Table objects
+        if (element.rows && element.rows.length > 0) {
+          for (let rowIdx = 0; rowIdx < element.rows.length; rowIdx++) {
+            const row = element.rows[rowIdx];
+            const isHeader = rowIdx === 0;
+            children.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: row.map(cell => cleanMarkdown(cell).text).join('  |  '),
+                    bold: isHeader,
+                    size: 20,
+                    font: 'Calibri',
+                  }),
+                ],
+                spacing: { after: 40 },
+              })
+            );
+          }
+          // Add spacing after table
+          children.push(new Paragraph({ spacing: { after: 100 } }));
         }
         break;
 
@@ -406,28 +460,31 @@ async function generateWordDocument(
               new TextRun({
                 text: cleanMarkdown(element.text).text,
                 italics: true,
-                color: '666666',
+                color: '475569', // Slate gray
+                font: 'Calibri',
               }),
             ],
             indent: { left: 720 }, // 0.5 inch
-            spacing: { after: 120 },
+            spacing: { after: 100 },
+            shading: { fill: 'F8FAFC' }, // Light background
           })
         );
         break;
 
       case 'qr':
-        // QR codes can't be embedded in Word easily - add placeholder text
+        // QR codes can't be embedded in Word - add clear instruction
         if (element.qrData) {
           children.push(
             new Paragraph({
               children: [
                 new TextRun({
-                  text: `[QR Code: ${element.qrData}]`,
-                  italics: true,
-                  color: '999999',
+                  text: `📱 QR Code Link: ${element.qrData}`,
+                  color: '1E40AF',
+                  font: 'Calibri',
+                  size: 20,
                 }),
               ],
-              spacing: { after: 120 },
+              spacing: { after: 100 },
             })
           );
         }
@@ -436,15 +493,19 @@ async function generateWordDocument(
   }
 
   const doc = new Document({
+    title: title,
+    creator: 'JCIL.AI',
     sections: [
       {
         properties: {
           page: {
             margin: {
-              top: isResume ? 720 : 1440, // 0.5" or 1" margins
-              right: isResume ? 720 : 1440,
-              bottom: isResume ? 720 : 1440,
-              left: isResume ? 720 : 1440,
+              // Match PDF margins: 15mm for resume, 20mm for regular docs
+              // Word uses twentieths of a point (1440 = 1 inch)
+              top: isResume ? 567 : 1134, // ~10mm or ~20mm
+              right: isResume ? 567 : 1134,
+              bottom: isResume ? 567 : 1134,
+              left: isResume ? 567 : 1134,
             },
           },
         },
@@ -796,8 +857,8 @@ export async function POST(request: NextRequest) {
     let wordBuffer: Buffer | null = null;
     if (isResume) {
       try {
-        wordBuffer = await generateWordDocument(elements, isResume);
-        console.log('[Documents API] Word document generated');
+        wordBuffer = await generateWordDocument(elements, isResume, title);
+        console.log('[Documents API] Word document generated, size:', wordBuffer.length);
       } catch (wordError) {
         console.error('[Documents API] Word generation error:', wordError);
         // Continue without Word doc
@@ -840,45 +901,69 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Get signed URL for PDF
-      const { data: pdfSignedData } = await supabase.storage
-        .from('documents')
-        .createSignedUrl(pdfPath, 3600);
-
       // Upload Word doc if generated
       let wordDownloadUrl: string | null = null;
       if (wordBuffer) {
         const wordPath = `${userId}/${wordFilename}`;
+        console.log('[Documents API] Uploading Word document:', wordPath, 'size:', wordBuffer.length);
+
         const { error: wordUploadError } = await supabase.storage
           .from('documents')
           .upload(wordPath, wordBuffer, {
             contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             cacheControl: '3600',
-            upsert: false,
+            upsert: true, // Changed to upsert to allow overwrites
           });
 
-        if (!wordUploadError) {
-          const { data: wordSignedData } = await supabase.storage
+        if (wordUploadError) {
+          console.error('[Documents API] Word upload failed:', wordUploadError.message);
+        } else {
+          const { data: wordSignedData, error: wordSignError } = await supabase.storage
             .from('documents')
             .createSignedUrl(wordPath, 3600);
-          wordDownloadUrl = wordSignedData?.signedUrl || null;
-          console.log('[Documents API] Word document uploaded successfully');
+
+          if (wordSignError) {
+            console.error('[Documents API] Word signed URL failed:', wordSignError.message);
+          } else {
+            wordDownloadUrl = wordSignedData?.signedUrl || null;
+            console.log('[Documents API] Word document uploaded successfully, signed URL generated');
+          }
         }
       }
 
       console.log('[Documents API] PDF uploaded successfully:', pdfPath);
 
-      // Return both PDF and Word URLs for resumes
+      // Generate clean proxy URLs that hide Supabase details
+      // Fall back to request origin if NEXT_PUBLIC_APP_URL is not set
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+                      request.headers.get('origin') ||
+                      'https://jcil.ai';
+
+      // Encode tokens for proxy URLs
+      const pdfToken = Buffer.from(JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })).toString('base64url');
+      const pdfProxyUrl = `${baseUrl}/api/documents/download?token=${pdfToken}`;
+
+      let wordProxyUrl: string | undefined;
+      // Check if Word document was successfully uploaded (wordDownloadUrl is the signed URL)
+      if (wordDownloadUrl && wordBuffer) {
+        const wordToken = Buffer.from(JSON.stringify({ u: userId, f: wordFilename, t: 'docx' })).toString('base64url');
+        wordProxyUrl = `${baseUrl}/api/documents/download?token=${wordToken}`;
+        console.log('[Documents API] Word proxy URL generated:', wordProxyUrl.substring(0, 50) + '...');
+      } else if (wordBuffer && !wordDownloadUrl) {
+        console.warn('[Documents API] Word buffer exists but upload failed - no URL generated');
+      }
+
+      // Return both PDF and Word URLs for resumes (using proxy URLs)
       return NextResponse.json({
         success: true,
         format: isResume ? 'both' : 'pdf',
         title,
-        // PDF
+        // PDF - use proxy URL
         filename: pdfFilename,
-        downloadUrl: pdfSignedData?.signedUrl,
-        // Word (if resume)
+        downloadUrl: pdfProxyUrl,
+        // Word (if resume) - use proxy URL
         wordFilename: wordBuffer ? wordFilename : undefined,
-        wordDownloadUrl: wordDownloadUrl || undefined,
+        wordDownloadUrl: wordProxyUrl,
         expiresIn: '1 hour',
         storage: 'supabase',
       });

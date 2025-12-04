@@ -940,7 +940,11 @@ export function ChatClient() {
 
               if (isSupabaseUrl) {
                 // Supabase Storage: Show clickable download links
-                let messageContent = `✅ **Your documents are ready!**\n\n`;
+                // UPDATE the existing message instead of adding new one (prevents screen flash)
+                let messageContent = textBeforeMarker
+                  ? `${textBeforeMarker}\n\n`
+                  : '';
+                messageContent += `✅ **Your documents are ready!**\n\n`;
                 messageContent += `📄 **[Download PDF](${downloadUrl})**`;
 
                 // If Word doc is also available (for resumes)
@@ -951,13 +955,14 @@ export function ChatClient() {
 
                 messageContent += `\n\n*Links expire in 1 hour. If you need them later, just ask me to generate again.*`;
 
-                const pdfMessage: Message = {
-                  id: (Date.now() + 3).toString(),
-                  role: 'assistant',
-                  content: messageContent,
-                  timestamp: new Date(),
-                };
-                setMessages((prev) => [...prev, pdfMessage]);
+                // Update the SAME message (smoother UX, no flash)
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: messageContent }
+                      : msg
+                  )
+                );
               } else {
                 // Data URL fallback: Trigger auto-download
                 const link = document.createElement('a');
@@ -967,25 +972,34 @@ export function ChatClient() {
                 link.click();
                 document.body.removeChild(link);
 
-                const pdfMessage: Message = {
-                  id: (Date.now() + 3).toString(),
-                  role: 'assistant',
-                  content: `✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder. If you need another copy, just ask me to generate it again.`,
-                  timestamp: new Date(),
-                };
-                setMessages((prev) => [...prev, pdfMessage]);
+                // Update the SAME message (smoother UX)
+                const successContent = textBeforeMarker
+                  ? `${textBeforeMarker}\n\n✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder.`
+                  : `✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder.`;
+
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: successContent }
+                      : msg
+                  )
+                );
               }
             }
           } else {
             console.error('[ChatClient] PDF generation failed:', await pdfResponse.text());
-            // Show error message
-            const errorMsg: Message = {
-              id: (Date.now() + 3).toString(),
-              role: 'assistant',
-              content: '⚠️ Sorry, I couldn\'t generate the PDF. The formatted content is shown above - you can copy it into a document editor.',
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, errorMsg]);
+            // Update message with error (no new message = no flash)
+            const errorContent = textBeforeMarker
+              ? `${textBeforeMarker}\n\n⚠️ Sorry, I couldn't generate the PDF. Please try again.`
+              : `⚠️ Sorry, I couldn't generate the PDF. Please try again.`;
+
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: errorContent }
+                  : msg
+              )
+            );
           }
         } catch (pdfError) {
           console.error('[ChatClient] Error during PDF generation:', pdfError);
