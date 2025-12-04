@@ -83,7 +83,7 @@ export function QuickDailyDevotional() {
       {/* Daily Devotional Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800 border border-white/20"
+        className="rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800 border border-[#4DFFFF]"
         title="Daily Bible Devotional"
       >
         <span className="flex items-center gap-1.5">
