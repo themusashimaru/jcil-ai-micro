@@ -18,7 +18,7 @@
 
 'use client';
 
-import { useState, useRef, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
+import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import type { Attachment } from '@/app/chat/types';
 // REMOVED: QuickImageGenerator - chat now handles image generation naturally
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
@@ -29,12 +29,27 @@ interface ChatComposerProps {
   isStreaming: boolean;
 }
 
+// Rotating placeholder suggestions to showcase AI capabilities
+const PLACEHOLDER_SUGGESTIONS = [
+  'Type your message...',
+  'Create an image...',
+  'Write a resume...',
+  'Draft an email...',
+  'Analyze data...',
+  'Generate an invoice...',
+  'Translate text...',
+  'Research a topic...',
+  'Write code...',
+  'Plan a trip...',
+];
+
 export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +57,14 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
 
   // Audio recording (mic-to-text using Whisper)
   const { recordingState, error: recordingError, startRecording, stopRecording } = useAudioRecorder();
+
+  // Rotate placeholder text every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % PLACEHOLDER_SUGGESTIONS.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {
@@ -284,9 +307,9 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                 ? 'Listening...'
                 : isDragging
                 ? 'Drop files here...'
-                : 'Type your message...'
+                : PLACEHOLDER_SUGGESTIONS[placeholderIndex]
             }
-            className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-gray-400 focus:outline-none min-h-[40px]"
+            className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-[#38BDF8] focus:outline-none min-h-[40px]"
             rows={1}
             disabled={isStreaming}
             style={{ fontSize: '16px' }}
