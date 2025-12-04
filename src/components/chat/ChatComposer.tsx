@@ -466,7 +466,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               <button
                 onClick={handleSend}
                 disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-black border-2 border-[#4DFFFF] p-0.5 md:p-2.5 text-[#4DFFFF] transition-all hover:bg-[#4DFFFF]/10 disabled:opacity-50 disabled:animate-none shrink-0 flex items-center justify-center"
+                className="rounded-full bg-black border-2 p-0.5 md:p-2.5 transition-all hover:bg-[#4DFFFF]/10 shrink-0 flex items-center justify-center"
                 title={isStreaming ? 'Sending...' : 'Send message'}
                 style={{
                   borderColor: '#4DFFFF',
