@@ -318,16 +318,16 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
             {attachments.slice(0, 4).map((attachment) => (
               <div
                 key={attachment.id}
-                className="group relative overflow-hidden rounded-lg border border-white/20 bg-white/5"
+                className="relative h-16 w-16 md:h-20 md:w-20 overflow-hidden rounded-lg border border-white/20 bg-white/5"
               >
                 {attachment.thumbnail ? (
                   <img
                     src={attachment.thumbnail}
                     alt={attachment.name}
-                    className="h-16 w-16 md:h-20 md:w-20 object-cover"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center bg-white/5">
+                  <div className="flex h-full w-full items-center justify-center bg-white/5">
                     <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24">
                       <path
                         stroke="currentColor"
@@ -342,8 +342,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                 {/* Bold red X in top-right corner */}
                 <button
                   onClick={() => removeAttachment(attachment.id)}
-                  className="absolute hover:opacity-70 transition-opacity"
-                  style={{ top: '2px', right: '2px' }}
+                  className="absolute top-0 right-0 m-1 hover:opacity-70 transition-opacity"
                   aria-label="Remove attachment"
                 >
                   <svg
