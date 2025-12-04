@@ -636,11 +636,13 @@ export function ChatClient() {
           name: a.name,
           type: a.type,
           hasThumbnail: !!a.thumbnail,
+          hasUrl: !!a.url,
+          urlLength: a.url?.length || 0,
           thumbnailLength: a.thumbnail?.length || 0,
         })),
       });
 
-      // Format messages for API, stripping images from all but the most recent image message
+      // Format messages for API, handling both images and document attachments
       // This prevents payload bloat from accumulated image history
       const apiMessages = allMessages.map((msg, index) => {
         // Check if this message has image attachments
@@ -648,11 +650,39 @@ export function ChatClient() {
           (att) => att.type.startsWith('image/') && att.thumbnail
         );
 
-        // If no images, send simple text message
+        // Check for document attachments (CSV, TXT, XLSX, PDF with content)
+        const documentAttachments = msg.attachments?.filter(
+          (att) => !att.type.startsWith('image/') && att.url
+        );
+
+        // Build message content with any document data
+        let messageContent = msg.content || '';
+
+        // If this is the current message and has document attachments, include content
+        if (index === allMessages.length - 1 && documentAttachments && documentAttachments.length > 0) {
+          documentAttachments.forEach((doc) => {
+            const fileContent = doc.url || '';
+            // For text files (CSV, TXT), include the raw content
+            if (doc.type === 'text/plain' || doc.type === 'text/csv') {
+              messageContent = `[File: ${doc.name}]\n\n${fileContent}\n\n${messageContent}`;
+            } else if (doc.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                       doc.type === 'application/vnd.ms-excel') {
+              // For Excel files, we have base64 - include with note
+              messageContent = `[Excel File: ${doc.name} - Please analyze this spreadsheet data]\n\n${messageContent}`;
+              // Note: For full Excel support, we'd need server-side parsing
+            } else if (doc.type === 'application/pdf') {
+              // For PDF files, include with note
+              messageContent = `[PDF File: ${doc.name} - Please analyze this document]\n\n${messageContent}`;
+              // Note: For full PDF support, we'd need server-side text extraction
+            }
+          });
+        }
+
+        // If no images, send message with any document content appended
         if (!imageAttachments || imageAttachments.length === 0) {
           return {
             role: msg.role,
-            content: msg.content,
+            content: messageContent,
           };
         }
 
@@ -662,7 +692,7 @@ export function ChatClient() {
           // Return text-only version with placeholder for stripped images
           return {
             role: msg.role,
-            content: msg.content || '[User shared an image]',
+            content: messageContent || '[User shared an image]',
           };
         }
 
@@ -678,11 +708,11 @@ export function ChatClient() {
           });
         });
 
-        // Add text content
-        if (msg.content) {
+        // Add text content (including any document data)
+        if (messageContent) {
           contentParts.push({
             type: 'text',
-            text: msg.content,
+            text: messageContent,
           });
         }
 
