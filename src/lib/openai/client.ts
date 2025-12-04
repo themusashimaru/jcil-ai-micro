@@ -570,6 +570,7 @@ async function createWebSearchCompletion(
           usage: data.usage || {},
           citations: citations,
           numSourcesUsed: citations.length,
+          model: modelName, // Track actual model used
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -710,6 +711,7 @@ async function createDirectOpenAICompletion(
         usage: result.usage,
         citations: [], // OpenAI doesn't have built-in citations
         numSourcesUsed: 0,
+        model: modelName, // Track actual model used
       };
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
@@ -868,3 +870,6 @@ export async function analyzeImage(imageUrl: string, question: string) {
 
 // Re-export helper functions
 export { isImageGenerationRequest } from './models';
+
+// Export routing helpers for accurate model tracking in API routes
+export { shouldUseWebSearch, getLastUserMessageText };
