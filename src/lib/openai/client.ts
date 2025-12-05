@@ -458,7 +458,7 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
  * Create a chat completion with streaming support
  */
 export async function createChatCompletion(options: ChatOptions) {
-  const { messages, tool, temperature, maxTokens, stream = true } = options;
+  const { messages, tool, temperature, maxTokens, stream = true, userId } = options;
 
   // Get the last user message text for routing decisions
   const lastUserText = getLastUserMessageText(messages);
@@ -522,6 +522,22 @@ export async function createChatCompletion(options: ChatOptions) {
   // Only add temperature for non-reasoning models
   if (supportsTemperature(modelName)) {
     requestConfig.temperature = temperature ?? getRecommendedTemperature(modelName, tool);
+  }
+
+  // Add onFinish callback to track token usage after stream completes
+  if (userId) {
+    requestConfig.onFinish = async ({ usage }: { usage?: { promptTokens?: number; completionTokens?: number } }) => {
+      if (usage) {
+        trackTokenUsage({
+          userId,
+          model: modelName,
+          route: 'chat',
+          tool: 'streamText',
+          inputTokens: usage.promptTokens || 0,
+          outputTokens: usage.completionTokens || 0,
+        });
+      }
+    };
   }
 
   console.log('[OpenAI Streaming] Starting with model:', modelName, 'supportsTemp:', supportsTemperature(modelName));
