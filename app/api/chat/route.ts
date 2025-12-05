@@ -435,10 +435,9 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // UNIFIED IMAGE ROUTING (Chat + Button)
+    // UNIFIED FILE ROUTING (Chat + Button)
     // ========================================
-    // First, check if the message contains uploaded images (for analysis)
-    // If so, skip image generation routing and use GPT-4o for vision
+    // Check if the message contains uploaded images (for analysis)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messageHasUploadedImages = messages.some((msg: any) =>
       Array.isArray(msg.content) &&
@@ -446,11 +445,27 @@ export async function POST(request: NextRequest) {
       msg.content.some((item: any) => item.type === 'image_url' || item.type === 'image')
     );
 
-    // Only route to image generation if there are NO uploaded images
-    // (uploaded images = user wants analysis, not generation)
-    // Images always route to gpt-5-mini for vision capability
-    const routeDecision = messageHasUploadedImages
-      ? { target: 'mini' as const, reason: 'image-analysis' as const, confidence: 1.0 }
+    // Check if the message contains file attachments (PDFs, Excel, CSV, etc.)
+    // These are embedded as text with [File: ...] or [Document: ...] markers
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messageHasFileAttachments = messages.some((msg: any) => {
+      const content = typeof msg.content === 'string' ? msg.content : '';
+      return content.includes('[File:') ||
+             content.includes('[Document:') ||
+             content.includes('[Spreadsheet:') ||
+             content.includes('data:application/pdf') ||
+             content.includes('data:application/vnd');
+    });
+
+    // Route to gpt-5-mini for ANY file upload (images, PDFs, Excel, etc.)
+    // Mini is smarter and better suited for file analysis tasks
+    const hasFileUploads = messageHasUploadedImages || messageHasFileAttachments;
+
+    // Only route to image generation if there are NO uploaded files
+    // (uploaded files = user wants analysis, not generation)
+    // Files always route to gpt-5-mini for better analysis
+    const routeDecision = hasFileUploads
+      ? { target: 'mini' as const, reason: messageHasUploadedImages ? 'image-analysis' as const : 'file-analysis' as const, confidence: 1.0 }
       : decideRoute(lastUserContent, tool);
 
     // Log the routing decision for telemetry
@@ -458,6 +473,8 @@ export async function POST(request: NextRequest) {
 
     if (messageHasUploadedImages) {
       console.log('[Chat API] Detected uploaded image - routing to gpt-5-mini for analysis');
+    } else if (messageHasFileAttachments) {
+      console.log('[Chat API] Detected file attachment - routing to gpt-5-mini for analysis');
     }
 
     // Check if we should route to image generation (only if no uploaded images)
@@ -649,8 +666,11 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const willUseWebSearch = shouldUseWebSearch(effectiveTool as any, lastUserText);
 
-    // Determine actual model: web search always uses mini, images use mini
-    const actualModel = willUseWebSearch ? 'gpt-5-mini' : (hasImages ? 'gpt-5-mini' : initialModel);
+    // Determine actual model: web search, images, and file attachments all use mini
+    // Mini is the smarter model, better suited for complex analysis tasks
+    const actualModel = willUseWebSearch || hasImages || messageHasFileAttachments
+      ? 'gpt-5-mini'
+      : initialModel;
 
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {

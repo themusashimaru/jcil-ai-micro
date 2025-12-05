@@ -305,18 +305,21 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               const isText = attachment.type === 'text/plain' || attachment.name?.endsWith('.txt');
 
               return (
-                <div
+                <button
                   key={attachment.id}
-                  className="relative h-16 w-16 md:h-20 md:w-20 overflow-hidden rounded-lg border border-white/20 bg-white/5"
+                  onClick={() => removeAttachment(attachment.id)}
+                  className="relative h-16 w-16 md:h-20 md:w-20 overflow-hidden rounded-lg border border-white/20 bg-white/5 cursor-pointer hover:border-red-400/50 hover:bg-red-500/10 transition-colors group"
+                  title="Tap to remove"
+                  aria-label={`Remove ${attachment.name}`}
                 >
                   {attachment.thumbnail && isImage ? (
                     <img
                       src={attachment.thumbnail}
                       alt={attachment.name}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover group-hover:opacity-70 transition-opacity"
                     />
                   ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-1">
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-1 group-hover:opacity-70 transition-opacity">
                       {/* File type icon */}
                       {isPdf ? (
                         <svg className="h-6 w-6 md:h-8 md:w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -342,27 +345,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
                       </span>
                     </div>
                   )}
-                  {/* Bold red X in top-right corner */}
-                  <button
-                    onClick={() => removeAttachment(attachment.id)}
-                    className="absolute top-0 right-0 m-1 hover:opacity-70 transition-opacity"
-                    aria-label="Remove attachment"
-                  >
-                    <svg
-                      className="text-red-500"
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={4}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+                </button>
               );
             })}
             {attachments.length > 4 && (
