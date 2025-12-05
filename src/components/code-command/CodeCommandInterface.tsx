@@ -77,7 +77,7 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
         throw new Error('No response body');
       }
 
-      // Stream the response
+      // Stream the response (AI SDK v5 toTextStreamResponse = plain text)
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
@@ -86,29 +86,19 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
         const { done, value } = await reader.read();
         if (done) break;
 
+        // Simple text streaming - just decode and append
         const chunk = decoder.decode(value, { stream: true });
+        fullContent += chunk;
 
-        // Parse SSE data - the AI SDK sends data in a specific format
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('0:')) {
-            // Text content - format is 0:"text"
-            try {
-              const text = JSON.parse(line.slice(2));
-              fullContent += text;
-              setMessages((prev) => {
-                const newMessages = [...prev];
-                const lastMessage = newMessages[newMessages.length - 1];
-                if (lastMessage && lastMessage.role === 'assistant') {
-                  lastMessage.content = fullContent;
-                }
-                return newMessages;
-              });
-            } catch {
-              // Ignore parse errors
-            }
+        // Update the message with accumulated content
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (lastMessage && lastMessage.role === 'assistant') {
+            lastMessage.content = fullContent;
           }
-        }
+          return newMessages;
+        });
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
