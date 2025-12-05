@@ -669,6 +669,7 @@ export async function POST(request: NextRequest) {
         maxTokens: max_tokens,
         stream: false,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        conversationId: conversationId,
       });
 
       // Extract citations and actual model used from result
@@ -714,6 +715,7 @@ export async function POST(request: NextRequest) {
         maxTokens: max_tokens,
         stream: true,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        conversationId: conversationId,
       });
 
       console.log('[Chat API] streamText returned, result type:', typeof result);
@@ -797,6 +799,7 @@ export async function POST(request: NextRequest) {
         maxTokens: max_tokens,
         stream: false,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        conversationId: conversationId,
       });
 
       // Extract citations and actual model used from result
@@ -831,6 +834,22 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
+    // Check if this is an abort error (user navigated away)
+    const isAbortError = error instanceof Error && (
+      error.name === 'AbortError' ||
+      error.message.toLowerCase().includes('aborted') ||
+      error.message.toLowerCase().includes('socket hang up') ||
+      error.message.toLowerCase().includes('client disconnected') ||
+      error.message.toLowerCase().includes('connection closed')
+    );
+
+    if (isAbortError) {
+      // User navigated away - this is not an error condition
+      // The onFinish callback will still save the message if OpenAI completed
+      console.log('[Chat API] Client disconnected (user navigated away) - response may still be saved via onFinish');
+      return new Response(null, { status: 499 }); // 499 = Client Closed Request
+    }
+
     console.error('Chat API error:', error);
 
     // Log detailed error info

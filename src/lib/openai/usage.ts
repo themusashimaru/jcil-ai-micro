@@ -80,6 +80,55 @@ export async function trackTokenUsage(payload: UsagePayload): Promise<void> {
 }
 
 /**
+ * Save assistant message to database
+ * Used by onFinish callback to ensure messages are saved even if client disconnects
+ * Silent on failure - never breaks the chat flow
+ */
+export async function saveAssistantMessage(payload: {
+  conversationId: string;
+  userId: string;
+  content: string;
+  model?: string;
+}): Promise<void> {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
+      console.log('[usage] Supabase not configured for message saving');
+      return;
+    }
+
+    // Skip if no content
+    if (!payload.content || payload.content.trim().length === 0) {
+      console.log('[usage] Skipping empty message save');
+      return;
+    }
+
+    // Calculate retention date (30 days from now)
+    const retentionDate = new Date();
+    retentionDate.setDate(retentionDate.getDate() + 30);
+
+    const { error } = await supabase.from('messages').insert({
+      conversation_id: payload.conversationId,
+      user_id: payload.userId,
+      role: 'assistant',
+      content: payload.content,
+      content_type: 'text',
+      model_used: payload.model || null,
+      retention_until: retentionDate.toISOString(),
+    });
+
+    if (error) {
+      console.log('[usage] Message save error:', error.message);
+    } else {
+      console.log('[usage] Assistant message saved to DB successfully');
+    }
+  } catch (e) {
+    // Silent failure - log but don't throw
+    console.log('[usage] Message save failed:', (e as Error).message);
+  }
+}
+
+/**
  * Get total token usage for a user in a time period
  * Useful for billing/limits dashboard
  */

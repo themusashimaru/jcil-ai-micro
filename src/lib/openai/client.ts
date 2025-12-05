@@ -31,7 +31,7 @@ import { httpWithTimeout } from '../http';
 import { logEvent, logImageGeneration } from '../log';
 import { cachedWebSearch } from '../cache';
 import { logCacheMetrics, willBenefitFromCaching } from './promptCache';
-import { trackTokenUsage } from './usage';
+import { trackTokenUsage, saveAssistantMessage } from './usage';
 
 // Retry configuration
 const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
@@ -119,6 +119,7 @@ interface ChatOptions {
   maxTokens?: number;
   stream?: boolean;
   userId?: string; // For logging and usage tracking
+  conversationId?: string; // For saving messages to DB on completion
 }
 
 /**
@@ -458,7 +459,7 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
  * Create a chat completion with streaming support
  */
 export async function createChatCompletion(options: ChatOptions) {
-  const { messages, tool, temperature, maxTokens, stream = true, userId } = options;
+  const { messages, tool, temperature, maxTokens, stream = true, userId, conversationId } = options;
 
   // Get the last user message text for routing decisions
   const lastUserText = getLastUserMessageText(messages);
@@ -524,9 +525,11 @@ export async function createChatCompletion(options: ChatOptions) {
     requestConfig.temperature = temperature ?? getRecommendedTemperature(modelName, tool);
   }
 
-  // Add onFinish callback to track token usage after stream completes
+  // Add onFinish callback to track token usage and save message after stream completes
+  // This fires even if the client disconnects, ensuring the message is saved
   if (userId) {
-    requestConfig.onFinish = async ({ usage }: { usage?: { promptTokens?: number; completionTokens?: number } }) => {
+    requestConfig.onFinish = async ({ text, usage }: { text?: string; usage?: { promptTokens?: number; completionTokens?: number } }) => {
+      // Track token usage
       if (usage) {
         trackTokenUsage({
           userId,
@@ -535,6 +538,16 @@ export async function createChatCompletion(options: ChatOptions) {
           tool: 'streamText',
           inputTokens: usage.promptTokens || 0,
           outputTokens: usage.completionTokens || 0,
+        });
+      }
+
+      // Save assistant message to database (backup in case client disconnects)
+      if (conversationId && text) {
+        saveAssistantMessage({
+          conversationId,
+          userId,
+          content: text,
+          model: modelName,
         });
       }
     };
@@ -558,7 +571,7 @@ async function createWebSearchCompletion(
   options: ChatOptions,
   modelName: OpenAIModel
 ) {
-  const { messages, tool, temperature, maxTokens, userId } = options;
+  const { messages, tool, temperature, maxTokens, userId, conversationId } = options;
   const apiKey = getOpenAIApiKey();
   const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
   const startTime = Date.now();
@@ -734,6 +747,17 @@ async function createWebSearchCompletion(
       });
     }
 
+    // Save assistant message to database (backup in case client disconnects)
+    // Only save if not cached (cached responses are already saved)
+    if (conversationId && userId && result.text && !cached) {
+      saveAssistantMessage({
+        conversationId,
+        userId,
+        content: result.text,
+        model: modelName,
+      });
+    }
+
     return result;
   } catch (error) {
     // Log the error
@@ -762,7 +786,7 @@ async function createDirectOpenAICompletion(
   options: ChatOptions,
   modelName: OpenAIModel
 ) {
-  const { messages, tool, temperature, maxTokens, userId } = options;
+  const { messages, tool, temperature, maxTokens, userId, conversationId } = options;
 
   // Log detailed info about the request for debugging
   const messagesSummary = messages.map((m, i) => ({
@@ -843,6 +867,16 @@ async function createDirectOpenAICompletion(
           tool: 'generateText',
           inputTokens: usage.promptTokens || usage.inputTokens || 0,
           outputTokens: usage.completionTokens || usage.outputTokens || 0,
+        });
+      }
+
+      // Save assistant message to database (backup in case client disconnects)
+      if (conversationId && userId && result.text) {
+        saveAssistantMessage({
+          conversationId,
+          userId,
+          content: result.text,
+          model: modelName,
         });
       }
 
