@@ -13,6 +13,7 @@
  * - Timeouts (30s request, 5s connect)
  * - Structured logging with telemetry
  * - Web search caching (30 min TTL)
+ * - Prompt caching optimization (50% cost savings on cached prefixes)
  */
 
 import { createOpenAI } from '@ai-sdk/openai';
@@ -29,6 +30,7 @@ import type { ToolType, OpenAIModel } from './types';
 import { httpWithTimeout } from '../http';
 import { logEvent, logImageGeneration } from '../log';
 import { cachedWebSearch } from '../cache';
+import { splitPromptForCaching, logCacheMetrics, willBenefitFromCaching } from './promptCache';
 
 // Retry configuration
 const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
@@ -485,15 +487,27 @@ export async function createChatCompletion(options: ChatOptions) {
   const openai = getOpenAIProvider();
   const model = openai(modelName);
 
-  // Get system prompt and settings
+  // Get system prompt and settings - CACHE OPTIMIZED ORDER:
+  // Static content FIRST (cacheable prefix), dynamic content LAST
   const systemPrompt = getSystemPromptForTool(tool);
   const timeContext = getCurrentTimeContext();
-  const fullSystemPrompt = `${timeContext}\n\n${systemPrompt}`;
+
+  // Put static system prompt FIRST, time context LAST for optimal caching
+  // OpenAI caches prompt prefixes > 1024 tokens, so static content should lead
+  const fullSystemPrompt = `${systemPrompt}\n\n---\n\n${timeContext}`;
 
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
   // Convert messages to OpenAI format (handles image URLs)
   const convertedMessages = messages.map(normalizeMessageForAISDK);
+
+  // Log cache efficiency metrics
+  if (willBenefitFromCaching([{ content: fullSystemPrompt }, ...convertedMessages])) {
+    logCacheMetrics({
+      staticPromptLength: systemPrompt.length,
+      totalPromptLength: fullSystemPrompt.length + JSON.stringify(convertedMessages).length,
+    });
+  }
 
   // Build request config - exclude temperature for reasoning models
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -532,10 +546,13 @@ async function createWebSearchCompletion(
   const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
   const startTime = Date.now();
 
-  // Get configuration
+  // Get configuration - CACHE OPTIMIZED ORDER:
+  // Static content FIRST (cacheable prefix), dynamic content LAST
   const baseSystemPrompt = getSystemPromptForTool(tool);
   const timeContext = getCurrentTimeContext();
-  const systemPrompt = `${timeContext}\n\n${baseSystemPrompt}`;
+
+  // Put static system prompt FIRST, time context LAST for optimal caching
+  const systemPrompt = `${baseSystemPrompt}\n\n---\n\n${timeContext}`;
 
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
@@ -738,10 +755,13 @@ async function createDirectOpenAICompletion(
   const openai = getOpenAIProvider();
   const model = openai(modelName);
 
-  // Get configuration
+  // Get configuration - CACHE OPTIMIZED ORDER:
+  // Static content FIRST (cacheable prefix), dynamic content LAST
   const baseSystemPrompt = getSystemPromptForTool(tool);
   const timeContext = getCurrentTimeContext();
-  const systemPrompt = `${timeContext}\n\n${baseSystemPrompt}`;
+
+  // Put static system prompt FIRST, time context LAST for optimal caching
+  const systemPrompt = `${baseSystemPrompt}\n\n---\n\n${timeContext}`;
 
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
