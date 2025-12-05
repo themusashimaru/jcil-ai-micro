@@ -1,10 +1,9 @@
 /**
  * CODE COMMAND COMPOSER
  *
- * Terminal-style input for Code Command
+ * Professional input for Code Command
  * Features:
- * - Green terminal aesthetic
- * - Command prompt style
+ * - Clean black/white design
  * - Keyboard shortcuts (Ctrl+Enter to send)
  * - Auto-resize textarea
  */
@@ -66,22 +65,19 @@ export function CodeCommandComposer({ onSendMessage, isStreaming }: CodeCommandC
   };
 
   return (
-    <div className="bg-[#0a0a0a] border-t border-green-900/30 p-4 font-mono">
+    <div className="bg-black border-t border-white/10 p-4">
       <div className="max-w-4xl mx-auto">
         {/* Input area */}
-        <div className="flex items-start gap-2 bg-[#111] border border-green-900/30 rounded-lg p-3">
-          {/* Prompt symbol */}
-          <span className="text-green-500 font-bold mt-1 select-none">$</span>
-
+        <div className="flex items-end gap-3 bg-white/5 border border-white/10 rounded-2xl p-3">
           {/* Textarea */}
           <textarea
             ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Enter your code command..."
+            placeholder="Ask about code, debugging, architecture..."
             disabled={isStreaming}
-            className="flex-1 bg-transparent text-green-100 placeholder-green-800 resize-none outline-none min-h-[24px] max-h-[300px] leading-relaxed"
+            className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[24px] max-h-[300px] leading-relaxed"
             rows={1}
           />
 
@@ -89,20 +85,28 @@ export function CodeCommandComposer({ onSendMessage, isStreaming }: CodeCommandC
           <button
             onClick={handleSubmit}
             disabled={!message.trim() || isStreaming}
-            className={`px-3 py-1 rounded text-sm font-semibold transition-all ${
+            className={`p-2 rounded-xl transition-all ${
               message.trim() && !isStreaming
-                ? 'bg-green-600 text-black hover:bg-green-500'
-                : 'bg-green-900/30 text-green-800 cursor-not-allowed'
+                ? 'bg-blue-600 text-white hover:bg-blue-500'
+                : 'bg-white/10 text-gray-500 cursor-not-allowed'
             }`}
           >
-            {isStreaming ? 'Running...' : 'Execute'}
+            {isStreaming ? (
+              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            )}
           </button>
         </div>
 
         {/* Keyboard hint */}
-        <div className="mt-2 text-xs text-green-800 flex justify-between">
-          <span>Press Enter to execute • Shift+Enter for new line</span>
-          <span>GPT-5.1</span>
+        <div className="mt-2 text-xs text-gray-600 text-center">
+          Press Enter to send · Shift+Enter for new line
         </div>
       </div>
     </div>

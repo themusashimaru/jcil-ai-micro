@@ -2,7 +2,7 @@
  * CODE COMMAND INTERFACE
  *
  * Main container for the Code Command feature
- * Combines thread and composer with terminal styling
+ * Professional design matching main chat
  */
 
 'use client';
@@ -102,7 +102,7 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        console.log('[Code Command] Request aborted');
+        // Request was aborted, don't show error
       } else {
         console.error('[Code Command] Error:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -132,36 +132,41 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
   }, [onClose]);
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a]">
+    <div className="flex flex-col h-full bg-black">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[#111] border-b border-green-900/30">
+      <div className="flex items-center justify-between px-4 py-3 bg-black border-b border-white/10">
         <div className="flex items-center gap-3">
-          {/* Terminal dots */}
-          <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-500/80" />
-            <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-            <div className="w-3 h-3 rounded-full bg-green-500/80" />
-          </div>
-          <span className="font-mono text-green-500 text-sm font-semibold">
-            Code Command
-          </span>
+          <h1 className="text-lg font-semibold">
+            <span className="text-white">JCIL</span>
+            <span className="text-blue-500">.ai</span>
+            <span className="text-gray-500 font-normal ml-2">Code Command</span>
+          </h1>
         </div>
 
         {/* Close button */}
         {onClose && (
           <button
             onClick={handleClose}
-            className="text-green-600 hover:text-green-400 transition-colors font-mono text-sm"
+            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+            title="Back to Chat"
           >
-            [ESC] Close
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         )}
       </div>
 
       {/* Error banner */}
       {error && (
-        <div className="px-4 py-2 bg-red-900/30 border-b border-red-900/50 font-mono text-sm text-red-400">
-          <span className="text-red-500">ERROR:</span> {error}
+        <div className="px-4 py-2 bg-red-900/30 border-b border-red-500/30 text-sm text-red-400">
+          {error}
+          <button
+            onClick={() => setError(null)}
+            className="ml-2 text-red-500 hover:text-red-300"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 

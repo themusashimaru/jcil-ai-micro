@@ -1,9 +1,9 @@
 /**
  * CODE BLOCK COMPONENT
  *
- * Terminal-style code display with:
+ * Professional code display with:
  * - Line numbers
- * - Syntax highlighting (basic)
+ * - Syntax highlighting
  * - Diff highlighting (green/red for +/-)
  * - Copy button
  * - Language badge
@@ -70,7 +70,7 @@ function highlightSyntax(line: string, _language?: string): JSX.Element {
   // Highlight keywords
   keywords.forEach(keyword => {
     const regex = new RegExp(`\\b(${keyword})\\b`, 'g');
-    result = result.replace(regex, '<span class="text-pink-400 font-semibold">$1</span>');
+    result = result.replace(regex, '<span class="text-blue-400 font-medium">$1</span>');
   });
 
   // Highlight types
@@ -85,10 +85,10 @@ function highlightSyntax(line: string, _language?: string): JSX.Element {
 // Get line class based on content (for diff)
 function getLineClass(line: string): string {
   if (line.startsWith('+')) {
-    return 'bg-green-900/40 text-green-300';
+    return 'bg-green-900/30';
   }
   if (line.startsWith('-')) {
-    return 'bg-red-900/40 text-red-300';
+    return 'bg-red-900/30';
   }
   return '';
 }
@@ -134,23 +134,37 @@ export function CodeBlock({
   );
 
   return (
-    <div className={`relative group rounded-lg overflow-hidden bg-[#0a0a0a] border border-green-900/30 ${className}`}>
+    <div className={`relative group rounded-xl overflow-hidden bg-[#1a1a1a] border border-white/10 ${className}`}>
       {/* Header bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-[#111] border-b border-green-900/30">
-        <span className="text-xs font-mono text-green-500 uppercase tracking-wider">
+      <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
+        <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
           {detectedLanguage}
         </span>
         <button
           onClick={handleCopy}
-          className="text-xs text-gray-500 hover:text-green-400 transition-colors font-mono"
+          className="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1"
         >
-          {copied ? '✓ Copied' : 'Copy'}
+          {copied ? (
+            <>
+              <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Copied
+            </>
+          ) : (
+            <>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy
+            </>
+          )}
         </button>
       </div>
 
       {/* Code area */}
       <div className="overflow-x-auto">
-        <pre className="p-3 font-mono text-sm leading-relaxed">
+        <pre className="p-4 font-mono text-sm leading-relaxed">
           <code>
             {lines.map((line, index) => (
               <div
@@ -166,10 +180,10 @@ export function CodeBlock({
                   </span>
                 )}
                 {/* Line content */}
-                <span className={`flex-1 ${isDiff ? '' : 'text-gray-300'}`}>
+                <span className={`flex-1 ${isDiff ? '' : 'text-gray-200'}`}>
                   {isDiff ? (
                     // Diff lines get special coloring
-                    <span className={line.startsWith('+') ? 'text-green-300' : line.startsWith('-') ? 'text-red-300' : 'text-gray-400'}>
+                    <span className={line.startsWith('+') ? 'text-green-400' : line.startsWith('-') ? 'text-red-400' : 'text-gray-400'}>
                       {line}
                     </span>
                   ) : (
