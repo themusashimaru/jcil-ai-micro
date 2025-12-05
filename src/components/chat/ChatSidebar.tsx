@@ -302,24 +302,22 @@ export function ChatSidebar({
         <div className="flex h-full flex-col">
         {/* Code Command Button - Admin Only */}
         {isAdmin && onOpenCodeCommand && (
-          <div className="border-b border-green-900/30 p-3 bg-gradient-to-r from-[#0a0a0a] to-[#111]">
+          <div className="border-b border-white/10 p-3">
             <button
               onClick={onOpenCodeCommand}
-              className="w-full rounded-lg bg-green-900/30 border border-green-700/50 px-4 py-3 text-left hover:bg-green-900/50 transition-all group"
+              className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-left transition-all group"
             >
               <div className="flex items-center gap-3">
-                {/* Terminal icon */}
-                <div className="w-8 h-8 rounded bg-green-500/20 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
+                {/* Code icon */}
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
                 <div>
-                  <div className="text-sm font-mono font-bold text-green-400 group-hover:text-green-300">
-                    JCIL.ai
-                  </div>
-                  <div className="text-xs font-mono text-green-600 group-hover:text-green-500">
+                  <div className="text-sm font-semibold text-white">
                     Code Command
+                  </div>
+                  <div className="text-xs text-blue-200">
+                    GPT-5.1 · Advanced coding
                   </div>
                 </div>
               </div>

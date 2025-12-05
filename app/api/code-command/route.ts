@@ -72,14 +72,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+    // Check if user is admin (using admin_users table, same as is-admin endpoint)
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('user_id', user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
+    if (!adminUser) {
       return new Response(
         JSON.stringify({ error: 'Admin access required for Code Command' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
