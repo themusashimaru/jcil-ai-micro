@@ -668,6 +668,7 @@ export async function POST(request: NextRequest) {
         temperature,
         maxTokens: max_tokens,
         stream: false,
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
       });
 
       // Extract citations and actual model used from result
@@ -712,6 +713,7 @@ export async function POST(request: NextRequest) {
         temperature,
         maxTokens: max_tokens,
         stream: true,
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
       });
 
       console.log('[Chat API] streamText returned, result type:', typeof result);
@@ -794,6 +796,7 @@ export async function POST(request: NextRequest) {
         temperature,
         maxTokens: max_tokens,
         stream: false,
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
       });
 
       // Extract citations and actual model used from result

@@ -31,6 +31,7 @@ import { httpWithTimeout } from '../http';
 import { logEvent, logImageGeneration } from '../log';
 import { cachedWebSearch } from '../cache';
 import { logCacheMetrics, willBenefitFromCaching } from './promptCache';
+import { trackTokenUsage } from './usage';
 
 // Retry configuration
 const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
@@ -705,6 +706,18 @@ async function createWebSearchCompletion(
       cached,
     });
 
+    // Track token usage to database (if userId provided and not cached)
+    if (userId && !cached) {
+      trackTokenUsage({
+        userId,
+        model: modelName,
+        route: 'search',
+        tool: 'responses',
+        inputTokens: result.usage?.prompt_tokens || 0,
+        outputTokens: result.usage?.completion_tokens || 0,
+      });
+    }
+
     return result;
   } catch (error) {
     // Log the error
@@ -733,7 +746,7 @@ async function createDirectOpenAICompletion(
   options: ChatOptions,
   modelName: OpenAIModel
 ) {
-  const { messages, tool, temperature, maxTokens } = options;
+  const { messages, tool, temperature, maxTokens, userId } = options;
 
   // Log detailed info about the request for debugging
   const messagesSummary = messages.map((m, i) => ({
@@ -802,6 +815,18 @@ async function createDirectOpenAICompletion(
       }
 
       const result = await generateText(generateConfig);
+
+      // Track token usage to database (if userId provided)
+      if (userId && result.usage) {
+        trackTokenUsage({
+          userId,
+          model: modelName,
+          route: 'chat',
+          tool: 'generateText',
+          inputTokens: result.usage.promptTokens || 0,
+          outputTokens: result.usage.completionTokens || 0,
+        });
+      }
 
       return {
         text: result.text,
