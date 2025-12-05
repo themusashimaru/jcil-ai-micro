@@ -97,16 +97,16 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   const firstLineText = modelName || '';
   const { displayedText: firstLineDisplayed, isComplete: firstLineDone } = useTypewriter(
     firstLineText,
-    50, // speed (ms per character)
-    300, // delay before starting
+    25, // speed (ms per character) - faster
+    200, // delay before starting
     typewriterEnabled && !!modelName
   );
 
   // Second line: subtitle (starts after first line OR immediately if no model name)
   const { displayedText: subtitleDisplayed, isComplete: subtitleDone } = useTypewriter(
     subtitle,
-    40,
-    modelName ? 0 : 300, // if no model name, add initial delay
+    20, // faster
+    modelName ? 0 : 200, // if no model name, add initial delay
     typewriterEnabled && (firstLineDone || !modelName)
   );
 
@@ -114,8 +114,8 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   const thirdLineText = 'Start a new chat or select an existing conversation';
   const { displayedText: thirdLineDisplayed } = useTypewriter(
     thirdLineText,
-    30,
-    200,
+    15, // fastest
+    100,
     typewriterEnabled && subtitleDone && !currentChatId
   );
 
