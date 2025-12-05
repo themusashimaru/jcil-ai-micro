@@ -83,6 +83,9 @@ export async function trackTokenUsage(payload: UsagePayload): Promise<void> {
  * Save assistant message to database
  * Used by onFinish callback to ensure messages are saved even if client disconnects
  * Silent on failure - never breaks the chat flow
+ *
+ * DEDUPLICATION: Checks if a similar message was saved in the last 2 minutes
+ * to prevent duplicates when both server and client try to save.
  */
 export async function saveAssistantMessage(payload: {
   conversationId: string;
@@ -101,6 +104,32 @@ export async function saveAssistantMessage(payload: {
     if (!payload.content || payload.content.trim().length === 0) {
       console.log('[usage] Skipping empty message save');
       return;
+    }
+
+    // DEDUPLICATION: Check if a similar assistant message exists in this conversation
+    // from the last 2 minutes to prevent duplicates
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+
+    const { data: existingMessages } = await supabase
+      .from('messages')
+      .select('id, content')
+      .eq('conversation_id', payload.conversationId)
+      .eq('role', 'assistant')
+      .gte('created_at', twoMinutesAgo)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    // Check if any recent message has substantially similar content
+    if (existingMessages && existingMessages.length > 0) {
+      const contentStart = payload.content.slice(0, 200); // Compare first 200 chars
+      const isDuplicate = existingMessages.some(msg =>
+        msg.content && msg.content.slice(0, 200) === contentStart
+      );
+
+      if (isDuplicate) {
+        console.log('[usage] Skipping duplicate message save - already exists');
+        return;
+      }
     }
 
     // Calculate retention date (30 days from now)
