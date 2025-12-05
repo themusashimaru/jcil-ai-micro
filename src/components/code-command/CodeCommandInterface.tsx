@@ -7,45 +7,139 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useChat } from 'ai/react';
+import { useState, useCallback, useRef } from 'react';
 import { CodeCommandThread } from './CodeCommandThread';
 import { CodeCommandComposer } from './CodeCommandComposer';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface CodeCommandInterfaceProps {
   onClose?: () => void;
 }
 
 export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Use the AI SDK's useChat hook with our Code Command API
-  const {
-    messages,
-    append,
-    isLoading,
-    error: chatError,
-  } = useChat({
-    api: '/api/code-command',
-    onError: (err) => {
-      console.error('[Code Command] Chat error:', err);
-      setError(err.message || 'An error occurred');
-    },
-  });
-
-  // Handle sending a message
+  // Handle sending a message with streaming response
   const handleSendMessage = useCallback(async (content: string) => {
+    if (isStreaming) return;
+
     setError(null);
+
+    // Add user message
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content,
+    };
+
+    // Create placeholder for assistant response
+    const assistantMessage: Message = {
+      id: `assistant-${Date.now()}`,
+      role: 'assistant',
+      content: '',
+    };
+
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
+    setIsStreaming(true);
+
+    // Create abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     try {
-      await append({
-        role: 'user',
-        content,
+      const response = await fetch('/api/code-command', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+        signal: abortControllerRef.current.signal,
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error ${response.status}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      // Stream the response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+
+        // Parse SSE data - the AI SDK sends data in a specific format
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('0:')) {
+            // Text content - format is 0:"text"
+            try {
+              const text = JSON.parse(line.slice(2));
+              fullContent += text;
+              setMessages((prev) => {
+                const newMessages = [...prev];
+                const lastMessage = newMessages[newMessages.length - 1];
+                if (lastMessage && lastMessage.role === 'assistant') {
+                  lastMessage.content = fullContent;
+                }
+                return newMessages;
+              });
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
     } catch (err) {
-      console.error('[Code Command] Send error:', err);
-      setError('Failed to send message');
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('[Code Command] Request aborted');
+      } else {
+        console.error('[Code Command] Error:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
+
+        // Remove the empty assistant message on error
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (lastMessage && lastMessage.role === 'assistant' && !lastMessage.content) {
+            newMessages.pop();
+          }
+          return newMessages;
+        });
+      }
+    } finally {
+      setIsStreaming(false);
+      abortControllerRef.current = null;
     }
-  }, [append]);
+  }, [messages, isStreaming]);
+
+  // Handle close - abort any ongoing request
+  const handleClose = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    onClose?.();
+  }, [onClose]);
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a0a]">
@@ -66,7 +160,7 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
         {/* Close button */}
         {onClose && (
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-green-600 hover:text-green-400 transition-colors font-mono text-sm"
           >
             [ESC] Close
@@ -75,26 +169,22 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
       </div>
 
       {/* Error banner */}
-      {(error || chatError) && (
+      {error && (
         <div className="px-4 py-2 bg-red-900/30 border-b border-red-900/50 font-mono text-sm text-red-400">
-          <span className="text-red-500">ERROR:</span> {error || chatError?.message}
+          <span className="text-red-500">ERROR:</span> {error}
         </div>
       )}
 
       {/* Thread */}
       <CodeCommandThread
-        messages={messages.map((m) => ({
-          id: m.id,
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        }))}
-        isStreaming={isLoading}
+        messages={messages}
+        isStreaming={isStreaming}
       />
 
       {/* Composer */}
       <CodeCommandComposer
         onSendMessage={handleSendMessage}
-        isStreaming={isLoading}
+        isStreaming={isStreaming}
       />
     </div>
   );

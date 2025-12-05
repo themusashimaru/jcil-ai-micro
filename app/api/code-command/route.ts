@@ -14,9 +14,8 @@
 import { NextRequest } from 'next/server';
 import { streamText } from 'ai';
 import { createServerClient } from '@supabase/ssr';
-import type { Database } from '@/src/lib/supabase/types';
 import { cookies } from 'next/headers';
-import { buildFullCodeCommandPrompt } from '@/src/lib/prompts/codeCommandPrompt';
+import { buildFullCodeCommandPrompt } from '@/lib/prompts/codeCommandPrompt';
 import { createOpenAI } from '@ai-sdk/openai';
 
 // Initialize OpenAI provider
@@ -43,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Create Supabase client for auth check
     const cookieStore = await cookies();
-    const supabase = createServerClient<Database>(
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
