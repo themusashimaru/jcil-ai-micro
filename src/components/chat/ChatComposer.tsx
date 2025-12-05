@@ -101,13 +101,23 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
   const [charIndex, setCharIndex] = useState(0);
+  const [initialDelayComplete, setInitialDelayComplete] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Initial delay before starting placeholder animation (let welcome screen animate first)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setInitialDelayComplete(true);
+    }, 1500); // 1.5 second delay
+    return () => clearTimeout(timer);
+  }, []);
+
   // Typewriter effect - type out each character
   useEffect(() => {
+    if (!initialDelayComplete) return; // Wait for initial delay
     if (isFocused || message) return; // Don't animate when focused or has content
 
     const currentText = PLACEHOLDER_SUGGESTIONS[placeholderIndex];
@@ -128,7 +138,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
       }, 2000); // Wait 2 seconds before next suggestion
       return () => clearTimeout(timer);
     }
-  }, [charIndex, placeholderIndex, isFocused, message]);
+  }, [charIndex, placeholderIndex, isFocused, message, initialDelayComplete]);
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {
