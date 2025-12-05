@@ -16,6 +16,7 @@ export type RouteReason =
   | 'image-intent'
   | 'image-button'
   | 'image-analysis'
+  | 'file-analysis'
   | 'code-task'
   | 'research-task'
   | 'file-operation'
