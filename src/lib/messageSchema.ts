@@ -27,7 +27,7 @@ export const ImageMessage = BaseMessage.extend({
   content: z.string().optional(), // Optional text content
 });
 
-// Tool message: connector/tool calls
+// Tool message: tool calls
 export const ToolMessage = BaseMessage.extend({
   type: z.literal('tool'),
   tool: z.string().min(1, 'Tool name required'),

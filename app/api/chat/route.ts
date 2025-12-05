@@ -45,7 +45,6 @@ import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from
 import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
-import { getUserConnectedServices } from '@/lib/connectors/helpers';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
 import { incrementUsage, getLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
@@ -149,46 +148,6 @@ interface ChatRequestBody {
   max_tokens?: number;
   userContext?: UserContext;
   conversationId?: string; // Current conversation ID to exclude from history
-}
-
-// Detect if user is requesting GitHub code operations (for routing to gpt-5-mini)
-function isGitHubCodeOperation(messages: CoreMessage[], connectedServices: string[]): boolean {
-  // Only applies if GitHub is connected
-  if (!connectedServices.includes('github')) return false;
-
-  // Get the last user message
-  const lastMessage = messages[messages.length - 1];
-  if (!lastMessage || lastMessage.role !== 'user') return false;
-
-  const content = typeof lastMessage.content === 'string'
-    ? lastMessage.content
-    : Array.isArray(lastMessage.content)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? lastMessage.content.filter((p: any) => p.type === 'text').map((p: any) => p.text || '').join(' ')
-      : '';
-
-  const lowerContent = content.toLowerCase();
-
-  // Check for code-related GitHub operations
-  const codePatterns = [
-    /create.*file.*code/i,
-    /write.*code.*github/i,
-    /edit.*file.*github/i,
-    /update.*code.*github/i,
-    /add.*code.*repo/i,
-    /push.*code/i,
-    /create_file/i,
-    /update_file/i,
-    /write.*function/i,
-    /implement.*github/i,
-    /create.*component/i,
-    /add.*feature.*github/i,
-    /github.*create/i,
-    /github.*write/i,
-    /github.*add/i,
-  ];
-
-  return codePatterns.some(pattern => pattern.test(lowerContent));
 }
 
 // Detect if user is asking about previous conversations
@@ -649,19 +608,13 @@ export async function POST(request: NextRequest) {
       messagesWithContext = [userContextMessage, ...messagesWithContext];
     }
 
-    // Add connector awareness if user has connected services
-    // Also check if this is a GitHub code operation to route to gpt-5-mini
-    let connectedServices: string[] = [];
-    let effectiveTool = tool;
+    // Add Slingshot 2.0 system prompt for authenticated users
+    // This includes routing logic and behavior guidelines
+    const effectiveTool = tool;
 
-    if (isAuthenticated && rateLimitIdentifier) {
-      connectedServices = await getUserConnectedServices(rateLimitIdentifier);
-
-      // Build the unified Slingshot 2.0 system prompt
-      // This includes connector awareness, routing logic, and behavior guidelines
-      const slingshotPrompt = buildFullSystemPrompt(connectedServices, {
+    if (isAuthenticated) {
+      const slingshotPrompt = buildFullSystemPrompt({
         includeImageCapability: true,
-        includeConnectorFormat: connectedServices.length > 0,
       });
 
       const slingshotSystemMessage = {
@@ -669,12 +622,6 @@ export async function POST(request: NextRequest) {
         content: slingshotPrompt,
       };
       messagesWithContext = [slingshotSystemMessage, ...messagesWithContext];
-
-      // Check if this is a GitHub code operation - route to gpt-5-mini
-      if (connectedServices.length > 0 && isGitHubCodeOperation(messages, connectedServices)) {
-        effectiveTool = 'code';
-        console.log('[Chat API] GitHub code operation detected, routing to gpt-5-mini');
-      }
     }
 
     // Check if any message contains images (need non-streaming for image analysis)
