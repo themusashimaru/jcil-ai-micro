@@ -30,6 +30,7 @@ interface ChatSidebarProps {
   onDeleteChat: (chatId: string) => void;
   onPinChat: (chatId: string) => void;
   onMoveToFolder: (chatId: string, folder: string | undefined) => void;
+  onOpenCodeCommand?: () => void; // Admin-only Code Command
 }
 
 export function ChatSidebar({
@@ -42,6 +43,7 @@ export function ChatSidebar({
   onDeleteChat,
   onPinChat,
   onMoveToFolder,
+  onOpenCodeCommand,
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -298,6 +300,33 @@ export function ChatSidebar({
         `}
       >
         <div className="flex h-full flex-col">
+        {/* Code Command Button - Admin Only */}
+        {isAdmin && onOpenCodeCommand && (
+          <div className="border-b border-green-900/30 p-3 bg-gradient-to-r from-[#0a0a0a] to-[#111]">
+            <button
+              onClick={onOpenCodeCommand}
+              className="w-full rounded-lg bg-green-900/30 border border-green-700/50 px-4 py-3 text-left hover:bg-green-900/50 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                {/* Terminal icon */}
+                <div className="w-8 h-8 rounded bg-green-500/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-mono font-bold text-green-400 group-hover:text-green-300">
+                    JCIL.ai
+                  </div>
+                  <div className="text-xs font-mono text-green-600 group-hover:text-green-500">
+                    Code Command
+                  </div>
+                </div>
+              </div>
+            </button>
+          </div>
+        )}
+
         {/* Sidebar Header with Close Button */}
         <div className="border-b border-white/10 p-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-300">Chats</h2>
