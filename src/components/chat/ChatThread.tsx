@@ -31,6 +31,44 @@ import { QuickBibleStudy } from './QuickBibleStudy';
 // REMOVED: Breaking News - too complex, causing issues
 // import { QuickBreakingNews } from './QuickBreakingNews';
 
+/**
+ * Typewriter hook - animates text character by character
+ */
+function useTypewriter(text: string, speed: number = 40, delay: number = 0, enabled: boolean = true) {
+  const [displayedText, setDisplayedText] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || !text) {
+      setDisplayedText('');
+      setIsComplete(false);
+      return;
+    }
+
+    setDisplayedText('');
+    setIsComplete(false);
+
+    const startTimeout = setTimeout(() => {
+      let currentIndex = 0;
+      const interval = setInterval(() => {
+        if (currentIndex < text.length) {
+          setDisplayedText(text.slice(0, currentIndex + 1));
+          currentIndex++;
+        } else {
+          setIsComplete(true);
+          clearInterval(interval);
+        }
+      }, speed);
+
+      return () => clearInterval(interval);
+    }, delay);
+
+    return () => clearTimeout(startTimeout);
+  }, [text, speed, delay, enabled]);
+
+  return { displayedText, isComplete };
+}
+
 interface ChatThreadProps {
   messages: Message[];
   isStreaming: boolean;
@@ -50,6 +88,36 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   const [subtitle, setSubtitle] = useState<string>('Faith-based AI tools for your everyday needs');
   const [modelName, setModelName] = useState<string>('');
   const [isLogoLoading, setIsLogoLoading] = useState<boolean>(true);
+
+  // Typewriter animation for welcome screen
+  const showWelcome = !currentChatId || messages.length === 0;
+  const typewriterEnabled = showWelcome && !isLogoLoading;
+
+  // First line: model name (if exists) or subtitle
+  const firstLineText = modelName || '';
+  const { displayedText: firstLineDisplayed, isComplete: firstLineDone } = useTypewriter(
+    firstLineText,
+    50, // speed (ms per character)
+    300, // delay before starting
+    typewriterEnabled && !!modelName
+  );
+
+  // Second line: subtitle (starts after first line OR immediately if no model name)
+  const { displayedText: subtitleDisplayed, isComplete: subtitleDone } = useTypewriter(
+    subtitle,
+    40,
+    modelName ? 0 : 300, // if no model name, add initial delay
+    typewriterEnabled && (firstLineDone || !modelName)
+  );
+
+  // Third line: "Start a new chat..." (starts after subtitle)
+  const thirdLineText = 'Start a new chat or select an existing conversation';
+  const { displayedText: thirdLineDisplayed } = useTypewriter(
+    thirdLineText,
+    30,
+    200,
+    typewriterEnabled && subtitleDone && !currentChatId
+  );
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -140,12 +208,18 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
               </h1>
             )}
             {modelName && (
-              <p className="text-sm md:text-xl text-white font-medium mb-1">
-                {modelName}
+              <p className="text-sm md:text-xl text-white font-medium mb-1 min-h-[1.5em]">
+                {firstLineDisplayed}
+                {!firstLineDone && firstLineDisplayed && (
+                  <span className="animate-pulse text-[#4DFFFF]">|</span>
+                )}
               </p>
             )}
-            <p className="text-xs md:text-sm text-white italic">
-              {subtitle}
+            <p className="text-xs md:text-sm text-white italic min-h-[1.25em]">
+              {subtitleDisplayed}
+              {!subtitleDone && subtitleDisplayed && (
+                <span className="animate-pulse text-[#4DFFFF]">|</span>
+              )}
             </p>
           </div>
 
@@ -157,8 +231,11 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
           )}
 
           {!currentChatId && (
-            <p className="mb-2 text-xs md:text-sm text-white">
-              Start a new chat or select an existing conversation
+            <p className="mb-2 text-xs md:text-sm text-white min-h-[1.25em]">
+              {thirdLineDisplayed}
+              {subtitleDone && thirdLineDisplayed && thirdLineDisplayed !== thirdLineText && (
+                <span className="animate-pulse text-[#4DFFFF]">|</span>
+              )}
             </p>
           )}
 
