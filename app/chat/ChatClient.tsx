@@ -27,6 +27,7 @@ import { useState, useEffect } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
+import { CodeCommandInterface } from '@/components/code-command';
 // Voice Button - Hidden until feature is production-ready
 // import VoiceButton from './VoiceButton';
 // REMOVED: Notification system - users have built-in phone notifications
@@ -79,6 +80,8 @@ export function ChatClient() {
   // REMOVED: selectedTool state - all tools now handled naturally in chat
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
+  // Code Command mode (admin only)
+  const [showCodeCommand, setShowCodeCommand] = useState(false);
 
   /* Voice Chat - Hidden until feature is production-ready
   // Track current streaming assistant message ID for voice
@@ -1275,28 +1278,39 @@ export function ChatClient() {
           onDeleteChat={handleDeleteChat}
           onPinChat={handlePinChat}
           onMoveToFolder={handleMoveToFolder}
+          onOpenCodeCommand={() => setShowCodeCommand(true)}
         />
 
         {/* Chat thread area */}
         <main className="flex flex-1 flex-col overflow-hidden relative">
-          <ChatThread
-            messages={messages}
-            isStreaming={isStreaming}
-            currentChatId={currentChatId}
-            isAdmin={isAdmin}
-            onSubmitPrompt={(prompt) => handleSendMessage(prompt, [])}
-          />
-          <ChatComposer
-            onSendMessage={handleSendMessage}
-            isStreaming={isStreaming}
-          />
-          {/* Voice Button - Hidden until feature is production-ready
-          <VoiceButton
-            onStart={startVoiceChat}
-            onUserText={addUserVoiceMessage}
-            onAssistantText={upsertAssistantStreaming}
-          />
-          */}
+          {showCodeCommand ? (
+            // Code Command Interface (Admin only - terminal-style coding assistant)
+            <CodeCommandInterface
+              onClose={() => setShowCodeCommand(false)}
+            />
+          ) : (
+            // Regular Chat Interface
+            <>
+              <ChatThread
+                messages={messages}
+                isStreaming={isStreaming}
+                currentChatId={currentChatId}
+                isAdmin={isAdmin}
+                onSubmitPrompt={(prompt) => handleSendMessage(prompt, [])}
+              />
+              <ChatComposer
+                onSendMessage={handleSendMessage}
+                isStreaming={isStreaming}
+              />
+              {/* Voice Button - Hidden until feature is production-ready
+              <VoiceButton
+                onStart={startVoiceChat}
+                onUserText={addUserVoiceMessage}
+                onAssistantText={upsertAssistantStreaming}
+              />
+              */}
+            </>
+          )}
         </main>
       </div>
 

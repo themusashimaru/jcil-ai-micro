@@ -3,7 +3,10 @@
  */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // Note: swcMinify removed - deprecated in Next.js 16
+
+  // Turbopack config (empty to allow webpack fallback)
+  turbopack: {},
 
   // App Router optimizations
   experimental: {
@@ -68,6 +71,19 @@ const nextConfig = {
         tls: false,
       };
     }
+
+    // Explicit path aliases (workaround for Next.js 16 path resolution)
+    const path = require('path');
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@/app/components': path.resolve(__dirname, 'app/components'),
+      '@/components': path.resolve(__dirname, 'src/components'),
+      '@/lib': path.resolve(__dirname, 'src/lib'),
+      '@/contexts': path.resolve(__dirname, 'src/contexts'),
+      '@/app': path.resolve(__dirname, 'app'),
+      '@': path.resolve(__dirname, 'src'),
+    };
+
     return config;
   },
 };

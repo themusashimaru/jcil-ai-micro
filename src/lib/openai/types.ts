@@ -6,6 +6,7 @@
 export type OpenAIModel =
   | 'gpt-5-nano'              // Lightweight chat - basic Q&A, greetings, simple tasks (cost-optimized)
   | 'gpt-5-mini'              // Primary model - search, files, complex reasoning, fallback for nano
+  | 'gpt-5.1'                 // Premium model - Code Command, complex engineering tasks
   | 'gpt-4o-realtime-preview' // Real-time voice conversations
   | 'dall-e-3'                // Image generation
   | 'whisper-1'               // Speech-to-text
@@ -22,7 +23,8 @@ export type ToolType =
   | 'data'
   | 'translate'
   | 'shopper'
-  | 'code';
+  | 'code'
+  | 'code-command';           // Code Command mode - premium coding assistant
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
