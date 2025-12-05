@@ -30,7 +30,7 @@ import type { ToolType, OpenAIModel } from './types';
 import { httpWithTimeout } from '../http';
 import { logEvent, logImageGeneration } from '../log';
 import { cachedWebSearch } from '../cache';
-import { splitPromptForCaching, logCacheMetrics, willBenefitFromCaching } from './promptCache';
+import { logCacheMetrics, willBenefitFromCaching } from './promptCache';
 
 // Retry configuration
 const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
