@@ -27,7 +27,7 @@ function isDiffCode(code: string): boolean {
 }
 
 // Basic syntax highlighting for common patterns
-function highlightSyntax(line: string, language?: string): JSX.Element {
+function highlightSyntax(line: string, _language?: string): JSX.Element {
   // Don't highlight diff lines - they get special treatment
   if (line.startsWith('+') || line.startsWith('-')) {
     return <>{line}</>;

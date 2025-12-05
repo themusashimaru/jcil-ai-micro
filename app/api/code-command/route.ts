@@ -21,7 +21,6 @@ import { createOpenAI } from '@ai-sdk/openai';
 // Initialize OpenAI provider
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  compatibility: 'strict',
 });
 
 // GPT-5.1 model for Code Command
@@ -104,12 +103,13 @@ export async function POST(request: NextRequest) {
     console.log('[Code Command] Message count:', messages.length);
 
     // Stream response using GPT-5.1
-    const result = streamText({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const requestConfig: any = {
       model: openai(CODE_COMMAND_MODEL),
       messages: messagesWithSystem,
       maxTokens: 4000, // Allow longer responses for code
       // Note: GPT-5.1 may not support temperature, so we omit it
-      onFinish: async ({ text, usage }) => {
+      onFinish: async ({ text, usage }: { text?: string; usage?: { promptTokens?: number; completionTokens?: number } }) => {
         // Log usage for admin tracking
         console.log('[Code Command] Response complete');
         console.log('[Code Command] Usage:', usage);
@@ -129,10 +129,11 @@ export async function POST(request: NextRequest) {
           }
         }
       },
-    });
+    };
+    const result = streamText(requestConfig);
 
-    // Return streaming response
-    return result.toDataStreamResponse();
+    // Return streaming response (AI SDK v5 uses toTextStreamResponse)
+    return result.toTextStreamResponse();
 
   } catch (error) {
     console.error('[Code Command] Error:', error);

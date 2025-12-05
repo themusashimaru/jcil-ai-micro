@@ -66,7 +66,7 @@ function useTypewriter(text: string, speed: number = 30, delay: number = 0, enab
 /**
  * Render message content with code block support
  */
-function MessageContent({ content, isUser }: { content: string; isUser: boolean }) {
+function MessageContent({ content, isUser: _isUser }: { content: string; isUser: boolean }) {
   const parts = parseCodeBlocks(content);
 
   if (parts.length === 0) {
@@ -200,7 +200,7 @@ export function CodeCommandThread({ messages, isStreaming }: CodeCommandThreadPr
         {/* Streaming indicator */}
         {isStreaming && (
           <div className="border-l-2 border-green-500 pl-4">
-            <div className="text-xs text-green-500 mb-1">> CODE_COMMAND</div>
+            <div className="text-xs text-green-500 mb-1">{'>'} CODE_COMMAND</div>
             <div className="flex items-center gap-2 text-green-400">
               <span className="animate-pulse">Processing</span>
               <span className="animate-bounce">.</span>
