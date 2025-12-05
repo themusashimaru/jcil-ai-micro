@@ -31,6 +31,7 @@ import { httpWithTimeout } from '../http';
 import { logEvent, logImageGeneration } from '../log';
 import { cachedWebSearch } from '../cache';
 import { logCacheMetrics, willBenefitFromCaching } from './promptCache';
+import { trackTokenUsage } from './usage';
 
 // Retry configuration
 const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
@@ -457,7 +458,7 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
  * Create a chat completion with streaming support
  */
 export async function createChatCompletion(options: ChatOptions) {
-  const { messages, tool, temperature, maxTokens, stream = true } = options;
+  const { messages, tool, temperature, maxTokens, stream = true, userId } = options;
 
   // Get the last user message text for routing decisions
   const lastUserText = getLastUserMessageText(messages);
@@ -521,6 +522,22 @@ export async function createChatCompletion(options: ChatOptions) {
   // Only add temperature for non-reasoning models
   if (supportsTemperature(modelName)) {
     requestConfig.temperature = temperature ?? getRecommendedTemperature(modelName, tool);
+  }
+
+  // Add onFinish callback to track token usage after stream completes
+  if (userId) {
+    requestConfig.onFinish = async ({ usage }: { usage?: { promptTokens?: number; completionTokens?: number } }) => {
+      if (usage) {
+        trackTokenUsage({
+          userId,
+          model: modelName,
+          route: 'chat',
+          tool: 'streamText',
+          inputTokens: usage.promptTokens || 0,
+          outputTokens: usage.completionTokens || 0,
+        });
+      }
+    };
   }
 
   console.log('[OpenAI Streaming] Starting with model:', modelName, 'supportsTemp:', supportsTemperature(modelName));
@@ -705,6 +722,18 @@ async function createWebSearchCompletion(
       cached,
     });
 
+    // Track token usage to database (if userId provided and not cached)
+    if (userId && !cached) {
+      trackTokenUsage({
+        userId,
+        model: modelName,
+        route: 'search',
+        tool: 'responses',
+        inputTokens: result.usage?.prompt_tokens || 0,
+        outputTokens: result.usage?.completion_tokens || 0,
+      });
+    }
+
     return result;
   } catch (error) {
     // Log the error
@@ -733,7 +762,7 @@ async function createDirectOpenAICompletion(
   options: ChatOptions,
   modelName: OpenAIModel
 ) {
-  const { messages, tool, temperature, maxTokens } = options;
+  const { messages, tool, temperature, maxTokens, userId } = options;
 
   // Log detailed info about the request for debugging
   const messagesSummary = messages.map((m, i) => ({
@@ -802,6 +831,20 @@ async function createDirectOpenAICompletion(
       }
 
       const result = await generateText(generateConfig);
+
+      // Track token usage to database (if userId provided)
+      if (userId && result.usage) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const usage = result.usage as any;
+        trackTokenUsage({
+          userId,
+          model: modelName,
+          route: 'chat',
+          tool: 'generateText',
+          inputTokens: usage.promptTokens || usage.inputTokens || 0,
+          outputTokens: usage.completionTokens || usage.outputTokens || 0,
+        });
+      }
 
       return {
         text: result.text,

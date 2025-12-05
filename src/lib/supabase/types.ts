@@ -193,6 +193,41 @@ export interface Database {
           deleted_at?: string | null
         }
       }
+      token_usage: {
+        Row: {
+          id: string
+          user_id: string
+          conversation_id: string | null
+          model: string
+          route: string
+          tool: string
+          input_tokens: number
+          output_tokens: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          conversation_id?: string | null
+          model: string
+          route: string
+          tool: string
+          input_tokens?: number
+          output_tokens?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          conversation_id?: string | null
+          model?: string
+          route?: string
+          tool?: string
+          input_tokens?: number
+          output_tokens?: number
+          created_at?: string
+        }
+      }
     }
     Views: {
       admin_users_summary: {
