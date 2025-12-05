@@ -33,7 +33,6 @@ import { ChatComposer } from '@/components/chat/ChatComposer';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
-import { ConnectorsModal } from '@/components/connectors/ConnectorsModal';
 import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
@@ -72,8 +71,6 @@ export function ChatClient() {
   // Start with sidebar collapsed on mobile, open on desktop
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isConnectorsOpen, setIsConnectorsOpen] = useState(false);
-  const [showConnectorsTip, setShowConnectorsTip] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
@@ -232,24 +229,6 @@ export function ChatClient() {
 
     checkAdminStatus();
   }, []);
-
-  // Show connectors onboarding tooltip for new users (admin only)
-  useEffect(() => {
-    if (!isAdmin) return; // Only show tip for admins
-    const hasSeenTip = localStorage.getItem('connectors_tip_seen');
-    if (!hasSeenTip) {
-      // Wait 3 seconds after page load, then show the tooltip
-      const timer = setTimeout(() => {
-        setShowConnectorsTip(true);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [isAdmin]);
-
-  const dismissConnectorsTip = () => {
-    setShowConnectorsTip(false);
-    localStorage.setItem('connectors_tip_seen', 'true');
-  };
 
   // Detect screen size and set initial sidebar state
   useEffect(() => {
@@ -1263,51 +1242,6 @@ export function ChatClient() {
           </button>
 
           <div className="flex items-center gap-0.5">
-            {/* Connectors Button with Tooltip - Admin Only */}
-            {isAdmin && (
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setIsConnectorsOpen(true);
-                    if (showConnectorsTip) dismissConnectorsTip();
-                  }}
-                  className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center justify-center gap-0.5 focus:outline-none"
-                  aria-label="Connectors"
-                  title="Connect external services"
-                >
-                  <svg className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                    />
-                  </svg>
-                  <span className="hidden md:inline">Connectors</span>
-                </button>
-
-                {/* Onboarding Tooltip */}
-                {showConnectorsTip && (
-                  <div className="absolute top-full right-0 mt-2 z-50 animate-slide-down">
-                    <div className="relative bg-blue-600 text-white text-sm rounded-xl px-4 py-3 shadow-lg w-[260px]">
-                      {/* Arrow pointing up */}
-                      <div className="absolute -top-2 right-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[10px] border-b-blue-600" />
-                      <p className="font-semibold mb-1">Add Connectors</p>
-                      <p className="text-blue-100 text-xs leading-relaxed">Connect your apps for full AI capabilities</p>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          dismissConnectorsTip();
-                        }}
-                        className="mt-3 text-xs text-blue-200 hover:text-white underline"
-                      >
-                        Got it
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
             {/* Profile Button */}
             <button
               onClick={() => setIsProfileOpen(true)}
@@ -1368,9 +1302,6 @@ export function ChatClient() {
 
       {/* User Profile Modal */}
       <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
-
-      {/* Connectors Modal */}
-      <ConnectorsModal isOpen={isConnectorsOpen} onClose={() => setIsConnectorsOpen(false)} />
 
       {/* Passkey Setup Prompt Modal */}
       <PasskeyPromptModal

@@ -1,7 +1,7 @@
 /**
  * Tool Response Wrapper
  *
- * Normalizes all connector/tool responses to consistent { ok: true/false } format
+ * Normalizes all tool responses to consistent { ok: true/false } format
  * Ensures proper error handling and logging
  */
 
