@@ -834,13 +834,15 @@ async function createDirectOpenAICompletion(
 
       // Track token usage to database (if userId provided)
       if (userId && result.usage) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const usage = result.usage as any;
         trackTokenUsage({
           userId,
           model: modelName,
           route: 'chat',
           tool: 'generateText',
-          inputTokens: result.usage.promptTokens || 0,
-          outputTokens: result.usage.completionTokens || 0,
+          inputTokens: usage.promptTokens || usage.inputTokens || 0,
+          outputTokens: usage.completionTokens || usage.outputTokens || 0,
         });
       }
 
