@@ -189,6 +189,84 @@ IMPORTANT: Use these times as your reference for any time-related questions.`;
 }
 
 /**
+ * Normalize message format for OpenAI Responses API
+ * Responses API expects: 'input_text', 'input_image' (not 'text', 'image')
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeMessageForResponsesAPI(message: any): any {
+  const role = message.role;
+
+  // Handle missing or invalid role
+  if (!role || !['user', 'assistant', 'system'].includes(role)) {
+    return { role: 'user', content: '' };
+  }
+
+  // If content is a string, return as input_text format
+  if (typeof message.content === 'string') {
+    return {
+      role,
+      content: [{ type: 'input_text', text: message.content }]
+    };
+  }
+
+  // If content is null/undefined, return empty
+  if (!message.content) {
+    return { role, content: [{ type: 'input_text', text: '' }] };
+  }
+
+  // If content is not an array, convert to string
+  if (!Array.isArray(message.content)) {
+    return {
+      role,
+      content: [{ type: 'input_text', text: String(message.content) }]
+    };
+  }
+
+  // Convert content parts to Responses API format
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const normalizedContent = message.content.map((part: any) => {
+    // Text parts -> input_text
+    if (part.type === 'text') {
+      return { type: 'input_text', text: part.text || '' };
+    }
+    // AI SDK image format -> input_image
+    if (part.type === 'image' && part.image) {
+      // Responses API expects image_url for input_image
+      return {
+        type: 'input_image',
+        image_url: typeof part.image === 'string' ? part.image : part.image.toString(),
+      };
+    }
+    // OpenAI image_url format -> input_image
+    if (part.type === 'image_url' && part.image_url?.url) {
+      return {
+        type: 'input_image',
+        image_url: part.image_url.url,
+      };
+    }
+    // input_text already in correct format
+    if (part.type === 'input_text') {
+      return part;
+    }
+    // input_image already in correct format
+    if (part.type === 'input_image') {
+      return part;
+    }
+    // Try to extract text from unknown parts
+    if (part.text) {
+      return { type: 'input_text', text: part.text };
+    }
+    return null;
+  }).filter(Boolean);
+
+  if (normalizedContent.length === 0) {
+    return { role, content: [{ type: 'input_text', text: '' }] };
+  }
+
+  return { role, content: normalizedContent };
+}
+
+/**
  * Normalize message format for AI SDK
  * AI SDK expects { type: 'image', image: '...' } - it handles OpenAI conversion internally
  * IMPORTANT: AI SDK is strict - only include role and content, nothing else!
@@ -461,12 +539,12 @@ async function createWebSearchCompletion(
 
   const effectiveMaxTokens = maxTokens ?? getMaxTokens(modelName, tool);
 
-  // Convert messages to OpenAI format
-  const convertedMessages = messages.map(normalizeMessageForAISDK);
+  // Convert messages to Responses API format (uses input_text, input_image)
+  const convertedMessages = messages.map(normalizeMessageForResponsesAPI);
 
-  // Add system message at the beginning
+  // Add system message at the beginning (Responses API format)
   const messagesWithSystem = [
-    { role: 'system', content: systemPrompt },
+    { role: 'system', content: [{ type: 'input_text', text: systemPrompt }] },
     ...convertedMessages
   ];
 
