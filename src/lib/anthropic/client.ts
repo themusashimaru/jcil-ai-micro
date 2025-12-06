@@ -53,19 +53,14 @@ export interface BraveSearchResult {
   query: string;
 }
 
-interface AnthropicTextBlock {
-  type: 'text';
-  text: string;
-}
+// Valid image media types for Anthropic API
+type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp';
 
-interface AnthropicToolUseBlock {
-  type: 'tool_use';
-  id: string;
-  name: string;
-  input: Record<string, unknown>;
-}
-
-type AnthropicContentBlock = AnthropicTextBlock | AnthropicToolUseBlock;
+// Anthropic message content types
+type AnthropicMessageContent = string | Array<
+  { type: 'text'; text: string } |
+  { type: 'image'; source: { type: 'base64'; media_type: ImageMediaType; data: string } }
+>;
 
 /**
  * Convert CoreMessage format to Anthropic message format
@@ -74,13 +69,13 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
   system: string;
   messages: Array<{
     role: 'user' | 'assistant';
-    content: string | Array<{ type: 'text'; text: string } | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }>;
+    content: AnthropicMessageContent;
   }>;
 } {
   const system = systemPrompt || 'You are a helpful AI assistant.';
   const anthropicMessages: Array<{
     role: 'user' | 'assistant';
-    content: string | Array<{ type: 'text'; text: string } | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }>;
+    content: AnthropicMessageContent;
   }> = [];
 
   for (const msg of messages) {
@@ -95,22 +90,33 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
         });
       } else if (Array.isArray(msg.content)) {
         // Handle multimodal content (text + images)
-        const parts: Array<{ type: 'text'; text: string } | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }> = [];
+        const parts: Array<
+          { type: 'text'; text: string } |
+          { type: 'image'; source: { type: 'base64'; media_type: ImageMediaType; data: string } }
+        > = [];
 
         for (const part of msg.content) {
-          if (part.type === 'text' && 'text' in part) {
-            parts.push({ type: 'text', text: part.text });
-          } else if ((part.type === 'image' || part.type === 'image_url') && 'image' in part) {
+          // Cast to unknown to handle various image formats that may come from different sources
+          const partAny = part as unknown as { type: string; text?: string; image?: string };
+
+          if (partAny.type === 'text' && partAny.text) {
+            parts.push({ type: 'text', text: partAny.text });
+          } else if ((partAny.type === 'image' || partAny.type === 'image_url') && partAny.image) {
             // Extract base64 data from data URL
-            const dataUrl = (part as { image: string }).image;
+            const dataUrl = partAny.image;
             const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
             if (matches) {
               const [, mediaType, data] = matches;
+              // Validate and cast media type to allowed values
+              const validMediaTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
+              const typedMediaType = validMediaTypes.includes(mediaType as ImageMediaType)
+                ? (mediaType as ImageMediaType)
+                : 'image/png'; // Default to PNG if unknown
               parts.push({
                 type: 'image',
                 source: {
                   type: 'base64',
-                  media_type: mediaType,
+                  media_type: typedMediaType,
                   data,
                 },
               });
@@ -340,16 +346,19 @@ export async function createAnthropicCompletionWithSearch(
           // Add the assistant's response and tool result to messages
           currentMessages.push({
             role: 'assistant',
-            content: response.content.map((block: AnthropicContentBlock) => {
+            content: response.content.map((block) => {
               if (block.type === 'text') {
                 return { type: 'text' as const, text: block.text };
+              } else if (block.type === 'tool_use') {
+                return {
+                  type: 'tool_use' as const,
+                  id: block.id,
+                  name: block.name,
+                  input: block.input,
+                };
               }
-              return {
-                type: 'tool_use' as const,
-                id: block.id,
-                name: block.name,
-                input: block.input,
-              };
+              // Handle other block types (e.g., thinking) by returning empty text
+              return { type: 'text' as const, text: '' };
             }) as Array<{ type: 'text'; text: string }>,
           });
 
@@ -366,16 +375,19 @@ export async function createAnthropicCompletionWithSearch(
           // Provide error feedback to the model
           currentMessages.push({
             role: 'assistant',
-            content: response.content.map((block: AnthropicContentBlock) => {
+            content: response.content.map((block) => {
               if (block.type === 'text') {
                 return { type: 'text' as const, text: block.text };
+              } else if (block.type === 'tool_use') {
+                return {
+                  type: 'tool_use' as const,
+                  id: block.id,
+                  name: block.name,
+                  input: block.input,
+                };
               }
-              return {
-                type: 'tool_use' as const,
-                id: block.id,
-                name: block.name,
-                input: block.input,
-              };
+              // Handle other block types by returning empty text
+              return { type: 'text' as const, text: '' };
             }) as Array<{ type: 'text'; text: string }>,
           });
           currentMessages.push({

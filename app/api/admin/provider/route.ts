@@ -125,8 +125,8 @@ export async function PUT(request: NextRequest) {
 
     if (existing) {
       // Update existing row
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('provider_settings') as any)
         .update(updateData)
         .eq('id', existing.id)
@@ -140,8 +140,8 @@ export async function PUT(request: NextRequest) {
       settings = data as ProviderSettingsRow;
     } else {
       // Insert new row
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('provider_settings') as any)
         .insert({
           ...updateData,
