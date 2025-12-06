@@ -53,7 +53,17 @@ export async function GET() {
       .select('*')
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+    // Handle errors gracefully - return defaults if table doesn't exist or is empty
+    if (error) {
+      // PGRST116 = no rows found, 42P01 = table doesn't exist
+      if (error.code === 'PGRST116' || error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.log('[Provider API] No settings found, returning defaults');
+        return NextResponse.json({
+          activeProvider: DEFAULT_SETTINGS.active_provider,
+          providerConfig: DEFAULT_SETTINGS.provider_config,
+          updatedAt: null,
+        });
+      }
       console.error('[Provider API] Error fetching settings:', error);
       return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
     }
@@ -115,10 +125,18 @@ export async function PUT(request: NextRequest) {
     }
 
     // First, check if a row exists
-    const { data: existingData } = await supabase
+    const { data: existingData, error: checkError } = await supabase
       .from('provider_settings')
       .select('id')
       .single();
+
+    // If table doesn't exist, return helpful error
+    if (checkError && (checkError.code === '42P01' || checkError.message?.includes('does not exist'))) {
+      console.error('[Provider API] Table does not exist - run migration');
+      return NextResponse.json({
+        error: 'Provider settings table not found. Please run the database migration: supabase/migrations/add_provider_settings_table.sql'
+      }, { status: 500 });
+    }
 
     const existing = existingData as { id: string } | null;
     let settings: ProviderSettingsRow | null = null;
