@@ -21,9 +21,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // Voice Chat imports - Hidden until feature is production-ready
-// import { useCallback, useRef } from 'react';
+// import { useCallback } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
@@ -82,6 +82,10 @@ export function ChatClient() {
   const [headerLogo, setHeaderLogo] = useState<string>('');
   // Code Command mode (admin only)
   const [showCodeCommand, setShowCodeCommand] = useState(false);
+  // AbortController for cancelling in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   /* Voice Chat - Hidden until feature is production-ready
   // Track current streaming assistant message ID for voice
@@ -257,6 +261,19 @@ export function ChatClient() {
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('toggle-sidebar', handleToggleSidebar);
+    };
+  }, []);
+
+  // Cleanup on unmount - abort any in-flight requests
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Abort any in-flight requests when navigating away
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
     };
   }, []);
 
@@ -729,6 +746,13 @@ export function ChatClient() {
           }
         : undefined;
 
+      // Create AbortController for this request
+      // Abort any previous in-flight request first
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
       // Call API with regular chat (no auto tool selection)
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -741,6 +765,7 @@ export function ChatClient() {
           conversationId: newChatId, // Pass current conversation ID to exclude from history
           // No tool parameter - let users manually select tools via buttons
         }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -1101,6 +1126,8 @@ export function ChatClient() {
       }
 
       setIsStreaming(false);
+      // Clear the abort controller after successful completion
+      abortControllerRef.current = null;
 
       // Save assistant message to database (skip for images - already saved above)
       if (!isImageResponse) {
@@ -1165,7 +1192,29 @@ export function ChatClient() {
         }
       }
     } catch (error) {
+      // Check if this is an abort error (user navigated away or sent new message)
+      const isAbortError = error instanceof Error && (
+        error.name === 'AbortError' ||
+        error.message.toLowerCase().includes('aborted') ||
+        error.message.toLowerCase().includes('abort')
+      );
+
+      if (isAbortError) {
+        // User navigated away or cancelled - this is intentional, not an error
+        console.log('[ChatClient] Request aborted (user navigated away or sent new message)');
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setIsStreaming(false);
+        }
+        return; // Don't show error message for aborted requests
+      }
+
       console.error('Chat API error:', error);
+
+      // Only show error message if component is still mounted
+      if (!isMountedRef.current) {
+        return;
+      }
 
       // Show user-friendly error message (no technical details)
       const errorMessage: Message = {
