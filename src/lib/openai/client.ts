@@ -82,6 +82,99 @@ const WEB_SEARCH_PATTERNS = [
 
   // Explicit research requests
   /\b(research|investigate|find out|look into)\b/i,
+
+  // LOCAL BUSINESS & PLACES SEARCHES
+  // "X in [location]" patterns - theaters, restaurants, stores, etc.
+  /\b(theater|theatre|cinema|movie|movies|restaurant|cafe|coffee|bar|pub|hotel|motel|store|shop|gym|hospital|pharmacy|bank|atm|gas station|grocery|supermarket|mall|salon|barber|dentist|doctor|clinic|school|library|park|museum|church)\s+(in|near|around|at)\s+\w+/i,
+
+  // "near me" and "nearby" patterns
+  /\b(near\s*me|nearby|close\s*by|around\s*here|in\s*my\s*area)\b/i,
+
+  // "where is/are" patterns for places
+  /\b(where\s+(is|are|can\s+i\s+find))\s+(the|a|an)?\s*\w+/i,
+
+  // Location + business type patterns
+  /\b\w+\s+(theater|theatre|cinema|restaurant|cafe|store|shop|mall)\b/i,
+
+  // Showtimes and movie-specific patterns
+  /\b(showtime|show\s*time|movie\s*time|playing|screening)\b/i,
+  /\b(what'?s|what\s+is)\s+playing\b/i,
+
+  // Address and contact lookups
+  /\b(address|phone\s*number|contact|location|directions)\s+(for|of|to)\b/i,
+
+  // "Give me info" patterns
+  /\b(give\s+me|get\s+me|show\s+me|tell\s+me)\s+(info|information|details|the)\s+(on|about|for)\b/i,
+
+  // Regal, AMC, and other theater chains
+  /\b(regal|amc|cinemark|imax|alamo\s*drafthouse)\b/i,
+
+  // PEOPLE & ORGANIZATIONS
+  // Celebrity, politician, public figure lookups
+  /\b(who\s+is|who'?s|tell\s+me\s+about)\s+[A-Z][a-z]+\s+[A-Z][a-z]+/i,
+  /\b(ceo|founder|owner|president|cfo|cto)\s+(of|at)\b/i,
+
+  // Company and organization info
+  /\b(company|corporation|organization|startup|business)\s+(info|information|details|about)\b/i,
+  /\b(what\s+is|what'?s)\s+[A-Z][a-z]+\s*(inc|corp|llc|ltd|co)?\b/i,
+
+  // EVENTS & ENTERTAINMENT
+  // Concerts, shows, sports events
+  /\b(concert|show|event|game|match|festival|tour)\s+(in|at|near|tickets)\b/i,
+  /\b(tickets|seats)\s+(for|to)\b/i,
+  /\b(when\s+is|when'?s)\s+(the|next)\b/i,
+
+  // TV shows and streaming
+  /\b(watch|stream|streaming|netflix|hulu|disney\+?|hbo|prime\s*video|youtube)\b/i,
+  /\b(new\s+episode|season\s+\d|release\s+date)\b/i,
+
+  // PRODUCTS & SHOPPING
+  // Product lookups and reviews
+  /\b(review|reviews|rating|ratings)\s+(for|of|on)\b/i,
+  /\b(is\s+.{1,30}\s+worth|should\s+i\s+buy|best\s+.{1,20}\s+(for|under|to))\b/i,
+  /\b(compare|comparison|vs\.?|versus)\b/i,
+  /\b(buy|purchase|order|get)\s+.{1,30}\s+(online|from|at)\b/i,
+
+  // Specific product categories
+  /\b(iphone|android|samsung|pixel|macbook|laptop|tablet|headphones|airpods|tv|camera)\b/i,
+
+  // TRAVEL & TRANSPORTATION
+  /\b(flight|flights|airline|airport|train|bus|uber|lyft)\s+(to|from|at|in)\b/i,
+  /\b(book|booking|reservation|reserve)\s+(a|hotel|flight|table|ticket)\b/i,
+  /\b(travel\s+to|visiting|trip\s+to|vacation\s+in)\b/i,
+
+  // LOCAL SERVICES
+  /\b(plumber|electrician|mechanic|contractor|locksmith|tow\s*truck|delivery|repair)\s+(in|near|around)\b/i,
+  /\b(best|top|recommended)\s+.{1,30}\s+(in|near|around)\b/i,
+
+  // FOOD & DINING
+  /\b(menu|reservation|order\s+food|delivery|takeout|uber\s*eats|doordash|grubhub)\b/i,
+  /\b(best\s+(food|restaurant|pizza|sushi|chinese|mexican|italian))\b/i,
+
+  // HEALTH (general, non-medical advice)
+  /\b(pharmacy|urgent\s*care|emergency\s*room|er)\s+(near|in|open)\b/i,
+  /\b(doctor|dentist|optometrist|therapist)\s+(near|in|accepting)\b/i,
+
+  // FACTS & STATISTICS (things that change)
+  /\b(population|gdp|unemployment|inflation|rate)\s+(of|in)\b/i,
+  /\b(record|world\s*record|longest|tallest|fastest|biggest|richest)\b/i,
+  /\b(how\s+many|how\s+much)\s+.{1,30}\s+(in|are\s+there|does)\b/i,
+
+  // TECHNOLOGY & SOFTWARE
+  /\b(latest\s+version|update|download|install)\b/i,
+  /\b(ios|android|windows|macos|linux)\s+(version|\d+)\b/i,
+  /\b(app|application|software|program)\s+(for|to|that)\b/i,
+
+  // GENERAL LOOKUP INTENT
+  // "What happened" patterns
+  /\b(what\s+happened|what'?s\s+going\s+on|what'?s\s+new)\s+(with|to|at)\b/i,
+
+  // Explicit info requests
+  /\b(info|information|details|facts)\s+(about|on|for)\b/i,
+  /\b(can\s+you|could\s+you)\s+(find|look\s+up|search|check)\b/i,
+
+  // Question words with specific entities
+  /\b(when|where|how)\s+(does|do|is|are|can|will)\s+.{3,}/i,
 ];
 
 /**
