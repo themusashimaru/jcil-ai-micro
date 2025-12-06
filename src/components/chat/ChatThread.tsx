@@ -22,6 +22,7 @@ import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useTheme } from '@/contexts/ThemeContext';
 // REMOVED: Email and Essay tools - gpt-5-mini handles these in regular chat
 // import { QuickEmailWriter } from './QuickEmailWriter';
 // import { QuickResearchTool } from './QuickResearchTool'; // HIDDEN: Auto-search is now enabled for all conversations
@@ -82,6 +83,7 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const { profile, hasProfile } = useUserProfile();
+  const { theme } = useTheme();
 
   // Load design settings from database API
   const [mainLogo, setMainLogo] = useState<string>('');
@@ -180,9 +182,16 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
           {/* JCIL.ai Logo */}
           <div className="mb-1">
             {/* Logo - Dynamically loaded from database (supports images and videos) */}
+            {/* In light mode: always show text "jcil.ai" instead of logo */}
             {isLogoLoading ? (
               // Show placeholder while loading to prevent flash
               <div className="h-36 md:h-72 w-auto mx-auto mb-2" />
+            ) : theme === 'light' ? (
+              // Light mode: Use text instead of logo image
+              <h1 className="text-6xl md:text-8xl font-normal mb-2">
+                <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
+                <span style={{ color: 'var(--primary)' }}>ai</span>
+              </h1>
             ) : mainLogo ? (
               // Check if logo is a video (MP4 or WebM)
               mainLogo.startsWith('data:video/') ? (
@@ -208,33 +217,33 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
               </h1>
             )}
             {modelName && (
-              <p className="text-sm md:text-xl text-white font-medium mb-1 min-h-[1.5em]">
+              <p className="text-sm md:text-xl font-medium mb-1 min-h-[1.5em]" style={{ color: 'var(--text-primary)' }}>
                 {firstLineDisplayed}
                 {!firstLineDone && firstLineDisplayed && (
-                  <span className="animate-pulse text-[#4DFFFF]">|</span>
+                  <span className="animate-pulse" style={{ color: 'var(--primary)' }}>|</span>
                 )}
               </p>
             )}
-            <p className="text-xs md:text-sm text-white italic min-h-[1.25em]">
+            <p className="text-xs md:text-sm italic min-h-[1.25em]" style={{ color: 'var(--text-primary)' }}>
               {subtitleDisplayed}
               {!subtitleDone && subtitleDisplayed && (
-                <span className="animate-pulse text-[#4DFFFF]">|</span>
+                <span className="animate-pulse" style={{ color: 'var(--primary)' }}>|</span>
               )}
             </p>
           </div>
 
           {/* Personalized greeting if profile exists */}
           {hasProfile && currentChatId && (
-            <p className="mb-1 text-xs md:text-lg text-white">
+            <p className="mb-1 text-xs md:text-lg" style={{ color: 'var(--text-primary)' }}>
               Hi {profile.name}! How can I help you today?
             </p>
           )}
 
           {!currentChatId && (
-            <p className="mb-2 text-xs md:text-sm text-white min-h-[1.25em]">
+            <p className="mb-2 text-xs md:text-sm min-h-[1.25em]" style={{ color: 'var(--text-primary)' }}>
               {thirdLineDisplayed}
               {subtitleDone && thirdLineDisplayed && thirdLineDisplayed !== thirdLineText && (
-                <span className="animate-pulse text-[#4DFFFF]">|</span>
+                <span className="animate-pulse" style={{ color: 'var(--primary)' }}>|</span>
               )}
             </p>
           )}

@@ -2,17 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dark theme (default) */
 :root {
   --background: #000000;
   --foreground: #ffffff;
   --glass-bg: rgba(0, 0, 0, 0.6);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: rgba(0, 0, 0, 0.5);
+
+  /* Theme colors */
+  --primary: #4DFFFF; /* Electric blue */
+  --primary-hover: rgba(77, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af; /* Gray-400 */
+  --text-muted: #6b7280; /* Gray-500 */
+  --surface: #000000;
+  --surface-elevated: #18181b; /* Zinc-900 */
+  --border: rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme (admin only) */
+:root.light-mode {
+  --background: #f5f5f5; /* Light gray, almost white */
+  --foreground: #000000;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+
+  /* Light theme colors */
+  --primary: #1e40af; /* Darker blue for light mode */
+  --primary-hover: rgba(30, 64, 175, 0.1);
+  --text-primary: #000000;
+  --text-secondary: #4b5563; /* Gray-600 */
+  --text-muted: #6b7280; /* Gray-500 */
+  --surface: #f5f5f5;
+  --surface-elevated: #ffffff;
+  --border: rgba(0, 0, 0, 0.1);
 }
 
 @layer base {
   body {
-    @apply bg-black text-white;
+    background-color: var(--background);
+    color: var(--foreground);
   }
 }
 
