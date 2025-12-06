@@ -685,6 +685,18 @@ export function ChatClient() {
     }
   };
 
+  /**
+   * Handle stop button - abort the current streaming request
+   */
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      console.log('[ChatClient] User clicked stop - aborting request');
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsStreaming(false);
+  };
+
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
     if (!content.trim() && attachments.length === 0) return;
 
@@ -1530,6 +1542,7 @@ export function ChatClient() {
               )}
               <ChatComposer
                 onSendMessage={handleSendMessage}
+                onStop={handleStop}
                 isStreaming={isStreaming}
                 disabled={isWaitingForReply}
               />
