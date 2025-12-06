@@ -264,12 +264,14 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
         {/* Message Bubble */}
         <div
           className={`chat-bubble chat-bubble-tail ${
-            isUser ? 'right bg-blue-600 text-white' : 'left border border-[#4DFFFF]'
+            isUser ? 'right' : 'left'
           }`}
           style={{
             userSelect: 'text',
             WebkitUserSelect: 'text',
-            ...(isUser ? { border: 'none' } : {})
+            backgroundColor: isUser ? 'var(--chat-user-bubble-bg)' : 'var(--chat-ai-bubble-bg)',
+            color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--chat-ai-bubble-text)',
+            border: isUser ? 'none' : '1px solid var(--chat-ai-bubble-border)',
           }}
         >
           <div className="break-words select-text">
@@ -327,7 +329,7 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
           )}
 
           {/* Timestamp and Admin Model Badge */}
-          <div className={`mt-1 flex items-center gap-2 text-xs ${isUser ? 'text-white/70' : 'text-gray-400'}`}>
+          <div className="mt-1 flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
             <span>
               {new Date(message.timestamp).toLocaleTimeString([], {
                 hour: '2-digit',
@@ -361,11 +363,10 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
           <div className="flex gap-0">
             <button
               onClick={handleCopy}
-              className={`rounded px-1 py-0 text-xs flex items-center justify-center transition-colors ${
-                copied
-                  ? 'text-green-400'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-              }`}
+              className="rounded px-1 py-0 text-xs flex items-center justify-center transition-colors"
+              style={{
+                color: copied ? '#22c55e' : 'var(--text-muted)',
+              }}
               title={copied ? 'Copied!' : 'Copy message'}
             >
               {copied ? (
@@ -389,7 +390,8 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
               )}
             </button>
             <button
-              className="rounded px-1 py-0 text-xs text-gray-400 hover:bg-white/5 hover:text-white flex items-center justify-center"
+              className="rounded px-1 py-0 text-xs flex items-center justify-center transition-colors"
+              style={{ color: 'var(--text-muted)' }}
               title="Regenerate"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -372,21 +372,16 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: C
         <div className="relative">
           {/* Subtle living glow aura */}
           <div
-            className="absolute -inset-[2px] rounded-lg blur-sm pointer-events-none"
-            style={{
-              background: 'linear-gradient(90deg, #4DFFFF, #00BFFF, #4DFFFF)',
-              backgroundSize: '200% 100%',
-              animation: 'living-glow 4s ease-in-out infinite',
-            }}
+            className="absolute -inset-[2px] rounded-lg blur-sm pointer-events-none living-glow-aura"
           />
           <div
             className={`relative rounded-lg transition-colors ${
-              isDragging
-                ? 'bg-white/10'
-                : 'bg-black/80'
+              isDragging ? 'opacity-80' : ''
             }`}
             style={{
-              boxShadow: '0 0 20px rgba(77, 255, 255, 0.15), inset 0 0 20px rgba(77, 255, 255, 0.05)',
+              backgroundColor: 'var(--chat-input-bg)',
+              boxShadow: '0 0 20px var(--primary-glow), inset 0 0 20px var(--primary-hover)',
+              border: '1px solid var(--border)',
             }}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -399,7 +394,7 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: C
                 className="absolute inset-0 flex items-center pointer-events-none py-1.5 px-2 md:p-4"
                 style={{ fontSize: '16px' }}
               >
-                <span className="text-[#4DFFFF] font-medium">
+                <span className="font-medium" style={{ color: 'var(--primary)' }}>
                   {displayedText}
                   <span className="animate-pulse">|</span>
                 </span>
@@ -413,10 +408,10 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: C
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder={isDragging ? 'Drop files here...' : ''}
-              className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-[#4DFFFF] focus:outline-none min-h-[40px]"
+              className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base focus:outline-none min-h-[40px]"
               rows={1}
               disabled={isStreaming || disabled}
-              style={{ fontSize: '16px' }}
+              style={{ fontSize: '16px', color: 'var(--text-primary)' }}
             />
           </div>
 
@@ -453,7 +448,8 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: C
               <button
                 onClick={() => setShowAttachMenu(!showAttachMenu)}
                 disabled={isStreaming || disabled}
-                className="rounded-lg p-1 md:p-2 text-[#4DFFFF] hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
+                className="rounded-lg p-1 md:p-2 disabled:opacity-50 shrink-0 flex items-center justify-center transition-colors"
+                style={{ color: 'var(--primary)' }}
                 title="Attach files"
               >
                 <svg className="h-4 w-4 md:h-5 md:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -475,17 +471,16 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: C
                 // Stop button - shown while streaming
                 <button
                   onClick={onStop}
-                  className="rounded-full bg-black border-2 p-0.5 md:p-2.5 transition-all hover:bg-[#4DFFFF]/10 shrink-0 flex items-center justify-center"
+                  className="rounded-full border-2 p-0.5 md:p-2.5 transition-all shrink-0 flex items-center justify-center send-button-glow"
                   title="Stop generating"
                   style={{
-                    borderColor: '#4DFFFF',
-                    color: '#4DFFFF',
-                    boxShadow: '0 0 8px #4DFFFF, 0 0 15px rgba(77, 255, 255, 0.4)',
-                    animation: 'pulse-glow 2s ease-in-out infinite',
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--primary)',
+                    color: 'var(--primary)',
                   }}
                 >
                   {/* Square stop icon */}
-                  <svg className="h-5 w-5 md:h-6 md:w-6" fill="#4DFFFF" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 md:h-6 md:w-6" fill="currentColor" viewBox="0 0 24 24">
                     <rect x="6" y="6" width="12" height="12" rx="2" />
                   </svg>
                 </button>
@@ -494,50 +489,22 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: C
                 <button
                   onClick={handleSend}
                   disabled={(!message.trim() && attachments.length === 0) || isStreaming || disabled}
-                  className="rounded-full bg-black border-2 p-0.5 md:p-2.5 transition-all hover:bg-[#4DFFFF]/10 shrink-0 flex items-center justify-center"
+                  className={`rounded-full border-2 p-0.5 md:p-2.5 transition-all shrink-0 flex items-center justify-center ${
+                    (!message.trim() && attachments.length === 0) || disabled ? '' : 'send-button-glow'
+                  }`}
                   title="Send message"
                   style={{
-                    borderColor: '#4DFFFF',
-                    color: '#4DFFFF',
-                    boxShadow: (!message.trim() && attachments.length === 0) || disabled
-                      ? 'none'
-                      : '0 0 8px #4DFFFF, 0 0 15px rgba(77, 255, 255, 0.4)',
-                    animation: (!message.trim() && attachments.length === 0) || disabled ? 'none' : 'pulse-glow 2s ease-in-out infinite',
+                    backgroundColor: 'var(--surface)',
+                    borderColor: 'var(--primary)',
+                    color: 'var(--primary)',
                   }}
                 >
-                  <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="#4DFFFF" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                   </svg>
                 </button>
               )}
 
-              {/* Animation styles */}
-              <style jsx>{`
-                @keyframes pulse-glow {
-                  0%, 100% {
-                    box-shadow: 0 0 8px #4DFFFF, 0 0 15px rgba(77, 255, 255, 0.4);
-                  }
-                  50% {
-                    box-shadow: 0 0 20px #4DFFFF, 0 0 30px rgba(77, 255, 255, 0.6), 0 0 40px rgba(77, 255, 255, 0.3);
-                  }
-                }
-                @keyframes living-glow {
-                  0%, 100% {
-                    opacity: 0.4;
-                    background-position: 0% 50%;
-                  }
-                  25% {
-                    opacity: 0.6;
-                  }
-                  50% {
-                    opacity: 0.5;
-                    background-position: 100% 50%;
-                  }
-                  75% {
-                    opacity: 0.7;
-                  }
-                }
-              `}</style>
             </div>
           </div>
           </div>

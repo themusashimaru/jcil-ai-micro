@@ -13,31 +13,49 @@
   /* Theme colors */
   --primary: #4DFFFF; /* Electric blue */
   --primary-hover: rgba(77, 255, 255, 0.1);
+  --primary-glow: rgba(77, 255, 255, 0.4);
   --text-primary: #ffffff;
   --text-secondary: #9ca3af; /* Gray-400 */
   --text-muted: #6b7280; /* Gray-500 */
   --surface: #000000;
   --surface-elevated: #18181b; /* Zinc-900 */
   --border: rgba(255, 255, 255, 0.1);
+
+  /* Chat-specific dark mode colors */
+  --chat-input-bg: rgba(0, 0, 0, 0.8);
+  --chat-user-bubble-bg: #2563eb; /* Blue-600 */
+  --chat-user-bubble-text: #ffffff;
+  --chat-ai-bubble-bg: transparent;
+  --chat-ai-bubble-text: #ffffff;
+  --chat-ai-bubble-border: #4DFFFF;
 }
 
 /* Light theme (admin only) */
 :root.light-mode {
   --background: #f5f5f5; /* Light gray, almost white */
   --foreground: #000000;
-  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg: rgba(255, 255, 255, 0.9);
   --glass-border: rgba(0, 0, 0, 0.1);
   --glass-shadow: rgba(0, 0, 0, 0.1);
 
   /* Light theme colors */
-  --primary: #1e40af; /* Darker blue for light mode */
-  --primary-hover: rgba(30, 64, 175, 0.1);
-  --text-primary: #000000;
+  --primary: #1e3a5f; /* Navy blue for accents */
+  --primary-hover: rgba(30, 58, 95, 0.1);
+  --primary-glow: rgba(30, 58, 95, 0.4);
+  --text-primary: #1a1a1a; /* Near black for text */
   --text-secondary: #4b5563; /* Gray-600 */
   --text-muted: #6b7280; /* Gray-500 */
-  --surface: #f5f5f5;
+  --surface: #ffffff;
   --surface-elevated: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
+  --border: rgba(0, 0, 0, 0.15);
+
+  /* Chat-specific light mode colors */
+  --chat-input-bg: #ffffff;
+  --chat-user-bubble-bg: #1e3a5f; /* Navy blue for user messages */
+  --chat-user-bubble-text: #ffffff;
+  --chat-ai-bubble-bg: #ffffff;
+  --chat-ai-bubble-text: #1a1a1a;
+  --chat-ai-bubble-border: #1e3a5f;
 }
 
 @layer base {
@@ -81,6 +99,45 @@
   .chat-bubble-tail.right::after {
     right: -10px;
     border-left-color: var(--glass-bg);
+  }
+
+  /* Send button glow animation */
+  .send-button-glow {
+    box-shadow: 0 0 8px var(--primary), 0 0 15px var(--primary-glow);
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 8px var(--primary), 0 0 15px var(--primary-glow);
+    }
+    50% {
+      box-shadow: 0 0 20px var(--primary), 0 0 30px var(--primary-glow);
+    }
+  }
+
+  /* Living glow aura for input box */
+  .living-glow-aura {
+    background: linear-gradient(90deg, var(--primary), var(--primary), var(--primary));
+    background-size: 200% 100%;
+    animation: living-glow 4s ease-in-out infinite;
+  }
+
+  @keyframes living-glow {
+    0%, 100% {
+      opacity: 0.3;
+      background-position: 0% 50%;
+    }
+    25% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 0.4;
+      background-position: 100% 50%;
+    }
+    75% {
+      opacity: 0.6;
+    }
   }
 
   /* PWA Animations */
