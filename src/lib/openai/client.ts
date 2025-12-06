@@ -294,7 +294,9 @@ IMPORTANT: Use these times as your reference for any time-related questions.`;
 
 /**
  * Normalize message format for OpenAI Responses API
- * Responses API expects: 'input_text', 'input_image' (not 'text', 'image')
+ * Responses API expects:
+ * - User/System messages: 'input_text', 'input_image'
+ * - Assistant messages: 'output_text' (NOT input_text!)
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeMessageForResponsesAPI(message: any): any {
@@ -305,66 +307,69 @@ function normalizeMessageForResponsesAPI(message: any): any {
     return { role: 'user', content: '' };
   }
 
-  // If content is a string, return as input_text format
+  // Determine the correct text type based on role
+  // Assistant messages MUST use 'output_text', others use 'input_text'
+  const textType = role === 'assistant' ? 'output_text' : 'input_text';
+
+  // If content is a string, return with correct type based on role
   if (typeof message.content === 'string') {
     return {
       role,
-      content: [{ type: 'input_text', text: message.content }]
+      content: [{ type: textType, text: message.content }]
     };
   }
 
   // If content is null/undefined, return empty
   if (!message.content) {
-    return { role, content: [{ type: 'input_text', text: '' }] };
+    return { role, content: [{ type: textType, text: '' }] };
   }
 
   // If content is not an array, convert to string
   if (!Array.isArray(message.content)) {
     return {
       role,
-      content: [{ type: 'input_text', text: String(message.content) }]
+      content: [{ type: textType, text: String(message.content) }]
     };
   }
 
   // Convert content parts to Responses API format
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalizedContent = message.content.map((part: any) => {
-    // Text parts -> input_text
+    // Text parts -> correct type based on role
     if (part.type === 'text') {
-      return { type: 'input_text', text: part.text || '' };
+      return { type: textType, text: part.text || '' };
     }
-    // AI SDK image format -> input_image
-    if (part.type === 'image' && part.image) {
-      // Responses API expects image_url for input_image
+    // AI SDK image format -> input_image (only for user messages)
+    if (part.type === 'image' && part.image && role !== 'assistant') {
       return {
         type: 'input_image',
         image_url: typeof part.image === 'string' ? part.image : part.image.toString(),
       };
     }
-    // OpenAI image_url format -> input_image
-    if (part.type === 'image_url' && part.image_url?.url) {
+    // OpenAI image_url format -> input_image (only for user messages)
+    if (part.type === 'image_url' && part.image_url?.url && role !== 'assistant') {
       return {
         type: 'input_image',
         image_url: part.image_url.url,
       };
     }
-    // input_text already in correct format
-    if (part.type === 'input_text') {
-      return part;
+    // input_text/output_text - convert to correct type for this role
+    if (part.type === 'input_text' || part.type === 'output_text') {
+      return { type: textType, text: part.text || '' };
     }
-    // input_image already in correct format
-    if (part.type === 'input_image') {
+    // input_image already in correct format (only for user messages)
+    if (part.type === 'input_image' && role !== 'assistant') {
       return part;
     }
     // Try to extract text from unknown parts
     if (part.text) {
-      return { type: 'input_text', text: part.text };
+      return { type: textType, text: part.text };
     }
     return null;
   }).filter(Boolean);
 
   if (normalizedContent.length === 0) {
-    return { role, content: [{ type: 'input_text', text: '' }] };
+    return { role, content: [{ type: textType, text: '' }] };
   }
 
   return { role, content: normalizedContent };
