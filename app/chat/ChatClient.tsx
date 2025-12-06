@@ -879,12 +879,25 @@ export function ChatClient() {
                 )
               );
             }
+          } catch (readerError) {
+            // Stream was interrupted (user navigated away, network issue, etc.)
+            console.log('[ChatClient] Stream interrupted:', readerError instanceof Error ? readerError.message : 'unknown');
+            // If we have some content, use it instead of showing an error
+            if (accumulatedContent.length > 0) {
+              console.log('[ChatClient] Using partial content, length:', accumulatedContent.length);
+              finalContent = accumulatedContent;
+            } else {
+              // Re-throw to trigger the outer error handler
+              throw readerError;
+            }
           } finally {
             reader.releaseLock();
           }
 
-          console.log('[ChatClient] Stream finished, total length:', accumulatedContent.length);
-          finalContent = accumulatedContent;
+          if (!finalContent) {
+            console.log('[ChatClient] Stream finished, total length:', accumulatedContent.length);
+            finalContent = accumulatedContent;
+          }
         }
       }
 
@@ -1199,17 +1212,31 @@ export function ChatClient() {
         error.message.toLowerCase().includes('abort')
       );
 
-      if (isAbortError) {
-        // User navigated away or cancelled - this is intentional, not an error
-        console.log('[ChatClient] Request aborted (user navigated away or sent new message)');
+      // Check if this is a network error (connection lost, user navigated away)
+      const isNetworkError = error instanceof Error && (
+        error.name === 'TypeError' && error.message.toLowerCase().includes('fetch') ||
+        error.message.toLowerCase().includes('network') ||
+        error.message.toLowerCase().includes('connection') ||
+        error.message.toLowerCase().includes('failed to fetch') ||
+        error.message.toLowerCase().includes('load failed')
+      );
+
+      if (isAbortError || isNetworkError) {
+        // User navigated away or network issue - this is not a server error
+        console.log('[ChatClient] Request interrupted:', error instanceof Error ? error.message : 'unknown');
         // Only update state if component is still mounted
         if (isMountedRef.current) {
           setIsStreaming(false);
         }
-        return; // Don't show error message for aborted requests
+        return; // Don't show error message for interrupted requests
       }
 
       console.error('Chat API error:', error);
+      // Log more details about the error for debugging
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+      }
 
       // Only show error message if component is still mounted
       if (!isMountedRef.current) {
