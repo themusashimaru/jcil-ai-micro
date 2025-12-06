@@ -217,31 +217,31 @@ export default function MembershipSection() {
       )}
 
       {/* Current Plan Card */}
-      <div className="glass-morphism rounded-2xl p-6 border-2 border-blue-500/50">
+      <div className="glass-morphism rounded-2xl p-6" style={{ border: '2px solid var(--primary)' }}>
         <div className="flex items-start justify-between mb-6">
           <div>
             <div className="flex items-center gap-3">
-              <h3 className="text-2xl font-bold">{currentTier.name}</h3>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+              <h3 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{currentTier.name}</h3>
+              <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: 'var(--primary-hover)', color: 'var(--primary)', border: '1px solid var(--primary)' }}>
                 Current Plan
               </span>
             </div>
-            <p className="text-gray-400 mt-2">{currentTier.description}</p>
+            <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>{currentTier.description}</p>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold">${currentTier.price}</div>
-            <div className="text-sm text-gray-400">/month</div>
+            <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>${currentTier.price}</div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>/month</div>
           </div>
         </div>
 
         {/* Features */}
         <div className="mb-6">
-          <h4 className="text-sm font-semibold text-gray-300 mb-3">What&apos;s included:</h4>
+          <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>What&apos;s included:</h4>
           <ul className="space-y-2">
             {currentTier.features.map((feature, index) => (
               <li key={index} className="flex items-start gap-2 text-sm">
                 <svg
-                  className="h-5 w-5 text-green-400 flex-shrink-0"
+                  className="h-5 w-5 text-green-500 flex-shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -253,7 +253,7 @@ export default function MembershipSection() {
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                <span className="text-gray-300">{feature}</span>
+                <span style={{ color: 'var(--text-primary)' }}>{feature}</span>
               </li>
             ))}
           </ul>
@@ -291,34 +291,35 @@ export default function MembershipSection() {
 
       {/* Other Available Plans */}
       <div>
-        <h3 className="text-xl font-semibold mb-4">Other Available Plans</h3>
+        <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Other Available Plans</h3>
         <div className="grid gap-4 md:grid-cols-2">
           {(Object.entries(TIER_INFO) as [SubscriptionTier, typeof TIER_INFO[SubscriptionTier]][])
             .filter(([tier]) => tier !== subscription.tier)
             .map(([tier, info]) => (
               <div
                 key={tier}
-                className="glass-morphism rounded-xl p-4 border border-gray-700 hover:border-gray-600 transition"
+                className="glass-morphism rounded-xl p-4 transition"
+                style={{ border: '1px solid var(--border)' }}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h4 className="font-bold text-lg">{info.name}</h4>
-                    <p className="text-xs text-gray-400 mt-1">{info.description}</p>
+                    <h4 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{info.name}</h4>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{info.description}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-bold">${info.price}</div>
-                    <div className="text-xs text-gray-400">/mo</div>
+                    <div className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>${info.price}</div>
+                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>/mo</div>
                   </div>
                 </div>
                 <ul className="space-y-1 mb-4">
                   {info.features.slice(0, 3).map((feature, index) => (
                     <li key={index} className="flex items-start gap-2 text-xs">
-                      <span className="text-green-400 mt-0.5">✓</span>
-                      <span className="text-gray-400">{feature}</span>
+                      <span className="text-green-500 mt-0.5">✓</span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{feature}</span>
                     </li>
                   ))}
                   {info.features.length > 3 && (
-                    <li className="text-xs text-gray-500 ml-5">
+                    <li className="text-xs ml-5" style={{ color: 'var(--text-muted)' }}>
                       +{info.features.length - 3} more features
                     </li>
                   )}

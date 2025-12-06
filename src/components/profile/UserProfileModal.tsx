@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUserProfile, type UserProfile } from '@/contexts/UserProfileContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import PasskeySettings from '@/components/auth/PasskeySettings';
 import DOMPurify from 'dompurify';
 
@@ -21,9 +22,13 @@ interface UserProfileModalProps {
 
 export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const { profile, updateProfile } = useUserProfile();
+  const { theme } = useTheme();
   const [formData, setFormData] = useState<UserProfile>(profile);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Theme-aware default signature color
+  const defaultSignatureColor = theme === 'light' ? '#1e3a5f' : '#FFFFFF';
 
   // Update form when profile changes
   useEffect(() => {
@@ -252,12 +257,12 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
               <label className="text-sm" style={{ color: 'var(--text-secondary)' }}>Signature Color:</label>
               <input
                 type="color"
-                value={formData.signatureColor || '#FFFFFF'}
+                value={formData.signatureColor || defaultSignatureColor}
                 onChange={(e) => setFormData({ ...formData, signatureColor: e.target.value })}
                 className="w-12 h-10 rounded cursor-pointer"
                 style={{ border: '1px solid var(--border)', backgroundColor: 'transparent' }}
               />
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formData.signatureColor || '#FFFFFF'}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formData.signatureColor || defaultSignatureColor}</span>
             </div>
 
             {/* Signature Preview */}
@@ -266,7 +271,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                 <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>PREVIEW</p>
                 <div
                   className="whitespace-pre-wrap text-sm"
-                  style={{ color: formData.signatureColor || '#FFFFFF' }}
+                  style={{ color: formData.signatureColor || defaultSignatureColor }}
                   dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(
                       formData.emailSignature
