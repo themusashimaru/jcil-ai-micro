@@ -38,7 +38,7 @@ const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
 const RETRYABLE_STATUS_CODES = [429, 500, 502, 503, 504];
 
 // Timeout configuration (per directive §0)
-const REQUEST_TIMEOUT_MS = 30_000; // 30 seconds
+const REQUEST_TIMEOUT_MS = 45_000; // 45 seconds (increased for Pro plan's 120s limit)
 const CONNECT_TIMEOUT_MS = 5_000;  // 5 seconds
 
 // Tools that should always use web search
@@ -860,6 +860,8 @@ async function createWebSearchCompletion(
 
     return result;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
     // Log the error
     logEvent({
       user_id: userId,
@@ -868,11 +870,22 @@ async function createWebSearchCompletion(
       latency_ms: Date.now() - startTime,
       ok: false,
       err_code: 'WEB_SEARCH_FAILED',
-      err_message: error instanceof Error ? error.message : String(error),
+      err_message: errorMessage,
       web_search: true,
     });
 
-    // Fall back to regular completion without web search
+    // Check if this is a timeout error
+    const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('timed out');
+
+    if (isTimeout) {
+      // Don't fall back to regular completion for timeout errors
+      // The user asked for search results, and a non-search response won't help
+      // Also, falling back would likely hit Vercel's 60s timeout anyway
+      console.log('[OpenAI Web Search] Timeout - returning error instead of fallback to avoid Vercel timeout');
+      throw new Error('Search request timed out. Please try again.');
+    }
+
+    // Fall back to regular completion without web search for non-timeout errors
     console.log('[OpenAI Web Search] Falling back to regular completion');
     return createDirectOpenAICompletion(options, modelName);
   }
