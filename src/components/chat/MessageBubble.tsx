@@ -306,7 +306,8 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs text-blue-400 hover:bg-white/10 hover:text-blue-300 transition-colors truncate max-w-[200px]"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs text-blue-400 hover:bg-white/10 hover:text-blue-300 transition-colors truncate max-w-[200px] cursor-pointer"
+                      style={{ pointerEvents: 'auto' }}
                       title={url}
                     >
                       <span className="truncate">{domain}</span>

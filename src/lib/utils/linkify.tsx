@@ -168,7 +168,8 @@ export function linkifyToReact(text: string): (string | JSX.Element)[] {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-400 hover:text-blue-300 underline"
+        className="text-blue-400 hover:text-blue-300 underline cursor-pointer"
+        style={{ pointerEvents: 'auto' }}
       >
         {displayName}
       </a>
