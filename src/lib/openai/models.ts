@@ -158,7 +158,7 @@ export function getRecommendedTemperature(model: OpenAIModel, tool?: ToolType): 
 /**
  * Get max tokens for model/tool combination
  */
-export function getMaxTokens(model: OpenAIModel, tool?: ToolType): number {
+export function getMaxTokens(_model: OpenAIModel, tool?: ToolType): number {
   // Tool-specific limits
   if (tool === 'sms') return 256;
   if (tool === 'email') return 1000;
