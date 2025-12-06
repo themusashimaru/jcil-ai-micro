@@ -222,10 +222,11 @@ export default function UsageMetricsSection() {
       </div>
 
       {/* Reset Info */}
-      <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
+      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--primary-hover)', border: '1px solid var(--primary)' }}>
         <div className="flex items-start gap-3">
           <svg
-            className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5"
+            className="h-5 w-5 flex-shrink-0 mt-0.5"
+            style={{ color: 'var(--primary)' }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -237,9 +238,9 @@ export default function UsageMetricsSection() {
               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <div className="text-sm text-blue-200">
+          <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
             <p className="font-medium mb-1">Daily Usage Resets</p>
-            <p>Your daily message and image limits automatically reset at midnight (your local time).</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Your daily message and image limits automatically reset at midnight (your local time).</p>
           </div>
         </div>
       </div>
