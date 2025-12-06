@@ -5,6 +5,7 @@
  * - Render markdown content with proper formatting
  * - Styled for dark glassmorphism theme
  * - Handles headers, bold, italic, lists, code, links
+ * - Auto-linkifies plain URLs that aren't in markdown format
  *
  * USAGE:
  * - <MarkdownRenderer content={message.content} />
@@ -17,6 +18,29 @@ import type { Components } from 'react-markdown';
 
 interface MarkdownRendererProps {
   content: string;
+}
+
+/**
+ * Convert plain URLs to markdown links
+ * Only converts URLs that aren't already in markdown link format [text](url)
+ */
+function autoLinkifyUrls(text: string): string {
+  // Regex to match URLs that are NOT already in markdown link format
+  // Negative lookbehind (?<!\]\() ensures we don't match URLs already in [text](url) format
+  // Negative lookbehind (?<!\() ensures we don't match URLs in (url) format
+  const urlRegex = /(?<!\]\()(?<!\()(https?:\/\/[^\s<>)\]"']+)/gi;
+
+  return text.replace(urlRegex, (url) => {
+    // Extract domain for display
+    let displayText = url;
+    try {
+      const urlObj = new URL(url);
+      displayText = urlObj.hostname.replace('www.', '');
+    } catch {
+      // Keep original URL if parsing fails
+    }
+    return `[${displayText}](${url})`;
+  });
 }
 
 // Custom components for dark theme styling
@@ -129,10 +153,13 @@ const components: Components = {
 };
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+  // Pre-process content to convert plain URLs to clickable markdown links
+  const processedContent = autoLinkifyUrls(content);
+
   return (
     <div className="markdown-content text-gray-200">
       <ReactMarkdown components={components}>
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );
