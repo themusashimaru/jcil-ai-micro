@@ -287,6 +287,12 @@ export function ChatClient() {
     currentChatIdRef.current = currentChatId;
   }, [currentChatId]);
 
+  // Ref to track current messages for visibility refresh (avoids stale closure)
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   // Helper function to fetch and format messages
   const fetchMessages = async (chatId: string): Promise<Message[] | null> => {
     try {
@@ -328,67 +334,80 @@ export function ChatClient() {
     setIsWaitingForReply(false);
   };
 
+  // Track if we're currently processing to avoid duplicate calls
+  const isProcessingRef = useRef(false);
+
   // Process pending request immediately when returning to tab
   useEffect(() => {
     const handleVisibilityChange = async () => {
       // Only check if tab is becoming visible and we have a current chat
-      if (document.visibilityState === 'visible' && currentChatIdRef.current && !isStreaming && !isWaitingForReply) {
-        console.log('[ChatClient] Tab visible, checking for pending replies...');
+      if (document.visibilityState !== 'visible') return;
+      if (!currentChatIdRef.current) return;
+      if (isStreaming) return;
+      if (isProcessingRef.current) return; // Prevent duplicate processing
 
-        const chatId = currentChatIdRef.current;
+      const chatId = currentChatIdRef.current;
+      const currentMessages = messagesRef.current;
 
-        // First, check if we already have the response (cron may have processed it)
-        const fetchedMessages = await fetchMessages(chatId);
-        if (!fetchedMessages || !isMountedRef.current) return;
+      console.log('[ChatClient] Tab visible, checking for pending replies...', {
+        chatId,
+        messageCount: currentMessages.length,
+        lastRole: currentMessages[currentMessages.length - 1]?.role,
+      });
 
-        // If we got new messages, just display them
-        if (fetchedMessages.length > messages.length) {
-          console.log('[ChatClient] New messages found:', fetchedMessages.length - messages.length);
-          setMessages(fetchedMessages);
-          return;
-        }
+      // First, check if we already have the response (cron may have processed it)
+      const fetchedMessages = await fetchMessages(chatId);
+      if (!fetchedMessages || !isMountedRef.current) return;
 
-        // Check if last message is from user (meaning we're waiting for a reply)
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage && lastMessage.role === 'user') {
-          console.log('[ChatClient] Last message is from user, processing pending request...');
-          setIsWaitingForReply(true);
+      // If we got new messages, just display them
+      if (fetchedMessages.length > currentMessages.length) {
+        console.log('[ChatClient] New messages found:', fetchedMessages.length - currentMessages.length);
+        setMessages(fetchedMessages);
+        return;
+      }
 
-          try {
-            // Call the process-pending endpoint to immediately process the request
-            const response = await fetch(`/api/conversations/${chatId}/process-pending`, {
-              method: 'POST',
-            });
+      // Check if last message is from user (meaning we're waiting for a reply)
+      const lastMessage = currentMessages[currentMessages.length - 1];
+      if (lastMessage && lastMessage.role === 'user') {
+        console.log('[ChatClient] Last message is from user, processing pending request...');
+        isProcessingRef.current = true;
+        setIsWaitingForReply(true);
 
-            if (!isMountedRef.current) return;
+        try {
+          // Call the process-pending endpoint to immediately process the request
+          const response = await fetch(`/api/conversations/${chatId}/process-pending`, {
+            method: 'POST',
+          });
 
-            const result = await response.json();
-            console.log('[ChatClient] Process pending result:', result.status);
+          if (!isMountedRef.current) return;
 
-            if (result.status === 'completed' && result.content) {
-              // Add the new message to the UI
-              const newMessage: Message = {
-                id: Date.now().toString(),
-                role: 'assistant',
-                content: result.content,
-                timestamp: new Date(),
-              };
-              setMessages(prev => [...prev, newMessage]);
-            } else if (result.status === 'no_pending_request') {
-              // No pending request - maybe it was already processed
-              // Fetch messages again just in case
-              const updatedMessages = await fetchMessages(chatId);
-              if (updatedMessages && updatedMessages.length > messages.length) {
-                setMessages(updatedMessages);
-              }
+          const result = await response.json();
+          console.log('[ChatClient] Process pending result:', result.status);
+
+          if (result.status === 'completed' && result.content) {
+            // Add the new message to the UI
+            const newMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: result.content,
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, newMessage]);
+          } else if (result.status === 'no_pending_request') {
+            // No pending request - maybe it was already processed or never created
+            // Fetch messages again just in case
+            const updatedMessages = await fetchMessages(chatId);
+            if (updatedMessages && updatedMessages.length > currentMessages.length) {
+              setMessages(updatedMessages);
             }
-            // For 'failed' or 'error', we just stop waiting - user can try again
-          } catch (error) {
-            console.error('[ChatClient] Error processing pending request:', error);
-          } finally {
-            if (isMountedRef.current) {
-              setIsWaitingForReply(false);
-            }
+          }
+          // For 'failed' or 'error', we just stop waiting - user can try again
+        } catch (error) {
+          console.error('[ChatClient] Error processing pending request:', error);
+        } finally {
+          if (isMountedRef.current) {
+            isProcessingRef.current = false;
+            setIsWaitingForReply(false);
           }
         }
       }
@@ -399,7 +418,7 @@ export function ChatClient() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopPolling();
     };
-  }, [isStreaming, messages.length, isWaitingForReply]);
+  }, [isStreaming]); // Removed messages.length and isWaitingForReply - using refs now
 
   // Load conversations from database
   useEffect(() => {
