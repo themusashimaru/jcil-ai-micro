@@ -24,6 +24,7 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 
 interface ChatComposerProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
+  onStop?: () => void; // Called when user clicks stop button during streaming
   isStreaming: boolean;
   disabled?: boolean; // When waiting for background reply
 }
@@ -91,7 +92,7 @@ const PLACEHOLDER_SUGGESTIONS = [
   'Plan a trip...',
 ];
 
-export function ChatComposer({ onSendMessage, isStreaming, disabled }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -470,24 +471,45 @@ export function ChatComposer({ onSendMessage, isStreaming, disabled }: ChatCompo
             </div>
 
             <div className="flex items-center justify-center shrink-0">
-              <button
-                onClick={handleSend}
-                disabled={(!message.trim() && attachments.length === 0) || isStreaming}
-                className="rounded-full bg-black border-2 p-0.5 md:p-2.5 transition-all hover:bg-[#4DFFFF]/10 shrink-0 flex items-center justify-center"
-                title={isStreaming ? 'Sending...' : 'Send message'}
-                style={{
-                  borderColor: '#4DFFFF',
-                  color: '#4DFFFF',
-                  boxShadow: (!message.trim() && attachments.length === 0) || isStreaming
-                    ? 'none'
-                    : '0 0 8px #4DFFFF, 0 0 15px rgba(77, 255, 255, 0.4)',
-                  animation: (!message.trim() && attachments.length === 0) || isStreaming ? 'none' : 'pulse-glow 2s ease-in-out infinite',
-                }}
-              >
-                <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="#4DFFFF" viewBox="0 0 24 24">
-                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                </svg>
-              </button>
+              {isStreaming && onStop ? (
+                // Stop button - shown while streaming
+                <button
+                  onClick={onStop}
+                  className="rounded-full bg-black border-2 p-0.5 md:p-2.5 transition-all hover:bg-[#4DFFFF]/10 shrink-0 flex items-center justify-center"
+                  title="Stop generating"
+                  style={{
+                    borderColor: '#4DFFFF',
+                    color: '#4DFFFF',
+                    boxShadow: '0 0 8px #4DFFFF, 0 0 15px rgba(77, 255, 255, 0.4)',
+                    animation: 'pulse-glow 2s ease-in-out infinite',
+                  }}
+                >
+                  {/* Square stop icon */}
+                  <svg className="h-5 w-5 md:h-6 md:w-6" fill="#4DFFFF" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                </button>
+              ) : (
+                // Send button - shown when not streaming
+                <button
+                  onClick={handleSend}
+                  disabled={(!message.trim() && attachments.length === 0) || isStreaming || disabled}
+                  className="rounded-full bg-black border-2 p-0.5 md:p-2.5 transition-all hover:bg-[#4DFFFF]/10 shrink-0 flex items-center justify-center"
+                  title="Send message"
+                  style={{
+                    borderColor: '#4DFFFF',
+                    color: '#4DFFFF',
+                    boxShadow: (!message.trim() && attachments.length === 0) || disabled
+                      ? 'none'
+                      : '0 0 8px #4DFFFF, 0 0 15px rgba(77, 255, 255, 0.4)',
+                    animation: (!message.trim() && attachments.length === 0) || disabled ? 'none' : 'pulse-glow 2s ease-in-out infinite',
+                  }}
+                >
+                  <svg className="h-5 w-5 md:h-6 md:w-6 -rotate-90" fill="#4DFFFF" viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                  </svg>
+                </button>
+              )}
 
               {/* Animation styles */}
               <style jsx>{`

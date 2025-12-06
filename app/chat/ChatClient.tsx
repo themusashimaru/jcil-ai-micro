@@ -34,6 +34,8 @@ import { CodeCommandInterface } from '@/components/code-command';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
@@ -683,6 +685,18 @@ export function ChatClient() {
       console.error('[ChatClient] Error creating conversation in database:', error);
       throw error; // Re-throw to let caller handle it
     }
+  };
+
+  /**
+   * Handle stop button - abort the current streaming request
+   */
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      console.log('[ChatClient] User clicked stop - aborting request');
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsStreaming(false);
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
@@ -1402,8 +1416,11 @@ export function ChatClient() {
     }
   };
 
+  // Get theme for conditional rendering
+  const { theme } = useTheme();
+
   return (
-    <div className="flex h-screen flex-col bg-black">
+    <div className="flex h-screen flex-col" style={{ backgroundColor: 'var(--background)' }}>
       {/* Header */}
       <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
         <div className="flex items-center justify-between relative">
@@ -1430,7 +1447,13 @@ export function ChatClient() {
             </button>
             {/* Only show logo/site name when a chat is active */}
             {currentChatId && (
-              headerLogo ? (
+              theme === 'light' ? (
+                // Light mode: Use text instead of logo
+                <h1 className="text-base md:text-xl font-normal">
+                  <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
+                  <span style={{ color: 'var(--primary)' }}>ai</span>
+                </h1>
+              ) : headerLogo ? (
                 <img src={headerLogo} alt="JCIL.ai" className="h-8" />
               ) : (
                 <h1 className="text-base md:text-xl font-semibold">
@@ -1464,6 +1487,9 @@ export function ChatClient() {
           </button>
 
           <div className="flex items-center gap-0.5">
+            {/* Theme Toggle (admin only) */}
+            <ThemeToggle />
+
             {/* Profile Button */}
             <button
               onClick={() => setIsProfileOpen(true)}
@@ -1530,6 +1556,7 @@ export function ChatClient() {
               )}
               <ChatComposer
                 onSendMessage={handleSendMessage}
+                onStop={handleStop}
                 isStreaming={isStreaming}
                 disabled={isWaitingForReply}
               />
