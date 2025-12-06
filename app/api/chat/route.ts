@@ -49,6 +49,9 @@ import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
 import { incrementUsage, getLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
+import { getProviderSettings, Provider } from '@/lib/provider/settings';
+import { createAnthropicCompletion, createAnthropicStreamingCompletion, createAnthropicCompletionWithSearch } from '@/lib/anthropic/client';
+import { braveSearch } from '@/lib/brave/search';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
@@ -478,6 +481,32 @@ export async function POST(request: NextRequest) {
       console.log('[Chat API] Detected file attachment - routing to gpt-5-mini for analysis');
     }
 
+    // ========================================
+    // PROVIDER CHECK - OpenAI vs Anthropic
+    // ========================================
+    const providerSettings = await getProviderSettings();
+    const activeProvider: Provider = providerSettings.activeProvider;
+    console.log('[Chat API] Active provider:', activeProvider);
+
+    // If Anthropic is active and user wants image generation, return unavailable message
+    if (activeProvider === 'anthropic' && routeDecision.target === 'image' && !messageHasUploadedImages) {
+      return new Response(
+        JSON.stringify({
+          type: 'text',
+          content: '🎨 **Image Generation Temporarily Unavailable**\n\nI apologize, but image generation is currently unavailable. Our system is using an AI provider that doesn\'t support image creation at this time.\n\nIn the meantime, I can help you with:\n- Describing or conceptualizing images in detail\n- Writing creative prompts for later use\n- Answering questions or helping with other tasks\n\nPlease try again later when image generation is restored!',
+          model: 'claude-sonnet-4.5',
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Provider': 'anthropic',
+            'X-Image-Unavailable': 'true',
+          },
+        }
+      );
+    }
+
     // Check if we should route to image generation (only if no uploaded images)
     if (routeDecision.target === 'image' && !messageHasUploadedImages) {
       // Check image-specific daily limits (warn at 80%, stop at 100%)
@@ -673,6 +702,100 @@ export async function POST(request: NextRequest) {
       ? 'gpt-5-mini'
       : initialModel;
 
+    // ========================================
+    // ANTHROPIC PATH - Claude Sonnet 4.5
+    // ========================================
+    if (activeProvider === 'anthropic') {
+      const anthropicModel = providerSettings.providerConfig.anthropic?.model || 'claude-sonnet-4-5-20250929';
+      console.log('[Chat API] Using Anthropic provider with model:', anthropicModel);
+
+      // Build system prompt for Anthropic
+      const systemPrompt = isAuthenticated
+        ? buildFullSystemPrompt({ includeImageCapability: false }) // Anthropic doesn't do DALL-E
+        : 'You are a helpful AI assistant.';
+
+      // Non-streaming for image analysis
+      if (hasImages) {
+        console.log('[Chat API] Anthropic: Non-streaming mode for image analysis');
+        const result = await createAnthropicCompletion({
+          messages: messagesWithContext,
+          model: anthropicModel,
+          maxTokens: max_tokens,
+          temperature,
+          systemPrompt,
+        });
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: result.text,
+            model: result.model,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': result.model,
+              'X-Provider': 'anthropic',
+              'X-Has-Images': 'true',
+            },
+          }
+        );
+      }
+
+      // Check if web search is needed - use Brave Search for Anthropic
+      if (willUseWebSearch) {
+        console.log('[Chat API] Anthropic: Using Brave Search for web queries');
+        const result = await createAnthropicCompletionWithSearch({
+          messages: messagesWithContext,
+          model: anthropicModel,
+          maxTokens: max_tokens,
+          temperature,
+          systemPrompt,
+          webSearchFn: braveSearch,
+        });
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: result.text,
+            model: result.model,
+            citations: result.citations.map(c => c.url),
+            sourcesUsed: result.numSourcesUsed,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': result.model,
+              'X-Provider': 'anthropic',
+              'X-Web-Search': 'brave',
+            },
+          }
+        );
+      }
+
+      // Streaming text chat with Anthropic
+      console.log('[Chat API] Anthropic: Streaming mode');
+      const streamResult = await createAnthropicStreamingCompletion({
+        messages: messagesWithContext,
+        model: anthropicModel,
+        maxTokens: max_tokens,
+        temperature,
+        systemPrompt,
+      });
+
+      return streamResult.toTextStreamResponse({
+        headers: {
+          'X-Model-Used': streamResult.model,
+          'X-Provider': 'anthropic',
+        },
+      });
+    }
+
+    // ========================================
+    // OPENAI PATH - GPT-5 (default)
+    // ========================================
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
       console.log('[Chat API] Using non-streaming mode for image analysis - routing to gpt-5-mini');

@@ -11,6 +11,19 @@ import { requireAdmin } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 
+// Type for provider settings from database
+interface ProviderSettingsRow {
+  id: string;
+  active_provider: string;
+  provider_config: {
+    openai?: { model: string };
+    anthropic?: { model: string };
+  };
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Default provider settings
 const DEFAULT_SETTINGS = {
   active_provider: 'openai',
@@ -35,7 +48,7 @@ export async function GET() {
     }
 
     // Get provider settings from database
-    const { data: settings, error } = await supabase
+    const { data, error } = await supabase
       .from('provider_settings')
       .select('*')
       .single();
@@ -44,6 +57,9 @@ export async function GET() {
       console.error('[Provider API] Error fetching settings:', error);
       return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
     }
+
+    // Cast to proper type
+    const settings = data as ProviderSettingsRow | null;
 
     // Return settings or defaults
     return NextResponse.json({
@@ -99,16 +115,19 @@ export async function PUT(request: NextRequest) {
     }
 
     // First, check if a row exists
-    const { data: existing } = await supabase
+    const { data: existingData } = await supabase
       .from('provider_settings')
       .select('id')
       .single();
 
-    let settings;
+    const existing = existingData as { id: string } | null;
+    let settings: ProviderSettingsRow | null = null;
+
     if (existing) {
       // Update existing row
-      const { data, error } = await supabase
-        .from('provider_settings')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase
+        .from('provider_settings') as any)
         .update(updateData)
         .eq('id', existing.id)
         .select()
@@ -118,11 +137,12 @@ export async function PUT(request: NextRequest) {
         console.error('[Provider API] Error updating settings:', error);
         return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
       }
-      settings = data;
+      settings = data as ProviderSettingsRow;
     } else {
       // Insert new row
-      const { data, error } = await supabase
-        .from('provider_settings')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase
+        .from('provider_settings') as any)
         .insert({
           ...updateData,
           active_provider: activeProvider || DEFAULT_SETTINGS.active_provider,
@@ -135,7 +155,11 @@ export async function PUT(request: NextRequest) {
         console.error('[Provider API] Error inserting settings:', error);
         return NextResponse.json({ error: 'Failed to create settings' }, { status: 500 });
       }
-      settings = data;
+      settings = data as ProviderSettingsRow;
+    }
+
+    if (!settings) {
+      return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
     }
 
     console.log('[Provider API] Settings updated:', {
