@@ -43,112 +43,121 @@ function autoLinkifyUrls(text: string): string {
   });
 }
 
-// Custom components for dark theme styling
+// Custom components - inherit colors from parent for theme support
 const components: Components = {
-  // Headers
+  // Headers - inherit color from parent
   h1: ({ children }) => (
-    <h1 className="text-xl font-bold text-white mt-4 mb-2 first:mt-0">{children}</h1>
+    <h1 className="text-xl font-bold mt-4 mb-2 first:mt-0" style={{ color: 'inherit' }}>{children}</h1>
   ),
   h2: ({ children }) => (
-    <h2 className="text-lg font-bold text-white mt-3 mb-2 first:mt-0">{children}</h2>
+    <h2 className="text-lg font-bold mt-3 mb-2 first:mt-0" style={{ color: 'inherit' }}>{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 className="text-base font-semibold text-white mt-3 mb-1 first:mt-0">{children}</h3>
+    <h3 className="text-base font-semibold mt-3 mb-1 first:mt-0" style={{ color: 'inherit' }}>{children}</h3>
   ),
   h4: ({ children }) => (
-    <h4 className="text-sm font-semibold text-white mt-2 mb-1 first:mt-0">{children}</h4>
+    <h4 className="text-sm font-semibold mt-2 mb-1 first:mt-0" style={{ color: 'inherit' }}>{children}</h4>
   ),
 
   // Paragraphs
   p: ({ children }) => (
-    <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+    <p className="mb-2 last:mb-0 leading-relaxed" style={{ color: 'inherit' }}>{children}</p>
   ),
 
-  // Bold and italic
+  // Bold and italic - inherit color
   strong: ({ children }) => (
-    <strong className="font-semibold text-white">{children}</strong>
+    <strong className="font-semibold" style={{ color: 'inherit' }}>{children}</strong>
   ),
   em: ({ children }) => (
-    <em className="italic text-gray-200">{children}</em>
+    <em className="italic" style={{ color: 'inherit' }}>{children}</em>
   ),
 
-  // Lists
+  // Lists - inherit color
   ul: ({ children }) => (
-    <ul className="list-disc list-inside mb-2 space-y-1 ml-2">{children}</ul>
+    <ul className="list-disc list-inside mb-2 space-y-1 ml-2" style={{ color: 'inherit' }}>{children}</ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal list-inside mb-2 space-y-1 ml-2">{children}</ol>
+    <ol className="list-decimal list-inside mb-2 space-y-1 ml-2" style={{ color: 'inherit' }}>{children}</ol>
   ),
   li: ({ children }) => (
-    <li className="text-gray-200">{children}</li>
+    <li style={{ color: 'inherit' }}>{children}</li>
   ),
 
-  // Links
+  // Links - use primary color
   a: ({ href, children }) => (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-blue-400 hover:text-blue-300 underline break-all cursor-pointer"
-      style={{ pointerEvents: 'auto' }}
+      className="underline break-all cursor-pointer hover:opacity-80"
+      style={{ color: 'var(--primary)', pointerEvents: 'auto' }}
     >
       {children}
     </a>
   ),
 
-  // Code blocks
+  // Code blocks - use theme-aware backgrounds
   code: ({ className, children }) => {
     const isInline = !className;
     if (isInline) {
       return (
-        <code className="bg-white/10 text-pink-300 px-1.5 py-0.5 rounded text-sm font-mono">
+        <code
+          className="px-1.5 py-0.5 rounded text-sm font-mono"
+          style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--primary)' }}
+        >
           {children}
         </code>
       );
     }
     // Block code
     return (
-      <code className="block bg-black/40 text-green-300 p-3 rounded-lg text-sm font-mono overflow-x-auto my-2">
+      <code
+        className="block p-3 rounded-lg text-sm font-mono overflow-x-auto my-2"
+        style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--primary)' }}
+      >
         {children}
       </code>
     );
   },
   pre: ({ children }) => (
-    <pre className="bg-black/40 rounded-lg overflow-x-auto my-2">{children}</pre>
+    <pre className="rounded-lg overflow-x-auto my-2" style={{ backgroundColor: 'var(--glass-bg)' }}>{children}</pre>
   ),
 
-  // Blockquotes
+  // Blockquotes - inherit text color
   blockquote: ({ children }) => (
-    <blockquote className="border-l-4 border-blue-500/50 pl-4 py-1 my-2 italic text-gray-300 bg-white/5 rounded-r">
+    <blockquote
+      className="border-l-4 pl-4 py-1 my-2 italic rounded-r"
+      style={{ borderColor: 'var(--primary)', backgroundColor: 'var(--glass-bg)', color: 'inherit' }}
+    >
       {children}
     </blockquote>
   ),
 
   // Horizontal rule
   hr: () => (
-    <hr className="border-white/20 my-4" />
+    <hr className="my-4" style={{ borderColor: 'var(--border)' }} />
   ),
 
-  // Tables (for Breaking News categories, etc.)
+  // Tables - theme-aware
   table: ({ children }) => (
     <div className="overflow-x-auto my-2">
       <table className="min-w-full border-collapse">{children}</table>
     </div>
   ),
   thead: ({ children }) => (
-    <thead className="bg-white/10">{children}</thead>
+    <thead style={{ backgroundColor: 'var(--glass-bg)' }}>{children}</thead>
   ),
   tbody: ({ children }) => (
-    <tbody className="divide-y divide-white/10">{children}</tbody>
+    <tbody style={{ color: 'inherit' }}>{children}</tbody>
   ),
   tr: ({ children }) => (
-    <tr className="border-b border-white/10">{children}</tr>
+    <tr style={{ borderBottom: '1px solid var(--border)' }}>{children}</tr>
   ),
   th: ({ children }) => (
-    <th className="px-3 py-2 text-left text-sm font-semibold text-white">{children}</th>
+    <th className="px-3 py-2 text-left text-sm font-semibold" style={{ color: 'inherit' }}>{children}</th>
   ),
   td: ({ children }) => (
-    <td className="px-3 py-2 text-sm text-gray-300">{children}</td>
+    <td className="px-3 py-2 text-sm" style={{ color: 'inherit' }}>{children}</td>
   ),
 };
 
@@ -157,7 +166,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   const processedContent = autoLinkifyUrls(content);
 
   return (
-    <div className="markdown-content text-gray-200">
+    <div className="markdown-content" style={{ color: 'inherit' }}>
       <ReactMarkdown components={components}>
         {processedContent}
       </ReactMarkdown>

@@ -90,12 +90,13 @@ export default function UsageMetricsSection() {
       <div className="glass-morphism rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xl font-bold">{TIER_NAMES[usage.tier]} Plan</h3>
-            <p className="text-sm text-gray-400 mt-1">Current daily usage limits</p>
+            <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{TIER_NAMES[usage.tier]} Plan</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Current daily usage limits</p>
           </div>
           <button
             onClick={() => window.location.href = '/settings?tab=membership'}
-            className="text-sm text-blue-400 hover:text-blue-300 font-medium transition"
+            className="text-sm font-medium transition"
+            style={{ color: 'var(--primary)' }}
           >
             Manage Plan →
           </button>
@@ -104,18 +105,18 @@ export default function UsageMetricsSection() {
         {/* Messages Usage */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-300">Messages Today</span>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Messages Today</span>
             <span className={`text-sm font-bold ${
-              isMessageAtLimit ? 'text-red-400' :
-              isMessageNearLimit ? 'text-yellow-400' :
-              'text-gray-300'
-            }`}>
+              isMessageAtLimit ? 'text-red-500' :
+              isMessageNearLimit ? 'text-yellow-500' :
+              ''
+            }`} style={!isMessageAtLimit && !isMessageNearLimit ? { color: 'var(--text-primary)' } : {}}>
               {usage.messages.used} / {usage.messages.limit}
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="h-3 overflow-hidden rounded-full bg-white/10">
+          <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--glass-bg)' }}>
             <div
               className={`h-full transition-all duration-300 ${
                 isMessageAtLimit ? 'bg-red-500' :
@@ -126,7 +127,7 @@ export default function UsageMetricsSection() {
             />
           </div>
 
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
             {usage.messages.remaining > 0
               ? `${usage.messages.remaining} messages remaining today`
               : 'Daily limit reached - resets at midnight'}
@@ -137,21 +138,21 @@ export default function UsageMetricsSection() {
         {usage.images.limit > 0 && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gray-300">Image Generations Today</span>
-              <span className="text-sm font-bold text-gray-300">
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Image Generations Today</span>
+              <span className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
                 {usage.images.used} / {usage.images.limit}
               </span>
             </div>
 
             {/* Progress Bar */}
-            <div className="h-3 overflow-hidden rounded-full bg-white/10">
+            <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--glass-bg)' }}>
               <div
                 className="h-full bg-purple-500 transition-all duration-300"
                 style={{ width: `${Math.min(imagePercentage, 100)}%` }}
               />
             </div>
 
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
               {usage.images.remaining > 0
                 ? `${usage.images.remaining} image generations remaining today`
                 : 'Daily image limit reached - resets at midnight'}
@@ -200,22 +201,22 @@ export default function UsageMetricsSection() {
       {/* Usage Info */}
       <div className="grid gap-4 md:grid-cols-3">
         <div className="glass-morphism rounded-xl p-4">
-          <div className="text-sm text-gray-400 mb-1">Messages Used</div>
-          <div className="text-2xl font-bold">{usage.messages.used}</div>
-          <div className="text-xs text-gray-500 mt-1">Today</div>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Messages Used</div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.messages.used}</div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Today</div>
         </div>
 
         <div className="glass-morphism rounded-xl p-4">
-          <div className="text-sm text-gray-400 mb-1">Messages Remaining</div>
-          <div className="text-2xl font-bold">{usage.messages.remaining}</div>
-          <div className="text-xs text-gray-500 mt-1">Today</div>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Messages Remaining</div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.messages.remaining}</div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Today</div>
         </div>
 
         {usage.images.limit > 0 && (
           <div className="glass-morphism rounded-xl p-4">
-            <div className="text-sm text-gray-400 mb-1">Images Generated</div>
-            <div className="text-2xl font-bold">{usage.images.used}</div>
-            <div className="text-xs text-gray-500 mt-1">Today</div>
+            <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Images Generated</div>
+            <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.images.used}</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Today</div>
           </div>
         )}
       </div>
