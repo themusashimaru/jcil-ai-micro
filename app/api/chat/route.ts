@@ -48,6 +48,7 @@ import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
 import { incrementUsage, getLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
+import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
@@ -725,6 +726,22 @@ export async function POST(request: NextRequest) {
     // Use streaming for regular text chat
     console.log('[Chat API] Using streaming mode with model:', actualModel, 'webSearch:', willUseWebSearch);
 
+    // Create a pending request BEFORE calling AI
+    // This allows background workers to complete the request if the user leaves
+    let pendingRequestId: string | null = null;
+    if (isAuthenticated && conversationId) {
+      pendingRequestId = await createPendingRequest({
+        userId: rateLimitIdentifier,
+        conversationId,
+        messages: messagesWithContext,
+        tool: effectiveTool,
+        model: actualModel,
+      });
+      if (pendingRequestId) {
+        console.log('[Chat API] Created pending request:', pendingRequestId);
+      }
+    }
+
     try {
       console.log('[Chat API] Calling createChatCompletion with stream: true');
       const result = await createChatCompletion({
@@ -736,6 +753,7 @@ export async function POST(request: NextRequest) {
         stream: true,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
+        pendingRequestId: pendingRequestId || undefined,
       });
 
       console.log('[Chat API] streamText returned, result type:', typeof result);
@@ -772,6 +790,13 @@ export async function POST(request: NextRequest) {
         const citationUrls = citations.map((c: { url?: string } | string) =>
           typeof c === 'string' ? c : c.url || ''
         ).filter(Boolean);
+
+        // Complete the pending request - we got a successful result
+        if (pendingRequestId) {
+          completePendingRequest(pendingRequestId).catch(err => {
+            console.error('[Chat API] Failed to complete pending request:', err);
+          });
+        }
 
         return new Response(
           JSON.stringify({

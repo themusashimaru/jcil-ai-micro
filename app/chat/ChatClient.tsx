@@ -277,6 +277,62 @@ export function ChatClient() {
     };
   }, []);
 
+  // Ref to track current chat for visibility refresh
+  const currentChatIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    currentChatIdRef.current = currentChatId;
+  }, [currentChatId]);
+
+  // Refresh messages when tab becomes visible (for background-completed requests)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      // Only refresh if tab is becoming visible and we have a current chat
+      if (document.visibilityState === 'visible' && currentChatIdRef.current && !isStreaming) {
+        console.log('[ChatClient] Tab visible, refreshing messages for:', currentChatIdRef.current);
+        try {
+          const response = await fetch(`/api/conversations/${currentChatIdRef.current}/messages`);
+          if (response.ok && isMountedRef.current) {
+            const data = await response.json();
+            const formattedMessages: Message[] = data.messages.map((msg: {
+              id: string;
+              role: 'user' | 'assistant' | 'system';
+              content: string;
+              content_type: string;
+              attachment_urls: string[] | null;
+              created_at: string;
+            }) => {
+              const imageUrl = msg.attachment_urls && msg.attachment_urls.length > 0
+                ? msg.attachment_urls[0]
+                : undefined;
+              return {
+                id: msg.id,
+                role: msg.role,
+                content: msg.content,
+                imageUrl,
+                timestamp: new Date(msg.created_at),
+              };
+            });
+            // Only update if we got more messages (background worker completed)
+            setMessages(prev => {
+              if (formattedMessages.length > prev.length) {
+                console.log('[ChatClient] New messages found:', formattedMessages.length - prev.length);
+                return formattedMessages;
+              }
+              return prev;
+            });
+          }
+        } catch (error) {
+          console.error('[ChatClient] Error refreshing messages:', error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isStreaming]);
+
   // Load conversations from database
   useEffect(() => {
     const loadConversations = async () => {
