@@ -328,49 +328,67 @@ export function ChatClient() {
     setIsWaitingForReply(false);
   };
 
-  // Refresh messages when tab becomes visible (for background-completed requests)
+  // Process pending request immediately when returning to tab
   useEffect(() => {
     const handleVisibilityChange = async () => {
       // Only check if tab is becoming visible and we have a current chat
-      if (document.visibilityState === 'visible' && currentChatIdRef.current && !isStreaming) {
+      if (document.visibilityState === 'visible' && currentChatIdRef.current && !isStreaming && !isWaitingForReply) {
         console.log('[ChatClient] Tab visible, checking for pending replies...');
 
         const chatId = currentChatIdRef.current;
-        const fetchedMessages = await fetchMessages(chatId);
 
+        // First, check if we already have the response (cron may have processed it)
+        const fetchedMessages = await fetchMessages(chatId);
         if (!fetchedMessages || !isMountedRef.current) return;
 
-        // Check if we got new messages
+        // If we got new messages, just display them
         if (fetchedMessages.length > messages.length) {
           console.log('[ChatClient] New messages found:', fetchedMessages.length - messages.length);
           setMessages(fetchedMessages);
-          stopPolling();
           return;
         }
 
         // Check if last message is from user (meaning we're waiting for a reply)
         const lastMessage = messages[messages.length - 1];
         if (lastMessage && lastMessage.role === 'user') {
-          console.log('[ChatClient] Waiting for reply, starting poll...');
+          console.log('[ChatClient] Last message is from user, processing pending request...');
           setIsWaitingForReply(true);
 
-          // Start polling every 5 seconds
-          if (!pollingIntervalRef.current) {
-            pollingIntervalRef.current = setInterval(async () => {
-              if (!isMountedRef.current || !currentChatIdRef.current) {
-                stopPolling();
-                return;
-              }
+          try {
+            // Call the process-pending endpoint to immediately process the request
+            const response = await fetch(`/api/conversations/${chatId}/process-pending`, {
+              method: 'POST',
+            });
 
-              console.log('[ChatClient] Polling for reply...');
-              const polledMessages = await fetchMessages(currentChatIdRef.current);
+            if (!isMountedRef.current) return;
 
-              if (polledMessages && polledMessages.length > messages.length) {
-                console.log('[ChatClient] Reply received!');
-                setMessages(polledMessages);
-                stopPolling();
+            const result = await response.json();
+            console.log('[ChatClient] Process pending result:', result.status);
+
+            if (result.status === 'completed' && result.content) {
+              // Add the new message to the UI
+              const newMessage: Message = {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: result.content,
+                timestamp: new Date(),
+              };
+              setMessages(prev => [...prev, newMessage]);
+            } else if (result.status === 'no_pending_request') {
+              // No pending request - maybe it was already processed
+              // Fetch messages again just in case
+              const updatedMessages = await fetchMessages(chatId);
+              if (updatedMessages && updatedMessages.length > messages.length) {
+                setMessages(updatedMessages);
               }
-            }, 5000);
+            }
+            // For 'failed' or 'error', we just stop waiting - user can try again
+          } catch (error) {
+            console.error('[ChatClient] Error processing pending request:', error);
+          } finally {
+            if (isMountedRef.current) {
+              setIsWaitingForReply(false);
+            }
           }
         }
       }
@@ -381,7 +399,7 @@ export function ChatClient() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopPolling();
     };
-  }, [isStreaming, messages.length]);
+  }, [isStreaming, messages.length, isWaitingForReply]);
 
   // Load conversations from database
   useEffect(() => {
