@@ -69,6 +69,8 @@ export function ChatClient() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  // Waiting for background reply (shown when user returns to tab and answer is pending)
+  const [isWaitingForReply, setIsWaitingForReply] = useState(false);
   // Start with sidebar collapsed on mobile, open on desktop
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -84,6 +86,8 @@ export function ChatClient() {
   const [showCodeCommand, setShowCodeCommand] = useState(false);
   // AbortController for cancelling in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Polling interval ref for background reply checking
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // Track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
 
@@ -283,46 +287,91 @@ export function ChatClient() {
     currentChatIdRef.current = currentChatId;
   }, [currentChatId]);
 
+  // Helper function to fetch and format messages
+  const fetchMessages = async (chatId: string): Promise<Message[] | null> => {
+    try {
+      const response = await fetch(`/api/conversations/${chatId}/messages`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.messages.map((msg: {
+          id: string;
+          role: 'user' | 'assistant' | 'system';
+          content: string;
+          content_type: string;
+          attachment_urls: string[] | null;
+          created_at: string;
+        }) => {
+          const imageUrl = msg.attachment_urls && msg.attachment_urls.length > 0
+            ? msg.attachment_urls[0]
+            : undefined;
+          return {
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            imageUrl,
+            timestamp: new Date(msg.created_at),
+          };
+        });
+      }
+    } catch (error) {
+      console.error('[ChatClient] Error fetching messages:', error);
+    }
+    return null;
+  };
+
+  // Stop any active polling
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    setIsWaitingForReply(false);
+  };
+
   // Refresh messages when tab becomes visible (for background-completed requests)
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      // Only refresh if tab is becoming visible and we have a current chat
+      // Only check if tab is becoming visible and we have a current chat
       if (document.visibilityState === 'visible' && currentChatIdRef.current && !isStreaming) {
-        console.log('[ChatClient] Tab visible, refreshing messages for:', currentChatIdRef.current);
-        try {
-          const response = await fetch(`/api/conversations/${currentChatIdRef.current}/messages`);
-          if (response.ok && isMountedRef.current) {
-            const data = await response.json();
-            const formattedMessages: Message[] = data.messages.map((msg: {
-              id: string;
-              role: 'user' | 'assistant' | 'system';
-              content: string;
-              content_type: string;
-              attachment_urls: string[] | null;
-              created_at: string;
-            }) => {
-              const imageUrl = msg.attachment_urls && msg.attachment_urls.length > 0
-                ? msg.attachment_urls[0]
-                : undefined;
-              return {
-                id: msg.id,
-                role: msg.role,
-                content: msg.content,
-                imageUrl,
-                timestamp: new Date(msg.created_at),
-              };
-            });
-            // Only update if we got more messages (background worker completed)
-            setMessages(prev => {
-              if (formattedMessages.length > prev.length) {
-                console.log('[ChatClient] New messages found:', formattedMessages.length - prev.length);
-                return formattedMessages;
+        console.log('[ChatClient] Tab visible, checking for pending replies...');
+
+        const chatId = currentChatIdRef.current;
+        const fetchedMessages = await fetchMessages(chatId);
+
+        if (!fetchedMessages || !isMountedRef.current) return;
+
+        // Check if we got new messages
+        if (fetchedMessages.length > messages.length) {
+          console.log('[ChatClient] New messages found:', fetchedMessages.length - messages.length);
+          setMessages(fetchedMessages);
+          stopPolling();
+          return;
+        }
+
+        // Check if last message is from user (meaning we're waiting for a reply)
+        const lastMessage = messages[messages.length - 1];
+        if (lastMessage && lastMessage.role === 'user') {
+          console.log('[ChatClient] Waiting for reply, starting poll...');
+          setIsWaitingForReply(true);
+
+          // Start polling every 5 seconds
+          if (!pollingIntervalRef.current) {
+            pollingIntervalRef.current = setInterval(async () => {
+              if (!isMountedRef.current || !currentChatIdRef.current) {
+                stopPolling();
+                return;
               }
-              return prev;
-            });
+
+              console.log('[ChatClient] Polling for reply...');
+              const polledMessages = await fetchMessages(currentChatIdRef.current);
+
+              if (polledMessages && polledMessages.length > messages.length) {
+                console.log('[ChatClient] Reply received!');
+                setMessages(polledMessages);
+                stopPolling();
+              }
+            }, 5000);
           }
-        } catch (error) {
-          console.error('[ChatClient] Error refreshing messages:', error);
         }
       }
     };
@@ -330,8 +379,9 @@ export function ChatClient() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
     };
-  }, [isStreaming]);
+  }, [isStreaming, messages.length]);
 
   // Load conversations from database
   useEffect(() => {
@@ -1430,9 +1480,21 @@ export function ChatClient() {
                 isAdmin={isAdmin}
                 onSubmitPrompt={(prompt) => handleSendMessage(prompt, [])}
               />
+              {/* Reply incoming indicator - shown when waiting for background response */}
+              {isWaitingForReply && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-blue-500/10 border-t border-blue-500/20">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                  <span className="text-sm text-blue-400">Reply incoming...</span>
+                </div>
+              )}
               <ChatComposer
                 onSendMessage={handleSendMessage}
                 isStreaming={isStreaming}
+                disabled={isWaitingForReply}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton

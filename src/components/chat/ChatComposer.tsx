@@ -25,6 +25,7 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 interface ChatComposerProps {
   onSendMessage: (content: string, attachments: Attachment[]) => void;
   isStreaming: boolean;
+  disabled?: boolean; // When waiting for background reply
 }
 
 /**
@@ -90,7 +91,7 @@ const PLACEHOLDER_SUGGESTIONS = [
   'Plan a trip...',
 ];
 
-export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, isStreaming, disabled }: ChatComposerProps) {
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -413,7 +414,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               placeholder={isDragging ? 'Drop files here...' : ''}
               className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base text-white placeholder-[#4DFFFF] focus:outline-none min-h-[40px]"
               rows={1}
-              disabled={isStreaming}
+              disabled={isStreaming || disabled}
               style={{ fontSize: '16px' }}
             />
           </div>
@@ -450,7 +451,7 @@ export function ChatComposer({ onSendMessage, isStreaming }: ChatComposerProps) 
               {/* Attachment button */}
               <button
                 onClick={() => setShowAttachMenu(!showAttachMenu)}
-                disabled={isStreaming}
+                disabled={isStreaming || disabled}
                 className="rounded-lg p-1 md:p-2 text-[#4DFFFF] hover:bg-white/10 hover:text-white disabled:opacity-50 shrink-0 flex items-center justify-center"
                 title="Attach files"
               >
