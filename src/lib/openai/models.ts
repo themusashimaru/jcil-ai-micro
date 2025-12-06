@@ -2,14 +2,15 @@
  * OpenAI Model Routing
  * Determines which model to use based on tool type, content, and request
  *
- * Routing Strategy (GPT-5 Edition):
- * - gpt-5-nano: Basic chat, greetings, simple Q&A (cost-optimized)
- * - gpt-5-mini: Search, files, images, complex reasoning, code (primary workhorse)
- * - gpt-5-mini: Also serves as fallback when nano fails
+ * Routing Strategy (Simplified - Mini Only):
+ * - gpt-5-mini: Primary model for ALL text tasks (chat, search, code, etc.)
  * - dall-e-3: Image generation
  * - whisper-1: Speech-to-text
  * - tts-1-hd: Text-to-speech
  * - gpt-4o-realtime-preview: Real-time voice conversations
+ *
+ * Note: The escalation patterns below are kept for future use but currently
+ * all text requests route to gpt-5-mini for consistency and reliability.
  */
 
 import { OpenAIModel, ToolType } from './types';
@@ -81,14 +82,11 @@ export function getModelForTool(tool?: ToolType, messageContent?: string): OpenA
     return 'gpt-5-mini';
   }
 
-  // Simple tools use nano
-  const nanoTools: ToolType[] = ['email', 'essay', 'sms', 'translate', 'scripture'];
-  if (tool && nanoTools.includes(tool)) {
-    return 'gpt-5-nano';
-  }
+  // All tools now use mini for consistency
+  // (Previously nano was used for: email, essay, sms, translate, scripture)
 
-  // Default: nano for basic chat
-  return 'gpt-5-nano';
+  // Default: mini for everything
+  return 'gpt-5-mini';
 }
 
 /**
@@ -160,27 +158,17 @@ export function getRecommendedTemperature(model: OpenAIModel, tool?: ToolType): 
 /**
  * Get max tokens for model/tool combination
  */
-export function getMaxTokens(model: OpenAIModel, tool?: ToolType): number {
-  // Nano uses fewer tokens (cost optimization)
-  if (model === 'gpt-5-nano') {
-    if (tool === 'sms') return 256;
-    if (tool === 'email') return 800;
-    return 1000; // Cap nano responses
-  }
+export function getMaxTokens(_model: OpenAIModel, tool?: ToolType): number {
+  // Tool-specific limits
+  if (tool === 'sms') return 256;
+  if (tool === 'email') return 1000;
+  if (tool === 'code') return 2000;
+  if (tool === 'essay') return 2000;
+  if (tool === 'research') return 2000;
+  if (tool === 'data') return 2000;
+  if (tool === 'scripture') return 4000;
 
-  // Mini can use more tokens
-  if (model === 'gpt-5-mini') {
-    if (tool === 'sms') return 256;
-    if (tool === 'email') return 1000;
-    if (tool === 'code') return 2000;
-    if (tool === 'essay') return 2000;
-    if (tool === 'research') return 2000;
-    if (tool === 'data') return 2000;
-    if (tool === 'scripture') return 4000;
-    return 2000;
-  }
-
-  // Default
+  // Default for mini (all requests)
   return 2000;
 }
 
