@@ -23,7 +23,7 @@
 
   /* Chat-specific dark mode colors */
   --chat-input-bg: rgba(0, 0, 0, 0.8);
-  --chat-user-bubble-bg: rgba(255, 255, 255, 0.1); /* Subtle glass effect */
+  --chat-user-bubble-bg: transparent; /* Same as background */
   --chat-user-bubble-text: #ffffff;
   --chat-ai-bubble-bg: transparent;
   --chat-ai-bubble-text: #ffffff;
@@ -97,8 +97,7 @@
   }
 
   .chat-bubble-tail.right::after {
-    right: -10px;
-    border-left-color: var(--chat-user-bubble-bg);
+    display: none; /* Remove triangle for user messages */
   }
 
   /* Send button glow animation */
