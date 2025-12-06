@@ -32,6 +32,7 @@ import { logEvent, logImageGeneration } from '../log';
 import { cachedWebSearch } from '../cache';
 import { logCacheMetrics, willBenefitFromCaching } from './promptCache';
 import { trackTokenUsage, saveAssistantMessage } from './usage';
+import { completePendingRequest } from '../pending-requests';
 
 // Retry configuration
 const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
@@ -220,6 +221,7 @@ interface ChatOptions {
   stream?: boolean;
   userId?: string; // For logging and usage tracking
   conversationId?: string; // For saving messages to DB on completion
+  pendingRequestId?: string; // For background processing - delete on completion
 }
 
 /**
@@ -564,7 +566,7 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
  * Create a chat completion with streaming support
  */
 export async function createChatCompletion(options: ChatOptions) {
-  const { messages, tool, temperature, maxTokens, stream = true, userId, conversationId } = options;
+  const { messages, tool, temperature, maxTokens, stream = true, userId, conversationId, pendingRequestId } = options;
 
   // Get the last user message text for routing decisions
   const lastUserText = getLastUserMessageText(messages);
@@ -653,6 +655,14 @@ export async function createChatCompletion(options: ChatOptions) {
           userId,
           content: text,
           model: modelName,
+        });
+      }
+
+      // Mark the pending request as completed (removes it from background worker queue)
+      if (pendingRequestId) {
+        console.log('[OpenAI] Completing pending request:', pendingRequestId);
+        completePendingRequest(pendingRequestId).catch(err => {
+          console.error('[OpenAI] Failed to complete pending request:', err);
         });
       }
     };
