@@ -602,6 +602,35 @@ CREATE TRIGGER update_design_settings_updated_at BEFORE UPDATE ON public.design_
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================
+-- 14. RATE LIMITS TABLE (for API rate limiting)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.rate_limits (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    identifier TEXT NOT NULL, -- User ID or IP address
+    action TEXT NOT NULL, -- 'chat_message', 'support_ticket', etc.
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index for fast lookups by identifier and action within time window
+CREATE INDEX idx_rate_limits_identifier_action ON public.rate_limits(identifier, action);
+CREATE INDEX idx_rate_limits_created_at ON public.rate_limits(created_at);
+
+-- Auto-cleanup old rate limit records (older than 2 hours)
+-- This keeps the table small and fast
+CREATE OR REPLACE FUNCTION cleanup_old_rate_limits()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM public.rate_limits
+    WHERE created_at < NOW() - INTERVAL '2 hours';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Grant access
+GRANT ALL ON public.rate_limits TO authenticated;
+GRANT ALL ON public.rate_limits TO service_role;
+GRANT ALL ON public.rate_limits TO anon;
+
+-- ============================================================
 -- COMPLETION MESSAGE
 -- ============================================================
 DO $$
@@ -614,5 +643,6 @@ BEGIN
     RAISE NOTICE '2. Set up storage bucket for uploads';
     RAISE NOTICE '3. Configure Stripe webhooks';
     RAISE NOTICE '4. Set up cron job for delete_expired_data()';
+    RAISE NOTICE '5. Set up cron job for cleanup_old_rate_limits()';
     RAISE NOTICE '============================================================';
 END $$;
