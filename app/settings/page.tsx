@@ -91,11 +91,11 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: 'var(--background)' }}>
       <div className="mx-auto max-w-6xl">
         {/* Header with Back to Chat button */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Settings</h1>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Settings</h1>
           <Link
             href="/chat"
             className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
@@ -108,21 +108,20 @@ export default function SettingsPage() {
         </div>
 
         {/* Tabs Navigation */}
-        <div className="mb-8 flex flex-wrap gap-2 border-b border-white/10">
+        <div className="mb-8 flex flex-wrap gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition relative ${
-                activeTab === tab.id
-                  ? 'text-blue-400'
-                  : 'text-gray-400 hover:text-gray-300'
-              }`}
+              className="flex items-center gap-2 px-6 py-3 font-semibold transition relative"
+              style={{
+                color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-muted)',
+              }}
             >
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
               {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: 'var(--primary)' }}></div>
               )}
             </button>
           ))}
@@ -133,8 +132,8 @@ export default function SettingsPage() {
           {activeTab === 'membership' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">Membership & Billing</h2>
-                <p className="text-gray-400">
+                <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Membership & Billing</h2>
+                <p style={{ color: 'var(--text-secondary)' }}>
                   Manage your subscription, view current plan, and upgrade or downgrade.
                 </p>
               </div>
@@ -145,8 +144,8 @@ export default function SettingsPage() {
           {activeTab === 'usage' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">Usage & Metrics</h2>
-                <p className="text-gray-400">
+                <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Usage & Metrics</h2>
+                <p style={{ color: 'var(--text-secondary)' }}>
                   Track your daily message and image usage across all features.
                 </p>
               </div>
@@ -157,8 +156,8 @@ export default function SettingsPage() {
           {activeTab === 'account' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">Account Settings</h2>
-                <p className="text-gray-400">
+                <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Account Settings</h2>
+                <p style={{ color: 'var(--text-secondary)' }}>
                   Manage your email address and password.
                 </p>
               </div>
@@ -172,9 +171,9 @@ export default function SettingsPage() {
 
           {activeTab === 'preferences' && (
             <section className="glass-morphism rounded-2xl p-6">
-              <h2 className="mb-4 text-xl font-semibold">Preferences</h2>
-              <p className="text-gray-400">Model and safety preferences coming soon</p>
-              <div className="mt-4 space-y-3 text-sm text-gray-500">
+              <h2 className="mb-4 text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Preferences</h2>
+              <p style={{ color: 'var(--text-secondary)' }}>Model and safety preferences coming soon</p>
+              <div className="mt-4 space-y-3 text-sm" style={{ color: 'var(--text-muted)' }}>
                 <p>Future features will include:</p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>AI model selection</li>
@@ -189,8 +188,8 @@ export default function SettingsPage() {
 
           {activeTab === 'privacy' && (
             <section className="glass-morphism rounded-2xl p-6">
-              <h2 className="mb-4 text-xl font-semibold">Data & Privacy</h2>
-              <p className="text-gray-400 mb-6">
+              <h2 className="mb-4 text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Data & Privacy</h2>
+              <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
                 Export all your conversations and account data.
               </p>
               <div className="space-y-4">

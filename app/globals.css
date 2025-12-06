@@ -93,12 +93,12 @@
 
   .chat-bubble-tail.left::after {
     left: -10px;
-    border-right-color: var(--glass-bg);
+    border-right-color: var(--chat-ai-bubble-bg);
   }
 
   .chat-bubble-tail.right::after {
     right: -10px;
-    border-left-color: var(--glass-bg);
+    border-left-color: var(--chat-user-bubble-bg);
   }
 
   /* Send button glow animation */
