@@ -94,8 +94,8 @@ const WEB_SEARCH_PATTERNS = [
   // Location patterns - "in [City]" or "near [City]"
   /\b(in|near|around)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s*(,\s*[A-Z]{2})?\b/i, // "in Chelsea", "near Boston, MA"
 
-  // "near me" and "nearby" patterns
-  /\b(near\s*me|nearby|close\s*by|around\s*here|in\s*my\s*area)\b/i,
+  // "near me", "nearby", "closest to me" patterns
+  /\b(near\s*me|nearby|close\s*by|around\s*here|in\s*my\s*area|closest\s+to\s+me|nearest\s+to\s+me)\b/i,
 
   // "where is/are" patterns for places
   /\b(where\s+(is|are|can\s+i\s+find))\s+(the|a|an)?\s*\w+/i,
