@@ -897,4 +897,4 @@ export async function POST(request: NextRequest) {
 // Use Node.js runtime for better streaming support and logging
 // Edge runtime can have issues with streaming responses
 export const runtime = 'nodejs';
-export const maxDuration = 60; // Allow up to 60 seconds for AI responses
+export const maxDuration = 120; // Allow up to 120 seconds for AI responses (Pro plan supports up to 300s)

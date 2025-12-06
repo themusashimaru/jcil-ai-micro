@@ -38,7 +38,7 @@ const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
 const RETRYABLE_STATUS_CODES = [429, 500, 502, 503, 504];
 
 // Timeout configuration (per directive §0)
-const REQUEST_TIMEOUT_MS = 25_000; // 25 seconds (reduced from 30 to give buffer for Vercel's 60s limit)
+const REQUEST_TIMEOUT_MS = 45_000; // 45 seconds (increased for Pro plan's 120s limit)
 const CONNECT_TIMEOUT_MS = 5_000;  // 5 seconds
 
 // Tools that should always use web search
