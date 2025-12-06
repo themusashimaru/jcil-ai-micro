@@ -787,6 +787,12 @@ async function createWebSearchCompletion(
           }
         }
 
+        // Check if we got empty content - if so, throw to trigger fallback
+        if (!responseText || responseText.trim().length === 0) {
+          console.log('[OpenAI Web Search] Empty response received, falling back to regular completion');
+          throw new Error('EMPTY_RESPONSE: Web search returned no content');
+        }
+
         console.log('[OpenAI Web Search] Success, citations found:', citations.length);
 
         return {
