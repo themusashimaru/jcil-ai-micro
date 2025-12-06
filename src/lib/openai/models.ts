@@ -23,6 +23,13 @@ const MINI_ESCALATION_PATTERNS = [
   /\b(search|look up|find|google|latest|breaking|news|weather|forecast|price|stock|crypto)\b/i,
   /\b(today|yesterday|this week|current|recent|update)\b/i,
 
+  // LOCAL BUSINESS / PLACES - must use mini with web search
+  /\b(near\s*me|nearby|close\s*by|around\s*here)\b/i,
+  /\b(in|near|around)\s+[A-Z][a-z]+/i, // "in Chelsea", "near Boston"
+  /\b(theater|theatre|cinema|movie|movies|restaurant|cafe|coffee|barbershop|barber|salon|hotel|motel|store|shop|gym|hospital|pharmacy|bank|grocery|supermarket|mall|dentist|doctor|clinic|church)\b/i,
+  /\b(showtime|playing|screening|hours|open|closed|address|directions|phone\s*number)\b/i,
+  /\b(regal|amc|cinemark|starbucks|mcdonalds|walmart|target|costco|home\s*depot|lowes)\b/i,
+
   // File/upload handling
   /\b(upload|attached|photo|pdf|spreadsheet|excel|image|file|document)\b/i,
   /\b(analyze|extract|parse|read this|scan)\b/i,

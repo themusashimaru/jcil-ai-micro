@@ -84,8 +84,15 @@ const WEB_SEARCH_PATTERNS = [
   /\b(research|investigate|find out|look into)\b/i,
 
   // LOCAL BUSINESS & PLACES SEARCHES
+  // Business types - these words alone trigger search (don't require "in/near")
+  /\b(barbershop|barber\s*shop|hair\s*salon|nail\s*salon|spa|laundromat|dry\s*cleaner)\b/i,
+  /\b(movie\s*theater|movie\s*theatre|cinema|multiplex)\b/i,
+
   // "X in [location]" patterns - theaters, restaurants, stores, etc.
-  /\b(theater|theatre|cinema|movie|movies|restaurant|cafe|coffee|bar|pub|hotel|motel|store|shop|gym|hospital|pharmacy|bank|atm|gas station|grocery|supermarket|mall|salon|barber|dentist|doctor|clinic|school|library|park|museum|church)\s+(in|near|around|at)\s+\w+/i,
+  /\b(theater|theatre|restaurant|cafe|coffee\s*shop|bar|pub|hotel|motel|store|shop|gym|hospital|pharmacy|bank|atm|gas\s*station|grocery|supermarket|mall|salon|barber|dentist|doctor|clinic|school|library|park|museum|church)\s+(in|near|around|at)\s+\w+/i,
+
+  // Location patterns - "in [City]" or "near [City]"
+  /\b(in|near|around)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s*(,\s*[A-Z]{2})?\b/i, // "in Chelsea", "near Boston, MA"
 
   // "near me" and "nearby" patterns
   /\b(near\s*me|nearby|close\s*by|around\s*here|in\s*my\s*area)\b/i,
