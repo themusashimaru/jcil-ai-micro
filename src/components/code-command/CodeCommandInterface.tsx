@@ -1,8 +1,8 @@
 /**
  * CODE COMMAND INTERFACE
  *
- * Main container for the Code Command feature
- * Professional design matching main chat
+ * Main container - same layout as regular chat
+ * No extra header, just a simple back button
  */
 
 'use client';
@@ -27,20 +27,17 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Handle sending a message with streaming response
   const handleSendMessage = useCallback(async (content: string) => {
     if (isStreaming) return;
 
     setError(null);
 
-    // Add user message
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
       content,
     };
 
-    // Create placeholder for assistant response
     const assistantMessage: Message = {
       id: `assistant-${Date.now()}`,
       role: 'assistant',
@@ -50,15 +47,12 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setIsStreaming(true);
 
-    // Create abort controller for this request
     abortControllerRef.current = new AbortController();
 
     try {
       const response = await fetch('/api/code-command', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...messages, userMessage].map((m) => ({
             role: m.role,
@@ -77,7 +71,6 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
         throw new Error('No response body');
       }
 
-      // Stream the response (AI SDK v5 toTextStreamResponse = plain text)
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
@@ -86,11 +79,9 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // Simple text streaming - just decode and append
         const chunk = decoder.decode(value, { stream: true });
         fullContent += chunk;
 
-        // Update the message with accumulated content
         setMessages((prev) => {
           const newMessages = [...prev];
           const lastMessage = newMessages[newMessages.length - 1];
@@ -102,12 +93,11 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        // Request was aborted, don't show error
+        // Request aborted
       } else {
         console.error('[Code Command] Error:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
 
-        // Remove the empty assistant message on error
         setMessages((prev) => {
           const newMessages = [...prev];
           const lastMessage = newMessages[newMessages.length - 1];
@@ -123,7 +113,6 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
     }
   }, [messages, isStreaming]);
 
-  // Handle close - abort any ongoing request
   const handleClose = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -132,30 +121,21 @@ export function CodeCommandInterface({ onClose }: CodeCommandInterfaceProps) {
   }, [onClose]);
 
   return (
-    <div className="flex flex-col h-full bg-black">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-black border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold">
-            <span className="text-white">JCIL</span>
-            <span className="text-blue-500">.ai</span>
-            <span className="text-gray-500 font-normal ml-2">Code Command</span>
-          </h1>
-        </div>
-
-        {/* Close button */}
-        {onClose && (
+    <div className="flex flex-col h-full">
+      {/* Simple back button - minimal header */}
+      {onClose && (
+        <div className="absolute top-4 left-4 z-10">
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
-            title="Back to Chat"
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/10"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
+            <span className="text-sm">Back to Chat</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Error banner */}
       {error && (
