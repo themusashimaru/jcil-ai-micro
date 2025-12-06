@@ -83,7 +83,12 @@ export function QuickDailyDevotional() {
       {/* Daily Devotional Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800 border border-[#4DFFFF]"
+        className="rounded-lg px-3 py-2 text-xs font-medium transition"
+        style={{
+          backgroundColor: 'var(--surface)',
+          color: 'var(--primary)',
+          border: '1px solid var(--primary)',
+        }}
         title="Daily Bible Devotional"
       >
         <span className="flex items-center gap-1.5">

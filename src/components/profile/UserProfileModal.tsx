@@ -71,18 +71,28 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-2xl">
+      <div
+        className="w-full max-w-2xl overflow-hidden rounded-2xl shadow-2xl"
+        style={{
+          backgroundColor: 'var(--surface-elevated)',
+          border: '1px solid var(--border)',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+        <div
+          className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: '1px solid var(--border)' }}
+        >
           <div>
-            <h2 className="text-xl font-semibold text-white">User Profile</h2>
-            <p className="text-sm text-gray-400 mt-1">
+            <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>User Profile</h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
               Personalize your AI experience
             </p>
           </div>
           <button
             onClick={handleCancel}
-            className="rounded-lg p-2 text-gray-400 hover:bg-white/10 hover:text-white transition"
+            className="rounded-lg p-2 transition hover:opacity-70"
+            style={{ color: 'var(--text-muted)' }}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -99,7 +109,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
         <div className="px-6 py-6 space-y-6 max-h-[70vh] overflow-y-auto">
           {/* Name */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-300">
+            <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
               Name <span className="text-red-400">*</span>
             </label>
             <input
@@ -107,9 +117,14 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter your name"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+              className="w-full rounded-xl px-4 py-3 focus:outline-none"
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+              }}
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               This helps the AI address you personally
             </p>
           </div>
@@ -130,14 +145,14 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                   }
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-blue-500 transition-colors"></div>
+                <div className="w-11 h-6 rounded-full peer-checked:bg-blue-500 transition-colors" style={{ backgroundColor: 'var(--glass-bg)' }}></div>
                 <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
               </div>
               <div>
-                <span className="text-sm font-medium text-gray-300 group-hover:text-white transition">
+                <span className="text-sm font-medium transition" style={{ color: 'var(--text-secondary)' }}>
                   I&apos;m a Student
                 </span>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   Enable student-focused assistance
                 </p>
               </div>
@@ -147,7 +162,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
           {/* Job Title / Field of Study */}
           {!formData.isStudent && (
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                 Job Title / Profession
               </label>
               <input
@@ -155,14 +170,19 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                 value={formData.jobTitle}
                 onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
                 placeholder="e.g., Software Engineer, Pastor, Teacher"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+                className="w-full rounded-xl px-4 py-3 focus:outline-none"
+                style={{
+                  backgroundColor: 'var(--glass-bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                }}
               />
             </div>
           )}
 
           {formData.isStudent && (
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                 Field of Study
               </label>
               <input
@@ -170,14 +190,19 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                 value={formData.jobTitle}
                 onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
                 placeholder="e.g., Computer Science, Theology, Business"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none"
+                className="w-full rounded-xl px-4 py-3 focus:outline-none"
+                style={{
+                  backgroundColor: 'var(--glass-bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                }}
               />
             </div>
           )}
 
           {/* Description */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-300">
+            <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
               How will you use JCIL.ai?
             </label>
             <textarea
@@ -189,16 +214,21 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                   : 'e.g., Writing emails, research, content creation, problem-solving...'
               }
               rows={4}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none resize-none"
+              className="w-full rounded-xl px-4 py-3 focus:outline-none resize-none"
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+              }}
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               This helps the AI tailor responses to your specific needs and context
             </p>
           </div>
 
           {/* Email Signature */}
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-300">
+            <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
               Email Signature (Optional)
             </label>
             <textarea
@@ -206,28 +236,34 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
               onChange={(e) => setFormData({ ...formData, emailSignature: e.target.value })}
               placeholder="Best regards,&#10;John Smith&#10;**Software Engineer**&#10;*Company Name*&#10;(555) 123-4567"
               rows={4}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 focus:border-white/20 focus:outline-none resize-none"
+              className="w-full rounded-xl px-4 py-3 focus:outline-none resize-none"
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+              }}
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               Use **text** for bold and *text* for italic. Example: **John Smith** makes &quot;John Smith&quot; bold.
             </p>
 
             {/* Signature Color Picker */}
             <div className="flex items-center gap-3">
-              <label className="text-sm text-gray-300">Signature Color:</label>
+              <label className="text-sm" style={{ color: 'var(--text-secondary)' }}>Signature Color:</label>
               <input
                 type="color"
                 value={formData.signatureColor || '#FFFFFF'}
                 onChange={(e) => setFormData({ ...formData, signatureColor: e.target.value })}
-                className="w-12 h-10 rounded border border-white/10 bg-transparent cursor-pointer"
+                className="w-12 h-10 rounded cursor-pointer"
+                style={{ border: '1px solid var(--border)', backgroundColor: 'transparent' }}
               />
-              <span className="text-xs text-gray-500">{formData.signatureColor || '#FFFFFF'}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formData.signatureColor || '#FFFFFF'}</span>
             </div>
 
             {/* Signature Preview */}
             {formData.emailSignature && (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <p className="text-xs font-semibold text-gray-400 mb-2">PREVIEW</p>
+              <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}>
+                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>PREVIEW</p>
                 <div
                   className="whitespace-pre-wrap text-sm"
                   style={{ color: formData.signatureColor || '#FFFFFF' }}
@@ -245,11 +281,11 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
           </div>
 
           {/* Divider */}
-          <div className="border-t border-white/10" />
+          <div style={{ borderTop: '1px solid var(--border)' }} />
 
           {/* Passkey / Biometric Login Settings */}
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-300">
+            <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
               Security Settings
             </label>
             <PasskeySettings />
@@ -288,7 +324,13 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-white/10 px-6 py-4 bg-white/5">
+        <div
+          className="flex items-center justify-between px-6 py-4"
+          style={{
+            borderTop: '1px solid var(--border)',
+            backgroundColor: 'var(--glass-bg)',
+          }}
+        >
           {/* Logout button on the left */}
           <button
             onClick={handleLogout}
@@ -302,7 +344,8 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
           <div className="flex items-center gap-3">
             <button
               onClick={handleCancel}
-              className="rounded-xl px-6 py-2.5 text-sm font-medium text-gray-300 hover:bg-white/10 transition"
+              className="rounded-xl px-6 py-2.5 text-sm font-medium transition hover:opacity-70"
+              style={{ color: 'var(--text-secondary)' }}
             >
               Cancel
             </button>
