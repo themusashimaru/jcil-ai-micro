@@ -46,7 +46,7 @@ import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
-import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage, incrementTokenUsage } from '@/lib/limits';
+import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider } from '@/lib/provider/settings';
