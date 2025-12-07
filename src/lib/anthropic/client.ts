@@ -319,7 +319,7 @@ export async function createAnthropicCompletionWithSearch(
         userId: rest.userId,
         model,
         route: 'search',
-        tool: 'web_search',
+        tool: 'generateText',
         inputTokens: response.usage.input_tokens || 0,
         outputTokens: response.usage.output_tokens || 0,
         planKey: rest.planKey || 'free',
