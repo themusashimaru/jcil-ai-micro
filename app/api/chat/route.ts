@@ -51,7 +51,8 @@ import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider } from '@/lib/provider/settings';
 import { createAnthropicCompletion, createAnthropicStreamingCompletion, createAnthropicCompletionWithSearch } from '@/lib/anthropic/client';
-import { braveSearch } from '@/lib/brave/search';
+// Brave Search no longer needed - using native Anthropic web search
+// import { braveSearch } from '@/lib/brave/search';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
@@ -807,16 +808,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check if web search is needed - use Brave Search for Anthropic
+      // Check if web search is needed - use Anthropic's native web search tool
       if (willUseWebSearch) {
-        console.log('[Chat API] Anthropic: Using Brave Search for web queries');
+        console.log('[Chat API] Anthropic: Using native web search (web_search_20250305)');
         const result = await createAnthropicCompletionWithSearch({
           messages: messagesWithContext,
           model: anthropicModel,
           maxTokens: max_tokens,
           temperature,
           systemPrompt,
-          webSearchFn: braveSearch,
           userId: isAuthenticated ? rateLimitIdentifier : undefined,
           planKey: userTier,
         });
@@ -835,7 +835,7 @@ export async function POST(request: NextRequest) {
               'Content-Type': 'application/json',
               'X-Model-Used': result.model,
               'X-Provider': 'anthropic',
-              'X-Web-Search': 'brave',
+              'X-Web-Search': 'native',
             },
           }
         );
