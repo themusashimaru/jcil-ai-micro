@@ -30,27 +30,31 @@ function PricingCard({
   onSubscribe,
   loading,
 }: PricingCardProps) {
-  const borderClass = popular
-    ? 'border-2 border-blue-500 relative'
-    : 'border border-gray-700';
-
   return (
-    <div className={`glass-morphism rounded-2xl p-6 sm:p-8 ${borderClass}`}>
+    <div
+      className="glass-morphism rounded-2xl p-6 sm:p-8 relative"
+      style={{
+        border: popular ? '2px solid var(--primary)' : '1px solid var(--border)',
+      }}
+    >
       {popular && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 px-4 py-1 rounded-full text-sm font-semibold">
+        <div
+          className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-semibold"
+          style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+        >
           POPULAR
         </div>
       )}
-      <h3 className="mb-2 text-xl sm:text-2xl font-bold">{title}</h3>
-      <p className="mb-4 text-sm sm:text-base text-gray-400">{description}</p>
+      <h3 className="mb-2 text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+      <p className="mb-4 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>{description}</p>
       <div className="mb-6">
-        <span className="text-4xl sm:text-5xl font-bold">${price}</span>
-        <span className="text-gray-400">/month</span>
+        <span className="text-4xl sm:text-5xl font-bold" style={{ color: 'var(--text-primary)' }}>${price}</span>
+        <span style={{ color: 'var(--text-secondary)' }}>/month</span>
       </div>
       <ul className="mb-8 space-y-3 text-sm">
         {features.map((feature, index) => (
-          <li key={index} className="flex items-center">
-            <span className="mr-2 text-green-400">✓</span>
+          <li key={index} className="flex items-center" style={{ color: 'var(--text-primary)' }}>
+            <span className="mr-2" style={{ color: 'rgb(74, 222, 128)' }}>✓</span>
             {feature}
           </li>
         ))}
@@ -58,11 +62,13 @@ function PricingCard({
       <button
         onClick={() => onSubscribe(tier)}
         disabled={loading}
-        className={`block w-full rounded-lg py-3 text-center font-semibold transition ${
-          popular
-            ? 'bg-blue-500 hover:bg-blue-400'
-            : 'bg-blue-600 hover:bg-blue-500'
-        } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className="block w-full rounded-lg py-3 text-center font-semibold transition hover:opacity-90"
+        style={{
+          backgroundColor: 'var(--primary)',
+          color: 'var(--background)',
+          opacity: loading ? 0.5 : 1,
+          cursor: loading ? 'not-allowed' : 'pointer',
+        }}
       >
         {loading ? 'Processing...' : 'Get Started'}
       </button>
@@ -158,12 +164,12 @@ export default function PricingSection() {
 
   return (
     <section className="container mx-auto px-4 py-12 sm:py-20" id="pricing">
-      <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold">Simple, Transparent Pricing</h2>
-      <p className="mb-2 text-center text-sm sm:text-base text-gray-300">Choose the plan that fits your needs</p>
-      <p className="mb-8 sm:mb-12 text-center text-sm text-gray-500">Cancel anytime. No hidden fees.</p>
+      <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>Simple, Transparent Pricing</h2>
+      <p className="mb-2 text-center text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>Choose the plan that fits your needs</p>
+      <p className="mb-8 sm:mb-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Cancel anytime. No hidden fees.</p>
 
       {error && (
-        <div className="mb-8 mx-auto max-w-2xl rounded-lg bg-red-900/20 border border-red-500 p-4 text-red-400">
+        <div className="mb-8 mx-auto max-w-2xl rounded-lg p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
           {error}
         </div>
       )}
@@ -181,9 +187,9 @@ export default function PricingSection() {
 
       {/* Free tier note */}
       <div className="mt-12 text-center">
-        <p className="text-gray-400 text-sm">
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Want to try before you buy?{' '}
-          <a href="/signup" className="text-blue-400 hover:text-blue-300 underline">
+          <a href="/signup" className="underline hover:opacity-80 transition" style={{ color: 'var(--primary)' }}>
             Create a free account
           </a>{' '}
           with limited access.
