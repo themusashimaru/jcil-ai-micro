@@ -77,6 +77,8 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Track if image generation is available (depends on active provider)
+  const [imageGenerationAvailable, setImageGenerationAvailable] = useState(true);
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -239,8 +241,25 @@ export function ChatClient() {
         setIsAdmin(false);
       }
     };
-
     checkAdminStatus();
+  }, []);
+
+  // Check feature availability (image generation depends on provider)
+  useEffect(() => {
+    const checkFeatures = async () => {
+      try {
+        const response = await fetch('/api/features');
+        if (response.ok) {
+          const data = await response.json();
+          setImageGenerationAvailable(data.imageGeneration === true);
+        }
+      } catch (error) {
+        console.error('[ChatClient] Error checking features:', error);
+        // Default to true on error (OpenAI behavior)
+        setImageGenerationAvailable(true);
+      }
+    };
+    checkFeatures();
   }, []);
 
   // Detect screen size and set initial sidebar state
@@ -1577,6 +1596,7 @@ export function ChatClient() {
                 onStop={handleStop}
                 isStreaming={isStreaming}
                 disabled={isWaitingForReply}
+                hideImageSuggestion={!imageGenerationAvailable}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton

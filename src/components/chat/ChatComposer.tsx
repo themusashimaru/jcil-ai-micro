@@ -27,6 +27,7 @@ interface ChatComposerProps {
   onStop?: () => void; // Called when user clicks stop button during streaming
   isStreaming: boolean;
   disabled?: boolean; // When waiting for background reply
+  hideImageSuggestion?: boolean; // Hide "Create an image..." when Anthropic is active
 }
 
 /**
@@ -92,7 +93,14 @@ const PLACEHOLDER_SUGGESTIONS = [
   'Plan a trip...',
 ];
 
-export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: ChatComposerProps) {
+// Suggestions without image creation (for Anthropic)
+const PLACEHOLDER_SUGGESTIONS_NO_IMAGE = PLACEHOLDER_SUGGESTIONS.filter(
+  s => !s.toLowerCase().includes('image')
+);
+
+export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion }: ChatComposerProps) {
+  // Use filtered suggestions when image generation is not available
+  const suggestions = hideImageSuggestion ? PLACEHOLDER_SUGGESTIONS_NO_IMAGE : PLACEHOLDER_SUGGESTIONS;
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -122,7 +130,7 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: C
     if (!initialDelayComplete) return; // Wait for initial delay
     if (isFocused || message) return; // Don't animate when focused or has content
 
-    const currentText = PLACEHOLDER_SUGGESTIONS[placeholderIndex];
+    const currentText = suggestions[placeholderIndex % suggestions.length];
 
     if (charIndex < currentText.length) {
       // Type next character
@@ -134,13 +142,13 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled }: C
     } else {
       // Finished typing, wait then move to next suggestion
       const timer = setTimeout(() => {
-        setPlaceholderIndex((prev) => (prev + 1) % PLACEHOLDER_SUGGESTIONS.length);
+        setPlaceholderIndex((prev) => (prev + 1) % suggestions.length);
         setDisplayedText('');
         setCharIndex(0);
       }, 2000); // Wait 2 seconds before next suggestion
       return () => clearTimeout(timer);
     }
-  }, [charIndex, placeholderIndex, isFocused, message, initialDelayComplete]);
+  }, [charIndex, placeholderIndex, isFocused, message, initialDelayComplete, suggestions]);
 
   // Auto-resize textarea
   const adjustTextareaHeight = () => {

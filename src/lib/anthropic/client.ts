@@ -4,18 +4,16 @@
  * PURPOSE:
  * - Provide Claude AI chat completion functionality
  * - Support streaming responses
- * - Handle web search using Anthropic's native tool
+ * - Handle tool calls (web search via Brave)
  *
  * FEATURES:
  * - Streaming text responses
  * - Non-streaming for image analysis
- * - Native web search integration (web_search_20250305)
- * - Token usage tracking
+ * - Web search integration via Brave
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { CoreMessage } from 'ai';
-import { trackTokenUsage } from '@/lib/openai/usage';
 
 // Default model: Claude Sonnet 4.5
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
@@ -41,7 +39,7 @@ export interface AnthropicChatOptions {
   temperature?: number;
   stream?: boolean;
   systemPrompt?: string;
-  // Web search function (DEPRECATED - now using Anthropic native search)
+  // Web search function (injected from Brave Search module)
   webSearchFn?: (query: string) => Promise<BraveSearchResult>;
   // For token tracking
   userId?: string;
@@ -168,19 +166,6 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
       messages,
     });
 
-    // Track token usage
-    if (options.userId && response.usage) {
-      trackTokenUsage({
-        userId: options.userId,
-        model,
-        route: 'chat',
-        tool: 'generateText',
-        inputTokens: response.usage.input_tokens || 0,
-        outputTokens: response.usage.output_tokens || 0,
-        planKey: options.planKey || 'free',
-      });
-    }
-
     // Extract text from response
     const textContent = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')
@@ -234,20 +219,6 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
           }
         }
       }
-
-      // Track token usage after stream completes
-      const finalMessage = await stream.finalMessage();
-      if (options.userId && finalMessage.usage) {
-        trackTokenUsage({
-          userId: options.userId,
-          model,
-          route: 'chat',
-          tool: 'streamText',
-          inputTokens: finalMessage.usage.input_tokens || 0,
-          outputTokens: finalMessage.usage.output_tokens || 0,
-          planKey: options.planKey || 'free',
-        });
-      }
     } catch (error) {
       console.error('[Anthropic] Streaming error:', error);
       await writer.write('\n\n[Error: Stream interrupted]');
@@ -272,7 +243,7 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 
 /**
  * Create a chat completion with web search support
- * Uses Anthropic's native web_search_20250305 tool (server-side execution)
+ * Uses Brave Search when available
  */
 export async function createAnthropicCompletionWithSearch(
   options: AnthropicChatOptions
@@ -282,8 +253,13 @@ export async function createAnthropicCompletionWithSearch(
   citations: Array<{ title: string; url: string }>;
   numSourcesUsed: number;
 }> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { webSearchFn, ...rest } = options; // webSearchFn is deprecated, using native search
+  const { webSearchFn, ...rest } = options;
+
+  if (!webSearchFn) {
+    // No search function provided, use regular completion
+    const result = await createAnthropicCompletion(rest);
+    return { ...result, citations: [], numSourcesUsed: 0 };
+  }
 
   const client = getAnthropicClient();
   const model = rest.model || DEFAULT_MODEL;
@@ -292,92 +268,152 @@ export async function createAnthropicCompletionWithSearch(
 
   const { system, messages } = convertMessages(rest.messages, rest.systemPrompt);
 
-  try {
-    console.log('[Anthropic] Using native web search tool (web_search_20250305)');
+  // Define the web search tool
+  const tools: Anthropic.Tool[] = [
+    {
+      name: 'web_search',
+      description: 'Search the web for current information. Use this when the user asks about recent events, current data, or information that may have changed since your training.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          query: {
+            type: 'string',
+            description: 'The search query to look up',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  ];
 
-    // Use Anthropic's native web search tool - it's a server-side tool
-    // that Anthropic executes automatically
+  const citations: Array<{ title: string; url: string }> = [];
+  const currentMessages = [...messages];
+  let iterations = 0;
+  const maxIterations = 3; // Prevent infinite loops
+
+  while (iterations < maxIterations) {
+    iterations++;
+
     const response = await client.messages.create({
       model,
       max_tokens: maxTokens,
       temperature,
-      system: system + '\n\nIMPORTANT: You have access to web search. Use it for ANY question about current events, news, weather, sports, prices, or anything that might have changed recently. Do NOT rely on your training data for current information - ALWAYS search first.',
-      messages,
-      tools: [
-        {
-          type: 'web_search_20250305',
-          name: 'web_search',
-          // Optional: limit searches per request (default is reasonable)
-          // max_uses: 3,
-        } as unknown as Anthropic.Tool,
-      ],
+      system: system + '\n\nYou have access to web search. Use it when you need current information.',
+      messages: currentMessages,
+      tools,
     });
 
-    // Track token usage
-    if (rest.userId && response.usage) {
-      trackTokenUsage({
-        userId: rest.userId,
+    // Check if the model wants to use a tool
+    const toolUseBlocks = response.content.filter(
+      (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
+    );
+
+    if (toolUseBlocks.length === 0) {
+      // No tool use, return the text response
+      const textContent = response.content
+        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+        .map(block => block.text)
+        .join('\n');
+
+      return {
+        text: textContent,
         model,
-        route: 'search',
-        tool: 'generateText',
-        inputTokens: response.usage.input_tokens || 0,
-        outputTokens: response.usage.output_tokens || 0,
-        planKey: rest.planKey || 'free',
-      });
+        citations,
+        numSourcesUsed: citations.length,
+      };
     }
 
-    // Extract text content and citations from response
-    let textContent = '';
-    const citations: Array<{ title: string; url: string }> = [];
+    // Process tool calls
+    for (const toolUse of toolUseBlocks) {
+      if (toolUse.name === 'web_search') {
+        const query = (toolUse.input as { query: string }).query;
+        console.log('[Anthropic] Executing web search:', query);
 
-    for (const block of response.content) {
-      if (block.type === 'text') {
-        textContent += block.text;
+        try {
+          const searchResults = await webSearchFn(query);
 
-        // Check for citations in the text block (Anthropic includes them as annotations)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const blockAny = block as any;
-        if (blockAny.citations) {
-          for (const citation of blockAny.citations) {
+          // Add citations from search results
+          for (const result of searchResults.results.slice(0, 5)) {
             citations.push({
-              title: citation.title || citation.url,
-              url: citation.url,
+              title: result.title,
+              url: result.url,
             });
           }
-        }
-      } else if (block.type === 'web_search_tool_result') {
-        // Handle web search results block if present
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const searchBlock = block as any;
-        if (searchBlock.content) {
-          for (const result of searchBlock.content) {
-            if (result.type === 'web_search_result') {
-              citations.push({
-                title: result.title || result.url,
-                url: result.url,
-              });
-            }
-          }
+
+          // Format search results for the model
+          const formattedResults = searchResults.results
+            .slice(0, 5)
+            .map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.description}${r.content ? '\n' + r.content.slice(0, 500) : ''}`)
+            .join('\n\n');
+
+          // Add the assistant's response and tool result to messages
+          currentMessages.push({
+            role: 'assistant',
+            content: response.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text' as const, text: block.text };
+              } else if (block.type === 'tool_use') {
+                return {
+                  type: 'tool_use' as const,
+                  id: block.id,
+                  name: block.name,
+                  input: block.input,
+                };
+              }
+              // Handle other block types (e.g., thinking) by returning empty text
+              return { type: 'text' as const, text: '' };
+            }) as Array<{ type: 'text'; text: string }>,
+          });
+
+          currentMessages.push({
+            role: 'user',
+            content: [{
+              type: 'tool_result' as unknown as 'text',
+              tool_use_id: toolUse.id,
+              content: `Search results for "${query}":\n\n${formattedResults}`,
+            }] as unknown as Array<{ type: 'text'; text: string }>,
+          });
+        } catch (error) {
+          console.error('[Anthropic] Web search error:', error);
+          // Provide error feedback to the model
+          currentMessages.push({
+            role: 'assistant',
+            content: response.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text' as const, text: block.text };
+              } else if (block.type === 'tool_use') {
+                return {
+                  type: 'tool_use' as const,
+                  id: block.id,
+                  name: block.name,
+                  input: block.input,
+                };
+              }
+              // Handle other block types by returning empty text
+              return { type: 'text' as const, text: '' };
+            }) as Array<{ type: 'text'; text: string }>,
+          });
+          currentMessages.push({
+            role: 'user',
+            content: [{
+              type: 'tool_result' as unknown as 'text',
+              tool_use_id: toolUse.id,
+              content: 'Web search failed. Please provide a response based on your knowledge.',
+              is_error: true,
+            }] as unknown as Array<{ type: 'text'; text: string }>,
+          });
         }
       }
     }
-
-    console.log('[Anthropic] Web search complete, citations found:', citations.length);
-
-    return {
-      text: textContent,
-      model,
-      citations,
-      numSourcesUsed: citations.length,
-    };
-  } catch (error) {
-    console.error('[Anthropic] Web search error:', error);
-
-    // Fall back to regular completion without search
-    console.log('[Anthropic] Falling back to regular completion');
-    const result = await createAnthropicCompletion(rest);
-    return { ...result, citations: [], numSourcesUsed: 0 };
   }
+
+  // If we hit max iterations, return what we have
+  return {
+    text: 'I apologize, but I was unable to complete the search. Please try again.',
+    model,
+    citations,
+    numSourcesUsed: citations.length,
+  };
 }
 
 /**

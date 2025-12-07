@@ -8,7 +8,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { requireAdmin } from '@/lib/auth/admin-guard';
-import { clearProviderSettingsCache } from '@/lib/provider/settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,17 +53,7 @@ export async function GET() {
       .select('*')
       .single();
 
-    // Handle errors gracefully - return defaults if table doesn't exist or is empty
-    if (error) {
-      // PGRST116 = no rows found, 42P01 = table doesn't exist
-      if (error.code === 'PGRST116' || error.code === '42P01' || error.message?.includes('does not exist')) {
-        console.log('[Provider API] No settings found, returning defaults');
-        return NextResponse.json({
-          activeProvider: DEFAULT_SETTINGS.active_provider,
-          providerConfig: DEFAULT_SETTINGS.provider_config,
-          updatedAt: null,
-        });
-      }
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
       console.error('[Provider API] Error fetching settings:', error);
       return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
     }
@@ -126,18 +115,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // First, check if a row exists
-    const { data: existingData, error: checkError } = await supabase
+    const { data: existingData } = await supabase
       .from('provider_settings')
       .select('id')
       .single();
-
-    // If table doesn't exist, return helpful error
-    if (checkError && (checkError.code === '42P01' || checkError.message?.includes('does not exist'))) {
-      console.error('[Provider API] Table does not exist - run migration');
-      return NextResponse.json({
-        error: 'Provider settings table not found. Please run the database migration: supabase/migrations/add_provider_settings_table.sql'
-      }, { status: 500 });
-    }
 
     const existing = existingData as { id: string } | null;
     let settings: ProviderSettingsRow | null = null;
@@ -181,12 +162,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
     }
 
-    // Clear the settings cache so new requests use the updated settings immediately
-    clearProviderSettingsCache();
-
     console.log('[Provider API] Settings updated:', {
       provider: settings.active_provider,
-      config: settings.provider_config,
       by: auth.user.email,
     });
 
