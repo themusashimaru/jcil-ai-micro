@@ -355,7 +355,7 @@ export default function HomePage() {
           >
             Create Your Free Account
           </Link>
-          <p className="mt-4 text-sm text-gray-500">No credit card required. Start with 10 free chats per day.</p>
+          <p className="mt-4 text-sm text-gray-500">No credit card required. Try it free with limited access.</p>
         </div>
       </section>
 

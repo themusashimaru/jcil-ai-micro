@@ -46,7 +46,7 @@ import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
-import { incrementUsage, getLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
+import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider } from '@/lib/provider/settings';
@@ -275,15 +275,52 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check daily usage limits (warn at 80%, stop at 100%)
-      const usage = await incrementUsage(rateLimitIdentifier, isAuthenticated ? 'basic' : 'free');
+      // Get user's subscription tier for token limits
+      let userTier = 'free';
+      if (isAuthenticated) {
+        try {
+          const cookieStore = await cookies();
+          const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+              cookies: {
+                getAll() {
+                  return cookieStore.getAll();
+                },
+                setAll(cookiesToSet) {
+                  try {
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                      cookieStore.set(name, value, options)
+                    );
+                  } catch {
+                    // Silently handle cookie errors
+                  }
+                },
+              },
+            }
+          );
+          const { data: userData } = await supabase
+            .from('users')
+            .select('subscription_tier')
+            .eq('id', rateLimitIdentifier)
+            .single();
+          userTier = userData?.subscription_tier || 'free';
+        } catch {
+          // Default to free tier on error
+        }
+      }
 
-      if (usage.stop) {
-        console.log(`[Chat API] Daily limit reached for ${isAuthenticated ? 'user' : 'anon'}: ${rateLimitIdentifier}`);
+      // Check monthly token limits (warn at 80%, stop at 100%)
+      const canProceed = await canMakeRequest(rateLimitIdentifier, userTier);
+
+      if (!canProceed) {
+        const usage = await getTokenUsage(rateLimitIdentifier, userTier);
+        console.log(`[Chat API] Monthly token limit reached for ${isAuthenticated ? 'user' : 'anon'}: ${rateLimitIdentifier}`);
         return new Response(
           JSON.stringify({
-            error: 'Daily limit reached',
-            message: getLimitWarningMessage(usage),
+            error: 'Monthly limit reached',
+            message: getTokenLimitWarningMessage(usage),
             usage: { used: usage.used, limit: usage.limit, remaining: 0 },
           }),
           {
@@ -509,17 +546,42 @@ export async function POST(request: NextRequest) {
 
     // Check if we should route to image generation (only if no uploaded images)
     if (routeDecision.target === 'image' && !messageHasUploadedImages) {
-      // Check image-specific daily limits (warn at 80%, stop at 100%)
+      // Check image-specific monthly limits (warn at 80%, stop at 100%)
+      // Get user tier if not already fetched (for image route)
+      let imgUserTier = 'free';
+      if (isAuthenticated) {
+        try {
+          const cookieStore = await cookies();
+          const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+              cookies: {
+                getAll() { return cookieStore.getAll(); },
+                setAll(cookiesToSet) {
+                  try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {}
+                },
+              },
+            }
+          );
+          const { data: userData } = await supabase
+            .from('users')
+            .select('subscription_tier')
+            .eq('id', rateLimitIdentifier)
+            .single();
+          imgUserTier = userData?.subscription_tier || 'free';
+        } catch {}
+      }
       const imageUsage = await incrementImageUsage(
         rateLimitIdentifier,
-        isAuthenticated ? 'basic' : 'free'
+        imgUserTier
       );
 
       if (imageUsage.stop) {
-        console.log('[Chat API] Image limit reached for:', rateLimitIdentifier);
+        console.log('[Chat API] Monthly image limit reached for:', rateLimitIdentifier);
         return new Response(
           JSON.stringify({
-            error: 'Daily image limit reached',
+            error: 'Monthly image limit reached',
             message: getImageLimitWarningMessage(imageUsage),
             usage: { used: imageUsage.used, limit: imageUsage.limit, remaining: 0 },
           }),

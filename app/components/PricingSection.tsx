@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 
-type PricingTier = 'free' | 'basic' | 'pro' | 'executive';
+type PricingTier = 'basic' | 'pro' | 'executive';
 
 interface PricingCardProps {
   tier: PricingTier;
@@ -30,7 +30,6 @@ function PricingCard({
   onSubscribe,
   loading,
 }: PricingCardProps) {
-  const isFree = tier === 'free';
   const borderClass = popular
     ? 'border-2 border-blue-500 relative'
     : 'border border-gray-700';
@@ -60,14 +59,12 @@ function PricingCard({
         onClick={() => onSubscribe(tier)}
         disabled={loading}
         className={`block w-full rounded-lg py-3 text-center font-semibold transition ${
-          isFree
-            ? 'bg-gray-700 hover:bg-gray-600'
-            : popular
-              ? 'bg-blue-500 hover:bg-blue-400'
-              : 'bg-blue-600 hover:bg-blue-500'
+          popular
+            ? 'bg-blue-500 hover:bg-blue-400'
+            : 'bg-blue-600 hover:bg-blue-500'
         } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        {loading ? 'Processing...' : isFree ? 'Start Free' : 'Get Started'}
+        {loading ? 'Processing...' : 'Get Started'}
       </button>
     </div>
   );
@@ -78,12 +75,6 @@ export default function PricingSection() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: PricingTier) => {
-    if (tier === 'free') {
-      // Redirect to signup for free tier
-      window.location.href = '/signup';
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
@@ -121,28 +112,17 @@ export default function PricingSection() {
 
   const pricingTiers = [
     {
-      tier: 'free' as PricingTier,
-      title: 'Free',
-      description: 'For those interested in testing our chat',
-      price: 0,
-      features: [
-        '10 chats per day',
-        'AI chat interface',
-        'Basic tools and capabilities',
-        'Perfect for testing or those unable to afford a subscription',
-      ],
-    },
-    {
       tier: 'basic' as PricingTier,
       title: 'Basic',
       description: 'Essential tools for everyday faith and life',
       price: 12,
       features: [
-        'AI chat interface',
+        'AI chat assistant',
         'Study tools & writing tools',
         'Research & live search',
         'Bible study & daily devotional',
-        'Live news',
+        'Live news updates',
+        '25 image generations/month',
       ],
     },
     {
@@ -152,11 +132,11 @@ export default function PricingSection() {
       price: 30,
       features: [
         'Everything in Basic',
-        'Image generation',
+        '3x more usage capacity',
+        '75 image generations/month',
         'Greater research capabilities',
         'Live news (refreshed every 30 min)',
-        'Increased intelligence',
-        'Greater writing capabilities',
+        'Enhanced writing tools',
       ],
       popular: true,
     },
@@ -167,11 +147,11 @@ export default function PricingSection() {
       price: 150,
       features: [
         'Everything in Pro',
-        'Heavy usage capabilities',
-        'Highest level of intelligence',
-        'Advanced writing capabilities',
-        'Latest tools & coding capabilities',
-        'Perfect for graduate students & executives',
+        '5x more usage capacity',
+        '100 image generations/month',
+        'Premium AI capabilities',
+        'Advanced writing & coding tools',
+        'Priority support',
       ],
     },
   ];
@@ -188,7 +168,7 @@ export default function PricingSection() {
         </div>
       )}
 
-      <div className="grid gap-8 md:grid-cols-4 max-w-7xl mx-auto">
+      <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
         {pricingTiers.map((tierData) => (
           <PricingCard
             key={tierData.tier}
@@ -197,6 +177,17 @@ export default function PricingSection() {
             loading={loading}
           />
         ))}
+      </div>
+
+      {/* Free tier note */}
+      <div className="mt-12 text-center">
+        <p className="text-gray-400 text-sm">
+          Want to try before you buy?{' '}
+          <a href="/signup" className="text-blue-400 hover:text-blue-300 underline">
+            Create a free account
+          </a>{' '}
+          with limited access.
+        </p>
       </div>
     </section>
   );
