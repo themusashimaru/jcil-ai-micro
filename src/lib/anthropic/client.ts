@@ -21,11 +21,12 @@ import { CoreMessage } from 'ai';
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
 
 // ========================================
-// DUAL-POOL API KEY SYSTEM
+// DUAL-POOL API KEY SYSTEM (DYNAMIC)
 // ========================================
-// Primary Pool: Round-robin load distribution (ANTHROPIC_API_KEY_1 through _10)
-// Fallback Pool: Emergency reserve (ANTHROPIC_API_KEY_FALLBACK_1 through _5)
+// Primary Pool: Round-robin load distribution (ANTHROPIC_API_KEY_1, _2, _3, ... unlimited)
+// Fallback Pool: Emergency reserve (ANTHROPIC_API_KEY_FALLBACK_1, _2, _3, ... unlimited)
 // Backward Compatible: Single ANTHROPIC_API_KEY still works
+// NO HARDCODED LIMITS - just add keys in Vercel and they're automatically detected!
 
 interface ApiKeyState {
   key: string;
@@ -44,30 +45,35 @@ let initialized = false;
 
 /**
  * Initialize all available Anthropic API keys into their pools
+ * FULLY DYNAMIC: Automatically detects ALL configured keys - no limits!
+ * Just add ANTHROPIC_API_KEY_N in Vercel and it's automatically picked up
  */
 function initializeApiKeys(): void {
   if (initialized) return;
   initialized = true;
 
-  // Check for numbered primary keys first (ANTHROPIC_API_KEY_1 through _10)
-  for (let i = 1; i <= 10; i++) {
+  // Dynamically detect ALL numbered primary keys (no limit!)
+  // Keeps looking for ANTHROPIC_API_KEY_1, _2, _3, etc. until one is missing
+  let i = 1;
+  while (true) {
     const key = process.env[`ANTHROPIC_API_KEY_${i}`];
-    if (key) {
-      primaryPool.push({
-        key,
-        client: new Anthropic({ apiKey: key }),
-        rateLimitedUntil: 0,
-        pool: 'primary',
-        index: i,
-      });
-    }
+    if (!key) break; // Stop when we hit a gap
+
+    primaryPool.push({
+      key,
+      client: new Anthropic({ apiKey: key }),
+      rateLimitedUntil: 0,
+      pool: 'primary',
+      index: i,
+    });
+    i++;
   }
 
-  // If no numbered keys, fall back to single ANTHROPIC_API_KEY
+  // If no numbered keys found, fall back to single ANTHROPIC_API_KEY
   if (primaryPool.length === 0) {
     const singleKey = process.env.ANTHROPIC_API_KEY;
     if (!singleKey) {
-      throw new Error('ANTHROPIC_API_KEY is not configured. Set either ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_1 through _10');
+      throw new Error('ANTHROPIC_API_KEY is not configured. Set either ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_1, _2, _3, etc.');
     }
     primaryPool.push({
       key: singleKey,
@@ -78,23 +84,29 @@ function initializeApiKeys(): void {
     });
   }
 
-  // Load fallback keys (ANTHROPIC_API_KEY_FALLBACK_1 through _5)
-  for (let i = 1; i <= 5; i++) {
-    const key = process.env[`ANTHROPIC_API_KEY_FALLBACK_${i}`];
-    if (key) {
-      fallbackPool.push({
-        key,
-        client: new Anthropic({ apiKey: key }),
-        rateLimitedUntil: 0,
-        pool: 'fallback',
-        index: i,
-      });
-    }
+  // Dynamically detect ALL fallback keys (no limit!)
+  let j = 1;
+  while (true) {
+    const key = process.env[`ANTHROPIC_API_KEY_FALLBACK_${j}`];
+    if (!key) break; // Stop when we hit a gap
+
+    fallbackPool.push({
+      key,
+      client: new Anthropic({ apiKey: key }),
+      rateLimitedUntil: 0,
+      pool: 'fallback',
+      index: j,
+    });
+    j++;
   }
 
-  console.log(`[Anthropic] Initialized dual-pool system:`);
+  // Log the detected configuration
+  const totalKeys = primaryPool.length + fallbackPool.length;
+  const estimatedRPM = totalKeys * 60;
+  console.log(`[Anthropic] Initialized dual-pool system (dynamic detection):`);
   console.log(`[Anthropic]   Primary pool: ${primaryPool.length} key(s) (round-robin load distribution)`);
   console.log(`[Anthropic]   Fallback pool: ${fallbackPool.length} key(s) (emergency reserve)`);
+  console.log(`[Anthropic]   Estimated capacity: ~${estimatedRPM} RPM (${totalKeys} keys × 60 RPM)`);
 }
 
 /**
