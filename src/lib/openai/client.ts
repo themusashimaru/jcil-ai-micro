@@ -308,6 +308,7 @@ interface ChatOptions {
   conversationId?: string; // For saving messages to DB on completion
   pendingRequestId?: string; // For background processing - delete on completion
   modelOverride?: string; // Override model from provider settings
+  planKey?: string; // User's subscription tier for usage limits
 }
 
 /**
@@ -652,7 +653,7 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
  * Create a chat completion with streaming support
  */
 export async function createChatCompletion(options: ChatOptions) {
-  const { messages, tool, temperature, maxTokens, stream = true, userId, conversationId, pendingRequestId, modelOverride } = options;
+  const { messages, tool, temperature, maxTokens, stream = true, userId, conversationId, pendingRequestId, modelOverride, planKey } = options;
 
   // Get the last user message text for routing decisions
   const lastUserText = getLastUserMessageText(messages);
@@ -723,7 +724,7 @@ export async function createChatCompletion(options: ChatOptions) {
   // This fires even if the client disconnects, ensuring the message is saved
   if (userId) {
     requestConfig.onFinish = async ({ text, usage }: { text?: string; usage?: { promptTokens?: number; completionTokens?: number } }) => {
-      // Track token usage
+      // Track token usage (updates Redis counter for limits)
       if (usage) {
         trackTokenUsage({
           userId,
@@ -732,6 +733,7 @@ export async function createChatCompletion(options: ChatOptions) {
           tool: 'streamText',
           inputTokens: usage.promptTokens || 0,
           outputTokens: usage.completionTokens || 0,
+          planKey: planKey || 'free',
         });
       }
 
@@ -773,7 +775,7 @@ async function createWebSearchCompletion(
   options: ChatOptions,
   modelName: OpenAIModel
 ) {
-  const { messages, tool, temperature, maxTokens, userId, conversationId } = options;
+  const { messages, tool, temperature, maxTokens, userId, conversationId, planKey } = options;
   const apiKey = getOpenAIApiKey();
   const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
   const startTime = Date.now();
@@ -952,6 +954,7 @@ async function createWebSearchCompletion(
         tool: 'responses',
         inputTokens: result.usage?.prompt_tokens || 0,
         outputTokens: result.usage?.completion_tokens || 0,
+        planKey: planKey || 'free',
       });
     }
 
@@ -1007,7 +1010,7 @@ async function createDirectOpenAICompletion(
   options: ChatOptions,
   modelName: OpenAIModel
 ) {
-  const { messages, tool, temperature, maxTokens, userId, conversationId } = options;
+  const { messages, tool, temperature, maxTokens, userId, conversationId, planKey } = options;
 
   // Log detailed info about the request for debugging
   const messagesSummary = messages.map((m, i) => ({
@@ -1088,6 +1091,7 @@ async function createDirectOpenAICompletion(
           tool: 'generateText',
           inputTokens: usage.promptTokens || usage.inputTokens || 0,
           outputTokens: usage.completionTokens || usage.outputTokens || 0,
+          planKey: planKey || 'free',
         });
       }
 

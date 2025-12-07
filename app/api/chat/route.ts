@@ -250,6 +250,42 @@ export async function POST(request: NextRequest) {
                             'anonymous';
     }
 
+    // Get user's subscription tier (needed for token tracking)
+    let userTier = 'free';
+    if (isAuthenticated) {
+      try {
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              getAll() {
+                return cookieStore.getAll();
+              },
+              setAll(cookiesToSet) {
+                try {
+                  cookiesToSet.forEach(({ name, value, options }) =>
+                    cookieStore.set(name, value, options)
+                  );
+                } catch {
+                  // Silently handle cookie errors
+                }
+              },
+            },
+          }
+        );
+        const { data: userData } = await supabase
+          .from('users')
+          .select('subscription_tier')
+          .eq('id', rateLimitIdentifier)
+          .single();
+        userTier = userData?.subscription_tier || 'free';
+      } catch {
+        // Default to free tier on error
+      }
+    }
+
     // Admin bypass: skip rate limiting and usage limits for admins
     if (!isAdmin) {
       // Check rate limit
@@ -273,42 +309,6 @@ export async function POST(request: NextRequest) {
             },
           }
         );
-      }
-
-      // Get user's subscription tier for token limits
-      let userTier = 'free';
-      if (isAuthenticated) {
-        try {
-          const cookieStore = await cookies();
-          const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-              cookies: {
-                getAll() {
-                  return cookieStore.getAll();
-                },
-                setAll(cookiesToSet) {
-                  try {
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                      cookieStore.set(name, value, options)
-                    );
-                  } catch {
-                    // Silently handle cookie errors
-                  }
-                },
-              },
-            }
-          );
-          const { data: userData } = await supabase
-            .from('users')
-            .select('subscription_tier')
-            .eq('id', rateLimitIdentifier)
-            .single();
-          userTier = userData?.subscription_tier || 'free';
-        } catch {
-          // Default to free tier on error
-        }
       }
 
       // Check monthly token limits (warn at 80%, stop at 100%)
@@ -881,6 +881,7 @@ export async function POST(request: NextRequest) {
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
         modelOverride: openaiModel,
+        planKey: userTier,
       });
 
       // Extract citations and actual model used from result
@@ -945,6 +946,7 @@ export async function POST(request: NextRequest) {
         conversationId: conversationId,
         pendingRequestId: pendingRequestId || undefined,
         modelOverride: openaiModel,
+        planKey: userTier,
       });
 
       console.log('[Chat API] streamText returned, result type:', typeof result);
@@ -1036,6 +1038,7 @@ export async function POST(request: NextRequest) {
         stream: false,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
+        planKey: userTier,
       });
 
       // Extract citations and actual model used from result

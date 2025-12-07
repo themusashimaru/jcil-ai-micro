@@ -38,34 +38,34 @@ const TIER_INFO = {
     price: 12,
     description: 'Essential tools for everyday faith and life',
     features: [
-      'AI chat assistant',
-      'Writing tools & research',
-      'Bible study & devotional',
-      'Live news updates',
+      'Intelligent AI chat assistant',
+      'Live web search & research',
+      'Writing tools & Bible study',
+      'Real-time news updates',
       '25 image generations/month',
     ],
   },
   pro: {
     name: 'Pro',
     price: 30,
-    description: 'For working professionals',
+    description: 'Advanced tools for working professionals',
     features: [
       'Everything in Basic',
       '3x more usage capacity',
+      'Enhanced live search & research',
+      'Advanced writing & analysis tools',
       '75 image generations/month',
-      'Enhanced research & writing',
-      'Live news (30-min refresh)',
     ],
   },
   executive: {
     name: 'Executive',
     price: 150,
-    description: 'For power users & executives',
+    description: 'Highest intelligence AI for power users',
     features: [
       'Everything in Pro',
+      'Highest intelligence AI model',
       '5x more usage capacity',
       '100 image generations/month',
-      'Premium AI capabilities',
       'Priority support',
     ],
   },
@@ -134,14 +134,14 @@ export default function MembershipSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
       </div>
     );
   }
 
   if (error && !subscription) {
     return (
-      <div className="rounded-xl bg-red-900/20 border border-red-500 p-4 text-red-400">
+      <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
         {error}
       </div>
     );
@@ -158,10 +158,11 @@ export default function MembershipSection() {
     <div className="space-y-6">
       {/* Status Alert */}
       {isPastDue && (
-        <div className="rounded-xl bg-yellow-900/20 border border-yellow-500 p-4">
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgb(234, 179, 8)' }}>
           <div className="flex items-start gap-3">
             <svg
-              className="h-6 w-6 text-yellow-400 flex-shrink-0"
+              className="h-6 w-6 flex-shrink-0"
+              style={{ color: 'rgb(250, 204, 21)' }}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -174,13 +175,14 @@ export default function MembershipSection() {
               />
             </svg>
             <div>
-              <h3 className="font-semibold text-yellow-400">Payment Issue</h3>
-              <p className="text-sm text-yellow-200 mt-1">
+              <h3 className="font-semibold" style={{ color: 'rgb(250, 204, 21)' }}>Payment Issue</h3>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
                 Your payment failed. Please update your payment method to continue your subscription.
               </p>
               <button
                 onClick={handleManageSubscription}
-                className="mt-3 text-sm font-medium text-yellow-400 hover:text-yellow-300 underline"
+                className="mt-3 text-sm font-medium underline hover:opacity-80 transition"
+                style={{ color: 'rgb(250, 204, 21)' }}
               >
                 Update Payment Method
               </button>
@@ -190,10 +192,11 @@ export default function MembershipSection() {
       )}
 
       {isCanceled && (
-        <div className="rounded-xl bg-gray-900/20 border border-gray-500 p-4">
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}>
           <div className="flex items-start gap-3">
             <svg
-              className="h-6 w-6 text-gray-400 flex-shrink-0"
+              className="h-6 w-6 flex-shrink-0"
+              style={{ color: 'var(--text-muted)' }}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -206,8 +209,8 @@ export default function MembershipSection() {
               />
             </svg>
             <div>
-              <h3 className="font-semibold text-gray-300">Subscription Canceled</h3>
-              <p className="text-sm text-gray-400 mt-1">
+              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Subscription Canceled</h3>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
                 Your subscription has been canceled. You can continue using your current plan until the end of the billing period.
               </p>
             </div>
@@ -264,7 +267,8 @@ export default function MembershipSection() {
             <button
               onClick={handleManageSubscription}
               disabled={actionLoading}
-              className="flex-1 rounded-lg bg-white/10 px-4 py-3 font-semibold hover:bg-white/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 rounded-lg px-4 py-3 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
             >
               {actionLoading ? 'Loading...' : 'Manage Subscription'}
             </button>
@@ -272,7 +276,8 @@ export default function MembershipSection() {
           {isFree && (
             <button
               onClick={handleUpgrade}
-              className="flex-1 rounded-lg bg-blue-500 px-4 py-3 font-semibold hover:bg-blue-600 transition"
+              className="flex-1 rounded-lg px-4 py-3 font-semibold hover:opacity-90 transition"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
             >
               Upgrade Plan
             </button>
@@ -280,7 +285,8 @@ export default function MembershipSection() {
           {!isFree && (
             <button
               onClick={handleUpgrade}
-              className="flex-1 rounded-lg bg-blue-500 px-4 py-3 font-semibold hover:bg-blue-600 transition"
+              className="flex-1 rounded-lg px-4 py-3 font-semibold hover:opacity-90 transition"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
             >
               {subscription.tier === 'executive' ? 'View All Plans' : 'Upgrade Plan'}
             </button>
@@ -330,7 +336,7 @@ export default function MembershipSection() {
 
       {/* Error Display */}
       {error && (
-        <div className="rounded-xl bg-red-900/20 border border-red-500 p-4 text-red-400">
+        <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
           {error}
         </div>
       )}

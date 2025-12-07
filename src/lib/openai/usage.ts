@@ -2,15 +2,18 @@
  * Token Usage Tracking
  *
  * Tracks token usage per user for billing/limits.
- * Inserts to Supabase token_usage table using service role.
+ * - Inserts to Supabase token_usage table for detailed logging
+ * - Updates Redis/memory counters for fast limit checking
  *
  * Features:
  * - Feature flag (ENABLE_USAGE_TRACKING)
  * - Silent failure (won't break chat if tracking fails)
  * - Guards against invalid values
+ * - Syncs with limits.ts for accurate usage tracking
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { incrementTokenUsage } from '@/lib/limits';
 
 const TRACKING_ENABLED = process.env.ENABLE_USAGE_TRACKING === 'true';
 
@@ -43,35 +46,58 @@ export interface UsagePayload {
   tool: 'streamText' | 'generateText' | 'responses' | 'responses.stream' | 'dall-e';
   inputTokens: number;
   outputTokens: number;
+  planKey?: string; // User's subscription tier for limit tracking
 }
 
 /**
- * Track token usage to database
+ * Track token usage to database and Redis
+ * - Always updates Redis/memory counters for limit tracking
+ * - Optionally logs to Supabase if ENABLE_USAGE_TRACKING is set
  * Silent on failure - never breaks the chat flow
  */
 export async function trackTokenUsage(payload: UsagePayload): Promise<void> {
   try {
-    // Skip if tracking disabled
-    if (!TRACKING_ENABLED) return;
-
-    const supabase = getSupabaseAdmin();
-    if (!supabase) return;
-
     // Guard against invalid values
-    const record = {
-      user_id: payload.userId,
-      conversation_id: payload.conversationId ?? null,
-      model: payload.model || 'unknown',
-      route: payload.route || 'chat',
-      tool: payload.tool || 'unknown',
-      input_tokens: Math.max(0, Math.floor(payload.inputTokens || 0)),
-      output_tokens: Math.max(0, Math.floor(payload.outputTokens || 0)),
-    };
+    const inputTokens = Math.max(0, Math.floor(payload.inputTokens || 0));
+    const outputTokens = Math.max(0, Math.floor(payload.outputTokens || 0));
+    const totalTokens = inputTokens + outputTokens;
 
-    const { error } = await supabase.from('token_usage').insert(record);
+    // ALWAYS update Redis/memory counter for limit tracking (this is critical)
+    if (totalTokens > 0) {
+      const result = await incrementTokenUsage(
+        payload.userId,
+        payload.planKey || 'free',
+        totalTokens
+      );
+      console.log('[usage] Token usage updated:', {
+        userId: payload.userId.slice(0, 8) + '...',
+        tokensAdded: totalTokens,
+        totalUsed: result.used,
+        limit: result.limit,
+        percentage: result.percentage + '%',
+      });
+    }
 
-    if (error) {
-      console.log('[usage] Insert error:', error.message);
+    // Optionally log to Supabase for detailed analytics
+    if (TRACKING_ENABLED) {
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        const record = {
+          user_id: payload.userId,
+          conversation_id: payload.conversationId ?? null,
+          model: payload.model || 'unknown',
+          route: payload.route || 'chat',
+          tool: payload.tool || 'unknown',
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+        };
+
+        const { error } = await supabase.from('token_usage').insert(record);
+
+        if (error) {
+          console.log('[usage] Supabase insert error:', error.message);
+        }
+      }
     }
   } catch (e) {
     // Silent failure - log but don't throw

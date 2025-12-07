@@ -90,14 +90,14 @@ export default function UsageMetricsSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
       </div>
     );
   }
 
   if (error || !usage) {
     return (
-      <div className="rounded-xl bg-red-900/20 border border-red-500 p-6 text-red-400">
+      <div className="rounded-xl p-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
         {error || 'Failed to load usage data'}
       </div>
     );
@@ -143,11 +143,11 @@ export default function UsageMetricsSection() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Token Usage This Month</span>
-            <span className={`text-sm font-bold ${
-              isTokenAtLimit ? 'text-red-500' :
-              isTokenNearLimit ? 'text-yellow-500' :
-              ''
-            }`} style={!isTokenAtLimit && !isTokenNearLimit ? { color: 'var(--text-primary)' } : {}}>
+            <span className="text-sm font-bold" style={{
+              color: isTokenAtLimit ? 'rgb(239, 68, 68)' :
+                     isTokenNearLimit ? 'rgb(234, 179, 8)' :
+                     'var(--text-primary)'
+            }}>
               {usage.tokens.usedFormatted} / {usage.tokens.limitFormatted}
             </span>
           </div>
@@ -155,12 +155,13 @@ export default function UsageMetricsSection() {
           {/* Progress Bar */}
           <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--glass-bg)' }}>
             <div
-              className={`h-full transition-all duration-300 ${
-                isTokenAtLimit ? 'bg-red-500' :
-                isTokenNearLimit ? 'bg-yellow-500' :
-                'bg-blue-500'
-              }`}
-              style={{ width: `${Math.min(tokenPercentage, 100)}%` }}
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${Math.min(tokenPercentage, 100)}%`,
+                backgroundColor: isTokenAtLimit ? 'rgb(239, 68, 68)' :
+                                 isTokenNearLimit ? 'rgb(234, 179, 8)' :
+                                 'var(--primary)'
+              }}
             />
           </div>
 
@@ -176,11 +177,11 @@ export default function UsageMetricsSection() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Image Generations This Month</span>
-              <span className={`text-sm font-bold ${
-                isImageAtLimit ? 'text-red-500' :
-                isImageNearLimit ? 'text-yellow-500' :
-                ''
-              }`} style={!isImageAtLimit && !isImageNearLimit ? { color: 'var(--text-primary)' } : {}}>
+              <span className="text-sm font-bold" style={{
+                color: isImageAtLimit ? 'rgb(239, 68, 68)' :
+                       isImageNearLimit ? 'rgb(234, 179, 8)' :
+                       'var(--text-primary)'
+              }}>
                 {usage.images.used} / {usage.images.limit}
               </span>
             </div>
@@ -188,12 +189,13 @@ export default function UsageMetricsSection() {
             {/* Progress Bar */}
             <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--glass-bg)' }}>
               <div
-                className={`h-full transition-all duration-300 ${
-                  isImageAtLimit ? 'bg-red-500' :
-                  isImageNearLimit ? 'bg-yellow-500' :
-                  'bg-purple-500'
-                }`}
-                style={{ width: `${Math.min(imagePercentage, 100)}%` }}
+                className="h-full transition-all duration-300"
+                style={{
+                  width: `${Math.min(imagePercentage, 100)}%`,
+                  backgroundColor: isImageAtLimit ? 'rgb(239, 68, 68)' :
+                                   isImageNearLimit ? 'rgb(234, 179, 8)' :
+                                   'rgb(168, 85, 247)' // Purple for images
+                }}
               />
             </div>
 
@@ -217,10 +219,11 @@ export default function UsageMetricsSection() {
 
       {/* Upgrade Prompt */}
       {(isTokenNearLimit || isTokenAtLimit) && usage.planInfo.nextTier && (
-        <div className="glass-morphism rounded-xl p-6 border-l-4 border-yellow-500">
+        <div className="glass-morphism rounded-xl p-6" style={{ borderLeft: '4px solid rgb(234, 179, 8)' }}>
           <div className="flex items-start gap-4">
             <svg
-              className="h-6 w-6 text-yellow-400 flex-shrink-0 mt-0.5"
+              className="h-6 w-6 flex-shrink-0 mt-0.5"
+              style={{ color: 'rgb(250, 204, 21)' }}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -233,15 +236,16 @@ export default function UsageMetricsSection() {
               />
             </svg>
             <div className="flex-1">
-              <h4 className="font-semibold text-yellow-400 mb-1">
+              <h4 className="font-semibold mb-1" style={{ color: 'rgb(250, 204, 21)' }}>
                 {isTokenAtLimit ? 'Monthly Limit Reached' : 'Approaching Monthly Limit'}
               </h4>
-              <p className="text-sm text-gray-300 mb-3">
+              <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
                 Upgrade to {TIER_NAMES[usage.planInfo.nextTier as keyof typeof TIER_NAMES]} for {formatTokenLimit(usage.planInfo.nextTierTokenLimit)} tokens per month and enhanced features.
               </p>
               <button
                 onClick={() => window.location.href = '/#pricing'}
-                className="rounded-lg bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                className="rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+                style={{ backgroundColor: 'rgb(234, 179, 8)', color: '#000' }}
               >
                 View Upgrade Options
               </button>
