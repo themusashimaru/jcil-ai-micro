@@ -41,6 +41,9 @@ export interface AnthropicChatOptions {
   systemPrompt?: string;
   // Web search function (injected from Brave Search module)
   webSearchFn?: (query: string) => Promise<BraveSearchResult>;
+  // For token tracking
+  userId?: string;
+  planKey?: string;
 }
 
 export interface BraveSearchResult {

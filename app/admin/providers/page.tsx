@@ -15,16 +15,43 @@ import { useState, useEffect } from 'react';
 
 type Provider = 'openai' | 'anthropic';
 
+interface TierModels {
+  basic: string;
+  pro: string;
+  executive: string;
+}
+
+interface ProviderModelConfig {
+  model: string; // Legacy fallback
+  models: TierModels;
+  imageModel?: string; // OpenAI only
+}
+
 interface ProviderConfig {
-  openai: { model: string };
-  anthropic: { model: string };
+  openai: ProviderModelConfig;
+  anthropic: ProviderModelConfig;
 }
 
 export default function ProvidersPage() {
   const [activeProvider, setActiveProvider] = useState<Provider>('openai');
   const [providerConfig, setProviderConfig] = useState<ProviderConfig>({
-    openai: { model: 'gpt-5-mini' },
-    anthropic: { model: 'claude-sonnet-4-5-20250929' },
+    openai: {
+      model: 'gpt-4o-mini',
+      models: {
+        basic: 'gpt-4o-mini',
+        pro: 'gpt-4o',
+        executive: 'gpt-4o',
+      },
+      imageModel: 'dall-e-3',
+    },
+    anthropic: {
+      model: 'claude-sonnet-4-5-20250929',
+      models: {
+        basic: 'claude-3-5-haiku-20241022',
+        pro: 'claude-sonnet-4-5-20250929',
+        executive: 'claude-sonnet-4-5-20250929',
+      },
+    },
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -55,8 +82,23 @@ export default function ProvidersPage() {
 
         if (data?.providerConfig && typeof data.providerConfig === 'object') {
           setProviderConfig({
-            openai: { model: data.providerConfig.openai?.model || 'gpt-5-mini' },
-            anthropic: { model: data.providerConfig.anthropic?.model || 'claude-sonnet-4-5-20250929' },
+            openai: {
+              model: data.providerConfig.openai?.model || 'gpt-4o-mini',
+              models: {
+                basic: data.providerConfig.openai?.models?.basic || 'gpt-4o-mini',
+                pro: data.providerConfig.openai?.models?.pro || 'gpt-4o',
+                executive: data.providerConfig.openai?.models?.executive || 'gpt-4o',
+              },
+              imageModel: data.providerConfig.openai?.imageModel || 'dall-e-3',
+            },
+            anthropic: {
+              model: data.providerConfig.anthropic?.model || 'claude-sonnet-4-5-20250929',
+              models: {
+                basic: data.providerConfig.anthropic?.models?.basic || 'claude-3-5-haiku-20241022',
+                pro: data.providerConfig.anthropic?.models?.pro || 'claude-sonnet-4-5-20250929',
+                executive: data.providerConfig.anthropic?.models?.executive || 'claude-sonnet-4-5-20250929',
+              },
+            },
           });
         }
 
@@ -113,22 +155,49 @@ export default function ProvidersPage() {
     }
   };
 
-  // Handle model name changes
-  const handleModelChange = (provider: Provider, model: string) => {
+  // Handle tier-specific model changes
+  const handleTierModelChange = (provider: Provider, tier: keyof TierModels, model: string) => {
     setProviderConfig(prev => ({
       ...prev,
-      [provider]: { model },
+      [provider]: {
+        ...prev[provider],
+        model: tier === 'pro' ? model : prev[provider].model, // Keep pro as legacy fallback
+        models: {
+          ...prev[provider].models,
+          [tier]: model,
+        },
+      },
     }));
-    setSuccessMessage(null); // Clear success message when editing
+    setSuccessMessage(null);
+  };
+
+  // Handle image model change (OpenAI only)
+  const handleImageModelChange = (model: string) => {
+    setProviderConfig(prev => ({
+      ...prev,
+      openai: {
+        ...prev.openai,
+        imageModel: model,
+      },
+    }));
+    setSuccessMessage(null);
   };
 
   // Save model settings
   const handleSaveModels = async () => {
     if (isSavingModels) return;
 
-    // Validate inputs
-    if (!providerConfig.openai.model.trim() || !providerConfig.anthropic.model.trim()) {
-      setError('Model names cannot be empty');
+    // Validate inputs - check all tier models
+    const openaiModels = providerConfig.openai.models;
+    const anthropicModels = providerConfig.anthropic.models;
+
+    if (!openaiModels.basic.trim() || !openaiModels.pro.trim() || !openaiModels.executive.trim()) {
+      setError('All OpenAI tier model names must be filled');
+      return;
+    }
+
+    if (!anthropicModels.basic.trim() || !anthropicModels.pro.trim() || !anthropicModels.executive.trim()) {
+      setError('All Anthropic tier model names must be filled');
       return;
     }
 
@@ -252,11 +321,11 @@ export default function ProvidersPage() {
               }`} />
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-white">Anthropic</h3>
-                <p className="text-sm mt-1 text-gray-400">Claude Sonnet 4.5 with Brave Search</p>
+                <p className="text-sm mt-1 text-gray-400">Claude with native web search</p>
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-blue-400">✓</span>
-                    <span className="text-gray-400">Web search (Brave)</span>
+                    <span className="text-gray-400">Web search (native)</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-red-400">✗</span>
@@ -284,41 +353,104 @@ export default function ProvidersPage() {
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 mb-6">
         <h3 className="text-xl font-bold mb-2">Model Configuration</h3>
         <p className="text-sm text-gray-400 mb-6">
-          Enter the exact model name as required by each provider&apos;s API. Changes take effect immediately after saving.
+          Configure which AI model to use for each subscription tier. This allows cost optimization (cheaper models for basic tier) and premium experience for higher tiers.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3">
+
+        {/* OpenAI Models */}
+        <div className="mb-8">
+          <h4 className="text-lg font-semibold text-green-400 mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+            OpenAI Models
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <label className="block">
-              <span className="text-sm font-medium text-white">OpenAI Model</span>
+              <span className="text-sm font-medium text-white">Basic Tier</span>
               <input
                 type="text"
-                value={providerConfig.openai.model}
-                onChange={(e) => handleModelChange('openai', e.target.value)}
-                placeholder="e.g., gpt-4o-mini, gpt-4o, o1-mini"
+                value={providerConfig.openai.models.basic}
+                onChange={(e) => handleTierModelChange('openai', 'basic', e.target.value)}
+                placeholder="gpt-4o-mini"
                 className="mt-1 w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none transition"
               />
             </label>
-            <p className="text-xs text-gray-500">
-              Examples: gpt-4o-mini, gpt-4o, gpt-4-turbo, o1-mini, o1
-            </p>
-          </div>
-          <div className="space-y-3">
             <label className="block">
-              <span className="text-sm font-medium text-white">Anthropic Model</span>
+              <span className="text-sm font-medium text-white">Pro Tier</span>
               <input
                 type="text"
-                value={providerConfig.anthropic.model}
-                onChange={(e) => handleModelChange('anthropic', e.target.value)}
-                placeholder="e.g., claude-sonnet-4-5-20250929"
+                value={providerConfig.openai.models.pro}
+                onChange={(e) => handleTierModelChange('openai', 'pro', e.target.value)}
+                placeholder="gpt-4o"
                 className="mt-1 w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none transition"
               />
             </label>
-            <p className="text-xs text-gray-500">
-              Examples: claude-sonnet-4-5-20250929, claude-opus-4-20250514
-            </p>
+            <label className="block">
+              <span className="text-sm font-medium text-white">Executive Tier</span>
+              <input
+                type="text"
+                value={providerConfig.openai.models.executive}
+                onChange={(e) => handleTierModelChange('openai', 'executive', e.target.value)}
+                placeholder="gpt-4o"
+                className="mt-1 w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none transition"
+              />
+            </label>
           </div>
+          <label className="block max-w-xs">
+            <span className="text-sm font-medium text-white">Image Model</span>
+            <input
+              type="text"
+              value={providerConfig.openai.imageModel || ''}
+              onChange={(e) => handleImageModelChange(e.target.value)}
+              placeholder="dall-e-3"
+              className="mt-1 w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none transition"
+            />
+            <p className="text-xs text-gray-500 mt-1">Leave empty to disable image generation</p>
+          </label>
         </div>
-        <div className="mt-6 flex items-center gap-4">
+
+        {/* Anthropic Models */}
+        <div className="mb-6">
+          <h4 className="text-lg font-semibold text-orange-400 mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-orange-500 rounded-full"></span>
+            Anthropic Models
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label className="block">
+              <span className="text-sm font-medium text-white">Basic Tier</span>
+              <input
+                type="text"
+                value={providerConfig.anthropic.models.basic}
+                onChange={(e) => handleTierModelChange('anthropic', 'basic', e.target.value)}
+                placeholder="claude-3-5-haiku-20241022"
+                className="mt-1 w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none transition"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-white">Pro Tier</span>
+              <input
+                type="text"
+                value={providerConfig.anthropic.models.pro}
+                onChange={(e) => handleTierModelChange('anthropic', 'pro', e.target.value)}
+                placeholder="claude-sonnet-4-5-20250929"
+                className="mt-1 w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none transition"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-white">Executive Tier</span>
+              <input
+                type="text"
+                value={providerConfig.anthropic.models.executive}
+                onChange={(e) => handleTierModelChange('anthropic', 'executive', e.target.value)}
+                placeholder="claude-sonnet-4-5-20250929"
+                className="mt-1 w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none transition"
+              />
+            </label>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Examples: claude-3-5-haiku-20241022, claude-sonnet-4-5-20250929, claude-opus-4-20250514
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4">
           <button
             onClick={handleSaveModels}
             disabled={isSavingModels}
@@ -337,18 +469,26 @@ export default function ProvidersPage() {
         <h3 className="text-xl font-bold mb-4">Provider Notes</h3>
         <div className="space-y-4">
           <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <h4 className="font-medium text-blue-400 mb-2">Anthropic + Brave Search</h4>
+            <h4 className="font-medium text-blue-400 mb-2">Web Search</h4>
             <p className="text-sm text-gray-400">
-              When Anthropic is active, web searches use the Brave Search API.
-              Ensure <code className="bg-white/10 px-2 py-0.5 rounded">BRAVE_SEARCH_API_KEY</code> is configured.
+              Both providers have native web search. OpenAI uses <code className="bg-white/10 px-2 py-0.5 rounded">web_search_preview</code> and
+              Anthropic uses <code className="bg-white/10 px-2 py-0.5 rounded">web_search_20250305</code>.
             </p>
           </div>
 
           <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
             <h4 className="font-medium text-yellow-400 mb-2">Image Generation</h4>
             <p className="text-sm text-gray-400">
-              DALL-E image generation is only available with OpenAI. Anthropic users will see a message
-              that image generation is unavailable.
+              DALL-E image generation is only available with OpenAI. When Anthropic is active,
+              the chat placeholder will not suggest image creation.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
+            <h4 className="font-medium text-purple-400 mb-2">Tier-Based Model Selection</h4>
+            <p className="text-sm text-gray-400">
+              Each subscription tier uses its configured model. Use cheaper models (Haiku, gpt-4o-mini)
+              for Basic tier to optimize costs, premium models for Executive tier.
             </p>
           </div>
 

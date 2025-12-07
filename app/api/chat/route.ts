@@ -50,7 +50,7 @@ import { getSystemPromptForTool } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
-import { getProviderSettings, Provider } from '@/lib/provider/settings';
+import { getProviderSettings, Provider, getModelForTier } from '@/lib/provider/settings';
 import { createAnthropicCompletion, createAnthropicStreamingCompletion, createAnthropicCompletionWithSearch } from '@/lib/anthropic/client';
 // Brave Search no longer needed - using native Anthropic web search
 // import { braveSearch } from '@/lib/brave/search';
@@ -767,11 +767,12 @@ export async function POST(request: NextRequest) {
       : initialModel;
 
     // ========================================
-    // ANTHROPIC PATH - Claude Sonnet 4.5
+    // ANTHROPIC PATH - Claude (tier-specific model)
     // ========================================
     if (activeProvider === 'anthropic') {
-      const anthropicModel = providerSettings.providerConfig.anthropic?.model || 'claude-sonnet-4-5-20250929';
-      console.log('[Chat API] Using Anthropic provider with model:', anthropicModel);
+      // Get tier-specific model (uses provider settings with tier lookup)
+      const anthropicModel = await getModelForTier(userTier);
+      console.log('[Chat API] Using Anthropic provider with model:', anthropicModel, 'for tier:', userTier);
 
       // Use unified system prompt for all providers (same as OpenAI)
       const systemPrompt = isAuthenticated
@@ -864,11 +865,11 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // OPENAI PATH - GPT-5 (default)
+    // OPENAI PATH - GPT (tier-specific model)
     // ========================================
-    // Get the configured OpenAI model from provider settings
-    const openaiModel = providerSettings.providerConfig.openai?.model || 'gpt-5-mini';
-    console.log('[Chat API] Using OpenAI provider with model:', openaiModel);
+    // Get tier-specific model from provider settings
+    const openaiModel = await getModelForTier(userTier);
+    console.log('[Chat API] Using OpenAI provider with model:', openaiModel, 'for tier:', userTier);
 
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
