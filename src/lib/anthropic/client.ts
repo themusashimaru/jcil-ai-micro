@@ -21,127 +21,199 @@ import { CoreMessage } from 'ai';
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
 
 // ========================================
-// MULTI-KEY SUPPORT
+// DUAL-POOL API KEY SYSTEM
 // ========================================
+// Primary Pool: Round-robin load distribution (ANTHROPIC_API_KEY_1 through _10)
+// Fallback Pool: Emergency reserve (ANTHROPIC_API_KEY_FALLBACK_1 through _5)
+// Backward Compatible: Single ANTHROPIC_API_KEY still works
 
-// Store all available API keys
 interface ApiKeyState {
   key: string;
   client: Anthropic;
   rateLimitedUntil: number; // Timestamp when rate limit expires (0 = not limited)
+  pool: 'primary' | 'fallback';
+  index: number; // Position within its pool
 }
 
-const apiKeys: ApiKeyState[] = [];
-let currentKeyIndex = 0;
+// Separate pools for better management
+const primaryPool: ApiKeyState[] = [];
+const fallbackPool: ApiKeyState[] = [];
+let primaryKeyIndex = 0; // Round-robin index for primary pool
+let fallbackKeyIndex = 0; // Round-robin index for fallback pool
+let initialized = false;
 
 /**
- * Initialize all available Anthropic API keys
+ * Initialize all available Anthropic API keys into their pools
  */
 function initializeApiKeys(): void {
-  if (apiKeys.length > 0) return; // Already initialized
+  if (initialized) return;
+  initialized = true;
 
-  // Primary key (required)
-  const primaryKey = process.env.ANTHROPIC_API_KEY;
-  if (!primaryKey) {
-    throw new Error('ANTHROPIC_API_KEY is not configured');
-  }
-
-  apiKeys.push({
-    key: primaryKey,
-    client: new Anthropic({ apiKey: primaryKey }),
-    rateLimitedUntil: 0,
-  });
-
-  // Fallback keys (optional) - check for ANTHROPIC_API_KEY_FALLBACK_1, _2, etc.
-  for (let i = 1; i <= 5; i++) {
-    const fallbackKey = process.env[`ANTHROPIC_API_KEY_FALLBACK_${i}`];
-    if (fallbackKey) {
-      apiKeys.push({
-        key: fallbackKey,
-        client: new Anthropic({ apiKey: fallbackKey }),
+  // Check for numbered primary keys first (ANTHROPIC_API_KEY_1 through _10)
+  for (let i = 1; i <= 10; i++) {
+    const key = process.env[`ANTHROPIC_API_KEY_${i}`];
+    if (key) {
+      primaryPool.push({
+        key,
+        client: new Anthropic({ apiKey: key }),
         rateLimitedUntil: 0,
+        pool: 'primary',
+        index: i,
       });
-      console.log(`[Anthropic] Loaded fallback API key ${i}`);
     }
   }
 
-  console.log(`[Anthropic] Initialized with ${apiKeys.length} API key(s)`);
+  // If no numbered keys, fall back to single ANTHROPIC_API_KEY
+  if (primaryPool.length === 0) {
+    const singleKey = process.env.ANTHROPIC_API_KEY;
+    if (!singleKey) {
+      throw new Error('ANTHROPIC_API_KEY is not configured. Set either ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_1 through _10');
+    }
+    primaryPool.push({
+      key: singleKey,
+      client: new Anthropic({ apiKey: singleKey }),
+      rateLimitedUntil: 0,
+      pool: 'primary',
+      index: 0,
+    });
+  }
+
+  // Load fallback keys (ANTHROPIC_API_KEY_FALLBACK_1 through _5)
+  for (let i = 1; i <= 5; i++) {
+    const key = process.env[`ANTHROPIC_API_KEY_FALLBACK_${i}`];
+    if (key) {
+      fallbackPool.push({
+        key,
+        client: new Anthropic({ apiKey: key }),
+        rateLimitedUntil: 0,
+        pool: 'fallback',
+        index: i,
+      });
+    }
+  }
+
+  console.log(`[Anthropic] Initialized dual-pool system:`);
+  console.log(`[Anthropic]   Primary pool: ${primaryPool.length} key(s) (round-robin load distribution)`);
+  console.log(`[Anthropic]   Fallback pool: ${fallbackPool.length} key(s) (emergency reserve)`);
 }
 
 /**
- * Get the next available Anthropic client
- * Rotates through keys when rate limited
+ * Get an available key from the primary pool (round-robin)
+ * Returns null if all primary keys are rate limited
  */
-function getAnthropicClient(): Anthropic {
-  initializeApiKeys();
-
+function getPrimaryClient(): Anthropic | null {
   const now = Date.now();
 
-  // Try to find an available key (not rate limited)
-  for (let i = 0; i < apiKeys.length; i++) {
-    const keyIndex = (currentKeyIndex + i) % apiKeys.length;
-    const keyState = apiKeys[keyIndex];
+  // Round-robin through primary pool
+  for (let i = 0; i < primaryPool.length; i++) {
+    const keyIndex = (primaryKeyIndex + i) % primaryPool.length;
+    const keyState = primaryPool[keyIndex];
 
     if (keyState.rateLimitedUntil <= now) {
-      // This key is available
-      if (keyIndex !== currentKeyIndex) {
-        console.log(`[Anthropic] Switching to API key ${keyIndex + 1}/${apiKeys.length}`);
-        currentKeyIndex = keyIndex;
-      }
+      // Advance round-robin for next request (load distribution)
+      primaryKeyIndex = (keyIndex + 1) % primaryPool.length;
       return keyState.client;
     }
   }
 
-  // All keys are rate limited - use the one that will be available soonest
-  let soonestIndex = 0;
-  let soonestTime = apiKeys[0].rateLimitedUntil;
-
-  for (let i = 1; i < apiKeys.length; i++) {
-    if (apiKeys[i].rateLimitedUntil < soonestTime) {
-      soonestTime = apiKeys[i].rateLimitedUntil;
-      soonestIndex = i;
-    }
-  }
-
-  console.log(`[Anthropic] All keys rate limited, using key ${soonestIndex + 1} (available in ${Math.ceil((soonestTime - now) / 1000)}s)`);
-  currentKeyIndex = soonestIndex;
-  return apiKeys[soonestIndex].client;
+  return null; // All primary keys are rate limited
 }
 
 /**
- * Mark the current API key as rate limited
- * @param retryAfterSeconds - How long until the rate limit expires
+ * Get an available key from the fallback pool
+ * Returns null if all fallback keys are rate limited
  */
-function markCurrentKeyRateLimited(retryAfterSeconds: number = 60): void {
-  if (apiKeys.length === 0) return;
+function getFallbackClient(): Anthropic | null {
+  if (fallbackPool.length === 0) return null;
 
-  const expiresAt = Date.now() + (retryAfterSeconds * 1000);
-  apiKeys[currentKeyIndex].rateLimitedUntil = expiresAt;
+  const now = Date.now();
 
-  console.log(`[Anthropic] API key ${currentKeyIndex + 1}/${apiKeys.length} rate limited for ${retryAfterSeconds}s`);
+  for (let i = 0; i < fallbackPool.length; i++) {
+    const keyIndex = (fallbackKeyIndex + i) % fallbackPool.length;
+    const keyState = fallbackPool[keyIndex];
 
-  // Try to rotate to next available key
-  const nextAvailable = apiKeys.findIndex((k, i) => i !== currentKeyIndex && k.rateLimitedUntil <= Date.now());
-  if (nextAvailable !== -1) {
-    currentKeyIndex = nextAvailable;
-    console.log(`[Anthropic] Rotated to API key ${currentKeyIndex + 1}/${apiKeys.length}`);
+    if (keyState.rateLimitedUntil <= now) {
+      fallbackKeyIndex = (keyIndex + 1) % fallbackPool.length;
+      console.log(`[Anthropic] Using FALLBACK key ${keyState.index} (primary pool exhausted)`);
+      return keyState.client;
+    }
+  }
+
+  return null; // All fallback keys are also rate limited
+}
+
+/**
+ * Get the next available Anthropic client
+ * Priority: Primary pool (round-robin) → Fallback pool → Wait for soonest available
+ */
+function getAnthropicClient(): Anthropic {
+  initializeApiKeys();
+
+  // Try primary pool first (round-robin for load distribution)
+  const primaryClient = getPrimaryClient();
+  if (primaryClient) {
+    return primaryClient;
+  }
+
+  // Primary pool exhausted - try fallback pool
+  const fallbackClient = getFallbackClient();
+  if (fallbackClient) {
+    return fallbackClient;
+  }
+
+  // All keys rate limited - find the one available soonest
+  const allKeys = [...primaryPool, ...fallbackPool];
+  let soonestKey = allKeys[0];
+
+  for (const key of allKeys) {
+    if (key.rateLimitedUntil < soonestKey.rateLimitedUntil) {
+      soonestKey = key;
+    }
+  }
+
+  const waitTime = Math.ceil((soonestKey.rateLimitedUntil - Date.now()) / 1000);
+  console.log(`[Anthropic] All ${allKeys.length} keys rate limited. Using ${soonestKey.pool} key ${soonestKey.index} (available in ${waitTime}s)`);
+
+  return soonestKey.client;
+}
+
+/**
+ * Mark a specific API key as rate limited
+ */
+function markKeyRateLimited(client: Anthropic, retryAfterSeconds: number = 60): void {
+  const allKeys = [...primaryPool, ...fallbackPool];
+  const keyState = allKeys.find(k => k.client === client);
+
+  if (keyState) {
+    keyState.rateLimitedUntil = Date.now() + (retryAfterSeconds * 1000);
+    console.log(`[Anthropic] ${keyState.pool.toUpperCase()} key ${keyState.index} rate limited for ${retryAfterSeconds}s`);
+
+    // Log pool status
+    const now = Date.now();
+    const availablePrimary = primaryPool.filter(k => k.rateLimitedUntil <= now).length;
+    const availableFallback = fallbackPool.filter(k => k.rateLimitedUntil <= now).length;
+    console.log(`[Anthropic] Pool status: ${availablePrimary}/${primaryPool.length} primary, ${availableFallback}/${fallbackPool.length} fallback available`);
   }
 }
+
+// Track current client for rate limit marking
+let lastUsedClient: Anthropic | null = null;
 
 /**
  * Check if an error is a rate limit error and handle it
  */
 function handleRateLimitError(error: unknown): boolean {
   if (error instanceof Anthropic.RateLimitError) {
-    // Extract retry-after from error if available
-    const retryAfter = 60; // Default to 60 seconds
-    markCurrentKeyRateLimited(retryAfter);
+    if (lastUsedClient) {
+      markKeyRateLimited(lastUsedClient, 60);
+    }
     return true;
   }
 
-  // Check for rate limit in error message
   if (error instanceof Error && error.message.toLowerCase().includes('rate limit')) {
-    markCurrentKeyRateLimited(60);
+    if (lastUsedClient) {
+      markKeyRateLimited(lastUsedClient, 60);
+    }
     return true;
   }
 
@@ -152,19 +224,35 @@ function handleRateLimitError(error: unknown): boolean {
  * Get stats about API key usage
  */
 export function getApiKeyStats(): {
+  primaryKeys: number;
+  primaryAvailable: number;
+  fallbackKeys: number;
+  fallbackAvailable: number;
   totalKeys: number;
-  availableKeys: number;
-  currentKeyIndex: number;
+  totalAvailable: number;
 } {
   initializeApiKeys();
   const now = Date.now();
-  const availableKeys = apiKeys.filter(k => k.rateLimitedUntil <= now).length;
+
+  const primaryAvailable = primaryPool.filter(k => k.rateLimitedUntil <= now).length;
+  const fallbackAvailable = fallbackPool.filter(k => k.rateLimitedUntil <= now).length;
 
   return {
-    totalKeys: apiKeys.length,
-    availableKeys,
-    currentKeyIndex: currentKeyIndex + 1, // 1-indexed for display
+    primaryKeys: primaryPool.length,
+    primaryAvailable,
+    fallbackKeys: fallbackPool.length,
+    fallbackAvailable,
+    totalKeys: primaryPool.length + fallbackPool.length,
+    totalAvailable: primaryAvailable + fallbackAvailable,
   };
+}
+
+/**
+ * Get total number of API keys (for retry logic)
+ */
+function getTotalKeyCount(): number {
+  initializeApiKeys();
+  return primaryPool.length + fallbackPool.length;
 }
 
 export interface AnthropicChatOptions {
@@ -293,10 +381,11 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
   const { system, messages } = convertMessages(options.messages, options.systemPrompt);
 
   // Retry up to the number of available API keys
-  const maxRetries = Math.max(1, apiKeys.length || 1);
+  const maxRetries = Math.max(1, getTotalKeyCount());
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const client = getAnthropicClient();
+    lastUsedClient = client; // Track for rate limit marking
 
     try {
       // Non-streaming mode with prompt caching on system prompt
@@ -362,10 +451,11 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 
   // Start streaming in the background with prompt caching on system prompt
   (async () => {
-    const maxRetries = Math.max(1, apiKeys.length || 1);
+    const maxRetries = Math.max(1, getTotalKeyCount());
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const client = getAnthropicClient();
+      lastUsedClient = client; // Track for rate limit marking
 
       try {
         const stream = await client.messages.stream({
@@ -461,10 +551,11 @@ export async function createAnthropicCompletionWithSearch(
     msgs: typeof messages,
     tools: Anthropic.Tool[]
   ): Promise<Anthropic.Message> => {
-    const maxKeyRetries = Math.max(1, apiKeys.length || 1);
+    const maxKeyRetries = Math.max(1, getTotalKeyCount());
 
     for (let attempt = 0; attempt < maxKeyRetries; attempt++) {
       const currentClient = attempt === 0 ? client : getAnthropicClient();
+      lastUsedClient = currentClient; // Track for rate limit marking
 
       try {
         return await currentClient.messages.create({
