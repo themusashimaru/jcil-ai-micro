@@ -141,7 +141,7 @@ export default function PricingSection() {
         '3x more usage capacity',
         'Enhanced live search & research',
         'Advanced writing & analysis tools',
-        'Faster news refresh (30 min)',
+        'Advanced coding assistance',
         '75 image generations/month',
       ],
       popular: true,
