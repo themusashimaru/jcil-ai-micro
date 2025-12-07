@@ -52,6 +52,7 @@ import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider, getModelForTier } from '@/lib/provider/settings';
 import { createAnthropicCompletion, createAnthropicStreamingCompletion, createAnthropicCompletionWithSearch } from '@/lib/anthropic/client';
+import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
 // import { braveSearch } from '@/lib/brave/search';
 import { NextRequest } from 'next/server';
@@ -180,7 +181,32 @@ function isAskingAboutHistory(content: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  // Generate a unique request ID for queue management
+  const requestId = generateRequestId();
+  let slotAcquired = false;
+
   try {
+    // Acquire a slot in the queue (prevents overwhelming AI providers)
+    slotAcquired = await acquireSlot(requestId);
+
+    if (!slotAcquired) {
+      console.log('[Chat API] Queue full, returning busy response');
+      return new Response(
+        JSON.stringify({
+          error: 'Server busy',
+          message: 'We\'re experiencing high demand right now. Please try again in a few seconds.',
+          retryAfter: 5,
+        }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '5',
+          },
+        }
+      );
+    }
+
     // Parse request body
     const body: ChatRequestBody = await request.json();
     const { messages, tool, temperature, max_tokens, userContext, conversationId } = body;
@@ -1119,6 +1145,13 @@ export async function POST(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
       }
     );
+  } finally {
+    // Always release the queue slot when request completes
+    if (slotAcquired) {
+      releaseSlot(requestId).catch(err => {
+        console.error('[Chat API] Error releasing queue slot:', err);
+      });
+    }
   }
 }
 
