@@ -53,7 +53,7 @@ const TIER_INFO = {
       'Everything in Basic',
       '3x more usage capacity',
       'Enhanced live search & research',
-      'Advanced writing & analysis tools',
+      'Advanced coding assistance',
       '75 image generations/month',
     ],
   },

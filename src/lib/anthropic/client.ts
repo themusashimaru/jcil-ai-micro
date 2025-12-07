@@ -10,10 +10,12 @@
  * - Streaming text responses
  * - Non-streaming for image analysis
  * - Web search integration via Brave
+ * - Token usage tracking
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { CoreMessage } from 'ai';
+import { trackTokenUsage } from '@/lib/openai/usage';
 
 // Default model: Claude Sonnet 4.5
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
@@ -41,6 +43,9 @@ export interface AnthropicChatOptions {
   systemPrompt?: string;
   // Web search function (injected from Brave Search module)
   webSearchFn?: (query: string) => Promise<BraveSearchResult>;
+  // For token tracking
+  userId?: string;
+  planKey?: string;
 }
 
 export interface BraveSearchResult {
@@ -163,6 +168,19 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
       messages,
     });
 
+    // Track token usage
+    if (options.userId && response.usage) {
+      trackTokenUsage({
+        userId: options.userId,
+        model,
+        route: 'chat',
+        tool: 'generateText',
+        inputTokens: response.usage.input_tokens || 0,
+        outputTokens: response.usage.output_tokens || 0,
+        planKey: options.planKey || 'free',
+      });
+    }
+
     // Extract text from response
     const textContent = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')
@@ -215,6 +233,20 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
             await writer.write(delta.text);
           }
         }
+      }
+
+      // Track token usage after stream completes
+      const finalMessage = await stream.finalMessage();
+      if (options.userId && finalMessage.usage) {
+        trackTokenUsage({
+          userId: options.userId,
+          model,
+          route: 'chat',
+          tool: 'streamText',
+          inputTokens: finalMessage.usage.input_tokens || 0,
+          outputTokens: finalMessage.usage.output_tokens || 0,
+          planKey: options.planKey || 'free',
+        });
       }
     } catch (error) {
       console.error('[Anthropic] Streaming error:', error);
@@ -299,6 +331,19 @@ export async function createAnthropicCompletionWithSearch(
       messages: currentMessages,
       tools,
     });
+
+    // Track token usage for each API call
+    if (rest.userId && response.usage) {
+      trackTokenUsage({
+        userId: rest.userId,
+        model,
+        route: 'search',
+        tool: 'generateText',
+        inputTokens: response.usage.input_tokens || 0,
+        outputTokens: response.usage.output_tokens || 0,
+        planKey: rest.planKey || 'free',
+      });
+    }
 
     // Check if the model wants to use a tool
     const toolUseBlocks = response.content.filter(
