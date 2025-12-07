@@ -345,7 +345,6 @@ export function ChatClient() {
       // Only check if tab is becoming visible and we have a current chat
       if (document.visibilityState !== 'visible') return;
       if (!currentChatIdRef.current) return;
-      if (isStreaming) return;
       if (isProcessingRef.current) return; // Prevent duplicate processing
 
       const chatId = currentChatIdRef.current;
@@ -355,9 +354,22 @@ export function ChatClient() {
         chatId,
         messageCount: currentMessages.length,
         lastRole: currentMessages[currentMessages.length - 1]?.role,
+        isStreaming,
       });
 
-      // First, check if we already have the response (cron may have processed it)
+      // If currently streaming, check if we need to wait a bit
+      // (Stream might have just completed)
+      if (isStreaming) {
+        // Give the stream a moment to complete naturally
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Re-check if still streaming
+        if (isStreaming) {
+          console.log('[ChatClient] Still streaming, will check on next visibility change');
+          return;
+        }
+      }
+
+      // First, check if we already have the response (server may have processed it)
       const fetchedMessages = await fetchMessages(chatId);
       if (!fetchedMessages || !isMountedRef.current) return;
 
@@ -365,15 +377,21 @@ export function ChatClient() {
       if (fetchedMessages.length > currentMessages.length) {
         console.log('[ChatClient] New messages found:', fetchedMessages.length - currentMessages.length);
         setMessages(fetchedMessages);
+        setIsStreaming(false); // Reset streaming state since we have the response
         return;
       }
 
       // Check if last message is from user (meaning we're waiting for a reply)
-      const lastMessage = currentMessages[currentMessages.length - 1];
+      // Also check fetched messages in case local state is stale
+      const lastFetchedMessage = fetchedMessages[fetchedMessages.length - 1];
+      const lastLocalMessage = currentMessages[currentMessages.length - 1];
+      const lastMessage = lastFetchedMessage || lastLocalMessage;
+
       if (lastMessage && lastMessage.role === 'user') {
         console.log('[ChatClient] Last message is from user, processing pending request...');
         isProcessingRef.current = true;
         setIsWaitingForReply(true);
+        setIsStreaming(false); // Reset streaming state
 
         try {
           // Call the process-pending endpoint to immediately process the request
@@ -420,7 +438,7 @@ export function ChatClient() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopPolling();
     };
-  }, [isStreaming]); // Removed messages.length and isWaitingForReply - using refs now
+  }, [isStreaming]); // Keep isStreaming dependency for re-registration
 
   // Load conversations from database
   useEffect(() => {

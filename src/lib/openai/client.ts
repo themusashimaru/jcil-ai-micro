@@ -55,6 +55,8 @@ const WEB_SEARCH_PATTERNS = [
 
   // News and current events
   /\b(latest|recent|current|today'?s|breaking|new)\s+(news|headlines|updates|events|stories)/i,
+  /\b(latest|breaking)\b.*\b(news|headlines|updates)\b/i,  // "latest breaking news" with words between
+  /\b(news|headlines)\s+(in|from|about|out\s+of|for)\s+/i,  // "news in LA", "news out of Los Angeles"
   /\b(what'?s|what is)\s+(happening|going on|new)\s+(in|with|at|today)/i,
   /\b(did|has|have)\s+.{0,30}\s+(happen|announce|release|launch)/i,
 
@@ -183,6 +185,89 @@ const WEB_SEARCH_PATTERNS = [
 
   // Question words with specific entities
   /\b(when|where|how)\s+(does|do|is|are|can|will)\s+.{3,}/i,
+
+  // ============================================
+  // EXPANDED PATTERNS FOR BETTER DETECTION
+  // ============================================
+
+  // CASUAL/SLANG PHRASING
+  /\b(what'?s\s+poppin|what'?s\s+good|what'?s\s+up)\s+(in|with|at)\b/i,
+  /\b(gimme|give\s+me)\s+(the\s+)?(scoop|lowdown|tea|deets|info)\s+(on|about)\b/i,
+  /\b(what'?s\s+the\s+(deal|story|situation|status))\s+(with|on|about)\b/i,
+  /\b(any\s+(news|updates|info|word))\s+(on|about|from)\b/i,
+  /\b(fill\s+me\s+in|catch\s+me\s+up|bring\s+me\s+up\s+to\s+speed)\b/i,
+
+  // SIMPLE TIME-SENSITIVE QUESTIONS
+  /\b(did|does|do|has|have|will|is|are)\s+(the\s+)?(lakers|celtics|warriors|yankees|dodgers|patriots|chiefs|cowboys|eagles|49ers|giants|knicks|nets|heat|bulls|mets|red\s*sox|cubs|braves)\s+(win|lose|play|beat)/i,
+  /\b(did|has)\s+[A-Z][a-z]+\s+(win|lose|beat|score|play)/i,  // "Did Boston win"
+  /\b(is\s+it\s+(gonna|going\s+to)|will\s+it)\s+(rain|snow|storm|be\s+hot|be\s+cold)/i,
+  /\b(what\s+time)\s+(does|do|is|will)\s+/i,  // "what time does Target close"
+  /\b(is|are)\s+.{1,30}\s+(open|closed)\s*(right\s+now|today|tonight|now)?\s*\??$/i,
+
+  // RECENT EVENTS WITHOUT "NEWS" KEYWORD
+  /\b(what\s+happened|what'?s\s+happened)\s*(today|yesterday|this\s+week|last\s+night|recently)?\s*\??$/i,
+  /\b(did\s+they|have\s+they|has\s+.{1,20})\s+(announce|release|launch|drop|reveal|confirm)/i,
+  /\b(is\s+the\s+new|when\s+(does|is|will)\s+the\s+new)\s+/i,  // "is the new iPhone out"
+  /\b(when\s+(does|is|will))\s+.{1,30}\s+(come\s+out|release|premiere|drop|launch|start|return|come\s+back)/i,
+  /\b(any\s+updates?\s+on|status\s+of|update\s+on)\b/i,
+
+  // PEOPLE AGE/STATUS QUERIES
+  /\b(is|are)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s+(still\s+alive|dead|alive|married|divorced|single|dating|pregnant)/i,
+  /\b(how\s+old\s+is|what'?s?\s+.{1,20}\s+age|when\s+was\s+.{1,20}\s+born)\b/i,
+  /\b(what\s+did|what\s+does|what\s+has)\s+[A-Z][a-z]+\s+/i,  // "what did Biden say"
+  /\b(who\s+is\s+dating|who\s+is\s+married\s+to|who\s+is\s+.{1,20}\s+(husband|wife|girlfriend|boyfriend|partner))\b/i,
+  /\b(net\s+worth|how\s+much\s+(is|does)\s+.{1,20}\s+(worth|make|earn))\b/i,
+
+  // VERIFICATION/FACT-CHECK QUESTIONS
+  /\b(is\s+it\s+true|is\s+that\s+true|is\s+this\s+true)\b/i,
+  /\b(did\s+.{1,30}\s+really|is\s+it\s+real\s+that|is\s+.{1,30}\s+real)\b/i,
+  /\b(fact\s+check|verify|confirm|true\s+or\s+false)\b/i,
+  /\b(did\s+that\s+(happen|actually\s+happen)|was\s+that\s+real)\b/i,
+
+  // VAGUE LOCATION/ACTIVITY QUERIES
+  /\b(where\s+can\s+i|where\s+should\s+i|where\s+to)\s+(eat|go|find|get|buy|see)/i,
+  /\b(what'?s\s+good\s+to\s+(do|eat|see|visit))\s+(in|around|near)\b/i,
+  /\b(anything\s+(fun|good|interesting|cool))\s+(to\s+do|happening)\s*(in|around|near|tonight|today)?\b/i,
+  /\b(things\s+to\s+do|what\s+to\s+do|stuff\s+to\s+do)\s+(in|around|near)\b/i,
+  /\b(recommend|suggestion|recommendations|suggestions)\s+(for|in|around)\b/i,
+
+  // SPORTS WITHOUT EXPLICIT SCORE KEYWORDS
+  /\b(who'?s\s+playing|what\s+games?\s+(are|is))\s+(tonight|today|tomorrow|this\s+weekend)/i,
+  /\b(did|does|do)\s+.{1,20}\s+(make|win|lose|get\s+into)\s+(the\s+)?(playoffs|finals|championship|tournament|series)/i,
+  /\b(when'?s\s+the\s+next|next\s+.{1,20}\s+game|when\s+do\s+.{1,20}\s+play)\b/i,
+  /\b(standings|rankings|playoff|draft|trade|free\s+agent|roster|lineup)\b/i,
+  /\b(super\s*bowl|world\s*series|nba\s+finals|stanley\s+cup|world\s+cup|olympics|march\s+madness)\b/i,
+
+  // GENERAL "DID" QUESTIONS (strong search signal)
+  /\b(did\s+.{1,30}\s+die|did\s+.{1,30}\s+get\s+(fired|arrested|married|divorced|elected|appointed))\b/i,
+  /\b(did\s+.{1,30}\s+(pass|fail|win|lose|happen|change|update|release|announce))\b/i,
+
+  // PRODUCT/TECH RELEASES
+  /\b(is\s+.{1,20}\s+(out\s+yet|available\s+yet|released\s+yet|coming\s+out))\b/i,
+  /\b(when\s+(is|does|will)\s+.{1,20}\s+(come\s+out|release|drop|launch|available))\b/i,
+  /\b(new\s+(iphone|ipad|macbook|samsung|pixel|playstation|xbox|switch|model|version))\b/i,
+
+  // CURRENT STATUS/AVAILABILITY
+  /\b(is\s+.{1,20}\s+(available|in\s+stock|sold\s+out|back\s+in\s+stock|on\s+sale|discontinued))\b/i,
+  /\b(can\s+i\s+(still|currently)|do\s+they\s+still)\s+(buy|get|order|find)\b/i,
+
+  // TRENDING/VIRAL CONTENT
+  /\b(trending|viral|popular|famous)\s+(right\s+now|today|this\s+week)?\b/i,
+  /\b(what'?s\s+trending|what'?s\s+viral|what'?s\s+popular)\b/i,
+  /\b(why\s+is\s+.{1,30}\s+trending|why\s+is\s+everyone\s+talking\s+about)\b/i,
+
+  // PRICE/COST CASUAL PATTERNS
+  /\b(how\s+much\s+(is|does|are|do))\s+/i,  // "how much is gas"
+  /\b(what'?s\s+.{1,20}\s+(cost|price|worth|going\s+for))\b/i,
+  /\b(current\s+price|price\s+of|cost\s+of)\b/i,
+
+  // WEATHER CASUAL
+  /\b(is\s+it\s+(hot|cold|raining|snowing|nice|warm|cool))\s+(outside|today|right\s+now|in)?\b/i,
+  /\b(do\s+i\s+need\s+(an?\s+)?(umbrella|jacket|coat|sunscreen))\b/i,
+
+  // GENERIC LOOKUP BOOSTERS (short queries that likely need search)
+  /\b(hours|address|phone|menu|price|cost|location)\s+for\b/i,
+  /\b(how\s+to\s+get\s+to|directions\s+to|distance\s+to)\b/i,
 ];
 
 /**
