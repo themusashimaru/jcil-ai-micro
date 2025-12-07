@@ -46,6 +46,7 @@ import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
+import { getSystemPromptForTool } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
@@ -772,9 +773,10 @@ export async function POST(request: NextRequest) {
       const anthropicModel = providerSettings.providerConfig.anthropic?.model || 'claude-sonnet-4-5-20250929';
       console.log('[Chat API] Using Anthropic provider with model:', anthropicModel);
 
-      // Build system prompt for Anthropic
+      // Use unified system prompt for all providers (same as OpenAI)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const systemPrompt = isAuthenticated
-        ? buildFullSystemPrompt({ includeImageCapability: false }) // Anthropic doesn't do DALL-E
+        ? getSystemPromptForTool(effectiveTool as any)
         : 'You are a helpful AI assistant.';
 
       // Non-streaming for image analysis
