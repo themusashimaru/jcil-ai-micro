@@ -269,7 +269,7 @@ export async function createAnthropicCompletionWithSearch(
   const tools: Anthropic.Tool[] = [
     {
       name: 'web_search',
-      description: 'Search the web for current information. Use this when the user asks about recent events, current data, or information that may have changed since your training.',
+      description: 'Search the web for current, real-time information. You MUST use this tool for ANY question about: news, current events, weather, sports scores, stock prices, recent happenings, "latest", "breaking", "today", "current", or anything that could have changed recently. ALWAYS search first before answering these types of questions.',
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -295,7 +295,7 @@ export async function createAnthropicCompletionWithSearch(
       model,
       max_tokens: maxTokens,
       temperature,
-      system: system + '\n\nYou have access to web search. Use it when you need current information.',
+      system: system + '\n\nIMPORTANT: You have access to a web_search tool. You MUST use it for ANY question about current events, news, weather, sports, prices, or anything that might have changed recently. Do NOT rely on your training data for current information - ALWAYS search first.',
       messages: currentMessages,
       tools,
     });
