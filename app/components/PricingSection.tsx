@@ -185,16 +185,6 @@ export default function PricingSection() {
         ))}
       </div>
 
-      {/* Free tier note */}
-      <div className="mt-12 text-center">
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          Want to try before you buy?{' '}
-          <a href="/signup" className="underline hover:opacity-80 transition" style={{ color: 'var(--primary)' }}>
-            Create a free account
-          </a>{' '}
-          with limited access.
-        </p>
-      </div>
     </section>
   );
 }

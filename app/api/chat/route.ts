@@ -785,6 +785,8 @@ export async function POST(request: NextRequest) {
           maxTokens: max_tokens,
           temperature,
           systemPrompt,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
         });
 
         return new Response(
@@ -815,6 +817,8 @@ export async function POST(request: NextRequest) {
           temperature,
           systemPrompt,
           webSearchFn: braveSearch,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
         });
 
         return new Response(
@@ -845,6 +849,8 @@ export async function POST(request: NextRequest) {
         maxTokens: max_tokens,
         temperature,
         systemPrompt,
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        planKey: userTier,
       });
 
       return streamResult.toTextStreamResponse({

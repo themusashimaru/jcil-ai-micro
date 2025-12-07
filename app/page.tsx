@@ -48,7 +48,7 @@ export default function HomePage() {
               href="/signup"
               className="w-full sm:w-auto rounded-lg bg-blue-500 px-8 py-4 text-lg font-semibold hover:bg-blue-600 transition"
             >
-              Get Started Free
+              Get Started
             </Link>
             <Link
               href="#how-it-works"
@@ -353,9 +353,9 @@ export default function HomePage() {
             href="/signup"
             className="inline-block rounded-lg bg-blue-500 px-8 py-4 text-lg font-semibold hover:bg-blue-600 transition"
           >
-            Create Your Free Account
+            Create Your Account
           </Link>
-          <p className="mt-4 text-sm text-gray-500">No credit card required. Try it free with limited access.</p>
+          <p className="mt-4 text-sm text-gray-500">Start with any plan. Cancel anytime.</p>
         </div>
       </section>
 
