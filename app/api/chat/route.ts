@@ -774,8 +774,8 @@ export async function POST(request: NextRequest) {
       console.log('[Chat API] Using Anthropic provider with model:', anthropicModel);
 
       // Use unified system prompt for all providers (same as OpenAI)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const systemPrompt = isAuthenticated
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? getSystemPromptForTool(effectiveTool as any)
         : 'You are a helpful AI assistant.';
 
