@@ -142,6 +142,7 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
 
 /**
  * Create a chat completion using Claude
+ * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
  */
 export async function createAnthropicCompletion(options: AnthropicChatOptions): Promise<{
   text: string;
@@ -157,12 +158,19 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
   const { system, messages } = convertMessages(options.messages, options.systemPrompt);
 
   try {
-    // Non-streaming mode
+    // Non-streaming mode with prompt caching on system prompt
     const response = await client.messages.create({
       model,
       max_tokens: maxTokens,
       temperature,
-      system,
+      // Use array format with cache_control for prompt caching
+      system: [
+        {
+          type: 'text',
+          text: system,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages,
     });
 
@@ -184,6 +192,7 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
 
 /**
  * Create a streaming chat completion using Claude
+ * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
  */
 export async function createAnthropicStreamingCompletion(options: AnthropicChatOptions): Promise<{
   toTextStreamResponse: (opts?: { headers?: Record<string, string> }) => Response;
@@ -200,14 +209,21 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
   const { readable, writable } = new TransformStream<string, string>();
   const writer = writable.getWriter();
 
-  // Start streaming in the background
+  // Start streaming in the background with prompt caching on system prompt
   (async () => {
     try {
       const stream = await client.messages.stream({
         model,
         max_tokens: maxTokens,
         temperature,
-        system,
+        // Use array format with cache_control for prompt caching
+        system: [
+          {
+            type: 'text',
+            text: system,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
         messages,
       });
 
@@ -244,6 +260,7 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 /**
  * Create a chat completion with web search support
  * Uses Brave Search when available
+ * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
  */
 export async function createAnthropicCompletionWithSearch(
   options: AnthropicChatOptions
@@ -267,6 +284,9 @@ export async function createAnthropicCompletionWithSearch(
   const temperature = rest.temperature ?? 0.7;
 
   const { system, messages } = convertMessages(rest.messages, rest.systemPrompt);
+
+  // System prompt with web search instruction (cached for cost savings)
+  const systemWithSearch = system + '\n\nYou have access to web search. Use it when you need current information.';
 
   // Define the web search tool
   const tools: Anthropic.Tool[] = [
@@ -298,7 +318,14 @@ export async function createAnthropicCompletionWithSearch(
       model,
       max_tokens: maxTokens,
       temperature,
-      system: system + '\n\nYou have access to web search. Use it when you need current information.',
+      // Use array format with cache_control for prompt caching
+      system: [
+        {
+          type: 'text',
+          text: systemWithSearch,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages: currentMessages,
       tools,
     });
