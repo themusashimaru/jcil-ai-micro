@@ -268,6 +268,14 @@ const WEB_SEARCH_PATTERNS = [
   // GENERIC LOOKUP BOOSTERS (short queries that likely need search)
   /\b(hours|address|phone|menu|price|cost|location)\s+for\b/i,
   /\b(how\s+to\s+get\s+to|directions\s+to|distance\s+to)\b/i,
+
+  // SEARCH CONTINUATION PATTERNS (responses to "which type do you want?" etc.)
+  // These catch affirmative responses that should continue a search
+  /^(all|all\s+of\s+(them|it|the\s+above)|everything|anything|whatever)\s*(please|thanks)?\.?$/i,
+  /^(all\s+)?(events?|types?|options?|categories?|kinds?)\s*(please|thanks)?\.?$/i,
+  /^(yes|yeah|yep|sure|ok|okay|yup|go\s+ahead|do\s+it)\s*(please|thanks)?[,.]?\s*(all|everything)?\.?$/i,
+  /^(show\s+me|give\s+me|list|find)\s+(all|everything|them\s+all)\.?$/i,
+  /^(just|please)?\s*(search|look|find|show)(\s+it)?(\s+up)?\.?$/i,
 ];
 
 /**
