@@ -55,6 +55,8 @@ const WEB_SEARCH_PATTERNS = [
 
   // News and current events
   /\b(latest|recent|current|today'?s|breaking|new)\s+(news|headlines|updates|events|stories)/i,
+  /\b(latest|breaking)\b.*\b(news|headlines|updates)\b/i,  // "latest breaking news" with words between
+  /\b(news|headlines)\s+(in|from|about|out\s+of|for)\s+/i,  // "news in LA", "news out of Los Angeles"
   /\b(what'?s|what is)\s+(happening|going on|new)\s+(in|with|at|today)/i,
   /\b(did|has|have)\s+.{0,30}\s+(happen|announce|release|launch)/i,
 
