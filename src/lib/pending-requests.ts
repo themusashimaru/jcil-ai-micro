@@ -208,6 +208,9 @@ export async function markRequestProcessing(requestId: string): Promise<boolean>
 
 /**
  * Save the completed response from background processing
+ *
+ * DEDUPLICATION: Checks if a similar message was saved in the last 2 minutes
+ * to prevent duplicates when onFinish and cron job race.
  */
 export async function saveBackgroundResponse(
   requestId: string,
@@ -219,6 +222,39 @@ export async function saveBackgroundResponse(
   try {
     const supabase = getSupabaseAdmin();
     if (!supabase) return;
+
+    // DEDUPLICATION: Check if a similar assistant message already exists
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: existingMessages } = await supabase
+      .from('messages')
+      .select('id, content')
+      .eq('conversation_id', conversationId)
+      .eq('role', 'assistant')
+      .gte('created_at', twoMinutesAgo)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    // Check if any recent message has substantially similar content
+    if (existingMessages && existingMessages.length > 0) {
+      const contentStart = content.slice(0, 200);
+      const isDuplicate = existingMessages.some(msg =>
+        msg.content && msg.content.slice(0, 200) === contentStart
+      );
+
+      if (isDuplicate) {
+        console.log('[PendingRequests] Skipping duplicate - message already exists for:', requestId);
+        // Still mark as completed so it's cleaned up
+        await supabase
+          .from('pending_requests')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            response_content: '[DEDUPLICATED]',
+          })
+          .eq('id', requestId);
+        return;
+      }
+    }
 
     // Save the message to the messages table
     const { error: msgError } = await supabase
