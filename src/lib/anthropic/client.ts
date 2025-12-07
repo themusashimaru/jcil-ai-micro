@@ -10,6 +10,8 @@
  * - Streaming text responses
  * - Non-streaming for image analysis
  * - Web search integration via Brave
+ * - Multiple API key support with automatic failover
+ * - Prompt caching for cost savings
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -18,18 +20,151 @@ import { CoreMessage } from 'ai';
 // Default model: Claude Sonnet 4.5
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
 
-// Initialize Anthropic client
-let anthropicClient: Anthropic | null = null;
+// ========================================
+// MULTI-KEY SUPPORT
+// ========================================
 
-function getAnthropicClient(): Anthropic {
-  if (!anthropicClient) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY is not configured');
-    }
-    anthropicClient = new Anthropic({ apiKey });
+// Store all available API keys
+interface ApiKeyState {
+  key: string;
+  client: Anthropic;
+  rateLimitedUntil: number; // Timestamp when rate limit expires (0 = not limited)
+}
+
+const apiKeys: ApiKeyState[] = [];
+let currentKeyIndex = 0;
+
+/**
+ * Initialize all available Anthropic API keys
+ */
+function initializeApiKeys(): void {
+  if (apiKeys.length > 0) return; // Already initialized
+
+  // Primary key (required)
+  const primaryKey = process.env.ANTHROPIC_API_KEY;
+  if (!primaryKey) {
+    throw new Error('ANTHROPIC_API_KEY is not configured');
   }
-  return anthropicClient;
+
+  apiKeys.push({
+    key: primaryKey,
+    client: new Anthropic({ apiKey: primaryKey }),
+    rateLimitedUntil: 0,
+  });
+
+  // Fallback keys (optional) - check for ANTHROPIC_API_KEY_FALLBACK_1, _2, etc.
+  for (let i = 1; i <= 5; i++) {
+    const fallbackKey = process.env[`ANTHROPIC_API_KEY_FALLBACK_${i}`];
+    if (fallbackKey) {
+      apiKeys.push({
+        key: fallbackKey,
+        client: new Anthropic({ apiKey: fallbackKey }),
+        rateLimitedUntil: 0,
+      });
+      console.log(`[Anthropic] Loaded fallback API key ${i}`);
+    }
+  }
+
+  console.log(`[Anthropic] Initialized with ${apiKeys.length} API key(s)`);
+}
+
+/**
+ * Get the next available Anthropic client
+ * Rotates through keys when rate limited
+ */
+function getAnthropicClient(): Anthropic {
+  initializeApiKeys();
+
+  const now = Date.now();
+
+  // Try to find an available key (not rate limited)
+  for (let i = 0; i < apiKeys.length; i++) {
+    const keyIndex = (currentKeyIndex + i) % apiKeys.length;
+    const keyState = apiKeys[keyIndex];
+
+    if (keyState.rateLimitedUntil <= now) {
+      // This key is available
+      if (keyIndex !== currentKeyIndex) {
+        console.log(`[Anthropic] Switching to API key ${keyIndex + 1}/${apiKeys.length}`);
+        currentKeyIndex = keyIndex;
+      }
+      return keyState.client;
+    }
+  }
+
+  // All keys are rate limited - use the one that will be available soonest
+  let soonestIndex = 0;
+  let soonestTime = apiKeys[0].rateLimitedUntil;
+
+  for (let i = 1; i < apiKeys.length; i++) {
+    if (apiKeys[i].rateLimitedUntil < soonestTime) {
+      soonestTime = apiKeys[i].rateLimitedUntil;
+      soonestIndex = i;
+    }
+  }
+
+  console.log(`[Anthropic] All keys rate limited, using key ${soonestIndex + 1} (available in ${Math.ceil((soonestTime - now) / 1000)}s)`);
+  currentKeyIndex = soonestIndex;
+  return apiKeys[soonestIndex].client;
+}
+
+/**
+ * Mark the current API key as rate limited
+ * @param retryAfterSeconds - How long until the rate limit expires
+ */
+function markCurrentKeyRateLimited(retryAfterSeconds: number = 60): void {
+  if (apiKeys.length === 0) return;
+
+  const expiresAt = Date.now() + (retryAfterSeconds * 1000);
+  apiKeys[currentKeyIndex].rateLimitedUntil = expiresAt;
+
+  console.log(`[Anthropic] API key ${currentKeyIndex + 1}/${apiKeys.length} rate limited for ${retryAfterSeconds}s`);
+
+  // Try to rotate to next available key
+  const nextAvailable = apiKeys.findIndex((k, i) => i !== currentKeyIndex && k.rateLimitedUntil <= Date.now());
+  if (nextAvailable !== -1) {
+    currentKeyIndex = nextAvailable;
+    console.log(`[Anthropic] Rotated to API key ${currentKeyIndex + 1}/${apiKeys.length}`);
+  }
+}
+
+/**
+ * Check if an error is a rate limit error and handle it
+ */
+function handleRateLimitError(error: unknown): boolean {
+  if (error instanceof Anthropic.RateLimitError) {
+    // Extract retry-after from error if available
+    const retryAfter = 60; // Default to 60 seconds
+    markCurrentKeyRateLimited(retryAfter);
+    return true;
+  }
+
+  // Check for rate limit in error message
+  if (error instanceof Error && error.message.toLowerCase().includes('rate limit')) {
+    markCurrentKeyRateLimited(60);
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Get stats about API key usage
+ */
+export function getApiKeyStats(): {
+  totalKeys: number;
+  availableKeys: number;
+  currentKeyIndex: number;
+} {
+  initializeApiKeys();
+  const now = Date.now();
+  const availableKeys = apiKeys.filter(k => k.rateLimitedUntil <= now).length;
+
+  return {
+    totalKeys: apiKeys.length,
+    availableKeys,
+    currentKeyIndex: currentKeyIndex + 1, // 1-indexed for display
+  };
 }
 
 export interface AnthropicChatOptions {
@@ -143,6 +278,7 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
 /**
  * Create a chat completion using Claude
  * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
+ * Automatically retries with fallback API keys on rate limit errors
  */
 export async function createAnthropicCompletion(options: AnthropicChatOptions): Promise<{
   text: string;
@@ -150,69 +286,21 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
   citations?: Array<{ title: string; url: string }>;
   numSourcesUsed?: number;
 }> {
-  const client = getAnthropicClient();
   const model = options.model || DEFAULT_MODEL;
   const maxTokens = options.maxTokens || 4096;
   const temperature = options.temperature ?? 0.7;
 
   const { system, messages } = convertMessages(options.messages, options.systemPrompt);
 
-  try {
-    // Non-streaming mode with prompt caching on system prompt
-    const response = await client.messages.create({
-      model,
-      max_tokens: maxTokens,
-      temperature,
-      // Use array format with cache_control for prompt caching
-      system: [
-        {
-          type: 'text',
-          text: system,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages,
-    });
+  // Retry up to the number of available API keys
+  const maxRetries = Math.max(1, apiKeys.length || 1);
 
-    // Extract text from response
-    const textContent = response.content
-      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-      .map(block => block.text)
-      .join('\n');
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const client = getAnthropicClient();
 
-    return {
-      text: textContent,
-      model,
-    };
-  } catch (error) {
-    console.error('[Anthropic] Chat completion error:', error);
-    throw error;
-  }
-}
-
-/**
- * Create a streaming chat completion using Claude
- * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
- */
-export async function createAnthropicStreamingCompletion(options: AnthropicChatOptions): Promise<{
-  toTextStreamResponse: (opts?: { headers?: Record<string, string> }) => Response;
-  model: string;
-}> {
-  const client = getAnthropicClient();
-  const model = options.model || DEFAULT_MODEL;
-  const maxTokens = options.maxTokens || 4096;
-  const temperature = options.temperature ?? 0.7;
-
-  const { system, messages } = convertMessages(options.messages, options.systemPrompt);
-
-  // Create a TransformStream to convert Anthropic stream to text stream
-  const { readable, writable } = new TransformStream<string, string>();
-  const writer = writable.getWriter();
-
-  // Start streaming in the background with prompt caching on system prompt
-  (async () => {
     try {
-      const stream = await client.messages.stream({
+      // Non-streaming mode with prompt caching on system prompt
+      const response = await client.messages.create({
         model,
         max_tokens: maxTokens,
         temperature,
@@ -227,21 +315,100 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
         messages,
       });
 
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta') {
-          const delta = event.delta;
-          if ('text' in delta) {
-            await writer.write(delta.text);
+      // Extract text from response
+      const textContent = response.content
+        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+        .map(block => block.text)
+        .join('\n');
+
+      return {
+        text: textContent,
+        model,
+      };
+    } catch (error) {
+      // Check if this is a rate limit error
+      if (handleRateLimitError(error) && attempt < maxRetries - 1) {
+        console.log(`[Anthropic] Rate limited on attempt ${attempt + 1}, retrying with different key...`);
+        continue; // Try again with next available key
+      }
+
+      console.error('[Anthropic] Chat completion error:', error);
+      throw error;
+    }
+  }
+
+  // Should never reach here, but TypeScript needs this
+  throw new Error('All API keys exhausted');
+}
+
+/**
+ * Create a streaming chat completion using Claude
+ * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
+ * Handles rate limits by rotating to fallback API keys
+ */
+export async function createAnthropicStreamingCompletion(options: AnthropicChatOptions): Promise<{
+  toTextStreamResponse: (opts?: { headers?: Record<string, string> }) => Response;
+  model: string;
+}> {
+  const model = options.model || DEFAULT_MODEL;
+  const maxTokens = options.maxTokens || 4096;
+  const temperature = options.temperature ?? 0.7;
+
+  const { system, messages } = convertMessages(options.messages, options.systemPrompt);
+
+  // Create a TransformStream to convert Anthropic stream to text stream
+  const { readable, writable } = new TransformStream<string, string>();
+  const writer = writable.getWriter();
+
+  // Start streaming in the background with prompt caching on system prompt
+  (async () => {
+    const maxRetries = Math.max(1, apiKeys.length || 1);
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const client = getAnthropicClient();
+
+      try {
+        const stream = await client.messages.stream({
+          model,
+          max_tokens: maxTokens,
+          temperature,
+          // Use array format with cache_control for prompt caching
+          system: [
+            {
+              type: 'text',
+              text: system,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages,
+        });
+
+        for await (const event of stream) {
+          if (event.type === 'content_block_delta') {
+            const delta = event.delta;
+            if ('text' in delta) {
+              await writer.write(delta.text);
+            }
           }
         }
+
+        // Success - exit the retry loop
+        return;
+      } catch (error) {
+        // Check if this is a rate limit error and we can retry
+        if (handleRateLimitError(error) && attempt < maxRetries - 1) {
+          console.log(`[Anthropic] Streaming rate limited on attempt ${attempt + 1}, retrying with different key...`);
+          continue; // Try again with next available key
+        }
+
+        console.error('[Anthropic] Streaming error:', error);
+        await writer.write('\n\n[Error: Stream interrupted. Please try again.]');
+        return;
       }
-    } catch (error) {
-      console.error('[Anthropic] Streaming error:', error);
-      await writer.write('\n\n[Error: Stream interrupted]');
-    } finally {
-      await writer.close();
     }
-  })();
+  })().finally(() => {
+    writer.close();
+  });
 
   return {
     toTextStreamResponse: (opts?: { headers?: Record<string, string> }) => {
@@ -261,6 +428,7 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
  * Create a chat completion with web search support
  * Uses Brave Search when available
  * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
+ * Handles rate limits by rotating to fallback API keys
  */
 export async function createAnthropicCompletionWithSearch(
   options: AnthropicChatOptions
@@ -278,7 +446,6 @@ export async function createAnthropicCompletionWithSearch(
     return { ...result, citations: [], numSourcesUsed: 0 };
   }
 
-  const client = getAnthropicClient();
   const model = rest.model || DEFAULT_MODEL;
   const maxTokens = rest.maxTokens || 4096;
   const temperature = rest.temperature ?? 0.7;
@@ -287,6 +454,44 @@ export async function createAnthropicCompletionWithSearch(
 
   // System prompt with web search instruction (cached for cost savings)
   const systemWithSearch = system + '\n\nYou have access to web search. Use it when you need current information.';
+
+  // Helper to make API call with retry logic
+  const makeApiCall = async (
+    client: Anthropic,
+    msgs: typeof messages,
+    tools: Anthropic.Tool[]
+  ): Promise<Anthropic.Message> => {
+    const maxKeyRetries = Math.max(1, apiKeys.length || 1);
+
+    for (let attempt = 0; attempt < maxKeyRetries; attempt++) {
+      const currentClient = attempt === 0 ? client : getAnthropicClient();
+
+      try {
+        return await currentClient.messages.create({
+          model,
+          max_tokens: maxTokens,
+          temperature,
+          system: [
+            {
+              type: 'text',
+              text: systemWithSearch,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages: msgs,
+          tools,
+        });
+      } catch (error) {
+        if (handleRateLimitError(error) && attempt < maxKeyRetries - 1) {
+          console.log(`[Anthropic] Web search rate limited on attempt ${attempt + 1}, retrying with different key...`);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new Error('All API keys exhausted');
+  };
 
   // Define the web search tool
   const tools: Anthropic.Tool[] = [
@@ -314,21 +519,8 @@ export async function createAnthropicCompletionWithSearch(
   while (iterations < maxIterations) {
     iterations++;
 
-    const response = await client.messages.create({
-      model,
-      max_tokens: maxTokens,
-      temperature,
-      // Use array format with cache_control for prompt caching
-      system: [
-        {
-          type: 'text',
-          text: systemWithSearch,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
-      messages: currentMessages,
-      tools,
-    });
+    const client = getAnthropicClient();
+    const response = await makeApiCall(client, currentMessages, tools);
 
     // Check if the model wants to use a tool
     const toolUseBlocks = response.content.filter(
