@@ -101,6 +101,42 @@ export async function POST(
       return NextResponse.json({ status: 'failed', error: 'Empty response' });
     }
 
+    // DEDUPLICATION: Check if a similar assistant message was already saved
+    // This prevents duplicates when onFinish and this endpoint race
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: existingMessages } = await supabaseAdmin
+      .from('messages')
+      .select('id, content')
+      .eq('conversation_id', conversationId)
+      .eq('role', 'assistant')
+      .gte('created_at', twoMinutesAgo)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    // Check if any recent message has substantially similar content
+    if (existingMessages && existingMessages.length > 0) {
+      const contentStart = responseText.slice(0, 200);
+      const isDuplicate = existingMessages.some(msg =>
+        msg.content && msg.content.slice(0, 200) === contentStart
+      );
+
+      if (isDuplicate) {
+        console.log('[ProcessPending] Skipping duplicate - message already exists');
+        // Still delete the pending request
+        await supabaseAdmin
+          .from('pending_requests')
+          .delete()
+          .eq('id', pendingRequest.id);
+
+        // Return the existing content so UI can display it
+        return NextResponse.json({
+          status: 'completed',
+          content: responseText,
+          deduplicated: true,
+        });
+      }
+    }
+
     // Save the message to the database
     const { error: msgError } = await supabaseAdmin
       .from('messages')
