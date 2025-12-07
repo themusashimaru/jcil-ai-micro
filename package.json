@@ -21,6 +21,10 @@
   "dependencies": {
     "@ai-sdk/openai": "^2.0.75",
     "@anthropic-ai/sdk": "^0.71.2",
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4",
     "@google/generative-ai": "^0.7.0",
     "@simplewebauthn/browser": "^13.2.2",
     "@simplewebauthn/server": "^13.2.2",
