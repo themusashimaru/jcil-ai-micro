@@ -812,7 +812,7 @@ async function createWebSearchCompletion(
 
   // Build web search tool configuration with preferred domains
   const webSearchTool = {
-    type: 'web_search',
+    type: 'web_search_preview',
     // Note: OpenAI's web_search handles domain preferences through system prompts
     // The domains are included in the system prompt for guidance instead
     // If OpenAI adds domain filtering support, uncomment below:
