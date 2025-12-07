@@ -28,7 +28,9 @@ export default function ProvidersPage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingModels, setIsSavingModels] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   // Load current settings on mount
@@ -111,6 +113,60 @@ export default function ProvidersPage() {
     }
   };
 
+  // Handle model name changes
+  const handleModelChange = (provider: Provider, model: string) => {
+    setProviderConfig(prev => ({
+      ...prev,
+      [provider]: { model },
+    }));
+    setSuccessMessage(null); // Clear success message when editing
+  };
+
+  // Save model settings
+  const handleSaveModels = async () => {
+    if (isSavingModels) return;
+
+    // Validate inputs
+    if (!providerConfig.openai.model.trim() || !providerConfig.anthropic.model.trim()) {
+      setError('Model names cannot be empty');
+      return;
+    }
+
+    setIsSavingModels(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const response = await fetch('/api/admin/provider', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          activeProvider,
+          providerConfig,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to save model settings');
+      }
+
+      const data = await response.json();
+      setLastUpdated(new Date(data.updatedAt).toLocaleString());
+      setSuccessMessage('Model settings saved successfully!');
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('[Providers] Error saving models:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save model settings');
+    } finally {
+      setIsSavingModels(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div>
@@ -133,6 +189,12 @@ export default function ProvidersPage() {
       {error && (
         <div className="mb-6 rounded-lg bg-red-500/10 border border-red-500/20 p-4">
           <p className="text-red-400">{error}</p>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-6 rounded-lg bg-green-500/10 border border-green-500/20 p-4">
+          <p className="text-green-400">{successMessage}</p>
         </div>
       )}
 
@@ -216,28 +278,57 @@ export default function ProvidersPage() {
             <span className="text-gray-400">Switching provider...</span>
           </div>
         )}
-
-        {lastUpdated && (
-          <p className="mt-4 text-sm text-gray-500">Last updated: {lastUpdated}</p>
-        )}
       </div>
 
-      {/* Current Configuration */}
+      {/* Model Configuration */}
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 mb-6">
-        <h3 className="text-xl font-bold mb-4">Current Configuration</h3>
+        <h3 className="text-xl font-bold mb-2">Model Configuration</h3>
+        <p className="text-sm text-gray-400 mb-6">
+          Enter the exact model name as required by each provider&apos;s API. Changes take effect immediately after saving.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-4 rounded-lg bg-black/30">
-            <h4 className="font-medium mb-2 text-white">OpenAI</h4>
-            <p className="text-sm text-gray-400">
-              Model: <code className="bg-white/10 px-2 py-0.5 rounded">{providerConfig.openai.model}</code>
+          <div className="space-y-3">
+            <label className="block">
+              <span className="text-sm font-medium text-white">OpenAI Model</span>
+              <input
+                type="text"
+                value={providerConfig.openai.model}
+                onChange={(e) => handleModelChange('openai', e.target.value)}
+                placeholder="e.g., gpt-4o-mini, gpt-4o, o1-mini"
+                className="mt-1 w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none transition"
+              />
+            </label>
+            <p className="text-xs text-gray-500">
+              Examples: gpt-4o-mini, gpt-4o, gpt-4-turbo, o1-mini, o1
             </p>
           </div>
-          <div className="p-4 rounded-lg bg-black/30">
-            <h4 className="font-medium mb-2 text-white">Anthropic</h4>
-            <p className="text-sm text-gray-400">
-              Model: <code className="bg-white/10 px-2 py-0.5 rounded">{providerConfig.anthropic.model}</code>
+          <div className="space-y-3">
+            <label className="block">
+              <span className="text-sm font-medium text-white">Anthropic Model</span>
+              <input
+                type="text"
+                value={providerConfig.anthropic.model}
+                onChange={(e) => handleModelChange('anthropic', e.target.value)}
+                placeholder="e.g., claude-sonnet-4-5-20250929"
+                className="mt-1 w-full bg-black border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:border-green-500 focus:outline-none transition"
+              />
+            </label>
+            <p className="text-xs text-gray-500">
+              Examples: claude-sonnet-4-5-20250929, claude-opus-4-20250514
             </p>
           </div>
+        </div>
+        <div className="mt-6 flex items-center gap-4">
+          <button
+            onClick={handleSaveModels}
+            disabled={isSavingModels}
+            className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white rounded-lg font-medium transition"
+          >
+            {isSavingModels ? 'Saving...' : 'Save Model Settings'}
+          </button>
+          {lastUpdated && (
+            <span className="text-sm text-gray-500">Last updated: {lastUpdated}</span>
+          )}
         </div>
       </div>
 

@@ -796,9 +796,13 @@ export async function POST(request: NextRequest) {
     // ========================================
     // OPENAI PATH - GPT-5 (default)
     // ========================================
+    // Get the configured OpenAI model from provider settings
+    const openaiModel = providerSettings.providerConfig.openai?.model || 'gpt-5-mini';
+    console.log('[Chat API] Using OpenAI provider with model:', openaiModel);
+
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
-      console.log('[Chat API] Using non-streaming mode for image analysis - routing to gpt-5-mini');
+      console.log('[Chat API] Using non-streaming mode for image analysis');
       console.log('[Chat API] Messages being sent:', JSON.stringify(messagesWithContext.slice(-2).map(m => ({
         role: m.role,
         hasArrayContent: Array.isArray(m.content),
@@ -814,6 +818,7 @@ export async function POST(request: NextRequest) {
         stream: false,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
+        modelOverride: openaiModel,
       });
 
       // Extract citations and actual model used from result
@@ -866,7 +871,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      console.log('[Chat API] Calling createChatCompletion with stream: true');
+      console.log('[Chat API] Calling createChatCompletion with stream: true, model:', openaiModel);
       const result = await createChatCompletion({
         messages: messagesWithContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -877,6 +882,7 @@ export async function POST(request: NextRequest) {
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
         pendingRequestId: pendingRequestId || undefined,
+        modelOverride: openaiModel,
       });
 
       console.log('[Chat API] streamText returned, result type:', typeof result);

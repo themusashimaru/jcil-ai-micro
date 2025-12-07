@@ -307,6 +307,7 @@ interface ChatOptions {
   userId?: string; // For logging and usage tracking
   conversationId?: string; // For saving messages to DB on completion
   pendingRequestId?: string; // For background processing - delete on completion
+  modelOverride?: string; // Override model from provider settings
 }
 
 /**
@@ -651,24 +652,25 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
  * Create a chat completion with streaming support
  */
 export async function createChatCompletion(options: ChatOptions) {
-  const { messages, tool, temperature, maxTokens, stream = true, userId, conversationId, pendingRequestId } = options;
+  const { messages, tool, temperature, maxTokens, stream = true, userId, conversationId, pendingRequestId, modelOverride } = options;
 
   // Get the last user message text for routing decisions
   const lastUserText = getLastUserMessageText(messages);
 
-  // Determine the best model
-  const modelName = determineModel(messages, tool);
+  // Determine the best model - use override if provided (from admin settings)
+  const baseModelName = determineModel(messages, tool);
+  const modelName = (modelOverride || baseModelName) as OpenAIModel;
 
   // Check if we should use web search (tool-based OR content-based)
   const useWebSearch = shouldUseWebSearch(tool, lastUserText);
 
-  console.log('[OpenAI] Using model:', modelName, 'stream:', stream, 'webSearch:', useWebSearch, 'query:', lastUserText?.slice(0, 50));
+  console.log('[OpenAI] Using model:', modelName, 'override:', !!modelOverride, 'stream:', stream, 'webSearch:', useWebSearch, 'query:', lastUserText?.slice(0, 50));
 
   // Use Responses API with web search (either tool-based or content-based trigger)
   if (useWebSearch) {
     const triggerReason = tool && WEB_SEARCH_TOOLS.includes(tool) ? `tool: ${tool}` : 'content pattern';
     console.log('[OpenAI] Using Responses API with web search, trigger:', triggerReason);
-    return createWebSearchCompletion(options, 'gpt-5-mini'); // Use gpt-5-mini for web search per directive
+    return createWebSearchCompletion(options, modelName); // Use configured model for web search
   }
 
   // Use non-streaming for image analysis or when explicitly requested
