@@ -61,8 +61,10 @@ export async function braveSearch(query: string, options?: {
 }): Promise<BraveSearchResult> {
   const apiKey = process.env.BRAVE_SEARCH_API_KEY;
 
+  console.log('[Brave Search] Called with query:', query, 'API key present:', !!apiKey);
+
   if (!apiKey) {
-    console.warn('[Brave Search] API key not configured');
+    console.error('[Brave Search] BRAVE_SEARCH_API_KEY not configured - returning empty results');
     return {
       results: [],
       query,
@@ -71,18 +73,16 @@ export async function braveSearch(query: string, options?: {
 
   const count = options?.count || 10;
   const safesearch = options?.safesearch || 'moderate';
+  // Default to 'week' freshness for news-like queries to get recent results
+  const freshness = options?.freshness || 'week';
 
-  // Build query parameters
+  // Build query parameters - always include freshness to prioritize recent results
   const params = new URLSearchParams({
     q: query,
     count: count.toString(),
     safesearch,
+    freshness,
   });
-
-  // Add freshness filter if specified
-  if (options?.freshness) {
-    params.append('freshness', options.freshness);
-  }
 
   try {
     console.log('[Brave Search] Searching for:', query);
