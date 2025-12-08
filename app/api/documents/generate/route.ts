@@ -312,7 +312,42 @@ export async function POST(request: NextRequest) {
     };
 
     // Parse markdown content
-    const elements = parseMarkdown(content);
+    let elements = parseMarkdown(content);
+
+    // RESUME FIX: Filter out generic document titles at the start
+    // Users don't want "Resume Template ATS Friendly" printed - just their actual resume
+    if (isResume && elements.length > 0) {
+      const genericTitlePatterns = [
+        /^resume\s*(template)?/i,
+        /^(ats|applicant tracking)/i,
+        /^cv\s*(template)?/i,
+        /^curriculum vitae/i,
+        /^professional resume/i,
+        /^modern resume/i,
+      ];
+
+      // Check if first element is a generic title (H1 with generic text)
+      while (elements.length > 0 && elements[0].type === 'h1') {
+        const firstText = elements[0].text.toLowerCase().trim();
+        const isGenericTitle = genericTitlePatterns.some(p => p.test(firstText));
+
+        if (isGenericTitle) {
+          console.log('[Documents API] Filtering out generic resume title:', elements[0].text);
+          elements = elements.slice(1); // Remove the generic title
+        } else {
+          break; // Found the real name, stop filtering
+        }
+      }
+
+      // Also filter if the first H1 doesn't look like a name (too long or has keywords)
+      if (elements.length > 0 && elements[0].type === 'h1') {
+        const firstH1 = elements[0].text.toLowerCase();
+        if (firstH1.includes('template') || firstH1.includes('ats') || firstH1.includes('friendly') || firstH1.length > 50) {
+          console.log('[Documents API] Filtering out likely template title:', elements[0].text);
+          elements = elements.slice(1);
+        }
+      }
+    }
 
     // Render each element
     for (const element of elements) {
