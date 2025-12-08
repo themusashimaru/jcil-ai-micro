@@ -550,8 +550,71 @@ export async function createAnthropicCompletionWithSearch(
 
   const { system, messages } = convertMessages(rest.messages, rest.systemPrompt);
 
-  // System prompt with web search instruction
-  const systemWithSearch = system + '\n\nYou have access to web search. Use it to find current information when needed, such as news, weather, dates, events, prices, or any real-time data. Always search when the user asks about current events, "today", "latest", "recent", or time-sensitive information.';
+  // Comprehensive web search protocol - strict and utilitarian
+  const webSearchProtocol = `
+═══════════════════════════════════════════════════════════════════════════════
+🔍 WEB SEARCH PROTOCOL (MANDATORY)
+═══════════════════════════════════════════════════════════════════════════════
+
+You have access to web search. You MUST use it for ANY query requiring current information.
+
+MANDATORY SEARCH - ALWAYS SEARCH FOR:
+- Current time, date, day of week (for ANY timezone)
+- Weather (current conditions, forecasts, alerts)
+- News and current events
+- Sports scores and schedules
+- Stock prices and market data
+- Local businesses and services
+- Movie showtimes and events
+- Product prices and availability
+- Any question with "today", "now", "current", "latest", "recent"
+
+CRITICAL RULES:
+1. SEARCH FIRST, TALK LATER - Do NOT answer from memory for time-sensitive topics
+2. NO FOLLOW-UP QUESTIONS - Just search and provide results immediately
+3. NO CLARIFYING QUESTIONS - Make reasonable assumptions and search
+4. TRUST SEARCH RESULTS - Use the actual data from search, not your training
+5. PROVIDE SOURCES - Always cite where the information came from
+
+TIME AND DATE HANDLING (CRITICAL):
+- ALWAYS search for current time/date - your internal clock may be wrong
+- Search "[city name] current time" or "time in [city]" for accurate results
+- Do NOT calculate timezone offsets yourself - search for the actual time
+- Do NOT use server time or your training data for current time
+- Include the timezone in your response (EST, PST, etc.)
+
+RESPONSE FORMAT:
+- Be CONCISE and DIRECT
+- Answer the question first, then provide context
+- Include source URLs at the end
+- Do NOT add unnecessary commentary or follow-up questions
+
+EXAMPLE RESPONSES:
+
+For time queries:
+"The current time in Denver, Colorado is 3:45 PM MST (Mountain Standard Time) on Sunday, December 8, 2024.
+Source: timeanddate.com"
+
+For weather:
+"Current weather in Boston: 42°F, partly cloudy, winds 12 mph NW.
+Tonight: Low of 35°F with clear skies.
+Source: weather.gov"
+
+For news:
+"[Headline summary in 1-2 sentences]
+Source: [Publication name] - [URL]"
+
+NEVER DO:
+- Ask "what timezone are you in?" - just provide the time for the location asked
+- Say "let me search for that" - just search and give the answer
+- Use phrases like "based on my training data" - search for current info
+- Ask "would you like more details?" - give complete useful answers
+- Apologize excessively - just provide accurate information
+═══════════════════════════════════════════════════════════════════════════════
+`;
+
+  // Combine the main system prompt with web search protocol
+  const systemWithSearch = system + '\n\n' + webSearchProtocol;
 
   const citations: Array<{ title: string; url: string }> = [];
   const maxRetries = Math.max(1, getTotalKeyCount());
