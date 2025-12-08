@@ -124,6 +124,23 @@ const WEB_SEARCH_PATTERNS = [
   /\b(who\s+is|who'?s|tell\s+me\s+about)\s+[A-Z][a-z]+\s+[A-Z][a-z]+/i,
   /\b(ceo|founder|owner|president|cfo|cto)\s+(of|at)\b/i,
 
+  // Celebrity news and gossip - "what's going on with [person]", "[person] news"
+  /\b(what'?s|what\s+is)\s+(going\s+on|happening|up)\s+(with|to)\s+/i,
+  /\b(check|checking)\s+(on|up\s+on|into)\s+/i,  // "check on this", "checking up on"
+  /\b(latest|recent|new|current)\s+(on|about|with|news\s+on)\s+/i, // "latest on Elon Musk"
+  /\b[A-Z][a-z]+\s+[A-Z][a-z]+\s+(news|update|latest|scandal|drama|controversy)/i, // "Trump news", "Kanye update"
+
+  // FACT CHECKING & VERIFICATION
+  // Explicit fact-check requests
+  /\b(fact[\s-]?check|fact[\s-]?checking|factcheck)\b/i,
+  /\b(is\s+(it|that|this)\s+true\s+that|is\s+it\s+true)\b/i,
+  /\b(verify|verification|debunk|confirm)\s+(this|that|if|whether)?\b/i,
+  /\b(true\s+or\s+false|real\s+or\s+fake|legit\s+or\s+not)\b/i,
+  /\b(is\s+.{1,40}\s+(true|real|accurate|legit|fake|false|misinformation|a\s+hoax))\b/i,
+  /\b(did\s+.{1,40}\s+really|really\s+happen|actually\s+happen)\b/i,
+  /\b(rumor|hoax|myth|conspiracy)\s+(about|that|is)\b/i,
+  /\b(can\s+you\s+)?(check|verify|confirm|look\s+up)\s+(if|whether|that|this)\b/i,
+
   // Company and organization info
   /\b(company|corporation|organization|startup|business)\s+(info|information|details|about)\b/i,
   /\b(what\s+is|what'?s)\s+[A-Z][a-z]+\s*(inc|corp|llc|ltd|co)?\b/i,
