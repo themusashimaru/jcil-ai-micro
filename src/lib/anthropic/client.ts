@@ -589,23 +589,30 @@ export async function createAnthropicCompletionWithSearch(
   }));
 
   // Create a prompt for Claude to format the Perplexity results
-  const formattingPrompt = `You are formatting search results for the user. Here is accurate, real-time information from a web search:
+  // Build clickable markdown links for sources
+  const sourceLinks = perplexityResult.sources
+    .filter(s => s.url && s.url.startsWith('http'))
+    .map(s => `- [${s.title || new URL(s.url).hostname}](${s.url})`)
+    .join('\n');
+
+  const formattingPrompt = `Format these search results for the user.
 
 SEARCH RESULTS:
 ${perplexityResult.answer}
 
-SOURCES:
-${perplexityResult.sources.map(s => `• ${s.title}: ${s.url}`).join('\n')}
+USER'S QUESTION: ${userQuery}
 
-USER'S ORIGINAL QUESTION:
-${userQuery}
+FORMATTING RULES:
+1. Present the information conversationally but concisely
+2. Keep ALL data EXACTLY as provided: times, dates, temperatures, timestamps
+3. NO em dashes (—). Use commas, periods, or hyphens only
+4. NO numbered references like [1] or [2]
+5. At the end, add "**Sources:**" followed by the clickable links below
 
-INSTRUCTIONS:
-1. Present this information in a helpful, conversational way
-2. Keep the data EXACTLY as provided - do not modify times, dates, temperatures, etc.
-3. Include the sources at the end
-4. Be concise and direct
-5. Do not add information that wasn't in the search results`;
+SOURCES TO INCLUDE AT END:
+${sourceLinks}
+
+Do not modify the source links. Copy them exactly as shown above.`;
 
   const formattedMessages = [
     ...messages.slice(0, -1), // Previous conversation context

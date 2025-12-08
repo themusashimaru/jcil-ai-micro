@@ -28,6 +28,7 @@ export interface Message {
   citations?: string[]; // Source URLs from Live Search
   sourcesUsed?: number; // Number of sources used in search
   model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
+  searchProvider?: string; // Search provider used (perplexity, etc.) - for admin display
   timestamp: Date;
   isStreaming?: boolean;
 }

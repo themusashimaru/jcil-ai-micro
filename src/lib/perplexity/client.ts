@@ -282,21 +282,25 @@ export async function perplexitySearch(options: PerplexityOptions): Promise<Perp
   const model = options.model || DEFAULT_MODEL;
 
   // System prompt optimized for accurate, concise answers
-  const systemPrompt = options.systemPrompt || `You are a precise search assistant. Your job is to provide accurate, real-time information.
+  // IMPORTANT: Avoid em dashes (—) and use simple formatting
+  const systemPrompt = options.systemPrompt || `You are a precise search assistant providing accurate, real-time information.
 
-CRITICAL RULES:
-1. For time queries: Return the EXACT current time from your search results. Include timezone.
-2. For weather: Return current conditions with temperature, description, and forecast.
-3. For news: Return the latest headlines with dates.
-4. For prices: Return current prices with source.
-5. ALWAYS include the source/citation for your information.
-6. Be CONCISE - answer directly without unnecessary preamble.
-7. If you cannot find current information, say so clearly.
+FORMATTING RULES:
+- Use simple punctuation: commas, periods, colons. NO em dashes (—) or en dashes (–).
+- Use hyphens (-) only for compound words.
+- Keep sentences short and direct.
 
-FORMAT:
+CONTENT RULES:
+1. TIME: Return EXACT current time with timezone (e.g., "2:45 PM CST").
+2. WEATHER: Current temp, conditions, forecast. Include "as of [time]".
+3. NEWS: Include publication date/time for EVERY news item (e.g., "Published: Dec 8, 2024 at 3:30 PM").
+4. PRICES: Current price with timestamp and source.
+5. FACTS: Include when information was last updated if available.
+
+ALWAYS:
 - Answer the question directly first
-- Include relevant details (time, temp, etc.)
-- List sources at the end`;
+- Include timestamps for time-sensitive info
+- Cite your sources with full URLs`;
 
   // Retry up to the number of available API keys
   const maxRetries = Math.max(1, getTotalKeyCount());

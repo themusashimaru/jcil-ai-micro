@@ -837,9 +837,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check if web search is needed - use Anthropic's native web search tool
+      // Check if web search is needed - use Perplexity for search, Claude for formatting
       if (willUseWebSearch) {
-        console.log('[Chat API] Anthropic: Using native web search (web_search_20250305)');
+        console.log('[Chat API] Using Perplexity search + Claude formatting');
         const result = await createAnthropicCompletionWithSearch({
           messages: messagesWithContext,
           model: anthropicModel,
@@ -864,7 +864,7 @@ export async function POST(request: NextRequest) {
               'Content-Type': 'application/json',
               'X-Model-Used': result.model,
               'X-Provider': 'anthropic',
-              'X-Web-Search': 'native',
+              'X-Web-Search': 'perplexity',
             },
           }
         );
