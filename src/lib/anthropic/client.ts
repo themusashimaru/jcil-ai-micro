@@ -527,10 +527,15 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 }
 
 /**
- * Create a chat completion with Anthropic's NATIVE web search
- * Uses Anthropic's server-side web_search_20250305 tool - no external API needed!
- * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
- * Handles rate limits by rotating to fallback API keys
+ * Create a chat completion with PERPLEXITY web search + Claude formatting
+ *
+ * HYBRID APPROACH:
+ * 1. Perplexity handles the actual web search (accurate real-time data)
+ * 2. Claude formats and presents the results (conversational style)
+ *
+ * This gives you the best of both worlds:
+ * - Accurate time, weather, news from Perplexity
+ * - Claude's personality and formatting
  */
 export async function createAnthropicCompletionWithSearch(
   options: AnthropicChatOptions
@@ -540,7 +545,6 @@ export async function createAnthropicCompletionWithSearch(
   citations: Array<{ title: string; url: string }>;
   numSourcesUsed: number;
 }> {
-  // We no longer need webSearchFn - using Anthropic's native search
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { webSearchFn, ...rest } = options;
 
@@ -550,72 +554,123 @@ export async function createAnthropicCompletionWithSearch(
 
   const { system, messages } = convertMessages(rest.messages, rest.systemPrompt);
 
-  // Comprehensive web search protocol - strict and utilitarian
-  const webSearchProtocol = `
-═══════════════════════════════════════════════════════════════════════════════
-🔍 WEB SEARCH PROTOCOL (MANDATORY)
-═══════════════════════════════════════════════════════════════════════════════
+  // Get the user's query from the last message
+  const lastMessage = messages[messages.length - 1];
+  const userQuery = typeof lastMessage.content === 'string'
+    ? lastMessage.content
+    : Array.isArray(lastMessage.content)
+      ? lastMessage.content.map(c => 'text' in c ? c.text : '').join(' ')
+      : '';
 
+  // Try Perplexity first for accurate search results
+  let perplexityResult: { answer: string; sources: Array<{ title: string; url: string }> } | null = null;
+
+  try {
+    // Dynamic import to avoid issues if perplexity module isn't available
+    const { perplexitySearch, isPerplexityConfigured } = await import('@/lib/perplexity/client');
+
+    if (isPerplexityConfigured()) {
+      console.log('[Anthropic+Perplexity] Using Perplexity for web search');
+      perplexityResult = await perplexitySearch({ query: userQuery });
+      console.log(`[Anthropic+Perplexity] Perplexity returned ${perplexityResult.sources.length} sources`);
+    } else {
+      console.log('[Anthropic+Perplexity] Perplexity not configured, falling back to Anthropic native search');
+    }
+  } catch (perplexityError) {
+    console.error('[Anthropic+Perplexity] Perplexity error, falling back:', perplexityError);
+  }
+
+  // If Perplexity succeeded, use Claude to format the response
+  if (perplexityResult) {
+    const citations = perplexityResult.sources.map(s => ({
+      title: s.title,
+      url: s.url,
+    }));
+
+    // Create a prompt for Claude to format the Perplexity results
+    const formattingPrompt = `You are formatting search results for the user. Here is accurate, real-time information from a web search:
+
+SEARCH RESULTS:
+${perplexityResult.answer}
+
+SOURCES:
+${perplexityResult.sources.map(s => `• ${s.title}: ${s.url}`).join('\n')}
+
+USER'S ORIGINAL QUESTION:
+${userQuery}
+
+INSTRUCTIONS:
+1. Present this information in a helpful, conversational way
+2. Keep the data EXACTLY as provided - do not modify times, dates, temperatures, etc.
+3. Include the sources at the end
+4. Be concise and direct
+5. Do not add information that wasn't in the search results`;
+
+    const formattedMessages = [
+      ...messages.slice(0, -1), // Previous conversation context
+      { role: 'user' as const, content: formattingPrompt },
+    ];
+
+    const maxRetries = Math.max(1, getTotalKeyCount());
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const client = getAnthropicClient();
+      lastUsedClient = client;
+
+      try {
+        const response = await client.messages.create({
+          model,
+          max_tokens: maxTokens,
+          temperature: 0.3, // Lower temperature for more accurate formatting
+          system: [
+            {
+              type: 'text',
+              text: system,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages: formattedMessages,
+        });
+
+        const textContent = response.content
+          .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+          .map(block => block.text)
+          .join('\n');
+
+        console.log('[Anthropic+Perplexity] Successfully formatted Perplexity results with Claude');
+
+        return {
+          text: textContent,
+          model,
+          citations,
+          numSourcesUsed: citations.length,
+        };
+      } catch (error) {
+        if (handleRateLimitError(error) && attempt < maxRetries - 1) {
+          console.log(`[Anthropic+Perplexity] Rate limited on attempt ${attempt + 1}, retrying...`);
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  // Fallback: Use Anthropic's native web search if Perplexity failed
+  console.log('[Anthropic] Falling back to native web search');
+
+  const webSearchProtocol = `
 You have access to web search. You MUST use it for ANY query requiring current information.
 
-MANDATORY SEARCH - ALWAYS SEARCH FOR:
-- Current time, date, day of week (for ANY timezone)
-- Weather (current conditions, forecasts, alerts)
-- News and current events
-- Sports scores and schedules
-- Stock prices and market data
-- Local businesses and services
-- Movie showtimes and events
-- Product prices and availability
-- Any question with "today", "now", "current", "latest", "recent"
+MANDATORY SEARCH FOR: time, date, weather, news, prices, events, sports, stocks.
 
 CRITICAL RULES:
-1. SEARCH FIRST, TALK LATER - Do NOT answer from memory for time-sensitive topics
-2. NO FOLLOW-UP QUESTIONS - Just search and provide results immediately
-3. NO CLARIFYING QUESTIONS - Make reasonable assumptions and search
-4. TRUST SEARCH RESULTS - Use the actual data from search, not your training
-5. PROVIDE SOURCES - Always cite where the information came from
+1. SEARCH FIRST - Do NOT answer from memory for time-sensitive topics
+2. NO FOLLOW-UP QUESTIONS - Just search and provide results
+3. TRUST SEARCH RESULTS - Use actual data, not training
+4. PROVIDE SOURCES - Always cite where info came from
+5. Be CONCISE and DIRECT`;
 
-TIME AND DATE HANDLING (CRITICAL):
-- ALWAYS search for current time/date - your internal clock may be wrong
-- Search "[city name] current time" or "time in [city]" for accurate results
-- Do NOT calculate timezone offsets yourself - search for the actual time
-- Do NOT use server time or your training data for current time
-- Include the timezone in your response (EST, PST, etc.)
-
-RESPONSE FORMAT:
-- Be CONCISE and DIRECT
-- Answer the question first, then provide context
-- Include source URLs at the end
-- Do NOT add unnecessary commentary or follow-up questions
-
-EXAMPLE RESPONSES:
-
-For time queries:
-"The current time in Denver, Colorado is 3:45 PM MST (Mountain Standard Time) on Sunday, December 8, 2024.
-Source: timeanddate.com"
-
-For weather:
-"Current weather in Boston: 42°F, partly cloudy, winds 12 mph NW.
-Tonight: Low of 35°F with clear skies.
-Source: weather.gov"
-
-For news:
-"[Headline summary in 1-2 sentences]
-Source: [Publication name] - [URL]"
-
-NEVER DO:
-- Ask "what timezone are you in?" - just provide the time for the location asked
-- Say "let me search for that" - just search and give the answer
-- Use phrases like "based on my training data" - search for current info
-- Ask "would you like more details?" - give complete useful answers
-- Apologize excessively - just provide accurate information
-═══════════════════════════════════════════════════════════════════════════════
-`;
-
-  // Combine the main system prompt with web search protocol
   const systemWithSearch = system + '\n\n' + webSearchProtocol;
-
   const citations: Array<{ title: string; url: string }> = [];
   const maxRetries = Math.max(1, getTotalKeyCount());
 
@@ -626,8 +681,6 @@ NEVER DO:
     try {
       console.log('[Anthropic] Using native web search (web_search_20250305)');
 
-      // Use Anthropic's native web search tool
-      // This is a server-side tool - Anthropic handles the search execution automatically
       const response = await client.messages.create({
         model,
         max_tokens: maxTokens,
@@ -640,31 +693,27 @@ NEVER DO:
           },
         ],
         messages,
-        // Anthropic's native web search tool configuration
         tools: [
           {
             type: 'web_search_20250305',
             name: 'web_search',
-            max_uses: 5, // Allow up to 5 searches per request
+            max_uses: 5,
           } as unknown as Anthropic.Tool,
         ],
       });
 
-      // Extract text content and citations from response
       let textContent = '';
 
       for (const block of response.content) {
         if (block.type === 'text') {
           textContent += block.text;
         } else if (block.type === 'tool_use' && block.name === 'web_search') {
-          // Log that web search was used
           const input = block.input as { query?: string };
           console.log('[Anthropic] Web search executed for:', input?.query || 'query');
         }
       }
 
-      // Extract URLs from the response for citations
-      // Anthropic's web search includes source URLs in the text
+      // Extract URLs for citations
       const urlRegex = /https?:\/\/[^\s\])"'<>]+/g;
       const foundUrls = textContent.match(urlRegex) || [];
       const uniqueUrls = [...new Set(foundUrls)];
@@ -673,7 +722,6 @@ NEVER DO:
         try {
           const urlObj = new URL(url);
           const domain = urlObj.hostname.replace('www.', '');
-          // Skip common non-citation URLs
           if (!domain.includes('anthropic') && !domain.includes('claude')) {
             citations.push({ title: domain, url: url.replace(/[.,;:!?)]+$/, '') });
           }
@@ -697,15 +745,11 @@ NEVER DO:
       }
 
       console.error('[Anthropic] Web search error:', error);
-
-      // Fall back to regular completion without web search
-      console.log('[Anthropic] Falling back to regular completion without web search');
       const fallbackResult = await createAnthropicCompletion(rest);
       return { ...fallbackResult, citations: [], numSourcesUsed: 0 };
     }
   }
 
-  // All retries exhausted - fallback
   const fallbackResult = await createAnthropicCompletion(rest);
   return { ...fallbackResult, citations: [], numSourcesUsed: 0 };
 }
