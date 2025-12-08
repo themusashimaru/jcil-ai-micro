@@ -22,6 +22,19 @@ const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 // sonar-pro: Most accurate, best for complex queries
 const DEFAULT_MODEL = 'sonar';
 
+/**
+ * Extract readable domain name from URL
+ * e.g., "https://www.bbc.com/news/article" -> "bbc.com"
+ */
+function extractDomainFromUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.replace('www.', '');
+  } catch {
+    return 'Source';
+  }
+}
+
 // ========================================
 // DUAL-POOL API KEY SYSTEM (DYNAMIC)
 // ========================================
@@ -367,20 +380,55 @@ ALWAYS:
       // Extract the answer
       const answer = data.choices?.[0]?.message?.content || 'No answer found';
 
-      // Extract citations/sources
+      // Extract citations/sources from multiple possible locations
       const sources: Array<{ title: string; url: string; snippet?: string }> = [];
 
+      // Method 1: Check data.citations (standard location)
       if (data.citations && Array.isArray(data.citations)) {
+        console.log('[Perplexity] Found citations in data.citations:', data.citations.length);
         for (const citation of data.citations) {
-          sources.push({
-            title: citation.title || citation.url || 'Source',
-            url: citation.url || '',
-            snippet: citation.snippet,
-          });
+          if (citation.url && citation.url.startsWith('http')) {
+            sources.push({
+              title: citation.title || extractDomainFromUrl(citation.url),
+              url: citation.url,
+              snippet: citation.snippet,
+            });
+          }
         }
       }
 
-      console.log(`[Perplexity] Search complete. Found ${sources.length} sources.`);
+      // Method 2: Check choices[0].message.citations
+      const messageCitations = data.choices?.[0]?.message?.citations;
+      if (messageCitations && Array.isArray(messageCitations)) {
+        console.log('[Perplexity] Found citations in message.citations:', messageCitations.length);
+        for (const citation of messageCitations) {
+          const url = typeof citation === 'string' ? citation : citation.url;
+          if (url && url.startsWith('http') && !sources.some(s => s.url === url)) {
+            sources.push({
+              title: typeof citation === 'object' ? (citation.title || extractDomainFromUrl(url)) : extractDomainFromUrl(url),
+              url: url,
+            });
+          }
+        }
+      }
+
+      // Method 3: Extract URLs from the answer text if no citations found
+      if (sources.length === 0) {
+        console.log('[Perplexity] No citations array found, extracting URLs from answer text');
+        const urlRegex = /https?:\/\/[^\s\])"'<>]+/g;
+        const foundUrls: string[] = answer.match(urlRegex) || [];
+        const uniqueUrls: string[] = [...new Set(foundUrls)];
+        for (const url of uniqueUrls.slice(0, 10)) {
+          if (url.startsWith('http')) {
+            sources.push({
+              title: extractDomainFromUrl(url),
+              url: url.replace(/[.,;:!?)]+$/, ''), // Clean trailing punctuation
+            });
+          }
+        }
+      }
+
+      console.log(`[Perplexity] Search complete. Found ${sources.length} sources:`, sources.map(s => s.url).join(', '));
 
       return {
         answer,
