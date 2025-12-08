@@ -527,8 +527,8 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 }
 
 /**
- * Create a chat completion with web search support
- * Uses Brave Search when available
+ * Create a chat completion with Anthropic's NATIVE web search
+ * Uses Anthropic's server-side web_search_20250305 tool - no external API needed!
  * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
  * Handles rate limits by rotating to fallback API keys
  */
@@ -540,13 +540,9 @@ export async function createAnthropicCompletionWithSearch(
   citations: Array<{ title: string; url: string }>;
   numSourcesUsed: number;
 }> {
+  // We no longer need webSearchFn - using Anthropic's native search
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { webSearchFn, ...rest } = options;
-
-  if (!webSearchFn) {
-    // No search function provided, use regular completion
-    const result = await createAnthropicCompletion(rest);
-    return { ...result, citations: [], numSourcesUsed: 0 };
-  }
 
   const model = rest.model || DEFAULT_MODEL;
   const maxTokens = rest.maxTokens || 4096;
@@ -554,88 +550,76 @@ export async function createAnthropicCompletionWithSearch(
 
   const { system, messages } = convertMessages(rest.messages, rest.systemPrompt);
 
-  // System prompt with web search instruction (cached for cost savings)
-  const systemWithSearch = system + '\n\nYou have access to web search. Use it when you need current information.';
-
-  // Helper to make API call with retry logic
-  const makeApiCall = async (
-    client: Anthropic,
-    msgs: typeof messages,
-    tools: Anthropic.Tool[]
-  ): Promise<Anthropic.Message> => {
-    const maxKeyRetries = Math.max(1, getTotalKeyCount());
-
-    for (let attempt = 0; attempt < maxKeyRetries; attempt++) {
-      const currentClient = attempt === 0 ? client : getAnthropicClient();
-      lastUsedClient = currentClient; // Track for rate limit marking
-
-      try {
-        return await currentClient.messages.create({
-          model,
-          max_tokens: maxTokens,
-          temperature,
-          system: [
-            {
-              type: 'text',
-              text: systemWithSearch,
-              cache_control: { type: 'ephemeral' },
-            },
-          ],
-          messages: msgs,
-          tools,
-        });
-      } catch (error) {
-        if (handleRateLimitError(error) && attempt < maxKeyRetries - 1) {
-          console.log(`[Anthropic] Web search rate limited on attempt ${attempt + 1}, retrying with different key...`);
-          continue;
-        }
-        throw error;
-      }
-    }
-
-    throw new Error('All API keys exhausted');
-  };
-
-  // Define the web search tool
-  const tools: Anthropic.Tool[] = [
-    {
-      name: 'web_search',
-      description: 'Search the web for current information. Use this when the user asks about recent events, current data, or information that may have changed since your training.',
-      input_schema: {
-        type: 'object' as const,
-        properties: {
-          query: {
-            type: 'string',
-            description: 'The search query to look up',
-          },
-        },
-        required: ['query'],
-      },
-    },
-  ];
+  // System prompt with web search instruction
+  const systemWithSearch = system + '\n\nYou have access to web search. Use it to find current information when needed, such as news, weather, dates, events, prices, or any real-time data. Always search when the user asks about current events, "today", "latest", "recent", or time-sensitive information.';
 
   const citations: Array<{ title: string; url: string }> = [];
-  const currentMessages = [...messages];
-  let iterations = 0;
-  const maxIterations = 3; // Prevent infinite loops
+  const maxRetries = Math.max(1, getTotalKeyCount());
 
-  while (iterations < maxIterations) {
-    iterations++;
-
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     const client = getAnthropicClient();
-    const response = await makeApiCall(client, currentMessages, tools);
+    lastUsedClient = client;
 
-    // Check if the model wants to use a tool
-    const toolUseBlocks = response.content.filter(
-      (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
-    );
+    try {
+      console.log('[Anthropic] Using native web search (web_search_20250305)');
 
-    if (toolUseBlocks.length === 0) {
-      // No tool use, return the text response
-      const textContent = response.content
-        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-        .map(block => block.text)
-        .join('\n');
+      // Use Anthropic's native web search tool
+      // This is a server-side tool - Anthropic handles the search execution automatically
+      const response = await client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        system: [
+          {
+            type: 'text',
+            text: systemWithSearch,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        messages,
+        // Anthropic's native web search tool configuration
+        tools: [
+          {
+            type: 'web_search_20250305',
+            name: 'web_search',
+            max_uses: 5, // Allow up to 5 searches per request
+          } as unknown as Anthropic.Tool,
+        ],
+      });
+
+      // Extract text content and citations from response
+      let textContent = '';
+
+      for (const block of response.content) {
+        if (block.type === 'text') {
+          textContent += block.text;
+        } else if (block.type === 'tool_use' && block.name === 'web_search') {
+          // Log that web search was used
+          const input = block.input as { query?: string };
+          console.log('[Anthropic] Web search executed for:', input?.query || 'query');
+        }
+      }
+
+      // Extract URLs from the response for citations
+      // Anthropic's web search includes source URLs in the text
+      const urlRegex = /https?:\/\/[^\s\])"'<>]+/g;
+      const foundUrls = textContent.match(urlRegex) || [];
+      const uniqueUrls = [...new Set(foundUrls)];
+
+      for (const url of uniqueUrls.slice(0, 10)) {
+        try {
+          const urlObj = new URL(url);
+          const domain = urlObj.hostname.replace('www.', '');
+          // Skip common non-citation URLs
+          if (!domain.includes('anthropic') && !domain.includes('claude')) {
+            citations.push({ title: domain, url: url.replace(/[.,;:!?)]+$/, '') });
+          }
+        } catch {
+          // Invalid URL, skip
+        }
+      }
+
+      console.log(`[Anthropic] Web search complete. Found ${citations.length} sources.`);
 
       return {
         text: textContent,
@@ -643,99 +627,24 @@ export async function createAnthropicCompletionWithSearch(
         citations,
         numSourcesUsed: citations.length,
       };
-    }
-
-    // Process tool calls
-    for (const toolUse of toolUseBlocks) {
-      if (toolUse.name === 'web_search') {
-        const query = (toolUse.input as { query: string }).query;
-        console.log('[Anthropic] Executing web search:', query);
-
-        try {
-          const searchResults = await webSearchFn(query);
-
-          // Add citations from search results
-          for (const result of searchResults.results.slice(0, 5)) {
-            citations.push({
-              title: result.title,
-              url: result.url,
-            });
-          }
-
-          // Format search results for the model
-          const formattedResults = searchResults.results
-            .slice(0, 5)
-            .map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.description}${r.content ? '\n' + r.content.slice(0, 500) : ''}`)
-            .join('\n\n');
-
-          // Add the assistant's response and tool result to messages
-          currentMessages.push({
-            role: 'assistant',
-            content: response.content.map((block) => {
-              if (block.type === 'text') {
-                return { type: 'text' as const, text: block.text };
-              } else if (block.type === 'tool_use') {
-                return {
-                  type: 'tool_use' as const,
-                  id: block.id,
-                  name: block.name,
-                  input: block.input,
-                };
-              }
-              // Handle other block types (e.g., thinking) by returning empty text
-              return { type: 'text' as const, text: '' };
-            }) as Array<{ type: 'text'; text: string }>,
-          });
-
-          currentMessages.push({
-            role: 'user',
-            content: [{
-              type: 'tool_result' as unknown as 'text',
-              tool_use_id: toolUse.id,
-              content: `Search results for "${query}":\n\n${formattedResults}`,
-            }] as unknown as Array<{ type: 'text'; text: string }>,
-          });
-        } catch (error) {
-          console.error('[Anthropic] Web search error:', error);
-          // Provide error feedback to the model
-          currentMessages.push({
-            role: 'assistant',
-            content: response.content.map((block) => {
-              if (block.type === 'text') {
-                return { type: 'text' as const, text: block.text };
-              } else if (block.type === 'tool_use') {
-                return {
-                  type: 'tool_use' as const,
-                  id: block.id,
-                  name: block.name,
-                  input: block.input,
-                };
-              }
-              // Handle other block types by returning empty text
-              return { type: 'text' as const, text: '' };
-            }) as Array<{ type: 'text'; text: string }>,
-          });
-          currentMessages.push({
-            role: 'user',
-            content: [{
-              type: 'tool_result' as unknown as 'text',
-              tool_use_id: toolUse.id,
-              content: 'Web search failed. Please provide a response based on your knowledge.',
-              is_error: true,
-            }] as unknown as Array<{ type: 'text'; text: string }>,
-          });
-        }
+    } catch (error) {
+      if (handleRateLimitError(error) && attempt < maxRetries - 1) {
+        console.log(`[Anthropic] Web search rate limited on attempt ${attempt + 1}, retrying...`);
+        continue;
       }
+
+      console.error('[Anthropic] Web search error:', error);
+
+      // Fall back to regular completion without web search
+      console.log('[Anthropic] Falling back to regular completion without web search');
+      const fallbackResult = await createAnthropicCompletion(rest);
+      return { ...fallbackResult, citations: [], numSourcesUsed: 0 };
     }
   }
 
-  // If we hit max iterations, return what we have
-  return {
-    text: 'I apologize, but I was unable to complete the search. Please try again.',
-    model,
-    citations,
-    numSourcesUsed: citations.length,
-  };
+  // All retries exhausted - fallback
+  const fallbackResult = await createAnthropicCompletion(rest);
+  return { ...fallbackResult, citations: [], numSourcesUsed: 0 };
 }
 
 /**
