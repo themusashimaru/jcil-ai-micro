@@ -529,13 +529,15 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 /**
  * Create a chat completion with PERPLEXITY web search + Claude formatting
  *
- * HYBRID APPROACH:
- * 1. Perplexity handles the actual web search (accurate real-time data)
+ * PERPLEXITY-ONLY SEARCH:
+ * 1. Perplexity handles ALL web searches (accurate real-time data)
  * 2. Claude formats and presents the results (conversational style)
+ * 3. NO Anthropic native search fallback (it was inaccurate)
  *
- * This gives you the best of both worlds:
- * - Accurate time, weather, news from Perplexity
- * - Claude's personality and formatting
+ * Perplexity uses the same dual-pool round-robin system as Anthropic:
+ * - PERPLEXITY_API_KEY_1, _2, _3, ... (primary pool)
+ * - PERPLEXITY_API_KEY_FALLBACK_1, _2, ... (fallback pool)
+ * - Or single PERPLEXITY_API_KEY for backward compatibility
  */
 export async function createAnthropicCompletionWithSearch(
   options: AnthropicChatOptions
@@ -550,7 +552,6 @@ export async function createAnthropicCompletionWithSearch(
 
   const model = rest.model || DEFAULT_MODEL;
   const maxTokens = rest.maxTokens || 4096;
-  const temperature = rest.temperature ?? 0.7;
 
   const { system, messages } = convertMessages(rest.messages, rest.systemPrompt);
 
@@ -562,33 +563,33 @@ export async function createAnthropicCompletionWithSearch(
       ? lastMessage.content.map(c => 'text' in c ? c.text : '').join(' ')
       : '';
 
-  // Try Perplexity first for accurate search results
-  let perplexityResult: { answer: string; sources: Array<{ title: string; url: string }> } | null = null;
+  // Import Perplexity client
+  const { perplexitySearch, isPerplexityConfigured } = await import('@/lib/perplexity/client');
 
-  try {
-    // Dynamic import to avoid issues if perplexity module isn't available
-    const { perplexitySearch, isPerplexityConfigured } = await import('@/lib/perplexity/client');
-
-    if (isPerplexityConfigured()) {
-      console.log('[Anthropic+Perplexity] Using Perplexity for web search');
-      perplexityResult = await perplexitySearch({ query: userQuery });
-      console.log(`[Anthropic+Perplexity] Perplexity returned ${perplexityResult.sources.length} sources`);
-    } else {
-      console.log('[Anthropic+Perplexity] Perplexity not configured, falling back to Anthropic native search');
-    }
-  } catch (perplexityError) {
-    console.error('[Anthropic+Perplexity] Perplexity error, falling back:', perplexityError);
+  // Check if Perplexity is configured
+  if (!isPerplexityConfigured()) {
+    console.error('[Search] Perplexity not configured - web search unavailable');
+    // Return a helpful message instead of failing silently
+    return {
+      text: "I apologize, but web search is currently unavailable. Please configure a Perplexity API key (PERPLEXITY_API_KEY or PERPLEXITY_API_KEY_1, _2, etc.) to enable real-time search capabilities.",
+      model,
+      citations: [],
+      numSourcesUsed: 0,
+    };
   }
 
-  // If Perplexity succeeded, use Claude to format the response
-  if (perplexityResult) {
-    const citations = perplexityResult.sources.map(s => ({
-      title: s.title,
-      url: s.url,
-    }));
+  // Use Perplexity for the search (with its own round-robin + fallback system)
+  console.log('[Perplexity] Executing web search...');
+  const perplexityResult = await perplexitySearch({ query: userQuery });
+  console.log(`[Perplexity] Search complete. ${perplexityResult.sources.length} sources found.`);
 
-    // Create a prompt for Claude to format the Perplexity results
-    const formattingPrompt = `You are formatting search results for the user. Here is accurate, real-time information from a web search:
+  const citations = perplexityResult.sources.map(s => ({
+    title: s.title,
+    url: s.url,
+  }));
+
+  // Create a prompt for Claude to format the Perplexity results
+  const formattingPrompt = `You are formatting search results for the user. Here is accurate, real-time information from a web search:
 
 SEARCH RESULTS:
 ${perplexityResult.answer}
@@ -606,72 +607,11 @@ INSTRUCTIONS:
 4. Be concise and direct
 5. Do not add information that wasn't in the search results`;
 
-    const formattedMessages = [
-      ...messages.slice(0, -1), // Previous conversation context
-      { role: 'user' as const, content: formattingPrompt },
-    ];
+  const formattedMessages = [
+    ...messages.slice(0, -1), // Previous conversation context
+    { role: 'user' as const, content: formattingPrompt },
+  ];
 
-    const maxRetries = Math.max(1, getTotalKeyCount());
-
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const client = getAnthropicClient();
-      lastUsedClient = client;
-
-      try {
-        const response = await client.messages.create({
-          model,
-          max_tokens: maxTokens,
-          temperature: 0.3, // Lower temperature for more accurate formatting
-          system: [
-            {
-              type: 'text',
-              text: system,
-              cache_control: { type: 'ephemeral' },
-            },
-          ],
-          messages: formattedMessages,
-        });
-
-        const textContent = response.content
-          .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-          .map(block => block.text)
-          .join('\n');
-
-        console.log('[Anthropic+Perplexity] Successfully formatted Perplexity results with Claude');
-
-        return {
-          text: textContent,
-          model,
-          citations,
-          numSourcesUsed: citations.length,
-        };
-      } catch (error) {
-        if (handleRateLimitError(error) && attempt < maxRetries - 1) {
-          console.log(`[Anthropic+Perplexity] Rate limited on attempt ${attempt + 1}, retrying...`);
-          continue;
-        }
-        throw error;
-      }
-    }
-  }
-
-  // Fallback: Use Anthropic's native web search if Perplexity failed
-  console.log('[Anthropic] Falling back to native web search');
-
-  const webSearchProtocol = `
-You have access to web search. You MUST use it for ANY query requiring current information.
-
-MANDATORY SEARCH FOR: time, date, weather, news, prices, events, sports, stocks.
-
-CRITICAL RULES:
-1. SEARCH FIRST - Do NOT answer from memory for time-sensitive topics
-2. NO FOLLOW-UP QUESTIONS - Just search and provide results
-3. TRUST SEARCH RESULTS - Use actual data, not training
-4. PROVIDE SOURCES - Always cite where info came from
-5. Be CONCISE and DIRECT`;
-
-  const systemWithSearch = system + '\n\n' + webSearchProtocol;
-  const citations: Array<{ title: string; url: string }> = [];
   const maxRetries = Math.max(1, getTotalKeyCount());
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -679,58 +619,26 @@ CRITICAL RULES:
     lastUsedClient = client;
 
     try {
-      console.log('[Anthropic] Using native web search (web_search_20250305)');
-
       const response = await client.messages.create({
         model,
         max_tokens: maxTokens,
-        temperature,
+        temperature: 0.3, // Lower temperature for more accurate formatting
         system: [
           {
             type: 'text',
-            text: systemWithSearch,
+            text: system,
             cache_control: { type: 'ephemeral' },
           },
         ],
-        messages,
-        tools: [
-          {
-            type: 'web_search_20250305',
-            name: 'web_search',
-            max_uses: 5,
-          } as unknown as Anthropic.Tool,
-        ],
+        messages: formattedMessages,
       });
 
-      let textContent = '';
+      const textContent = response.content
+        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+        .map(block => block.text)
+        .join('\n');
 
-      for (const block of response.content) {
-        if (block.type === 'text') {
-          textContent += block.text;
-        } else if (block.type === 'tool_use' && block.name === 'web_search') {
-          const input = block.input as { query?: string };
-          console.log('[Anthropic] Web search executed for:', input?.query || 'query');
-        }
-      }
-
-      // Extract URLs for citations
-      const urlRegex = /https?:\/\/[^\s\])"'<>]+/g;
-      const foundUrls = textContent.match(urlRegex) || [];
-      const uniqueUrls = [...new Set(foundUrls)];
-
-      for (const url of uniqueUrls.slice(0, 10)) {
-        try {
-          const urlObj = new URL(url);
-          const domain = urlObj.hostname.replace('www.', '');
-          if (!domain.includes('anthropic') && !domain.includes('claude')) {
-            citations.push({ title: domain, url: url.replace(/[.,;:!?)]+$/, '') });
-          }
-        } catch {
-          // Invalid URL, skip
-        }
-      }
-
-      console.log(`[Anthropic] Web search complete. Found ${citations.length} sources.`);
+      console.log('[Perplexity+Claude] Successfully formatted search results');
 
       return {
         text: textContent,
@@ -740,18 +648,15 @@ CRITICAL RULES:
       };
     } catch (error) {
       if (handleRateLimitError(error) && attempt < maxRetries - 1) {
-        console.log(`[Anthropic] Web search rate limited on attempt ${attempt + 1}, retrying...`);
+        console.log(`[Claude] Rate limited on attempt ${attempt + 1}, retrying...`);
         continue;
       }
-
-      console.error('[Anthropic] Web search error:', error);
-      const fallbackResult = await createAnthropicCompletion(rest);
-      return { ...fallbackResult, citations: [], numSourcesUsed: 0 };
+      throw error;
     }
   }
 
-  const fallbackResult = await createAnthropicCompletion(rest);
-  return { ...fallbackResult, citations: [], numSourcesUsed: 0 };
+  // This should never be reached due to the retry logic above
+  throw new Error('All Anthropic API keys exhausted while formatting search results');
 }
 
 /**
