@@ -979,8 +979,9 @@ export function ChatClient() {
       const contentType = response.headers.get('content-type') || '';
       const isJsonResponse = contentType.includes('application/json');
 
-      // Get model used from response header (for admin debugging)
+      // Get model and search provider from response headers (for admin debugging)
       const modelUsed = response.headers.get('X-Model-Used') || undefined;
+      const searchProvider = response.headers.get('X-Web-Search') || undefined;
 
       let finalContent = '';
       let isImageResponse = false;
@@ -1024,6 +1025,7 @@ export function ChatClient() {
             citations: data.citations || [],
             sourcesUsed: data.sourcesUsed || 0,
             model: data.model || modelUsed,
+            searchProvider: searchProvider,
             timestamp: new Date(),
           };
 
