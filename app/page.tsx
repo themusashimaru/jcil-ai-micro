@@ -9,6 +9,7 @@
 
 import Link from 'next/link';
 import PricingSection from './components/PricingSection';
+import LandingLogo from './components/LandingLogo';
 
 export default function HomePage() {
   return (
@@ -16,7 +17,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="container mx-auto px-4 py-6">
         <nav className="flex items-center justify-between">
-          <div className="text-2xl font-bold">JCIL.AI</div>
+          <LandingLogo />
           <div className="flex items-center space-x-2 sm:space-x-4">
             <Link href="/login" className="px-3 py-2 hover:text-gray-300 text-sm sm:text-base">
               Log In
