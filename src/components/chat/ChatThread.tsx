@@ -165,8 +165,13 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
 
     // Using a small delay to let the DOM update first
     setTimeout(() => {
-      // Always scroll to show latest message at bottom
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // For first few messages, scroll container to top so messages are visible
+      // For more messages, scroll to bottom to show latest
+      if (messages.length <= 3) {
+        scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
     }, 100);
   }, [messages]);
 
