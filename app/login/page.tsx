@@ -85,9 +85,9 @@ function LoginForm() {
           {/* Logo */}
           <div className="text-center mb-6">
             {isLogoLoading ? (
-              <div className="h-16 mx-auto" />
+              <div className="h-24 mx-auto" />
             ) : logo ? (
-              <img src={logo} alt="JCIL.ai" className="h-16 mx-auto" />
+              <img src={logo} alt="JCIL.ai" className="h-24 mx-auto" />
             ) : (
               <h1 className="text-3xl sm:text-4xl font-bold">
                 <span className="bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">JCIL</span>
