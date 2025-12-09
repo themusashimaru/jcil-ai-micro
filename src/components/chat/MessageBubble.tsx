@@ -297,38 +297,51 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
                 </svg>
                 <span>Sources ({message.citations.length})</span>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {message.citations.slice(0, 5).map((url, index) => {
-                  // Extract domain from URL for display
-                  let domain = url;
-                  try {
-                    domain = new URL(url).hostname.replace('www.', '');
-                  } catch {
-                    // Keep original URL if parsing fails
+              <div className="flex flex-wrap gap-1.5">
+                {message.citations.slice(0, 5).map((citation, index) => {
+                  // Handle both old format (string) and new format (object with title/url)
+                  const citationObj = typeof citation === 'string' ? { url: citation, title: '' } : citation;
+                  const url = citationObj.url || '';
+                  let title = citationObj.title || '';
+
+                  // Fallback to domain if no title
+                  if (!title && url) {
+                    try {
+                      title = new URL(url).hostname.replace('www.', '');
+                    } catch {
+                      title = 'Source';
+                    }
                   }
+
+                  if (!url) return null;
+
                   return (
                     <a
                       key={index}
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors truncate max-w-[200px] cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105 cursor-pointer"
                       style={{
-                        backgroundColor: 'var(--glass-bg)',
+                        backgroundColor: 'var(--primary-hover)',
                         color: 'var(--primary)',
-                        pointerEvents: 'auto'
+                        border: '1px solid var(--primary)',
                       }}
                       title={url}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
                     >
-                      <span className="truncate">{domain}</span>
-                      <svg className="h-2.5 w-2.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <span className="truncate max-w-[150px]">{title}</span>
+                      <svg className="h-3 w-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
                     </a>
                   );
                 })}
                 {message.citations.length > 5 && (
-                  <span className="px-2 py-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <span className="px-2 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                     +{message.citations.length - 5} more
                   </span>
                 )}

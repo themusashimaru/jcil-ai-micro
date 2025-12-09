@@ -855,7 +855,7 @@ export async function POST(request: NextRequest) {
             type: 'text',
             content: result.text,
             model: result.model,
-            citations: result.citations.map(c => c.url),
+            citations: result.citations, // Pass full citation objects with title and url
             sourcesUsed: result.numSourcesUsed,
           }),
           {
@@ -1010,14 +1010,23 @@ export async function POST(request: NextRequest) {
         const resultModel = (result as any).model || actualModel;
         console.log('[Chat API] Non-streaming result detected, model used:', resultModel);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const citations = (result as any).citations || [];
+        const rawCitations = (result as any).citations || [];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const numSourcesUsed = (result as any).numSourcesUsed || 0;
 
-        // Convert citation objects to URLs for client compatibility
-        const citationUrls = citations.map((c: { url?: string } | string) =>
-          typeof c === 'string' ? c : c.url || ''
-        ).filter(Boolean);
+        // Normalize citations to always have title and url
+        const citations = rawCitations.map((c: { title?: string; url?: string } | string) => {
+          if (typeof c === 'string') {
+            // Extract domain from URL for title
+            let title = 'Source';
+            try { title = new URL(c).hostname.replace('www.', ''); } catch {}
+            return { title, url: c };
+          }
+          return {
+            title: c.title || (c.url ? new URL(c.url).hostname.replace('www.', '') : 'Source'),
+            url: c.url || '',
+          };
+        }).filter((c: { url: string }) => c.url);
 
         // Complete the pending request - we got a successful result
         if (pendingRequestId) {
@@ -1032,7 +1041,7 @@ export async function POST(request: NextRequest) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             content: (result as any).text || '',
             model: resultModel,
-            citations: citationUrls,
+            citations: citations, // Pass full citation objects with title and url
             sourcesUsed: numSourcesUsed,
           }),
           {
@@ -1078,23 +1087,31 @@ export async function POST(request: NextRequest) {
 
       // Extract citations and actual model used from result
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rawCitations = (result as any).citations || [];
+      const fallbackRawCitations = (result as any).citations || [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fallbackModel = (result as any).model || actualModel;
 
-      // Convert citation objects to URLs for client compatibility
-      const citationUrls = rawCitations.map((c: { url?: string } | string) =>
-        typeof c === 'string' ? c : c.url || ''
-      ).filter(Boolean);
+      // Normalize citations to always have title and url
+      const fallbackCitations = fallbackRawCitations.map((c: { title?: string; url?: string } | string) => {
+        if (typeof c === 'string') {
+          let title = 'Source';
+          try { title = new URL(c).hostname.replace('www.', ''); } catch {}
+          return { title, url: c };
+        }
+        return {
+          title: c.title || (c.url ? new URL(c.url).hostname.replace('www.', '') : 'Source'),
+          url: c.url || '',
+        };
+      }).filter((c: { url: string }) => c.url);
 
       return new Response(
         JSON.stringify({
           type: 'text',
           content: result.text,
           model: fallbackModel,
-          citations: citationUrls,
+          citations: fallbackCitations, // Pass full citation objects with title and url
           sourcesUsed: numSourcesUsed,
         }),
         {
