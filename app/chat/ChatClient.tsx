@@ -1526,7 +1526,7 @@ export function ChatClient() {
           </button>
 
           <div className="flex items-center gap-0.5">
-            {/* Theme Toggle (admin only) */}
+            {/* Theme Toggle - Light/Dark Mode */}
             <ThemeToggle />
 
             {/* Profile Button */}
