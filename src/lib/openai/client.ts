@@ -72,7 +72,7 @@ const WEB_SEARCH_PATTERNS = [
 
   // Time-sensitive lookups
   /\b(hours|open|closed|schedule|when does|what time)\b.*(today|now|currently)/i,
-  /\b(is|are)\s+.{0,20}\s+(open|closed|available)\s*(today|now|right now)?/i,
+  /\b(is|are)\s+(?!you\b|i\b|we\b|they\s+going).{0,20}\s+(open|closed|available)\s*(today|now|right now)?/i,
 
   // Search intent patterns
   /\b(search|look up|find|google)\s+(for|about)?\s+/i,
