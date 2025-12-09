@@ -72,10 +72,16 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-white p-4">
+      {/* Decorative Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200/20 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
         {/* Card */}
-        <div className="glass-morphism rounded-2xl p-6 sm:p-8">
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200/50">
           {/* Logo */}
           <div className="text-center mb-6">
             {isLogoLoading ? (
@@ -84,33 +90,33 @@ function LoginForm() {
               <img src={logo} alt="JCIL.ai" className="h-16 mx-auto" />
             ) : (
               <h1 className="text-3xl sm:text-4xl font-bold">
-                <span className="text-white">JCIL</span>
-                <span className="text-blue-500">.ai</span>
+                <span className="bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">JCIL</span>
+                <span className="text-blue-600">.ai</span>
               </h1>
             )}
           </div>
 
           {/* Header */}
           <div className="text-center mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
               Welcome Back
             </h2>
-            <p className="text-gray-400">
+            <p className="text-slate-600">
               Sign in to continue
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
-              <p className="text-red-200 text-sm">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
 
           {/* Email/Password Form */}
           <form onSubmit={handleEmailSignIn} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                 Email
               </label>
               <input
@@ -119,14 +125,14 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={loading}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -136,14 +142,14 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                  className="w-full px-4 py-3 pr-12 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={loading}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -164,7 +170,7 @@ function LoginForm() {
             <div className="text-right">
               <Link
                 href="/forgot-password"
-                className="text-sm text-gray-400 hover:text-white transition-colors"
+                className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
               >
                 Forgot password?
               </Link>
@@ -174,7 +180,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-white text-black rounded-lg px-4 py-3 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-blue-900 to-blue-700 text-white rounded-lg px-4 py-3 font-medium hover:shadow-lg hover:shadow-blue-900/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -185,28 +191,28 @@ function LoginForm() {
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-white/10"></div>
+                  <div className="w-full border-t border-slate-200"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-transparent text-gray-500">or</span>
+                  <span className="px-2 bg-white text-slate-500">or</span>
                 </div>
               </div>
               <div className="mt-4">
                 <PasskeyLoginButton
                   email={email}
                   onError={(err) => setError(err)}
-                  className="bg-black/40 border-white/10 text-white hover:bg-white/10"
+                  className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
                 />
               </div>
             </div>
           )}
 
           {/* Sign Up Link */}
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-slate-600 text-sm mt-6">
             Don&apos;t have an account?{' '}
             <Link
               href="/signup"
-              className="text-white hover:text-gray-300 font-medium transition-colors"
+              className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
             >
               Sign up
             </Link>
@@ -217,7 +223,7 @@ function LoginForm() {
         <div className="text-center mt-6">
           <Link
             href="/"
-            className="text-sm text-gray-500 hover:text-white transition-colors"
+            className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
           >
             ← Back to home
           </Link>
@@ -230,8 +236,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-white">
+        <div className="text-slate-600">Loading...</div>
       </div>
     }>
       <LoginForm />

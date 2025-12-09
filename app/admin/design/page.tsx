@@ -11,6 +11,7 @@ export default function DesignSettings() {
   const [mainLogo, setMainLogo] = useState<string>('');
   const [headerLogo, setHeaderLogo] = useState<string>('');
   const [loginLogo, setLoginLogo] = useState<string>('');
+  const [lightModeLogo, setLightModeLogo] = useState<string>('');
   const [favicon, setFavicon] = useState<string>('');
   const [siteName, setSiteName] = useState<string>('JCIL.ai');
   const [subtitle, setSubtitle] = useState<string>('Your AI Assistant');
@@ -22,6 +23,7 @@ export default function DesignSettings() {
   const mainLogoRef = useRef<HTMLInputElement>(null);
   const headerLogoRef = useRef<HTMLInputElement>(null);
   const loginLogoRef = useRef<HTMLInputElement>(null);
+  const lightModeLogoRef = useRef<HTMLInputElement>(null);
   const faviconRef = useRef<HTMLInputElement>(null);
 
   // Load current settings from database on mount
@@ -36,6 +38,7 @@ export default function DesignSettings() {
           setMainLogo(mainLogoValue);
           setHeaderLogo(settings.header_logo || '');
           setLoginLogo(settings.login_logo || '');
+          setLightModeLogo(settings.light_mode_logo || '');
           setFavicon(settings.favicon || '');
           setSiteName(settings.site_name || 'JCIL.ai');
           setSubtitle(settings.subtitle || 'Your AI Assistant');
@@ -95,6 +98,9 @@ export default function DesignSettings() {
         case 'login-logo':
           setLoginLogo(data.url);
           break;
+        case 'light-mode-logo':
+          setLightModeLogo(data.url);
+          break;
         case 'favicon':
           setFavicon(data.url);
           break;
@@ -117,6 +123,7 @@ export default function DesignSettings() {
         mainLogo,
         headerLogo,
         loginLogo,
+        lightModeLogo,
         favicon,
         siteName,
         subtitle,
@@ -381,6 +388,70 @@ export default function DesignSettings() {
                 {isUploading === 'login-logo' ? 'Uploading...' : 'Choose Login Logo'}
               </button>
               <p className="text-xs text-gray-500 mt-2">Max size: 2MB</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Light Mode Logo */}
+        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <span>☀️</span> Light Mode Logo
+          </h3>
+          <p className="text-sm text-gray-400 mb-4">
+            Upload a logo optimized for light backgrounds. This logo will be used in the chat interface when light mode is active. If not uploaded, &quot;jcil.ai&quot; text will be displayed instead.
+          </p>
+
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Preview */}
+            <div className="flex-1">
+              <p className="text-xs text-gray-500 mb-2">Current Light Mode Logo Preview:</p>
+              <div className="bg-white border border-gray-200 rounded-lg p-8 flex items-center justify-center min-h-[200px]">
+                {lightModeLogo ? (
+                  <img
+                    src={lightModeLogo}
+                    alt="Light Mode Logo"
+                    className="h-24 w-auto"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <p className="text-6xl font-bold">
+                      <span className="text-slate-900">jcil.</span>
+                      <span className="text-blue-600">ai</span>
+                    </p>
+                    <p className="text-gray-400 text-sm mt-2">(Default text when no logo)</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Upload */}
+            <div className="flex-1 flex flex-col justify-center">
+              <input
+                type="file"
+                ref={lightModeLogoRef}
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file, 'light-mode-logo');
+                }}
+                className="hidden"
+              />
+              <button
+                onClick={() => lightModeLogoRef.current?.click()}
+                disabled={isUploading === 'light-mode-logo'}
+                className="bg-white text-black px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUploading === 'light-mode-logo' ? 'Uploading...' : 'Choose Light Mode Logo'}
+              </button>
+              <p className="text-xs text-gray-500 mt-2">Max size: 2MB - Use a logo with dark text/colors for light backgrounds</p>
+              {lightModeLogo && (
+                <button
+                  onClick={() => setLightModeLogo('')}
+                  className="mt-2 text-red-400 hover:text-red-300 text-sm"
+                >
+                  Remove logo (use default text)
+                </button>
+              )}
             </div>
           </div>
         </div>

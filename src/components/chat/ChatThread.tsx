@@ -87,6 +87,7 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
 
   // Load design settings from database API
   const [mainLogo, setMainLogo] = useState<string>('');
+  const [lightModeLogo, setLightModeLogo] = useState<string>('');
   const [subtitle, setSubtitle] = useState<string>('Faith-based AI tools for your everyday needs');
   const [modelName, setModelName] = useState<string>('');
   const [isLogoLoading, setIsLogoLoading] = useState<boolean>(true);
@@ -131,6 +132,10 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
           const logoUrl = settings.main_logo;
           if (logoUrl && logoUrl !== '/images/logo.png') {
             setMainLogo(logoUrl);
+          }
+          // Load light mode logo
+          if (settings.light_mode_logo) {
+            setLightModeLogo(settings.light_mode_logo);
           }
           if (settings.subtitle) {
             setSubtitle(settings.subtitle);
@@ -183,11 +188,19 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
               // Show placeholder while loading to prevent flash
               <div className="h-36 md:h-72 w-auto mx-auto mb-2" />
             ) : theme === 'light' ? (
-              // Light mode: Use text instead of logo image
-              <h1 className="text-6xl md:text-8xl font-normal mb-2">
-                <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
-                <span style={{ color: 'var(--primary)' }}>ai</span>
-              </h1>
+              // Light mode: Use light mode logo if uploaded, otherwise show text
+              lightModeLogo ? (
+                <img
+                  src={lightModeLogo}
+                  alt="JCIL.ai"
+                  className="h-36 md:h-72 w-auto mx-auto mb-2"
+                />
+              ) : (
+                <h1 className="text-6xl md:text-8xl font-normal mb-2">
+                  <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
+                  <span style={{ color: 'var(--primary)' }}>ai</span>
+                </h1>
+              )
             ) : mainLogo ? (
               // Check if logo is a video (MP4 or WebM)
               mainLogo.startsWith('data:video/') ? (
