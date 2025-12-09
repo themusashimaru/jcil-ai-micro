@@ -49,13 +49,15 @@
   --surface-elevated: #ffffff;
   --border: rgba(0, 0, 0, 0.15);
 
-  /* Chat-specific light mode colors */
-  --chat-input-bg: #ffffff;
-  --chat-user-bubble-bg: #1e3a5f; /* Navy blue for user messages */
-  --chat-user-bubble-text: #ffffff;
-  --chat-ai-bubble-bg: #ffffff;
+  /* Chat-specific light mode colors - True Glassmorphism */
+  --chat-input-bg: rgba(255, 255, 255, 0.7);
+  --chat-user-bubble-bg: rgba(30, 58, 95, 0.25);
+  --chat-user-bubble-text: #1e3a5f; /* Navy text for readable contrast on translucent bg */
+  --chat-ai-bubble-bg: rgba(255, 255, 255, 0.35);
   --chat-ai-bubble-text: #1a1a1a;
-  --chat-ai-bubble-border: #1e3a5f;
+  --chat-ai-bubble-border: rgba(255, 255, 255, 0.5);
+  --chat-ai-bubble-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --chat-user-bubble-shadow: 0 8px 32px rgba(30, 58, 95, 0.15);
 }
 
 @layer base {
@@ -75,7 +77,134 @@
   }
 
   .chat-bubble {
-    @apply glass-morphism rounded-2xl p-3 md:p-4;
+    @apply rounded-2xl p-3 md:p-4;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* User message bubble - True glassmorphism (20-30% opacity like Apple requires) */
+  .chat-bubble.user-bubble {
+    background: rgba(30, 58, 95, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow:
+      0 8px 32px rgba(30, 58, 95, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -0.5px 0 rgba(30, 58, 95, 0.3);
+    /* Glass-like edge effect - visible border like a piece of glass */
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-top-color: rgba(255, 255, 255, 0.5);
+    border-left-color: rgba(255, 255, 255, 0.35);
+    border-bottom-color: rgba(30, 58, 95, 0.2);
+    border-right-color: rgba(30, 58, 95, 0.15);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Inner highlight for glass depth */
+  .chat-bubble.user-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.15),
+      transparent
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* AI message bubble - Frosted white glass effect */
+  .chat-bubble.ai-bubble {
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.06),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.8),
+      inset 0 -0.5px 0 rgba(30, 58, 95, 0.1);
+    /* Glass-like edge effect */
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    border-top-color: rgba(255, 255, 255, 0.7);
+    border-left-color: rgba(255, 255, 255, 0.6);
+    border-bottom-color: rgba(30, 58, 95, 0.08);
+    border-right-color: rgba(30, 58, 95, 0.06);
+    position: relative;
+  }
+
+  /* Inner highlight for glass depth on AI bubble */
+  .chat-bubble.ai-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.25),
+      transparent
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Subtle outer glow on AI bubble */
+  .chat-bubble.ai-bubble::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(77, 200, 255, 0.08), transparent 60%);
+    z-index: -1;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* Hover lift effect for both bubbles */
+  :root.light-mode .chat-bubble.user-bubble:hover,
+  :root.light-mode .chat-bubble.ai-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 16px 48px rgba(30, 58, 95, 0.2),
+      0 4px 16px rgba(30, 58, 95, 0.1),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  :root.light-mode .chat-bubble.user-bubble:hover {
+    background: rgba(30, 58, 95, 0.3);
+  }
+
+  :root.light-mode .chat-bubble.ai-bubble:hover {
+    background: rgba(255, 255, 255, 0.45);
+  }
+
+  /* Dark mode overrides */
+  :root:not(.light-mode) .chat-bubble.user-bubble,
+  :root:not(.light-mode) .chat-bubble.ai-bubble {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+  }
+
+  :root:not(.light-mode) .chat-bubble.user-bubble::before,
+  :root:not(.light-mode) .chat-bubble.ai-bubble::after {
+    display: none;
+  }
+
+  :root:not(.light-mode) .chat-bubble.ai-bubble {
+    border: 1px solid var(--chat-ai-bubble-border);
+  }
+
+  :root:not(.light-mode) .chat-bubble.user-bubble:hover,
+  :root:not(.light-mode) .chat-bubble.ai-bubble:hover {
+    transform: none;
+    box-shadow: none;
   }
 
   .chat-bubble-tail {
@@ -93,11 +222,157 @@
 
   .chat-bubble-tail.left::after {
     left: -10px;
-    border-right-color: var(--chat-ai-bubble-bg);
+    border-right-color: rgba(255, 255, 255, 0.75);
+  }
+
+  :root:not(.light-mode) .chat-bubble-tail.left::after {
+    border-right-color: transparent;
   }
 
   .chat-bubble-tail.right::after {
     display: none; /* Remove triangle for user messages */
+  }
+
+  /* Premium animated floating orbs background (light mode only) */
+  .chat-bg-orbs {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chat-bg-orbs::before,
+  .chat-bg-orbs::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(60px);
+  }
+
+  /* Primary orb - Navy blue, top right */
+  :root.light-mode .chat-bg-orbs::before {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(30, 58, 95, 0.15) 0%, rgba(30, 58, 95, 0.05) 50%, transparent 70%);
+    top: -10%;
+    right: -15%;
+    opacity: 1;
+    animation: float-orb-1 20s ease-in-out infinite;
+  }
+
+  /* Secondary orb - Cyan/teal, bottom left */
+  :root.light-mode .chat-bg-orbs::after {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(77, 200, 255, 0.12) 0%, rgba(100, 180, 255, 0.04) 50%, transparent 70%);
+    bottom: -20%;
+    left: -20%;
+    opacity: 1;
+    animation: float-orb-2 25s ease-in-out infinite;
+  }
+
+  /* Third orb via extra element */
+  .chat-bg-orb-tertiary {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(147, 51, 234, 0.08) 0%, rgba(139, 92, 246, 0.03) 50%, transparent 70%);
+    top: 40%;
+    right: 10%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(50px);
+    animation: float-orb-3 30s ease-in-out infinite;
+  }
+
+  :root.light-mode .chat-bg-orb-tertiary {
+    opacity: 1;
+  }
+
+  @keyframes float-orb-1 {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(-40px, 60px) scale(1.15);
+    }
+    50% {
+      transform: translate(30px, -30px) scale(0.9);
+    }
+    75% {
+      transform: translate(-20px, 40px) scale(1.1);
+    }
+  }
+
+  @keyframes float-orb-2 {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(60px, -50px) scale(1.12);
+    }
+    66% {
+      transform: translate(-40px, 30px) scale(0.88);
+    }
+  }
+
+  @keyframes float-orb-3 {
+    0%, 100% {
+      transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+    25% {
+      transform: translate(-50px, -40px) scale(1.2) rotate(90deg);
+    }
+    50% {
+      transform: translate(30px, 50px) scale(0.85) rotate(180deg);
+    }
+    75% {
+      transform: translate(40px, -20px) scale(1.1) rotate(270deg);
+    }
+  }
+
+  /* Message entrance animation */
+  .message-enter {
+    animation: messageSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes messageSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Premium glassmorphic input area (light mode) */
+  :root.light-mode .chat-input-glass {
+    background: rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(255, 255, 255, 0.6) !important;
+    border-top-color: rgba(255, 255, 255, 0.8);
+    border-left-color: rgba(255, 255, 255, 0.7);
+    border-bottom-color: rgba(30, 58, 95, 0.1);
+    border-right-color: rgba(30, 58, 95, 0.08);
+    box-shadow:
+      0 8px 40px rgba(30, 58, 95, 0.12),
+      0 2px 8px rgba(30, 58, 95, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  }
+
+  :root.light-mode .chat-input-glass:focus-within {
+    border-color: rgba(30, 58, 95, 0.25);
+    box-shadow:
+      0 12px 48px rgba(30, 58, 95, 0.18),
+      0 4px 12px rgba(30, 58, 95, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 0 0 4px rgba(30, 58, 95, 0.08) !important;
   }
 
   /* Send button glow animation */

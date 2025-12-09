@@ -177,8 +177,8 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   // Show logo and tools when no chat is selected OR when chat is empty
   if (!currentChatId || messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-1">
-        <div className="text-center">
+      <div className="flex flex-1 items-center justify-center p-1 chat-bg-orbs">
+        <div className="text-center relative z-10">
           {/* JCIL.ai Logo */}
           <div className="mb-1">
             {/* Logo - Dynamically loaded from database (supports images and videos) */}
@@ -261,18 +261,24 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden py-0 px-0 md:p-2"
+      className="flex-1 overflow-y-auto overflow-x-hidden py-0 px-0 md:p-2 chat-bg-orbs"
     >
-      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-0 md:space-y-3 pt-4">
+      {/* Third animated orb (purple) */}
+      <div className="chat-bg-orb-tertiary" />
+
+      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-0 md:space-y-3 pt-4 relative z-10">
 
         {messages.map((message, index) => {
           // Check if this is the last user message
           const isLastUserMessage = index === messages.length - 1 && message.role === 'user';
+          // Add entrance animation to recent messages
+          const isRecentMessage = index >= messages.length - 2;
 
           return (
             <div
               key={message.id}
               ref={isLastUserMessage ? lastUserMessageRef : null}
+              className={isRecentMessage ? 'message-enter' : ''}
             >
               <MessageBubble
                 message={message}

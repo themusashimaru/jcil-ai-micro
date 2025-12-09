@@ -179,35 +179,26 @@ export function ChatSidebar({
               onClick={() => onSelectChat(chat.id)}
               className="w-full p-3 text-left"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 overflow-hidden">
-                  <div className="flex items-center gap-2">
-                    {chat.isPinned && (
-                      <svg
-                        className="h-3 w-3 flex-shrink-0 text-yellow-500"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M10 3l2.5 6.5L19 10l-6.5 .5L10 17l-2.5-6.5L1 10l6.5-.5L10 3z" />
-                      </svg>
-                    )}
-                    <span className="truncate text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{chat.title}</span>
-                  </div>
-                  {chat.summary && (
-                    <p className="mt-1 truncate text-xs" style={{ color: 'var(--text-muted)' }}>{chat.summary}</p>
+              {/* Title row: title + three-dots aligned */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1 overflow-hidden">
+                  {chat.isPinned && (
+                    <svg
+                      className="h-3 w-3 flex-shrink-0 text-yellow-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M10 3l2.5 6.5L19 10l-6.5 .5L10 17l-2.5-6.5L1 10l6.5-.5L10 3z" />
+                    </svg>
                   )}
-                  {chat.folder && (
-                    <span className="mt-1 inline-block rounded px-2 py-0.5 text-xs" style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)' }}>
-                      {chat.folder}
-                    </span>
-                  )}
+                  <span className="truncate text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{chat.title}</span>
                 </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenu(menuOpen ? null : chat.id);
                   }}
-                  className="rounded p-1 opacity-0 group-hover:opacity-100"
+                  className="rounded p-1 opacity-0 group-hover:opacity-100 flex-shrink-0"
                   style={{ color: 'var(--text-muted)' }}
                   aria-label="Chat options"
                 >
@@ -226,6 +217,15 @@ export function ChatSidebar({
                   </svg>
                 </button>
               </div>
+              {/* Summary and folder below title */}
+              {chat.summary && (
+                <p className="mt-1 truncate text-xs" style={{ color: 'var(--text-muted)' }}>{chat.summary}</p>
+              )}
+              {chat.folder && (
+                <span className="mt-1 inline-block rounded px-2 py-0.5 text-xs" style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)' }}>
+                  {chat.folder}
+                </span>
+              )}
             </button>
 
             {/* Context Menu */}

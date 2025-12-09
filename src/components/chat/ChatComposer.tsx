@@ -383,12 +383,11 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
             className="absolute -inset-[2px] rounded-lg blur-sm pointer-events-none living-glow-aura"
           />
           <div
-            className={`relative rounded-lg transition-colors ${
+            className={`relative rounded-lg transition-all chat-input-glass ${
               isDragging ? 'opacity-80' : ''
             }`}
             style={{
               backgroundColor: 'var(--chat-input-bg)',
-              boxShadow: '0 0 20px var(--primary-glow), inset 0 0 20px var(--primary-hover)',
               border: '1px solid var(--border)',
             }}
             onDragOver={handleDragOver}
