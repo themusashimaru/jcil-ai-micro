@@ -230,10 +230,20 @@ export function ChatSidebar({
 
             {/* Context Menu */}
             {menuOpen && (
-              <div className="absolute right-2 top-12 z-10 w-48 rounded-lg border border-white/10 bg-black/90 py-1 shadow-xl backdrop-blur-lg">
+              <div
+                className="absolute right-2 top-12 z-10 w-48 rounded-lg py-1 shadow-xl"
+                style={{
+                  backgroundColor: 'var(--background)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)'
+                }}
+              >
                 <button
                   onClick={() => handleStartEdit(chat)}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-white/10"
+                  className="w-full px-4 py-2 text-left text-sm transition-colors"
+                  style={{ color: 'var(--text-primary)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--glass-bg)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   Rename
                 </button>
@@ -242,7 +252,10 @@ export function ChatSidebar({
                     onPinChat(chat.id);
                     setActiveMenu(null);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-white/10"
+                  className="w-full px-4 py-2 text-left text-sm transition-colors"
+                  style={{ color: 'var(--text-primary)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--glass-bg)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   {chat.isPinned ? 'Unpin' : 'Pin'}
                 </button>
@@ -254,11 +267,14 @@ export function ChatSidebar({
                     }
                     setActiveMenu(null);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-white/10"
+                  className="w-full px-4 py-2 text-left text-sm transition-colors"
+                  style={{ color: 'var(--text-primary)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--glass-bg)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   Move to folder
                 </button>
-                <hr className="my-1 border-white/10" />
+                <hr style={{ borderColor: 'var(--border)', margin: '4px 0' }} />
                 <button
                   onClick={() => {
                     if (confirm('Delete this chat?')) {
@@ -266,7 +282,9 @@ export function ChatSidebar({
                     }
                     setActiveMenu(null);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-white/10"
+                  className="w-full px-4 py-2 text-left text-sm text-red-500 transition-colors"
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--glass-bg)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
                   Delete
                 </button>
@@ -292,18 +310,19 @@ export function ChatSidebar({
       {/* Sidebar */}
       <aside
         className={`
-          glass-morphism border-r border-white/10
+          glass-morphism
           fixed md:relative
           inset-y-0 left-0 z-50
           w-72 md:w-80
           transform transition-transform duration-300 ease-in-out
           ${collapsed ? '-translate-x-full md:translate-x-0 md:w-0 md:border-0' : 'translate-x-0'}
         `}
+        style={{ borderRight: collapsed ? 'none' : '1px solid var(--border)' }}
       >
         <div className="flex h-full flex-col">
         {/* Code Command Button - Admin Only */}
         {isAdmin && onOpenCodeCommand && (
-          <div className="border-b border-white/10 p-3">
+          <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <button
               onClick={onOpenCodeCommand}
               className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-left transition-all group"

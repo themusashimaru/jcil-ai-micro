@@ -161,9 +161,9 @@ export default function UsersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black p-8">
+      <div className="min-h-screen p-8" style={{ backgroundColor: 'var(--background)' }}>
         <div className="flex h-64 items-center justify-center">
-          <div className="text-xl text-gray-400">Loading users...</div>
+          <div className="text-xl" style={{ color: 'var(--text-muted)' }}>Loading users...</div>
         </div>
       </div>
     );
@@ -171,25 +171,26 @@ export default function UsersPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black p-8">
+      <div className="min-h-screen p-8" style={{ backgroundColor: 'var(--background)' }}>
         <div className="glass-morphism rounded-2xl p-6">
-          <div className="mb-4 text-xl font-bold text-red-400">Error Loading Admin Panel</div>
-          <div className="mb-4 text-red-400">{error}</div>
+          <div className="mb-4 text-xl font-bold text-red-500">Error Loading Admin Panel</div>
+          <div className="mb-4 text-red-500">{error}</div>
 
           <div className="mb-6 rounded-lg bg-yellow-500/10 border border-yellow-500/30 p-4">
-            <div className="mb-2 text-sm font-semibold text-yellow-400">Troubleshooting Steps:</div>
-            <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
+            <div className="mb-2 text-sm font-semibold text-yellow-600">Troubleshooting Steps:</div>
+            <ul className="list-disc list-inside text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
               <li>Verify SUPABASE_SERVICE_ROLE_KEY is set in Vercel environment variables</li>
               <li>Ensure the admin user SQL migration has been run in Supabase</li>
               <li>Check browser console (F12) for detailed error logs</li>
-              <li>Try the diagnostic endpoint: <a href="/api/admin/diagnostic" target="_blank" className="text-blue-400 hover:underline">/api/admin/diagnostic</a></li>
+              <li>Try the diagnostic endpoint: <a href="/api/admin/diagnostic" target="_blank" style={{ color: 'var(--primary)' }} className="hover:underline">/api/admin/diagnostic</a></li>
             </ul>
           </div>
 
           <div className="flex gap-3">
             <button
               onClick={fetchUsers}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              className="rounded-lg px-4 py-2 text-white hover:opacity-90"
+              style={{ backgroundColor: 'var(--primary)' }}
             >
               Retry
             </button>
@@ -206,12 +207,13 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black p-8">
+    <div className="min-h-screen p-8" style={{ backgroundColor: 'var(--background)', color: 'var(--text-primary)' }}>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold">User Management</h1>
         <button
           onClick={fetchUsers}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+          className="rounded-lg px-4 py-2 text-sm text-white hover:opacity-90"
+          style={{ backgroundColor: 'var(--primary)' }}
         >
           Refresh
         </button>
@@ -222,38 +224,38 @@ export default function UsersPage() {
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Total Users */}
           <div className="glass-morphism rounded-2xl p-6">
-            <div className="mb-2 text-sm text-gray-400">Total Users</div>
+            <div className="mb-2 text-sm" style={{ color: 'var(--text-secondary)' }}>Total Users</div>
             <div className="text-3xl font-bold">{stats.totalUsers}</div>
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
               Active: {stats.activeUsers.last7Days} (7d)
             </div>
           </div>
 
           {/* Messages Today */}
           <div className="glass-morphism rounded-2xl p-6">
-            <div className="mb-2 text-sm text-gray-400">Messages Today</div>
+            <div className="mb-2 text-sm" style={{ color: 'var(--text-secondary)' }}>Messages Today</div>
             <div className="text-3xl font-bold">{stats.usage.totalMessagesToday}</div>
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
               All-time: {stats.usage.totalMessagesAllTime.toLocaleString()}
             </div>
           </div>
 
           {/* Paid Users */}
           <div className="glass-morphism rounded-2xl p-6">
-            <div className="mb-2 text-sm text-gray-400">Paid Subscriptions</div>
+            <div className="mb-2 text-sm" style={{ color: 'var(--text-secondary)' }}>Paid Subscriptions</div>
             <div className="text-3xl font-bold">
               {stats.usersByTier.basic + stats.usersByTier.pro + stats.usersByTier.executive}
             </div>
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
               Active: {stats.usersByStatus.active}
             </div>
           </div>
 
           {/* Active Today */}
           <div className="glass-morphism rounded-2xl p-6">
-            <div className="mb-2 text-sm text-gray-400">Active Today</div>
+            <div className="mb-2 text-sm" style={{ color: 'var(--text-secondary)' }}>Active Today</div>
             <div className="text-3xl font-bold">{stats.activeUsers.today}</div>
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
               30d: {stats.activeUsers.last30Days}
             </div>
           </div>
@@ -267,19 +269,19 @@ export default function UsersPage() {
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div>
               <div className="text-2xl font-bold">{stats.usersByTier.free}</div>
-              <div className="text-sm text-gray-400">Free</div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Free</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-400">{stats.usersByTier.basic}</div>
-              <div className="text-sm text-gray-400">Basic ($12/mo)</div>
+              <div className="text-2xl font-bold text-blue-500">{stats.usersByTier.basic}</div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Plus ($18/mo)</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-purple-400">{stats.usersByTier.pro}</div>
-              <div className="text-sm text-gray-400">Pro ($30/mo)</div>
+              <div className="text-2xl font-bold text-purple-500">{stats.usersByTier.pro}</div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Pro ($30/mo)</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-amber-400">{stats.usersByTier.executive}</div>
-              <div className="text-sm text-gray-400">Executive ($150/mo)</div>
+              <div className="text-2xl font-bold text-amber-500">{stats.usersByTier.executive}</div>
+              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>Executive ($99/mo)</div>
             </div>
           </div>
         </div>
@@ -294,18 +296,28 @@ export default function UsersPage() {
             placeholder="Search by email or name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="rounded-lg border border-gray-700 bg-black/50 px-4 py-2 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+            className="rounded-lg px-4 py-2 focus:outline-none"
+            style={{
+              backgroundColor: 'var(--glass-bg)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
           />
 
           {/* Tier Filter */}
           <select
             value={filterTier}
             onChange={(e) => setFilterTier(e.target.value)}
-            className="rounded-lg border border-gray-700 bg-black/50 px-4 py-2 text-white focus:border-blue-500 focus:outline-none"
+            className="rounded-lg px-4 py-2 focus:outline-none"
+            style={{
+              backgroundColor: 'var(--glass-bg)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
           >
             <option value="all">All Tiers</option>
             <option value="free">Free</option>
-            <option value="basic">Basic</option>
+            <option value="plus">Plus</option>
             <option value="pro">Pro</option>
             <option value="executive">Executive</option>
           </select>
@@ -314,7 +326,12 @@ export default function UsersPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-gray-700 bg-black/50 px-4 py-2 text-white focus:border-blue-500 focus:outline-none"
+            className="rounded-lg px-4 py-2 focus:outline-none"
+            style={{
+              backgroundColor: 'var(--glass-bg)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
@@ -327,14 +344,19 @@ export default function UsersPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'created' | 'usage' | 'name')}
-            className="rounded-lg border border-gray-700 bg-black/50 px-4 py-2 text-white focus:border-blue-500 focus:outline-none"
+            className="rounded-lg px-4 py-2 focus:outline-none"
+            style={{
+              backgroundColor: 'var(--glass-bg)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
           >
             <option value="created">Sort by Newest</option>
             <option value="usage">Sort by Usage</option>
             <option value="name">Sort by Name</option>
           </select>
         </div>
-        <div className="mt-2 text-sm text-gray-400">
+        <div className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
           Showing {filteredUsers.length} of {users.length} users
         </div>
       </div>
@@ -342,8 +364,8 @@ export default function UsersPage() {
       {/* No Users Warning */}
       {users.length === 0 && !loading && !error && (
         <div className="mb-6 glass-morphism rounded-2xl p-6">
-          <div className="mb-2 text-lg font-semibold text-yellow-400">No Users Found</div>
-          <div className="text-gray-300">
+          <div className="mb-2 text-lg font-semibold text-yellow-600">No Users Found</div>
+          <div style={{ color: 'var(--text-secondary)' }}>
             The API is working correctly, but there are no users in the database yet.
             This is normal for a new installation.
           </div>
@@ -357,7 +379,7 @@ export default function UsersPage() {
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{user.full_name || 'No name'}</div>
-                <div className="text-sm text-gray-400 truncate">{user.email}</div>
+                <div className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{user.email}</div>
               </div>
               <div className="flex gap-2 ml-2">
                 <span className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${getTierColor(user.subscription_tier || 'free')}`}>
@@ -368,26 +390,27 @@ export default function UsersPage() {
 
             <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
               <div>
-                <span className="text-gray-400">Messages:</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Messages:</span>
                 <span className="ml-1 font-medium">{(user.total_messages || 0).toLocaleString()}</span>
               </div>
               <div>
-                <span className="text-gray-400">Images:</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Images:</span>
                 <span className="ml-1 font-medium">{(user.total_images || 0).toLocaleString()}</span>
               </div>
               <div>
-                <span className="text-gray-400">Last Active:</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Last Active:</span>
                 <span className="ml-1">{formatDate(user.last_message_date)}</span>
               </div>
               <div>
-                <span className="text-gray-400">Joined:</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Joined:</span>
                 <span className="ml-1">{new Date(user.created_at).toLocaleDateString()}</span>
               </div>
             </div>
 
             <a
               href={`/admin/users/${user.id}`}
-              className="block w-full text-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 transition"
+              className="block w-full text-center rounded-lg px-4 py-3 text-sm font-medium text-white hover:opacity-90 transition"
+              style={{ backgroundColor: 'var(--primary)' }}
             >
               View Chats
             </a>
@@ -395,7 +418,7 @@ export default function UsersPage() {
         ))}
 
         {filteredUsers.length === 0 && users.length > 0 && (
-          <div className="glass-morphism rounded-xl p-8 text-center text-gray-400">
+          <div className="glass-morphism rounded-xl p-8 text-center" style={{ color: 'var(--text-muted)' }}>
             No users found matching your filters
           </div>
         )}
@@ -405,7 +428,7 @@ export default function UsersPage() {
       <div className="hidden lg:block glass-morphism rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="border-b border-gray-800 bg-black/50">
+            <thead style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--glass-bg)' }}>
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-semibold">User</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold">Tier</th>
@@ -417,12 +440,16 @@ export default function UsersPage() {
                 <th className="px-6 py-4 text-center text-sm font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-white/5">
+            <tbody style={{ borderTop: '1px solid var(--border)' }}>
+              {filteredUsers.map((user, index) => (
+                <tr
+                  key={user.id}
+                  className="hover:bg-black/5 dark:hover:bg-white/5"
+                  style={{ borderBottom: index < filteredUsers.length - 1 ? '1px solid var(--border)' : undefined }}
+                >
                   <td className="px-6 py-4">
                     <div className="font-medium">{user.full_name || 'No name'}</div>
-                    <div className="text-sm text-gray-400">{user.email}</div>
+                    <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{user.email}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${getTierColor(user.subscription_tier || 'free')}`}>
@@ -435,16 +462,16 @@ export default function UsersPage() {
                         {user.subscription_status.charAt(0).toUpperCase() + user.subscription_status.slice(1)}
                       </span>
                     ) : (
-                      <span className="text-sm text-gray-500">-</span>
+                      <span className="text-sm" style={{ color: 'var(--text-muted)' }}>-</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="font-medium">{user.messages_used_today || 0} today</div>
-                    <div className="text-sm text-gray-400">{(user.total_messages || 0).toLocaleString()} total</div>
+                    <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{(user.total_messages || 0).toLocaleString()} total</div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="font-medium">{user.images_generated_today || 0} today</div>
-                    <div className="text-sm text-gray-400">{(user.total_images || 0).toLocaleString()} total</div>
+                    <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>{(user.total_images || 0).toLocaleString()} total</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm">{formatDate(user.last_message_date)}</div>
@@ -455,7 +482,8 @@ export default function UsersPage() {
                   <td className="px-6 py-4 text-center">
                     <a
                       href={`/admin/users/${user.id}`}
-                      className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 transition"
+                      className="inline-block rounded-lg px-4 py-2 text-sm text-white hover:opacity-90 transition"
+                      style={{ backgroundColor: 'var(--primary)' }}
                     >
                       View Chats
                     </a>
@@ -466,7 +494,7 @@ export default function UsersPage() {
           </table>
 
           {filteredUsers.length === 0 && users.length > 0 && (
-            <div className="py-12 text-center text-gray-400">
+            <div className="py-12 text-center" style={{ color: 'var(--text-muted)' }}>
               No users found matching your filters
             </div>
           )}

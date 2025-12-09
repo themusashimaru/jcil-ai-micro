@@ -16,6 +16,7 @@ interface PricingCardProps {
   price: number;
   features: string[];
   popular?: boolean;
+  promo?: string;
   onSubscribe: (tier: PricingTier) => void;
   loading: boolean;
 }
@@ -27,35 +28,47 @@ function PricingCard({
   price,
   features,
   popular = false,
+  promo,
   onSubscribe,
   loading,
 }: PricingCardProps) {
   return (
     <div
-      className="glass-morphism rounded-2xl p-6 sm:p-8 relative"
+      className="glass-morphism rounded-2xl p-6 sm:p-8 relative flex flex-col"
       style={{
         border: popular ? '2px solid var(--primary)' : '1px solid var(--border)',
       }}
     >
+      {/* Popular Badge */}
       {popular && (
         <div
           className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-semibold"
           style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
         >
-          POPULAR
+          MOST POPULAR
         </div>
       )}
+
+      {/* Promo Badge */}
+      {promo && (
+        <div className="mb-4 -mt-2">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm">
+            {promo}
+          </span>
+        </div>
+      )}
+
       <h3 className="mb-2 text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
       <p className="mb-4 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>{description}</p>
       <div className="mb-6">
         <span className="text-4xl sm:text-5xl font-bold" style={{ color: 'var(--text-primary)' }}>${price}</span>
         <span style={{ color: 'var(--text-secondary)' }}>/month</span>
       </div>
-      <ul className="mb-8 space-y-3 text-sm">
+      <ul className="mb-8 space-y-3 text-sm flex-1">
         {features.map((feature, index) => (
-          <li key={index} className="flex items-center" style={{ color: 'var(--text-primary)' }}>
-            <span className="mr-2" style={{ color: 'rgb(74, 222, 128)' }}>✓</span>
-            {feature}
+          <li key={index} className="flex items-start" style={{ color: 'var(--text-primary)' }}>
+            <span className="mr-2 mt-0.5 flex-shrink-0" style={{ color: 'rgb(74, 222, 128)' }}>✓</span>
+            <span>{feature}</span>
           </li>
         ))}
       </ul>
@@ -122,6 +135,7 @@ export default function PricingSection() {
       title: 'Plus',
       description: 'Essential tools for everyday faith and life',
       price: 18,
+      promo: '🎉 2 WEEKS FREE',
       features: [
         'Intelligent AI chat assistant',
         'Real-time fact-checking with Perplexity',
@@ -155,8 +169,8 @@ export default function PricingSection() {
         'Everything in Pro',
         'Highest intelligence AI model',
         '5x more usage capacity',
-        'Premium coding & analysis',
-        'Executive-level document tools',
+        'Early access to experimental models',
+        'New feature previews',
         'Priority support',
       ],
     },
@@ -164,6 +178,14 @@ export default function PricingSection() {
 
   return (
     <section className="container mx-auto px-4 py-12 sm:py-20" id="pricing">
+      {/* Limited Time Offer Banner */}
+      <div className="mb-8 mx-auto max-w-2xl">
+        <div className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-xl p-4 text-center text-white shadow-lg">
+          <p className="text-sm font-medium mb-1">🚀 Limited Time Offer</p>
+          <p className="text-lg font-bold">Sign up today and get 2 weeks FREE on Plus!</p>
+        </div>
+      </div>
+
       <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>Simple, Transparent Pricing</h2>
       <p className="mb-2 text-center text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>Choose the plan that fits your needs</p>
       <p className="mb-8 sm:mb-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Cancel anytime. No hidden fees.</p>
@@ -185,6 +207,12 @@ export default function PricingSection() {
         ))}
       </div>
 
+      {/* Trust Note */}
+      <div className="mt-12 text-center">
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          Secure payment powered by Stripe. Your payment information is never stored on our servers.
+        </p>
+      </div>
     </section>
   );
 }
