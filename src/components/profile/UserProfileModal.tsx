@@ -300,7 +300,8 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
           <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
             <div className="flex gap-3">
               <svg
-                className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5"
+                className="h-5 w-5 flex-shrink-0 mt-0.5"
+                style={{ color: theme === 'light' ? '#1e3a5f' : '#60a5fa' }}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -312,7 +313,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <div className="text-xs text-blue-200">
+              <div className="text-xs" style={{ color: theme === 'light' ? '#1e3a5f' : '#bfdbfe' }}>
                 <p className="font-medium mb-1">Why we need this information:</p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>Personalize AI responses to your background and goals</li>
@@ -320,7 +321,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                   <li>Provide relevant examples from your field</li>
                   <li>Better understand your use cases and preferences</li>
                 </ul>
-                <p className="mt-2 text-blue-300">
+                <p className="mt-2" style={{ color: theme === 'light' ? '#1e40af' : '#93c5fd' }}>
                   Your data is stored locally and never shared.
                 </p>
               </div>
