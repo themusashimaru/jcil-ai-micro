@@ -558,7 +558,7 @@ export async function POST(request: NextRequest) {
       return new Response(
         JSON.stringify({
           type: 'text',
-          content: '🎨 **Image Generation Temporarily Unavailable**\n\nI apologize, but image generation is currently unavailable. Our system is using an AI provider that doesn\'t support image creation at this time.\n\nIn the meantime, I can help you with:\n- Describing or conceptualizing images in detail\n- Writing creative prompts for later use\n- Answering questions or helping with other tasks\n\nPlease try again later when image generation is restored!',
+          content: '**Image Generation Not Available**\n\nOur app\'s core focus is on delivering faith-based intelligence and general AI assistance, not multimedia generation. We do not currently have native image generation capabilities.\n\nHowever, I can help you with:\n- Describing images or visual concepts in detail\n- Writing creative descriptions or prompts\n- Answering questions and providing guidance\n- Research and information gathering\n\nIs there something else I can help you with today?',
           model: 'claude-sonnet-4.5',
         }),
         {
