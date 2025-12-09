@@ -60,6 +60,42 @@
   --chat-user-bubble-shadow: 0 8px 32px rgba(30, 58, 95, 0.15);
 }
 
+/* Ocean theme - Deep navy blue glassmorphism (admin only) */
+:root.ocean-mode {
+  --background: #0a1628; /* Deep navy blue */
+  --foreground: #ffffff;
+  --glass-bg: rgba(15, 30, 55, 0.85);
+  --glass-border: rgba(100, 180, 255, 0.15);
+  --glass-shadow: rgba(0, 20, 50, 0.4);
+
+  /* Ocean theme colors - Premium dark navy with cyan accents */
+  --primary: #60d5ff; /* Bright cyan accent */
+  --primary-hover: rgba(96, 213, 255, 0.15);
+  --primary-glow: rgba(96, 213, 255, 0.35);
+  --text-primary: #f0f8ff; /* AliceBlue - crisp white with blue tint */
+  --text-secondary: #a8c8e8; /* Soft blue-gray */
+  --text-muted: #6a8bab; /* Muted blue */
+  --surface: #0d1a2d; /* Slightly lighter navy for surfaces */
+  --surface-elevated: #122238; /* Elevated surface */
+  --border: rgba(100, 180, 255, 0.2);
+
+  /* Chat-specific ocean mode colors - Deep Sea Glassmorphism */
+  --chat-input-bg: rgba(15, 35, 65, 0.9);
+  --chat-user-bubble-bg: rgba(96, 213, 255, 0.15);
+  --chat-user-bubble-text: #ffffff;
+  --chat-ai-bubble-bg: rgba(20, 45, 80, 0.6);
+  --chat-ai-bubble-text: #f0f8ff;
+  --chat-ai-bubble-border: rgba(100, 180, 255, 0.3);
+  --chat-ai-bubble-shadow: 0 8px 32px rgba(0, 30, 80, 0.25);
+  --chat-user-bubble-shadow: 0 8px 32px rgba(96, 213, 255, 0.15);
+
+  /* Ocean-specific gradient accents */
+  --ocean-gradient-start: #0a1628;
+  --ocean-gradient-mid: #0f2540;
+  --ocean-gradient-end: #1a3a5c;
+  --ocean-glow: rgba(96, 213, 255, 0.4);
+}
+
 @layer base {
   body {
     background-color: var(--background);
@@ -192,27 +228,149 @@
     background: rgba(255, 255, 255, 0.45);
   }
 
-  /* Dark mode overrides */
-  :root:not(.light-mode) .chat-bubble.user-bubble,
-  :root:not(.light-mode) .chat-bubble.ai-bubble {
+  /* Dark mode overrides (pure dark theme only, not ocean) */
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble,
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble {
     background: transparent;
     box-shadow: none;
     border: none;
   }
 
-  :root:not(.light-mode) .chat-bubble.user-bubble::before,
-  :root:not(.light-mode) .chat-bubble.ai-bubble::after {
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble::before,
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble::after {
     display: none;
   }
 
-  :root:not(.light-mode) .chat-bubble.ai-bubble {
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble {
     border: 1px solid var(--chat-ai-bubble-border);
   }
 
-  :root:not(.light-mode) .chat-bubble.user-bubble:hover,
-  :root:not(.light-mode) .chat-bubble.ai-bubble:hover {
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble:hover,
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble:hover {
     transform: none;
     box-shadow: none;
+  }
+
+  /* ========================================
+   * OCEAN THEME - Premium Navy Glassmorphism
+   * Deep sea inspired with cyan accents
+   * ======================================== */
+
+  /* Ocean mode - User bubble: Glowing cyan glass */
+  :root.ocean-mode .chat-bubble.user-bubble {
+    background: linear-gradient(
+      135deg,
+      rgba(96, 213, 255, 0.12) 0%,
+      rgba(60, 140, 200, 0.08) 100%
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(96, 213, 255, 0.25);
+    border-top-color: rgba(96, 213, 255, 0.4);
+    border-left-color: rgba(96, 213, 255, 0.3);
+    box-shadow:
+      0 8px 32px rgba(0, 30, 80, 0.3),
+      inset 0 1px 0 rgba(96, 213, 255, 0.2),
+      0 0 40px rgba(96, 213, 255, 0.08);
+  }
+
+  :root.ocean-mode .chat-bubble.user-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(
+      to bottom,
+      rgba(96, 213, 255, 0.12),
+      transparent
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Ocean mode - AI bubble: Deep navy frosted glass */
+  :root.ocean-mode .chat-bubble.ai-bubble {
+    background: linear-gradient(
+      135deg,
+      rgba(20, 50, 90, 0.7) 0%,
+      rgba(15, 35, 65, 0.6) 100%
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(100, 180, 255, 0.2);
+    border-top-color: rgba(100, 180, 255, 0.35);
+    border-left-color: rgba(100, 180, 255, 0.25);
+    box-shadow:
+      0 8px 32px rgba(0, 20, 60, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  :root.ocean-mode .chat-bubble.ai-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(
+      to bottom,
+      rgba(100, 180, 255, 0.08),
+      transparent
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Ocean mode - Subtle outer glow on AI bubble */
+  :root.ocean-mode .chat-bubble.ai-bubble::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(96, 213, 255, 0.06), transparent 60%);
+    z-index: -1;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  /* Ocean mode hover effects */
+  :root.ocean-mode .chat-bubble.user-bubble:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(
+      135deg,
+      rgba(96, 213, 255, 0.18) 0%,
+      rgba(60, 140, 200, 0.12) 100%
+    );
+    box-shadow:
+      0 16px 48px rgba(0, 40, 100, 0.35),
+      0 0 60px rgba(96, 213, 255, 0.12),
+      inset 0 1px 0 rgba(96, 213, 255, 0.3);
+  }
+
+  :root.ocean-mode .chat-bubble.ai-bubble:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(
+      135deg,
+      rgba(25, 60, 105, 0.75) 0%,
+      rgba(20, 45, 80, 0.65) 100%
+    );
+    box-shadow:
+      0 16px 48px rgba(0, 25, 70, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  /* Ocean mode rounded corners */
+  :root.ocean-mode .chat-bubble {
+    border-radius: 1rem !important;
+  }
+
+  /* Hide triangle tails in ocean mode for clean look */
+  :root.ocean-mode .chat-bubble-tail::after {
+    display: none !important;
+    content: none !important;
+    visibility: hidden !important;
   }
 
   .chat-bubble-tail {
@@ -240,7 +398,7 @@
     border-right-color: transparent; /* Hidden by default */
   }
 
-  :root:not(.light-mode) .chat-bubble-tail.left::after {
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble-tail.left::after {
     border-right-color: transparent;
   }
 
