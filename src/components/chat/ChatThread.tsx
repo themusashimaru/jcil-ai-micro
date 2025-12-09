@@ -258,7 +258,6 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
     <div
       ref={scrollContainerRef}
       className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 md:px-4 chat-bg-orbs"
-      style={{ display: 'flex', flexDirection: 'column' }}
     >
       {/* Third animated orb (purple) */}
       <div className="chat-bg-orb-tertiary" />
