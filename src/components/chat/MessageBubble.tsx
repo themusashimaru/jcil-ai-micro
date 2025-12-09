@@ -309,7 +309,8 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
                     url = citation;
                   } else if (citation && typeof citation === 'object') {
                     // Try multiple possible URL field names
-                    const c = citation as Record<string, unknown>;
+                    // Cast through unknown to handle both Citation type and other formats
+                    const c = citation as unknown as Record<string, unknown>;
                     url = String(c.url || c.link || c.source || c.href || c.source_url || '');
                     title = String(c.title || c.name || c.source_name || '');
                   }
