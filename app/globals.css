@@ -96,6 +96,43 @@
   --ocean-glow: rgba(96, 213, 255, 0.4);
 }
 
+/* Coal theme - Charcoal glassmorphism with warm orange accents (admin only) */
+:root.coal-mode {
+  --background: #1a1a1a; /* Deep charcoal */
+  --foreground: #ffffff;
+  --glass-bg: rgba(45, 45, 45, 0.85);
+  --glass-border: rgba(255, 140, 80, 0.12);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+
+  /* Coal theme colors - Charcoal with warm orange/amber accents */
+  --primary: #ff6b35; /* Warm orange */
+  --primary-hover: rgba(255, 107, 53, 0.15);
+  --primary-glow: rgba(255, 107, 53, 0.35);
+  --text-primary: #ffffff;
+  --text-secondary: #b8b8b8; /* Soft gray */
+  --text-muted: #888888; /* Muted gray */
+  --surface: #1f1f1f; /* Slightly lighter charcoal for surfaces */
+  --surface-elevated: #2a2a2a; /* Elevated surface */
+  --border: rgba(255, 140, 80, 0.15);
+
+  /* Chat-specific coal mode colors - Warm Ember Glassmorphism */
+  --chat-input-bg: rgba(35, 35, 35, 0.9);
+  --chat-user-bubble-bg: rgba(255, 107, 53, 0.12);
+  --chat-user-bubble-text: #ffffff;
+  --chat-ai-bubble-bg: rgba(50, 50, 50, 0.65);
+  --chat-ai-bubble-text: #ffffff;
+  --chat-ai-bubble-border: rgba(255, 140, 80, 0.25);
+  --chat-ai-bubble-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --chat-user-bubble-shadow: 0 8px 32px rgba(255, 107, 53, 0.12);
+
+  /* Coal-specific gradient accents */
+  --coal-gradient-start: #1a1a1a;
+  --coal-gradient-mid: #252525;
+  --coal-gradient-end: #333333;
+  --coal-glow: rgba(255, 107, 53, 0.4);
+  --ember-glow: rgba(255, 80, 20, 0.3);
+}
+
 @layer base {
   body {
     background-color: var(--background);
@@ -228,25 +265,25 @@
     background: rgba(255, 255, 255, 0.45);
   }
 
-  /* Dark mode overrides (pure dark theme only, not ocean) */
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble,
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble {
+  /* Dark mode overrides (pure dark theme only, not ocean or coal) */
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.user-bubble,
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.ai-bubble {
     background: transparent;
     box-shadow: none;
     border: none;
   }
 
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble::before,
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble::after {
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.user-bubble::before,
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.ai-bubble::after {
     display: none;
   }
 
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble {
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.ai-bubble {
     border: 1px solid var(--chat-ai-bubble-border);
   }
 
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble:hover,
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble:hover {
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.user-bubble:hover,
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.ai-bubble:hover {
     transform: none;
     box-shadow: none;
   }
@@ -373,6 +410,128 @@
     visibility: hidden !important;
   }
 
+  /* ========================================
+   * COAL THEME - Premium Charcoal Glassmorphism
+   * Warm ember inspired with orange accents
+   * ======================================== */
+
+  /* Coal mode - User bubble: Warm ember glass */
+  :root.coal-mode .chat-bubble.user-bubble {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 107, 53, 0.1) 0%,
+      rgba(255, 80, 40, 0.06) 100%
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 140, 80, 0.2);
+    border-top-color: rgba(255, 140, 80, 0.35);
+    border-left-color: rgba(255, 140, 80, 0.25);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 140, 80, 0.15),
+      0 0 40px rgba(255, 107, 53, 0.06);
+  }
+
+  :root.coal-mode .chat-bubble.user-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 140, 80, 0.1),
+      transparent
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Coal mode - AI bubble: Charcoal frosted glass */
+  :root.coal-mode .chat-bubble.ai-bubble {
+    background: linear-gradient(
+      135deg,
+      rgba(55, 55, 55, 0.75) 0%,
+      rgba(40, 40, 40, 0.65) 100%
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 140, 80, 0.15);
+    border-top-color: rgba(255, 255, 255, 0.1);
+    border-left-color: rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  :root.coal-mode .chat-bubble.ai-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.05),
+      transparent
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Coal mode - Subtle outer glow on AI bubble */
+  :root.coal-mode .chat-bubble.ai-bubble::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.04), transparent 60%);
+    z-index: -1;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  /* Coal mode hover effects */
+  :root.coal-mode .chat-bubble.user-bubble:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 107, 53, 0.15) 0%,
+      rgba(255, 80, 40, 0.1) 100%
+    );
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.5),
+      0 0 60px rgba(255, 107, 53, 0.1),
+      inset 0 1px 0 rgba(255, 140, 80, 0.25);
+  }
+
+  :root.coal-mode .chat-bubble.ai-bubble:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(
+      135deg,
+      rgba(65, 65, 65, 0.8) 0%,
+      rgba(50, 50, 50, 0.7) 100%
+    );
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Coal mode rounded corners */
+  :root.coal-mode .chat-bubble {
+    border-radius: 1rem !important;
+  }
+
+  /* Hide triangle tails in coal mode for clean look */
+  :root.coal-mode .chat-bubble-tail::after {
+    display: none !important;
+    content: none !important;
+    visibility: hidden !important;
+  }
+
   .chat-bubble-tail {
     position: relative;
   }
@@ -398,7 +557,7 @@
     border-right-color: transparent; /* Hidden by default */
   }
 
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble-tail.left::after {
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble-tail.left::after {
     border-right-color: transparent;
   }
 
@@ -537,7 +696,7 @@
   }
 
   /* Premium glassmorphic sidebar buttons (dark mode - electric blue glow) */
-  :root:not(.light-mode) .sidebar-btn-glass {
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .sidebar-btn-glass {
     background: rgba(77, 255, 255, 0.15) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -552,7 +711,7 @@
     transition: all 0.2s ease;
   }
 
-  :root:not(.light-mode) .sidebar-btn-glass:hover {
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .sidebar-btn-glass:hover {
     background: rgba(77, 255, 255, 0.25) !important;
     transform: translateY(-1px);
     box-shadow:
@@ -562,7 +721,7 @@
   }
 
   /* Code Command button glass style (dark mode - blue glow) */
-  :root:not(.light-mode) .code-cmd-btn-glass {
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .code-cmd-btn-glass {
     background: rgba(59, 130, 246, 0.2) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -576,13 +735,70 @@
     transition: all 0.2s ease;
   }
 
-  :root:not(.light-mode) .code-cmd-btn-glass:hover {
+  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .code-cmd-btn-glass:hover {
     background: rgba(59, 130, 246, 0.3) !important;
     transform: translateY(-1px);
     box-shadow:
       0 8px 30px rgba(59, 130, 246, 0.35),
       0 0 25px rgba(59, 130, 246, 0.2),
       inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Premium glassmorphic sidebar buttons (coal mode - orange ember glow) */
+  :root.coal-mode .sidebar-btn-glass {
+    background: rgba(255, 107, 53, 0.15) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 107, 53, 0.3) !important;
+    border-top-color: rgba(255, 140, 80, 0.5);
+    border-left-color: rgba(255, 140, 80, 0.4);
+    color: #ff6b35 !important;
+    box-shadow:
+      0 4px 20px rgba(255, 107, 53, 0.2),
+      0 0 15px rgba(255, 107, 53, 0.1),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  :root.coal-mode .sidebar-btn-glass:hover {
+    background: rgba(255, 107, 53, 0.25) !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 30px rgba(255, 107, 53, 0.3),
+      0 0 25px rgba(255, 107, 53, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Code Command button glass style (coal mode - orange glow) */
+  :root.coal-mode .code-cmd-btn-glass {
+    background: rgba(255, 107, 53, 0.2) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 107, 53, 0.4) !important;
+    border-top-color: rgba(255, 140, 80, 0.6);
+    border-left-color: rgba(255, 140, 80, 0.5);
+    box-shadow:
+      0 4px 20px rgba(255, 107, 53, 0.25),
+      0 0 15px rgba(255, 107, 53, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  :root.coal-mode .code-cmd-btn-glass:hover {
+    background: rgba(255, 107, 53, 0.3) !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 30px rgba(255, 107, 53, 0.35),
+      0 0 25px rgba(255, 107, 53, 0.2),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  :root.coal-mode .code-cmd-btn-glass .code-cmd-title {
+    color: #ff6b35 !important;
+  }
+
+  :root.coal-mode .code-cmd-btn-glass .code-cmd-subtitle {
+    color: #ff8c5a !important;
   }
 
   /* Premium glassmorphic sidebar buttons (light mode) */
