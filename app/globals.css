@@ -229,9 +229,10 @@
   }
 
   /* Hide triangle tails in light mode for clean glassmorphism look */
-  :root.light-mode .chat-bubble-tail.left::after,
-  :root.light-mode .chat-bubble-tail.right::after {
-    display: none; /* Clean rounded corners only - no triangle pointers */
+  :root.light-mode .chat-bubble-tail::after {
+    display: none !important; /* Clean rounded corners only - no triangle pointers */
+    content: none !important;
+    visibility: hidden !important;
   }
 
   .chat-bubble-tail.left::after {
@@ -245,6 +246,19 @@
 
   .chat-bubble-tail.right::after {
     display: none; /* Remove triangle for user messages */
+  }
+
+  /* Ensure smooth rounded corners in light mode - no visible edges */
+  :root.light-mode .chat-bubble {
+    border-radius: 1rem !important; /* Consistent rounded corners */
+  }
+
+  :root.light-mode .chat-bubble.user-bubble {
+    border: 1px solid rgba(30, 58, 95, 0.15) !important;
+  }
+
+  :root.light-mode .chat-bubble.ai-bubble {
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
   }
 
   /* Premium animated floating orbs background (light mode only) */
