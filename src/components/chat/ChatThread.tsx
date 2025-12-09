@@ -179,24 +179,24 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   if (!currentChatId || messages.length === 0) {
     return (
       <div className="flex flex-1 min-h-0 items-center justify-center p-4 chat-bg-orbs">
-        <div className="text-center relative z-10">
+        <div className="text-center relative z-10 mt-8">
           {/* JCIL.ai Logo */}
-          <div className="mb-1">
+          <div className="mb-0">
             {/* Logo - Dynamically loaded from database (supports images and videos) */}
             {/* In light mode: always show text "jcil.ai" instead of logo */}
             {isLogoLoading ? (
               // Show placeholder while loading to prevent flash
-              <div className="h-36 md:h-72 w-auto mx-auto mb-2" />
+              <div className="h-48 md:h-96 w-auto mx-auto mb-1" />
             ) : theme === 'light' ? (
               // Light mode: Use light mode logo if uploaded, otherwise show text
               lightModeLogo ? (
                 <img
                   src={lightModeLogo}
                   alt="JCIL.ai"
-                  className="h-36 md:h-72 w-auto mx-auto mb-2"
+                  className="h-48 md:h-96 w-auto mx-auto mb-1"
                 />
               ) : (
-                <h1 className="text-6xl md:text-8xl font-normal mb-2">
+                <h1 className="text-6xl md:text-8xl font-normal mb-1">
                   <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
                   <span style={{ color: 'var(--primary)' }}>ai</span>
                 </h1>
