@@ -325,18 +325,18 @@ export function ChatSidebar({
           <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <button
               onClick={onOpenCodeCommand}
-              className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-left transition-all group"
+              className="code-cmd-btn-glass w-full rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-left transition-all group"
             >
               <div className="flex items-center gap-3">
                 {/* Code icon */}
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5 text-white code-cmd-title" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
                 <div>
-                  <div className="text-sm font-semibold text-white">
+                  <div className="text-sm font-semibold text-white code-cmd-title">
                     Code Command
                   </div>
-                  <div className="text-xs text-blue-200">
+                  <div className="text-xs text-blue-200 code-cmd-subtitle">
                     GPT-5.1 · Advanced coding
                   </div>
                 </div>
@@ -369,7 +369,7 @@ export function ChatSidebar({
         <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <button
             onClick={onNewChat}
-            className="w-full rounded-lg px-4 py-2 text-sm font-semibold transition"
+            className="sidebar-btn-glass w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition"
             style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
           >
             + New Chat
