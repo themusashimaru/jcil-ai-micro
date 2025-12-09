@@ -2,12 +2,13 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'coal' | 'light' | 'ocean';
 
 interface ThemeContextType {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  cycleTheme: (availableThemes: Theme[]) => void;
   isLoading: boolean;
 }
 
@@ -41,12 +42,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Apply theme to document
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    // Also add/remove a class for Tailwind compatibility
+    // Remove all theme classes first
+    document.documentElement.classList.remove('light-mode', 'ocean-mode', 'coal-mode');
+    // Add the appropriate class
     if (theme === 'light') {
       document.documentElement.classList.add('light-mode');
-    } else {
-      document.documentElement.classList.remove('light-mode');
+    } else if (theme === 'ocean') {
+      document.documentElement.classList.add('ocean-mode');
+    } else if (theme === 'coal') {
+      document.documentElement.classList.add('coal-mode');
     }
+    // 'dark' is the default, no class needed
   }, [theme]);
 
   const setTheme = useCallback(async (newTheme: Theme) => {
@@ -64,12 +70,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Simple toggle between dark and light (for non-admins)
   const toggleTheme = useCallback(() => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   }, [theme, setTheme]);
 
+  // Cycle through available themes (for admins with ocean access)
+  const cycleTheme = useCallback((availableThemes: Theme[]) => {
+    const currentIndex = availableThemes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % availableThemes.length;
+    setTheme(availableThemes[nextIndex]);
+  }, [theme, setTheme]);
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, isLoading }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, cycleTheme, isLoading }}>
       {children}
     </ThemeContext.Provider>
   );
