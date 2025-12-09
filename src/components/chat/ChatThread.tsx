@@ -186,14 +186,14 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
             {/* In light mode: always show text "jcil.ai" instead of logo */}
             {isLogoLoading ? (
               // Show placeholder while loading to prevent flash
-              <div className="h-48 md:h-96 w-auto mx-auto mb-1" />
+              <div className="h-36 md:h-72 w-auto mx-auto mb-1" />
             ) : theme === 'light' ? (
               // Light mode: Use light mode logo if uploaded, otherwise show text
               lightModeLogo ? (
                 <img
                   src={lightModeLogo}
                   alt="JCIL.ai"
-                  className="h-48 md:h-96 w-auto mx-auto mb-1"
+                  className="h-36 md:h-72 w-auto mx-auto mb-1"
                 />
               ) : (
                 <h1 className="text-6xl md:text-8xl font-normal mb-1">
