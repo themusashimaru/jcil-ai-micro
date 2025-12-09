@@ -250,7 +250,7 @@
   /* Premium animated floating orbs background (light mode only) */
   .chat-bg-orbs {
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden; /* Only hide horizontal overflow, allow vertical scroll */
   }
 
   .chat-bg-orbs::before,
