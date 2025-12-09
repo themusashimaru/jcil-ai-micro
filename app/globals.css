@@ -220,9 +220,15 @@
     border: 10px solid transparent;
   }
 
+  /* Hide triangle tails in light mode for clean glassmorphism look */
+  :root.light-mode .chat-bubble-tail.left::after,
+  :root.light-mode .chat-bubble-tail.right::after {
+    display: none; /* Clean rounded corners only - no triangle pointers */
+  }
+
   .chat-bubble-tail.left::after {
     left: -10px;
-    border-right-color: rgba(255, 255, 255, 0.75);
+    border-right-color: transparent; /* Hidden by default */
   }
 
   :root:not(.light-mode) .chat-bubble-tail.left::after {
