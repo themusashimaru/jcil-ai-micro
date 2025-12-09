@@ -14,18 +14,20 @@ import PricingSection from './components/PricingSection';
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200">
+      {/* Header - Glassmorphism */}
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/50">
         <div className="container mx-auto px-4 py-4">
           <nav className="flex items-center justify-between">
-            <div className="text-2xl font-bold text-slate-900">JCIL.AI</div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
+              JCIL.AI
+            </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link href="/login" className="px-3 py-2 text-slate-700 hover:text-slate-900 text-sm sm:text-base font-medium">
+              <Link href="/login" className="px-3 py-2 text-slate-700 hover:text-slate-900 text-sm sm:text-base font-medium transition">
                 Log In
               </Link>
               <Link
                 href="/signup"
-                className="rounded-lg bg-blue-900 px-4 py-2 sm:px-6 text-white font-semibold hover:bg-blue-800 text-sm sm:text-base transition"
+                className="rounded-xl bg-gradient-to-r from-blue-900 to-blue-700 px-4 py-2 sm:px-6 text-white font-semibold hover:shadow-lg hover:shadow-blue-900/25 text-sm sm:text-base transition-all duration-300"
               >
                 Sign Up
               </Link>
@@ -34,14 +36,30 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-24">
-        <div className="container mx-auto px-4 text-center">
+      {/* Hero Section - Enhanced with Glassmorphism */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-white py-20 sm:py-32">
+        {/* Decorative Background Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200/20 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-blue-100/20 to-purple-100/20 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 text-center relative">
           <div className="mx-auto max-w-4xl">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100/80 backdrop-blur-sm border border-blue-200/50 mb-8">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+              </span>
+              <span className="text-sm font-medium text-blue-800">AI Designed for Your Values</span>
+            </div>
+
             <h1 className="mb-6 text-4xl sm:text-5xl md:text-6xl font-bold leading-tight tracking-tight text-slate-900">
               AI-Powered Tools
               <br />
-              <span className="text-blue-800">Built for People of Faith</span>
+              <span className="bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent">Built for People of Faith</span>
             </h1>
             <p className="mx-auto mb-10 max-w-2xl text-lg sm:text-xl text-slate-600 leading-relaxed">
               Intelligent assistance that respects your values. Get answers, conduct research,
@@ -50,16 +68,36 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/signup"
-                className="w-full sm:w-auto rounded-lg bg-blue-900 px-8 py-4 text-lg font-semibold text-white hover:bg-blue-800 transition shadow-lg"
+                className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-blue-900 to-blue-700 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-blue-900/25 transition-all duration-300 hover:-translate-y-0.5"
               >
-                Get Started
+                Get Started Free
               </Link>
               <Link
                 href="#how-it-works"
-                className="w-full sm:w-auto rounded-lg border-2 border-slate-300 px-8 py-4 text-lg font-semibold text-slate-700 hover:bg-slate-50 transition"
+                className="w-full sm:w-auto rounded-xl border-2 border-slate-200 bg-white/50 backdrop-blur-sm px-8 py-4 text-lg font-semibold text-slate-700 hover:bg-white hover:border-slate-300 hover:shadow-lg transition-all duration-300"
               >
                 Learn More
               </Link>
+            </div>
+
+            {/* Social Proof */}
+            <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-500">
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-white flex items-center justify-center text-white text-xs font-bold">J</div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-white flex items-center justify-center text-white text-xs font-bold">M</div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 border-2 border-white flex items-center justify-center text-white text-xs font-bold">S</div>
+                </div>
+                <span>Trusted by thousands</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                  </svg>
+                ))}
+                <span className="ml-1">4.9/5 rating</span>
+              </div>
             </div>
           </div>
         </div>
@@ -216,9 +254,9 @@ export default function HomePage() {
           <div className="mt-12 text-center">
             <p className="text-blue-200 text-sm mb-4">Committed to Industry Best Practices</p>
             <div className="flex flex-wrap items-center justify-center gap-6 text-white/80 text-sm">
-              <span className="px-4 py-2 rounded-full bg-white/10 border border-white/20">SOC 2 Type II Standards</span>
-              <span className="px-4 py-2 rounded-full bg-white/10 border border-white/20">GDPR Compliant</span>
-              <span className="px-4 py-2 rounded-full bg-white/10 border border-white/20">CCPA Compliant</span>
+              <span className="px-4 py-2 rounded-full bg-white/10 border border-white/20">Enterprise Security Standards</span>
+              <span className="px-4 py-2 rounded-full bg-white/10 border border-white/20">Privacy-First Design</span>
+              <span className="px-4 py-2 rounded-full bg-white/10 border border-white/20">California Privacy Act Ready</span>
               <span className="px-4 py-2 rounded-full bg-white/10 border border-white/20">99.9% Uptime SLA</span>
             </div>
           </div>
@@ -226,8 +264,14 @@ export default function HomePage() {
       </section>
 
       {/* Tools Section */}
-      <section className="bg-white py-16 sm:py-20">
-        <div className="container mx-auto px-4">
+      <section className="relative bg-gradient-to-b from-white to-slate-50 py-16 sm:py-20 overflow-hidden">
+        {/* Decorative Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 right-10 w-64 h-64 bg-blue-100/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 left-10 w-64 h-64 bg-purple-100/20 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
           <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold text-slate-900">Powerful Tools at Your Fingertips</h2>
           <p className="mb-12 text-center text-slate-600 max-w-2xl mx-auto">
             Everything you need to research, write, study, and create.
@@ -244,8 +288,11 @@ export default function HomePage() {
               { icon: '💻', title: 'Code Assistant', desc: 'Programming help and debugging' },
               { icon: '🙏', title: 'Daily Devotional', desc: 'Fresh spiritual content every day' },
             ].map((tool, index) => (
-              <div key={index} className="flex items-start gap-4 rounded-xl bg-slate-50 p-4 sm:p-5 border border-slate-200">
-                <div className="text-2xl">{tool.icon}</div>
+              <div
+                key={index}
+                className="group flex items-start gap-4 rounded-2xl bg-white/70 backdrop-blur-sm p-5 border border-slate-200/80 shadow-sm hover:shadow-lg hover:bg-white hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="text-2xl group-hover:scale-110 transition-transform duration-300">{tool.icon}</div>
                 <div>
                   <h3 className="font-semibold mb-1 text-slate-900">{tool.title}</h3>
                   <p className="text-sm text-slate-600">{tool.desc}</p>
