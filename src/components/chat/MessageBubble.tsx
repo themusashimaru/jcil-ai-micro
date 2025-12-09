@@ -290,8 +290,8 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
 
           {/* Citations/Sources from Live Search */}
           {!isUser && message.citations && message.citations.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
+            <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-1 text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
@@ -312,8 +312,12 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs text-blue-400 hover:bg-white/10 hover:text-blue-300 transition-colors truncate max-w-[200px] cursor-pointer"
-                      style={{ pointerEvents: 'auto' }}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-colors truncate max-w-[200px] cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--glass-bg)',
+                        color: 'var(--primary)',
+                        pointerEvents: 'auto'
+                      }}
                       title={url}
                     >
                       <span className="truncate">{domain}</span>
@@ -324,7 +328,7 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
                   );
                 })}
                 {message.citations.length > 5 && (
-                  <span className="px-2 py-0.5 text-xs text-gray-500">
+                  <span className="px-2 py-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
                     +{message.citations.length - 5} more
                   </span>
                 )}
