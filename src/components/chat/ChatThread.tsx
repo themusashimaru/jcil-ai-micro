@@ -165,13 +165,8 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
 
     // Using a small delay to let the DOM update first
     setTimeout(() => {
-      // For few messages, scroll to top so first message is visible with buffer
-      // For many messages, scroll to bottom to show latest
-      if (messages.length <= 2) {
-        scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }
+      // Always scroll to show latest message at bottom
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   }, [messages]);
 
@@ -275,7 +270,7 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
       {/* Third animated orb (purple) */}
       <div className="chat-bg-orb-tertiary" />
 
-      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-3 md:space-y-4 pt-4 pb-8 relative z-10">
+      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-3 md:space-y-4 pt-16 pb-8 relative z-10">
 
         {messages.map((message, index) => {
           // Check if this is the last user message
