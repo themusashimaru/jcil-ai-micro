@@ -161,17 +161,11 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
     // Find the last user message
     const lastMessage = messages[messages.length - 1];
 
-    // If the last message is from user, scroll to show it at the top
-    if (lastMessage.role === 'user' && lastUserMessageRef.current) {
-      // Scroll so the user message appears near the top of the viewport
-      lastUserMessageRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    } else {
-      // Otherwise scroll to bottom (for assistant responses)
+    // Always scroll to bottom to ensure both user messages and AI responses are visible
+    // Using a small delay to let the DOM update first
+    setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    }, 100);
   }, [messages]);
 
   // Show logo and tools when no chat is selected OR when chat is empty
@@ -261,12 +255,12 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden py-0 px-0 md:p-2 chat-bg-orbs"
+      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-0 px-0 md:p-2 chat-bg-orbs"
     >
       {/* Third animated orb (purple) */}
       <div className="chat-bg-orb-tertiary" />
 
-      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-0 md:space-y-3 pt-4 relative z-10">
+      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-0 md:space-y-3 pt-16 md:pt-20 pb-8 relative z-10">
 
         {messages.map((message, index) => {
           // Check if this is the last user message
