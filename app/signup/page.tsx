@@ -91,24 +91,28 @@ export default function SignUpPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black p-4">
-        <div className="w-full max-w-md">
-          <div className="glass-morphism rounded-2xl p-6 sm:p-8 text-center">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-white p-4">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200/20 rounded-full blur-3xl" />
+        </div>
+        <div className="w-full max-w-md relative z-10">
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200/50 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Check your email!</h2>
-            <p className="text-gray-400 mb-4">
-              We&apos;ve sent a confirmation link to <span className="text-white font-medium">{formData.email}</span>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">Check your email!</h2>
+            <p className="text-slate-600 mb-4">
+              We&apos;ve sent a confirmation link to <span className="text-slate-900 font-medium">{formData.email}</span>
             </p>
-            <p className="text-gray-500 text-sm mb-6">
+            <p className="text-slate-500 text-sm mb-6">
               Don&apos;t see it? Check your spam or junk folder.
             </p>
             <Link
               href="/login"
-              className="inline-block bg-white text-black rounded-lg px-6 py-2 font-medium hover:bg-gray-200 transition-colors"
+              className="inline-block bg-gradient-to-r from-blue-900 to-blue-700 text-white rounded-lg px-6 py-2 font-medium hover:shadow-lg transition-all"
             >
               Go to Login
             </Link>
@@ -119,10 +123,16 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-white p-4">
+      {/* Decorative Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200/20 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
         {/* Card */}
-        <div className="glass-morphism rounded-2xl p-6 sm:p-8">
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200/50">
           {/* Logo */}
           <div className="text-center mb-6">
             {isLogoLoading ? (
@@ -131,33 +141,33 @@ export default function SignUpPage() {
               <img src={logo} alt="JCIL.ai" className="h-16 mx-auto" />
             ) : (
               <h1 className="text-3xl sm:text-4xl font-bold">
-                <span className="text-white">JCIL</span>
-                <span className="text-blue-500">.ai</span>
+                <span className="bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">JCIL</span>
+                <span className="text-blue-600">.ai</span>
               </h1>
             )}
           </div>
 
           {/* Header */}
           <div className="text-center mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
               Create Account
             </h2>
-            <p className="text-gray-400">
+            <p className="text-slate-600">
               Join us today
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
-              <p className="text-red-200 text-sm">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
 
           {/* Sign Up Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="full_name" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="full_name" className="block text-sm font-medium text-slate-700 mb-2">
                 Full Name
               </label>
               <input
@@ -167,14 +177,14 @@ export default function SignUpPage() {
                 value={formData.full_name}
                 onChange={handleChange}
                 placeholder="John Doe"
-                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={loading}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                 Email
               </label>
               <input
@@ -184,14 +194,14 @@ export default function SignUpPage() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={loading}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -202,7 +212,7 @@ export default function SignUpPage() {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                  className="w-full px-4 py-3 pr-12 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={loading}
                   required
                   minLength={8}
@@ -210,7 +220,7 @@ export default function SignUpPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -228,7 +238,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-2">
                 Confirm Password
               </label>
               <div className="relative">
@@ -239,14 +249,14 @@ export default function SignUpPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                  className="w-full px-4 py-3 pr-12 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={loading}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   tabIndex={-1}
                 >
                   {showConfirmPassword ? (
@@ -275,7 +285,7 @@ export default function SignUpPage() {
             )}
 
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="role" className="block text-sm font-medium text-slate-700 mb-2">
                 I am a...
               </label>
               <select
@@ -283,16 +293,16 @@ export default function SignUpPage() {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={loading}
               >
-                <option value="student" className="bg-black">Student</option>
-                <option value="professional" className="bg-black">Professional</option>
+                <option value="student">Student</option>
+                <option value="professional">Professional</option>
               </select>
             </div>
 
             <div>
-              <label htmlFor="field" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="field" className="block text-sm font-medium text-slate-700 mb-2">
                 Field of Study/Work
               </label>
               <input
@@ -302,13 +312,13 @@ export default function SignUpPage() {
                 value={formData.field}
                 onChange={handleChange}
                 placeholder="e.g., Computer Science, Marketing"
-                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={loading}
               />
             </div>
 
             <div>
-              <label htmlFor="purpose" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="purpose" className="block text-sm font-medium text-slate-700 mb-2">
                 Why are you using JCIL.ai?
               </label>
               <textarea
@@ -318,7 +328,7 @@ export default function SignUpPage() {
                 onChange={handleChange}
                 placeholder="Tell us how you plan to use JCIL.ai..."
                 rows={3}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
                 disabled={loading}
               />
             </div>
@@ -327,18 +337,18 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-white text-black rounded-lg px-4 py-3 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-blue-900 to-blue-700 text-white rounded-lg px-4 py-3 font-medium hover:shadow-lg hover:shadow-blue-900/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
 
           {/* Sign In Link */}
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-slate-600 text-sm mt-6">
             Already have an account?{' '}
             <Link
               href="/login"
-              className="text-white hover:text-gray-300 font-medium transition-colors"
+              className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
             >
               Sign in
             </Link>
@@ -349,7 +359,7 @@ export default function SignUpPage() {
         <div className="text-center mt-6">
           <Link
             href="/"
-            className="text-sm text-gray-500 hover:text-white transition-colors"
+            className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
           >
             ← Back to home
           </Link>
