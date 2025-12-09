@@ -257,12 +257,13 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-0 px-0 md:p-2 chat-bg-orbs"
+      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 md:px-4 chat-bg-orbs"
+      style={{ display: 'flex', flexDirection: 'column' }}
     >
       {/* Third animated orb (purple) */}
       <div className="chat-bg-orb-tertiary" />
 
-      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-0 md:space-y-3 pt-6 md:pt-8 pb-8 relative z-10">
+      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-3 md:space-y-4 pt-4 pb-8 relative z-10">
 
         {messages.map((message, index) => {
           // Check if this is the last user message

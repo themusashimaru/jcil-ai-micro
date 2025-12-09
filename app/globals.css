@@ -77,10 +77,18 @@
   }
 
   .chat-bubble {
-    @apply rounded-2xl p-3 md:p-4;
+    @apply rounded-2xl p-3 md:p-4 text-base leading-relaxed;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 768px) {
+    .chat-bubble {
+      font-size: 16px;
+    }
   }
 
   /* User message bubble - True glassmorphism (20-30% opacity like Apple requires) */
