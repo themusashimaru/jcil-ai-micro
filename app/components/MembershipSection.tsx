@@ -311,7 +311,15 @@ export default function MembershipSection() {
         <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Other Available Plans</h3>
         <div className="grid gap-4 md:grid-cols-2">
           {(Object.entries(TIER_INFO) as [SubscriptionTier, typeof TIER_INFO[SubscriptionTier]][])
-            .filter(([tier]) => tier !== subscription.tier && tier !== 'free')
+            .filter(([tier]) => {
+              // Don't show current tier or free tier
+              if (tier === subscription.tier || tier === 'free') return false;
+              // Don't show 'basic' - it's a legacy alias for 'plus'
+              if (tier === 'basic') return false;
+              // If user is on 'basic', don't show 'plus' either (they're the same)
+              if (subscription.tier === 'basic' && tier === 'plus') return false;
+              return true;
+            })
             .map(([tier, info]) => (
               <div
                 key={tier}
