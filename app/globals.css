@@ -77,10 +77,18 @@
   }
 
   .chat-bubble {
-    @apply rounded-2xl p-3 md:p-4;
+    @apply rounded-2xl p-3 md:p-4 text-base leading-relaxed;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 768px) {
+    .chat-bubble {
+      font-size: 16px;
+    }
   }
 
   /* User message bubble - True glassmorphism (20-30% opacity like Apple requires) */
@@ -354,6 +362,59 @@
       opacity: 1;
       transform: translateY(0) scale(1);
     }
+  }
+
+  /* Premium glassmorphic sidebar buttons (light mode) */
+  :root.light-mode .sidebar-btn-glass {
+    background: rgba(30, 58, 95, 0.2) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+    border-top-color: rgba(255, 255, 255, 0.5);
+    border-left-color: rgba(255, 255, 255, 0.4);
+    color: var(--primary) !important;
+    box-shadow:
+      0 4px 16px rgba(30, 58, 95, 0.1),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  :root.light-mode .sidebar-btn-glass:hover {
+    background: rgba(30, 58, 95, 0.28) !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 24px rgba(30, 58, 95, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  /* Code Command button glass style (light mode) */
+  :root.light-mode .code-cmd-btn-glass {
+    background: rgba(59, 130, 246, 0.2) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+    border-top-color: rgba(255, 255, 255, 0.5);
+    border-left-color: rgba(255, 255, 255, 0.4);
+    box-shadow:
+      0 4px 16px rgba(59, 130, 246, 0.1),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  :root.light-mode .code-cmd-btn-glass:hover {
+    background: rgba(59, 130, 246, 0.28) !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 24px rgba(59, 130, 246, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  :root.light-mode .code-cmd-btn-glass .code-cmd-title {
+    color: #1e40af !important;
+  }
+
+  :root.light-mode .code-cmd-btn-glass .code-cmd-subtitle {
+    color: #3b82f6 !important;
   }
 
   /* Premium glassmorphic input area (light mode) */

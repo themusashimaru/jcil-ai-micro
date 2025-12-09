@@ -154,20 +154,26 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
     return () => window.removeEventListener('design-settings-updated', handleUpdate);
   }, []);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll when new messages arrive
   useEffect(() => {
     if (messages.length === 0) return;
 
     // Using a small delay to let the DOM update first
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // For few messages, scroll to top so first message is visible with buffer
+      // For many messages, scroll to bottom to show latest
+      if (messages.length <= 2) {
+        scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
     }, 100);
   }, [messages]);
 
   // Show logo and tools when no chat is selected OR when chat is empty
   if (!currentChatId || messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-1 chat-bg-orbs">
+      <div className="flex flex-1 min-h-0 items-center justify-center p-4 chat-bg-orbs">
         <div className="text-center relative z-10">
           {/* JCIL.ai Logo */}
           <div className="mb-1">
@@ -251,12 +257,13 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-0 px-0 md:p-2 chat-bg-orbs"
+      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 md:px-4 chat-bg-orbs"
+      style={{ display: 'flex', flexDirection: 'column' }}
     >
       {/* Third animated orb (purple) */}
       <div className="chat-bg-orb-tertiary" />
 
-      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-0 md:space-y-3 pt-16 md:pt-20 pb-8 relative z-10">
+      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-3 md:space-y-4 pt-4 pb-8 relative z-10">
 
         {messages.map((message, index) => {
           // Check if this is the last user message
