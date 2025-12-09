@@ -154,14 +154,10 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
     return () => window.removeEventListener('design-settings-updated', handleUpdate);
   }, []);
 
-  // Auto-scroll to show user's message at top when new message is sent
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length === 0) return;
 
-    // Find the last user message
-    const lastMessage = messages[messages.length - 1];
-
-    // Always scroll to bottom to ensure both user messages and AI responses are visible
     // Using a small delay to let the DOM update first
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
