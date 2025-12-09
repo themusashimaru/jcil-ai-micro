@@ -107,19 +107,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Storage not configured' }, { status: 500 });
     }
 
-    // Create signed URL for the file
+    // Download the file directly and stream to user
+    // This avoids redirect issues with auth cookies in new tabs
     const filePath = `${decoded.userId}/${decoded.filename}`;
-    const { data: signedData, error: signError } = await supabase.storage
+    const { data: fileData, error: downloadError } = await supabase.storage
       .from('documents')
-      .createSignedUrl(filePath, 3600);
+      .download(filePath);
 
-    if (signError || !signedData?.signedUrl) {
-      console.error('[Download Proxy] Signed URL error:', signError);
+    if (downloadError || !fileData) {
+      console.error('[Download Proxy] Download error:', downloadError);
       return NextResponse.json({ error: 'File not found or expired' }, { status: 404 });
     }
 
-    // Redirect to the signed URL
-    return NextResponse.redirect(signedData.signedUrl);
+    // Determine content type
+    const contentType = decoded.type === 'pdf'
+      ? 'application/pdf'
+      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    // Create a clean filename for download
+    const downloadFilename = decoded.filename;
+
+    // Return the file directly
+    const arrayBuffer = await fileData.arrayBuffer();
+    return new NextResponse(arrayBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="${downloadFilename}"`,
+        'Content-Length': arrayBuffer.byteLength.toString(),
+        'Cache-Control': 'private, max-age=3600',
+      },
+    });
   } catch (error) {
     console.error('[Download Proxy] Error:', error);
     return NextResponse.json({ error: 'Download failed' }, { status: 500 });

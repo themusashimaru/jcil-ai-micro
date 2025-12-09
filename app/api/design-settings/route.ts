@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS = {
   main_logo: '/images/logo.png',
   header_logo: '',
   login_logo: '',
+  light_mode_logo: '',
   favicon: '',
   site_name: 'JCIL.ai',
   subtitle: 'Your AI Assistant',
@@ -123,6 +124,8 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const settings = await request.json();
 
+    console.log('[Design Settings API] Saving settings, lightModeLogo:', settings.lightModeLogo ? 'present' : 'empty');
+
     // Use service role key for update (admin operation)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -150,6 +153,7 @@ export async function POST(request: NextRequest) {
           main_logo: settings.mainLogo,
           header_logo: settings.headerLogo,
           login_logo: settings.loginLogo,
+          light_mode_logo: settings.lightModeLogo,
           favicon: settings.favicon,
           site_name: settings.siteName,
           subtitle: settings.subtitle,
@@ -166,6 +170,7 @@ export async function POST(request: NextRequest) {
           main_logo: settings.mainLogo,
           header_logo: settings.headerLogo,
           login_logo: settings.loginLogo,
+          light_mode_logo: settings.lightModeLogo,
           favicon: settings.favicon,
           site_name: settings.siteName,
           subtitle: settings.subtitle,
@@ -182,6 +187,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    console.log('[Design Settings API] Save successful, light_mode_logo in result:', result.data?.light_mode_logo ? 'present' : 'empty/missing');
 
     // Invalidate cache and store new settings
     await cacheDelete(CACHE_KEY);

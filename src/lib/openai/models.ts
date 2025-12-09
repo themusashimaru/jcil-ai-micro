@@ -2,14 +2,15 @@
  * OpenAI Model Routing
  * Determines which model to use based on tool type, content, and request
  *
- * Routing Strategy (GPT-5 Edition):
- * - gpt-5-nano: Basic chat, greetings, simple Q&A (cost-optimized)
- * - gpt-5-mini: Search, files, images, complex reasoning, code (primary workhorse)
- * - gpt-5-mini: Also serves as fallback when nano fails
+ * Routing Strategy (Simplified - Mini Only):
+ * - gpt-5-mini: Primary model for ALL text tasks (chat, search, code, etc.)
  * - dall-e-3: Image generation
  * - whisper-1: Speech-to-text
  * - tts-1-hd: Text-to-speech
  * - gpt-4o-realtime-preview: Real-time voice conversations
+ *
+ * Note: The escalation patterns below are kept for future use but currently
+ * all text requests route to gpt-5-mini for consistency and reliability.
  */
 
 import { OpenAIModel, ToolType } from './types';
@@ -22,6 +23,13 @@ const MINI_ESCALATION_PATTERNS = [
   // Search/lookup intent
   /\b(search|look up|find|google|latest|breaking|news|weather|forecast|price|stock|crypto)\b/i,
   /\b(today|yesterday|this week|current|recent|update)\b/i,
+
+  // LOCAL BUSINESS / PLACES - must use mini with web search
+  /\b(near\s*me|nearby|close\s*by|around\s*here)\b/i,
+  /\b(in|near|around)\s+[A-Z][a-z]+/i, // "in Chelsea", "near Boston"
+  /\b(theater|theatre|cinema|movie|movies|restaurant|cafe|coffee|barbershop|barber|salon|hotel|motel|store|shop|gym|hospital|pharmacy|bank|grocery|supermarket|mall|dentist|doctor|clinic|church)\b/i,
+  /\b(showtime|playing|screening|hours|open|closed|address|directions|phone\s*number)\b/i,
+  /\b(regal|amc|cinemark|starbucks|mcdonalds|walmart|target|costco|home\s*depot|lowes)\b/i,
 
   // File/upload handling
   /\b(upload|attached|photo|pdf|spreadsheet|excel|image|file|document)\b/i,
@@ -74,14 +82,11 @@ export function getModelForTool(tool?: ToolType, messageContent?: string): OpenA
     return 'gpt-5-mini';
   }
 
-  // Simple tools use nano
-  const nanoTools: ToolType[] = ['email', 'essay', 'sms', 'translate', 'scripture'];
-  if (tool && nanoTools.includes(tool)) {
-    return 'gpt-5-nano';
-  }
+  // All tools now use mini for consistency
+  // (Previously nano was used for: email, essay, sms, translate, scripture)
 
-  // Default: nano for basic chat
-  return 'gpt-5-nano';
+  // Default: mini for everything
+  return 'gpt-5-mini';
 }
 
 /**
@@ -153,27 +158,17 @@ export function getRecommendedTemperature(model: OpenAIModel, tool?: ToolType): 
 /**
  * Get max tokens for model/tool combination
  */
-export function getMaxTokens(model: OpenAIModel, tool?: ToolType): number {
-  // Nano uses fewer tokens (cost optimization)
-  if (model === 'gpt-5-nano') {
-    if (tool === 'sms') return 256;
-    if (tool === 'email') return 800;
-    return 1000; // Cap nano responses
-  }
+export function getMaxTokens(_model: OpenAIModel, tool?: ToolType): number {
+  // Tool-specific limits
+  if (tool === 'sms') return 256;
+  if (tool === 'email') return 1000;
+  if (tool === 'code') return 2000;
+  if (tool === 'essay') return 2000;
+  if (tool === 'research') return 2000;
+  if (tool === 'data') return 2000;
+  if (tool === 'scripture') return 4000;
 
-  // Mini can use more tokens
-  if (model === 'gpt-5-mini') {
-    if (tool === 'sms') return 256;
-    if (tool === 'email') return 1000;
-    if (tool === 'code') return 2000;
-    if (tool === 'essay') return 2000;
-    if (tool === 'research') return 2000;
-    if (tool === 'data') return 2000;
-    if (tool === 'scripture') return 4000;
-    return 2000;
-  }
-
-  // Default
+  // Default for mini (all requests)
   return 2000;
 }
 

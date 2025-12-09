@@ -2,9 +2,9 @@
  * USAGE METRICS SECTION COMPONENT
  *
  * PURPOSE:
- * - Display detailed usage statistics for all tiers
- * - Show message and image usage with progress bars
- * - Display total usage history
+ * - Display detailed token usage statistics for all tiers
+ * - Show token and image usage with progress bars
+ * - Display monthly usage
  * - Provide upgrade option when near limits
  */
 
@@ -13,25 +13,52 @@
 import { useState, useEffect } from 'react';
 
 interface UsageData {
-  tier: 'free' | 'basic' | 'pro' | 'executive';
-  messages: {
+  tier: 'free' | 'plus' | 'basic' | 'pro' | 'executive';
+  tokens: {
     used: number;
     limit: number;
     remaining: number;
+    percentage: number;
+    usedFormatted: string;
+    limitFormatted: string;
+    remainingFormatted: string;
   };
   images: {
     used: number;
     limit: number;
     remaining: number;
+    percentage: number;
   };
-  hasReachedLimit: boolean;
+  features: {
+    realtime_voice: boolean;
+    image_generation: boolean;
+  };
+  hasReachedTokenLimit: boolean;
+  hasReachedImageLimit: boolean;
+  tokenWarning: boolean;
+  imageWarning: boolean;
+  planInfo: {
+    tokenLimit: number;
+    imageLimit: number;
+    nextTier: string | null;
+    nextTierTokenLimit: number | null;
+  };
 }
 
 const TIER_NAMES = {
   free: 'Free',
-  basic: 'Basic',
+  plus: 'Plus',
+  basic: 'Plus', // Legacy alias
   pro: 'Pro',
   executive: 'Executive',
+};
+
+const TIER_PRICES = {
+  free: 0,
+  plus: 18,
+  basic: 18, // Legacy alias
+  pro: 30,
+  executive: 99,
 };
 
 export default function UsageMetricsSection() {
@@ -65,24 +92,31 @@ export default function UsageMetricsSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
       </div>
     );
   }
 
   if (error || !usage) {
     return (
-      <div className="rounded-xl bg-red-900/20 border border-red-500 p-6 text-red-400">
+      <div className="rounded-xl p-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
         {error || 'Failed to load usage data'}
       </div>
     );
   }
 
-  const messagePercentage = (usage.messages.used / usage.messages.limit) * 100;
-  const imagePercentage = usage.images.limit > 0 ? (usage.images.used / usage.images.limit) * 100 : 0;
+  const tokenPercentage = usage.tokens.percentage;
 
-  const isMessageNearLimit = messagePercentage >= 80;
-  const isMessageAtLimit = usage.hasReachedLimit;
+  const isTokenNearLimit = usage.tokenWarning;
+  const isTokenAtLimit = usage.hasReachedTokenLimit;
+
+  // Format next tier token limit for display
+  const formatTokenLimit = (tokens: number | null): string => {
+    if (!tokens) return '';
+    if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(0)}M`;
+    if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(0)}K`;
+    return tokens.toString();
+  };
 
   return (
     <div className="space-y-6">
@@ -90,82 +124,63 @@ export default function UsageMetricsSection() {
       <div className="glass-morphism rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xl font-bold">{TIER_NAMES[usage.tier]} Plan</h3>
-            <p className="text-sm text-gray-400 mt-1">Current daily usage limits</p>
+            <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{TIER_NAMES[usage.tier]} Plan</h3>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+              ${TIER_PRICES[usage.tier]}/month • Monthly usage limits
+            </p>
           </div>
           <button
             onClick={() => window.location.href = '/settings?tab=membership'}
-            className="text-sm text-blue-400 hover:text-blue-300 font-medium transition"
+            className="text-sm font-medium transition"
+            style={{ color: 'var(--primary)' }}
           >
             Manage Plan →
           </button>
         </div>
 
-        {/* Messages Usage */}
+        {/* Token Usage */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-300">Messages Today</span>
-            <span className={`text-sm font-bold ${
-              isMessageAtLimit ? 'text-red-400' :
-              isMessageNearLimit ? 'text-yellow-400' :
-              'text-gray-300'
-            }`}>
-              {usage.messages.used} / {usage.messages.limit}
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Token Usage This Month</span>
+            <span className="text-sm font-bold" style={{
+              color: isTokenAtLimit ? 'rgb(239, 68, 68)' :
+                     isTokenNearLimit ? 'rgb(234, 179, 8)' :
+                     'var(--text-primary)'
+            }}>
+              {usage.tokens.usedFormatted} / {usage.tokens.limitFormatted}
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="h-3 overflow-hidden rounded-full bg-white/10">
+          <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--glass-bg)' }}>
             <div
-              className={`h-full transition-all duration-300 ${
-                isMessageAtLimit ? 'bg-red-500' :
-                isMessageNearLimit ? 'bg-yellow-500' :
-                'bg-blue-500'
-              }`}
-              style={{ width: `${Math.min(messagePercentage, 100)}%` }}
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${Math.min(tokenPercentage, 100)}%`,
+                backgroundColor: isTokenAtLimit ? 'rgb(239, 68, 68)' :
+                                 isTokenNearLimit ? 'rgb(234, 179, 8)' :
+                                 'var(--primary)'
+              }}
             />
           </div>
 
-          <p className="text-xs text-gray-500 mt-2">
-            {usage.messages.remaining > 0
-              ? `${usage.messages.remaining} messages remaining today`
-              : 'Daily limit reached - resets at midnight'}
+          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+            {usage.tokens.remaining > 0
+              ? `${usage.tokens.remainingFormatted} tokens remaining this month`
+              : 'Monthly limit reached - resets next month'}
           </p>
         </div>
 
-        {/* Images Usage (only for Pro and Executive) */}
-        {usage.images.limit > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gray-300">Image Generations Today</span>
-              <span className="text-sm font-bold text-gray-300">
-                {usage.images.used} / {usage.images.limit}
-              </span>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="h-3 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full bg-purple-500 transition-all duration-300"
-                style={{ width: `${Math.min(imagePercentage, 100)}%` }}
-              />
-            </div>
-
-            <p className="text-xs text-gray-500 mt-2">
-              {usage.images.remaining > 0
-                ? `${usage.images.remaining} image generations remaining today`
-                : 'Daily image limit reached - resets at midnight'}
-            </p>
-          </div>
-        )}
+        {/* Image generation has been discontinued */}
       </div>
 
-      {/* Upgrade Prompt (for Free and Basic tiers) */}
-      {(usage.tier === 'free' || usage.tier === 'basic') && isMessageNearLimit && (
-        <div className="glass-morphism rounded-xl p-6 border-l-4 border-yellow-500">
+      {/* Upgrade Prompt */}
+      {(isTokenNearLimit || isTokenAtLimit) && usage.planInfo.nextTier && (
+        <div className="glass-morphism rounded-xl p-6" style={{ borderLeft: '4px solid rgb(234, 179, 8)' }}>
           <div className="flex items-start gap-4">
             <svg
-              className="h-6 w-6 text-yellow-400 flex-shrink-0 mt-0.5"
+              className="h-6 w-6 flex-shrink-0 mt-0.5"
+              style={{ color: 'rgb(250, 204, 21)' }}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -178,17 +193,16 @@ export default function UsageMetricsSection() {
               />
             </svg>
             <div className="flex-1">
-              <h4 className="font-semibold text-yellow-400 mb-1">
-                {isMessageAtLimit ? 'Daily Limit Reached' : 'Approaching Daily Limit'}
+              <h4 className="font-semibold mb-1" style={{ color: 'rgb(250, 204, 21)' }}>
+                {isTokenAtLimit ? 'Monthly Limit Reached' : 'Approaching Monthly Limit'}
               </h4>
-              <p className="text-sm text-gray-300 mb-3">
-                {usage.tier === 'free'
-                  ? 'Upgrade to Basic for 100 messages per day and enhanced features.'
-                  : 'Upgrade to Pro for 200 messages per day, image generation, and priority support.'}
+              <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+                Upgrade to {TIER_NAMES[usage.planInfo.nextTier as keyof typeof TIER_NAMES]} for {formatTokenLimit(usage.planInfo.nextTierTokenLimit)} tokens per month and enhanced features.
               </p>
               <button
                 onClick={() => window.location.href = '/#pricing'}
-                className="rounded-lg bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 transition"
+                className="rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+                style={{ backgroundColor: 'rgb(234, 179, 8)', color: '#000' }}
               >
                 View Upgrade Options
               </button>
@@ -197,34 +211,33 @@ export default function UsageMetricsSection() {
         </div>
       )}
 
-      {/* Usage Info */}
+      {/* Usage Stats Grid */}
       <div className="grid gap-4 md:grid-cols-3">
         <div className="glass-morphism rounded-xl p-4">
-          <div className="text-sm text-gray-400 mb-1">Messages Used</div>
-          <div className="text-2xl font-bold">{usage.messages.used}</div>
-          <div className="text-xs text-gray-500 mt-1">Today</div>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Tokens Used</div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.tokens.usedFormatted}</div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>This Month</div>
         </div>
 
         <div className="glass-morphism rounded-xl p-4">
-          <div className="text-sm text-gray-400 mb-1">Messages Remaining</div>
-          <div className="text-2xl font-bold">{usage.messages.remaining}</div>
-          <div className="text-xs text-gray-500 mt-1">Today</div>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Tokens Remaining</div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.tokens.remainingFormatted}</div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>This Month</div>
         </div>
 
-        {usage.images.limit > 0 && (
-          <div className="glass-morphism rounded-xl p-4">
-            <div className="text-sm text-gray-400 mb-1">Images Generated</div>
-            <div className="text-2xl font-bold">{usage.images.used}</div>
-            <div className="text-xs text-gray-500 mt-1">Today</div>
-          </div>
-        )}
+        <div className="glass-morphism rounded-xl p-4">
+          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Usage Level</div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.tokens.percentage}%</div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Of Monthly Limit</div>
+        </div>
       </div>
 
       {/* Reset Info */}
-      <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
+      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--primary-hover)', border: '1px solid var(--primary)' }}>
         <div className="flex items-start gap-3">
           <svg
-            className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5"
+            className="h-5 w-5 flex-shrink-0 mt-0.5"
+            style={{ color: 'var(--primary)' }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -236,9 +249,9 @@ export default function UsageMetricsSection() {
               d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <div className="text-sm text-blue-200">
-            <p className="font-medium mb-1">Daily Usage Resets</p>
-            <p>Your daily message and image limits automatically reset at midnight (your local time).</p>
+          <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
+            <p className="font-medium mb-1">Monthly Usage Resets</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Your token limits automatically reset at the beginning of each month.</p>
           </div>
         </div>
       </div>

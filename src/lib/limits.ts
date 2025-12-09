@@ -1,30 +1,45 @@
 /**
- * Usage Limits & Daily Ceilings
+ * Usage Limits & Monthly Token Ceilings
  *
- * Tracks per-user usage and enforces daily limits per Master Directive
+ * Tracks per-user token usage and enforces monthly limits
  * Warns at 80%, hard stops at 100%
  *
- * Plan Configuration (Supabase user_plans table):
- * - free: $0/mo, 10 daily chat, 0 monthly images, no realtime voice
- * - basic: $12/mo, 40 daily chat, 50 monthly images, realtime voice enabled
- * - pro: $30/mo, 100 daily chat, 200 monthly images, realtime voice enabled
- * - executive: $150/mo, 400 daily chat, 500 monthly images, realtime voice enabled
+ * Plan Configuration:
+ * - free: $0/mo, 100,000 tokens/month (legacy users only)
+ * - plus: $18/mo, 1,000,000 tokens/month
+ * - pro: $30/mo, 3,000,000 tokens/month
+ * - executive: $99/mo, 5,000,000 tokens/month
  */
 
-// Plan limits (messages per day) - per directive
-const PLAN_LIMITS: Record<string, number> = {
-  free: 10,
-  basic: 40,
-  pro: 100,
-  executive: 400,
+// ========================================
+// TOKEN LIMITS (Monthly)
+// ========================================
+
+// Plan limits (tokens per month)
+const TOKEN_LIMITS: Record<string, number> = {
+  free: 100_000,       // 100K tokens - legacy users only
+  plus: 1_000_000,     // 1M tokens
+  basic: 1_000_000,    // 1M tokens (legacy alias for plus)
+  pro: 3_000_000,      // 3M tokens
+  executive: 5_000_000, // 5M tokens
+};
+
+// Image generation has been removed from the platform
+const IMAGE_LIMITS: Record<string, number> = {
+  free: 0,
+  plus: 0,
+  basic: 0,
+  pro: 0,
+  executive: 0,
 };
 
 // Redis client (optional - graceful fallback if not configured)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let redis: any = null;
 
-// In-memory fallback
-const memoryUsage = new Map<string, number>();
+// In-memory fallback for token tracking
+const memoryTokens = new Map<string, number>();
+const memoryImages = new Map<string, number>();
 
 async function getRedis() {
   if (redis) return redis;
@@ -42,15 +57,21 @@ async function getRedis() {
 
   // In-memory fallback
   redis = {
-    incr: async (key: string) => {
-      const current = memoryUsage.get(key) || 0;
-      const newValue = current + 1;
-      memoryUsage.set(key, newValue);
+    incrby: async (key: string, amount: number) => {
+      const current = memoryTokens.get(key) || 0;
+      const newValue = current + amount;
+      memoryTokens.set(key, newValue);
       return newValue;
     },
-    get: async (key: string) => memoryUsage.get(key) || 0,
+    incr: async (key: string) => {
+      const current = memoryImages.get(key) || 0;
+      const newValue = current + 1;
+      memoryImages.set(key, newValue);
+      return newValue;
+    },
+    get: async (key: string) => memoryTokens.get(key) || memoryImages.get(key) || 0,
     set: async (key: string, value: number) => {
-      memoryUsage.set(key, value);
+      memoryTokens.set(key, value);
       return 'OK';
     },
     expire: async () => true,
@@ -59,20 +80,27 @@ async function getRedis() {
 }
 
 /**
- * Get the current date key (YYYY-MM-DD)
+ * Get the current month key (YYYY-MM)
  */
-function getDateKey(): string {
-  return new Date().toISOString().slice(0, 10);
+function getMonthKey(): string {
+  return new Date().toISOString().slice(0, 7);
 }
 
 /**
- * Get user's plan limit
+ * Get user's token limit for their plan
  */
-export function getPlanLimit(planKey: string): number {
-  return PLAN_LIMITS[planKey] || PLAN_LIMITS.free;
+export function getTokenLimit(planKey: string): number {
+  return TOKEN_LIMITS[planKey] || TOKEN_LIMITS.free;
 }
 
-export interface UsageResult {
+/**
+ * Get user's image limit for their plan
+ */
+export function getImageLimit(planKey: string): number {
+  return IMAGE_LIMITS[planKey] || IMAGE_LIMITS.free;
+}
+
+export interface TokenUsageResult {
   used: number;
   limit: number;
   remaining: number;
@@ -81,28 +109,43 @@ export interface UsageResult {
   percentage: number;
 }
 
+export interface ImageUsageResult {
+  used: number;
+  limit: number;
+  remaining: number;
+  warn: boolean;
+  stop: boolean;
+  percentage: number;
+}
+
+// ========================================
+// TOKEN USAGE FUNCTIONS
+// ========================================
+
 /**
- * Increment usage counter and check limits
+ * Increment token usage and check limits
  *
  * @param userId - User ID
- * @param planKey - User's plan (free, basic, pro, enterprise)
- * @returns Usage status
+ * @param planKey - User's plan (free, basic, pro, executive)
+ * @param tokensUsed - Number of tokens to add (input + output)
+ * @returns Token usage status
  */
-export async function incrementUsage(
+export async function incrementTokenUsage(
   userId: string,
-  planKey: string = 'free'
-): Promise<UsageResult> {
-  const limit = getPlanLimit(planKey);
-  const dateKey = getDateKey();
-  const key = `usage:${userId}:${dateKey}`;
+  planKey: string = 'free',
+  tokensUsed: number = 0
+): Promise<TokenUsageResult> {
+  const limit = getTokenLimit(planKey);
+  const monthKey = getMonthKey();
+  const key = `tokens:${userId}:${monthKey}`;
 
   try {
     const r = await getRedis();
-    const used = await r.incr(key);
+    const used = await r.incrby(key, tokensUsed);
 
-    // Set expiry on first use (48 hours for safety)
-    if (used === 1) {
-      await r.expire(key, 60 * 60 * 48);
+    // Set expiry on first use (35 days for safety - covers month boundary)
+    if (used === tokensUsed) {
+      await r.expire(key, 60 * 60 * 24 * 35);
     }
 
     const percentage = Math.round((used / limit) * 100);
@@ -112,7 +155,7 @@ export async function incrementUsage(
 
     return { used, limit, remaining, warn, stop, percentage };
   } catch (error) {
-    console.error('[Limits] Error incrementing usage:', error);
+    console.error('[Limits] Error incrementing token usage:', error);
     // On error, allow the request
     return {
       used: 0,
@@ -126,12 +169,12 @@ export async function incrementUsage(
 }
 
 /**
- * Get current usage without incrementing
+ * Get current token usage without incrementing
  */
-export async function getUsage(userId: string, planKey: string = 'free'): Promise<UsageResult> {
-  const limit = getPlanLimit(planKey);
-  const dateKey = getDateKey();
-  const key = `usage:${userId}:${dateKey}`;
+export async function getTokenUsage(userId: string, planKey: string = 'free'): Promise<TokenUsageResult> {
+  const limit = getTokenLimit(planKey);
+  const monthKey = getMonthKey();
+  const key = `tokens:${userId}:${monthKey}`;
 
   try {
     const r = await getRedis();
@@ -144,7 +187,7 @@ export async function getUsage(userId: string, planKey: string = 'free'): Promis
 
     return { used, limit, remaining, warn, stop, percentage };
   } catch (error) {
-    console.error('[Limits] Error getting usage:', error);
+    console.error('[Limits] Error getting token usage:', error);
     return {
       used: 0,
       limit,
@@ -157,98 +200,58 @@ export async function getUsage(userId: string, planKey: string = 'free'): Promis
 }
 
 /**
- * Reset usage for a user (admin function)
+ * Check if user can make a request (based on token limits)
  */
-export async function resetUsage(userId: string): Promise<void> {
-  const dateKey = getDateKey();
-  const key = `usage:${userId}:${dateKey}`;
+export async function canMakeRequest(userId: string, planKey: string = 'free'): Promise<boolean> {
+  const usage = await getTokenUsage(userId, planKey);
+  return !usage.stop;
+}
+
+/**
+ * Reset token usage for a user (admin function)
+ */
+export async function resetTokenUsage(userId: string): Promise<void> {
+  const monthKey = getMonthKey();
+  const key = `tokens:${userId}:${monthKey}`;
 
   try {
     const r = await getRedis();
     await r.set(key, 0);
   } catch (error) {
-    console.error('[Limits] Error resetting usage:', error);
+    console.error('[Limits] Error resetting token usage:', error);
   }
 }
 
 /**
- * Check if user can make a request (without incrementing)
+ * Format token limit warning message
  */
-export async function canMakeRequest(userId: string, planKey: string = 'free'): Promise<boolean> {
-  const usage = await getUsage(userId, planKey);
-  return !usage.stop;
-}
-
-/**
- * Format limit warning message
- */
-export function getLimitWarningMessage(usage: UsageResult): string | null {
+export function getTokenLimitWarningMessage(usage: TokenUsageResult): string | null {
   if (usage.stop) {
-    return `You've reached your daily limit of ${usage.limit} messages. To continue chatting today, please visit Settings and upgrade to a higher tier plan. Your limit will also reset at midnight UTC.`;
+    return `You've reached your monthly token limit. To continue chatting, please visit Settings and upgrade to a higher tier plan. Your limit will reset at the start of next month.`;
   }
   if (usage.warn) {
-    return `Heads up: You're at ${usage.percentage}% of your daily message limit (${usage.remaining} messages remaining). Consider upgrading your plan for more messages.`;
+    const remainingFormatted = formatTokenCount(usage.remaining);
+    return `Heads up: You're at ${usage.percentage}% of your monthly token limit (${remainingFormatted} remaining). Consider upgrading your plan for more capacity.`;
   }
   return null;
 }
 
 /**
- * Track token usage for billing
+ * Format token count for display (e.g., 1,000,000 -> "1M")
  */
-export async function trackTokenUsage(
-  userId: string,
-  _model: string,
-  tokensIn: number,
-  tokensOut: number
-): Promise<void> {
-  const dateKey = getDateKey();
-  const key = `tokens:${userId}:${dateKey}`;
-
-  try {
-    const r = await getRedis();
-
-    // Get current totals
-    const current = (await r.get(key)) as { in: number; out: number } | null;
-    const totals = current || { in: 0, out: 0 };
-
-    // Update totals
-    totals.in += tokensIn;
-    totals.out += tokensOut;
-
-    await r.set(key, JSON.stringify(totals));
-    await r.expire(key, 60 * 60 * 48);
-  } catch (error) {
-    console.error('[Limits] Error tracking tokens:', error);
+export function formatTokenCount(tokens: number): string {
+  if (tokens >= 1_000_000) {
+    return `${(tokens / 1_000_000).toFixed(1)}M`;
   }
+  if (tokens >= 1_000) {
+    return `${(tokens / 1_000).toFixed(0)}K`;
+  }
+  return tokens.toString();
 }
 
 // ========================================
-// IMAGE-SPECIFIC LIMITS (Monthly per directive)
+// IMAGE USAGE FUNCTIONS
 // ========================================
-
-// Image limits per month - per directive
-const IMAGE_LIMITS: Record<string, number> = {
-  free: 0,
-  basic: 50,
-  pro: 200,
-  executive: 500,
-};
-
-export interface ImageUsageResult {
-  used: number;
-  limit: number;
-  remaining: number;
-  warn: boolean;
-  stop: boolean;
-  percentage: number;
-}
-
-/**
- * Get image generation limit for a plan
- */
-export function getImageLimit(planKey: string): number {
-  return IMAGE_LIMITS[planKey] || IMAGE_LIMITS.free;
-}
 
 /**
  * Increment image usage counter and check limits
@@ -258,21 +261,21 @@ export async function incrementImageUsage(
   planKey: string = 'free'
 ): Promise<ImageUsageResult> {
   const limit = getImageLimit(planKey);
-  const dateKey = getDateKey();
-  const key = `images:${userId}:${dateKey}`;
+  const monthKey = getMonthKey();
+  const key = `images:${userId}:${monthKey}`;
 
   try {
     const r = await getRedis();
     const used = await r.incr(key);
 
-    // Set expiry on first use (48 hours for safety)
+    // Set expiry on first use (35 days for safety)
     if (used === 1) {
-      await r.expire(key, 60 * 60 * 48);
+      await r.expire(key, 60 * 60 * 24 * 35);
     }
 
-    const percentage = Math.round((used / limit) * 100);
+    const percentage = limit > 0 ? Math.round((used / limit) * 100) : 100;
     const warn = percentage >= 80 && percentage < 100;
-    const stop = used > limit;
+    const stop = limit === 0 || used > limit;
     const remaining = Math.max(0, limit - used);
 
     return { used, limit, remaining, warn, stop, percentage };
@@ -283,7 +286,7 @@ export async function incrementImageUsage(
       limit,
       remaining: limit,
       warn: false,
-      stop: false,
+      stop: limit === 0,
       percentage: 0,
     };
   }
@@ -297,16 +300,16 @@ export async function getImageUsage(
   planKey: string = 'free'
 ): Promise<ImageUsageResult> {
   const limit = getImageLimit(planKey);
-  const dateKey = getDateKey();
-  const key = `images:${userId}:${dateKey}`;
+  const monthKey = getMonthKey();
+  const key = `images:${userId}:${monthKey}`;
 
   try {
     const r = await getRedis();
     const used = (await r.get(key)) || 0;
 
-    const percentage = Math.round((used / limit) * 100);
+    const percentage = limit > 0 ? Math.round((used / limit) * 100) : 0;
     const warn = percentage >= 80 && percentage < 100;
-    const stop = used > limit;
+    const stop = limit === 0 || used > limit;
     const remaining = Math.max(0, limit - used);
 
     return { used, limit, remaining, warn, stop, percentage };
@@ -317,7 +320,7 @@ export async function getImageUsage(
       limit,
       remaining: limit,
       warn: false,
-      stop: false,
+      stop: limit === 0,
       percentage: 0,
     };
   }
@@ -327,11 +330,28 @@ export async function getImageUsage(
  * Format image limit warning message
  */
 export function getImageLimitWarningMessage(usage: ImageUsageResult): string | null {
+  if (usage.limit === 0) {
+    return `Image generation is not available on your current plan. Please upgrade to Basic or higher to create images.`;
+  }
   if (usage.stop) {
-    return `You've reached your monthly limit of ${usage.limit} image generations. To create more images, please visit Settings and upgrade to a higher tier plan with additional image credits.`;
+    return `You've reached your monthly limit of ${usage.limit} image generations. To create more images, please visit Settings and upgrade to a higher tier plan.`;
   }
   if (usage.warn) {
     return `Heads up: You're at ${usage.percentage}% of your monthly image limit (${usage.remaining} images remaining). Consider upgrading your plan for more image generations.`;
   }
   return null;
 }
+
+// ========================================
+// LEGACY COMPATIBILITY (for transition period)
+// ========================================
+
+// Keep old function names working during transition
+export const incrementUsage = incrementTokenUsage;
+export const getUsage = getTokenUsage;
+export const resetUsage = resetTokenUsage;
+export const getLimitWarningMessage = getTokenLimitWarningMessage;
+export const getPlanLimit = getTokenLimit;
+
+// Legacy interface alias
+export type UsageResult = TokenUsageResult;

@@ -42,6 +42,7 @@ import './globals.css';
 import { PWAInstaller } from '@/components/pwa/PWAInstaller';
 import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { FaviconUpdater } from '@/components/admin/FaviconUpdater';
 
 // Viewport configuration (separate export per Next.js 14 spec)
@@ -107,13 +108,15 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="google-site-verification" content="suQkOhSeAz8m1aB0yup8Ct1P7fzTMCzKta8HnI_Ez3s" />
       </head>
-      <body className="bg-black text-white antialiased">
-        <UserProfileProvider>
-          <FaviconUpdater />
-          <OfflineIndicator />
-          {children}
-          <PWAInstaller />
-        </UserProfileProvider>
+      <body className="antialiased" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
+        <ThemeProvider>
+          <UserProfileProvider>
+            <FaviconUpdater />
+            <OfflineIndicator />
+            {children}
+            <PWAInstaller />
+          </UserProfileProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

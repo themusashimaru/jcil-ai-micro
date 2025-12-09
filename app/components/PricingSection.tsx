@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 
-type PricingTier = 'free' | 'basic' | 'pro' | 'executive';
+type PricingTier = 'plus' | 'pro' | 'executive';
 
 interface PricingCardProps {
   tier: PricingTier;
@@ -16,6 +16,7 @@ interface PricingCardProps {
   price: number;
   features: string[];
   popular?: boolean;
+  promo?: string;
   onSubscribe: (tier: PricingTier) => void;
   loading: boolean;
 }
@@ -27,47 +28,62 @@ function PricingCard({
   price,
   features,
   popular = false,
+  promo,
   onSubscribe,
   loading,
 }: PricingCardProps) {
-  const isFree = tier === 'free';
-  const borderClass = popular
-    ? 'border-2 border-blue-500 relative'
-    : 'border border-gray-700';
-
   return (
-    <div className={`glass-morphism rounded-2xl p-6 sm:p-8 ${borderClass}`}>
+    <div
+      className="glass-morphism rounded-2xl p-6 sm:p-8 relative flex flex-col"
+      style={{
+        border: popular ? '2px solid var(--primary)' : '1px solid var(--border)',
+      }}
+    >
+      {/* Popular Badge */}
       {popular && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 px-4 py-1 rounded-full text-sm font-semibold">
-          POPULAR
+        <div
+          className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-semibold"
+          style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+        >
+          MOST POPULAR
         </div>
       )}
-      <h3 className="mb-2 text-xl sm:text-2xl font-bold">{title}</h3>
-      <p className="mb-4 text-sm sm:text-base text-gray-400">{description}</p>
+
+      {/* Promo Badge */}
+      {promo && (
+        <div className="mb-4 -mt-2">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm">
+            {promo}
+          </span>
+        </div>
+      )}
+
+      <h3 className="mb-2 text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+      <p className="mb-4 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>{description}</p>
       <div className="mb-6">
-        <span className="text-4xl sm:text-5xl font-bold">${price}</span>
-        <span className="text-gray-400">/month</span>
+        <span className="text-4xl sm:text-5xl font-bold" style={{ color: 'var(--text-primary)' }}>${price}</span>
+        <span style={{ color: 'var(--text-secondary)' }}>/month</span>
       </div>
-      <ul className="mb-8 space-y-3 text-sm">
+      <ul className="mb-8 space-y-3 text-sm flex-1">
         {features.map((feature, index) => (
-          <li key={index} className="flex items-center">
-            <span className="mr-2 text-green-400">✓</span>
-            {feature}
+          <li key={index} className="flex items-start" style={{ color: 'var(--text-primary)' }}>
+            <span className="mr-2 mt-0.5 flex-shrink-0" style={{ color: 'rgb(74, 222, 128)' }}>✓</span>
+            <span>{feature}</span>
           </li>
         ))}
       </ul>
       <button
         onClick={() => onSubscribe(tier)}
         disabled={loading}
-        className={`block w-full rounded-lg py-3 text-center font-semibold transition ${
-          isFree
-            ? 'bg-gray-700 hover:bg-gray-600'
-            : popular
-              ? 'bg-blue-500 hover:bg-blue-400'
-              : 'bg-blue-600 hover:bg-blue-500'
-        } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className="block w-full rounded-lg py-3 text-center font-semibold transition hover:opacity-90"
+        style={{
+          backgroundColor: 'var(--primary)',
+          color: 'var(--background)',
+          opacity: loading ? 0.5 : 1,
+          cursor: loading ? 'not-allowed' : 'pointer',
+        }}
       >
-        {loading ? 'Processing...' : isFree ? 'Start Free' : 'Get Started'}
+        {loading ? 'Processing...' : 'Get Started'}
       </button>
     </div>
   );
@@ -78,12 +94,6 @@ export default function PricingSection() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubscribe = async (tier: PricingTier) => {
-    if (tier === 'free') {
-      // Redirect to signup for free tier
-      window.location.href = '/signup';
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
@@ -121,74 +131,72 @@ export default function PricingSection() {
 
   const pricingTiers = [
     {
-      tier: 'free' as PricingTier,
-      title: 'Free',
-      description: 'For those interested in testing our chat',
-      price: 0,
-      features: [
-        '10 chats per day',
-        'AI chat interface',
-        'Basic tools and capabilities',
-        'Perfect for testing or those unable to afford a subscription',
-      ],
-    },
-    {
-      tier: 'basic' as PricingTier,
-      title: 'Basic',
+      tier: 'plus' as PricingTier,
+      title: 'Plus',
       description: 'Essential tools for everyday faith and life',
-      price: 12,
+      price: 18,
+      promo: '🎉 2 WEEKS FREE',
       features: [
-        'AI chat interface',
-        'Study tools & writing tools',
-        'Research & live search',
-        'Bible study & daily devotional',
-        'Live news',
+        'Intelligent AI chat assistant',
+        'Real-time fact-checking with Perplexity',
+        'Resume & cover letter writing',
+        'Live web search & research',
+        'Writing tools & Bible study',
+        'Daily devotional content',
       ],
     },
     {
       tier: 'pro' as PricingTier,
       title: 'Pro',
-      description: 'For the working professional',
+      description: 'Advanced tools for working professionals',
       price: 30,
       features: [
-        'Everything in Basic',
-        'Image generation',
-        'Greater research capabilities',
-        'Live news (refreshed every 30 min)',
-        'Increased intelligence',
-        'Greater writing capabilities',
+        'Everything in Plus',
+        '3M token context window',
+        'Enhanced fact-checking & research',
+        'Advanced document generation',
+        'Advanced coding assistance',
+        'Priority processing',
       ],
       popular: true,
     },
     {
       tier: 'executive' as PricingTier,
       title: 'Executive',
-      description: 'For advanced students and executives',
-      price: 150,
+      description: 'Highest intelligence AI for power users',
+      price: 99,
       features: [
         'Everything in Pro',
-        'Heavy usage capabilities',
-        'Highest level of intelligence',
-        'Advanced writing capabilities',
-        'Latest tools & coding capabilities',
-        'Perfect for graduate students & executives',
+        'Highest intelligence AI model',
+        '5x more usage capacity',
+        'Early access to experimental models',
+        'New feature previews',
+        'Priority support',
       ],
     },
   ];
 
   return (
     <section className="container mx-auto px-4 py-12 sm:py-20" id="pricing">
-      <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold">Simple, Transparent Pricing</h2>
-      <p className="mb-2 text-center text-sm sm:text-base text-gray-300">Choose the plan that fits your needs</p>
-      <p className="mb-8 sm:mb-12 text-center text-sm text-gray-500">Cancel anytime. No hidden fees.</p>
+      {/* Limited Time Offer Banner */}
+      <div className="mb-8 mx-auto max-w-2xl">
+        <div className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-xl p-4 text-center text-white shadow-lg">
+          <p className="text-sm font-medium mb-1">🚀 Limited Time Offer</p>
+          <p className="text-lg font-bold">Sign up today and get 2 weeks FREE on Plus!</p>
+        </div>
+      </div>
+
+      <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>Simple, Transparent Pricing</h2>
+      <p className="mb-2 text-center text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>Choose the plan that fits your needs</p>
+      <p className="mb-8 sm:mb-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Cancel anytime. No hidden fees.</p>
 
       {error && (
-        <div className="mb-8 mx-auto max-w-2xl rounded-lg bg-red-900/20 border border-red-500 p-4 text-red-400">
+        <div className="mb-8 mx-auto max-w-2xl rounded-lg p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
           {error}
         </div>
       )}
 
-      <div className="grid gap-8 md:grid-cols-4 max-w-7xl mx-auto">
+      <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
         {pricingTiers.map((tierData) => (
           <PricingCard
             key={tierData.tier}
@@ -197,6 +205,13 @@ export default function PricingSection() {
             loading={loading}
           />
         ))}
+      </div>
+
+      {/* Trust Note */}
+      <div className="mt-12 text-center">
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          Secure payment powered by Stripe. Your payment information is never stored on our servers.
+        </p>
       </div>
     </section>
   );

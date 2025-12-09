@@ -46,8 +46,15 @@ import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
-import { incrementUsage, getLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
+import { getSystemPromptForTool } from '@/lib/openai/tools';
+import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
+import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
+import { getProviderSettings, Provider, getModelForTier } from '@/lib/provider/settings';
+import { createAnthropicCompletion, createAnthropicStreamingCompletion, createAnthropicCompletionWithSearch } from '@/lib/anthropic/client';
+import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
+// Brave Search no longer needed - using native Anthropic web search
+// import { braveSearch } from '@/lib/brave/search';
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
@@ -174,7 +181,32 @@ function isAskingAboutHistory(content: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  // Generate a unique request ID for queue management
+  const requestId = generateRequestId();
+  let slotAcquired = false;
+
   try {
+    // Acquire a slot in the queue (prevents overwhelming AI providers)
+    slotAcquired = await acquireSlot(requestId);
+
+    if (!slotAcquired) {
+      console.log('[Chat API] Queue full, returning busy response');
+      return new Response(
+        JSON.stringify({
+          error: 'Server busy',
+          message: 'We\'re experiencing high demand right now. Please try again in a few seconds.',
+          retryAfter: 5,
+        }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '5',
+          },
+        }
+      );
+    }
+
     // Parse request body
     const body: ChatRequestBody = await request.json();
     const { messages, tool, temperature, max_tokens, userContext, conversationId } = body;
@@ -246,6 +278,42 @@ export async function POST(request: NextRequest) {
                             'anonymous';
     }
 
+    // Get user's subscription tier (needed for token tracking)
+    let userTier = 'free';
+    if (isAuthenticated) {
+      try {
+        const cookieStore = await cookies();
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              getAll() {
+                return cookieStore.getAll();
+              },
+              setAll(cookiesToSet) {
+                try {
+                  cookiesToSet.forEach(({ name, value, options }) =>
+                    cookieStore.set(name, value, options)
+                  );
+                } catch {
+                  // Silently handle cookie errors
+                }
+              },
+            },
+          }
+        );
+        const { data: userData } = await supabase
+          .from('users')
+          .select('subscription_tier')
+          .eq('id', rateLimitIdentifier)
+          .single();
+        userTier = userData?.subscription_tier || 'free';
+      } catch {
+        // Default to free tier on error
+      }
+    }
+
     // Admin bypass: skip rate limiting and usage limits for admins
     if (!isAdmin) {
       // Check rate limit
@@ -271,15 +339,16 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check daily usage limits (warn at 80%, stop at 100%)
-      const usage = await incrementUsage(rateLimitIdentifier, isAuthenticated ? 'basic' : 'free');
+      // Check monthly token limits (warn at 80%, stop at 100%)
+      const canProceed = await canMakeRequest(rateLimitIdentifier, userTier);
 
-      if (usage.stop) {
-        console.log(`[Chat API] Daily limit reached for ${isAuthenticated ? 'user' : 'anon'}: ${rateLimitIdentifier}`);
+      if (!canProceed) {
+        const usage = await getTokenUsage(rateLimitIdentifier, userTier);
+        console.log(`[Chat API] Monthly token limit reached for ${isAuthenticated ? 'user' : 'anon'}: ${rateLimitIdentifier}`);
         return new Response(
           JSON.stringify({
-            error: 'Daily limit reached',
-            message: getLimitWarningMessage(usage),
+            error: 'Monthly limit reached',
+            message: getTokenLimitWarningMessage(usage),
             usage: { used: usage.used, limit: usage.limit, remaining: 0 },
           }),
           {
@@ -477,19 +546,70 @@ export async function POST(request: NextRequest) {
       console.log('[Chat API] Detected file attachment - routing to gpt-5-mini for analysis');
     }
 
+    // ========================================
+    // PROVIDER CHECK - OpenAI vs Anthropic
+    // ========================================
+    const providerSettings = await getProviderSettings();
+    const activeProvider: Provider = providerSettings.activeProvider;
+    console.log('[Chat API] Active provider:', activeProvider);
+
+    // If Anthropic is active and user wants image generation, return unavailable message
+    if (activeProvider === 'anthropic' && routeDecision.target === 'image' && !messageHasUploadedImages) {
+      return new Response(
+        JSON.stringify({
+          type: 'text',
+          content: '🎨 **Image Generation Temporarily Unavailable**\n\nI apologize, but image generation is currently unavailable. Our system is using an AI provider that doesn\'t support image creation at this time.\n\nIn the meantime, I can help you with:\n- Describing or conceptualizing images in detail\n- Writing creative prompts for later use\n- Answering questions or helping with other tasks\n\nPlease try again later when image generation is restored!',
+          model: 'claude-sonnet-4.5',
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Provider': 'anthropic',
+            'X-Image-Unavailable': 'true',
+          },
+        }
+      );
+    }
+
     // Check if we should route to image generation (only if no uploaded images)
     if (routeDecision.target === 'image' && !messageHasUploadedImages) {
-      // Check image-specific daily limits (warn at 80%, stop at 100%)
+      // Check image-specific monthly limits (warn at 80%, stop at 100%)
+      // Get user tier if not already fetched (for image route)
+      let imgUserTier = 'free';
+      if (isAuthenticated) {
+        try {
+          const cookieStore = await cookies();
+          const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+              cookies: {
+                getAll() { return cookieStore.getAll(); },
+                setAll(cookiesToSet) {
+                  try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {}
+                },
+              },
+            }
+          );
+          const { data: userData } = await supabase
+            .from('users')
+            .select('subscription_tier')
+            .eq('id', rateLimitIdentifier)
+            .single();
+          imgUserTier = userData?.subscription_tier || 'free';
+        } catch {}
+      }
       const imageUsage = await incrementImageUsage(
         rateLimitIdentifier,
-        isAuthenticated ? 'basic' : 'free'
+        imgUserTier
       );
 
       if (imageUsage.stop) {
-        console.log('[Chat API] Image limit reached for:', rateLimitIdentifier);
+        console.log('[Chat API] Monthly image limit reached for:', rateLimitIdentifier);
         return new Response(
           JSON.stringify({
-            error: 'Daily image limit reached',
+            error: 'Monthly image limit reached',
             message: getImageLimitWarningMessage(imageUsage),
             usage: { used: imageUsage.used, limit: imageUsage.limit, remaining: 0 },
           }),
@@ -672,9 +792,114 @@ export async function POST(request: NextRequest) {
       ? 'gpt-5-mini'
       : initialModel;
 
+    // ========================================
+    // ANTHROPIC PATH - Claude (tier-specific model)
+    // ========================================
+    if (activeProvider === 'anthropic') {
+      // Get tier-specific model (uses provider settings with tier lookup)
+      const anthropicModel = await getModelForTier(userTier);
+      console.log('[Chat API] Using Anthropic provider with model:', anthropicModel, 'for tier:', userTier);
+
+      // Use unified system prompt for all providers (same as OpenAI)
+      const systemPrompt = isAuthenticated
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? getSystemPromptForTool(effectiveTool as any)
+        : 'You are a helpful AI assistant.';
+
+      // Non-streaming for image analysis
+      if (hasImages) {
+        console.log('[Chat API] Anthropic: Non-streaming mode for image analysis');
+        const result = await createAnthropicCompletion({
+          messages: messagesWithContext,
+          model: anthropicModel,
+          maxTokens: max_tokens,
+          temperature,
+          systemPrompt,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
+        });
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: result.text,
+            model: result.model,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': result.model,
+              'X-Provider': 'anthropic',
+              'X-Has-Images': 'true',
+            },
+          }
+        );
+      }
+
+      // Check if web search is needed - use Perplexity for search, Claude for formatting
+      if (willUseWebSearch) {
+        console.log('[Chat API] Using Perplexity search + Claude formatting');
+        const result = await createAnthropicCompletionWithSearch({
+          messages: messagesWithContext,
+          model: anthropicModel,
+          maxTokens: max_tokens,
+          temperature,
+          systemPrompt,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
+        });
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: result.text,
+            model: result.model,
+            citations: result.citations, // Pass full citation objects with title and url
+            sourcesUsed: result.numSourcesUsed,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': result.model,
+              'X-Provider': 'anthropic',
+              'X-Web-Search': 'perplexity',
+            },
+          }
+        );
+      }
+
+      // Streaming text chat with Anthropic
+      console.log('[Chat API] Anthropic: Streaming mode');
+      const streamResult = await createAnthropicStreamingCompletion({
+        messages: messagesWithContext,
+        model: anthropicModel,
+        maxTokens: max_tokens,
+        temperature,
+        systemPrompt,
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        planKey: userTier,
+      });
+
+      return streamResult.toTextStreamResponse({
+        headers: {
+          'X-Model-Used': streamResult.model,
+          'X-Provider': 'anthropic',
+        },
+      });
+    }
+
+    // ========================================
+    // OPENAI PATH - GPT (tier-specific model)
+    // ========================================
+    // Get tier-specific model from provider settings
+    const openaiModel = await getModelForTier(userTier);
+    console.log('[Chat API] Using OpenAI provider with model:', openaiModel, 'for tier:', userTier);
+
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
-      console.log('[Chat API] Using non-streaming mode for image analysis - routing to gpt-5-mini');
+      console.log('[Chat API] Using non-streaming mode for image analysis');
       console.log('[Chat API] Messages being sent:', JSON.stringify(messagesWithContext.slice(-2).map(m => ({
         role: m.role,
         hasArrayContent: Array.isArray(m.content),
@@ -690,6 +915,8 @@ export async function POST(request: NextRequest) {
         stream: false,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
+        modelOverride: openaiModel,
+        planKey: userTier,
       });
 
       // Extract citations and actual model used from result
@@ -725,8 +952,24 @@ export async function POST(request: NextRequest) {
     // Use streaming for regular text chat
     console.log('[Chat API] Using streaming mode with model:', actualModel, 'webSearch:', willUseWebSearch);
 
+    // Create a pending request BEFORE calling AI
+    // This allows background workers to complete the request if the user leaves
+    let pendingRequestId: string | null = null;
+    if (isAuthenticated && conversationId) {
+      pendingRequestId = await createPendingRequest({
+        userId: rateLimitIdentifier,
+        conversationId,
+        messages: messagesWithContext,
+        tool: effectiveTool,
+        model: actualModel,
+      });
+      if (pendingRequestId) {
+        console.log('[Chat API] Created pending request:', pendingRequestId);
+      }
+    }
+
     try {
-      console.log('[Chat API] Calling createChatCompletion with stream: true');
+      console.log('[Chat API] Calling createChatCompletion with stream: true, model:', openaiModel);
       const result = await createChatCompletion({
         messages: messagesWithContext,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -736,6 +979,9 @@ export async function POST(request: NextRequest) {
         stream: true,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
+        pendingRequestId: pendingRequestId || undefined,
+        modelOverride: openaiModel,
+        planKey: userTier,
       });
 
       console.log('[Chat API] streamText returned, result type:', typeof result);
@@ -764,14 +1010,30 @@ export async function POST(request: NextRequest) {
         const resultModel = (result as any).model || actualModel;
         console.log('[Chat API] Non-streaming result detected, model used:', resultModel);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const citations = (result as any).citations || [];
+        const rawCitations = (result as any).citations || [];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const numSourcesUsed = (result as any).numSourcesUsed || 0;
 
-        // Convert citation objects to URLs for client compatibility
-        const citationUrls = citations.map((c: { url?: string } | string) =>
-          typeof c === 'string' ? c : c.url || ''
-        ).filter(Boolean);
+        // Normalize citations to always have title and url
+        const citations = rawCitations.map((c: { title?: string; url?: string } | string) => {
+          if (typeof c === 'string') {
+            // Extract domain from URL for title
+            let title = 'Source';
+            try { title = new URL(c).hostname.replace('www.', ''); } catch {}
+            return { title, url: c };
+          }
+          return {
+            title: c.title || (c.url ? new URL(c.url).hostname.replace('www.', '') : 'Source'),
+            url: c.url || '',
+          };
+        }).filter((c: { url: string }) => c.url);
+
+        // Complete the pending request - we got a successful result
+        if (pendingRequestId) {
+          completePendingRequest(pendingRequestId).catch(err => {
+            console.error('[Chat API] Failed to complete pending request:', err);
+          });
+        }
 
         return new Response(
           JSON.stringify({
@@ -779,7 +1041,7 @@ export async function POST(request: NextRequest) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             content: (result as any).text || '',
             model: resultModel,
-            citations: citationUrls,
+            citations: citations, // Pass full citation objects with title and url
             sourcesUsed: numSourcesUsed,
           }),
           {
@@ -820,27 +1082,36 @@ export async function POST(request: NextRequest) {
         stream: false,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
+        planKey: userTier,
       });
 
       // Extract citations and actual model used from result
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rawCitations = (result as any).citations || [];
+      const fallbackRawCitations = (result as any).citations || [];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fallbackModel = (result as any).model || actualModel;
 
-      // Convert citation objects to URLs for client compatibility
-      const citationUrls = rawCitations.map((c: { url?: string } | string) =>
-        typeof c === 'string' ? c : c.url || ''
-      ).filter(Boolean);
+      // Normalize citations to always have title and url
+      const fallbackCitations = fallbackRawCitations.map((c: { title?: string; url?: string } | string) => {
+        if (typeof c === 'string') {
+          let title = 'Source';
+          try { title = new URL(c).hostname.replace('www.', ''); } catch {}
+          return { title, url: c };
+        }
+        return {
+          title: c.title || (c.url ? new URL(c.url).hostname.replace('www.', '') : 'Source'),
+          url: c.url || '',
+        };
+      }).filter((c: { url: string }) => c.url);
 
       return new Response(
         JSON.stringify({
           type: 'text',
           content: result.text,
           model: fallbackModel,
-          citations: citationUrls,
+          citations: fallbackCitations, // Pass full citation objects with title and url
           sourcesUsed: numSourcesUsed,
         }),
         {
@@ -891,10 +1162,17 @@ export async function POST(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
       }
     );
+  } finally {
+    // Always release the queue slot when request completes
+    if (slotAcquired) {
+      releaseSlot(requestId).catch(err => {
+        console.error('[Chat API] Error releasing queue slot:', err);
+      });
+    }
   }
 }
 
 // Use Node.js runtime for better streaming support and logging
 // Edge runtime can have issues with streaming responses
 export const runtime = 'nodejs';
-export const maxDuration = 60; // Allow up to 60 seconds for AI responses
+export const maxDuration = 120; // Allow up to 120 seconds for AI responses (Pro plan supports up to 300s)

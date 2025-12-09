@@ -40,7 +40,7 @@ export default function LandingLogo() {
     <Link href="/" className="flex items-center">
       {loading ? (
         // Show text while loading to prevent layout shift
-        <span className="text-2xl font-bold text-white">
+        <span className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
           JCIL.AI
         </span>
       ) : logoUrl ? (
@@ -51,8 +51,8 @@ export default function LandingLogo() {
           className="h-10 w-auto object-contain"
         />
       ) : (
-        // Fallback to text logo (white for dark background)
-        <span className="text-2xl font-bold text-white">
+        // Fallback to text logo (dark blue gradient for light background)
+        <span className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
           JCIL.AI
         </span>
       )}

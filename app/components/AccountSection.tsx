@@ -137,12 +137,12 @@ export default function AccountSection() {
     <div className="space-y-6">
       {/* Current Email Display */}
       <div className="glass-morphism rounded-2xl p-6">
-        <h3 className="text-xl font-semibold mb-4">Account Information</h3>
+        <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Account Information</h3>
         <div>
-          <label className="block text-sm font-medium text-gray-400 mb-2">
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
             Current Email
           </label>
-          <div className="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-gray-300">
+          <div className="px-4 py-3 rounded-lg" style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
             {currentEmail}
           </div>
         </div>
@@ -150,8 +150,8 @@ export default function AccountSection() {
 
       {/* Change Email Section */}
       <div className="glass-morphism rounded-2xl p-6">
-        <h3 className="text-xl font-semibold mb-2">Change Email</h3>
-        <p className="text-sm text-gray-400 mb-4">
+        <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Change Email</h3>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
           You&apos;ll receive confirmation emails at both your current and new email addresses.
         </p>
 
@@ -189,7 +189,7 @@ export default function AccountSection() {
 
         <form onSubmit={handleEmailChange} className="space-y-4">
           <div>
-            <label htmlFor="newEmail" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="newEmail" className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               New Email Address
             </label>
             <input
@@ -198,7 +198,8 @@ export default function AccountSection() {
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
               disabled={emailLoading}
               required
             />
@@ -207,7 +208,7 @@ export default function AccountSection() {
           <button
             type="submit"
             disabled={emailLoading}
-            className="w-full rounded-lg bg-blue-500 px-4 py-3 font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-lg bg-blue-500 px-4 py-3 font-semibold text-white hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {emailLoading ? 'Sending Confirmation...' : 'Change Email'}
           </button>
@@ -216,8 +217,8 @@ export default function AccountSection() {
 
       {/* Change Password Section */}
       <div className="glass-morphism rounded-2xl p-6">
-        <h3 className="text-xl font-semibold mb-2">Change Password</h3>
-        <p className="text-sm text-gray-400 mb-4">
+        <h3 className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Change Password</h3>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
           Enter a new password to update your account security.
         </p>
 
@@ -255,7 +256,7 @@ export default function AccountSection() {
 
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <div>
-            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="newPassword" className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               New Password
             </label>
             <input
@@ -264,7 +265,8 @@ export default function AccountSection() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
-              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
               disabled={passwordLoading}
               required
               minLength={8}
@@ -272,7 +274,7 @@ export default function AccountSection() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               Confirm New Password
             </label>
             <input
@@ -281,7 +283,8 @@ export default function AccountSection() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
-              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+              className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
               disabled={passwordLoading}
               required
               minLength={8}

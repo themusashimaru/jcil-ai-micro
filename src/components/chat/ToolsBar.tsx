@@ -33,13 +33,14 @@ const TOOLS: Tool[] = [
   //   color: 'from-purple-500 to-pink-500',
   //   description: 'Deep web research with citations',
   // },
-  {
-    id: 'image',
-    icon: '🎨',
-    label: 'Image',
-    color: 'from-orange-500 to-red-500',
-    description: 'Generate AI images',
-  },
+  // REMOVED: Image generation has been discontinued
+  // {
+  //   id: 'image',
+  //   icon: '🎨',
+  //   label: 'Image',
+  //   color: 'from-orange-500 to-red-500',
+  //   description: 'Generate AI images',
+  // },
   {
     id: 'video',
     icon: '🎬',

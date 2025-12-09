@@ -32,13 +32,14 @@ import { logEvent, logImageGeneration } from '../log';
 import { cachedWebSearch } from '../cache';
 import { logCacheMetrics, willBenefitFromCaching } from './promptCache';
 import { trackTokenUsage, saveAssistantMessage } from './usage';
+import { completePendingRequest } from '../pending-requests';
 
 // Retry configuration
 const RETRY_DELAYS = [250, 1000, 3000]; // Exponential backoff
 const RETRYABLE_STATUS_CODES = [429, 500, 502, 503, 504];
 
 // Timeout configuration (per directive §0)
-const REQUEST_TIMEOUT_MS = 30_000; // 30 seconds
+const REQUEST_TIMEOUT_MS = 45_000; // 45 seconds (increased for Pro plan's 120s limit)
 const CONNECT_TIMEOUT_MS = 5_000;  // 5 seconds
 
 // Tools that should always use web search
@@ -54,6 +55,8 @@ const WEB_SEARCH_PATTERNS = [
 
   // News and current events
   /\b(latest|recent|current|today'?s|breaking|new)\s+(news|headlines|updates|events|stories)/i,
+  /\b(latest|breaking)\b.*\b(news|headlines|updates)\b/i,  // "latest breaking news" with words between
+  /\b(news|headlines)\s+(in|from|about|out\s+of|for)\s+/i,  // "news in LA", "news out of Los Angeles"
   /\b(what'?s|what is)\s+(happening|going on|new)\s+(in|with|at|today)/i,
   /\b(did|has|have)\s+.{0,30}\s+(happen|announce|release|launch)/i,
 
@@ -82,6 +85,214 @@ const WEB_SEARCH_PATTERNS = [
 
   // Explicit research requests
   /\b(research|investigate|find out|look into)\b/i,
+
+  // LOCAL BUSINESS & PLACES SEARCHES
+  // Business types - these words alone trigger search (don't require "in/near")
+  /\b(barbershop|barber\s*shop|hair\s*salon|nail\s*salon|spa|laundromat|dry\s*cleaner)\b/i,
+  /\b(movie\s*theater|movie\s*theatre|cinema|multiplex)\b/i,
+
+  // "X in [location]" patterns - theaters, restaurants, stores, etc.
+  /\b(theater|theatre|restaurant|cafe|coffee\s*shop|bar|pub|hotel|motel|store|shop|gym|hospital|pharmacy|bank|atm|gas\s*station|grocery|supermarket|mall|salon|barber|dentist|doctor|clinic|school|library|park|museum|church)\s+(in|near|around|at)\s+\w+/i,
+
+  // Location patterns - "in [City]" or "near [City]"
+  /\b(in|near|around)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s*(,\s*[A-Z]{2})?\b/i, // "in Chelsea", "near Boston, MA"
+
+  // "near me", "nearby", "closest to me" patterns
+  /\b(near\s*me|nearby|close\s*by|around\s*here|in\s*my\s*area|closest\s+to\s+me|nearest\s+to\s+me)\b/i,
+
+  // "where is/are" patterns for places
+  /\b(where\s+(is|are|can\s+i\s+find))\s+(the|a|an)?\s*\w+/i,
+
+  // Location + business type patterns
+  /\b\w+\s+(theater|theatre|cinema|restaurant|cafe|store|shop|mall)\b/i,
+
+  // Showtimes and movie-specific patterns
+  /\b(showtime|show\s*time|movie\s*time|playing|screening)\b/i,
+  /\b(what'?s|what\s+is)\s+playing\b/i,
+
+  // Address and contact lookups
+  /\b(address|phone\s*number|contact|location|directions)\s+(for|of|to)\b/i,
+
+  // "Give me info" patterns
+  /\b(give\s+me|get\s+me|show\s+me|tell\s+me)\s+(info|information|details|the)\s+(on|about|for)\b/i,
+
+  // Regal, AMC, and other theater chains
+  /\b(regal|amc|cinemark|imax|alamo\s*drafthouse)\b/i,
+
+  // PEOPLE & ORGANIZATIONS
+  // Celebrity, politician, public figure lookups
+  /\b(who\s+is|who'?s|tell\s+me\s+about)\s+[A-Z][a-z]+\s+[A-Z][a-z]+/i,
+  /\b(ceo|founder|owner|president|cfo|cto)\s+(of|at)\b/i,
+
+  // Celebrity news and gossip - "what's going on with [person]", "[person] news"
+  /\b(what'?s|what\s+is)\s+(going\s+on|happening|up)\s+(with|to)\s+/i,
+  /\b(check|checking)\s+(on|up\s+on|into)\s+/i,  // "check on this", "checking up on"
+  /\b(latest|recent|new|current)\s+(on|about|with|news\s+on)\s+/i, // "latest on Elon Musk"
+  /\b[A-Z][a-z]+\s+[A-Z][a-z]+\s+(news|update|latest|scandal|drama|controversy)/i, // "Trump news", "Kanye update"
+
+  // FACT CHECKING & VERIFICATION
+  // Explicit fact-check requests
+  /\b(fact[\s-]?check|fact[\s-]?checking|factcheck)\b/i,
+  /\b(is\s+(it|that|this)\s+true\s+that|is\s+it\s+true)\b/i,
+  /\b(verify|verification|debunk|confirm)\s+(this|that|if|whether)?\b/i,
+  /\b(true\s+or\s+false|real\s+or\s+fake|legit\s+or\s+not)\b/i,
+  /\b(is\s+.{1,40}\s+(true|real|accurate|legit|fake|false|misinformation|a\s+hoax))\b/i,
+  /\b(did\s+.{1,40}\s+really|really\s+happen|actually\s+happen)\b/i,
+  /\b(rumor|hoax|myth|conspiracy)\s+(about|that|is)\b/i,
+  /\b(can\s+you\s+)?(check|verify|confirm|look\s+up)\s+(if|whether|that|this)\b/i,
+
+  // Company and organization info
+  /\b(company|corporation|organization|startup|business)\s+(info|information|details|about)\b/i,
+  /\b(what\s+is|what'?s)\s+[A-Z][a-z]+\s*(inc|corp|llc|ltd|co)?\b/i,
+
+  // EVENTS & ENTERTAINMENT
+  // Concerts, shows, sports events
+  /\b(concert|show|event|game|match|festival|tour)\s+(in|at|near|tickets)\b/i,
+  /\b(tickets|seats)\s+(for|to)\b/i,
+  /\b(when\s+is|when'?s)\s+(the|next)\b/i,
+
+  // TV shows and streaming
+  /\b(watch|stream|streaming|netflix|hulu|disney\+?|hbo|prime\s*video|youtube)\b/i,
+  /\b(new\s+episode|season\s+\d|release\s+date)\b/i,
+
+  // PRODUCTS & SHOPPING
+  // Product lookups and reviews
+  /\b(review|reviews|rating|ratings)\s+(for|of|on)\b/i,
+  /\b(is\s+.{1,30}\s+worth|should\s+i\s+buy|best\s+.{1,20}\s+(for|under|to))\b/i,
+  /\b(compare|comparison|vs\.?|versus)\b/i,
+  /\b(buy|purchase|order|get)\s+.{1,30}\s+(online|from|at)\b/i,
+
+  // Specific product categories
+  /\b(iphone|android|samsung|pixel|macbook|laptop|tablet|headphones|airpods|tv|camera)\b/i,
+
+  // TRAVEL & TRANSPORTATION
+  /\b(flight|flights|airline|airport|train|bus|uber|lyft)\s+(to|from|at|in)\b/i,
+  /\b(book|booking|reservation|reserve)\s+(a|hotel|flight|table|ticket)\b/i,
+  /\b(travel\s+to|visiting|trip\s+to|vacation\s+in)\b/i,
+
+  // LOCAL SERVICES
+  /\b(plumber|electrician|mechanic|contractor|locksmith|tow\s*truck|delivery|repair)\s+(in|near|around)\b/i,
+  /\b(best|top|recommended)\s+.{1,30}\s+(in|near|around)\b/i,
+
+  // FOOD & DINING
+  /\b(menu|reservation|order\s+food|delivery|takeout|uber\s*eats|doordash|grubhub)\b/i,
+  /\b(best\s+(food|restaurant|pizza|sushi|chinese|mexican|italian))\b/i,
+
+  // HEALTH (general, non-medical advice)
+  /\b(pharmacy|urgent\s*care|emergency\s*room|er)\s+(near|in|open)\b/i,
+  /\b(doctor|dentist|optometrist|therapist)\s+(near|in|accepting)\b/i,
+
+  // FACTS & STATISTICS (things that change)
+  /\b(population|gdp|unemployment|inflation|rate)\s+(of|in)\b/i,
+  /\b(record|world\s*record|longest|tallest|fastest|biggest|richest)\b/i,
+  /\b(how\s+many|how\s+much)\s+.{1,30}\s+(in|are\s+there|does)\b/i,
+
+  // TECHNOLOGY & SOFTWARE
+  /\b(latest\s+version|update|download|install)\b/i,
+  /\b(ios|android|windows|macos|linux)\s+(version|\d+)\b/i,
+  /\b(app|application|software|program)\s+(for|to|that)\b/i,
+
+  // GENERAL LOOKUP INTENT
+  // "What happened" patterns
+  /\b(what\s+happened|what'?s\s+going\s+on|what'?s\s+new)\s+(with|to|at)\b/i,
+
+  // Explicit info requests
+  /\b(info|information|details|facts)\s+(about|on|for)\b/i,
+  /\b(can\s+you|could\s+you)\s+(find|look\s+up|search|check)\b/i,
+
+  // Question words with specific entities
+  /\b(when|where|how)\s+(does|do|is|are|can|will)\s+.{3,}/i,
+
+  // ============================================
+  // EXPANDED PATTERNS FOR BETTER DETECTION
+  // ============================================
+
+  // CASUAL/SLANG PHRASING
+  /\b(what'?s\s+poppin|what'?s\s+good|what'?s\s+up)\s+(in|with|at)\b/i,
+  /\b(gimme|give\s+me)\s+(the\s+)?(scoop|lowdown|tea|deets|info)\s+(on|about)\b/i,
+  /\b(what'?s\s+the\s+(deal|story|situation|status))\s+(with|on|about)\b/i,
+  /\b(any\s+(news|updates|info|word))\s+(on|about|from)\b/i,
+  /\b(fill\s+me\s+in|catch\s+me\s+up|bring\s+me\s+up\s+to\s+speed)\b/i,
+
+  // SIMPLE TIME-SENSITIVE QUESTIONS
+  /\b(did|does|do|has|have|will|is|are)\s+(the\s+)?(lakers|celtics|warriors|yankees|dodgers|patriots|chiefs|cowboys|eagles|49ers|giants|knicks|nets|heat|bulls|mets|red\s*sox|cubs|braves)\s+(win|lose|play|beat)/i,
+  /\b(did|has)\s+[A-Z][a-z]+\s+(win|lose|beat|score|play)/i,  // "Did Boston win"
+  /\b(is\s+it\s+(gonna|going\s+to)|will\s+it)\s+(rain|snow|storm|be\s+hot|be\s+cold)/i,
+  /\b(what\s+time)\s+(does|do|is|will)\s+/i,  // "what time does Target close"
+  /\b(is|are)\s+.{1,30}\s+(open|closed)\s*(right\s+now|today|tonight|now)?\s*\??$/i,
+
+  // RECENT EVENTS WITHOUT "NEWS" KEYWORD
+  /\b(what\s+happened|what'?s\s+happened)\s*(today|yesterday|this\s+week|last\s+night|recently)?\s*\??$/i,
+  /\b(did\s+they|have\s+they|has\s+.{1,20})\s+(announce|release|launch|drop|reveal|confirm)/i,
+  /\b(is\s+the\s+new|when\s+(does|is|will)\s+the\s+new)\s+/i,  // "is the new iPhone out"
+  /\b(when\s+(does|is|will))\s+.{1,30}\s+(come\s+out|release|premiere|drop|launch|start|return|come\s+back)/i,
+  /\b(any\s+updates?\s+on|status\s+of|update\s+on)\b/i,
+
+  // PEOPLE AGE/STATUS QUERIES
+  /\b(is|are)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)?\s+(still\s+alive|dead|alive|married|divorced|single|dating|pregnant)/i,
+  /\b(how\s+old\s+is|what'?s?\s+.{1,20}\s+age|when\s+was\s+.{1,20}\s+born)\b/i,
+  /\b(what\s+did|what\s+does|what\s+has)\s+[A-Z][a-z]+\s+/i,  // "what did Biden say"
+  /\b(who\s+is\s+dating|who\s+is\s+married\s+to|who\s+is\s+.{1,20}\s+(husband|wife|girlfriend|boyfriend|partner))\b/i,
+  /\b(net\s+worth|how\s+much\s+(is|does)\s+.{1,20}\s+(worth|make|earn))\b/i,
+
+  // VERIFICATION/FACT-CHECK QUESTIONS
+  /\b(is\s+it\s+true|is\s+that\s+true|is\s+this\s+true)\b/i,
+  /\b(did\s+.{1,30}\s+really|is\s+it\s+real\s+that|is\s+.{1,30}\s+real)\b/i,
+  /\b(fact\s+check|verify|confirm|true\s+or\s+false)\b/i,
+  /\b(did\s+that\s+(happen|actually\s+happen)|was\s+that\s+real)\b/i,
+
+  // VAGUE LOCATION/ACTIVITY QUERIES
+  /\b(where\s+can\s+i|where\s+should\s+i|where\s+to)\s+(eat|go|find|get|buy|see)/i,
+  /\b(what'?s\s+good\s+to\s+(do|eat|see|visit))\s+(in|around|near)\b/i,
+  /\b(anything\s+(fun|good|interesting|cool))\s+(to\s+do|happening)\s*(in|around|near|tonight|today)?\b/i,
+  /\b(things\s+to\s+do|what\s+to\s+do|stuff\s+to\s+do)\s+(in|around|near)\b/i,
+  /\b(recommend|suggestion|recommendations|suggestions)\s+(for|in|around)\b/i,
+
+  // SPORTS WITHOUT EXPLICIT SCORE KEYWORDS
+  /\b(who'?s\s+playing|what\s+games?\s+(are|is))\s+(tonight|today|tomorrow|this\s+weekend)/i,
+  /\b(did|does|do)\s+.{1,20}\s+(make|win|lose|get\s+into)\s+(the\s+)?(playoffs|finals|championship|tournament|series)/i,
+  /\b(when'?s\s+the\s+next|next\s+.{1,20}\s+game|when\s+do\s+.{1,20}\s+play)\b/i,
+  /\b(standings|rankings|playoff|draft|trade|free\s+agent|roster|lineup)\b/i,
+  /\b(super\s*bowl|world\s*series|nba\s+finals|stanley\s+cup|world\s+cup|olympics|march\s+madness)\b/i,
+
+  // GENERAL "DID" QUESTIONS (strong search signal)
+  /\b(did\s+.{1,30}\s+die|did\s+.{1,30}\s+get\s+(fired|arrested|married|divorced|elected|appointed))\b/i,
+  /\b(did\s+.{1,30}\s+(pass|fail|win|lose|happen|change|update|release|announce))\b/i,
+
+  // PRODUCT/TECH RELEASES
+  /\b(is\s+.{1,20}\s+(out\s+yet|available\s+yet|released\s+yet|coming\s+out))\b/i,
+  /\b(when\s+(is|does|will)\s+.{1,20}\s+(come\s+out|release|drop|launch|available))\b/i,
+  /\b(new\s+(iphone|ipad|macbook|samsung|pixel|playstation|xbox|switch|model|version))\b/i,
+
+  // CURRENT STATUS/AVAILABILITY
+  /\b(is\s+.{1,20}\s+(available|in\s+stock|sold\s+out|back\s+in\s+stock|on\s+sale|discontinued))\b/i,
+  /\b(can\s+i\s+(still|currently)|do\s+they\s+still)\s+(buy|get|order|find)\b/i,
+
+  // TRENDING/VIRAL CONTENT
+  /\b(trending|viral|popular|famous)\s+(right\s+now|today|this\s+week)?\b/i,
+  /\b(what'?s\s+trending|what'?s\s+viral|what'?s\s+popular)\b/i,
+  /\b(why\s+is\s+.{1,30}\s+trending|why\s+is\s+everyone\s+talking\s+about)\b/i,
+
+  // PRICE/COST CASUAL PATTERNS
+  /\b(how\s+much\s+(is|does|are|do))\s+/i,  // "how much is gas"
+  /\b(what'?s\s+.{1,20}\s+(cost|price|worth|going\s+for))\b/i,
+  /\b(current\s+price|price\s+of|cost\s+of)\b/i,
+
+  // WEATHER CASUAL
+  /\b(is\s+it\s+(hot|cold|raining|snowing|nice|warm|cool))\s+(outside|today|right\s+now|in)?\b/i,
+  /\b(do\s+i\s+need\s+(an?\s+)?(umbrella|jacket|coat|sunscreen))\b/i,
+
+  // GENERIC LOOKUP BOOSTERS (short queries that likely need search)
+  /\b(hours|address|phone|menu|price|cost|location)\s+for\b/i,
+  /\b(how\s+to\s+get\s+to|directions\s+to|distance\s+to)\b/i,
+
+  // SEARCH CONTINUATION PATTERNS (responses to "which type do you want?" etc.)
+  // These catch affirmative responses that should continue a search
+  /^(all|all\s+of\s+(them|it|the\s+above)|everything|anything|whatever)\s*(please|thanks)?\.?$/i,
+  /^(all\s+)?(events?|types?|options?|categories?|kinds?)\s*(please|thanks)?\.?$/i,
+  /^(yes|yeah|yep|sure|ok|okay|yup|go\s+ahead|do\s+it)\s*(please|thanks)?[,.]?\s*(all|everything)?\.?$/i,
+  /^(show\s+me|give\s+me|list|find)\s+(all|everything|them\s+all)\.?$/i,
+  /^(just|please)?\s*(search|look|find|show)(\s+it)?(\s+up)?\.?$/i,
 ];
 
 /**
@@ -120,6 +331,9 @@ interface ChatOptions {
   stream?: boolean;
   userId?: string; // For logging and usage tracking
   conversationId?: string; // For saving messages to DB on completion
+  pendingRequestId?: string; // For background processing - delete on completion
+  modelOverride?: string; // Override model from provider settings
+  planKey?: string; // User's subscription tier for usage limits
 }
 
 /**
@@ -194,7 +408,9 @@ IMPORTANT: Use these times as your reference for any time-related questions.`;
 
 /**
  * Normalize message format for OpenAI Responses API
- * Responses API expects: 'input_text', 'input_image' (not 'text', 'image')
+ * Responses API expects:
+ * - User/System messages: 'input_text', 'input_image'
+ * - Assistant messages: 'output_text' (NOT input_text!)
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeMessageForResponsesAPI(message: any): any {
@@ -205,66 +421,69 @@ function normalizeMessageForResponsesAPI(message: any): any {
     return { role: 'user', content: '' };
   }
 
-  // If content is a string, return as input_text format
+  // Determine the correct text type based on role
+  // Assistant messages MUST use 'output_text', others use 'input_text'
+  const textType = role === 'assistant' ? 'output_text' : 'input_text';
+
+  // If content is a string, return with correct type based on role
   if (typeof message.content === 'string') {
     return {
       role,
-      content: [{ type: 'input_text', text: message.content }]
+      content: [{ type: textType, text: message.content }]
     };
   }
 
   // If content is null/undefined, return empty
   if (!message.content) {
-    return { role, content: [{ type: 'input_text', text: '' }] };
+    return { role, content: [{ type: textType, text: '' }] };
   }
 
   // If content is not an array, convert to string
   if (!Array.isArray(message.content)) {
     return {
       role,
-      content: [{ type: 'input_text', text: String(message.content) }]
+      content: [{ type: textType, text: String(message.content) }]
     };
   }
 
   // Convert content parts to Responses API format
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalizedContent = message.content.map((part: any) => {
-    // Text parts -> input_text
+    // Text parts -> correct type based on role
     if (part.type === 'text') {
-      return { type: 'input_text', text: part.text || '' };
+      return { type: textType, text: part.text || '' };
     }
-    // AI SDK image format -> input_image
-    if (part.type === 'image' && part.image) {
-      // Responses API expects image_url for input_image
+    // AI SDK image format -> input_image (only for user messages)
+    if (part.type === 'image' && part.image && role !== 'assistant') {
       return {
         type: 'input_image',
         image_url: typeof part.image === 'string' ? part.image : part.image.toString(),
       };
     }
-    // OpenAI image_url format -> input_image
-    if (part.type === 'image_url' && part.image_url?.url) {
+    // OpenAI image_url format -> input_image (only for user messages)
+    if (part.type === 'image_url' && part.image_url?.url && role !== 'assistant') {
       return {
         type: 'input_image',
         image_url: part.image_url.url,
       };
     }
-    // input_text already in correct format
-    if (part.type === 'input_text') {
-      return part;
+    // input_text/output_text - convert to correct type for this role
+    if (part.type === 'input_text' || part.type === 'output_text') {
+      return { type: textType, text: part.text || '' };
     }
-    // input_image already in correct format
-    if (part.type === 'input_image') {
+    // input_image already in correct format (only for user messages)
+    if (part.type === 'input_image' && role !== 'assistant') {
       return part;
     }
     // Try to extract text from unknown parts
     if (part.text) {
-      return { type: 'input_text', text: part.text };
+      return { type: textType, text: part.text };
     }
     return null;
   }).filter(Boolean);
 
   if (normalizedContent.length === 0) {
-    return { role, content: [{ type: 'input_text', text: '' }] };
+    return { role, content: [{ type: textType, text: '' }] };
   }
 
   return { role, content: normalizedContent };
@@ -459,24 +678,25 @@ function determineModel(messages: any[], tool?: ToolType): OpenAIModel {
  * Create a chat completion with streaming support
  */
 export async function createChatCompletion(options: ChatOptions) {
-  const { messages, tool, temperature, maxTokens, stream = true, userId, conversationId } = options;
+  const { messages, tool, temperature, maxTokens, stream = true, userId, conversationId, pendingRequestId, modelOverride, planKey } = options;
 
   // Get the last user message text for routing decisions
   const lastUserText = getLastUserMessageText(messages);
 
-  // Determine the best model
-  const modelName = determineModel(messages, tool);
+  // Determine the best model - use override if provided (from admin settings)
+  const baseModelName = determineModel(messages, tool);
+  const modelName = (modelOverride || baseModelName) as OpenAIModel;
 
   // Check if we should use web search (tool-based OR content-based)
   const useWebSearch = shouldUseWebSearch(tool, lastUserText);
 
-  console.log('[OpenAI] Using model:', modelName, 'stream:', stream, 'webSearch:', useWebSearch, 'query:', lastUserText?.slice(0, 50));
+  console.log('[OpenAI] Using model:', modelName, 'override:', !!modelOverride, 'stream:', stream, 'webSearch:', useWebSearch, 'query:', lastUserText?.slice(0, 50));
 
   // Use Responses API with web search (either tool-based or content-based trigger)
   if (useWebSearch) {
     const triggerReason = tool && WEB_SEARCH_TOOLS.includes(tool) ? `tool: ${tool}` : 'content pattern';
     console.log('[OpenAI] Using Responses API with web search, trigger:', triggerReason);
-    return createWebSearchCompletion(options, 'gpt-5-mini'); // Use gpt-5-mini for web search per directive
+    return createWebSearchCompletion(options, modelName); // Use configured model for web search
   }
 
   // Use non-streaming for image analysis or when explicitly requested
@@ -529,7 +749,7 @@ export async function createChatCompletion(options: ChatOptions) {
   // This fires even if the client disconnects, ensuring the message is saved
   if (userId) {
     requestConfig.onFinish = async ({ text, usage }: { text?: string; usage?: { promptTokens?: number; completionTokens?: number } }) => {
-      // Track token usage
+      // Track token usage (updates Redis counter for limits)
       if (usage) {
         trackTokenUsage({
           userId,
@@ -538,6 +758,7 @@ export async function createChatCompletion(options: ChatOptions) {
           tool: 'streamText',
           inputTokens: usage.promptTokens || 0,
           outputTokens: usage.completionTokens || 0,
+          planKey: planKey || 'free',
         });
       }
 
@@ -548,6 +769,14 @@ export async function createChatCompletion(options: ChatOptions) {
           userId,
           content: text,
           model: modelName,
+        });
+      }
+
+      // Mark the pending request as completed (removes it from background worker queue)
+      if (pendingRequestId) {
+        console.log('[OpenAI] Completing pending request:', pendingRequestId);
+        completePendingRequest(pendingRequestId).catch(err => {
+          console.error('[OpenAI] Failed to complete pending request:', err);
         });
       }
     };
@@ -571,7 +800,7 @@ async function createWebSearchCompletion(
   options: ChatOptions,
   modelName: OpenAIModel
 ) {
-  const { messages, tool, temperature, maxTokens, userId, conversationId } = options;
+  const { messages, tool, temperature, maxTokens, userId, conversationId, planKey } = options;
   const apiKey = getOpenAIApiKey();
   const baseURL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
   const startTime = Date.now();
@@ -600,7 +829,7 @@ async function createWebSearchCompletion(
 
   // Build web search tool configuration with preferred domains
   const webSearchTool = {
-    type: 'web_search',
+    type: 'web_search_preview',
     // Note: OpenAI's web_search handles domain preferences through system prompts
     // The domains are included in the system prompt for guidance instead
     // If OpenAI adds domain filtering support, uncomment below:
@@ -687,6 +916,12 @@ async function createWebSearchCompletion(
           }
         }
 
+        // Check if we got empty content - if so, throw to trigger fallback
+        if (!responseText || responseText.trim().length === 0) {
+          console.log('[OpenAI Web Search] Empty response received, falling back to regular completion');
+          throw new Error('EMPTY_RESPONSE: Web search returned no content');
+        }
+
         console.log('[OpenAI Web Search] Success, citations found:', citations.length);
 
         return {
@@ -744,6 +979,7 @@ async function createWebSearchCompletion(
         tool: 'responses',
         inputTokens: result.usage?.prompt_tokens || 0,
         outputTokens: result.usage?.completion_tokens || 0,
+        planKey: planKey || 'free',
       });
     }
 
@@ -760,6 +996,8 @@ async function createWebSearchCompletion(
 
     return result;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
     // Log the error
     logEvent({
       user_id: userId,
@@ -768,11 +1006,22 @@ async function createWebSearchCompletion(
       latency_ms: Date.now() - startTime,
       ok: false,
       err_code: 'WEB_SEARCH_FAILED',
-      err_message: error instanceof Error ? error.message : String(error),
+      err_message: errorMessage,
       web_search: true,
     });
 
-    // Fall back to regular completion without web search
+    // Check if this is a timeout error
+    const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('timed out');
+
+    if (isTimeout) {
+      // Don't fall back to regular completion for timeout errors
+      // The user asked for search results, and a non-search response won't help
+      // Also, falling back would likely hit Vercel's 60s timeout anyway
+      console.log('[OpenAI Web Search] Timeout - returning error instead of fallback to avoid Vercel timeout');
+      throw new Error('Search request timed out. Please try again.');
+    }
+
+    // Fall back to regular completion without web search for non-timeout errors
     console.log('[OpenAI Web Search] Falling back to regular completion');
     return createDirectOpenAICompletion(options, modelName);
   }
@@ -786,7 +1035,7 @@ async function createDirectOpenAICompletion(
   options: ChatOptions,
   modelName: OpenAIModel
 ) {
-  const { messages, tool, temperature, maxTokens, userId, conversationId } = options;
+  const { messages, tool, temperature, maxTokens, userId, conversationId, planKey } = options;
 
   // Log detailed info about the request for debugging
   const messagesSummary = messages.map((m, i) => ({
@@ -867,6 +1116,7 @@ async function createDirectOpenAICompletion(
           tool: 'generateText',
           inputTokens: usage.promptTokens || usage.inputTokens || 0,
           outputTokens: usage.completionTokens || usage.outputTokens || 0,
+          planKey: planKey || 'free',
         });
       }
 

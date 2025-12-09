@@ -17,6 +17,12 @@ export interface Chat {
   updatedAt: Date;
 }
 
+export interface Citation {
+  title: string;
+  url: string;
+  snippet?: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -25,9 +31,10 @@ export interface Message {
   attachments?: Attachment[];
   imageUrl?: string; // For AI-generated images
   products?: ShopProduct[]; // For Amazon shopping results
-  citations?: string[]; // Source URLs from Live Search
+  citations?: Citation[]; // Source citations from Live Search (with title and URL)
   sourcesUsed?: number; // Number of sources used in search
   model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
+  searchProvider?: string; // Search provider used (perplexity, etc.) - for admin display
   timestamp: Date;
   isStreaming?: boolean;
 }

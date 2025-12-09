@@ -21,9 +21,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // Voice Chat imports - Hidden until feature is production-ready
-// import { useCallback, useRef } from 'react';
+// import { useCallback } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer } from '@/components/chat/ChatComposer';
@@ -34,6 +34,8 @@ import { CodeCommandInterface } from '@/components/code-command';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
@@ -69,10 +71,14 @@ export function ChatClient() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  // Waiting for background reply (shown when user returns to tab and answer is pending)
+  const [isWaitingForReply, setIsWaitingForReply] = useState(false);
   // Start with sidebar collapsed on mobile, open on desktop
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Track if image generation is available (depends on active provider)
+  const [imageGenerationAvailable, setImageGenerationAvailable] = useState(true);
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -82,6 +88,12 @@ export function ChatClient() {
   const [headerLogo, setHeaderLogo] = useState<string>('');
   // Code Command mode (admin only)
   const [showCodeCommand, setShowCodeCommand] = useState(false);
+  // AbortController for cancelling in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+  // Polling interval ref for background reply checking
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   /* Voice Chat - Hidden until feature is production-ready
   // Track current streaming assistant message ID for voice
@@ -229,8 +241,25 @@ export function ChatClient() {
         setIsAdmin(false);
       }
     };
-
     checkAdminStatus();
+  }, []);
+
+  // Check feature availability (image generation depends on provider)
+  useEffect(() => {
+    const checkFeatures = async () => {
+      try {
+        const response = await fetch('/api/features');
+        if (response.ok) {
+          const data = await response.json();
+          setImageGenerationAvailable(data.imageGeneration === true);
+        }
+      } catch (error) {
+        console.error('[ChatClient] Error checking features:', error);
+        // Default to true on error (OpenAI behavior)
+        setImageGenerationAvailable(true);
+      }
+    };
+    checkFeatures();
   }, []);
 
   // Detect screen size and set initial sidebar state
@@ -259,6 +288,176 @@ export function ChatClient() {
       window.removeEventListener('toggle-sidebar', handleToggleSidebar);
     };
   }, []);
+
+  // Cleanup on unmount - abort any in-flight requests
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Abort any in-flight requests when navigating away
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Ref to track current chat for visibility refresh
+  const currentChatIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    currentChatIdRef.current = currentChatId;
+  }, [currentChatId]);
+
+  // Ref to track current messages for visibility refresh (avoids stale closure)
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Helper function to fetch and format messages
+  const fetchMessages = async (chatId: string): Promise<Message[] | null> => {
+    try {
+      const response = await fetch(`/api/conversations/${chatId}/messages`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.messages.map((msg: {
+          id: string;
+          role: 'user' | 'assistant' | 'system';
+          content: string;
+          content_type: string;
+          attachment_urls: string[] | null;
+          created_at: string;
+        }) => {
+          const imageUrl = msg.attachment_urls && msg.attachment_urls.length > 0
+            ? msg.attachment_urls[0]
+            : undefined;
+          return {
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            imageUrl,
+            timestamp: new Date(msg.created_at),
+          };
+        });
+      }
+    } catch (error) {
+      console.error('[ChatClient] Error fetching messages:', error);
+    }
+    return null;
+  };
+
+  // Stop any active polling
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    setIsWaitingForReply(false);
+  };
+
+  // Track if we're currently processing to avoid duplicate calls
+  const isProcessingRef = useRef(false);
+
+  // Process pending request immediately when returning to tab
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      // Only check if tab is becoming visible and we have a current chat
+      if (document.visibilityState !== 'visible') return;
+      if (!currentChatIdRef.current) return;
+      if (isProcessingRef.current) return; // Prevent duplicate processing
+
+      const chatId = currentChatIdRef.current;
+      const currentMessages = messagesRef.current;
+
+      console.log('[ChatClient] Tab visible, checking for pending replies...', {
+        chatId,
+        messageCount: currentMessages.length,
+        lastRole: currentMessages[currentMessages.length - 1]?.role,
+        isStreaming,
+      });
+
+      // If currently streaming, check if we need to wait a bit
+      // (Stream might have just completed)
+      if (isStreaming) {
+        // Give the stream a moment to complete naturally
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Re-check if still streaming
+        if (isStreaming) {
+          console.log('[ChatClient] Still streaming, will check on next visibility change');
+          return;
+        }
+      }
+
+      // First, check if we already have the response (server may have processed it)
+      const fetchedMessages = await fetchMessages(chatId);
+      if (!fetchedMessages || !isMountedRef.current) return;
+
+      // If we got new messages, just display them
+      if (fetchedMessages.length > currentMessages.length) {
+        console.log('[ChatClient] New messages found:', fetchedMessages.length - currentMessages.length);
+        setMessages(fetchedMessages);
+        setIsStreaming(false); // Reset streaming state since we have the response
+        return;
+      }
+
+      // Check if last message is from user (meaning we're waiting for a reply)
+      // Also check fetched messages in case local state is stale
+      const lastFetchedMessage = fetchedMessages[fetchedMessages.length - 1];
+      const lastLocalMessage = currentMessages[currentMessages.length - 1];
+      const lastMessage = lastFetchedMessage || lastLocalMessage;
+
+      if (lastMessage && lastMessage.role === 'user') {
+        console.log('[ChatClient] Last message is from user, processing pending request...');
+        isProcessingRef.current = true;
+        setIsWaitingForReply(true);
+        setIsStreaming(false); // Reset streaming state
+
+        try {
+          // Call the process-pending endpoint to immediately process the request
+          const response = await fetch(`/api/conversations/${chatId}/process-pending`, {
+            method: 'POST',
+          });
+
+          if (!isMountedRef.current) return;
+
+          const result = await response.json();
+          console.log('[ChatClient] Process pending result:', result.status);
+
+          if (result.status === 'completed' && result.content) {
+            // Add the new message to the UI
+            const newMessage: Message = {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: result.content,
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, newMessage]);
+          } else if (result.status === 'no_pending_request') {
+            // No pending request - maybe it was already processed or never created
+            // Fetch messages again just in case
+            const updatedMessages = await fetchMessages(chatId);
+            if (updatedMessages && updatedMessages.length > currentMessages.length) {
+              setMessages(updatedMessages);
+            }
+          }
+          // For 'failed' or 'error', we just stop waiting - user can try again
+        } catch (error) {
+          console.error('[ChatClient] Error processing pending request:', error);
+        } finally {
+          if (isMountedRef.current) {
+            isProcessingRef.current = false;
+            setIsWaitingForReply(false);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
+    };
+  }, [isStreaming]); // Keep isStreaming dependency for re-registration
 
   // Load conversations from database
   useEffect(() => {
@@ -525,6 +724,18 @@ export function ChatClient() {
     }
   };
 
+  /**
+   * Handle stop button - abort the current streaming request
+   */
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      console.log('[ChatClient] User clicked stop - aborting request');
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsStreaming(false);
+  };
+
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
     if (!content.trim() && attachments.length === 0) return;
 
@@ -729,6 +940,13 @@ export function ChatClient() {
           }
         : undefined;
 
+      // Create AbortController for this request
+      // Abort any previous in-flight request first
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
       // Call API with regular chat (no auto tool selection)
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -741,6 +959,7 @@ export function ChatClient() {
           conversationId: newChatId, // Pass current conversation ID to exclude from history
           // No tool parameter - let users manually select tools via buttons
         }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -760,8 +979,9 @@ export function ChatClient() {
       const contentType = response.headers.get('content-type') || '';
       const isJsonResponse = contentType.includes('application/json');
 
-      // Get model used from response header (for admin debugging)
+      // Get model and search provider from response headers (for admin debugging)
       const modelUsed = response.headers.get('X-Model-Used') || undefined;
+      const searchProvider = response.headers.get('X-Web-Search') || undefined;
 
       let finalContent = '';
       let isImageResponse = false;
@@ -805,6 +1025,7 @@ export function ChatClient() {
             citations: data.citations || [],
             sourcesUsed: data.sourcesUsed || 0,
             model: data.model || modelUsed,
+            searchProvider: searchProvider,
             timestamp: new Date(),
           };
 
@@ -854,12 +1075,25 @@ export function ChatClient() {
                 )
               );
             }
+          } catch (readerError) {
+            // Stream was interrupted (user navigated away, network issue, etc.)
+            console.log('[ChatClient] Stream interrupted:', readerError instanceof Error ? readerError.message : 'unknown');
+            // If we have some content, use it instead of showing an error
+            if (accumulatedContent.length > 0) {
+              console.log('[ChatClient] Using partial content, length:', accumulatedContent.length);
+              finalContent = accumulatedContent;
+            } else {
+              // Re-throw to trigger the outer error handler
+              throw readerError;
+            }
           } finally {
             reader.releaseLock();
           }
 
-          console.log('[ChatClient] Stream finished, total length:', accumulatedContent.length);
-          finalContent = accumulatedContent;
+          if (!finalContent) {
+            console.log('[ChatClient] Stream finished, total length:', accumulatedContent.length);
+            finalContent = accumulatedContent;
+          }
         }
       }
 
@@ -1101,6 +1335,8 @@ export function ChatClient() {
       }
 
       setIsStreaming(false);
+      // Clear the abort controller after successful completion
+      abortControllerRef.current = null;
 
       // Save assistant message to database (skip for images - already saved above)
       if (!isImageResponse) {
@@ -1165,7 +1401,43 @@ export function ChatClient() {
         }
       }
     } catch (error) {
+      // Check if this is an abort error (user navigated away or sent new message)
+      const isAbortError = error instanceof Error && (
+        error.name === 'AbortError' ||
+        error.message.toLowerCase().includes('aborted') ||
+        error.message.toLowerCase().includes('abort')
+      );
+
+      // Check if this is a network error (connection lost, user navigated away)
+      const isNetworkError = error instanceof Error && (
+        error.name === 'TypeError' && error.message.toLowerCase().includes('fetch') ||
+        error.message.toLowerCase().includes('network') ||
+        error.message.toLowerCase().includes('connection') ||
+        error.message.toLowerCase().includes('failed to fetch') ||
+        error.message.toLowerCase().includes('load failed')
+      );
+
+      if (isAbortError || isNetworkError) {
+        // User navigated away or network issue - this is not a server error
+        console.log('[ChatClient] Request interrupted:', error instanceof Error ? error.message : 'unknown');
+        // Only update state if component is still mounted
+        if (isMountedRef.current) {
+          setIsStreaming(false);
+        }
+        return; // Don't show error message for interrupted requests
+      }
+
       console.error('Chat API error:', error);
+      // Log more details about the error for debugging
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+      }
+
+      // Only show error message if component is still mounted
+      if (!isMountedRef.current) {
+        return;
+      }
 
       // Show user-friendly error message (no technical details)
       const errorMessage: Message = {
@@ -1183,8 +1455,11 @@ export function ChatClient() {
     }
   };
 
+  // Get theme for conditional rendering
+  const { theme } = useTheme();
+
   return (
-    <div className="flex h-screen flex-col bg-black">
+    <div className="flex h-screen flex-col" style={{ backgroundColor: 'var(--background)' }}>
       {/* Header */}
       <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
         <div className="flex items-center justify-between relative">
@@ -1211,7 +1486,13 @@ export function ChatClient() {
             </button>
             {/* Only show logo/site name when a chat is active */}
             {currentChatId && (
-              headerLogo ? (
+              theme === 'light' ? (
+                // Light mode: Use text instead of logo
+                <h1 className="text-base md:text-xl font-normal">
+                  <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
+                  <span style={{ color: 'var(--primary)' }}>ai</span>
+                </h1>
+              ) : headerLogo ? (
                 <img src={headerLogo} alt="JCIL.ai" className="h-8" />
               ) : (
                 <h1 className="text-base md:text-xl font-semibold">
@@ -1245,6 +1526,9 @@ export function ChatClient() {
           </button>
 
           <div className="flex items-center gap-0.5">
+            {/* Theme Toggle (admin only) */}
+            <ThemeToggle />
+
             {/* Profile Button */}
             <button
               onClick={() => setIsProfileOpen(true)}
@@ -1298,9 +1582,23 @@ export function ChatClient() {
                 isAdmin={isAdmin}
                 onSubmitPrompt={(prompt) => handleSendMessage(prompt, [])}
               />
+              {/* Reply incoming indicator - shown when waiting for background response */}
+              {isWaitingForReply && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-blue-500/10 border-t border-blue-500/20">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                  <span className="text-sm text-blue-400">Reply incoming...</span>
+                </div>
+              )}
               <ChatComposer
                 onSendMessage={handleSendMessage}
+                onStop={handleStop}
                 isStreaming={isStreaming}
+                disabled={isWaitingForReply}
+                hideImageSuggestion={!imageGenerationAvailable}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton

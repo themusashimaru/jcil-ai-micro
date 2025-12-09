@@ -63,15 +63,21 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
   };
 
   return (
-    <div className={`flex items-start gap-0 mb-1 ${isUser ? 'justify-end' : ''}`}>
-      {/* Avatar - both AI and user messages, always on left */}
-      <div className={`mt-0 flex h-3 w-3 flex-shrink-0 items-center justify-center rounded-full ${
-        isUser ? 'bg-white/5 text-gray-400' : 'bg-cyan-500/10 text-cyan-400'
-      }`}>
-        <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
-        </svg>
-      </div>
+    <div className={`flex items-start gap-2 mb-2 ${isUser ? 'justify-end' : ''}`}>
+      {/* Avatar - AI messages only, on left */}
+      {!isUser && (
+        <div
+          className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
+          style={{
+            backgroundColor: 'var(--primary-hover)',
+            color: 'var(--primary)',
+          }}
+        >
+          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+          </svg>
+        </div>
+      )}
 
       {/* Message Content */}
       <div className="space-y-0 overflow-x-hidden flex-1 max-w-full">
@@ -264,12 +270,12 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
         {/* Message Bubble */}
         <div
           className={`chat-bubble chat-bubble-tail ${
-            isUser ? 'right bg-blue-600 text-white' : 'left border border-[#4DFFFF]'
+            isUser ? 'right user-bubble' : 'left ai-bubble'
           }`}
           style={{
             userSelect: 'text',
             WebkitUserSelect: 'text',
-            ...(isUser ? { border: 'none' } : {})
+            color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--chat-ai-bubble-text)',
           }}
         >
           <div className="break-words select-text">
@@ -284,40 +290,58 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
 
           {/* Citations/Sources from Live Search */}
           {!isUser && message.citations && message.citations.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
+            <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-1 text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
                 <span>Sources ({message.citations.length})</span>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {message.citations.slice(0, 5).map((url, index) => {
-                  // Extract domain from URL for display
-                  let domain = url;
-                  try {
-                    domain = new URL(url).hostname.replace('www.', '');
-                  } catch {
-                    // Keep original URL if parsing fails
+              <div className="flex flex-wrap gap-1.5">
+                {message.citations.slice(0, 5).map((citation, index) => {
+                  // Handle both old format (string) and new format (object with title/url)
+                  const citationObj = typeof citation === 'string' ? { url: citation, title: '' } : citation;
+                  const url = citationObj.url || '';
+                  let title = citationObj.title || '';
+
+                  // Fallback to domain if no title
+                  if (!title && url) {
+                    try {
+                      title = new URL(url).hostname.replace('www.', '');
+                    } catch {
+                      title = 'Source';
+                    }
                   }
+
+                  if (!url) return null;
+
                   return (
                     <a
                       key={index}
                       href={url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 text-xs text-blue-400 hover:bg-white/10 hover:text-blue-300 transition-colors truncate max-w-[200px]"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all hover:scale-105 cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--primary-hover)',
+                        color: 'var(--primary)',
+                        border: '1px solid var(--primary)',
+                      }}
                       title={url}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
                     >
-                      <span className="truncate">{domain}</span>
-                      <svg className="h-2.5 w-2.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <span className="truncate max-w-[150px]">{title}</span>
+                      <svg className="h-3 w-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
                     </a>
                   );
                 })}
                 {message.citations.length > 5 && (
-                  <span className="px-2 py-0.5 text-xs text-gray-500">
+                  <span className="px-2 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                     +{message.citations.length - 5} more
                   </span>
                 )}
@@ -326,7 +350,7 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
           )}
 
           {/* Timestamp and Admin Model Badge */}
-          <div className={`mt-1 flex items-center gap-2 text-xs ${isUser ? 'text-white/70' : 'text-gray-400'}`}>
+          <div className="mt-1 flex items-center gap-2 text-xs" style={{ color: isUser ? 'rgba(255, 255, 255, 0.7)' : 'var(--text-muted)' }}>
             <span>
               {new Date(message.timestamp).toLocaleTimeString([], {
                 hour: '2-digit',
@@ -343,13 +367,34 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
                     ? 'bg-blue-500/20 text-blue-400'
                     : message.model.includes('dall-e')
                     ? 'bg-pink-500/20 text-pink-400'
+                    : message.model.includes('haiku')
+                    ? 'bg-cyan-500/20 text-cyan-400'
+                    : message.model.includes('sonnet')
+                    ? 'bg-violet-500/20 text-violet-400'
+                    : message.model.includes('opus')
+                    ? 'bg-amber-500/20 text-amber-400'
                     : 'bg-purple-500/20 text-purple-400'
                 }`}
                 title={`Model: ${message.model}`}
               >
                 {message.model.includes('dall-e')
                   ? 'dall-e'
-                  : message.model.replace('gpt-5-', '')}
+                  : message.model.includes('haiku')
+                  ? 'haiku'
+                  : message.model.includes('sonnet')
+                  ? 'sonnet'
+                  : message.model.includes('opus')
+                  ? 'opus'
+                  : message.model.replace('gpt-5-', '').replace('claude-', '')}
+              </span>
+            )}
+            {/* Admin-only search provider indicator */}
+            {isAdmin && !isUser && message.searchProvider && (
+              <span
+                className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-orange-500/20 text-orange-400"
+                title={`Search: ${message.searchProvider}`}
+              >
+                🔍 {message.searchProvider}
               </span>
             )}
           </div>
@@ -360,11 +405,10 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
           <div className="flex gap-0">
             <button
               onClick={handleCopy}
-              className={`rounded px-1 py-0 text-xs flex items-center justify-center transition-colors ${
-                copied
-                  ? 'text-green-400'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-              }`}
+              className="rounded px-1 py-0 text-xs flex items-center justify-center transition-colors"
+              style={{
+                color: copied ? '#22c55e' : 'var(--text-muted)',
+              }}
               title={copied ? 'Copied!' : 'Copy message'}
             >
               {copied ? (
@@ -388,7 +432,8 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
               )}
             </button>
             <button
-              className="rounded px-1 py-0 text-xs text-gray-400 hover:bg-white/5 hover:text-white flex items-center justify-center"
+              className="rounded px-1 py-0 text-xs flex items-center justify-center transition-colors"
+              style={{ color: 'var(--text-muted)' }}
               title="Regenerate"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

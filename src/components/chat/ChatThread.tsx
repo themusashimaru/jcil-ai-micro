@@ -22,6 +22,7 @@ import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useTheme } from '@/contexts/ThemeContext';
 // REMOVED: Email and Essay tools - gpt-5-mini handles these in regular chat
 // import { QuickEmailWriter } from './QuickEmailWriter';
 // import { QuickResearchTool } from './QuickResearchTool'; // HIDDEN: Auto-search is now enabled for all conversations
@@ -82,9 +83,11 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const { profile, hasProfile } = useUserProfile();
+  const { theme } = useTheme();
 
   // Load design settings from database API
   const [mainLogo, setMainLogo] = useState<string>('');
+  const [lightModeLogo, setLightModeLogo] = useState<string>('');
   const [subtitle, setSubtitle] = useState<string>('Faith-based AI tools for your everyday needs');
   const [modelName, setModelName] = useState<string>('');
   const [isLogoLoading, setIsLogoLoading] = useState<boolean>(true);
@@ -130,6 +133,10 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
           if (logoUrl && logoUrl !== '/images/logo.png') {
             setMainLogo(logoUrl);
           }
+          // Load light mode logo
+          if (settings.light_mode_logo) {
+            setLightModeLogo(settings.light_mode_logo);
+          }
           if (settings.subtitle) {
             setSubtitle(settings.subtitle);
           }
@@ -152,37 +159,48 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
     return () => window.removeEventListener('design-settings-updated', handleUpdate);
   }, []);
 
-  // Auto-scroll to show user's message at top when new message is sent
+  // Auto-scroll when new messages arrive
   useEffect(() => {
     if (messages.length === 0) return;
 
-    // Find the last user message
-    const lastMessage = messages[messages.length - 1];
-
-    // If the last message is from user, scroll to show it at the top
-    if (lastMessage.role === 'user' && lastUserMessageRef.current) {
-      // Scroll so the user message appears near the top of the viewport
-      lastUserMessageRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    } else {
-      // Otherwise scroll to bottom (for assistant responses)
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    // Using a small delay to let the DOM update first
+    setTimeout(() => {
+      // For first few messages, scroll container to top so messages are visible
+      // For more messages, scroll to bottom to show latest
+      if (messages.length <= 3) {
+        scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
   }, [messages]);
 
   // Show logo and tools when no chat is selected OR when chat is empty
   if (!currentChatId || messages.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-1">
-        <div className="text-center">
+      <div className="flex flex-1 min-h-0 items-center justify-center p-4 chat-bg-orbs">
+        <div className="text-center relative z-10 mt-8">
           {/* JCIL.ai Logo */}
-          <div className="mb-1">
+          <div className="mb-0">
             {/* Logo - Dynamically loaded from database (supports images and videos) */}
+            {/* In light mode: always show text "jcil.ai" instead of logo */}
             {isLogoLoading ? (
               // Show placeholder while loading to prevent flash
-              <div className="h-36 md:h-72 w-auto mx-auto mb-2" />
+              <div className="h-36 md:h-72 w-auto mx-auto mb-1" />
+            ) : theme === 'light' ? (
+              // Light mode: Use light mode logo if uploaded, otherwise show text
+              lightModeLogo ? (
+                <img
+                  src={lightModeLogo}
+                  alt="JCIL.ai"
+                  className="h-36 md:h-72 w-auto mx-auto mb-1"
+                />
+              ) : (
+                <h1 className="text-6xl md:text-8xl font-normal mb-1">
+                  <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
+                  <span style={{ color: 'var(--primary)' }}>ai</span>
+                </h1>
+              )
             ) : mainLogo ? (
               // Check if logo is a video (MP4 or WebM)
               mainLogo.startsWith('data:video/') ? (
@@ -208,33 +226,33 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
               </h1>
             )}
             {modelName && (
-              <p className="text-sm md:text-xl text-white font-medium mb-1 min-h-[1.5em]">
+              <p className="text-sm md:text-xl font-medium mb-1 min-h-[1.5em]" style={{ color: 'var(--text-primary)' }}>
                 {firstLineDisplayed}
                 {!firstLineDone && firstLineDisplayed && (
-                  <span className="animate-pulse text-[#4DFFFF]">|</span>
+                  <span className="animate-pulse" style={{ color: 'var(--primary)' }}>|</span>
                 )}
               </p>
             )}
-            <p className="text-xs md:text-sm text-white italic min-h-[1.25em]">
+            <p className="text-xs md:text-sm italic min-h-[1.25em]" style={{ color: 'var(--text-primary)' }}>
               {subtitleDisplayed}
               {!subtitleDone && subtitleDisplayed && (
-                <span className="animate-pulse text-[#4DFFFF]">|</span>
+                <span className="animate-pulse" style={{ color: 'var(--primary)' }}>|</span>
               )}
             </p>
           </div>
 
           {/* Personalized greeting if profile exists */}
           {hasProfile && currentChatId && (
-            <p className="mb-1 text-xs md:text-lg text-white">
+            <p className="mb-1 text-xs md:text-lg" style={{ color: 'var(--text-primary)' }}>
               Hi {profile.name}! How can I help you today?
             </p>
           )}
 
           {!currentChatId && (
-            <p className="mb-2 text-xs md:text-sm text-white min-h-[1.25em]">
+            <p className="mb-2 text-xs md:text-sm min-h-[1.25em]" style={{ color: 'var(--text-primary)' }}>
               {thirdLineDisplayed}
               {subtitleDone && thirdLineDisplayed && thirdLineDisplayed !== thirdLineText && (
-                <span className="animate-pulse text-[#4DFFFF]">|</span>
+                <span className="animate-pulse" style={{ color: 'var(--primary)' }}>|</span>
               )}
             </p>
           )}
@@ -252,18 +270,24 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden py-0 px-0 md:p-2"
+      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 md:px-4 chat-bg-orbs"
     >
-      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-0 md:space-y-3">
+      {/* Third animated orb (purple) */}
+      <div className="chat-bg-orb-tertiary" />
+
+      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-3 md:space-y-4 pt-16 pb-8 relative z-10">
 
         {messages.map((message, index) => {
           // Check if this is the last user message
           const isLastUserMessage = index === messages.length - 1 && message.role === 'user';
+          // Add entrance animation to recent messages
+          const isRecentMessage = index >= messages.length - 2;
 
           return (
             <div
               key={message.id}
               ref={isLastUserMessage ? lastUserMessageRef : null}
+              className={isRecentMessage ? 'message-enter' : ''}
             >
               <MessageBubble
                 message={message}

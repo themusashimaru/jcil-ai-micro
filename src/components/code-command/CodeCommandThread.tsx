@@ -1,12 +1,8 @@
 /**
  * CODE COMMAND THREAD
  *
- * Terminal-style message display for Code Command
- * Features:
- * - Green-on-black terminal aesthetic
- * - Code blocks with syntax highlighting
- * - Diff highlighting
- * - Typewriter welcome animation
+ * Same layout as regular ChatThread, but with advanced code blocks
+ * Only difference: code blocks have line numbers and syntax highlighting
  */
 
 'use client';
@@ -26,9 +22,9 @@ interface CodeCommandThreadProps {
 }
 
 /**
- * Typewriter hook for welcome animation
+ * Typewriter hook - same as ChatThread
  */
-function useTypewriter(text: string, speed: number = 30, delay: number = 0, enabled: boolean = true) {
+function useTypewriter(text: string, speed: number = 40, delay: number = 0, enabled: boolean = true) {
   const [displayedText, setDisplayedText] = useState('');
   const [isComplete, setIsComplete] = useState(false);
 
@@ -64,13 +60,13 @@ function useTypewriter(text: string, speed: number = 30, delay: number = 0, enab
 }
 
 /**
- * Render message content with code block support
+ * Render message content - text normally, code blocks with advanced features
  */
-function MessageContent({ content, isUser: _isUser }: { content: string; isUser: boolean }) {
+function MessageContent({ content }: { content: string }) {
   const parts = parseCodeBlocks(content);
 
   if (parts.length === 0) {
-    return <p className="whitespace-pre-wrap">{content}</p>;
+    return <p className="whitespace-pre-wrap text-sm md:text-base">{content}</p>;
   }
 
   return (
@@ -87,7 +83,7 @@ function MessageContent({ content, isUser: _isUser }: { content: string; isUser:
           );
         }
         return (
-          <p key={index} className="whitespace-pre-wrap">
+          <p key={index} className="whitespace-pre-wrap text-sm md:text-base">
             {part.content}
           </p>
         );
@@ -98,114 +94,108 @@ function MessageContent({ content, isUser: _isUser }: { content: string; isUser:
 
 export function CodeCommandThread({ messages, isStreaming }: CodeCommandThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const showWelcome = messages.length === 0;
 
-  // Typewriter animations for welcome screen
-  const { displayedText: titleText, isComplete: titleDone } = useTypewriter(
-    'JCIL.ai',
-    40,
-    200,
-    showWelcome
+  // Typewriter for welcome - same style as regular chat
+  const modelText = 'Code Command';
+  const subtitleText = 'Advanced coding assistant powered by GPT-5.1';
+  const promptText = 'Ask about code, debugging, architecture...';
+
+  const { displayedText: modelDisplayed, isComplete: modelDone } = useTypewriter(
+    modelText, 25, 200, showWelcome
+  );
+  const { displayedText: subtitleDisplayed, isComplete: subtitleDone } = useTypewriter(
+    subtitleText, 20, 0, showWelcome && modelDone
+  );
+  const { displayedText: promptDisplayed } = useTypewriter(
+    promptText, 15, 100, showWelcome && subtitleDone
   );
 
-  const { displayedText: subtitleText, isComplete: subtitleDone } = useTypewriter(
-    'Code Command',
-    30,
-    0,
-    showWelcome && titleDone
-  );
-
-  const { displayedText: descText } = useTypewriter(
-    'For complex coding tasks, debugging, and software engineering',
-    20,
-    100,
-    showWelcome && subtitleDone
-  );
-
-  // Auto-scroll to bottom
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Welcome screen
+  // Welcome screen - matching regular chat style
   if (showWelcome) {
     return (
-      <div className="flex flex-1 items-center justify-center p-4 bg-[#0a0a0a]">
-        <div className="text-center font-mono">
-          {/* Terminal-style header */}
-          <div className="mb-6">
-            <div className="text-4xl md:text-6xl font-bold mb-2">
-              <span className="text-green-400">{titleText}</span>
-              {!titleDone && titleText && (
-                <span className="animate-pulse text-green-500">_</span>
+      <div className="flex flex-1 items-center justify-center p-1">
+        <div className="text-center">
+          {/* Logo - same as regular chat */}
+          <div className="mb-1">
+            <h1 className="text-6xl md:text-8xl font-bold mb-2">
+              <span className="text-white">JCIL</span>
+              <span className="text-blue-500">.ai</span>
+            </h1>
+            <p className="text-sm md:text-xl text-white font-medium mb-1 min-h-[1.5em]">
+              {modelDisplayed}
+              {!modelDone && modelDisplayed && (
+                <span className="animate-pulse text-[#4DFFFF]">|</span>
               )}
-            </div>
-            <div className="text-2xl md:text-4xl text-green-500 font-bold min-h-[2.5rem]">
-              {subtitleText}
-              {titleDone && !subtitleDone && subtitleText && (
-                <span className="animate-pulse">_</span>
+            </p>
+            <p className="text-xs md:text-sm text-white italic min-h-[1.25em]">
+              {subtitleDisplayed}
+              {!subtitleDone && subtitleDisplayed && (
+                <span className="animate-pulse text-[#4DFFFF]">|</span>
               )}
-            </div>
+            </p>
           </div>
 
-          {/* Description */}
-          <p className="text-green-600 text-sm md:text-base min-h-[1.5rem] max-w-md mx-auto">
-            {descText}
-            {subtitleDone && descText && descText !== 'For complex coding tasks, debugging, and software engineering' && (
-              <span className="animate-pulse text-green-500">_</span>
+          <p className="mb-2 text-xs md:text-sm text-white min-h-[1.25em]">
+            {promptDisplayed}
+            {subtitleDone && promptDisplayed && promptDisplayed !== promptText && (
+              <span className="animate-pulse text-[#4DFFFF]">|</span>
             )}
           </p>
-
-          {/* Terminal decoration */}
-          <div className="mt-8 text-green-800 text-xs">
-            <span className="text-green-600">$</span> GPT-5.1 initialized
-          </div>
-          <div className="text-green-800 text-xs">
-            <span className="text-green-600">$</span> Ready for input...
-          </div>
         </div>
       </div>
     );
   }
 
-  // Message thread
+  // Message thread - same layout as regular chat
   return (
-    <div className="flex-1 overflow-y-auto p-4 bg-[#0a0a0a] font-mono">
-      <div className="max-w-4xl mx-auto space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`${
-              message.role === 'user'
-                ? 'border-l-2 border-cyan-500 pl-4'
-                : 'border-l-2 border-green-500 pl-4'
-            }`}
-          >
-            {/* Role indicator */}
-            <div className={`text-xs mb-1 ${
-              message.role === 'user' ? 'text-cyan-500' : 'text-green-500'
-            }`}>
-              {message.role === 'user' ? '> USER' : '> CODE_COMMAND'}
-            </div>
+    <div
+      ref={scrollContainerRef}
+      className="flex-1 overflow-y-auto overflow-x-hidden py-0 px-0 md:p-2"
+    >
+      <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-0 md:space-y-3">
+        {messages.map((message) => {
+          const isUser = message.role === 'user';
 
-            {/* Message content */}
-            <div className={`text-sm ${
-              message.role === 'user' ? 'text-cyan-100' : 'text-green-100'
-            }`}>
-              <MessageContent content={message.content} isUser={message.role === 'user'} />
-            </div>
-          </div>
-        ))}
+          return (
+            <div key={message.id} className={`flex items-start gap-0 mb-1 ${isUser ? 'justify-end' : ''}`}>
+              {/* Avatar - same as regular chat */}
+              <div className={`mt-0 flex h-3 w-3 flex-shrink-0 items-center justify-center rounded-full ${
+                isUser ? 'bg-white/5 text-gray-400' : 'bg-cyan-500/10 text-cyan-400'
+              }`}>
+                <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+                </svg>
+              </div>
 
-        {/* Streaming indicator */}
+              {/* Message Content */}
+              <div className="space-y-0 overflow-x-hidden flex-1 max-w-full">
+                <div className={`text-white ${isUser ? 'text-right' : ''}`}>
+                  <MessageContent content={message.content} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Streaming indicator - same as regular chat TypingIndicator */}
         {isStreaming && (
-          <div className="border-l-2 border-green-500 pl-4">
-            <div className="text-xs text-green-500 mb-1">{'>'} CODE_COMMAND</div>
-            <div className="flex items-center gap-2 text-green-400">
-              <span className="animate-pulse">Processing</span>
-              <span className="animate-bounce">.</span>
-              <span className="animate-bounce" style={{ animationDelay: '0.1s' }}>.</span>
-              <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>.</span>
+          <div className="flex items-start gap-0 mb-1">
+            <div className="mt-0 flex h-3 w-3 flex-shrink-0 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-400">
+              <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+              </svg>
+            </div>
+            <div className="flex items-center gap-1 ml-2">
+              <div className="w-2 h-2 bg-cyan-400/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-cyan-400/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-cyan-400/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         )}

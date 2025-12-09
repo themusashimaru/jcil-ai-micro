@@ -80,39 +80,42 @@ function parseExcel(base64Data: string): string {
 
 /**
  * Parse PDF file and return extracted text
+ *
+ * Uses 'unpdf' library which is specifically designed for serverless
+ * environments and doesn't require canvas/DOM APIs like DOMMatrix.
  */
 async function parsePDF(base64Data: string): Promise<string> {
   try {
-    // Dynamic import pdf-parse with type assertion
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pdfParseModule = await import('pdf-parse') as any;
-    const pdfParse = pdfParseModule.default || pdfParseModule;
-
     // Remove data URL prefix if present
     const base64Content = base64Data.replace(/^data:.*?;base64,/, '');
 
     // Convert base64 to buffer
     const buffer = Buffer.from(base64Content, 'base64');
 
-    // Parse PDF
-    const data = await pdfParse(buffer);
+    // Use unpdf - designed for serverless, no canvas dependencies
+    const { extractText, getDocumentProxy } = await import('unpdf');
 
-    let text = data.text || '';
+    // Get document info for page count
+    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    const numPages = pdf.numPages;
+
+    // Extract text from all pages
+    const { text } = await extractText(new Uint8Array(buffer), { mergePages: true });
 
     // Clean up the text
-    text = text
+    const cleanedText = (text || '')
       .replace(/\s+/g, ' ')  // Normalize whitespace
       .replace(/\n{3,}/g, '\n\n')  // Max 2 newlines
       .trim();
 
     // Add metadata
     const result = [
-      `Pages: ${data.numpages}`,
+      `Pages: ${numPages}`,
       '',
-      text
+      cleanedText
     ].join('\n');
 
-    // Limit size
+    // Limit size to prevent token overflow
     if (result.length > 50000) {
       return result.slice(0, 50000) + '\n\n[Content truncated - document too large]';
     }
@@ -120,8 +123,9 @@ async function parsePDF(base64Data: string): Promise<string> {
     return result;
   } catch (error) {
     console.error('[File Parse] PDF parsing error:', error);
-    // Return a helpful message instead of failing completely
-    return '[PDF text extraction failed. The AI will attempt to understand from context.]';
+
+    // If unpdf fails, return a graceful error message
+    return '[PDF text extraction encountered an error. Please try uploading the file again or copy-paste the text content directly.]';
   }
 }
 

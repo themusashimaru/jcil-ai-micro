@@ -2,7 +2,7 @@
  * USER USAGE API
  *
  * PURPOSE:
- * - Fetch current user's message usage and limits
+ * - Fetch current user's token usage and limits
  * - Returns usage counts, tier limits, and upgrade eligibility
  *
  * ROUTES:
@@ -12,6 +12,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getTokenUsage, getImageUsage, getTokenLimit, getImageLimit, formatTokenCount } from '@/lib/limits';
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -38,17 +39,12 @@ async function getSupabaseClient() {
   );
 }
 
-// Tier limits configuration - per Master Directive
-// Plan Configuration:
-// - free: $0/mo, 10 daily chat, 0 monthly images, no realtime voice
-// - basic: $12/mo, 40 daily chat, 50 monthly images, realtime voice enabled
-// - pro: $30/mo, 100 daily chat, 200 monthly images, realtime voice enabled
-// - executive: $150/mo, 400 daily chat, 500 monthly images, realtime voice enabled
-const TIER_LIMITS = {
-  free: { messages: 10, images: 0, realtime_voice: false },
-  basic: { messages: 40, images: 50, realtime_voice: true },
-  pro: { messages: 100, images: 200, realtime_voice: true },
-  executive: { messages: 400, images: 500, realtime_voice: true },
+// Plan features (not limits - those come from limits.ts)
+const TIER_FEATURES = {
+  free: { realtime_voice: false, image_generation: false },
+  basic: { realtime_voice: true, image_generation: true },
+  pro: { realtime_voice: true, image_generation: true },
+  executive: { realtime_voice: true, image_generation: true },
 } as const;
 
 export async function GET() {
@@ -69,10 +65,10 @@ export async function GET() {
       }, { status: 401 });
     }
 
-    // Fetch user's usage and tier from database
+    // Fetch user's tier from database
     const { data: userData, error: dbError } = await supabase
       .from('users')
-      .select('subscription_tier, messages_used_today, images_generated_today')
+      .select('subscription_tier')
       .eq('id', user.id)
       .single();
 
@@ -88,23 +84,49 @@ export async function GET() {
       );
     }
 
-    const tier = (userData.subscription_tier || 'free') as keyof typeof TIER_LIMITS;
-    const limits = TIER_LIMITS[tier];
+    const tier = (userData.subscription_tier || 'free') as keyof typeof TIER_FEATURES;
+    const features = TIER_FEATURES[tier];
+
+    // Get token and image usage from Redis/memory
+    const tokenUsage = await getTokenUsage(user.id, tier);
+    const imageUsage = await getImageUsage(user.id, tier);
 
     return NextResponse.json({
       tier,
-      messages: {
-        used: userData.messages_used_today || 0,
-        limit: limits.messages,
-        remaining: Math.max(0, limits.messages - (userData.messages_used_today || 0)),
+      // Token usage (monthly)
+      tokens: {
+        used: tokenUsage.used,
+        limit: tokenUsage.limit,
+        remaining: tokenUsage.remaining,
+        percentage: tokenUsage.percentage,
+        usedFormatted: formatTokenCount(tokenUsage.used),
+        limitFormatted: formatTokenCount(tokenUsage.limit),
+        remainingFormatted: formatTokenCount(tokenUsage.remaining),
       },
+      // Image usage (monthly)
       images: {
-        used: userData.images_generated_today || 0,
-        limit: limits.images,
-        remaining: Math.max(0, limits.images - (userData.images_generated_today || 0)),
+        used: imageUsage.used,
+        limit: imageUsage.limit,
+        remaining: imageUsage.remaining,
+        percentage: imageUsage.percentage,
       },
-      realtime_voice: limits.realtime_voice,
-      hasReachedLimit: (userData.messages_used_today || 0) >= limits.messages,
+      // Features
+      features: {
+        realtime_voice: features.realtime_voice,
+        image_generation: features.image_generation,
+      },
+      // Status flags
+      hasReachedTokenLimit: tokenUsage.stop,
+      hasReachedImageLimit: imageUsage.stop,
+      tokenWarning: tokenUsage.warn,
+      imageWarning: imageUsage.warn,
+      // Plan info for upgrade prompts
+      planInfo: {
+        tokenLimit: getTokenLimit(tier),
+        imageLimit: getImageLimit(tier),
+        nextTier: tier === 'free' ? 'basic' : tier === 'basic' ? 'pro' : tier === 'pro' ? 'executive' : null,
+        nextTierTokenLimit: tier === 'free' ? getTokenLimit('basic') : tier === 'basic' ? getTokenLimit('pro') : tier === 'pro' ? getTokenLimit('executive') : null,
+      },
     });
   } catch (error) {
     console.error('[API] Usage fetch error:', error);
