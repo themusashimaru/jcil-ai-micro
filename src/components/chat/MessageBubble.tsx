@@ -299,10 +299,20 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {message.citations.slice(0, 5).map((citation, index) => {
-                  // Handle both old format (string) and new format (object with title/url)
-                  const citationObj = typeof citation === 'string' ? { url: citation, title: '' } : citation;
-                  const url = citationObj.url || '';
-                  let title = citationObj.title || '';
+                  // Handle multiple citation formats:
+                  // - String URL directly
+                  // - Object with url/link/source/href field
+                  let url = '';
+                  let title = '';
+
+                  if (typeof citation === 'string') {
+                    url = citation;
+                  } else if (citation && typeof citation === 'object') {
+                    // Try multiple possible URL field names
+                    const c = citation as Record<string, unknown>;
+                    url = String(c.url || c.link || c.source || c.href || c.source_url || '');
+                    title = String(c.title || c.name || c.source_name || '');
+                  }
 
                   // Fallback to domain if no title
                   if (!title && url) {
@@ -313,7 +323,8 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
                     }
                   }
 
-                  if (!url) return null;
+                  // Skip if no valid URL
+                  if (!url || !url.startsWith('http')) return null;
 
                   return (
                     <a

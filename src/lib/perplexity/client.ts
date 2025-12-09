@@ -377,22 +377,37 @@ ALWAYS:
 
       const data = await response.json();
 
+      // Log raw response structure for debugging
+      console.log('[Perplexity] Raw response keys:', Object.keys(data));
+      if (data.citations) {
+        console.log('[Perplexity] data.citations sample:', JSON.stringify(data.citations.slice(0, 2)));
+      }
+
       // Extract the answer
       const answer = data.choices?.[0]?.message?.content || 'No answer found';
 
       // Extract citations/sources from multiple possible locations
       const sources: Array<{ title: string; url: string; snippet?: string }> = [];
 
-      // Method 1: Check data.citations (standard location)
+      // Method 1: Check data.citations (standard location - usually just URLs as strings)
       if (data.citations && Array.isArray(data.citations)) {
         console.log('[Perplexity] Found citations in data.citations:', data.citations.length);
         for (const citation of data.citations) {
-          if (citation.url && citation.url.startsWith('http')) {
+          // Perplexity often returns citations as simple URL strings
+          if (typeof citation === 'string' && citation.startsWith('http')) {
             sources.push({
-              title: citation.title || extractDomainFromUrl(citation.url),
-              url: citation.url,
-              snippet: citation.snippet,
+              title: extractDomainFromUrl(citation),
+              url: citation,
             });
+          } else if (citation && typeof citation === 'object') {
+            const citationUrl = citation.url || citation.link || citation.source;
+            if (citationUrl && citationUrl.startsWith('http')) {
+              sources.push({
+                title: citation.title || extractDomainFromUrl(citationUrl),
+                url: citationUrl,
+                snippet: citation.snippet,
+              });
+            }
           }
         }
       }
@@ -402,7 +417,7 @@ ALWAYS:
       if (messageCitations && Array.isArray(messageCitations)) {
         console.log('[Perplexity] Found citations in message.citations:', messageCitations.length);
         for (const citation of messageCitations) {
-          const url = typeof citation === 'string' ? citation : citation.url;
+          const url = typeof citation === 'string' ? citation : (citation.url || citation.link);
           if (url && url.startsWith('http') && !sources.some(s => s.url === url)) {
             sources.push({
               title: typeof citation === 'object' ? (citation.title || extractDomainFromUrl(url)) : extractDomainFromUrl(url),
