@@ -268,14 +268,12 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
         {/* Message Bubble */}
         <div
           className={`chat-bubble chat-bubble-tail ${
-            isUser ? 'right' : 'left'
+            isUser ? 'right user-bubble' : 'left ai-bubble'
           }`}
           style={{
             userSelect: 'text',
             WebkitUserSelect: 'text',
-            backgroundColor: isUser ? 'var(--chat-user-bubble-bg)' : 'var(--chat-ai-bubble-bg)',
             color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--chat-ai-bubble-text)',
-            border: isUser ? 'none' : '1px solid var(--chat-ai-bubble-border)',
           }}
         >
           <div className="break-words select-text">
