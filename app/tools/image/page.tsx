@@ -1,72 +1,32 @@
 /**
- * IMAGE GENERATION TOOL
- * PURPOSE: AI image generation with DALL-E
+ * IMAGE GENERATION TOOL - DISCONTINUED
+ * This feature has been removed from the platform.
  */
 
 'use client';
 
-import { ToolLauncher, type ToolConfig } from '@/components/tools/ToolLauncher';
-
-const IMAGE_CONFIG: ToolConfig = {
-  id: 'image',
-  icon: '🎨',
-  title: 'Image Generator',
-  description: 'Create stunning images with AI. Describe what you want to see.',
-  fields: [
-    {
-      name: 'prompt',
-      label: 'Image Description',
-      type: 'textarea',
-      placeholder: 'Describe the image you want to create...\ne.g., A serene mountain landscape at sunset with a crystal-clear lake reflecting the sky...',
-      required: true,
-      rows: 4,
-    },
-    {
-      name: 'style',
-      label: 'Art Style',
-      type: 'select',
-      required: true,
-      options: [
-        { value: 'realistic', label: 'Realistic' },
-        { value: 'digital-art', label: 'Digital Art' },
-        { value: 'oil-painting', label: 'Oil Painting' },
-        { value: 'watercolor', label: 'Watercolor' },
-        { value: 'anime', label: 'Anime' },
-        { value: 'cartoon', label: 'Cartoon' },
-        { value: '3d-render', label: '3D Render' },
-        { value: 'photography', label: 'Photography' },
-      ],
-    },
-    {
-      name: 'size',
-      label: 'Image Size',
-      type: 'select',
-      required: true,
-      options: [
-        { value: '1024x1024', label: 'Square (1024x1024)' },
-        { value: '1792x1024', label: 'Landscape (1792x1024)' },
-        { value: '1024x1792', label: 'Portrait (1024x1792)' },
-      ],
-    },
-    {
-      name: 'count',
-      label: 'Number of Images',
-      type: 'select',
-      required: true,
-      options: [
-        { value: '1', label: '1 image' },
-        { value: '2', label: '2 images' },
-        { value: '4', label: '4 images' },
-      ],
-    },
-  ],
-  examples: [
-    'Futuristic city skyline at night',
-    'Cute puppy playing in garden',
-    'Abstract geometric pattern',
-  ],
-};
+import Link from 'next/link';
 
 export default function ImageGenPage() {
-  return <ToolLauncher config={IMAGE_CONFIG} />;
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'var(--background)' }}>
+      <div className="max-w-md text-center">
+        <div className="text-6xl mb-6">🎨</div>
+        <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+          Image Generation Discontinued
+        </h1>
+        <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
+          We&apos;ve discontinued our image generation feature to focus on what we do best:
+          intelligent AI chat, real-time fact-checking, and professional document creation.
+        </p>
+        <Link
+          href="/chat"
+          className="inline-block px-6 py-3 rounded-lg font-semibold transition"
+          style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+        >
+          Go to Chat
+        </Link>
+      </div>
+    </div>
+  );
 }

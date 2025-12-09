@@ -13,7 +13,7 @@
 import { useState, useEffect } from 'react';
 
 interface UsageData {
-  tier: 'free' | 'basic' | 'pro' | 'executive';
+  tier: 'free' | 'plus' | 'basic' | 'pro' | 'executive';
   tokens: {
     used: number;
     limit: number;
@@ -47,16 +47,18 @@ interface UsageData {
 
 const TIER_NAMES = {
   free: 'Free',
-  basic: 'Basic',
+  plus: 'Plus',
+  basic: 'Plus', // Legacy alias
   pro: 'Pro',
   executive: 'Executive',
 };
 
 const TIER_PRICES = {
   free: 0,
-  basic: 12,
+  plus: 18,
+  basic: 18, // Legacy alias
   pro: 30,
-  executive: 150,
+  executive: 99,
 };
 
 export default function UsageMetricsSection() {
@@ -104,12 +106,9 @@ export default function UsageMetricsSection() {
   }
 
   const tokenPercentage = usage.tokens.percentage;
-  const imagePercentage = usage.images.percentage;
 
   const isTokenNearLimit = usage.tokenWarning;
   const isTokenAtLimit = usage.hasReachedTokenLimit;
-  const isImageNearLimit = usage.imageWarning;
-  const isImageAtLimit = usage.hasReachedImageLimit;
 
   // Format next tier token limit for display
   const formatTokenLimit = (tokens: number | null): string => {
@@ -172,49 +171,7 @@ export default function UsageMetricsSection() {
           </p>
         </div>
 
-        {/* Images Usage */}
-        {usage.images.limit > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Image Generations This Month</span>
-              <span className="text-sm font-bold" style={{
-                color: isImageAtLimit ? 'rgb(239, 68, 68)' :
-                       isImageNearLimit ? 'rgb(234, 179, 8)' :
-                       'var(--text-primary)'
-              }}>
-                {usage.images.used} / {usage.images.limit}
-              </span>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--glass-bg)' }}>
-              <div
-                className="h-full transition-all duration-300"
-                style={{
-                  width: `${Math.min(imagePercentage, 100)}%`,
-                  backgroundColor: isImageAtLimit ? 'rgb(239, 68, 68)' :
-                                   isImageNearLimit ? 'rgb(234, 179, 8)' :
-                                   'rgb(168, 85, 247)' // Purple for images
-                }}
-              />
-            </div>
-
-            <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-              {usage.images.remaining > 0
-                ? `${usage.images.remaining} image generations remaining this month`
-                : 'Monthly image limit reached - resets next month'}
-            </p>
-          </div>
-        )}
-
-        {/* No image generation message for free tier */}
-        {usage.images.limit === 0 && (
-          <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: 'var(--glass-bg)' }}>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Image generation is available on Basic plan and above.
-            </p>
-          </div>
-        )}
+        {/* Image generation has been discontinued */}
       </div>
 
       {/* Upgrade Prompt */}
@@ -269,9 +226,9 @@ export default function UsageMetricsSection() {
         </div>
 
         <div className="glass-morphism rounded-xl p-4">
-          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Images Generated</div>
-          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.images.used}</div>
-          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>This Month</div>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Usage Level</div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.tokens.percentage}%</div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Of Monthly Limit</div>
         </div>
       </div>
 
@@ -294,7 +251,7 @@ export default function UsageMetricsSection() {
           </svg>
           <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
             <p className="font-medium mb-1">Monthly Usage Resets</p>
-            <p style={{ color: 'var(--text-secondary)' }}>Your token and image limits automatically reset at the beginning of each month.</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Your token limits automatically reset at the beginning of each month.</p>
           </div>
         </div>
       </div>
