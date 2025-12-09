@@ -5,10 +5,10 @@
  * Warns at 80%, hard stops at 100%
  *
  * Plan Configuration:
- * - free: $0/mo, 100,000 tokens/month, 0 images/month (legacy users only)
- * - basic: $12/mo, 1,000,000 tokens/month, 25 images/month
- * - pro: $30/mo, 3,000,000 tokens/month, 75 images/month
- * - executive: $150/mo, 5,000,000 tokens/month, 100 images/month
+ * - free: $0/mo, 100,000 tokens/month (legacy users only)
+ * - plus: $18/mo, 1,000,000 tokens/month
+ * - pro: $30/mo, 3,000,000 tokens/month
+ * - executive: $99/mo, 5,000,000 tokens/month
  */
 
 // ========================================
@@ -18,17 +18,19 @@
 // Plan limits (tokens per month)
 const TOKEN_LIMITS: Record<string, number> = {
   free: 100_000,       // 100K tokens - legacy users only
-  basic: 1_000_000,    // 1M tokens
+  plus: 1_000_000,     // 1M tokens
+  basic: 1_000_000,    // 1M tokens (legacy alias for plus)
   pro: 3_000_000,      // 3M tokens
   executive: 5_000_000, // 5M tokens
 };
 
-// Image limits per month
+// Image generation has been removed from the platform
 const IMAGE_LIMITS: Record<string, number> = {
   free: 0,
-  basic: 25,
-  pro: 75,
-  executive: 100,
+  plus: 0,
+  basic: 0,
+  pro: 0,
+  executive: 0,
 };
 
 // Redis client (optional - graceful fallback if not configured)

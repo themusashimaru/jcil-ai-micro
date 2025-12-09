@@ -12,7 +12,7 @@
 
 import { useState, useEffect } from 'react';
 
-type SubscriptionTier = 'free' | 'basic' | 'pro' | 'executive';
+type SubscriptionTier = 'free' | 'plus' | 'basic' | 'pro' | 'executive';
 type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing';
 
 interface SubscriptionData {
@@ -33,16 +33,28 @@ const TIER_INFO = {
       'Perfect for trying out the platform',
     ],
   },
-  basic: {
-    name: 'Basic',
-    price: 12,
+  plus: {
+    name: 'Plus',
+    price: 18,
     description: 'Essential tools for everyday faith and life',
     features: [
       'Intelligent AI chat assistant',
+      'Real-time fact-checking with Perplexity',
+      'Resume & cover letter writing',
       'Live web search & research',
       'Writing tools & Bible study',
-      'Real-time news updates',
-      '25 image generations/month',
+    ],
+  },
+  basic: {
+    name: 'Plus',
+    price: 18,
+    description: 'Essential tools for everyday faith and life',
+    features: [
+      'Intelligent AI chat assistant',
+      'Real-time fact-checking with Perplexity',
+      'Resume & cover letter writing',
+      'Live web search & research',
+      'Writing tools & Bible study',
     ],
   },
   pro: {
@@ -50,22 +62,22 @@ const TIER_INFO = {
     price: 30,
     description: 'Advanced tools for working professionals',
     features: [
-      'Everything in Basic',
-      '3x more usage capacity',
-      'Enhanced live search & research',
+      'Everything in Plus',
+      '3M token context window',
+      'Enhanced fact-checking & research',
+      'Advanced document generation',
       'Advanced coding assistance',
-      '75 image generations/month',
     ],
   },
   executive: {
     name: 'Executive',
-    price: 150,
+    price: 99,
     description: 'Highest intelligence AI for power users',
     features: [
       'Everything in Pro',
       'Highest intelligence AI model',
       '5x more usage capacity',
-      '100 image generations/month',
+      'Executive-level document tools',
       'Priority support',
     ],
   },
