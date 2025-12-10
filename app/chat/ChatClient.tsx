@@ -42,6 +42,52 @@ import type { Chat, Message, Attachment } from './types';
 export type { Chat, Message, ToolCall, Attachment } from './types';
 
 /**
+ * Detect document type from user message (client-side detection for UI feedback)
+ * Mirrors server-side detection for progress indicator
+ */
+function detectDocumentTypeFromMessage(content: string): 'pdf' | 'docx' | 'xlsx' | 'pptx' | null {
+  const lowerContent = content.toLowerCase();
+
+  // PDF patterns
+  const pdfPatterns = [
+    /\b(slides?|presentation|powerpoint|deck)\b.*\b(as|in|to)\s*(a\s*)?(pdf|pdf\s*format)\b/i,
+    /\b(create|make|generate|build|give me|i need|can you make)\b.*\bpdf\b/i,
+    /\bpdf\b.*\b(file|document|version|format)\b/i,
+    /\bas\s*a?\s*pdf\b/i,
+    /\bresume\b.*\bpdf\b/i,
+    /\bpdf\s*resume\b/i,
+  ];
+
+  // Excel patterns
+  const excelPatterns = [
+    /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(excel|spreadsheet|xlsx|xls)\b/i,
+    /\b(excel|spreadsheet|xlsx|xls)\b.*\b(file|document|for|with|that)\b/i,
+    /\bbudget\b.*\b(spreadsheet|template|excel)\b/i,
+  ];
+
+  // PowerPoint patterns
+  const pptxPatterns = [
+    /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(powerpoint|pptx|presentation|slides?|slide deck)\b/i,
+    /\b(powerpoint|pptx|presentation|slides?)\b.*\b(file|about|on|for|with)\b/i,
+  ];
+
+  // Word patterns
+  const docxPatterns = [
+    /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(word|docx)\b/i,
+    /\b(word|docx)\s*(document|doc|file)?\b/i,
+    /\beditable\s*(document|doc)\b/i,
+  ];
+
+  // Check in priority order: PDF -> Excel -> PowerPoint -> Word
+  if (pdfPatterns.some(pattern => pattern.test(lowerContent))) return 'pdf';
+  if (excelPatterns.some(pattern => pattern.test(lowerContent))) return 'xlsx';
+  if (pptxPatterns.some(pattern => pattern.test(lowerContent))) return 'pptx';
+  if (docxPatterns.some(pattern => pattern.test(lowerContent))) return 'docx';
+
+  return null;
+}
+
+/**
  * Check if a chat title is generic/low-quality and should be regenerated
  * Returns true if the title is generic like "Initial Greeting", "Hello", "New Chat", etc.
  */
@@ -88,6 +134,8 @@ export function ChatClient() {
   const [headerLogo, setHeaderLogo] = useState<string>('');
   // Code Command mode (admin only)
   const [showCodeCommand, setShowCodeCommand] = useState(false);
+  // Document generation type (for progress indicator)
+  const [pendingDocumentType, setPendingDocumentType] = useState<'pdf' | 'docx' | 'xlsx' | 'pptx' | null>(null);
   // AbortController for cancelling in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
   // Polling interval ref for background reply checking
@@ -794,6 +842,13 @@ export function ChatClient() {
     setMessages([...messages, userMessage]);
     setIsStreaming(true);
 
+    // Detect if this is a document generation request for UI feedback
+    const detectedDocType = detectDocumentTypeFromMessage(content);
+    setPendingDocumentType(detectedDocType);
+    if (detectedDocType) {
+      console.log(`[ChatClient] Document generation detected: ${detectedDocType}`);
+    }
+
     // Save user message to database
     const attachmentUrls = attachments
       .filter(att => att.url)
@@ -1339,6 +1394,7 @@ export function ChatClient() {
       }
 
       setIsStreaming(false);
+      setPendingDocumentType(null); // Clear document type indicator
       // Clear the abort controller after successful completion
       abortControllerRef.current = null;
 
@@ -1427,6 +1483,7 @@ export function ChatClient() {
         // Only update state if component is still mounted
         if (isMountedRef.current) {
           setIsStreaming(false);
+          setPendingDocumentType(null);
         }
         return; // Don't show error message for interrupted requests
       }
@@ -1443,16 +1500,31 @@ export function ChatClient() {
         return;
       }
 
-      // Show user-friendly error message (no technical details)
+      // Show user-friendly error message based on what was being generated
+      let errorContent = 'Due to high traffic, I wasn\'t able to process your request. Please try again in a few seconds.';
+
+      // Check if this was a document generation request
+      if (pendingDocumentType) {
+        const docTypeNames: Record<string, string> = {
+          pdf: 'PDF',
+          docx: 'Word document',
+          xlsx: 'Excel spreadsheet',
+          pptx: 'PowerPoint presentation',
+        };
+        const docName = docTypeNames[pendingDocumentType] || 'document';
+        errorContent = `I wasn't able to create your ${docName}. Document generation can take up to 2 minutes for complex files. Please try again, or simplify your request if this keeps happening.`;
+      }
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Due to high traffic, I wasn't able to process your request. Please try again in a few seconds.`,
+        content: errorContent,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, errorMessage]);
       setIsStreaming(false);
+      setPendingDocumentType(null);
 
       // Save error message to database (keep technical details in logs only)
       await saveMessageToDatabase(newChatId, 'assistant', errorMessage.content, 'error');
@@ -1585,6 +1657,7 @@ export function ChatClient() {
                 currentChatId={currentChatId}
                 isAdmin={isAdmin}
                 onSubmitPrompt={(prompt) => handleSendMessage(prompt, [])}
+                documentType={pendingDocumentType}
               />
               {/* Reply incoming indicator - shown when waiting for background response */}
               {isWaitingForReply && (

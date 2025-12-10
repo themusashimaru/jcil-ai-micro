@@ -71,6 +71,89 @@ import { cookies } from 'next/headers';
 const RATE_LIMIT_AUTHENTICATED = 60; // 60 messages/hour for logged-in users
 const RATE_LIMIT_ANONYMOUS = 20; // 20 messages/hour for anonymous users
 
+/**
+ * Professional document formatting instructions for Skills API
+ * Ensures high-quality, well-formatted output documents
+ */
+function getDocumentFormattingPrompt(docType: 'xlsx' | 'pptx' | 'docx' | 'pdf'): string {
+  const basePrompt = `
+## CRITICAL DOCUMENT FORMATTING REQUIREMENTS
+
+You are creating a PROFESSIONAL document. Quality and formatting are paramount.
+
+### General Rules:
+- Use proper margins (1 inch / 2.5cm on all sides)
+- Use professional fonts: Arial, Helvetica, or Calibri
+- Ensure consistent spacing throughout
+- Use proper heading hierarchy
+- Include page numbers for multi-page documents
+- Save the document to $OUTPUT_DIR with an appropriate filename
+
+`;
+
+  const typeSpecific: Record<string, string> = {
+    pdf: `### PDF Specific Requirements:
+- For RESUMES/CVs:
+  * Name at top: 18-24pt bold, centered
+  * Contact info: 10-11pt, centered directly below name (one line: email | phone | location)
+  * Section headers: 12pt bold, ALL CAPS, with subtle underline
+  * Body text: 10-11pt regular
+  * Consistent bullet points with proper indentation
+  * NO generic titles like "Resume Template" - start with the person's actual name
+  * Use clean, professional layout with good whitespace
+  * Keep to 1-2 pages maximum
+
+- For PRESENTATIONS as PDF:
+  * Title slide with large header (36pt+)
+  * Each slide as a new page
+  * Clear visual hierarchy
+  * Bullet points for key information
+  * Include slide numbers
+
+- For GENERAL PDFs:
+  * Clear title at top
+  * Proper paragraph spacing (1.15-1.5 line height)
+  * Headers/subheaders in bold
+  * Professional color scheme (navy blue #1e3a5f for headers)
+`,
+    docx: `### Word Document Requirements:
+- Use proper heading styles (Heading 1, Heading 2, etc.)
+- Enable automatic table of contents if document has multiple sections
+- Use consistent paragraph spacing
+- For LETTERS: Include proper business letter format with date, addresses, salutation
+- For REPORTS: Include title page, executive summary, sections with headers
+- For RESUMES: Same professional formatting as PDF resumes
+- Use 11-12pt font for body text
+- Use 1.15 line spacing for readability
+`,
+    xlsx: `### Excel Spreadsheet Requirements:
+- Use clear column headers in bold
+- Apply proper number formatting (currency, percentages, dates)
+- Use borders for data tables
+- Include totals/summary rows where appropriate
+- Use freeze panes for headers
+- Apply alternating row colors for readability
+- Size columns appropriately for content
+- For BUDGETS: Include categories, amounts, totals, and variance columns
+- For DATA: Sort logically, add filters where helpful
+`,
+    pptx: `### PowerPoint Requirements:
+- Title slide with presentation name and subtitle
+- Consistent slide layout throughout
+- Use 28-44pt for slide titles
+- Use 18-24pt for body text
+- Maximum 6 bullet points per slide
+- Maximum 6 words per bullet point (6x6 rule)
+- Include speaker notes where helpful
+- Use professional color scheme
+- Add slide numbers
+- Include summary/conclusion slide
+`
+  };
+
+  return basePrompt + (typeSpecific[docType] || '');
+}
+
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -818,13 +901,17 @@ export async function POST(request: NextRequest) {
         console.log(`[Chat API] Document generation detected: ${documentType}`);
 
         try {
+          // Build enhanced system prompt with professional document formatting instructions
+          const documentFormattingInstructions = getDocumentFormattingPrompt(documentType);
+          const enhancedSystemPrompt = `${systemPrompt}\n\n${documentFormattingInstructions}`;
+
           // Use Skills API for document generation
           const result = await createAnthropicCompletionWithSkills({
             messages: messagesWithContext,
             model: anthropicModel,
             maxTokens: max_tokens,
             temperature,
-            systemPrompt,
+            systemPrompt: enhancedSystemPrompt,
             userId: rateLimitIdentifier,
             planKey: userTier,
             skills: [documentType],
