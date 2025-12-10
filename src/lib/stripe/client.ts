@@ -48,7 +48,11 @@ export async function createCheckoutSession(
   customerEmail?: string
 ) {
   try {
-    const session = await stripe.checkout.sessions.create({
+    // Check if there's an auto-apply coupon for Plus tier
+    const plusCouponId = process.env.STRIPE_COUPON_PLUS_FIRST_MONTH;
+    const shouldApplyCoupon = tier === 'plus' && plusCouponId;
+
+    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [
@@ -57,7 +61,6 @@ export async function createCheckoutSession(
           quantity: 1,
         },
       ],
-      allow_promotion_codes: true, // Enable promo code field at checkout
       success_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/chat?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/?canceled=true`,
       customer_email: customerEmail,
@@ -72,7 +75,16 @@ export async function createCheckoutSession(
           tier: tier,
         },
       },
-    });
+    };
+
+    // Auto-apply 50% off coupon for Plus tier, otherwise allow manual promo codes
+    if (shouldApplyCoupon) {
+      sessionConfig.discounts = [{ coupon: plusCouponId }];
+    } else {
+      sessionConfig.allow_promotion_codes = true;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     return session;
   } catch (error) {
