@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const { tier } = body;
 
     // Validate tier
-    if (!tier || !['basic', 'pro', 'executive'].includes(tier)) {
+    if (!tier || !['plus', 'pro', 'executive'].includes(tier)) {
       return NextResponse.json({ error: 'Invalid subscription tier' }, { status: 400 });
     }
 
