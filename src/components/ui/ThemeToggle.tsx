@@ -37,9 +37,9 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
   }, []);
 
   // Determine available themes based on admin status
-  // Order: dark → coal → light → ocean (coal and ocean are admin-only)
+  // Order: dark → light → ocean (ocean is admin-only)
   const availableThemes: Theme[] = isAdmin
-    ? ['dark', 'coal', 'light', 'ocean']
+    ? ['dark', 'light', 'ocean']
     : ['dark', 'light'];
 
   // Get the icon and label for current theme
@@ -74,26 +74,9 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
             <path d="M2 7c1.5-2 3.5-3 6-3s4.5 1 6 3c1.5 2 3.5 3 6 3" />
           </svg>
         );
-      case 'coal':
-        return (
-          // Coal/ember icon - glowing coal shape
-          <svg
-            className="h-4 w-4 md:h-5 md:w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-          >
-            {/* Coal shape - rounded rock */}
-            <path d="M12 3c-4.5 0-8 2.5-8 6 0 2.5 1.5 5 4 7 1.5 1.2 2.5 3 2.5 5h3c0-2 1-3.8 2.5-5 2.5-2 4-4.5 4-7 0-3.5-3.5-6-8-6z" />
-            {/* Inner glow lines */}
-            <path d="M10 10c0 1.5 1 3 2 4" strokeLinecap="round" />
-            <path d="M14 9c0 2-1 4-2 5" strokeLinecap="round" />
-          </svg>
-        );
       default: // dark
         return (
-          // Moon icon - switch to coal (for admin) or light
+          // Moon icon - switch to light
           <svg
             className="h-4 w-4 md:h-5 md:w-5"
             fill="none"
@@ -125,7 +108,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       className={`rounded-lg p-1.5 transition-opacity hover:opacity-70 ${className}`}
       style={{ color: 'var(--text-primary)' }}
       aria-label={`Switch to ${getNextTheme()} mode`}
-      title={`Switch to ${getNextTheme()} mode${theme === 'ocean' ? ' (Ocean - Admin Preview)' : theme === 'coal' ? ' (Coal - Admin Preview)' : ''}`}
+      title={`Switch to ${getNextTheme()} mode${theme === 'ocean' ? ' (Ocean - Admin Preview)' : ''}`}
     >
       {getThemeIcon()}
     </button>
