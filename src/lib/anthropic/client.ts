@@ -858,8 +858,8 @@ export async function createAnthropicCompletionWithSkills(
       });
 
       // Extract text content and files
-      // Per Anthropic docs: Files are in bash_code_execution_tool_result blocks
-      // Structure: item.type === 'bash_code_execution_tool_result' -> item.content.type === 'bash_code_execution_result' -> item.content.content[].file_id
+      // Per Anthropic docs: Files are in tool_use blocks where name === 'code_execution'
+      // The file_id is in block.content array items that have file_id property
       const textParts: string[] = [];
       const files: GeneratedFile[] = [];
       const seenFileIds = new Set<string>();
@@ -874,78 +874,63 @@ export async function createAnthropicCompletionWithSkills(
           textParts.push(block.text);
         }
 
-        // Check for bash_code_execution_tool_result blocks (per official docs)
-        if (block.type === 'bash_code_execution_tool_result') {
+        // Per official docs: check for tool_use blocks where name === 'code_execution'
+        // File IDs are in block.content array
+        if (block.type === 'tool_use') {
           const blockData = block as unknown as Record<string, unknown>;
-          console.log(`[Anthropic Skills] Found bash_code_execution_tool_result block`);
+          console.log(`[Anthropic Skills] Found tool_use block, name:`, blockData.name);
 
-          // Check for bash_code_execution_result content
-          const contentItem = blockData.content as Record<string, unknown> | undefined;
-          if (contentItem && contentItem.type === 'bash_code_execution_result') {
-            console.log(`[Anthropic Skills] Found bash_code_execution_result inside`);
-            const innerContent = contentItem.content as Array<Record<string, unknown>> | undefined;
-            if (Array.isArray(innerContent)) {
-              for (const file of innerContent) {
-                if (file && 'file_id' in file && !seenFileIds.has(String(file.file_id))) {
-                  seenFileIds.add(String(file.file_id));
-                  files.push({
-                    file_id: String(file.file_id),
-                    filename: file.filename ? String(file.filename) : 'document',
-                    mime_type: file.mime_type ? String(file.mime_type) : 'application/octet-stream',
-                  });
-                  console.log(`[Anthropic Skills] Extracted file: ${file.file_id}`);
+          if (blockData.name === 'code_execution') {
+            console.log(`[Anthropic Skills] Found code_execution tool_use, checking for files`);
+
+            // Check content array for file references (per official docs)
+            if ('content' in blockData && Array.isArray(blockData.content)) {
+              for (const item of blockData.content) {
+                if (item && typeof item === 'object') {
+                  const resultBlock = item as Record<string, unknown>;
+                  if ('file_id' in resultBlock && !seenFileIds.has(String(resultBlock.file_id))) {
+                    seenFileIds.add(String(resultBlock.file_id));
+                    files.push({
+                      file_id: String(resultBlock.file_id),
+                      filename: resultBlock.filename ? String(resultBlock.filename) : 'document',
+                      mime_type: resultBlock.mime_type ? String(resultBlock.mime_type) : 'application/octet-stream',
+                    });
+                    console.log(`[Anthropic Skills] Extracted file from tool_use: ${resultBlock.file_id}`);
+                  }
                 }
               }
             }
           }
         }
 
-        // Also check code_execution_tool_result blocks (alternate format)
+        // Also check code_execution_tool_result blocks (results from code execution)
         if (block.type === 'code_execution_tool_result') {
           const blockData = block as unknown as Record<string, unknown>;
-          console.log(`[Anthropic Skills] Found code_execution_tool_result block:`, JSON.stringify(blockData).slice(0, 1000));
+          console.log(`[Anthropic Skills] Found code_execution_tool_result block`);
 
           // Check content array for file references
           if ('content' in blockData && Array.isArray(blockData.content)) {
             for (const item of blockData.content) {
-              if (item && typeof item === 'object' && 'file_id' in item && !seenFileIds.has(String(item.file_id))) {
-                seenFileIds.add(String(item.file_id));
-                const fileItem = item as Record<string, unknown>;
-                files.push({
-                  file_id: String(fileItem.file_id),
-                  filename: fileItem.filename ? String(fileItem.filename) : 'document',
-                  mime_type: fileItem.mime_type ? String(fileItem.mime_type) : 'application/octet-stream',
-                });
+              if (item && typeof item === 'object') {
+                const resultBlock = item as Record<string, unknown>;
+                if ('file_id' in resultBlock && !seenFileIds.has(String(resultBlock.file_id))) {
+                  seenFileIds.add(String(resultBlock.file_id));
+                  files.push({
+                    file_id: String(resultBlock.file_id),
+                    filename: resultBlock.filename ? String(resultBlock.filename) : 'document',
+                    mime_type: resultBlock.mime_type ? String(resultBlock.mime_type) : 'application/octet-stream',
+                  });
+                  console.log(`[Anthropic Skills] Extracted file from code_execution_tool_result: ${resultBlock.file_id}`);
+                }
               }
             }
           }
         }
 
-        // Check for server_tool_use blocks
+        // Check for server_tool_use blocks (server-side execution)
         if (block.type === 'server_tool_use') {
           const blockData = block as unknown as Record<string, unknown>;
-          console.log(`[Anthropic Skills] Found server_tool_use block:`, JSON.stringify(blockData).slice(0, 1000));
-        }
-
-        // Check for tool_use blocks with code_execution
-        if (block.type === 'tool_use') {
-          const blockData = block as unknown as Record<string, unknown>;
-          console.log(`[Anthropic Skills] Found tool_use block:`, JSON.stringify(blockData).slice(0, 1000));
-
-          // Check content array for file references
-          if ('content' in blockData && Array.isArray(blockData.content)) {
-            for (const item of blockData.content) {
-              if (item && typeof item === 'object' && 'file_id' in item && !seenFileIds.has(String((item as Record<string, unknown>).file_id))) {
-                const fileItem = item as Record<string, unknown>;
-                seenFileIds.add(String(fileItem.file_id));
-                files.push({
-                  file_id: String(fileItem.file_id),
-                  filename: fileItem.filename ? String(fileItem.filename) : 'document',
-                  mime_type: fileItem.mime_type ? String(fileItem.mime_type) : 'application/octet-stream',
-                });
-              }
-            }
-          }
+          console.log(`[Anthropic Skills] Found server_tool_use block:`, JSON.stringify(blockData).slice(0, 500));
         }
       }
 
