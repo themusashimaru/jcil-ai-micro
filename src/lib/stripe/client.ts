@@ -31,7 +31,7 @@ export const stripe = new Proxy({} as Stripe, {
 
 // Price ID mapping for subscription tiers
 export const STRIPE_PRICE_IDS = {
-  plus: process.env.STRIPE_PRICE_ID_PLUS || process.env.STRIPE_PRICE_ID_BASIC || '',
+  plus: process.env.STRIPE_PRICE_ID_PLUS || '',
   pro: process.env.STRIPE_PRICE_ID_PRO || '',
   executive: process.env.STRIPE_PRICE_ID_EXECUTIVE || '',
 } as const;
@@ -48,9 +48,8 @@ export async function createCheckoutSession(
   customerEmail?: string
 ) {
   try {
-    // Check if there's an auto-apply coupon for Plus tier
-    const plusCouponId = process.env.STRIPE_COUPON_PLUS_FIRST_MONTH;
-    const shouldApplyCoupon = tier === 'plus' && plusCouponId;
+    // Single coupon for 50% off first month (applies to all tiers)
+    const couponId = process.env.STRIPE_COUPON_FIRST_MONTH;
 
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       mode: 'subscription',
@@ -77,9 +76,9 @@ export async function createCheckoutSession(
       },
     };
 
-    // Auto-apply 50% off coupon for Plus tier, otherwise allow manual promo codes
-    if (shouldApplyCoupon) {
-      sessionConfig.discounts = [{ coupon: plusCouponId }];
+    // Auto-apply 50% off coupon if configured, otherwise allow manual promo codes
+    if (couponId) {
+      sessionConfig.discounts = [{ coupon: couponId }];
     } else {
       sessionConfig.allow_promotion_codes = true;
     }
