@@ -71,9 +71,9 @@ export async function GET(request: NextRequest) {
     // Calculate monthly revenue
     const tierPricing: Record<string, number> = {
       free: 0,
-      basic: 12.00,
+      plus: 18.00,
       pro: 30.00,
-      executive: 150.00,
+      executive: 99.00,
     };
 
     subscriptionTiers?.forEach((tier: { tier_name: string; monthly_price: number }) => {
