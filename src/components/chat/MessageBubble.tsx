@@ -26,7 +26,7 @@ interface MessageBubbleProps {
   isAdmin?: boolean;
 }
 
-export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) {
+export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
   const getToolIcon = (toolName: string) => {
