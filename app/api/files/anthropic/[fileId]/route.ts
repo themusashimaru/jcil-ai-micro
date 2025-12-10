@@ -17,7 +17,7 @@ import { downloadAnthropicFile } from '@/lib/anthropic/client';
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { fileId: string } }
 ) {
   try {

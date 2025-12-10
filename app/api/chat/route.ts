@@ -813,7 +813,7 @@ export async function POST(request: NextRequest) {
         : 'You are a helpful AI assistant.';
 
       // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
-      const documentType = detectDocumentRequest(lastUserMessage);
+      const documentType = detectDocumentRequest(lastUserContent);
       if (documentType && isAuthenticated) {
         console.log(`[Chat API] Document generation detected: ${documentType}`);
 
