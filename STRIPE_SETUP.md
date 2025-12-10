@@ -55,13 +55,13 @@ This guide will help you configure Stripe for subscription payments on JCIL.AI.
    STRIPE_PRICE_ID_PRO=price_...
    ```
 
-### Executive Tier - $150/month
+### Executive Tier - $99/month
 1. Click **"+ Add product"**
 2. Configure:
    - **Name:** JCIL.AI Executive
-   - **Description:** 1,000 messages per day, premium AI, 10 image generations/day, dedicated support
+   - **Description:** Highest intelligence AI, 5x usage capacity, early access features
    - **Pricing:** Recurring
-   - **Price:** $150.00 USD
+   - **Price:** $99.00 USD
    - **Billing period:** Monthly
 3. Click **"Save product"**
 4. **Copy the Price ID**

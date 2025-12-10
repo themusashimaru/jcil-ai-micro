@@ -87,21 +87,21 @@ export async function POST(request: NextRequest) {
       .gte('created_at', calculatedStartDate)
       .lte('created_at', calculatedEndDate);
 
-    // Calculate metrics
-    const tierCounts = { free: 0, basic: 0, pro: 0, executive: 0 };
+    // Calculate metrics (support both 'basic' and 'plus' tier names for backwards compatibility)
+    const tierCounts = { free: 0, plus: 0, pro: 0, executive: 0 };
     users?.forEach((u: { subscription_tier: string }) => {
-      const tier = u.subscription_tier as keyof typeof tierCounts;
-      if (tier in tierCounts) tierCounts[tier]++;
+      const tier = u.subscription_tier === 'basic' ? 'plus' : u.subscription_tier;
+      if (tier in tierCounts) tierCounts[tier as keyof typeof tierCounts]++;
     });
 
-    const tierPricing = { free: 0, basic: 12.00, pro: 30.00, executive: 150.00 };
+    const tierPricing = { free: 0, plus: 18.00, pro: 30.00, executive: 99.00 };
     const monthlyRevenue = {
       free: tierCounts.free * tierPricing.free,
-      basic: tierCounts.basic * tierPricing.basic,
+      plus: tierCounts.plus * tierPricing.plus,
       pro: tierCounts.pro * tierPricing.pro,
       executive: tierCounts.executive * tierPricing.executive,
     };
-    const totalRevenue = monthlyRevenue.free + monthlyRevenue.basic + monthlyRevenue.pro + monthlyRevenue.executive;
+    const totalRevenue = monthlyRevenue.free + monthlyRevenue.plus + monthlyRevenue.pro + monthlyRevenue.executive;
 
     const totalCosts = usageData?.reduce((sum: number, u: { total_cost: number }) => sum + (parseFloat(String(u.total_cost)) || 0), 0) || 0;
     const newsCosts = newsData?.reduce((sum: number, n: { cost: number }) => sum + (parseFloat(String(n.cost)) || 0), 0) || 0;

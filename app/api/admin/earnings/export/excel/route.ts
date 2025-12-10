@@ -70,20 +70,21 @@ export async function GET(request: NextRequest) {
     csvRows.push('SUMMARY');
     csvRows.push('Category,Value');
 
-    const tierCounts = { free: 0, basic: 0, pro: 0, executive: 0 };
+    // Support both 'basic' and 'plus' tier names for backwards compatibility
+    const tierCounts = { free: 0, plus: 0, pro: 0, executive: 0 };
     users?.forEach((u: { subscription_tier: string }) => {
-      const tier = u.subscription_tier as keyof typeof tierCounts;
-      if (tier in tierCounts) tierCounts[tier]++;
+      const tier = u.subscription_tier === 'basic' ? 'plus' : u.subscription_tier;
+      if (tier in tierCounts) tierCounts[tier as keyof typeof tierCounts]++;
     });
 
-    const tierPricing = { free: 0, basic: 12.00, pro: 30.00, executive: 150.00 };
+    const tierPricing = { free: 0, plus: 18.00, pro: 30.00, executive: 99.00 };
     const monthlyRevenue = {
       free: tierCounts.free * tierPricing.free,
-      basic: tierCounts.basic * tierPricing.basic,
+      plus: tierCounts.plus * tierPricing.plus,
       pro: tierCounts.pro * tierPricing.pro,
       executive: tierCounts.executive * tierPricing.executive,
     };
-    const totalRevenue = monthlyRevenue.free + monthlyRevenue.basic + monthlyRevenue.pro + monthlyRevenue.executive;
+    const totalRevenue = monthlyRevenue.free + monthlyRevenue.plus + monthlyRevenue.pro + monthlyRevenue.executive;
 
     const totalCosts = usageData?.reduce((sum: number, u: { total_cost: number }) => sum + (parseFloat(String(u.total_cost)) || 0), 0) || 0;
     const newsCosts = newsData?.reduce((sum: number, n: { cost: number }) => sum + (parseFloat(String(n.cost)) || 0), 0) || 0;
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
     csvRows.push('REVENUE BY SUBSCRIPTION TIER');
     csvRows.push('Tier,User Count,Monthly Revenue Per User,Total Monthly Revenue');
     csvRows.push(`Free,${tierCounts.free},$${tierPricing.free.toFixed(2)},$${monthlyRevenue.free.toFixed(2)}`);
-    csvRows.push(`Basic,${tierCounts.basic},$${tierPricing.basic.toFixed(2)},$${monthlyRevenue.basic.toFixed(2)}`);
+    csvRows.push(`Plus,${tierCounts.plus},$${tierPricing.plus.toFixed(2)},$${monthlyRevenue.plus.toFixed(2)}`);
     csvRows.push(`Pro,${tierCounts.pro},$${tierPricing.pro.toFixed(2)},$${monthlyRevenue.pro.toFixed(2)}`);
     csvRows.push(`Executive,${tierCounts.executive},$${tierPricing.executive.toFixed(2)},$${monthlyRevenue.executive.toFixed(2)}`);
     csvRows.push(`TOTAL,${users?.length || 0},,$${totalRevenue.toFixed(2)}`);
