@@ -76,9 +76,10 @@ interface ChatThreadProps {
   currentChatId: string | null;
   isAdmin?: boolean;
   onSubmitPrompt?: (prompt: string) => void;
+  documentType?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | null;
 }
 
-export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSubmitPrompt }: ChatThreadProps) {
+export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSubmitPrompt, documentType }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -304,7 +305,7 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
         })}
 
         {/* Professional typing indicator */}
-        {isStreaming && <TypingIndicator />}
+        {isStreaming && <TypingIndicator documentType={documentType} />}
 
         <div ref={messagesEndRef} />
       </div>

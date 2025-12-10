@@ -5,6 +5,7 @@
  * - Show professional loading messages while AI is processing
  * - Cycles through various status messages
  * - Provides visual feedback during streaming
+ * - Special messages for document generation
  */
 
 'use client';
@@ -22,17 +23,66 @@ const PROFESSIONAL_MESSAGES = [
   'Crafting response...',
 ];
 
-export function TypingIndicator() {
+const DOCUMENT_MESSAGES: Record<string, string[]> = {
+  pdf: [
+    'Creating your PDF...',
+    'Formatting document layout...',
+    'Setting up margins and spacing...',
+    'Applying professional styling...',
+    'Generating downloadable PDF...',
+    'Almost ready...',
+  ],
+  docx: [
+    'Creating your Word document...',
+    'Formatting headers and styles...',
+    'Setting up document structure...',
+    'Applying professional layout...',
+    'Generating downloadable document...',
+    'Almost ready...',
+  ],
+  xlsx: [
+    'Creating your spreadsheet...',
+    'Formatting columns and rows...',
+    'Applying data formatting...',
+    'Setting up formulas...',
+    'Generating downloadable Excel file...',
+    'Almost ready...',
+  ],
+  pptx: [
+    'Creating your presentation...',
+    'Designing slide layouts...',
+    'Formatting content...',
+    'Applying professional styling...',
+    'Generating downloadable PowerPoint...',
+    'Almost ready...',
+  ],
+};
+
+interface TypingIndicatorProps {
+  documentType?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | null;
+}
+
+export function TypingIndicator({ documentType }: TypingIndicatorProps = {}) {
   const [messageIndex, setMessageIndex] = useState(0);
 
+  // Select messages based on document type
+  const messages = documentType && DOCUMENT_MESSAGES[documentType]
+    ? DOCUMENT_MESSAGES[documentType]
+    : PROFESSIONAL_MESSAGES;
+
   useEffect(() => {
-    // Rotate through messages every 2 seconds
+    // Reset index when document type changes
+    setMessageIndex(0);
+  }, [documentType]);
+
+  useEffect(() => {
+    // Rotate through messages - slower for documents since they take longer
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % PROFESSIONAL_MESSAGES.length);
-    }, 2000);
+      setMessageIndex((prev) => (prev + 1) % messages.length);
+    }, documentType ? 3000 : 2000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [documentType, messages.length]);
 
   return (
     <div className="flex items-start gap-3">
@@ -62,7 +112,7 @@ export function TypingIndicator() {
 
             {/* Professional message */}
             <span className="text-sm transition-opacity duration-300" style={{ color: 'var(--text-secondary)' }}>
-              {PROFESSIONAL_MESSAGES[messageIndex]}
+              {messages[messageIndex]}
             </span>
           </div>
         </div>

@@ -369,38 +369,67 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
           {!isUser && message.files && message.files.length > 0 && (
             <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
               <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
-                📎 Generated Documents:
+                📎 Your document is ready:
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-2">
                 {message.files.map((file, index) => {
-                  // Get icon based on file type
-                  const getFileIcon = (mimeType: string) => {
-                    if (mimeType.includes('spreadsheet') || mimeType.includes('xlsx')) return '📊';
-                    if (mimeType.includes('presentation') || mimeType.includes('pptx')) return '📽️';
-                    if (mimeType.includes('document') || mimeType.includes('docx')) return '📄';
-                    if (mimeType.includes('pdf')) return '📑';
-                    return '📁';
+                  // Get icon and label based on file type
+                  const getFileInfo = (mimeType: string, filename: string) => {
+                    if (mimeType.includes('spreadsheet') || mimeType.includes('xlsx') || filename.endsWith('.xlsx')) {
+                      return { icon: '📊', label: 'Excel Spreadsheet' };
+                    }
+                    if (mimeType.includes('presentation') || mimeType.includes('pptx') || filename.endsWith('.pptx')) {
+                      return { icon: '📽️', label: 'PowerPoint' };
+                    }
+                    if (mimeType.includes('document') || mimeType.includes('docx') || filename.endsWith('.docx')) {
+                      return { icon: '📄', label: 'Word Document' };
+                    }
+                    if (mimeType.includes('pdf') || filename.endsWith('.pdf')) {
+                      return { icon: '📑', label: 'PDF' };
+                    }
+                    return { icon: '📁', label: 'Document' };
                   };
 
+                  const { icon, label } = getFileInfo(file.mime_type, file.filename);
+
                   return (
-                    <a
-                      key={index}
-                      href={file.download_url}
-                      download={file.filename}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 cursor-pointer"
-                      style={{
-                        backgroundColor: 'var(--primary-hover)',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--primary)',
-                      }}
-                      title={`Download ${file.filename}`}
-                    >
-                      <span>{getFileIcon(file.mime_type)}</span>
-                      <span className="truncate max-w-[200px]">{file.filename}</span>
-                      <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </a>
+                    <div key={index} className="flex flex-col gap-1">
+                      <a
+                        href={file.download_url}
+                        download={file.filename}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] cursor-pointer w-full"
+                        style={{
+                          backgroundColor: 'var(--primary)',
+                          color: 'white',
+                        }}
+                        title={`Download ${file.filename}`}
+                        onClick={(e) => {
+                          // For better mobile experience, prevent default and use programmatic download
+                          e.preventDefault();
+                          const link = document.createElement('a');
+                          link.href = file.download_url;
+                          link.download = file.filename;
+                          link.target = '_blank';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                      >
+                        <span className="text-lg">{icon}</span>
+                        <div className="flex-1 text-left">
+                          <div className="font-semibold">Download {label}</div>
+                          <div className="text-xs opacity-80 truncate max-w-[200px]">{file.filename}</div>
+                        </div>
+                        <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </a>
+                      <p className="text-[10px] px-1" style={{ color: 'var(--text-muted)' }}>
+                        Tap to download. On mobile, use your browser&apos;s back button to return here.
+                      </p>
+                    </div>
                   );
                 })}
               </div>
