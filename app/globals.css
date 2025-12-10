@@ -403,6 +403,12 @@
 
   :root.light-mode .chat-bubble.ai-bubble {
     border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    overflow: hidden; /* Ensure content respects rounded corners */
+  }
+
+  /* Hide the outer glow effect in light mode - causes sharp corner artifacts */
+  :root.light-mode .chat-bubble.ai-bubble::after {
+    display: none !important;
   }
 
   /* Premium animated floating orbs background (light mode only) */
