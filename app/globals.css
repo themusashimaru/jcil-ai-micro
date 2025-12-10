@@ -60,77 +60,40 @@
   --chat-user-bubble-shadow: 0 8px 32px rgba(30, 58, 95, 0.15);
 }
 
-/* Ocean theme - Deep navy blue glassmorphism (admin only) */
+/* Ocean theme - Ultra deep navy blue glassmorphism (admin only) */
 :root.ocean-mode {
-  --background: #0a1628; /* Deep navy blue */
+  --background: #030810; /* Ultra deep navy - almost black with blue tint */
   --foreground: #ffffff;
-  --glass-bg: rgba(15, 30, 55, 0.85);
-  --glass-border: rgba(100, 180, 255, 0.15);
-  --glass-shadow: rgba(0, 20, 50, 0.4);
+  --glass-bg: rgba(8, 18, 35, 0.9);
+  --glass-border: rgba(80, 160, 255, 0.12);
+  --glass-shadow: rgba(0, 10, 30, 0.6);
 
-  /* Ocean theme colors - Premium dark navy with cyan accents */
-  --primary: #60d5ff; /* Bright cyan accent */
-  --primary-hover: rgba(96, 213, 255, 0.15);
-  --primary-glow: rgba(96, 213, 255, 0.35);
-  --text-primary: #f0f8ff; /* AliceBlue - crisp white with blue tint */
-  --text-secondary: #a8c8e8; /* Soft blue-gray */
-  --text-muted: #6a8bab; /* Muted blue */
-  --surface: #0d1a2d; /* Slightly lighter navy for surfaces */
-  --surface-elevated: #122238; /* Elevated surface */
-  --border: rgba(100, 180, 255, 0.2);
+  /* Ocean theme colors - Rich deep navy with electric cyan accents */
+  --primary: #4dc8ff; /* Electric cyan accent */
+  --primary-hover: rgba(77, 200, 255, 0.12);
+  --primary-glow: rgba(77, 200, 255, 0.4);
+  --text-primary: #e8f4ff; /* Crisp white with subtle blue tint */
+  --text-secondary: #8ab4d8; /* Soft blue-gray */
+  --text-muted: #5a7a9a; /* Muted blue */
+  --surface: #050c18; /* Deep navy surface */
+  --surface-elevated: #0a1424; /* Slightly elevated surface */
+  --border: rgba(80, 160, 255, 0.15);
 
   /* Chat-specific ocean mode colors - Deep Sea Glassmorphism */
-  --chat-input-bg: rgba(15, 35, 65, 0.9);
-  --chat-user-bubble-bg: rgba(96, 213, 255, 0.15);
-  --chat-user-bubble-text: #ffffff;
-  --chat-ai-bubble-bg: rgba(20, 45, 80, 0.6);
-  --chat-ai-bubble-text: #f0f8ff;
-  --chat-ai-bubble-border: rgba(100, 180, 255, 0.3);
-  --chat-ai-bubble-shadow: 0 8px 32px rgba(0, 30, 80, 0.25);
-  --chat-user-bubble-shadow: 0 8px 32px rgba(96, 213, 255, 0.15);
+  --chat-input-bg: rgba(15, 30, 55, 0.85);
+  --chat-user-bubble-bg: transparent; /* No bubble for user messages */
+  --chat-user-bubble-text: #e8f4ff; /* Light blue-white text */
+  --chat-ai-bubble-bg: rgba(12, 28, 50, 0.75);
+  --chat-ai-bubble-text: #e8f4ff;
+  --chat-ai-bubble-border: rgba(77, 200, 255, 0.2);
+  --chat-ai-bubble-shadow: 0 8px 32px rgba(0, 20, 60, 0.4);
+  --chat-user-bubble-shadow: none;
 
   /* Ocean-specific gradient accents */
-  --ocean-gradient-start: #0a1628;
-  --ocean-gradient-mid: #0f2540;
-  --ocean-gradient-end: #1a3a5c;
-  --ocean-glow: rgba(96, 213, 255, 0.4);
-}
-
-/* Coal theme - Charcoal glassmorphism with warm orange accents (admin only) */
-:root.coal-mode {
-  --background: #1a1a1a; /* Deep charcoal */
-  --foreground: #ffffff;
-  --glass-bg: rgba(45, 45, 45, 0.85);
-  --glass-border: rgba(255, 140, 80, 0.12);
-  --glass-shadow: rgba(0, 0, 0, 0.5);
-
-  /* Coal theme colors - Charcoal with warm orange/amber accents */
-  --primary: #ff6b35; /* Warm orange */
-  --primary-hover: rgba(255, 107, 53, 0.15);
-  --primary-glow: rgba(255, 107, 53, 0.35);
-  --text-primary: #ffffff;
-  --text-secondary: #b8b8b8; /* Soft gray */
-  --text-muted: #888888; /* Muted gray */
-  --surface: #1f1f1f; /* Slightly lighter charcoal for surfaces */
-  --surface-elevated: #2a2a2a; /* Elevated surface */
-  --border: rgba(255, 140, 80, 0.15);
-
-  /* Chat-specific coal mode colors - Warm Ember Glassmorphism */
-  --chat-input-bg: rgba(35, 35, 35, 0.9);
-  --chat-user-bubble-bg: rgba(255, 107, 53, 0.12);
-  --chat-user-bubble-text: #ffffff;
-  --chat-ai-bubble-bg: rgba(50, 50, 50, 0.65);
-  --chat-ai-bubble-text: #ffffff;
-  --chat-ai-bubble-border: rgba(255, 140, 80, 0.25);
-  --chat-ai-bubble-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-  --chat-user-bubble-shadow: 0 8px 32px rgba(255, 107, 53, 0.12);
-
-  /* Coal-specific gradient accents */
-  --coal-gradient-start: #1a1a1a;
-  --coal-gradient-mid: #252525;
-  --coal-gradient-end: #333333;
-  --coal-glow: rgba(255, 107, 53, 0.4);
-  --ember-glow: rgba(255, 80, 20, 0.3);
+  --ocean-gradient-start: #030810;
+  --ocean-gradient-mid: #081020;
+  --ocean-gradient-end: #0d1a30;
+  --ocean-glow: rgba(77, 200, 255, 0.5);
 }
 
 @layer base {
@@ -267,83 +230,70 @@
     background: rgba(255, 255, 255, 0.45);
   }
 
-  /* Dark mode overrides (pure dark theme only, not ocean or coal) */
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.user-bubble,
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.ai-bubble {
+  /* Dark mode overrides (pure dark theme only, not ocean) */
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble,
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble {
     background: transparent;
     box-shadow: none;
     border: none;
   }
 
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.user-bubble::before,
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.ai-bubble::after {
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble::before,
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble::after {
     display: none;
   }
 
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.ai-bubble {
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble {
     border: 1px solid var(--chat-ai-bubble-border);
   }
 
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.user-bubble:hover,
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble.ai-bubble:hover {
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble:hover,
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble:hover {
     transform: none;
     box-shadow: none;
   }
 
   /* ========================================
-   * OCEAN THEME - Premium Navy Glassmorphism
-   * Deep sea inspired with cyan accents
+   * OCEAN THEME - Ultra Deep Navy Glassmorphism
+   * Premium dark sea inspired with electric cyan
    * ======================================== */
 
-  /* Ocean mode - User bubble: Glowing cyan glass */
+  /* Ocean mode - User bubble: TRANSPARENT (like light mode) */
   :root.ocean-mode .chat-bubble.user-bubble {
-    background: linear-gradient(
-      135deg,
-      rgba(96, 213, 255, 0.12) 0%,
-      rgba(60, 140, 200, 0.08) 100%
-    );
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(96, 213, 255, 0.25);
-    border-top-color: rgba(96, 213, 255, 0.4);
-    border-left-color: rgba(96, 213, 255, 0.3);
-    box-shadow:
-      0 8px 32px rgba(0, 30, 80, 0.3),
-      inset 0 1px 0 rgba(96, 213, 255, 0.2),
-      0 0 40px rgba(96, 213, 255, 0.08);
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
-  :root.ocean-mode .chat-bubble.user-bubble::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(
-      to bottom,
-      rgba(96, 213, 255, 0.12),
-      transparent
-    );
-    border-radius: inherit;
-    pointer-events: none;
+  :root.ocean-mode .chat-bubble.user-bubble::before,
+  :root.ocean-mode .chat-bubble.user-bubble::after {
+    display: none !important;
   }
 
-  /* Ocean mode - AI bubble: Deep navy frosted glass */
+  :root.ocean-mode .chat-bubble.user-bubble:hover {
+    background: transparent !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Ocean mode - AI bubble: Premium deep navy frosted glass */
   :root.ocean-mode .chat-bubble.ai-bubble {
     background: linear-gradient(
       135deg,
-      rgba(20, 50, 90, 0.7) 0%,
-      rgba(15, 35, 65, 0.6) 100%
+      rgba(10, 25, 50, 0.85) 0%,
+      rgba(8, 20, 40, 0.75) 100%
     );
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(100, 180, 255, 0.2);
-    border-top-color: rgba(100, 180, 255, 0.35);
-    border-left-color: rgba(100, 180, 255, 0.25);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(77, 200, 255, 0.15);
+    border-top-color: rgba(77, 200, 255, 0.25);
+    border-left-color: rgba(77, 200, 255, 0.2);
     box-shadow:
-      0 8px 32px rgba(0, 20, 60, 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      0 8px 32px rgba(0, 15, 40, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 40px rgba(77, 200, 255, 0.04);
   }
 
   :root.ocean-mode .chat-bubble.ai-bubble::before {
@@ -355,7 +305,7 @@
     height: 40%;
     background: linear-gradient(
       to bottom,
-      rgba(100, 180, 255, 0.08),
+      rgba(77, 200, 255, 0.06),
       transparent
     );
     border-radius: inherit;
@@ -368,36 +318,24 @@
     position: absolute;
     inset: -2px;
     border-radius: inherit;
-    background: linear-gradient(135deg, rgba(96, 213, 255, 0.06), transparent 60%);
+    background: linear-gradient(135deg, rgba(77, 200, 255, 0.05), transparent 60%);
     z-index: -1;
     opacity: 0.6;
     pointer-events: none;
   }
 
   /* Ocean mode hover effects */
-  :root.ocean-mode .chat-bubble.user-bubble:hover {
-    transform: translateY(-2px);
-    background: linear-gradient(
-      135deg,
-      rgba(96, 213, 255, 0.18) 0%,
-      rgba(60, 140, 200, 0.12) 100%
-    );
-    box-shadow:
-      0 16px 48px rgba(0, 40, 100, 0.35),
-      0 0 60px rgba(96, 213, 255, 0.12),
-      inset 0 1px 0 rgba(96, 213, 255, 0.3);
-  }
-
   :root.ocean-mode .chat-bubble.ai-bubble:hover {
     transform: translateY(-2px);
     background: linear-gradient(
       135deg,
-      rgba(25, 60, 105, 0.75) 0%,
-      rgba(20, 45, 80, 0.65) 100%
+      rgba(15, 35, 65, 0.9) 0%,
+      rgba(12, 28, 55, 0.8) 100%
     );
     box-shadow:
-      0 16px 48px rgba(0, 25, 70, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      0 16px 48px rgba(0, 20, 50, 0.6),
+      0 0 50px rgba(77, 200, 255, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   /* Ocean mode rounded corners */
@@ -407,128 +345,6 @@
 
   /* Hide triangle tails in ocean mode for clean look */
   :root.ocean-mode .chat-bubble-tail::after {
-    display: none !important;
-    content: none !important;
-    visibility: hidden !important;
-  }
-
-  /* ========================================
-   * COAL THEME - Premium Charcoal Glassmorphism
-   * Warm ember inspired with orange accents
-   * ======================================== */
-
-  /* Coal mode - User bubble: Warm ember glass */
-  :root.coal-mode .chat-bubble.user-bubble {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 107, 53, 0.1) 0%,
-      rgba(255, 80, 40, 0.06) 100%
-    );
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 140, 80, 0.2);
-    border-top-color: rgba(255, 140, 80, 0.35);
-    border-left-color: rgba(255, 140, 80, 0.25);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 140, 80, 0.15),
-      0 0 40px rgba(255, 107, 53, 0.06);
-  }
-
-  :root.coal-mode .chat-bubble.user-bubble::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 140, 80, 0.1),
-      transparent
-    );
-    border-radius: inherit;
-    pointer-events: none;
-  }
-
-  /* Coal mode - AI bubble: Charcoal frosted glass */
-  :root.coal-mode .chat-bubble.ai-bubble {
-    background: linear-gradient(
-      135deg,
-      rgba(55, 55, 55, 0.75) 0%,
-      rgba(40, 40, 40, 0.65) 100%
-    );
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 140, 80, 0.15);
-    border-top-color: rgba(255, 255, 255, 0.1);
-    border-left-color: rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  }
-
-  :root.coal-mode .chat-bubble.ai-bubble::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 40%;
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.05),
-      transparent
-    );
-    border-radius: inherit;
-    pointer-events: none;
-  }
-
-  /* Coal mode - Subtle outer glow on AI bubble */
-  :root.coal-mode .chat-bubble.ai-bubble::after {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    background: linear-gradient(135deg, rgba(255, 107, 53, 0.04), transparent 60%);
-    z-index: -1;
-    opacity: 0.6;
-    pointer-events: none;
-  }
-
-  /* Coal mode hover effects */
-  :root.coal-mode .chat-bubble.user-bubble:hover {
-    transform: translateY(-2px);
-    background: linear-gradient(
-      135deg,
-      rgba(255, 107, 53, 0.15) 0%,
-      rgba(255, 80, 40, 0.1) 100%
-    );
-    box-shadow:
-      0 16px 48px rgba(0, 0, 0, 0.5),
-      0 0 60px rgba(255, 107, 53, 0.1),
-      inset 0 1px 0 rgba(255, 140, 80, 0.25);
-  }
-
-  :root.coal-mode .chat-bubble.ai-bubble:hover {
-    transform: translateY(-2px);
-    background: linear-gradient(
-      135deg,
-      rgba(65, 65, 65, 0.8) 0%,
-      rgba(50, 50, 50, 0.7) 100%
-    );
-    box-shadow:
-      0 16px 48px rgba(0, 0, 0, 0.55),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-
-  /* Coal mode rounded corners */
-  :root.coal-mode .chat-bubble {
-    border-radius: 1rem !important;
-  }
-
-  /* Hide triangle tails in coal mode for clean look */
-  :root.coal-mode .chat-bubble-tail::after {
     display: none !important;
     content: none !important;
     visibility: hidden !important;
@@ -559,7 +375,7 @@
     border-right-color: transparent; /* Hidden by default */
   }
 
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .chat-bubble-tail.left::after {
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble-tail.left::after {
     border-right-color: transparent;
   }
 
@@ -707,7 +523,7 @@
   }
 
   /* Premium glassmorphic sidebar buttons (dark mode - electric blue glow) */
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .sidebar-btn-glass {
+  :root:not(.light-mode):not(.ocean-mode) .sidebar-btn-glass {
     background: rgba(77, 255, 255, 0.15) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -722,7 +538,7 @@
     transition: all 0.2s ease;
   }
 
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .sidebar-btn-glass:hover {
+  :root:not(.light-mode):not(.ocean-mode) .sidebar-btn-glass:hover {
     background: rgba(77, 255, 255, 0.25) !important;
     transform: translateY(-1px);
     box-shadow:
@@ -732,7 +548,7 @@
   }
 
   /* Code Command button glass style (dark mode - blue glow) */
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .code-cmd-btn-glass {
+  :root:not(.light-mode):not(.ocean-mode) .code-cmd-btn-glass {
     background: rgba(59, 130, 246, 0.2) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -746,7 +562,7 @@
     transition: all 0.2s ease;
   }
 
-  :root:not(.light-mode):not(.ocean-mode):not(.coal-mode) .code-cmd-btn-glass:hover {
+  :root:not(.light-mode):not(.ocean-mode) .code-cmd-btn-glass:hover {
     background: rgba(59, 130, 246, 0.3) !important;
     transform: translateY(-1px);
     box-shadow:
@@ -755,61 +571,61 @@
       inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
   }
 
-  /* Premium glassmorphic sidebar buttons (coal mode - orange ember glow) */
-  :root.coal-mode .sidebar-btn-glass {
-    background: rgba(255, 107, 53, 0.15) !important;
+  /* Premium glassmorphic sidebar buttons (ocean mode - cyan glow) */
+  :root.ocean-mode .sidebar-btn-glass {
+    background: rgba(77, 200, 255, 0.12) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1.5px solid rgba(255, 107, 53, 0.3) !important;
-    border-top-color: rgba(255, 140, 80, 0.5);
-    border-left-color: rgba(255, 140, 80, 0.4);
-    color: #ff6b35 !important;
+    border: 1.5px solid rgba(77, 200, 255, 0.25) !important;
+    border-top-color: rgba(77, 200, 255, 0.4);
+    border-left-color: rgba(77, 200, 255, 0.3);
+    color: #4dc8ff !important;
     box-shadow:
-      0 4px 20px rgba(255, 107, 53, 0.2),
-      0 0 15px rgba(255, 107, 53, 0.1),
+      0 4px 20px rgba(77, 200, 255, 0.15),
+      0 0 15px rgba(77, 200, 255, 0.08),
       inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
     transition: all 0.2s ease;
   }
 
-  :root.coal-mode .sidebar-btn-glass:hover {
-    background: rgba(255, 107, 53, 0.25) !important;
+  :root.ocean-mode .sidebar-btn-glass:hover {
+    background: rgba(77, 200, 255, 0.2) !important;
     transform: translateY(-1px);
     box-shadow:
-      0 8px 30px rgba(255, 107, 53, 0.3),
-      0 0 25px rgba(255, 107, 53, 0.15),
+      0 8px 30px rgba(77, 200, 255, 0.25),
+      0 0 25px rgba(77, 200, 255, 0.12),
       inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
   }
 
-  /* Code Command button glass style (coal mode - orange glow) */
-  :root.coal-mode .code-cmd-btn-glass {
-    background: rgba(255, 107, 53, 0.2) !important;
+  /* Code Command button glass style (ocean mode - cyan glow) */
+  :root.ocean-mode .code-cmd-btn-glass {
+    background: rgba(77, 200, 255, 0.15) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1.5px solid rgba(255, 107, 53, 0.4) !important;
-    border-top-color: rgba(255, 140, 80, 0.6);
-    border-left-color: rgba(255, 140, 80, 0.5);
+    border: 1.5px solid rgba(77, 200, 255, 0.3) !important;
+    border-top-color: rgba(77, 200, 255, 0.5);
+    border-left-color: rgba(77, 200, 255, 0.4);
     box-shadow:
-      0 4px 20px rgba(255, 107, 53, 0.25),
-      0 0 15px rgba(255, 107, 53, 0.15),
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
+      0 4px 20px rgba(77, 200, 255, 0.2),
+      0 0 15px rgba(77, 200, 255, 0.1),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
     transition: all 0.2s ease;
   }
 
-  :root.coal-mode .code-cmd-btn-glass:hover {
-    background: rgba(255, 107, 53, 0.3) !important;
+  :root.ocean-mode .code-cmd-btn-glass:hover {
+    background: rgba(77, 200, 255, 0.25) !important;
     transform: translateY(-1px);
     box-shadow:
-      0 8px 30px rgba(255, 107, 53, 0.35),
-      0 0 25px rgba(255, 107, 53, 0.2),
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+      0 8px 30px rgba(77, 200, 255, 0.3),
+      0 0 25px rgba(77, 200, 255, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
   }
 
-  :root.coal-mode .code-cmd-btn-glass .code-cmd-title {
-    color: #ff6b35 !important;
+  :root.ocean-mode .code-cmd-btn-glass .code-cmd-title {
+    color: #4dc8ff !important;
   }
 
-  :root.coal-mode .code-cmd-btn-glass .code-cmd-subtitle {
-    color: #ff8c5a !important;
+  :root.ocean-mode .code-cmd-btn-glass .code-cmd-subtitle {
+    color: #6dd8ff !important;
   }
 
   /* Premium glassmorphic sidebar buttons (light mode) */
@@ -888,6 +704,31 @@
       0 4px 12px rgba(30, 58, 95, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.7),
       0 0 0 4px rgba(30, 58, 95, 0.08) !important;
+  }
+
+  /* Premium glassmorphic input area (ocean mode) */
+  :root.ocean-mode .chat-input-glass {
+    background: rgba(12, 25, 45, 0.9) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(77, 200, 255, 0.2) !important;
+    border-top-color: rgba(77, 200, 255, 0.3);
+    border-left-color: rgba(77, 200, 255, 0.25);
+    border-bottom-color: rgba(77, 200, 255, 0.15);
+    border-right-color: rgba(77, 200, 255, 0.12);
+    box-shadow:
+      0 4px 20px rgba(0, 15, 40, 0.4),
+      0 2px 8px rgba(0, 10, 30, 0.3),
+      inset 0 1px 0 rgba(77, 200, 255, 0.1) !important;
+  }
+
+  :root.ocean-mode .chat-input-glass:focus-within {
+    border-color: rgba(77, 200, 255, 0.35);
+    box-shadow:
+      0 12px 48px rgba(0, 20, 50, 0.5),
+      0 4px 12px rgba(0, 15, 40, 0.35),
+      inset 0 1px 0 rgba(77, 200, 255, 0.15),
+      0 0 0 4px rgba(77, 200, 255, 0.08) !important;
   }
 
   /* Send button glow animation */
