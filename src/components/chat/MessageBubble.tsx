@@ -12,12 +12,10 @@
  * - Tool execution badges (web search, maps, image gen, etc.)
  * - File attachment thumbnails or "N images attached" badge
  * - Markdown rendering for message content
- * - Copy message button
  */
 
 'use client';
 
-import { useState } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -30,13 +28,6 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) {
   const isUser = message.role === 'user';
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(message.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const getToolIcon = (toolName: string) => {
     const icons: Record<string, string> = {
@@ -411,54 +402,6 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
             )}
           </div>
         </div>
-
-        {/* Actions */}
-        {!isUser && isLast && (
-          <div className="flex gap-0">
-            <button
-              onClick={handleCopy}
-              className="rounded px-1 py-0 text-xs flex items-center justify-center transition-colors"
-              style={{
-                color: copied ? '#22c55e' : 'var(--text-muted)',
-              }}
-              title={copied ? 'Copied!' : 'Copy message'}
-            >
-              {copied ? (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              ) : (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
-              )}
-            </button>
-            <button
-              className="rounded px-1 py-0 text-xs flex items-center justify-center transition-colors"
-              style={{ color: 'var(--text-muted)' }}
-              title="Regenerate"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
