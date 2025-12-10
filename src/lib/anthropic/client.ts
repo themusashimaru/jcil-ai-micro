@@ -831,6 +831,7 @@ export async function createAnthropicCompletionWithSkills(
 
     try {
       // Use the beta messages API with skills
+      // Skills require the code_execution tool to be included
       const response = await client.beta.messages.create({
         model,
         max_tokens: maxTokens,
@@ -844,6 +845,12 @@ export async function createAnthropicCompletionWithSkills(
           },
         ],
         messages,
+        tools: [
+          {
+            type: 'code_execution_20250825',
+            name: 'code_execution',
+          },
+        ],
         container: {
           skills: skillsConfig,
         },
