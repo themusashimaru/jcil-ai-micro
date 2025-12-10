@@ -76,9 +76,16 @@ export async function createCheckoutSession(
       },
     };
 
-    // Auto-apply 50% off coupon if configured, otherwise allow manual promo codes
+    // Auto-apply 50% off discount if configured, otherwise allow manual promo codes
+    // Supports both coupon IDs and promotion code IDs (promo_xxx)
     if (couponId) {
-      sessionConfig.discounts = [{ coupon: couponId }];
+      if (couponId.startsWith('promo_')) {
+        // It's a promotion code ID
+        sessionConfig.discounts = [{ promotion_code: couponId }];
+      } else {
+        // It's a coupon ID
+        sessionConfig.discounts = [{ coupon: couponId }];
+      }
     } else {
       sessionConfig.allow_promotion_codes = true;
     }
