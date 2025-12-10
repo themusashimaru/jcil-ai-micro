@@ -179,6 +179,7 @@
     border-bottom-color: rgba(30, 58, 95, 0.08);
     border-right-color: rgba(30, 58, 95, 0.06);
     position: relative;
+    overflow: hidden; /* Ensure content respects rounded corners */
   }
 
   /* Inner highlight for glass depth on AI bubble */
@@ -198,17 +199,7 @@
     pointer-events: none;
   }
 
-  /* Subtle outer glow on AI bubble */
-  .chat-bubble.ai-bubble::after {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    background: linear-gradient(135deg, rgba(77, 200, 255, 0.08), transparent 60%);
-    z-index: -1;
-    opacity: 0.5;
-    pointer-events: none;
-  }
+  /* Note: ::after outer glow removed - was causing sharp corner artifacts in all themes */
 
   /* Hover lift effect for both bubbles */
   :root.light-mode .chat-bubble.user-bubble:hover,
@@ -245,6 +236,7 @@
 
   :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble {
     border: 1px solid var(--chat-ai-bubble-border);
+    overflow: hidden; /* Ensure content respects rounded corners */
   }
 
   :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble:hover,
@@ -294,6 +286,7 @@
       0 8px 32px rgba(0, 15, 40, 0.5),
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
       0 0 40px rgba(77, 200, 255, 0.04);
+    overflow: hidden; /* Ensure content respects rounded corners */
   }
 
   :root.ocean-mode .chat-bubble.ai-bubble::before {
@@ -312,16 +305,9 @@
     pointer-events: none;
   }
 
-  /* Ocean mode - Subtle outer glow on AI bubble */
+  /* Hide the outer glow effect in ocean mode - causes sharp corner artifacts */
   :root.ocean-mode .chat-bubble.ai-bubble::after {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    background: linear-gradient(135deg, rgba(77, 200, 255, 0.05), transparent 60%);
-    z-index: -1;
-    opacity: 0.6;
-    pointer-events: none;
+    display: none !important;
   }
 
   /* Ocean mode hover effects */
