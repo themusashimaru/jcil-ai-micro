@@ -96,7 +96,9 @@ You are creating a PROFESSIONAL document. Quality and formatting are paramount.
 
 **RESUME/CV FORMATTING (CRITICAL - FOLLOW EXACTLY):**
 
-1. **HEADER SECTION:**
+1. **HEADER SECTION (CRITICAL):**
+   - DO NOT include any document title like "Resume", "John Smith Resume", "Master Electrician Resume", etc.
+   - The VERY FIRST LINE of the document must be the person's NAME - nothing else above it
    - Name: 18-24pt bold, centered at top
    - Contact line directly below name: ONLY phone | email | LinkedIn URL (NO physical address)
    - Contact info: 10pt, centered, separated by pipes (|)
