@@ -159,21 +159,26 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
     return () => window.removeEventListener('design-settings-updated', handleUpdate);
   }, []);
 
-  // Auto-scroll when new messages arrive
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length === 0) return;
 
     // Using a small delay to let the DOM update first
-    setTimeout(() => {
-      // For first few messages, scroll container to top so messages are visible
-      // For more messages, scroll to bottom to show latest
-      if (messages.length <= 3) {
-        scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
-  }, [messages]);
+    const scrollToBottom = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // Initial scroll with short delay
+    const initialTimeout = setTimeout(scrollToBottom, 50);
+
+    // Secondary scroll to catch any late DOM updates (e.g., images loading)
+    const secondaryTimeout = setTimeout(scrollToBottom, 300);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearTimeout(secondaryTimeout);
+    };
+  }, [messages, messages.length]);
 
   // Show logo and tools when no chat is selected OR when chat is empty
   if (!currentChatId || messages.length === 0) {

@@ -731,36 +731,44 @@ export interface SkillParams {
 export function detectDocumentRequest(content: string): DocumentSkillType | null {
   const lowerContent = content.toLowerCase();
 
-  // Excel/Spreadsheet patterns
+  // Excel/Spreadsheet patterns - expanded for common phrasings
   const excelPatterns = [
-    /\b(create|make|generate|build)\b.*\b(excel|spreadsheet|xlsx|xls)\b/i,
-    /\b(excel|spreadsheet|xlsx)\b.*\b(file|document|for)\b/i,
-    /\bbudget\b.*\b(spreadsheet|template)\b/i,
-    /\bfinancial\b.*\b(model|spreadsheet)\b/i,
-    /\bdata\s+table\b/i,
-    /\b(chart|graph)\b.*\b(data|excel)\b/i,
+    /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(excel|spreadsheet|xlsx|xls)\b/i,
+    /\b(excel|spreadsheet|xlsx|xls)\b.*\b(file|document|for|with|that)\b/i,
+    /\bbudget\b.*\b(spreadsheet|template|excel)\b/i,
+    /\bfinancial\b.*\b(model|spreadsheet|excel)\b/i,
+    /\bdata\s*(table|sheet)\b/i,
+    /\b(chart|graph)\b.*\b(data|excel|spreadsheet)\b/i,
+    /\b(excel|spreadsheet)\s*(file)?\b/i, // Simple "excel file" or just "spreadsheet"
+    /\btracking\s*(spreadsheet|sheet)\b/i,
   ];
 
-  // PowerPoint patterns
+  // PowerPoint patterns - expanded
   const pptPatterns = [
-    /\b(create|make|generate|build)\b.*\b(powerpoint|presentation|pptx|ppt|slides?|deck)\b/i,
-    /\b(powerpoint|presentation|pptx|ppt)\b.*\b(file|document|for|about)\b/i,
-    /\bpitch\s+deck\b/i,
-    /\bslide\s*(show|deck)\b/i,
+    /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(powerpoint|presentation|pptx|ppt|slides?|deck)\b/i,
+    /\b(powerpoint|presentation|pptx|ppt)\b.*\b(file|document|for|about|on|with)\b/i,
+    /\bpitch\s*deck\b/i,
+    /\bslide\s*(show|deck|presentation)?\b/i,
+    /\b\d+\s*slides?\b/i, // "3 slides", "5 slide presentation"
   ];
 
-  // Word document patterns
+  // Word document patterns - expanded and more flexible
   const docPatterns = [
-    /\b(create|make|generate|build)\b.*\b(word|document|docx|doc)\b.*\b(file|for|about)\b/i,
-    /\b(word|docx)\b.*\b(document|file)\b/i,
-    /\b(create|make|generate)\b.*\b(report|letter|memo|manuscript|essay|paper|article)\b.*\b(word|docx|document)\b/i,
+    /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(word|docx)\b/i,
+    /\b(word|docx)\s*(document|doc|file)?\b/i, // "word document", "word doc", "word file", or just "word"
+    /\b(create|make|generate|write)\b.*\b(document|doc)\b.*\b(word|docx|editable)\b/i,
+    /\b(create|make|generate|write)\b.*\b(report|letter|memo|manuscript|contract|proposal)\b.*\b(document|word|docx)\b/i,
+    /\beditable\s*(document|doc)\b/i, // "editable document" implies Word
   ];
 
-  // PDF patterns (for creating PDFs, not just reading them)
+  // PDF patterns - expanded
   const pdfCreatePatterns = [
-    /\b(create|make|generate|build)\b.*\bpdf\b/i,
-    /\bpdf\b.*\b(file|document)\b.*\b(create|make|generate)\b/i,
+    /\b(create|make|generate|build|give me|i need|can you make)\b.*\bpdf\b/i,
+    /\bpdf\b.*\b(file|document|version|format)\b/i,
     /\b(fillable|form)\b.*\bpdf\b/i,
+    /\bpdf\s*(file|document|version)?\b.*\b(create|make|generate|of|for)\b/i,
+    /\b(save|export|convert)\b.*\b(as|to)\s*pdf\b/i,
+    /\bas\s*a?\s*pdf\b/i, // "as a pdf", "as pdf"
   ];
 
   // Check patterns in order of specificity
