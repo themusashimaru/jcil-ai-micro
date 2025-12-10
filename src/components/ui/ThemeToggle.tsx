@@ -1,7 +1,6 @@
 'use client';
 
 import { useTheme, Theme } from '@/contexts/ThemeContext';
-import { useState, useEffect } from 'react';
 
 interface ThemeToggleProps {
   className?: string;
@@ -9,45 +8,20 @@ interface ThemeToggleProps {
 
 /**
  * Theme toggle button for switching between themes.
- * - Regular users: Toggle between dark and light
- * - Admin users: Cycle through dark, light, and ocean (experimental)
+ * All users can cycle through: dark → light → ocean
  */
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const { theme, cycleTheme, isLoading } = useTheme();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
-  // Check if user is admin on mount (for ocean mode access)
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const response = await fetch('/api/user/is-admin');
-        if (response.ok) {
-          const data = await response.json();
-          setIsAdmin(data.isAdmin === true);
-        }
-      } catch (error) {
-        console.error('[ThemeToggle] Error checking admin status:', error);
-      } finally {
-        setCheckingAdmin(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, []);
-
-  // Determine available themes based on admin status
-  // Order: dark → light → ocean (ocean is admin-only)
-  const availableThemes: Theme[] = isAdmin
-    ? ['dark', 'light', 'ocean']
-    : ['dark', 'light'];
+  // All themes available to all users
+  const availableThemes: Theme[] = ['dark', 'light', 'ocean'];
 
   // Get the icon and label for current theme
   const getThemeIcon = () => {
     switch (theme) {
       case 'light':
         return (
-          // Sun icon - switch to ocean (for admin) or dark
+          // Sun icon - switch to ocean
           <svg
             className="h-4 w-4 md:h-5 md:w-5"
             fill="none"
@@ -96,11 +70,6 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
     return availableThemes[nextIndex];
   };
 
-  // Don't show while checking admin status
-  if (checkingAdmin) {
-    return null;
-  }
-
   return (
     <button
       onClick={() => cycleTheme(availableThemes)}
@@ -108,7 +77,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       className={`rounded-lg p-1.5 transition-opacity hover:opacity-70 ${className}`}
       style={{ color: 'var(--text-primary)' }}
       aria-label={`Switch to ${getNextTheme()} mode`}
-      title={`Switch to ${getNextTheme()} mode${theme === 'ocean' ? ' (Ocean - Admin Preview)' : ''}`}
+      title={`Switch to ${getNextTheme()} mode`}
     >
       {getThemeIcon()}
     </button>
