@@ -19,6 +19,7 @@
 'use client';
 
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
+import { createPortal } from 'react-dom';
 import type { Attachment } from '@/app/chat/types';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 
@@ -116,6 +117,13 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  // Track if component is mounted in browser (for portal)
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Set mounted state on client-side (for portal rendering)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Initial delay before starting placeholder animation (let welcome screen animate first)
   useEffect(() => {
@@ -525,17 +533,18 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
         )}
       </div>
 
-      {/* Attachment menu - rendered at root level to avoid z-index issues */}
-      {showAttachMenu && (
+      {/* Attachment menu - rendered via Portal to avoid z-index/stacking context issues */}
+      {/* The glass-morphism backdrop-filter creates a containing block that traps fixed elements */}
+      {showAttachMenu && isMounted && createPortal(
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-[998] bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm"
             onClick={() => setShowAttachMenu(false)}
             aria-hidden="true"
           />
           {/* Menu */}
-          <div className="fixed bottom-20 left-4 z-[999] w-56 rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
+          <div className="fixed bottom-24 left-4 z-[9999] w-56 rounded-lg border border-white/10 bg-zinc-900 shadow-xl">
             <button
               onClick={() => {
                 cameraInputRef.current?.click();
@@ -594,7 +603,8 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
               Upload File
             </button>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
