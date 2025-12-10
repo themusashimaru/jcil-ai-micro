@@ -49,10 +49,10 @@
   --surface-elevated: #ffffff;
   --border: rgba(0, 0, 0, 0.15);
 
-  /* Chat-specific light mode colors - True Glassmorphism */
-  --chat-input-bg: rgba(255, 255, 255, 0.7);
-  --chat-user-bubble-bg: rgba(30, 58, 95, 0.25);
-  --chat-user-bubble-text: #1e3a5f; /* Navy text for readable contrast on translucent bg */
+  /* Chat-specific light mode colors */
+  --chat-input-bg: rgba(255, 255, 255, 0.95); /* Nearly white input box */
+  --chat-user-bubble-bg: transparent; /* No bubble for user messages */
+  --chat-user-bubble-text: #1e3a5f; /* Dark navy text for user messages */
   --chat-ai-bubble-bg: rgba(255, 255, 255, 0.35);
   --chat-ai-bubble-text: #1a1a1a;
   --chat-ai-bubble-border: rgba(255, 255, 255, 0.5);
@@ -258,7 +258,9 @@
   }
 
   :root.light-mode .chat-bubble.user-bubble:hover {
-    background: rgba(30, 58, 95, 0.3);
+    background: transparent !important;
+    transform: none !important;
+    box-shadow: none !important;
   }
 
   :root.light-mode .chat-bubble.ai-bubble:hover {
@@ -571,7 +573,16 @@
   }
 
   :root.light-mode .chat-bubble.user-bubble {
-    border: 1px solid rgba(30, 58, 95, 0.15) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  :root.light-mode .chat-bubble.user-bubble::before,
+  :root.light-mode .chat-bubble.user-bubble::after {
+    display: none !important;
   }
 
   :root.light-mode .chat-bubble.ai-bubble {
@@ -856,16 +867,16 @@
 
   /* Premium glassmorphic input area (light mode) */
   :root.light-mode .chat-input-glass {
-    background: rgba(255, 255, 255, 0.5) !important;
+    background: rgba(255, 255, 255, 0.95) !important; /* Nearly white input */
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1.5px solid rgba(255, 255, 255, 0.6) !important;
-    border-top-color: rgba(255, 255, 255, 0.8);
-    border-left-color: rgba(255, 255, 255, 0.7);
-    border-bottom-color: rgba(30, 58, 95, 0.1);
-    border-right-color: rgba(30, 58, 95, 0.08);
+    border: 1px solid rgba(30, 58, 95, 0.15) !important;
+    border-top-color: rgba(255, 255, 255, 0.9);
+    border-left-color: rgba(255, 255, 255, 0.85);
+    border-bottom-color: rgba(30, 58, 95, 0.12);
+    border-right-color: rgba(30, 58, 95, 0.1);
     box-shadow:
-      0 8px 40px rgba(30, 58, 95, 0.12),
+      0 4px 20px rgba(30, 58, 95, 0.08),
       0 2px 8px rgba(30, 58, 95, 0.06),
       inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
   }

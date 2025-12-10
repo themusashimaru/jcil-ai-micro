@@ -362,7 +362,7 @@ export function MessageBubble({ message, isLast, isAdmin }: MessageBubbleProps) 
           )}
 
           {/* Timestamp and Admin Model Badge */}
-          <div className="mt-1 flex items-center gap-2 text-xs" style={{ color: isUser ? 'rgba(255, 255, 255, 0.7)' : 'var(--text-muted)' }}>
+          <div className={`mt-1 flex items-center gap-2 text-xs ${isUser ? 'light-mode-timestamp' : ''}`} style={{ color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--text-muted)', opacity: isUser ? 0.7 : 1 }}>
             <span>
               {new Date(message.timestamp).toLocaleTimeString([], {
                 hour: '2-digit',
