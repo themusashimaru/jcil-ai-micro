@@ -849,28 +849,98 @@ export async function createAnthropicCompletionWithSkills(
         },
       });
 
-      // Extract text content
+      // Extract text content and files
       const textParts: string[] = [];
       const files: GeneratedFile[] = [];
+      const seenFileIds = new Set<string>();
+
+      // Debug: Log the full response structure
+      console.log(`[Anthropic Skills] Response content blocks: ${response.content.length}`);
+      console.log(`[Anthropic Skills] Block types: ${response.content.map((b: { type: string }) => b.type).join(', ')}`);
 
       for (const block of response.content) {
         if (block.type === 'text') {
           textParts.push(block.text);
         }
-        // Check for file outputs from code execution
-        if ('file_id' in block && block.file_id) {
+
+        // Check for file outputs directly in content blocks
+        if ('file_id' in block && block.file_id && !seenFileIds.has(String(block.file_id))) {
+          seenFileIds.add(String(block.file_id));
           files.push({
-            file_id: block.file_id,
+            file_id: String(block.file_id),
             filename: 'filename' in block ? String(block.filename) : 'document',
             mime_type: 'mime_type' in block ? String(block.mime_type) : 'application/octet-stream',
           });
         }
+
+        // Check for server_tool_use or code execution result blocks
+        if (block.type === 'server_tool_use' || block.type === 'code_execution_tool_result') {
+          const blockData = block as unknown as Record<string, unknown>;
+          console.log(`[Anthropic Skills] Found ${block.type} block:`, JSON.stringify(blockData).slice(0, 500));
+
+          // Check for content array with file references
+          if ('content' in blockData && Array.isArray(blockData.content)) {
+            for (const item of blockData.content) {
+              if (item && typeof item === 'object' && 'file_id' in item && !seenFileIds.has(String(item.file_id))) {
+                seenFileIds.add(String(item.file_id));
+                files.push({
+                  file_id: String(item.file_id),
+                  filename: 'filename' in item ? String(item.filename) : 'document',
+                  mime_type: 'mime_type' in item ? String(item.mime_type) : 'application/octet-stream',
+                });
+              }
+            }
+          }
+
+          // Check for result object with files
+          if ('result' in blockData && typeof blockData.result === 'object' && blockData.result !== null) {
+            const result = blockData.result as Record<string, unknown>;
+            if ('files' in result && Array.isArray(result.files)) {
+              for (const file of result.files) {
+                if (file && typeof file === 'object') {
+                  const fileObj = file as Record<string, unknown>;
+                  const fileId = fileObj.file_id || fileObj.id;
+                  if (fileId && !seenFileIds.has(String(fileId))) {
+                    seenFileIds.add(String(fileId));
+                    files.push({
+                      file_id: String(fileId),
+                      filename: fileObj.filename ? String(fileObj.filename) : fileObj.name ? String(fileObj.name) : 'document',
+                      mime_type: fileObj.mime_type ? String(fileObj.mime_type) : 'application/octet-stream',
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
       }
 
-      // Check container for additional file information
+      // Check container for files
       const containerId = response.container?.id;
+      if (response.container && 'files' in response.container) {
+        const containerFiles = response.container.files as Array<{
+          file_id?: string;
+          id?: string;
+          filename?: string;
+          name?: string;
+          mime_type?: string;
+        }>;
+        if (Array.isArray(containerFiles)) {
+          for (const file of containerFiles) {
+            const fileId = file.file_id || file.id;
+            if (fileId && !seenFileIds.has(String(fileId))) {
+              seenFileIds.add(String(fileId));
+              files.push({
+                file_id: String(fileId),
+                filename: file.filename || file.name || 'document',
+                mime_type: file.mime_type || 'application/octet-stream',
+              });
+            }
+          }
+        }
+      }
 
-      console.log(`[Anthropic Skills] Completion successful. Files generated: ${files.length}`);
+      console.log(`[Anthropic Skills] Completion successful. Files generated: ${files.length}`, files.map(f => f.filename));
 
       return {
         text: textParts.join('\n'),

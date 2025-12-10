@@ -1026,9 +1026,13 @@ export function ChatClient() {
             sourcesUsed: data.sourcesUsed || 0,
             model: data.model || modelUsed,
             searchProvider: searchProvider,
+            files: data.files, // Generated documents (Excel, PowerPoint, Word, PDF)
             timestamp: new Date(),
           };
 
+          if (data.files?.length > 0) {
+            console.log(`[ChatClient] Document generation: ${data.files.length} file(s) generated`);
+          }
           if (data.citations?.length > 0 || data.sourcesUsed > 0) {
             console.log(`[ChatClient] Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`);
           }
