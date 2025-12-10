@@ -16,6 +16,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -28,6 +29,18 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubbleProps) {
   const isUser = message.role === 'user';
+  const [copied, setCopied] = useState(false);
+
+  // Copy message content to clipboard
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   const getToolIcon = (toolName: string) => {
     const icons: Record<string, string> = {
@@ -352,7 +365,7 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
             </div>
           )}
 
-          {/* Timestamp and Admin Model Badge */}
+          {/* Timestamp, Copy Button, and Admin Model Badge */}
           <div className={`mt-1 flex items-center gap-2 text-xs ${isUser ? 'light-mode-timestamp' : ''}`} style={{ color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--text-muted)', opacity: isUser ? 0.7 : 1 }}>
             <span>
               {new Date(message.timestamp).toLocaleTimeString([], {
@@ -360,6 +373,24 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
                 minute: '2-digit',
               })}
             </span>
+            {/* Copy button - AI messages only */}
+            {!isUser && (
+              <button
+                onClick={handleCopy}
+                className="p-1 rounded hover:bg-white/10 transition-colors"
+                title={copied ? 'Copied!' : 'Copy message'}
+              >
+                {copied ? (
+                  <svg className="h-3.5 w-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--text-muted)' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </button>
+            )}
             {/* Admin-only model indicator */}
             {isAdmin && !isUser && message.model && (
               <span
