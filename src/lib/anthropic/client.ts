@@ -731,6 +731,25 @@ export interface SkillParams {
 export function detectDocumentRequest(content: string): DocumentSkillType | null {
   const lowerContent = content.toLowerCase();
 
+  // PDF patterns for slides/presentations - check FIRST (most specific)
+  // This catches "slides as pdf", "presentation pdf", "powerpoint as pdf"
+  const pdfSlidesPatterns = [
+    /\b(slides?|presentation|powerpoint|deck)\b.*\b(as|in|to)\s*(a\s*)?(pdf|pdf\s*format)\b/i,
+    /\bpdf\b.*\b(slides?|presentation|powerpoint|deck)\b/i,
+    /\b(slides?|presentation)\b.*\bpdf\b/i,
+    /\bpdf\s*(slides?|presentation|deck)\b/i,
+  ];
+
+  // General PDF patterns - expanded
+  const pdfCreatePatterns = [
+    /\b(create|make|generate|build|give me|i need|can you make)\b.*\bpdf\b/i,
+    /\bpdf\b.*\b(file|document|version|format)\b/i,
+    /\b(fillable|form)\b.*\bpdf\b/i,
+    /\bpdf\s*(file|document|version)?\b.*\b(create|make|generate|of|for)\b/i,
+    /\b(save|export|convert)\b.*\b(as|to)\s*pdf\b/i,
+    /\bas\s*a?\s*pdf\b/i, // "as a pdf", "as pdf"
+  ];
+
   // Excel/Spreadsheet patterns - expanded for common phrasings
   const excelPatterns = [
     /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(excel|spreadsheet|xlsx|xls)\b/i,
@@ -743,7 +762,7 @@ export function detectDocumentRequest(content: string): DocumentSkillType | null
     /\btracking\s*(spreadsheet|sheet)\b/i,
   ];
 
-  // PowerPoint patterns - expanded
+  // PowerPoint patterns - expanded (but PDF slides patterns take priority)
   const pptPatterns = [
     /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(powerpoint|presentation|pptx|ppt|slides?|deck)\b/i,
     /\b(powerpoint|presentation|pptx|ppt)\b.*\b(file|document|for|about|on|with)\b/i,
@@ -761,28 +780,32 @@ export function detectDocumentRequest(content: string): DocumentSkillType | null
     /\beditable\s*(document|doc)\b/i, // "editable document" implies Word
   ];
 
-  // PDF patterns - expanded
-  const pdfCreatePatterns = [
-    /\b(create|make|generate|build|give me|i need|can you make)\b.*\bpdf\b/i,
-    /\bpdf\b.*\b(file|document|version|format)\b/i,
-    /\b(fillable|form)\b.*\bpdf\b/i,
-    /\bpdf\s*(file|document|version)?\b.*\b(create|make|generate|of|for)\b/i,
-    /\b(save|export|convert)\b.*\b(as|to)\s*pdf\b/i,
-    /\bas\s*a?\s*pdf\b/i, // "as a pdf", "as pdf"
-  ];
+  // Check patterns in order of priority:
+  // 1. PDF slides (most specific - "slides as pdf", "presentation as pdf")
+  // 2. General PDF ("make a pdf", "pdf document")
+  // 3. Excel ("spreadsheet", "excel file")
+  // 4. PowerPoint (regular slides without pdf)
+  // 5. Word ("word doc", "docx")
 
-  // Check patterns in order of specificity
+  if (pdfSlidesPatterns.some(pattern => pattern.test(lowerContent))) {
+    console.log('[Document Detection] Matched: PDF slides/presentation');
+    return 'pdf';
+  }
+  if (pdfCreatePatterns.some(pattern => pattern.test(lowerContent))) {
+    console.log('[Document Detection] Matched: PDF');
+    return 'pdf';
+  }
   if (excelPatterns.some(pattern => pattern.test(lowerContent))) {
+    console.log('[Document Detection] Matched: Excel');
     return 'xlsx';
   }
   if (pptPatterns.some(pattern => pattern.test(lowerContent))) {
+    console.log('[Document Detection] Matched: PowerPoint');
     return 'pptx';
   }
   if (docPatterns.some(pattern => pattern.test(lowerContent))) {
+    console.log('[Document Detection] Matched: Word');
     return 'docx';
-  }
-  if (pdfCreatePatterns.some(pattern => pattern.test(lowerContent))) {
-    return 'pdf';
   }
 
   return null;
