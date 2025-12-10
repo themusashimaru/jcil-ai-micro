@@ -14,9 +14,9 @@ interface PricingCardProps {
   title: string;
   description: string;
   price: number;
+  firstMonthPrice: number;
   features: string[];
   popular?: boolean;
-  promo?: string;
   onSubscribe: (tier: PricingTier) => void;
   loading: boolean;
 }
@@ -26,9 +26,9 @@ function PricingCard({
   title,
   description,
   price,
+  firstMonthPrice,
   features,
   popular = false,
-  promo,
   onSubscribe,
   loading,
 }: PricingCardProps) {
@@ -49,20 +49,22 @@ function PricingCard({
         </div>
       )}
 
-      {/* Promo Badge */}
-      {promo && (
-        <div className="mb-4 -mt-2">
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm">
-            {promo}
-          </span>
-        </div>
-      )}
+      {/* 50% Off First Month Badge */}
+      <div className="mb-4 -mt-2">
+        <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm">
+          50% OFF FIRST MONTH
+        </span>
+      </div>
 
       <h3 className="mb-2 text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
       <p className="mb-4 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>{description}</p>
+      <div className="mb-2">
+        <span className="text-4xl sm:text-5xl font-bold" style={{ color: 'var(--text-primary)' }}>${firstMonthPrice}</span>
+        <span style={{ color: 'var(--text-secondary)' }}> first month</span>
+      </div>
       <div className="mb-6">
-        <span className="text-4xl sm:text-5xl font-bold" style={{ color: 'var(--text-primary)' }}>${price}</span>
-        <span style={{ color: 'var(--text-secondary)' }}>/month</span>
+        <span className="text-sm line-through" style={{ color: 'var(--text-muted)' }}>${price}/mo</span>
+        <span className="text-sm ml-2" style={{ color: 'var(--text-secondary)' }}>then ${price}/mo</span>
       </div>
       <ul className="mb-8 space-y-3 text-sm flex-1">
         {features.map((feature, index) => (
@@ -135,7 +137,7 @@ export default function PricingSection() {
       title: 'Plus',
       description: 'Essential tools for everyday faith and life',
       price: 18,
-      promo: '🎉 2 WEEKS FREE',
+      firstMonthPrice: 9,
       features: [
         'Intelligent AI chat assistant',
         'Real-time fact-checking with Perplexity',
@@ -150,6 +152,7 @@ export default function PricingSection() {
       title: 'Pro',
       description: 'Advanced tools for working professionals',
       price: 30,
+      firstMonthPrice: 15,
       features: [
         'Everything in Plus',
         '3M token context window',
@@ -165,6 +168,7 @@ export default function PricingSection() {
       title: 'Executive',
       description: 'Highest intelligence AI for power users',
       price: 99,
+      firstMonthPrice: 49,
       features: [
         'Everything in Pro',
         'Highest intelligence AI model',
@@ -180,9 +184,9 @@ export default function PricingSection() {
     <section className="container mx-auto px-4 py-12 sm:py-20" id="pricing">
       {/* Limited Time Offer Banner */}
       <div className="mb-8 mx-auto max-w-2xl">
-        <div className="bg-gradient-to-r from-blue-900 to-blue-700 rounded-xl p-4 text-center text-white shadow-lg">
-          <p className="text-sm font-medium mb-1">🚀 Limited Time Offer</p>
-          <p className="text-lg font-bold">Sign up today and get 2 weeks FREE on Plus!</p>
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-4 text-center text-white shadow-lg">
+          <p className="text-sm font-medium mb-1">LIMITED TIME OFFER</p>
+          <p className="text-lg font-bold">50% OFF Your First Month - All Plans!</p>
         </div>
       </div>
 
