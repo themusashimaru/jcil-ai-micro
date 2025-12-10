@@ -700,7 +700,7 @@
 
   /* Premium glassmorphic input area (ocean mode) */
   :root.ocean-mode .chat-input-glass {
-    background: rgba(12, 25, 45, 0.9) !important;
+    background: rgba(3, 8, 16, 0.95) !important; /* Match deep navy background #030810 */
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(77, 200, 255, 0.2) !important;
