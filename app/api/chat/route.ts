@@ -93,15 +93,51 @@ You are creating a PROFESSIONAL document. Quality and formatting are paramount.
 
   const typeSpecific: Record<string, string> = {
     pdf: `### PDF Specific Requirements:
-- For RESUMES/CVs:
-  * Name at top: 18-24pt bold, centered
-  * Contact info: 10-11pt, centered directly below name (one line: email | phone | location)
-  * Section headers: 12pt bold, ALL CAPS, with subtle underline
-  * Body text: 10-11pt regular
-  * Consistent bullet points with proper indentation
-  * NO generic titles like "Resume Template" - start with the person's actual name
-  * Use clean, professional layout with good whitespace
-  * Keep to 1-2 pages maximum
+
+**RESUME/CV FORMATTING (CRITICAL - FOLLOW EXACTLY):**
+
+1. **HEADER SECTION:**
+   - Name: 18-24pt bold, centered at top
+   - Contact line directly below name: ONLY phone | email | LinkedIn URL (NO physical address)
+   - Contact info: 10pt, centered, separated by pipes (|)
+   - Example: "(555) 123-4567 | john.doe@email.com | linkedin.com/in/johndoe"
+
+2. **PROFESSIONAL SUMMARY:**
+   - Section header: 11pt bold, ALL CAPS, LEFT aligned with subtle line below
+   - Summary text: 10pt regular, LEFT aligned
+   - MUST stay within page margins - use text wrapping, do NOT exceed margins
+   - Keep to 3-4 lines maximum
+
+3. **PROFESSIONAL EXPERIENCE (CRITICAL LAYOUT):**
+   - Section header: 11pt bold, ALL CAPS, LEFT aligned with line below
+   - For EACH job entry, format EXACTLY like this:
+     * Line 1: Job Title - 11pt bold, LEFT aligned
+     * Line 2: Company Name, City ST - 10pt regular, LEFT aligned
+     * Line 2 (same line): Date Range - 10pt, RIGHT aligned (use tab or spacing)
+     * Bullet points: 10pt, indented, describe achievements
+   - Example layout:
+     [Job Title]
+     [Company, City ST]                              [Date Range - RIGHT aligned]
+     • Achievement bullet point
+     • Another achievement
+
+4. **EDUCATION:**
+   - Section header: 11pt bold, ALL CAPS, LEFT aligned with line below
+   - ALL education entries LEFT aligned (NOT centered)
+   - Degree and school on separate lines or same line
+   - Graduation date RIGHT aligned on same line as school
+
+5. **SKILLS:**
+   - Section header: 11pt bold, ALL CAPS, LEFT aligned
+   - Skills listed LEFT aligned, can use columns or comma-separated
+
+6. **GENERAL RULES:**
+   - Page margins: 0.5-0.75 inch on all sides
+   - NO text should extend past margins
+   - Use consistent spacing between sections (10-12pt)
+   - Keep to 1 page if possible, 2 pages maximum
+   - NO generic titles like "Resume Template" - start with actual name
+   - All body text LEFT aligned unless specified otherwise
 
 - For PRESENTATIONS as PDF:
   * Title slide with large header (36pt+)

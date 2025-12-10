@@ -394,40 +394,44 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
 
                   return (
                     <div key={index} className="flex flex-col gap-1">
-                      <a
-                        href={file.download_url}
-                        download={file.filename}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] cursor-pointer w-full"
+                      <button
+                        className="inline-flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all hover:scale-[1.02] cursor-pointer w-full text-left"
                         style={{
                           backgroundColor: 'var(--primary)',
                           color: 'white',
                         }}
                         title={`Download ${file.filename}`}
-                        onClick={(e) => {
-                          // For better mobile experience, prevent default and use programmatic download
-                          e.preventDefault();
-                          const link = document.createElement('a');
-                          link.href = file.download_url;
-                          link.download = file.filename;
-                          link.target = '_blank';
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
+                        onClick={async () => {
+                          // Use fetch + blob to force download (prevents opening in viewer)
+                          try {
+                            const response = await fetch(file.download_url);
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = file.filename;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(url);
+                          } catch (err) {
+                            // Fallback: open in new tab
+                            console.error('Download failed:', err);
+                            window.open(file.download_url, '_blank');
+                          }
                         }}
                       >
                         <span className="text-lg">{icon}</span>
-                        <div className="flex-1 text-left">
+                        <div className="flex-1">
                           <div className="font-semibold">Download {label}</div>
                           <div className="text-xs opacity-80 truncate max-w-[200px]">{file.filename}</div>
                         </div>
                         <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                      </a>
+                      </button>
                       <p className="text-[10px] px-1" style={{ color: 'var(--text-muted)' }}>
-                        Tap to download. On mobile, use your browser&apos;s back button to return here.
+                        File will download to your device.
                       </p>
                     </div>
                   );
