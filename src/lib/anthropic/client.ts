@@ -697,3 +697,244 @@ export function isImageGenerationRequest(content: string): boolean {
 
   return imagePatterns.some(pattern => pattern.test(content));
 }
+
+// ========================================
+// ANTHROPIC SKILLS API
+// Document generation capabilities (xlsx, pptx, docx, pdf)
+// ========================================
+
+/**
+ * Beta headers required for Skills API
+ */
+const SKILLS_BETA_HEADERS = [
+  'skills-2025-10-02',
+  'code-execution-2025-08-25',
+];
+
+const FILES_BETA_HEADER = 'files-api-2025-04-14';
+
+/**
+ * Available Anthropic document skills
+ */
+export type DocumentSkillType = 'xlsx' | 'pptx' | 'docx' | 'pdf';
+
+export interface SkillParams {
+  skill_id: DocumentSkillType;
+  type: 'anthropic';
+  version?: string;
+}
+
+/**
+ * Check if the user's message is requesting document generation
+ * Returns the type of document if detected, null otherwise
+ */
+export function detectDocumentRequest(content: string): DocumentSkillType | null {
+  const lowerContent = content.toLowerCase();
+
+  // Excel/Spreadsheet patterns
+  const excelPatterns = [
+    /\b(create|make|generate|build)\b.*\b(excel|spreadsheet|xlsx|xls)\b/i,
+    /\b(excel|spreadsheet|xlsx)\b.*\b(file|document|for)\b/i,
+    /\bbudget\b.*\b(spreadsheet|template)\b/i,
+    /\bfinancial\b.*\b(model|spreadsheet)\b/i,
+    /\bdata\s+table\b/i,
+    /\b(chart|graph)\b.*\b(data|excel)\b/i,
+  ];
+
+  // PowerPoint patterns
+  const pptPatterns = [
+    /\b(create|make|generate|build)\b.*\b(powerpoint|presentation|pptx|ppt|slides?|deck)\b/i,
+    /\b(powerpoint|presentation|pptx|ppt)\b.*\b(file|document|for|about)\b/i,
+    /\bpitch\s+deck\b/i,
+    /\bslide\s*(show|deck)\b/i,
+  ];
+
+  // Word document patterns
+  const docPatterns = [
+    /\b(create|make|generate|build)\b.*\b(word|document|docx|doc)\b.*\b(file|for|about)\b/i,
+    /\b(word|docx)\b.*\b(document|file)\b/i,
+    /\b(create|make|generate)\b.*\b(report|letter|memo|manuscript|essay|paper|article)\b.*\b(word|docx|document)\b/i,
+  ];
+
+  // PDF patterns (for creating PDFs, not just reading them)
+  const pdfCreatePatterns = [
+    /\b(create|make|generate|build)\b.*\bpdf\b/i,
+    /\bpdf\b.*\b(file|document)\b.*\b(create|make|generate)\b/i,
+    /\b(fillable|form)\b.*\bpdf\b/i,
+  ];
+
+  // Check patterns in order of specificity
+  if (excelPatterns.some(pattern => pattern.test(lowerContent))) {
+    return 'xlsx';
+  }
+  if (pptPatterns.some(pattern => pattern.test(lowerContent))) {
+    return 'pptx';
+  }
+  if (docPatterns.some(pattern => pattern.test(lowerContent))) {
+    return 'docx';
+  }
+  if (pdfCreatePatterns.some(pattern => pattern.test(lowerContent))) {
+    return 'pdf';
+  }
+
+  return null;
+}
+
+/**
+ * Get the appropriate skill configuration for a document type
+ */
+export function getSkillConfig(docType: DocumentSkillType): SkillParams {
+  return {
+    skill_id: docType,
+    type: 'anthropic',
+  };
+}
+
+/**
+ * File information returned when a document is generated
+ */
+export interface GeneratedFile {
+  file_id: string;
+  filename: string;
+  mime_type: string;
+  size_bytes?: number;
+}
+
+/**
+ * Create a chat completion with Skills enabled for document generation
+ * Uses the beta API with code execution and skills
+ */
+export async function createAnthropicCompletionWithSkills(
+  options: AnthropicChatOptions & {
+    skills: DocumentSkillType[];
+  }
+): Promise<{
+  text: string;
+  model: string;
+  files?: GeneratedFile[];
+  containerId?: string;
+}> {
+  const model = options.model || DEFAULT_MODEL;
+  const maxTokens = options.maxTokens || 8192; // Higher for document generation
+  const temperature = options.temperature ?? 0.7;
+
+  const { system, messages } = convertMessages(options.messages, options.systemPrompt);
+
+  // Build skills configuration
+  const skillsConfig = options.skills.map(skill => getSkillConfig(skill));
+
+  const maxRetries = Math.max(1, getTotalKeyCount());
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const client = getAnthropicClient();
+    lastUsedClient = client;
+
+    try {
+      // Use the beta messages API with skills
+      const response = await client.beta.messages.create({
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        betas: SKILLS_BETA_HEADERS,
+        system: [
+          {
+            type: 'text',
+            text: system,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        messages,
+        container: {
+          skills: skillsConfig,
+        },
+      });
+
+      // Extract text content
+      const textParts: string[] = [];
+      const files: GeneratedFile[] = [];
+
+      for (const block of response.content) {
+        if (block.type === 'text') {
+          textParts.push(block.text);
+        }
+        // Check for file outputs from code execution
+        if ('file_id' in block && block.file_id) {
+          files.push({
+            file_id: block.file_id,
+            filename: 'filename' in block ? String(block.filename) : 'document',
+            mime_type: 'mime_type' in block ? String(block.mime_type) : 'application/octet-stream',
+          });
+        }
+      }
+
+      // Check container for additional file information
+      const containerId = response.container?.id;
+
+      console.log(`[Anthropic Skills] Completion successful. Files generated: ${files.length}`);
+
+      return {
+        text: textParts.join('\n'),
+        model,
+        files: files.length > 0 ? files : undefined,
+        containerId,
+      };
+    } catch (error) {
+      if (handleRateLimitError(error) && attempt < maxRetries - 1) {
+        console.log(`[Anthropic Skills] Rate limited on attempt ${attempt + 1}, retrying...`);
+        continue;
+      }
+
+      console.error('[Anthropic Skills] Completion error:', error);
+      throw error;
+    }
+  }
+
+  throw new Error('All API keys exhausted while generating document');
+}
+
+/**
+ * Download a file from Anthropic's Files API
+ * Returns the file as an ArrayBuffer
+ */
+export async function downloadAnthropicFile(fileId: string): Promise<{
+  data: ArrayBuffer;
+  filename: string;
+  mimeType: string;
+}> {
+  initializeApiKeys();
+  const client = getAnthropicClient();
+
+  try {
+    // First get file metadata
+    const metadata = await client.beta.files.retrieveMetadata(fileId, {
+      betas: [FILES_BETA_HEADER],
+    });
+
+    // Then download the file
+    const response = await client.beta.files.download(fileId, {
+      betas: [FILES_BETA_HEADER],
+    });
+
+    const data = await response.arrayBuffer();
+
+    console.log(`[Anthropic Files] Downloaded file: ${metadata.filename} (${metadata.size_bytes} bytes)`);
+
+    return {
+      data,
+      filename: metadata.filename,
+      mimeType: metadata.mime_type,
+    };
+  } catch (error) {
+    console.error('[Anthropic Files] Download error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check if Skills are available for use
+ * Returns true if we have API keys configured
+ */
+export function isSkillsAvailable(): boolean {
+  initializeApiKeys();
+  return primaryPool.length > 0 || fallbackPool.length > 0;
+}

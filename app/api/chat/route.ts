@@ -51,7 +51,13 @@ import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementIm
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider, getModelForTier } from '@/lib/provider/settings';
-import { createAnthropicCompletion, createAnthropicStreamingCompletion, createAnthropicCompletionWithSearch } from '@/lib/anthropic/client';
+import {
+  createAnthropicCompletion,
+  createAnthropicStreamingCompletion,
+  createAnthropicCompletionWithSearch,
+  createAnthropicCompletionWithSkills,
+  detectDocumentRequest,
+} from '@/lib/anthropic/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
 // import { braveSearch } from '@/lib/brave/search';
@@ -805,6 +811,67 @@ export async function POST(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? getSystemPromptForTool(effectiveTool as any)
         : 'You are a helpful AI assistant.';
+
+      // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
+      const documentType = detectDocumentRequest(lastUserContent);
+      if (documentType && isAuthenticated) {
+        console.log(`[Chat API] Document generation detected: ${documentType}`);
+
+        try {
+          // Use Skills API for document generation
+          const result = await createAnthropicCompletionWithSkills({
+            messages: messagesWithContext,
+            model: anthropicModel,
+            maxTokens: max_tokens,
+            temperature,
+            systemPrompt,
+            userId: rateLimitIdentifier,
+            planKey: userTier,
+            skills: [documentType],
+          });
+
+          // Build response with file information
+          const responseData: {
+            type: string;
+            content: string;
+            model: string;
+            files?: Array<{
+              file_id: string;
+              filename: string;
+              mime_type: string;
+              download_url: string;
+            }>;
+          } = {
+            type: 'text',
+            content: result.text,
+            model: result.model,
+          };
+
+          // Add file download URLs if files were generated
+          if (result.files && result.files.length > 0) {
+            responseData.files = result.files.map(file => ({
+              file_id: file.file_id,
+              filename: file.filename,
+              mime_type: file.mime_type,
+              download_url: `/api/files/anthropic/${file.file_id}`,
+            }));
+            console.log(`[Chat API] Generated ${result.files.length} document(s)`);
+          }
+
+          return new Response(JSON.stringify(responseData), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': result.model,
+              'X-Provider': 'anthropic',
+              'X-Document-Type': documentType,
+            },
+          });
+        } catch (skillError) {
+          console.error('[Chat API] Skills API error, falling back to regular completion:', skillError);
+          // Fall through to regular completion if Skills fails
+        }
+      }
 
       // Non-streaming for image analysis
       if (hasImages) {

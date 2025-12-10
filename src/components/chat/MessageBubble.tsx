@@ -365,6 +365,48 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
             </div>
           )}
 
+          {/* Generated Files Download Section */}
+          {!isUser && message.files && message.files.length > 0 && (
+            <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
+              <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
+                📎 Generated Documents:
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {message.files.map((file, index) => {
+                  // Get icon based on file type
+                  const getFileIcon = (mimeType: string) => {
+                    if (mimeType.includes('spreadsheet') || mimeType.includes('xlsx')) return '📊';
+                    if (mimeType.includes('presentation') || mimeType.includes('pptx')) return '📽️';
+                    if (mimeType.includes('document') || mimeType.includes('docx')) return '📄';
+                    if (mimeType.includes('pdf')) return '📑';
+                    return '📁';
+                  };
+
+                  return (
+                    <a
+                      key={index}
+                      href={file.download_url}
+                      download={file.filename}
+                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 cursor-pointer"
+                      style={{
+                        backgroundColor: 'var(--primary-hover)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--primary)',
+                      }}
+                      title={`Download ${file.filename}`}
+                    >
+                      <span>{getFileIcon(file.mime_type)}</span>
+                      <span className="truncate max-w-[200px]">{file.filename}</span>
+                      <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Timestamp, Copy Button, and Admin Model Badge */}
           <div className={`mt-1 flex items-center gap-2 text-xs ${isUser ? 'light-mode-timestamp' : ''}`} style={{ color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--text-muted)', opacity: isUser ? 0.7 : 1 }}>
             <span>
