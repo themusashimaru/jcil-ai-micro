@@ -1,14 +1,14 @@
 /**
- * Usage Limits & Monthly Token Ceilings
+ * Usage Limits & Token Ceilings
  *
- * Tracks per-user token usage and enforces monthly limits
+ * Tracks per-user token usage and enforces limits
  * Warns at 80%, hard stops at 100%
  *
  * Plan Configuration:
- * - free: $0/mo, 100,000 tokens/month (legacy users only)
- * - plus: $18/mo, 1,000,000 tokens/month
- * - pro: $30/mo, 3,000,000 tokens/month
- * - executive: $99/mo, 5,000,000 tokens/month
+ * - free: 10,000 tokens ONE-TIME (trial, never resets - upgrade to continue)
+ * - plus: $18/mo, 1,000,000 tokens/month (resets monthly)
+ * - pro: $30/mo, 3,000,000 tokens/month (resets monthly)
+ * - executive: $99/mo, 5,000,000 tokens/month (resets monthly)
  */
 
 // ========================================
@@ -17,11 +17,11 @@
 
 // Plan limits (tokens per month)
 const TOKEN_LIMITS: Record<string, number> = {
-  free: 100_000,       // 100K tokens - legacy users only
-  plus: 1_000_000,     // 1M tokens
-  basic: 1_000_000,    // 1M tokens (legacy alias for plus)
-  pro: 3_000_000,      // 3M tokens
-  executive: 5_000_000, // 5M tokens
+  free: 10_000,          // 10K tokens - free trial (~2-3 days)
+  plus: 1_000_000,       // 1M tokens
+  basic: 1_000_000,      // 1M tokens (legacy alias for plus)
+  pro: 3_000_000,        // 3M tokens
+  executive: 5_000_000,  // 5M tokens
 };
 
 // Image generation has been removed from the platform
@@ -136,15 +136,22 @@ export async function incrementTokenUsage(
   tokensUsed: number = 0
 ): Promise<TokenUsageResult> {
   const limit = getTokenLimit(planKey);
+
+  // Free users get a ONE-TIME 10K token trial (no monthly reset)
+  // Paid users get monthly reset
+  const isFreeUser = planKey === 'free';
   const monthKey = getMonthKey();
-  const key = `tokens:${userId}:${monthKey}`;
+  const key = isFreeUser
+    ? `tokens:${userId}:lifetime`  // Free: lifetime limit, never resets
+    : `tokens:${userId}:${monthKey}`; // Paid: monthly reset
 
   try {
     const r = await getRedis();
     const used = await r.incrby(key, tokensUsed);
 
-    // Set expiry on first use (35 days for safety - covers month boundary)
-    if (used === tokensUsed) {
+    // Set expiry only for paid users (35 days for safety - covers month boundary)
+    // Free users have no expiry - their 10K is forever
+    if (!isFreeUser && used === tokensUsed) {
       await r.expire(key, 60 * 60 * 24 * 35);
     }
 
@@ -173,8 +180,13 @@ export async function incrementTokenUsage(
  */
 export async function getTokenUsage(userId: string, planKey: string = 'free'): Promise<TokenUsageResult> {
   const limit = getTokenLimit(planKey);
+
+  // Free users: lifetime key, Paid users: monthly key
+  const isFreeUser = planKey === 'free';
   const monthKey = getMonthKey();
-  const key = `tokens:${userId}:${monthKey}`;
+  const key = isFreeUser
+    ? `tokens:${userId}:lifetime`
+    : `tokens:${userId}:${monthKey}`;
 
   try {
     const r = await getRedis();
@@ -225,12 +237,18 @@ export async function resetTokenUsage(userId: string): Promise<void> {
 /**
  * Format token limit warning message
  */
-export function getTokenLimitWarningMessage(usage: TokenUsageResult): string | null {
+export function getTokenLimitWarningMessage(usage: TokenUsageResult, isFreeUser: boolean = false): string | null {
   if (usage.stop) {
+    if (isFreeUser) {
+      return `You've used your free trial tokens! 🎉 Get 50% OFF your first month on any plan - Plus ($9), Pro ($15), or Executive ($49). Upgrade now to keep chatting with unlimited AI assistance!`;
+    }
     return `You've reached your monthly token limit. To continue chatting, please visit Settings and upgrade to a higher tier plan. Your limit will reset at the start of next month.`;
   }
   if (usage.warn) {
     const remainingFormatted = formatTokenCount(usage.remaining);
+    if (isFreeUser) {
+      return `You're almost out of free trial tokens (${remainingFormatted} remaining). 🎉 Get 50% OFF your first month when you upgrade!`;
+    }
     return `Heads up: You're at ${usage.percentage}% of your monthly token limit (${remainingFormatted} remaining). Consider upgrading your plan for more capacity.`;
   }
   return null;
