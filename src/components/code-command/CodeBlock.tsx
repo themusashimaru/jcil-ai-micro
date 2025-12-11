@@ -13,6 +13,19 @@
 
 import { useState } from 'react';
 
+/**
+ * Escape HTML entities to prevent XSS attacks
+ * Must be called BEFORE applying syntax highlighting
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 interface CodeBlockProps {
   code: string;
   language?: string;
@@ -47,7 +60,9 @@ function highlightSyntax(line: string, _language?: string): JSX.Element {
     'object', 'Array', 'Promise', 'Map', 'Set', 'int', 'float', 'str', 'bool',
   ];
 
-  let result = line;
+  // SECURITY: Escape HTML entities first to prevent XSS
+  // This ensures any <script> or other malicious HTML is displayed as text
+  let result = escapeHtml(line);
 
   // Highlight strings (simple approach)
   result = result.replace(
