@@ -1528,11 +1528,25 @@ export function ChatClient() {
         return;
       }
 
-      // Show user-friendly error message based on what was being generated
-      let errorContent = 'Due to high traffic, I wasn\'t able to process your request. Please try again in a few seconds.';
+      // Parse error message for specific error types
+      const errorMsg = error instanceof Error ? error.message.toLowerCase() : '';
+      let errorContent = '';
 
-      // Check if this was a document generation request
-      if (pendingDocumentType) {
+      // Check for specific error types and provide helpful messages
+      if (errorMsg.includes('rate limit') || errorMsg.includes('429') || errorMsg.includes('too many')) {
+        errorContent = 'You\'re sending messages too quickly. Please wait a moment and try again.';
+      } else if (errorMsg.includes('token limit') || errorMsg.includes('usage limit')) {
+        errorContent = 'You\'ve reached your usage limit. Check your account for details or upgrade your plan.';
+      } else if (errorMsg.includes('moderation') || errorMsg.includes('content policy')) {
+        errorContent = 'Your message couldn\'t be processed due to content guidelines. Please rephrase and try again.';
+      } else if (errorMsg.includes('timeout') || errorMsg.includes('timed out')) {
+        errorContent = 'The request took too long. Please try again with a simpler message.';
+      } else if (errorMsg.includes('server') || errorMsg.includes('500') || errorMsg.includes('503')) {
+        errorContent = 'The server is temporarily unavailable. Please try again in a few moments.';
+      } else if (errorMsg.includes('unauthorized') || errorMsg.includes('401')) {
+        errorContent = 'Your session may have expired. Please refresh the page and try again.';
+      } else if (pendingDocumentType) {
+        // Document generation specific error
         const docTypeNames: Record<string, string> = {
           pdf: 'PDF',
           docx: 'Word document',
@@ -1541,6 +1555,9 @@ export function ChatClient() {
         };
         const docName = docTypeNames[pendingDocumentType] || 'document';
         errorContent = `I wasn't able to create your ${docName}. Document generation can take up to 2 minutes for complex files. Please try again, or simplify your request if this keeps happening.`;
+      } else {
+        // Generic fallback
+        errorContent = 'Something went wrong processing your request. Please try again.';
       }
 
       const errorMessage: Message = {

@@ -21,6 +21,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
+import { MessageErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useTheme } from '@/contexts/ThemeContext';
 // REMOVED: Email and Essay tools - gpt-5-mini handles these in regular chat
@@ -295,11 +296,13 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
               ref={isLastUserMessage ? lastUserMessageRef : null}
               className={isRecentMessage ? 'message-enter' : ''}
             >
-              <MessageBubble
-                message={message}
-                isLast={index === messages.length - 1}
-                isAdmin={isAdmin}
-              />
+              <MessageErrorBoundary>
+                <MessageBubble
+                  message={message}
+                  isLast={index === messages.length - 1}
+                  isAdmin={isAdmin}
+                />
+              </MessageErrorBoundary>
             </div>
           );
         })}
