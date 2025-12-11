@@ -337,7 +337,7 @@ export function ChatClient() {
     };
   }, []);
 
-  // Cleanup on unmount - abort any in-flight requests
+  // Cleanup on unmount - abort any in-flight requests and stop polling
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -346,6 +346,11 @@ export function ChatClient() {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
+      }
+      // Stop any active polling intervals to prevent memory leaks
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     };
   }, []);
@@ -461,10 +466,17 @@ export function ChatClient() {
         setIsStreaming(false); // Reset streaming state
 
         try {
-          // Call the process-pending endpoint to immediately process the request
+          // Call the process-pending endpoint with a 2-minute timeout
+          // This prevents the "Reply incoming" indicator from hanging indefinitely
+          const pendingController = new AbortController();
+          const timeoutId = setTimeout(() => pendingController.abort(), 120000); // 2 minute timeout
+
           const response = await fetch(`/api/conversations/${chatId}/process-pending`, {
             method: 'POST',
+            signal: pendingController.signal,
           });
+
+          clearTimeout(timeoutId); // Clear timeout if fetch completes
 
           if (!isMountedRef.current) return;
 
@@ -490,7 +502,13 @@ export function ChatClient() {
           }
           // For 'failed' or 'error', we just stop waiting - user can try again
         } catch (error) {
-          console.error('[ChatClient] Error processing pending request:', error);
+          // Check if this was a timeout abort
+          const isTimeoutError = error instanceof Error && error.name === 'AbortError';
+          if (isTimeoutError) {
+            console.log('[ChatClient] Pending request timed out after 2 minutes');
+          } else {
+            console.error('[ChatClient] Error processing pending request:', error);
+          }
         } finally {
           if (isMountedRef.current) {
             isProcessingRef.current = false;
@@ -1488,6 +1506,8 @@ export function ChatClient() {
       if (isAbortError || isNetworkError) {
         // User navigated away or network issue - this is not a server error
         console.log('[ChatClient] Request interrupted:', error instanceof Error ? error.message : 'unknown');
+        // Clean up abort controller to prevent memory leaks
+        abortControllerRef.current = null;
         // Only update state if component is still mounted
         if (isMountedRef.current) {
           setIsStreaming(false);
@@ -1533,6 +1553,8 @@ export function ChatClient() {
       setMessages((prev) => [...prev, errorMessage]);
       setIsStreaming(false);
       setPendingDocumentType(null);
+      // Clean up abort controller to prevent memory leaks
+      abortControllerRef.current = null;
 
       // Save error message to database (keep technical details in logs only)
       await saveMessageToDatabase(newChatId, 'assistant', errorMessage.content, 'error');
