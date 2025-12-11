@@ -230,6 +230,7 @@
   }
 
   :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble::before,
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble::before,
   :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble::after {
     display: none;
   }
