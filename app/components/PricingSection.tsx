@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type PricingTier = 'plus' | 'pro' | 'executive';
 
@@ -94,6 +94,32 @@ function PricingCard({
 export default function PricingSection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset loading state when user navigates back (browser back button)
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // If page was restored from bfcache, reset loading state
+      if (event.persisted) {
+        setLoading(false);
+        setError(null);
+      }
+    };
+
+    // Also reset on visibility change (tab switching)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setLoading(false);
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const handleSubscribe = async (tier: PricingTier) => {
     try {

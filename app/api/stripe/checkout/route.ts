@@ -58,9 +58,12 @@ export async function POST(request: NextRequest) {
 
     // Get price ID for the tier
     const priceId = STRIPE_PRICE_IDS[tier as keyof typeof STRIPE_PRICE_IDS];
+    console.log(`[Stripe Checkout] Tier: ${tier}, Price ID: ${priceId || 'NOT FOUND'}`);
+    console.log(`[Stripe Checkout] Env vars - PLUS: ${process.env.STRIPE_PRICE_ID_PLUS ? 'SET' : 'MISSING'}, PRO: ${process.env.STRIPE_PRICE_ID_PRO ? 'SET' : 'MISSING'}, EXECUTIVE: ${process.env.STRIPE_PRICE_ID_EXECUTIVE ? 'SET' : 'MISSING'}`);
+
     if (!priceId) {
       return NextResponse.json(
-        { error: 'Price ID not configured for this tier' },
+        { error: `Price ID not configured for tier: ${tier}. Please check STRIPE_PRICE_ID_${tier.toUpperCase()} env var.` },
         { status: 500 }
       );
     }
