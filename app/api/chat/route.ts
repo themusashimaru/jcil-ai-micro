@@ -71,6 +71,58 @@ import { cookies } from 'next/headers';
 const RATE_LIMIT_AUTHENTICATED = 60; // 60 messages/hour for logged-in users
 const RATE_LIMIT_ANONYMOUS = 20; // 20 messages/hour for anonymous users
 
+// ========================================
+// TOKEN & CONTEXT LIMITS (Cost Optimization)
+// ========================================
+const MAX_RESPONSE_TOKENS = 4096; // Cap response size (saves money)
+const DEFAULT_RESPONSE_TOKENS = 2048; // Default if not specified
+const MAX_CONTEXT_MESSAGES = 40; // Max messages to send (oldest get truncated)
+const MAX_CONTEXT_CHARS = 150000; // ~37K tokens approx (leave room for response)
+
+/**
+ * Truncate conversation history to fit within context limits
+ * Keeps system messages and most recent messages, truncates from the middle
+ */
+function truncateMessages(messages: CoreMessage[], maxMessages: number = MAX_CONTEXT_MESSAGES, maxChars: number = MAX_CONTEXT_CHARS): CoreMessage[] {
+  if (messages.length <= maxMessages) {
+    // Still check character limit
+    let totalChars = 0;
+    const result: CoreMessage[] = [];
+
+    // Process from newest to oldest, keep what fits
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      const msgContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      const msgChars = msgContent.length;
+
+      if (totalChars + msgChars <= maxChars) {
+        result.unshift(msg);
+        totalChars += msgChars;
+      } else {
+        // If we can't fit more, stop (but we processed newest first)
+        break;
+      }
+    }
+
+    return result.length > 0 ? result : messages.slice(-5); // Always keep at least last 5
+  }
+
+  // More than maxMessages - truncate
+  // Keep first message (often context) and last N messages
+  const keepFirst = messages[0];
+  const keepLast = messages.slice(-(maxMessages - 1));
+
+  return [keepFirst, ...keepLast];
+}
+
+/**
+ * Clamp max_tokens to allowed range
+ */
+function clampMaxTokens(requestedTokens?: number): number {
+  if (!requestedTokens) return DEFAULT_RESPONSE_TOKENS;
+  return Math.min(Math.max(requestedTokens, 256), MAX_RESPONSE_TOKENS);
+}
+
 /**
  * Professional document formatting instructions for Skills API
  * Ensures high-quality, well-formatted output documents
@@ -889,6 +941,22 @@ export async function POST(request: NextRequest) {
       messagesWithContext = [slingshotSystemMessage, ...messagesWithContext];
     }
 
+    // ========================================
+    // APPLY CONTEXT LIMITS (Cost Optimization)
+    // ========================================
+    // Truncate messages to fit within context window (prevents API errors & saves money)
+    const originalMessageCount = messagesWithContext.length;
+    messagesWithContext = truncateMessages(messagesWithContext);
+    if (messagesWithContext.length < originalMessageCount) {
+      console.log(`[Chat API] Truncated messages: ${originalMessageCount} -> ${messagesWithContext.length}`);
+    }
+
+    // Clamp max_tokens to prevent excessive response costs
+    const clampedMaxTokens = clampMaxTokens(max_tokens);
+    if (max_tokens && max_tokens !== clampedMaxTokens) {
+      console.log(`[Chat API] Clamped max_tokens: ${max_tokens} -> ${clampedMaxTokens}`);
+    }
+
     // Check if any message contains images (need non-streaming for image analysis)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hasImages = messagesWithContext.some((msg: any) =>
@@ -948,7 +1016,7 @@ export async function POST(request: NextRequest) {
           const result = await createAnthropicCompletionWithSkills({
             messages: messagesWithContext,
             model: anthropicModel,
-            maxTokens: max_tokens,
+            maxTokens: clampedMaxTokens,
             temperature,
             systemPrompt: enhancedSystemPrompt,
             userId: rateLimitIdentifier,
@@ -1005,7 +1073,7 @@ export async function POST(request: NextRequest) {
         const result = await createAnthropicCompletion({
           messages: messagesWithContext,
           model: anthropicModel,
-          maxTokens: max_tokens,
+          maxTokens: clampedMaxTokens,
           temperature,
           systemPrompt,
           userId: isAuthenticated ? rateLimitIdentifier : undefined,
@@ -1036,7 +1104,7 @@ export async function POST(request: NextRequest) {
         const result = await createAnthropicCompletionWithSearch({
           messages: messagesWithContext,
           model: anthropicModel,
-          maxTokens: max_tokens,
+          maxTokens: clampedMaxTokens,
           temperature,
           systemPrompt,
           userId: isAuthenticated ? rateLimitIdentifier : undefined,
@@ -1068,7 +1136,7 @@ export async function POST(request: NextRequest) {
       const streamResult = await createAnthropicStreamingCompletion({
         messages: messagesWithContext,
         model: anthropicModel,
-        maxTokens: max_tokens,
+        maxTokens: clampedMaxTokens,
         temperature,
         systemPrompt,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
@@ -1104,7 +1172,7 @@ export async function POST(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tool: effectiveTool as any,
         temperature,
-        maxTokens: max_tokens,
+        maxTokens: clampedMaxTokens,
         stream: false,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
@@ -1168,7 +1236,7 @@ export async function POST(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tool: effectiveTool as any,
         temperature,
-        maxTokens: max_tokens,
+        maxTokens: clampedMaxTokens,
         stream: true,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
@@ -1271,7 +1339,7 @@ export async function POST(request: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tool: effectiveTool as any,
         temperature,
-        maxTokens: max_tokens,
+        maxTokens: clampedMaxTokens,
         stream: false,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         conversationId: conversationId,
