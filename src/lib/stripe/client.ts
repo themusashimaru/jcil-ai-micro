@@ -30,10 +30,21 @@ export const stripe = new Proxy({} as Stripe, {
 });
 
 // Price ID mapping for subscription tiers
+// Note: These are functions to ensure env vars are read at runtime, not build time
+export function getPriceIdForTier(tier: string): string {
+  const priceIds: Record<string, string | undefined> = {
+    plus: process.env.STRIPE_PRICE_ID_PLUS,
+    pro: process.env.STRIPE_PRICE_ID_PRO,
+    executive: process.env.STRIPE_PRICE_ID_EXECUTIVE,
+  };
+  return priceIds[tier] || '';
+}
+
+// Legacy export for backwards compatibility
 export const STRIPE_PRICE_IDS = {
-  plus: process.env.STRIPE_PRICE_ID_PLUS || '',
-  pro: process.env.STRIPE_PRICE_ID_PRO || '',
-  executive: process.env.STRIPE_PRICE_ID_EXECUTIVE || '',
+  get plus() { return process.env.STRIPE_PRICE_ID_PLUS || ''; },
+  get pro() { return process.env.STRIPE_PRICE_ID_PRO || ''; },
+  get executive() { return process.env.STRIPE_PRICE_ID_EXECUTIVE || ''; },
 } as const;
 
 export type SubscriptionTier = keyof typeof STRIPE_PRICE_IDS | 'free';

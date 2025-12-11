@@ -471,11 +471,12 @@ export async function POST(request: NextRequest) {
 
       if (!canProceed) {
         const usage = await getTokenUsage(rateLimitIdentifier, userTier);
-        console.log(`[Chat API] Monthly token limit reached for ${isAuthenticated ? 'user' : 'anon'}: ${rateLimitIdentifier}`);
+        const isFreeUser = userTier === 'free';
+        console.log(`[Chat API] Token limit reached for ${isAuthenticated ? 'user' : 'anon'}: ${rateLimitIdentifier} (tier: ${userTier})`);
         return new Response(
           JSON.stringify({
-            error: 'Monthly limit reached',
-            message: getTokenLimitWarningMessage(usage),
+            error: isFreeUser ? 'Free trial ended' : 'Monthly limit reached',
+            message: getTokenLimitWarningMessage(usage, isFreeUser),
             usage: { used: usage.used, limit: usage.limit, remaining: 0 },
           }),
           {
