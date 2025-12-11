@@ -23,6 +23,7 @@ ALTER TABLE public.daily_stats ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- HELPER FUNCTION: Check if user is admin
+-- Uses user_id (UUID) for security - email can be changed by users
 -- ============================================================
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
@@ -30,7 +31,7 @@ BEGIN
     RETURN EXISTS (
         SELECT 1
         FROM public.admin_users
-        WHERE email = auth.jwt() ->> 'email'
+        WHERE user_id = (auth.jwt() ->> 'sub')::UUID
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
