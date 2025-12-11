@@ -793,9 +793,9 @@ export function ChatClient() {
 
     // Auto-create chat if none exists
     if (!currentChatId) {
-      newChatId = Date.now().toString();
+      const tempId = Date.now().toString();
       const newChat: Chat = {
-        id: newChatId,
+        id: tempId,
         title: 'New Chat',
         isPinned: false,
         lastMessage: content.slice(0, 50),
@@ -803,29 +803,37 @@ export function ChatClient() {
         updatedAt: new Date(),
       };
       setChats([newChat, ...chats]);
-      setCurrentChatId(newChatId);
+      setCurrentChatId(tempId);
 
-      // Create conversation in database
+      // Create conversation in database - MUST succeed before proceeding
       try {
-        const tempId = newChatId; // Store temp ID before reassignment
         const dbConversationId = await createConversationInDatabase('New Chat', 'general');
         console.log('[ChatClient] Created conversation:', { tempId, dbId: dbConversationId });
-        // Update newChatId to use the database-generated UUID
-        if (dbConversationId && typeof dbConversationId === 'string') {
-          newChatId = dbConversationId;
-          setCurrentChatId(dbConversationId);
-          setChats((prevChats) => {
-            const updated = prevChats.map((chat) =>
-              chat.id === tempId ? { ...chat, id: dbConversationId } : chat
-            );
-            const updatedChat = updated.find(c => c.id === dbConversationId);
-            console.log('[ChatClient] Updated chats array - found chat with new UUID:', updatedChat?.id, 'title:', updatedChat?.title);
-            return updated;
-          });
+
+        // Validate we got a proper UUID back
+        if (!dbConversationId || typeof dbConversationId !== 'string') {
+          throw new Error('Invalid conversation ID returned from database');
         }
+
+        // Use the database UUID for all subsequent operations
+        newChatId = dbConversationId;
+        setCurrentChatId(dbConversationId);
+        setChats((prevChats) => {
+          const updated = prevChats.map((chat) =>
+            chat.id === tempId ? { ...chat, id: dbConversationId } : chat
+          );
+          const updatedChat = updated.find(c => c.id === dbConversationId);
+          console.log('[ChatClient] Updated chats array - found chat with new UUID:', updatedChat?.id, 'title:', updatedChat?.title);
+          return updated;
+        });
       } catch (error) {
         console.error('Failed to create conversation:', error);
-        // Continue anyway - conversation will be created on retry
+        // Remove the temporary chat from UI since we couldn't create it in database
+        setChats((prevChats) => prevChats.filter(c => c.id !== tempId));
+        setCurrentChatId(null);
+        // Show error to user
+        alert('Unable to start a new conversation. Please try again.');
+        return; // Don't proceed with sending message
       }
     } else {
       newChatId = currentChatId;
