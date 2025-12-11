@@ -393,7 +393,8 @@
     overflow: hidden; /* Ensure content respects rounded corners */
   }
 
-  /* Hide the outer glow effect in light mode - causes sharp corner artifacts */
+  /* Hide pseudo-elements in light mode - causes sharp corner artifacts */
+  :root.light-mode .chat-bubble.ai-bubble::before,
   :root.light-mode .chat-bubble.ai-bubble::after {
     display: none !important;
   }
@@ -402,6 +403,11 @@
   .chat-bg-orbs {
     position: relative;
     overflow-x: hidden; /* Only hide horizontal overflow, allow vertical scroll */
+  }
+
+  /* Light mode: Ensure orbs don't interfere with scroll area */
+  :root.light-mode .chat-bg-orbs {
+    contain: paint; /* Create paint containment for orbs */
   }
 
   .chat-bg-orbs::before,
