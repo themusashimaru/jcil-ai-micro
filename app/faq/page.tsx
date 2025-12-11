@@ -94,8 +94,12 @@ const faqs = [
         a: 'JCIL.AI does not permit adult content, profane language, or content that promotes harm. Our multi-layer enterprise-grade moderation system filters inappropriate content to maintain a safe environment.',
       },
       {
-        q: 'Is JCIL.AI safe for my family?',
-        a: 'Yes. We designed JCIL.AI with families in mind. Content moderation ensures that users of all ages can use the platform without encountering inappropriate material.',
+        q: 'Is JCIL.AI appropriate for all ages?',
+        a: 'JCIL.AI is intended for users 18 years of age and older. While we maintain strict content moderation, the platform is designed for adult use and parental discretion is advised for any minors.',
+      },
+      {
+        q: 'What values does JCIL.AI reflect?',
+        a: 'JCIL.AI is built on a biblical Christian worldview. Our AI responses align with traditional Christian values and Scripture. We are upfront about this - users who prefer a secular AI assistant should consider other options.',
       },
     ],
   },
