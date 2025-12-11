@@ -337,7 +337,7 @@ export function ChatClient() {
     };
   }, []);
 
-  // Cleanup on unmount - abort any in-flight requests
+  // Cleanup on unmount - abort any in-flight requests and stop polling
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -346,6 +346,11 @@ export function ChatClient() {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
+      }
+      // Stop any active polling intervals to prevent memory leaks
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     };
   }, []);
@@ -1488,6 +1493,8 @@ export function ChatClient() {
       if (isAbortError || isNetworkError) {
         // User navigated away or network issue - this is not a server error
         console.log('[ChatClient] Request interrupted:', error instanceof Error ? error.message : 'unknown');
+        // Clean up abort controller to prevent memory leaks
+        abortControllerRef.current = null;
         // Only update state if component is still mounted
         if (isMountedRef.current) {
           setIsStreaming(false);
@@ -1533,6 +1540,8 @@ export function ChatClient() {
       setMessages((prev) => [...prev, errorMessage]);
       setIsStreaming(false);
       setPendingDocumentType(null);
+      // Clean up abort controller to prevent memory leaks
+      abortControllerRef.current = null;
 
       // Save error message to database (keep technical details in logs only)
       await saveMessageToDatabase(newChatId, 'assistant', errorMessage.content, 'error');
