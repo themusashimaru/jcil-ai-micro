@@ -22,6 +22,8 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [logo, setLogo] = useState<string>('');
   const [isLogoLoading, setIsLogoLoading] = useState(true);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showAgreement, setShowAgreement] = useState(false);
 
   // Load logo from design settings
   useEffect(() => {
@@ -57,6 +59,11 @@ export default function SignUpPage() {
     setError('');
 
     // Validation
+    if (!agreedToTerms) {
+      setError('Please read and agree to the User Agreement to continue');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -333,10 +340,90 @@ export default function SignUpPage() {
               />
             </div>
 
+            {/* User Agreement Section */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <button
+                type="button"
+                onClick={() => setShowAgreement(!showAgreement)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <span className="text-sm font-medium text-slate-700">
+                  User Agreement & Platform Values
+                </span>
+                <svg
+                  className={`w-5 h-5 text-slate-500 transition-transform ${showAgreement ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showAgreement && (
+                <div className="mt-4 text-sm text-slate-600 space-y-3 max-h-64 overflow-y-auto">
+                  <p className="font-semibold text-slate-800">Please read before signing up:</p>
+
+                  <div className="space-y-2">
+                    <p className="font-medium text-slate-700">1. Age Requirement</p>
+                    <p>JCIL.AI is intended for users 18 years of age and older.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="font-medium text-slate-700">2. Christian Platform</p>
+                    <p>
+                      JCIL.AI is a private AI chat platform built on a biblical Christian worldview.
+                      Our AI responses are designed to align with traditional Christian values and Scripture.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="font-medium text-slate-700">3. What This Means</p>
+                    <ul className="list-disc list-inside space-y-1 text-slate-600">
+                      <li>Responses reflect a biblical perspective on faith, morality, and life</li>
+                      <li>We affirm traditional Christian teachings (e.g., marriage, gender, sanctity of life)</li>
+                      <li>Content is moderated to maintain a faith-aligned environment</li>
+                      <li>This is not a secular AI - if you prefer neutral responses, other platforms may be a better fit</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="font-medium text-slate-700">4. Our Commitment</p>
+                    <p>
+                      We strive to provide helpful, truthful, and Christ-honoring assistance.
+                      While we are not perfect, we are committed to serving our users with integrity and faithfulness to Scripture.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="agreement"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                  disabled={loading}
+                />
+                <label htmlFor="agreement" className="text-sm text-slate-600">
+                  I am 18 years or older, I understand that JCIL.AI is a Christian platform, and I agree to receive
+                  AI responses aligned with biblical values.{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowAgreement(true)}
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Read full agreement
+                  </button>
+                </label>
+              </div>
+            </div>
+
             {/* Sign Up Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !agreedToTerms}
               className="w-full bg-gradient-to-r from-blue-900 to-blue-700 text-white rounded-lg px-4 py-3 font-medium hover:shadow-lg hover:shadow-blue-900/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating account...' : 'Create Account'}
