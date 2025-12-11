@@ -32,6 +32,8 @@ import { CodeCommandInterface } from '@/components/code-command';
 // import VoiceButton from './VoiceButton';
 // REMOVED: Notification system - users have built-in phone notifications
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
+import { ChatContinuationBanner, CHAT_LENGTH_WARNING, generateSummaryPrompt } from '@/components/chat/ChatContinuationBanner';
+import { LiveTodoList } from '@/components/chat/LiveTodoList';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -136,6 +138,9 @@ export function ChatClient() {
   const [showCodeCommand, setShowCodeCommand] = useState(false);
   // Document generation type (for progress indicator)
   const [pendingDocumentType, setPendingDocumentType] = useState<'pdf' | 'docx' | 'xlsx' | 'pptx' | null>(null);
+  // Chat continuation - track when generating summary
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [continuationDismissed, setContinuationDismissed] = useState(false);
   // AbortController for cancelling in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
   // Polling interval ref for background reply checking
@@ -585,6 +590,7 @@ export function ChatClient() {
 
   const handleSelectChat = async (chatId: string) => {
     setCurrentChatId(chatId);
+    setContinuationDismissed(false); // Reset continuation banner for new chat
     // Auto-close sidebar on mobile after selecting chat
     if (window.innerWidth < 768) {
       setSidebarCollapsed(true);
@@ -800,6 +806,73 @@ export function ChatClient() {
       abortControllerRef.current = null;
     }
     setIsStreaming(false);
+  };
+
+  /**
+   * Handle chat continuation - summarize and start a new chat
+   */
+  const handleChatContinuation = async () => {
+    if (messages.length === 0) return;
+
+    setIsGeneratingSummary(true);
+
+    try {
+      // Generate summary using AI
+      const summaryPrompt = generateSummaryPrompt(
+        messages.map(m => ({ role: m.role, content: m.content }))
+      );
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: summaryPrompt }],
+          max_tokens: 1024,
+        }),
+      });
+
+      let summaryContent = '';
+      if (response.ok) {
+        const data = await response.json();
+        summaryContent = data.content || 'Previous conversation summary not available.';
+      } else {
+        // Fallback if summary generation fails
+        summaryContent = `Continuing from previous conversation about: ${messages[0]?.content?.slice(0, 200) || 'general discussion'}`;
+      }
+
+      // Create new chat with context
+      const newChatId = Date.now().toString();
+      const contextMessage = `## Continuing from Previous Chat\n\n${summaryContent}\n\n---\n\n*This is a continuation of our previous conversation. I have the context above to help maintain continuity.*`;
+
+      const newChat: Chat = {
+        id: newChatId,
+        title: 'Continuation',
+        isPinned: false,
+        lastMessage: 'Continued from previous chat',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Add the new chat and switch to it
+      setChats(prev => [newChat, ...prev]);
+      setCurrentChatId(newChatId);
+      setMessages([{
+        id: crypto.randomUUID?.() || Date.now().toString(),
+        role: 'assistant',
+        content: contextMessage,
+        timestamp: new Date(),
+      }]);
+      setContinuationDismissed(false);
+
+      // Create the conversation in the database
+      await createConversationInDatabase('Continuation', 'general');
+
+      console.log('[ChatClient] Created continuation chat with summary');
+    } catch (error) {
+      console.error('[ChatClient] Error creating continuation:', error);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
   };
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
@@ -1716,6 +1789,20 @@ export function ChatClient() {
                   </div>
                   <span className="text-sm text-blue-400">Reply incoming...</span>
                 </div>
+              )}
+              {/* Live To-Do List - extracted from AI responses */}
+              <LiveTodoList
+                messages={messages}
+                conversationId={currentChatId}
+              />
+              {/* Chat continuation banner - shown when conversation is getting long */}
+              {!continuationDismissed && messages.length >= CHAT_LENGTH_WARNING && (
+                <ChatContinuationBanner
+                  messageCount={messages.length}
+                  onContinue={handleChatContinuation}
+                  onDismiss={() => setContinuationDismissed(true)}
+                  isGenerating={isGeneratingSummary}
+                />
               )}
               <ChatComposer
                 onSendMessage={handleSendMessage}
