@@ -466,10 +466,17 @@ export function ChatClient() {
         setIsStreaming(false); // Reset streaming state
 
         try {
-          // Call the process-pending endpoint to immediately process the request
+          // Call the process-pending endpoint with a 2-minute timeout
+          // This prevents the "Reply incoming" indicator from hanging indefinitely
+          const pendingController = new AbortController();
+          const timeoutId = setTimeout(() => pendingController.abort(), 120000); // 2 minute timeout
+
           const response = await fetch(`/api/conversations/${chatId}/process-pending`, {
             method: 'POST',
+            signal: pendingController.signal,
           });
+
+          clearTimeout(timeoutId); // Clear timeout if fetch completes
 
           if (!isMountedRef.current) return;
 
@@ -495,7 +502,13 @@ export function ChatClient() {
           }
           // For 'failed' or 'error', we just stop waiting - user can try again
         } catch (error) {
-          console.error('[ChatClient] Error processing pending request:', error);
+          // Check if this was a timeout abort
+          const isTimeoutError = error instanceof Error && error.name === 'AbortError';
+          if (isTimeoutError) {
+            console.log('[ChatClient] Pending request timed out after 2 minutes');
+          } else {
+            console.error('[ChatClient] Error processing pending request:', error);
+          }
         } finally {
           if (isMountedRef.current) {
             isProcessingRef.current = false;
