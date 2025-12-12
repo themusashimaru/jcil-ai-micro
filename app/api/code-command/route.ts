@@ -1,11 +1,11 @@
 /**
  * CODE COMMAND API ROUTE
  *
- * Premium coding assistant powered by Claude Opus 4
+ * Premium coding assistant powered by Claude (model configurable in admin)
  * Admin-only access for now
  *
  * Features:
- * - Claude Opus 4 model for complex engineering tasks
+ * - Configurable Claude model for complex engineering tasks
  * - Software engineering optimized system prompt
  * - Streaming responses
  * - Admin authentication required
@@ -17,14 +17,12 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { buildFullCodeCommandPrompt } from '@/lib/prompts/codeCommandPrompt';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { getCodeCommandModel } from '@/lib/provider/settings';
 
 // Initialize Anthropic provider
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
-
-// Claude Opus 4 model for Code Command (best for complex engineering tasks)
-const CODE_COMMAND_MODEL = 'claude-opus-4-5-20251101';
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,6 +87,9 @@ export async function POST(request: NextRequest) {
     // Build system prompt for Code Command
     const systemPrompt = buildFullCodeCommandPrompt();
 
+    // Get the configured model from admin settings
+    const codeCommandModel = await getCodeCommandModel();
+
     // Prepare messages with system prompt
     const messagesWithSystem = [
       { role: 'system' as const, content: systemPrompt },
@@ -98,14 +99,14 @@ export async function POST(request: NextRequest) {
       })),
     ];
 
-    console.log('[Code Command] Processing request with Claude Opus 4');
+    console.log('[Code Command] Processing request with model:', codeCommandModel);
     console.log('[Code Command] User:', user.email);
     console.log('[Code Command] Message count:', messages.length);
 
-    // Stream response using Claude Opus 4
+    // Stream response using configured Claude model
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const requestConfig: any = {
-      model: anthropic(CODE_COMMAND_MODEL),
+      model: anthropic(codeCommandModel),
       messages: messagesWithSystem,
       maxTokens: 8192, // Allow longer responses for code (Claude supports more)
       onFinish: async ({ text, usage }: { text?: string; usage?: { promptTokens?: number; completionTokens?: number } }) => {

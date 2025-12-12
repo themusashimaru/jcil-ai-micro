@@ -19,6 +19,7 @@ interface ProviderSettingsRow {
     openai?: { model: string };
     anthropic?: { model: string };
   };
+  code_command_model?: string;
   updated_by: string | null;
   created_at: string;
   updated_at: string;
@@ -31,6 +32,7 @@ const DEFAULT_SETTINGS = {
     openai: { model: 'gpt-5-mini' },
     anthropic: { model: 'claude-sonnet-4-5-20250929' },
   },
+  code_command_model: 'claude-opus-4-5-20251101',
 };
 
 /**
@@ -65,6 +67,7 @@ export async function GET() {
     return NextResponse.json({
       activeProvider: settings?.active_provider || DEFAULT_SETTINGS.active_provider,
       providerConfig: settings?.provider_config || DEFAULT_SETTINGS.provider_config,
+      codeCommandModel: settings?.code_command_model || DEFAULT_SETTINGS.code_command_model,
       updatedAt: settings?.updated_at,
     });
   } catch (error) {
@@ -85,7 +88,7 @@ export async function PUT(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
     const body = await request.json();
 
-    const { activeProvider, providerConfig } = body;
+    const { activeProvider, providerConfig, codeCommandModel } = body;
 
     // Validate provider
     if (activeProvider && !['openai', 'anthropic'].includes(activeProvider)) {
@@ -99,6 +102,7 @@ export async function PUT(request: NextRequest) {
     const updateData: {
       active_provider?: string;
       provider_config?: object;
+      code_command_model?: string;
       updated_by: string;
       updated_at: string;
     } = {
@@ -112,6 +116,10 @@ export async function PUT(request: NextRequest) {
 
     if (providerConfig) {
       updateData.provider_config = providerConfig;
+    }
+
+    if (codeCommandModel) {
+      updateData.code_command_model = codeCommandModel;
     }
 
     // First, check if a row exists
@@ -147,6 +155,7 @@ export async function PUT(request: NextRequest) {
           ...updateData,
           active_provider: activeProvider || DEFAULT_SETTINGS.active_provider,
           provider_config: providerConfig || DEFAULT_SETTINGS.provider_config,
+          code_command_model: codeCommandModel || DEFAULT_SETTINGS.code_command_model,
         })
         .select()
         .single();
@@ -171,6 +180,7 @@ export async function PUT(request: NextRequest) {
       success: true,
       activeProvider: settings.active_provider,
       providerConfig: settings.provider_config,
+      codeCommandModel: settings.code_command_model || DEFAULT_SETTINGS.code_command_model,
       updatedAt: settings.updated_at,
     });
   } catch (error) {

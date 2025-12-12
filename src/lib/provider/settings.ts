@@ -30,7 +30,11 @@ export interface ProviderSettings {
     openai: ProviderConfig;
     anthropic: ProviderConfig;
   };
+  codeCommandModel?: string; // Model for Code Command (admin coding assistant)
 }
+
+// Default Code Command model (admin coding assistant)
+const DEFAULT_CODE_COMMAND_MODEL = 'claude-opus-4-5-20251101';
 
 // Default settings (used when database is not available or no settings exist)
 const DEFAULT_SETTINGS: ProviderSettings = {
@@ -54,6 +58,7 @@ const DEFAULT_SETTINGS: ProviderSettings = {
       },
     },
   },
+  codeCommandModel: DEFAULT_CODE_COMMAND_MODEL,
 };
 
 // Simple cache to avoid repeated database calls
@@ -112,6 +117,7 @@ export async function getProviderSettings(): Promise<ProviderSettings> {
         openai: data.provider_config?.openai || DEFAULT_SETTINGS.providerConfig.openai,
         anthropic: data.provider_config?.anthropic || DEFAULT_SETTINGS.providerConfig.anthropic,
       },
+      codeCommandModel: data.code_command_model || DEFAULT_CODE_COMMAND_MODEL,
     };
 
     // Update cache
@@ -203,4 +209,13 @@ export async function getImageModel(): Promise<string | null> {
 export async function isImageGenerationAvailable(): Promise<boolean> {
   const settings = await getProviderSettings();
   return settings.activeProvider === 'openai';
+}
+
+/**
+ * Get the Code Command model (for admin coding assistant)
+ * Returns the configured model or default (Claude Opus 4)
+ */
+export async function getCodeCommandModel(): Promise<string> {
+  const settings = await getProviderSettings();
+  return settings.codeCommandModel || DEFAULT_CODE_COMMAND_MODEL;
 }
