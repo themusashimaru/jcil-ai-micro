@@ -1,11 +1,11 @@
 /**
  * CODE COMMAND API ROUTE
  *
- * Premium coding assistant powered by GPT-5.1
+ * Premium coding assistant powered by Claude Opus 4
  * Admin-only access for now
  *
  * Features:
- * - GPT-5.1 model for complex engineering tasks
+ * - Claude Opus 4 model for complex engineering tasks
  * - Software engineering optimized system prompt
  * - Streaming responses
  * - Admin authentication required
@@ -16,15 +16,15 @@ import { streamText } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { buildFullCodeCommandPrompt } from '@/lib/prompts/codeCommandPrompt';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
 
-// Initialize OpenAI provider
-const openai = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Initialize Anthropic provider
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// GPT-5.1 model for Code Command
-const CODE_COMMAND_MODEL = 'gpt-5.1';
+// Claude Opus 4 model for Code Command (best for complex engineering tasks)
+const CODE_COMMAND_MODEL = 'claude-opus-4-5-20251101';
 
 export async function POST(request: NextRequest) {
   try {
@@ -98,17 +98,16 @@ export async function POST(request: NextRequest) {
       })),
     ];
 
-    console.log('[Code Command] Processing request with GPT-5.1');
+    console.log('[Code Command] Processing request with Claude Opus 4');
     console.log('[Code Command] User:', user.email);
     console.log('[Code Command] Message count:', messages.length);
 
-    // Stream response using GPT-5.1
+    // Stream response using Claude Opus 4
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const requestConfig: any = {
-      model: openai(CODE_COMMAND_MODEL),
+      model: anthropic(CODE_COMMAND_MODEL),
       messages: messagesWithSystem,
-      maxTokens: 4000, // Allow longer responses for code
-      // Note: GPT-5.1 may not support temperature, so we omit it
+      maxTokens: 8192, // Allow longer responses for code (Claude supports more)
       onFinish: async ({ text, usage }: { text?: string; usage?: { promptTokens?: number; completionTokens?: number } }) => {
         // Log usage for admin tracking
         console.log('[Code Command] Response complete');
@@ -138,17 +137,17 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Code Command] Error:', error);
 
-    // Check for specific OpenAI errors
+    // Check for specific Anthropic errors
     if (error instanceof Error) {
-      if (error.message.includes('API key')) {
+      if (error.message.includes('API key') || error.message.includes('api_key')) {
         return new Response(
           JSON.stringify({ error: 'API configuration error' }),
           { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
       }
-      if (error.message.includes('model')) {
+      if (error.message.includes('model') || error.message.includes('rate_limit')) {
         return new Response(
-          JSON.stringify({ error: 'Model not available. Please check GPT-5.1 access.' }),
+          JSON.stringify({ error: 'Model not available or rate limited. Please try again.' }),
           { status: 503, headers: { 'Content-Type': 'application/json' } }
         );
       }
