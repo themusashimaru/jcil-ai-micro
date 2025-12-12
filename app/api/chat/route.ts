@@ -67,9 +67,9 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
-// Rate limits per hour
-const RATE_LIMIT_AUTHENTICATED = 60; // 60 messages/hour for logged-in users
-const RATE_LIMIT_ANONYMOUS = 20; // 20 messages/hour for anonymous users
+// Rate limits per hour (configurable via env vars for tier upgrades)
+const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
+const RATE_LIMIT_ANONYMOUS = parseInt(process.env.RATE_LIMIT_ANON || '30', 10); // messages/hour for anonymous users
 
 // ========================================
 // TOKEN & CONTEXT LIMITS (Cost Optimization)
