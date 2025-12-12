@@ -53,6 +53,7 @@ export default function ProvidersPage() {
       },
     },
   });
+  const [codeCommandModel, setCodeCommandModel] = useState('claude-opus-4-5-20251101');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingModels, setIsSavingModels] = useState(false);
@@ -100,6 +101,11 @@ export default function ProvidersPage() {
               },
             },
           });
+        }
+
+        // Load Code Command model
+        if (data?.codeCommandModel) {
+          setCodeCommandModel(data.codeCommandModel);
         }
 
         if (data?.updatedAt) {
@@ -214,6 +220,7 @@ export default function ProvidersPage() {
         body: JSON.stringify({
           activeProvider,
           providerConfig,
+          codeCommandModel,
         }),
       });
 
@@ -414,7 +421,7 @@ export default function ProvidersPage() {
         </div>
 
         {/* Anthropic Models */}
-        <div className="mb-6">
+        <div className="mb-8">
           <h4 className="text-lg font-semibold text-orange-500 mb-4 flex items-center gap-2">
             <span className="w-3 h-3 bg-orange-500 rounded-full"></span>
             Anthropic Models
@@ -457,6 +464,34 @@ export default function ProvidersPage() {
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
             Examples: claude-3-5-haiku-20241022, claude-sonnet-4-5-20250929, claude-opus-4-20250514
           </p>
+        </div>
+
+        {/* Code Command Model (Admin) */}
+        <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+          <h4 className="text-lg font-semibold text-purple-500 mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-purple-500 rounded-full"></span>
+            Code Command Model (Admin Only)
+          </h4>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+            The model used for Code Command - your admin coding assistant. Use a powerful model for complex engineering tasks.
+          </p>
+          <label className="block max-w-md">
+            <span className="text-sm font-medium">Claude Model</span>
+            <input
+              type="text"
+              value={codeCommandModel}
+              onChange={(e) => {
+                setCodeCommandModel(e.target.value);
+                setSuccessMessage(null);
+              }}
+              placeholder="claude-opus-4-5-20251101"
+              className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+              style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              Recommended: claude-opus-4-5-20251101 (best for code) or claude-sonnet-4-5-20250929 (faster)
+            </p>
+          </label>
         </div>
 
         <div className="flex items-center gap-4">
