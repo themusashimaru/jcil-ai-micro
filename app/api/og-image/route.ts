@@ -1,6 +1,7 @@
 /**
  * DYNAMIC OG IMAGE API
- * Serves the main logo from design_settings as an Open Graph image
+ * Serves the logo from design_settings as an Open Graph image
+ * Checks main_logo first, then favicon as fallback
  * Social media crawlers need an actual URL, not base64 data URLs
  */
 
@@ -24,18 +25,23 @@ export async function GET() {
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Fetch the design settings
+    // Fetch the design settings - check main_logo and favicon
     const { data, error } = await supabase
       .from('design_settings')
-      .select('main_logo')
+      .select('main_logo, favicon')
       .limit(1)
       .single();
 
-    if (error || !data?.main_logo) {
+    if (error) {
       return serveFallbackIcon();
     }
 
-    const logoUrl = data.main_logo;
+    // Prefer main_logo, fall back to favicon
+    const logoUrl = data?.main_logo || data?.favicon;
+
+    if (!logoUrl) {
+      return serveFallbackIcon();
+    }
 
     // Check if it's a base64 data URL
     if (logoUrl.startsWith('data:')) {
@@ -54,7 +60,7 @@ export async function GET() {
         status: 200,
         headers: {
           'Content-Type': mimeType,
-          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+          'Cache-Control': 'public, max-age=300, s-maxage=300', // 5 min cache for faster updates
         },
       });
     }
@@ -86,7 +92,7 @@ function serveFallbackIcon(): NextResponse {
       status: 200,
       headers: {
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        'Cache-Control': 'public, max-age=300, s-maxage=300',
       },
     });
   } catch {
