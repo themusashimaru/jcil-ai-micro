@@ -34,6 +34,7 @@ import { CodeCommandInterface } from '@/components/code-command';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { ChatContinuationBanner, CHAT_LENGTH_WARNING, generateSummaryPrompt } from '@/components/chat/ChatContinuationBanner';
 import { LiveTodoList } from '@/components/chat/LiveTodoList';
+import { parseSlashCommand } from '@/lib/slashCommands';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -877,6 +878,27 @@ export function ChatClient() {
 
   const handleSendMessage = async (content: string, attachments: Attachment[]) => {
     if (!content.trim() && attachments.length === 0) return;
+
+    // Check for slash commands
+    const parsed = parseSlashCommand(content);
+    if (parsed.isCommand) {
+      // Handle /help and unknown commands - show as assistant message
+      if (parsed.helpText) {
+        const helpMessage: Message = {
+          id: crypto.randomUUID?.() || Date.now().toString(),
+          role: 'assistant',
+          content: parsed.helpText,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, helpMessage]);
+        return;
+      }
+
+      // For other commands, replace content with the generated prompt
+      if (parsed.prompt) {
+        content = parsed.prompt;
+      }
+    }
 
     // REMOVED: Tool-specific handling - all tools now handled naturally in chat
 
