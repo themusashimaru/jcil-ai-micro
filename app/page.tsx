@@ -422,9 +422,13 @@ export default function HomePage() {
 
             {/* Mission Statement */}
             <div className="mt-12 text-center">
-              <blockquote className="text-xl sm:text-2xl font-light text-slate-300 italic max-w-3xl mx-auto leading-relaxed">
-                &quot;While the world chases knowledge and wealth, we strengthen the brethren and
-                convert the brokenhearted. We give hope to the hopeless.&quot;
+              <blockquote className="text-lg sm:text-xl font-light text-slate-300 italic max-w-4xl mx-auto leading-relaxed">
+                &quot;AI is not God, it is a tool for efficiency and productivity, and it does not replace the pastor or the teacher.
+                While the world chases infinitely expanding knowledge and wealth, we aim to strengthen the brethren and comfort
+                the brokenhearted through the teachings of our Lord Jesus. We point to the scriptures and speak the truth that
+                Jesus Christ of Nazareth is the King of Kings and the Lord of Lords, unapologetically. We hold the line—Christians
+                are programmers too and our community is at risk. We will not sit idle seeing the incoming challenges ahead.
+                As digital Watchmen, we will forge a path for our people and stand firm in our beliefs.&quot;
               </blockquote>
               <p className="mt-4 text-slate-500">— The JCIL.AI Mission</p>
             </div>
