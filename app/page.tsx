@@ -208,6 +208,230 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Watchmen on the Digital Walls - Technical Architecture */}
+      <section className="relative bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 py-20 sm:py-28 overflow-hidden">
+        {/* Dramatic Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-full blur-3xl" />
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          {/* Section Header */}
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 mb-6">
+              <span className="text-amber-400 text-lg">⚔️</span>
+              <span className="text-sm font-medium text-amber-400">Standing Guard in the Digital Age</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
+              Watchmen on the Digital Walls
+            </h2>
+            <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+              In an age where AI shapes how we think, learn, and believe, JCIL.AI stands as a guardian.
+              We do not merely filter content—we architect a fortress of faith around every conversation.
+            </p>
+          </div>
+
+          {/* The 5-Layer Codex Architecture */}
+          <div className="max-w-5xl mx-auto mb-20">
+            <h3 className="text-center text-2xl font-bold text-white mb-4">The 5-Layer Codex</h3>
+            <p className="text-center text-slate-400 mb-10 max-w-2xl mx-auto">
+              Every message passes through our proprietary protection system—a digital fortress designed to guard your soul.
+            </p>
+
+            {/* Architecture Visualization */}
+            <div className="relative">
+              {/* Connection Lines (visible on md+) */}
+              <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-blue-500/0 via-blue-500/50 to-blue-500/0" />
+
+              <div className="space-y-4 md:space-y-0 md:grid md:grid-rows-5 md:gap-4">
+                {/* Layer 1: Content Moderation */}
+                <div className="group relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="md:text-right order-1 md:pr-12">
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-red-500/20 border border-red-500/30 mb-3 md:mb-0 md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 z-10">
+                        <span className="text-red-400 font-bold">1</span>
+                      </div>
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 hover:border-red-500/30 transition-colors">
+                        <h4 className="text-lg font-semibold text-white mb-2 flex items-center md:justify-end gap-2">
+                          <span>🛡️</span> Content Moderation Gateway
+                        </h4>
+                        <p className="text-slate-400 text-sm">
+                          Enterprise-grade AI moderation intercepts harmful content before it enters our system.
+                          Protects against explicit material, hate speech, and manipulation attempts.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="hidden md:block order-2" />
+                  </div>
+                </div>
+
+                {/* Layer 2: The Codex System Prompt */}
+                <div className="group relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="hidden md:block order-1" />
+                    <div className="order-2 md:pl-12">
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/30 mb-3 md:mb-0 md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 z-10">
+                        <span className="text-amber-400 font-bold">2</span>
+                      </div>
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 hover:border-amber-500/30 transition-colors">
+                        <h4 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                          <span>📜</span> The Codex (System Prompt)
+                        </h4>
+                        <p className="text-slate-400 text-sm">
+                          Our theological framework—50 core Christian beliefs, 100 apologetic defenses,
+                          pastoral care protocols, and evangelism methods. The AI&apos;s soul, if you will.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Layer 3: AI Processing */}
+                <div className="group relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="md:text-right order-1 md:pr-12">
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/30 mb-3 md:mb-0 md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 z-10">
+                        <span className="text-blue-400 font-bold">3</span>
+                      </div>
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 hover:border-blue-500/30 transition-colors">
+                        <h4 className="text-lg font-semibold text-white mb-2 flex items-center md:justify-end gap-2">
+                          <span>🧠</span> AI Processing Core
+                        </h4>
+                        <p className="text-slate-400 text-sm">
+                          Anthropic&apos;s Claude—one of the most advanced AI models in existence—processes
+                          your request within the theological boundaries we&apos;ve established.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="hidden md:block order-2" />
+                  </div>
+                </div>
+
+                {/* Layer 4: Response Validation */}
+                <div className="group relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="hidden md:block order-1" />
+                    <div className="order-2 md:pl-12">
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-green-500/20 border border-green-500/30 mb-3 md:mb-0 md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 z-10">
+                        <span className="text-green-400 font-bold">4</span>
+                      </div>
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 hover:border-green-500/30 transition-colors">
+                        <h4 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                          <span>✅</span> Response Validation
+                        </h4>
+                        <p className="text-slate-400 text-sm">
+                          Every AI response is verified for theological accuracy and appropriateness
+                          before delivery. Double-checking our own work, every single time.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Layer 5: Secure Delivery */}
+                <div className="group relative">
+                  <div className="md:grid md:grid-cols-2 md:gap-8 items-center">
+                    <div className="md:text-right order-1 md:pr-12">
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 mb-3 md:mb-0 md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 z-10">
+                        <span className="text-purple-400 font-bold">5</span>
+                      </div>
+                      <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 hover:border-purple-500/30 transition-colors">
+                        <h4 className="text-lg font-semibold text-white mb-2 flex items-center md:justify-end gap-2">
+                          <span>🔐</span> Encrypted Delivery
+                        </h4>
+                        <p className="text-slate-400 text-sm">
+                          AES-256 encryption ensures your conversation remains private.
+                          Your faith journey is between you, God, and JCIL.AI—no one else.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="hidden md:block order-2" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Why We're Different Comparison */}
+          <div className="max-w-5xl mx-auto">
+            <h3 className="text-center text-2xl font-bold text-white mb-4">Why We&apos;re Different</h3>
+            <p className="text-center text-slate-400 mb-10 max-w-2xl mx-auto">
+              This isn&apos;t just another AI wrapper. It&apos;s cyber security for the soul.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Other AI */}
+              <div className="bg-slate-800/30 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-slate-600/50 flex items-center justify-center">
+                    <span className="text-slate-400">🤖</span>
+                  </div>
+                  <h4 className="text-lg font-semibold text-slate-400">Typical AI Platforms</h4>
+                </div>
+                <ul className="space-y-4">
+                  {[
+                    'Values determined by Silicon Valley',
+                    'No theological framework or foundation',
+                    'May undermine traditional beliefs',
+                    'Data sold to advertisers',
+                    'No protection for children',
+                    'Answers drift with cultural trends',
+                    'Just a chatbot—no mission',
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-slate-400 text-sm">
+                      <span className="text-red-400 mt-0.5">✕</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* JCIL.AI */}
+              <div className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 backdrop-blur-sm rounded-2xl p-6 border border-blue-500/30 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl" />
+                <div className="relative">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/30 flex items-center justify-center">
+                      <span className="text-blue-300">✝️</span>
+                    </div>
+                    <h4 className="text-lg font-semibold text-white">JCIL.AI</h4>
+                  </div>
+                  <ul className="space-y-4">
+                    {[
+                      'Built on Biblical truth and Christian values',
+                      '50 core beliefs + 100 apologetic defenses',
+                      'Strengthens and defends the faith',
+                      'We never sell your data—ever',
+                      'Family-safe by design',
+                      'Anchored to eternal, unchanging truth',
+                      'Mission: strengthen the brethren, reach the lost',
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-start gap-3 text-slate-200 text-sm">
+                        <span className="text-green-400 mt-0.5">✓</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Mission Statement */}
+            <div className="mt-12 text-center">
+              <blockquote className="text-xl sm:text-2xl font-light text-slate-300 italic max-w-3xl mx-auto leading-relaxed">
+                &quot;While the world chases knowledge and wealth, we strengthen the brethren and
+                convert the brokenhearted. We give hope to the hopeless.&quot;
+              </blockquote>
+              <p className="mt-4 text-slate-500">— The JCIL.AI Mission</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Enterprise Security Section */}
       <section className="bg-blue-900 py-16 sm:py-20 text-white">
         <div className="container mx-auto px-4">
