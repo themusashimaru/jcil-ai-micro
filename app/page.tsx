@@ -231,7 +231,7 @@ export default function HomePage() {
             </h2>
             <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
               In an age where AI shapes how we think, learn, and believe, JCIL.AI stands as a guardian.
-              We do not merely filter content—we architect a fortress of faith around every conversation.
+              We do not merely filter content. We architect a fortress of faith around every conversation.
             </p>
           </div>
 
@@ -239,7 +239,7 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto mb-20">
             <h3 className="text-center text-2xl font-bold text-white mb-4">The 5-Layer Codex</h3>
             <p className="text-center text-slate-400 mb-10 max-w-2xl mx-auto">
-              Every message passes through our proprietary protection system—a digital fortress designed to guard your soul.
+              Every message passes through our proprietary protection system, a digital fortress designed to guard your soul.
             </p>
 
             {/* Architecture Visualization */}
@@ -282,8 +282,8 @@ export default function HomePage() {
                           <span>📜</span> The Codex (System Prompt)
                         </h4>
                         <p className="text-slate-400 text-sm">
-                          Our theological framework—50 core Christian beliefs, 100 apologetic defenses,
-                          pastoral care protocols, and evangelism methods. The AI&apos;s soul, if you will.
+                          Our theological framework: 50 core Christian beliefs, 100 apologetic defenses,
+                          pastoral care protocols, and evangelism methods. The framework that draws the line.
                         </p>
                       </div>
                     </div>
@@ -302,7 +302,7 @@ export default function HomePage() {
                           <span>🧠</span> AI Processing Core
                         </h4>
                         <p className="text-slate-400 text-sm">
-                          Anthropic&apos;s Claude—one of the most advanced AI models in existence—processes
+                          Anthropic&apos;s Claude, one of the most advanced AI models in existence, processes
                           your request within the theological boundaries we&apos;ve established.
                         </p>
                       </div>
@@ -345,7 +345,7 @@ export default function HomePage() {
                         </h4>
                         <p className="text-slate-400 text-sm">
                           AES-256 encryption ensures your conversation remains private.
-                          Your faith journey is between you, God, and JCIL.AI—no one else.
+                          Your faith journey is between you, God, and JCIL.AI. No one else.
                         </p>
                       </div>
                     </div>
@@ -360,7 +360,7 @@ export default function HomePage() {
           <div className="max-w-5xl mx-auto">
             <h3 className="text-center text-2xl font-bold text-white mb-4">Why We&apos;re Different</h3>
             <p className="text-center text-slate-400 mb-10 max-w-2xl mx-auto">
-              This isn&apos;t just another AI wrapper. It&apos;s cyber security for the soul.
+              This is not just another AI wrapper. It is cyber security for the soul.
             </p>
 
             <div className="grid md:grid-cols-2 gap-6">
@@ -380,7 +380,7 @@ export default function HomePage() {
                     'Data sold to advertisers',
                     'No protection for children',
                     'Answers drift with cultural trends',
-                    'Just a chatbot—no mission',
+                    'Just a chatbot with no mission',
                   ].map((item, i) => (
                     <li key={i} className="flex items-start gap-3 text-slate-400 text-sm">
                       <span className="text-red-400 mt-0.5">✕</span>
@@ -405,7 +405,7 @@ export default function HomePage() {
                       'Built on Biblical truth and Christian values',
                       '50 core beliefs + 100 apologetic defenses',
                       'Strengthens and defends the faith',
-                      'We never sell your data—ever',
+                      'We never sell your data. Ever.',
                       'Family-safe by design',
                       'Anchored to eternal, unchanging truth',
                       'Mission: strengthen the brethren, reach the lost',
@@ -426,11 +426,11 @@ export default function HomePage() {
                 &quot;AI is not God, it is a tool for efficiency and productivity, and it does not replace the pastor or the teacher.
                 While the world chases infinitely expanding knowledge and wealth, we aim to strengthen the brethren and comfort
                 the brokenhearted through the teachings of our Lord Jesus. We point to the scriptures and speak the truth that
-                Jesus Christ of Nazareth is the King of Kings and the Lord of Lords, unapologetically. We hold the line—Christians
+                Jesus Christ of Nazareth is the King of Kings and the Lord of Lords, unapologetically. We hold the line. Christians
                 are programmers too and our community is at risk. We will not sit idle seeing the incoming challenges ahead.
                 As digital Watchmen, we will forge a path for our people and stand firm in our beliefs.&quot;
               </blockquote>
-              <p className="mt-4 text-slate-500">— The JCIL.AI Mission</p>
+              <p className="mt-4 text-slate-500">- The JCIL.AI Mission</p>
             </div>
           </div>
         </div>
