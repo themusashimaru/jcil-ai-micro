@@ -285,6 +285,13 @@ export async function POST(request: NextRequest) {
                       lowerContent.includes('total due') ||
                       lowerContent.includes('amount due');
 
+    const isBusinessPlan = lowerTitle.includes('business plan') ||
+                           lowerTitle.includes('business proposal') ||
+                           lowerContent.includes('executive summary') ||
+                           lowerContent.includes('market analysis') ||
+                           lowerContent.includes('financial projections') ||
+                           (lowerContent.includes('business') && lowerContent.includes('strategy'));
+
     // Create PDF
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -292,10 +299,10 @@ export async function POST(request: NextRequest) {
       format: 'a4',
     });
 
-    // Page settings - tighter margins for resumes, standard for invoices
+    // Page settings - tighter margins for resumes, professional for business docs
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = isResume ? 15 : 20;
+    const margin = isResume ? 15 : (isBusinessPlan ? 20 : 20);
     const contentWidth = pageWidth - (margin * 2);
     let y = margin;
     let isFirstElement = true;
@@ -353,87 +360,147 @@ export async function POST(request: NextRequest) {
     for (const element of elements) {
       switch (element.type) {
         case 'h1':
-          checkPageBreak(15);
+          checkPageBreak(20);
           if (isResume && isFirstElement) {
             // RESUME: Centered name at top, larger and bold
             doc.setFontSize(24);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(0, 0, 0); // Black for professional look
-            doc.text(cleanMarkdown(element.text).text, pageWidth / 2, y, { align: 'center' });
-            y += 6; // Tight spacing - contact info goes right below name
-            resumeHeaderDone = false; // Next paragraph might be contact info
+            doc.setTextColor(0, 0, 0);
+            const resumeNameText = cleanMarkdown(element.text).text;
+            const resumeNameWrapped = doc.splitTextToSize(resumeNameText, contentWidth);
+            doc.text(resumeNameWrapped, pageWidth / 2, y, { align: 'center' });
+            y += resumeNameWrapped.length * 8 + 2;
+            resumeHeaderDone = false;
           } else if (isInvoice && isFirstElement) {
-            // INVOICE: Large bold title, right-aligned or centered
+            // INVOICE: Large bold title, right-aligned
             doc.setFontSize(28);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(30, 64, 175); // Professional blue
+            doc.setTextColor(30, 64, 175);
             doc.text(cleanMarkdown(element.text).text.toUpperCase(), pageWidth - margin, y, { align: 'right' });
             y += 12;
-            // Add a subtle line under title
             doc.setDrawColor(30, 64, 175);
             doc.setLineWidth(0.8);
             doc.line(pageWidth - 80, y - 3, pageWidth - margin, y - 3);
             y += 8;
+          } else if (isBusinessPlan && isFirstElement) {
+            // BUSINESS PLAN: Centered title, professional look
+            doc.setFontSize(22);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(30, 58, 138); // Dark blue
+            const bpTitleText = cleanMarkdown(element.text).text;
+            const bpTitleWrapped = doc.splitTextToSize(bpTitleText, contentWidth);
+            doc.text(bpTitleWrapped, pageWidth / 2, y, { align: 'center' });
+            y += bpTitleWrapped.length * 8 + 5;
+            // Add decorative line
+            doc.setDrawColor(30, 58, 138);
+            doc.setLineWidth(1);
+            doc.line(margin + 30, y, pageWidth - margin - 30, y);
+            y += 10;
           } else {
-            // Standard H1
-            doc.setFontSize(20);
+            // Standard H1 - wrap text to prevent overflow
+            doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(30, 64, 175);
-            doc.text(cleanMarkdown(element.text).text, margin, y);
-            y += 12;
+            const h1Text = cleanMarkdown(element.text).text;
+            const h1Wrapped = doc.splitTextToSize(h1Text, contentWidth);
+            const h1Height = h1Wrapped.length * 7;
+            checkPageBreak(h1Height + 8);
+            doc.text(h1Wrapped, margin, y);
+            y += h1Height + 3;
             doc.setDrawColor(30, 64, 175);
             doc.setLineWidth(0.5);
-            doc.line(margin, y - 3, pageWidth - margin, y - 3);
-            y += 5;
+            doc.line(margin, y, pageWidth - margin, y);
+            y += 6;
           }
           isFirstElement = false;
           break;
 
         case 'h2':
-          checkPageBreak(12);
+          checkPageBreak(15);
           if (isResume) {
             // RESUME: Section headers - bold, with subtle line
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0);
-            doc.text(cleanMarkdown(element.text).text.toUpperCase(), margin, y);
-            y += 1;
+            const resumeH2Text = cleanMarkdown(element.text).text.toUpperCase();
+            const resumeH2Wrapped = doc.splitTextToSize(resumeH2Text, contentWidth);
+            doc.text(resumeH2Wrapped, margin, y);
+            y += resumeH2Wrapped.length * 5;
             doc.setDrawColor(100, 100, 100);
             doc.setLineWidth(0.3);
             doc.line(margin, y, pageWidth - margin, y);
             y += 5;
           } else if (isInvoice) {
-            // INVOICE: Section headers (Services/Items, etc.)
+            // INVOICE: Section headers
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(30, 64, 175);
-            doc.text(cleanMarkdown(element.text).text.toUpperCase(), margin, y);
-            y += 8;
+            const invoiceH2Text = cleanMarkdown(element.text).text.toUpperCase();
+            const invoiceH2Wrapped = doc.splitTextToSize(invoiceH2Text, contentWidth);
+            doc.text(invoiceH2Wrapped, margin, y);
+            y += invoiceH2Wrapped.length * 5 + 3;
+          } else if (isBusinessPlan) {
+            // BUSINESS PLAN: Section headers - prominent with background
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            const bpH2Text = cleanMarkdown(element.text).text;
+            const bpH2Wrapped = doc.splitTextToSize(bpH2Text, contentWidth - 10);
+            const bpH2Height = bpH2Wrapped.length * 6 + 4;
+            checkPageBreak(bpH2Height + 5);
+            // Light background
+            doc.setFillColor(240, 244, 248);
+            doc.rect(margin, y - 4, contentWidth, bpH2Height, 'F');
+            doc.setTextColor(30, 58, 138);
+            doc.text(bpH2Wrapped, margin + 5, y);
+            y += bpH2Height + 4;
           } else {
-            doc.setFontSize(16);
+            // Standard H2 - wrap text
+            doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(30, 64, 175);
-            doc.text(cleanMarkdown(element.text).text, margin, y);
-            y += 10;
+            const h2Text = cleanMarkdown(element.text).text;
+            const h2Wrapped = doc.splitTextToSize(h2Text, contentWidth);
+            const h2Height = h2Wrapped.length * 6;
+            checkPageBreak(h2Height + 5);
+            doc.text(h2Wrapped, margin, y);
+            y += h2Height + 5;
           }
           resumeHeaderDone = true;
           break;
 
         case 'h3':
-          checkPageBreak(10);
+          checkPageBreak(12);
           if (isResume) {
             // RESUME: Job title / subsection - bold
             doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0);
-            doc.text(cleanMarkdown(element.text).text, margin, y);
-            y += 5;
+            const resumeH3Text = cleanMarkdown(element.text).text;
+            const resumeH3Wrapped = doc.splitTextToSize(resumeH3Text, contentWidth);
+            doc.text(resumeH3Wrapped, margin, y);
+            y += resumeH3Wrapped.length * 5 + 2;
+          } else if (isBusinessPlan) {
+            // BUSINESS PLAN: Subsection headers
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(55, 65, 81);
+            const bpH3Text = cleanMarkdown(element.text).text;
+            const bpH3Wrapped = doc.splitTextToSize(bpH3Text, contentWidth);
+            const bpH3Height = bpH3Wrapped.length * 5;
+            checkPageBreak(bpH3Height + 4);
+            doc.text(bpH3Wrapped, margin, y);
+            y += bpH3Height + 4;
           } else {
-            doc.setFontSize(13);
+            // Standard H3 - wrap text
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(71, 85, 105);
-            doc.text(cleanMarkdown(element.text).text, margin, y);
-            y += 8;
+            const h3Text = cleanMarkdown(element.text).text;
+            const h3Wrapped = doc.splitTextToSize(h3Text, contentWidth);
+            const h3Height = h3Wrapped.length * 5;
+            checkPageBreak(h3Height + 4);
+            doc.text(h3Wrapped, margin, y);
+            y += h3Height + 4;
           }
           break;
 
@@ -498,8 +565,12 @@ export async function POST(request: NextRequest) {
             doc.text(cleaned.text, margin, y);
             y += 4; // Single-spaced for address lines
           } else {
-            // Standard paragraph
-            doc.setFontSize(isResume ? 10 : (isInvoice ? 10 : 11));
+            // Standard paragraph - consistent line height and spacing
+            const fontSize = isResume ? 10 : (isBusinessPlan ? 11 : (isInvoice ? 10 : 11));
+            const paragraphLineHeight = isResume ? 4 : (isBusinessPlan ? 5.5 : (isInvoice ? 4 : 5));
+            const paragraphSpacing = isResume ? 2 : (isBusinessPlan ? 4 : (isInvoice ? 1 : 3));
+
+            doc.setFontSize(fontSize);
             let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
             if (cleaned.bold && cleaned.italic) fontStyle = 'bolditalic';
             else if (cleaned.bold) fontStyle = 'bold';
@@ -508,11 +579,11 @@ export async function POST(request: NextRequest) {
             doc.setTextColor(51, 51, 51);
 
             const splitText = doc.splitTextToSize(cleaned.text, contentWidth);
-            const textHeight = splitText.length * (isResume ? 4 : (isInvoice ? 4 : 5));
-            checkPageBreak(textHeight);
+            const textHeight = splitText.length * paragraphLineHeight;
+            checkPageBreak(textHeight + paragraphSpacing);
 
             doc.text(splitText, margin, y);
-            y += textHeight + (isResume ? 2 : (isInvoice ? 1 : 3));
+            y += textHeight + paragraphSpacing;
           }
           break;
 
