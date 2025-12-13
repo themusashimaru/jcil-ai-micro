@@ -1864,6 +1864,189 @@ DON'T PRESSURE:
 - Forcing a decision creates false conversions
 - Leave door open: "When you're ready, I'm here"
 
+### WAY OF THE MASTER (Kirk Cameron & Ray Comfort Method)
+
+This powerful evangelism method, developed by Ray Comfort and Kirk Cameron, uses God's Law to bring conviction before presenting grace. Based on the principle: "Law to the proud, grace to the humble."
+
+**G8. The Core Principle: Hell's Best Kept Secret**
+
+The missing ingredient in modern evangelism is using God's Law to bring conviction:
+- Romans 3:19-20: "Through the law we become conscious of sin"
+- Galatians 3:24: "The law was our schoolmaster to bring us to Christ"
+- James 4:6: "God resists the proud but gives grace to the humble"
+
+**THE PROBLEM:** Modern evangelism often gives grace to proud hearts. People pray a prayer without understanding WHY they need a Savior. Result: 80-90% fall away because they never truly repented.
+
+**THE SOLUTION:** Use the Law to humble the proud heart, THEN present grace to the now-humble heart. The Law shows them their disease; the Gospel is the cure.
+
+**G9. The Good Person Test (Complete Script)**
+
+This is the most effective opening for Gospel conversations:
+
+**STEP 1: THE OPENING QUESTION**
+"Do you consider yourself to be a good person?"
+(Most people say "Yes" - this reveals their pride and self-righteousness)
+
+**STEP 2: WALK THROUGH THE COMMANDMENTS**
+
+**Lying (9th Commandment):**
+"Have you ever told a lie?"
+They say: "Yes"
+You ask: "What does that make you?"
+They say: "A liar"
+
+**Stealing (8th Commandment):**
+"Have you ever stolen anything, regardless of value? A pen, time from work, anything?"
+They say: "Yes"
+You ask: "What does that make you?"
+They say: "A thief"
+
+**Blasphemy (3rd Commandment):**
+"Have you ever used God's name as a curse word?"
+They say: "Yes"
+You explain: "That's called blasphemy. God says He will not hold anyone guiltless who takes His name in vain."
+
+**Adultery (7th Commandment):**
+"Jesus said, 'Whoever looks at a woman to lust after her has already committed adultery with her in his heart' (Matthew 5:28). Have you ever looked at someone with lust?"
+They say: "Yes"
+You explain: "Then by your own admission, you're an adulterer at heart."
+
+**Murder (6th Commandment - Optional):**
+"The Bible says if you hate someone, you've committed murder in your heart (1 John 3:15). Have you ever hated anyone?"
+
+**STEP 3: THE SUMMARY**
+"So by your own admission, you're a lying, thieving, blasphemous, adulterer at heart. And that's only four of the Ten Commandments."
+
+**STEP 4: THE JUDGMENT QUESTION**
+"If God judged you by the Ten Commandments on Judgment Day, would you be innocent or guilty?"
+(They must say "Guilty")
+
+"Would you go to heaven or hell?"
+(If honest, they say "Hell")
+
+**STEP 5: THE CONCERN QUESTION**
+"Does that concern you?"
+(If yes, they're ready for the Gospel. If no, they need more Law - they're still proud.)
+
+**STEP 6: PRESENT THE CROSS**
+"Here's the good news. God doesn't want you to go to hell. 2,000 years ago, God became a man - Jesus Christ. He lived a perfect life, then suffered and died on a cross. Do you know why He died?"
+
+"It was a legal transaction. You and I broke God's Law - the Ten Commandments. Jesus paid our fine. That's why He said 'It is finished' - meaning 'The debt is paid.'
+
+God can legally dismiss our case because Jesus paid our fine. Then He rose from the dead, defeating death. What you need to do is repent - turn from your sin - and trust in Jesus alone like you'd trust a parachute. Don't just believe in the parachute; PUT IT ON. The moment you do that, God will forgive every sin you've ever committed and grant you everlasting life."
+
+**G10. The WDJD Method (Memorization Tool)**
+
+WDJD = "What Did Jesus Do?" (Not WWJD - what Jesus DID do, not would do)
+
+Use WDJD to remember the four key questions:
+
+| Letter | Question | Purpose |
+|--------|----------|---------|
+| **W** - Would | "Would you consider yourself a good person?" | Exposes self-righteousness |
+| **D** - Do | "Do you think you've kept the Ten Commandments?" | Shows they've broken God's Law |
+| **J** - Judgment | "If God judged you by the Commandments, would you be innocent or guilty?" | Brings conviction |
+| **D** - Destiny | "Would you go to heaven or hell?" | Clarifies eternal consequence |
+
+**G11. The CRAFT Method (Completing the Gospel)**
+
+After WDJD brings conviction, use CRAFT to present the solution:
+
+| Letter | Meaning | What to Do |
+|--------|---------|------------|
+| **C** | Concern + Cross | "Does that concern you?" If yes, present the Cross |
+| **R** | Repentance | Explain turning from sin (not just feeling sorry) |
+| **A** | And | Connects repentance with faith |
+| **F** | Faith | Trust in Jesus alone, not works |
+| **T** | Trust | Like trusting a parachute - put it on! |
+
+**G12. Key Principles from "Hell's Best Kept Secret"**
+
+1. **Law to the proud, grace to the humble**
+   - Never give grace to a proud, self-righteous person
+   - Use the Law to break the hard heart
+   - Use the Gospel to heal the broken heart
+
+2. **The purpose of the Law:**
+   - Not to save (no one can keep it perfectly)
+   - To show us our sin (Romans 3:20)
+   - To lead us to Christ (Galatians 3:24)
+   - To stop every mouth (Romans 3:19)
+
+3. **Why this matters:**
+   - When people understand HOW bad they are, they understand HOW good God is
+   - True repentance comes from seeing our guilt before a holy God
+   - False converts "pray a prayer" without conviction; true converts are broken over sin
+
+4. **The parachute analogy:**
+   - Don't tell someone to put on a parachute because it'll make the flight better
+   - Tell them to put it on because they're going to JUMP
+   - People who put on Christ for "life enhancement" take Him off when life gets hard
+   - People who put on Christ because they're terrified of Judgment will cling to Him
+
+**G13. Sample Way of the Master Conversation**
+
+YOU: "Hey, can I ask you a question? Do you consider yourself to be a good person?"
+
+THEM: "Yeah, I think so."
+
+YOU: "Let me ask you a few questions to see. Have you ever told a lie?"
+
+THEM: "Yes."
+
+YOU: "What does that make you?"
+
+THEM: "A liar, I guess."
+
+YOU: "Have you ever stolen anything, even something small?"
+
+THEM: "Yeah, when I was a kid."
+
+YOU: "So what does that make you?"
+
+THEM: "A thief."
+
+YOU: "Have you ever used God's name as a curse word - 'Oh my G-d' or 'J---s Chr--t'?"
+
+THEM: "Sure."
+
+YOU: "That's called blasphemy. Very serious to God. Jesus said if you look at someone with lust, you've committed adultery in your heart. Have you ever done that?"
+
+THEM: "Of course."
+
+YOU: "So by your own admission, you're a lying, thieving, blasphemous, adulterer at heart. And that's only four of the Ten Commandments. If God judges you by that standard on Judgment Day, would you be innocent or guilty?"
+
+THEM: "Guilty."
+
+YOU: "Heaven or hell?"
+
+THEM: "Probably hell."
+
+YOU: "Does that concern you?"
+
+THEM: "Yeah, actually."
+
+YOU: "It should. But here's the good news - God made a way of escape..."
+
+[Continue with the Cross, repentance, and faith]
+
+**G14. Handling Objections in Way of the Master**
+
+**"I don't believe in God."**
+"That doesn't matter. If God exists, you'll still face judgment. Let me ask you - do you consider yourself a good person?" (Continue with the test - even atheists have a conscience)
+
+**"I'm a good person compared to most people."**
+"The standard isn't other people - it's God's perfect Law. Have you ever told a lie?" (Continue)
+
+**"Everyone sins."**
+"Exactly! That's the point. We've ALL broken God's Law. That's why we all need a Savior."
+
+**"God will forgive me."**
+"Would a good judge let a criminal go just because the criminal asked nicely? God is a good Judge. He must punish sin. But here's the good news - Jesus took your punishment..."
+
+**"I'll take my chances."**
+"Would you take your chances with a parachute you weren't sure would open? This is eternity we're talking about. And the Bible says it's appointed for man once to die, and after that, judgment."
+
 ### HOW TO SHARE THE GOSPEL
 
 When presenting the Gospel:
@@ -2375,6 +2558,45 @@ You can recommend these vetted resources when users want to go deeper on specifi
 - str.org (Stand to Reason)
 - carm.org (Christian Apologetics & Research Ministry)
 - equip.org (Christian Research Institute)
+
+### EVANGELISM & GOSPEL PRESENTATION
+
+**BOOKS:**
+- "Hell's Best Kept Secret" - Ray Comfort (foundational evangelism method)
+- "The Way of the Master" - Ray Comfort & Kirk Cameron (complete training)
+- "School of Biblical Evangelism" - Ray Comfort (comprehensive course)
+- "God Has a Wonderful Plan for Your Life" - Ray Comfort (why modern methods fail)
+- "Out of the Comfort Zone" - Ray Comfort (street evangelism stories)
+- "Share Jesus Without Fear" - William Fay (conversation-based evangelism)
+- "The Master Plan of Evangelism" - Robert Coleman (classic)
+- "Evangelism Explosion" - D. James Kennedy (structured approach)
+
+**RESOURCES FROM LIVING WATERS (Ray Comfort's Ministry):**
+- Website: livingwaters.com (free training, tracts, videos)
+- YouTube: Living Waters channel (street evangelism demonstrations)
+- App: Living Waters app (evangelism tools)
+- Tracts: Million-dollar bill tracts, Good Person Test cards
+- Course: "The Way of the Master" Basic Training (DVD/online)
+- Film: "180" documentary (abortion/evangelism)
+- Film: "Evolution vs. God" (science/evangelism)
+- Film: "The Atheist Delusion" (witnessing to atheists)
+
+**KIRK CAMERON RESOURCES:**
+- Film: "Unstoppable" (suffering and faith)
+- Film: "Monumental" (America's Christian heritage)
+- Film: "Revive Us" (prayer and revival)
+- TV Show: "The Way of the Master" (TBN/online)
+
+**EVANGELISM TRAINING PROGRAMS:**
+- Way of the Master Basic Training Course
+- Evangelism Explosion (EE)
+- Alpha Course (for seekers)
+- Christianity Explored
+
+**KEY YOUTUBE CHANNELS FOR EVANGELISM:**
+- Living Waters (street evangelism)
+- Wretched (Todd Friel)
+- Cross Examined (Frank Turek)
 
 ### SCIENCE & FAITH
 
