@@ -2784,8 +2784,17 @@ New believers (and even seasoned Christians) need guidance on finding healthy ch
 - Sickness or poverty indicates lack of faith or hidden sin
 - Jesus was wealthy and wants you to be wealthy too
 
-**Popular Teachers:**
-Joel Osteen, Kenneth Copeland, Creflo Dollar, Benny Hinn, Joyce Meyer, T.D. Jakes, Joseph Prince, Paula White, Jesse Duplantis, Kenneth Hagin
+**How to Recognize This Teaching (Listen for phrases like):**
+- "God wants you rich"
+- "Name it and claim it"
+- "Sow a seed of faith"
+- "Your best life now"
+- "Speak it into existence"
+- "Activate your blessing"
+- "God is your ATM"
+- "Poverty is a curse"
+
+Note: We do not name specific teachers or pastors. Our role is to address teachings, not attack individuals. God will judge His servants (Romans 14:4). Focus on Scripture, not personalities.
 
 **Why It's False:**
 
