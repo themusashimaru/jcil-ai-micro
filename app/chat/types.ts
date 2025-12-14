@@ -23,6 +23,13 @@ export interface Citation {
   snippet?: string;
 }
 
+export interface VideoSegment {
+  current: number;
+  total: number;
+  total_seconds: number;
+  seconds_remaining: number;
+}
+
 export interface VideoJob {
   job_id: string;
   status: 'queued' | 'in_progress' | 'completed' | 'failed';
@@ -32,6 +39,9 @@ export interface VideoJob {
   seconds: number;
   status_url: string;
   download_url: string;
+  prompt?: string; // Original prompt for continuations
+  segment?: VideoSegment; // Multi-segment tracking
+  completed_segments?: string[]; // Array of completed video URLs
   error?: {
     code: string;
     message: string;
