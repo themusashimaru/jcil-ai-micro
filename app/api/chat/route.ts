@@ -772,6 +772,42 @@ export async function POST(request: NextRequest) {
         prompt = prompt.replace(/^🎬\s*Generate video:\s*/i, '').trim();
       }
 
+      // Parse duration from prompt (e.g., "40 second video", "1 minute", "30s")
+      const parseDuration = (text: string): number | null => {
+        const lowerText = text.toLowerCase();
+
+        // Match patterns like "40 second", "40-second", "40s", "40 sec"
+        const secondsMatch = lowerText.match(/(\d+)\s*[-]?\s*(second|sec|s)\b/);
+        if (secondsMatch) {
+          return parseInt(secondsMatch[1], 10);
+        }
+
+        // Match patterns like "1 minute", "2 min", "1m"
+        const minutesMatch = lowerText.match(/(\d+)\s*[-]?\s*(minute|min|m)\b/);
+        if (minutesMatch) {
+          return parseInt(minutesMatch[1], 10) * 60;
+        }
+
+        return null;
+      };
+
+      const requestedDuration = parseDuration(prompt);
+      // Snap to valid durations (4, 8, 12) or multi-segment for longer
+      const snapToValidSeconds = (s: number): number => {
+        if (s <= 4) return 4;
+        if (s <= 8) return 8;
+        return 12;
+      };
+
+      // For requests > 12s, we'll use multi-segment
+      const MAX_SEGMENT = 12;
+      const isMultiSegment = requestedDuration && requestedDuration > MAX_SEGMENT;
+      const singleVideoSeconds = requestedDuration
+        ? snapToValidSeconds(Math.min(requestedDuration, MAX_SEGMENT))
+        : MAX_SEGMENT; // Default to 12s if not specified
+
+      console.log(`[Chat API] Video request: duration=${requestedDuration || 'default'}, isMultiSegment=${isMultiSegment}, seconds=${singleVideoSeconds}`);
+
       // Validate prompt before starting
       const validationError = validateVideoPrompt(prompt);
       if (validationError) {
@@ -779,7 +815,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify({
             type: 'text',
             content: `**Video Generation Error**\n\n${validationError}\n\nPlease modify your prompt and try again.`,
-            model: 'sora-2',
+            model: 'sora-2-pro',
           }),
           {
             status: 200,
@@ -794,9 +830,10 @@ export async function POST(request: NextRequest) {
       // Start video generation job
       const result = await createVideoJob({
         prompt,
-        model: 'sora-2', // Default to faster model
+        model: 'sora-2-pro', // Pro model with audio support
         size: '1280x720',
-        seconds: 5,
+        seconds: singleVideoSeconds,
+        audio: true,
         userId: rateLimitIdentifier,
       });
 
@@ -805,7 +842,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify({
             type: 'text',
             content: `**Video Generation Failed**\n\n${result.error}\n\n${result.retryable ? 'Please try again in a moment.' : 'Please modify your prompt and try again.'}`,
-            model: 'sora-2',
+            model: 'sora-2-pro',
           }),
           {
             status: result.retryable ? 503 : 400,
@@ -817,22 +854,42 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Build video job response
+      const totalDuration = isMultiSegment && requestedDuration ? requestedDuration : result.job.seconds;
+      const totalSegments = isMultiSegment && requestedDuration ? Math.ceil(requestedDuration / MAX_SEGMENT) : 1;
+      const durationText = isMultiSegment
+        ? `${totalDuration} seconds (${totalSegments} segments of ${MAX_SEGMENT}s each)`
+        : `${result.job.seconds} seconds`;
+
+      const videoJobData: Record<string, unknown> = {
+        job_id: result.job.id,
+        status: result.job.status,
+        progress: result.job.progress,
+        model: result.job.model,
+        size: result.job.size,
+        seconds: result.job.seconds,
+        status_url: `/api/video/status?job_id=${result.job.id}`,
+        download_url: `/api/video/download?job_id=${result.job.id}`,
+        prompt, // Include for continuation
+      };
+
+      // Add segment info for multi-segment videos
+      if (isMultiSegment && requestedDuration) {
+        videoJobData.segment = {
+          current: 1,
+          total: totalSegments,
+          total_seconds: requestedDuration,
+          seconds_remaining: requestedDuration - result.job.seconds,
+        };
+      }
+
       // Return video job info - frontend will poll for status
       return new Response(
         JSON.stringify({
           type: 'video_job',
-          content: `**Video Generation Started**\n\nYour video is being generated. This typically takes 1-3 minutes.\n\n**Prompt:** ${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}\n**Model:** ${result.job.model}\n**Duration:** ${result.job.seconds} seconds\n**Resolution:** ${result.job.size}`,
+          content: `**Video Generation Started**\n\nYour video is being generated. ${isMultiSegment ? `This is a multi-segment video (${totalSegments} segments).` : 'This typically takes 1-3 minutes.'}\n\n**Prompt:** ${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}\n**Model:** ${result.job.model}\n**Duration:** ${durationText}\n**Resolution:** ${result.job.size}`,
           model: result.job.model,
-          video_job: {
-            job_id: result.job.id,
-            status: result.job.status,
-            progress: result.job.progress,
-            model: result.job.model,
-            size: result.job.size,
-            seconds: result.job.seconds,
-            status_url: `/api/video/status?job_id=${result.job.id}`,
-            download_url: `/api/video/download?job_id=${result.job.id}`,
-          },
+          video_job: videoJobData,
         }),
         {
           status: 202,

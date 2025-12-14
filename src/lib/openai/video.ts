@@ -94,10 +94,18 @@ const VIDEO_COSTS_PER_SECOND: Record<VideoModel, number> = {
 // Default settings
 const DEFAULT_MODEL: VideoModel = 'sora-2-pro'; // Pro model supports audio
 const DEFAULT_SIZE: VideoSize = '1280x720';
-const DEFAULT_SECONDS = 20; // Max length for video production
-const MAX_SECONDS = 20;
-const MIN_SECONDS = 1;
+// API only accepts 4, 8, or 12 seconds
+const DEFAULT_SECONDS = 12; // Max available duration
 const DEFAULT_AUDIO = true; // Enable audio by default for pro model
+
+/**
+ * Snap seconds to nearest valid API value (4, 8, or 12)
+ */
+function snapToValidSeconds(seconds: number): number {
+  if (seconds <= 4) return 4;
+  if (seconds <= 8) return 8;
+  return 12;
+}
 
 // ========================================
 // UTILITIES
@@ -283,8 +291,8 @@ export async function createVideoJob(request: VideoJobRequest): Promise<CreateVi
     };
   }
 
-  // Validate seconds
-  const clampedSeconds = Math.max(MIN_SECONDS, Math.min(MAX_SECONDS, seconds));
+  // Validate seconds - API only accepts 4, 8, or 12
+  const clampedSeconds = snapToValidSeconds(seconds);
 
   console.log(`[Sora] Starting video generation: model=${model}, size=${size}, seconds=${clampedSeconds}, audio=${audio}`);
   console.log(`[Sora] Prompt: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
@@ -526,7 +534,8 @@ export async function remixVideo(request: VideoRemixRequest): Promise<CreateVide
     };
   }
 
-  const clampedSeconds = Math.max(MIN_SECONDS, Math.min(MAX_SECONDS, seconds));
+  // Validate seconds - API only accepts 4, 8, or 12
+  const clampedSeconds = snapToValidSeconds(seconds);
 
   console.log(`[Sora] Starting remix of ${videoId}: model=${model}, size=${size}, seconds=${clampedSeconds}, audio=${audio}`);
   console.log(`[Sora] Remix prompt: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);

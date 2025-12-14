@@ -139,7 +139,8 @@ export async function POST(request: NextRequest) {
   const size = body.size && validSizes.includes(body.size) ? body.size : '1280x720';
 
   // Handle multi-segment videos
-  const MAX_SEGMENT_SECONDS = 20;
+  // API only accepts 4, 8, or 12 seconds per segment
+  const MAX_SEGMENT_SECONDS = 12;
   const totalSeconds = typeof body.total_seconds === 'number' && body.total_seconds > 0
     ? Math.floor(body.total_seconds)
     : null;
@@ -148,11 +149,18 @@ export async function POST(request: NextRequest) {
   const totalSegments = totalSeconds ? Math.ceil(totalSeconds / MAX_SEGMENT_SECONDS) : 1;
   const isMultiSegment = totalSegments > 1;
 
+  // Snap to valid API values (4, 8, or 12)
+  const snapToValidSeconds = (s: number): number => {
+    if (s <= 4) return 4;
+    if (s <= 8) return 8;
+    return 12;
+  };
+
   // First segment seconds (or single video seconds)
   const seconds = isMultiSegment
-    ? MAX_SEGMENT_SECONDS // First segment is always max
+    ? MAX_SEGMENT_SECONDS // First segment is always max (12s)
     : typeof body.seconds === 'number'
-      ? Math.max(1, Math.min(MAX_SEGMENT_SECONDS, Math.floor(body.seconds)))
+      ? snapToValidSeconds(body.seconds)
       : MAX_SEGMENT_SECONDS;
 
   // Audio defaults to true for sora-2-pro
