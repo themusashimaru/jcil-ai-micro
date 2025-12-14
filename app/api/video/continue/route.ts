@@ -31,7 +31,15 @@ import {
   isVideoGenerationAvailable,
 } from '@/lib/openai/video';
 
-const MAX_SEGMENT_SECONDS = 20;
+// API only accepts 4, 8, or 12 seconds per segment
+const MAX_SEGMENT_SECONDS = 12;
+
+// Snap to valid API values (4, 8, or 12)
+function snapToValidSeconds(s: number): number {
+  if (s <= 4) return 4;
+  if (s <= 8) return 8;
+  return 12;
+}
 
 export async function POST(request: NextRequest) {
   // Check if video generation is available
@@ -163,9 +171,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Calculate this segment's duration
+  // Calculate this segment's duration (snap to valid API values)
   const secondsRemaining = segment.seconds_remaining;
-  const thisSegmentSeconds = Math.min(MAX_SEGMENT_SECONDS, secondsRemaining);
+  const thisSegmentSeconds = snapToValidSeconds(Math.min(MAX_SEGMENT_SECONDS, secondsRemaining));
   const newSecondsRemaining = secondsRemaining - thisSegmentSeconds;
 
   // Validate model

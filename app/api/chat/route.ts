@@ -794,9 +794,10 @@ export async function POST(request: NextRequest) {
       // Start video generation job
       const result = await createVideoJob({
         prompt,
-        model: 'sora-2', // Default to faster model
+        model: 'sora-2-pro', // Pro model with audio support
         size: '1280x720',
-        seconds: 5,
+        seconds: 12, // API only accepts 4, 8, or 12
+        audio: true,
         userId: rateLimitIdentifier,
       });
 
@@ -805,7 +806,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify({
             type: 'text',
             content: `**Video Generation Failed**\n\n${result.error}\n\n${result.retryable ? 'Please try again in a moment.' : 'Please modify your prompt and try again.'}`,
-            model: 'sora-2',
+            model: 'sora-2-pro',
           }),
           {
             status: result.retryable ? 503 : 400,
