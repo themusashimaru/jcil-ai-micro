@@ -300,18 +300,14 @@ export async function createVideoJob(request: VideoJobRequest): Promise<CreateVi
   const startTime = Date.now();
 
   try {
-    // Build request body - only include audio if using pro model
+    // Build request body
+    // Note: sora-2-pro includes audio automatically, no parameter needed
     const requestBody: Record<string, unknown> = {
       model,
       prompt,
       size,
       seconds: clampedSeconds,
     };
-
-    // Audio is only supported on sora-2-pro
-    if (model === 'sora-2-pro' && audio) {
-      requestBody.audio = true;
-    }
 
     const response = await apiRequest('/videos', {
       method: 'POST',
@@ -544,16 +540,13 @@ export async function remixVideo(request: VideoRemixRequest): Promise<CreateVide
 
   try {
     // Build request body for remix
+    // Note: sora-2-pro includes audio automatically, no parameter needed
     const requestBody: Record<string, unknown> = {
       model,
       prompt,
       size,
       seconds: clampedSeconds,
     };
-
-    if (model === 'sora-2-pro' && audio) {
-      requestBody.audio = true;
-    }
 
     // Remix endpoint uses the video ID in the URL
     const response = await apiRequest(`/videos/${videoId}/remix`, {
