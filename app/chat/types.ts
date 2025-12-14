@@ -23,6 +23,21 @@ export interface Citation {
   snippet?: string;
 }
 
+export interface VideoJob {
+  job_id: string;
+  status: 'queued' | 'in_progress' | 'completed' | 'failed';
+  progress: number;
+  model: string;
+  size: string;
+  seconds: number;
+  status_url: string;
+  download_url: string;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -30,6 +45,8 @@ export interface Message {
   toolCalls?: ToolCall[];
   attachments?: Attachment[];
   imageUrl?: string; // For AI-generated images
+  videoUrl?: string; // For completed video generations
+  videoJob?: VideoJob; // For video generation in progress
   products?: ShopProduct[]; // For Amazon shopping results
   citations?: Citation[]; // Source citations from Live Search (with title and URL)
   sourcesUsed?: number; // Number of sources used in search

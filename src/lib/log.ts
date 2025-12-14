@@ -121,6 +121,33 @@ export function logImageGeneration(
 }
 
 /**
+ * Log video generation (separate billing - higher costs)
+ */
+export function logVideoGeneration(
+  user_id: string,
+  model: string,
+  size: string,
+  seconds: number,
+  cost: number,
+  ok: boolean,
+  latency_ms: number
+): void {
+  console.log(
+    JSON.stringify({
+      ts: Date.now(),
+      type: 'video_billing',
+      user_id,
+      model,
+      size,
+      seconds,
+      cost,
+      ok,
+      latency_ms,
+    })
+  );
+}
+
+/**
  * Create a hash of parameters for logging (redacts sensitive data)
  */
 export function hashParams(params: Record<string, unknown>): string {

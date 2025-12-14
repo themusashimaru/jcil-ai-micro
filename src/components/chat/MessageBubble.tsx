@@ -215,6 +215,116 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
           </div>
         )}
 
+        {/* Generated Video */}
+        {message.videoUrl && (
+          <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-md relative group">
+            <video
+              src={message.videoUrl}
+              controls
+              className="w-full h-auto rounded-lg"
+              preload="metadata"
+            />
+            {/* Download button */}
+            <a
+              href={message.videoUrl}
+              download={`generated-video-${Date.now()}.mp4`}
+              className="absolute bottom-12 right-2 rounded-full bg-black/70 p-2 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity hover:bg-black/90"
+              title="Download video"
+            >
+              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+            </a>
+          </div>
+        )}
+
+        {/* Video Job Progress */}
+        {message.videoJob && !message.videoUrl && (
+          <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-md p-4 bg-white/5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="text-2xl">🎬</div>
+              <div className="flex-1">
+                <div className="text-sm font-medium text-white">
+                  {message.videoJob.status === 'queued' && 'Video Queued'}
+                  {message.videoJob.status === 'in_progress' && 'Generating Video...'}
+                  {message.videoJob.status === 'completed' && 'Video Ready!'}
+                  {message.videoJob.status === 'failed' && 'Generation Failed'}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {message.videoJob.model} - {message.videoJob.seconds}s - {message.videoJob.size}
+                </div>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            {(message.videoJob.status === 'queued' || message.videoJob.status === 'in_progress') && (
+              <div className="mb-3">
+                <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+                    style={{ width: `${message.videoJob.progress}%` }}
+                  />
+                </div>
+                <div className="text-xs text-gray-400 mt-1 text-right">
+                  {message.videoJob.progress}%
+                </div>
+              </div>
+            )}
+
+            {/* Error message */}
+            {message.videoJob.status === 'failed' && message.videoJob.error && (
+              <div className="text-sm text-red-400 mb-2">
+                {message.videoJob.error.message}
+              </div>
+            )}
+
+            {/* Status-specific UI */}
+            {message.videoJob.status === 'completed' && (
+              <a
+                href={message.videoJob.download_url}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Download Video
+              </a>
+            )}
+
+            {(message.videoJob.status === 'queued' || message.videoJob.status === 'in_progress') && (
+              <div className="text-xs text-gray-400 flex items-center gap-2">
+                <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Video generation typically takes 1-3 minutes
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Shopping Products - Horizontal Scrolling */}
         {message.products && message.products.length > 0 && (
           <div className="mb-3">

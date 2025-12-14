@@ -733,6 +733,118 @@ export async function POST(request: NextRequest) {
     const activeProvider: Provider = providerSettings.activeProvider;
     console.log('[Chat API] Active provider:', activeProvider);
 
+    // ========================================
+    // VIDEO GENERATION (Admin only for now)
+    // ========================================
+    if (routeDecision.target === 'video') {
+      // Admin only for testing phase
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: '**Video Generation Coming Soon**\n\nVideo generation with Sora is currently in testing and available to administrators only.\n\nIn the meantime, I can help you with:\n- Describing video concepts in detail\n- Writing video scripts or storyboards\n- Creating images with DALL-E\n- General questions and assistance\n\nIs there something else I can help you with?',
+            model: activeProvider === 'anthropic' ? 'claude-sonnet-4.5' : 'gpt-4o',
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Video-Unavailable': 'admin-only',
+            },
+          }
+        );
+      }
+
+      // Admin video generation
+      console.log('[Chat API] Admin video generation request');
+
+      // Import video functions
+      const { createVideoJob, validateVideoPrompt } = await import('@/lib/openai/video');
+
+      // Extract prompt from last message
+      const lastMessage = messages[messages.length - 1];
+      let prompt = typeof lastMessage.content === 'string'
+        ? lastMessage.content
+        : '';
+
+      // Clean up prompt if it starts with emoji prefix
+      if (prompt.startsWith('🎬 Generate video:')) {
+        prompt = prompt.replace(/^🎬\s*Generate video:\s*/i, '').trim();
+      }
+
+      // Validate prompt before starting
+      const validationError = validateVideoPrompt(prompt);
+      if (validationError) {
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `**Video Generation Error**\n\n${validationError}\n\nPlease modify your prompt and try again.`,
+            model: 'sora-2',
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Video-Error': 'content-policy',
+            },
+          }
+        );
+      }
+
+      // Start video generation job
+      const result = await createVideoJob({
+        prompt,
+        model: 'sora-2', // Default to faster model
+        size: '1280x720',
+        seconds: 5,
+        userId: rateLimitIdentifier,
+      });
+
+      if (!result.ok) {
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `**Video Generation Failed**\n\n${result.error}\n\n${result.retryable ? 'Please try again in a moment.' : 'Please modify your prompt and try again.'}`,
+            model: 'sora-2',
+          }),
+          {
+            status: result.retryable ? 503 : 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Video-Error': result.code,
+            },
+          }
+        );
+      }
+
+      // Return video job info - frontend will poll for status
+      return new Response(
+        JSON.stringify({
+          type: 'video_job',
+          content: `**Video Generation Started**\n\nYour video is being generated. This typically takes 1-3 minutes.\n\n**Prompt:** ${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}\n**Model:** ${result.job.model}\n**Duration:** ${result.job.seconds} seconds\n**Resolution:** ${result.job.size}`,
+          model: result.job.model,
+          video_job: {
+            job_id: result.job.id,
+            status: result.job.status,
+            progress: result.job.progress,
+            model: result.job.model,
+            size: result.job.size,
+            seconds: result.job.seconds,
+            status_url: `/api/video/status?job_id=${result.job.id}`,
+            download_url: `/api/video/download?job_id=${result.job.id}`,
+          },
+        }),
+        {
+          status: 202,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Video-Job-Id': result.job.id,
+            'X-Video-Status': result.job.status,
+          },
+        }
+      );
+    }
+
     // If Anthropic is active and user wants image generation, return unavailable message
     // EXCEPTION: Admins can use DALL-E 3 for testing
     if (activeProvider === 'anthropic' && routeDecision.target === 'image' && !messageHasUploadedImages && !isAdmin) {
