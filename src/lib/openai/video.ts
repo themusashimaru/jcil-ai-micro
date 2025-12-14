@@ -34,6 +34,7 @@ export interface VideoJobRequest {
   model?: VideoModel;
   size?: VideoSize;
   seconds?: number; // 1-20 seconds
+  audio?: boolean;  // Enable audio generation (sora-2-pro only)
   userId?: string;
 }
 
@@ -80,11 +81,12 @@ const VIDEO_COSTS_PER_SECOND: Record<VideoModel, number> = {
 };
 
 // Default settings
-const DEFAULT_MODEL: VideoModel = 'sora-2';
+const DEFAULT_MODEL: VideoModel = 'sora-2-pro'; // Pro model supports audio
 const DEFAULT_SIZE: VideoSize = '1280x720';
 const DEFAULT_SECONDS = 5;
 const MAX_SECONDS = 20;
 const MIN_SECONDS = 1;
+const DEFAULT_AUDIO = true; // Enable audio by default for pro model
 
 // ========================================
 // UTILITIES
@@ -255,6 +257,7 @@ export async function createVideoJob(request: VideoJobRequest): Promise<CreateVi
     model = DEFAULT_MODEL,
     size = DEFAULT_SIZE,
     seconds = DEFAULT_SECONDS,
+    audio = model === 'sora-2-pro' ? DEFAULT_AUDIO : false, // Audio only for pro model
     userId,
   } = request;
 
@@ -272,20 +275,28 @@ export async function createVideoJob(request: VideoJobRequest): Promise<CreateVi
   // Validate seconds
   const clampedSeconds = Math.max(MIN_SECONDS, Math.min(MAX_SECONDS, seconds));
 
-  console.log(`[Sora] Starting video generation: model=${model}, size=${size}, seconds=${clampedSeconds}`);
+  console.log(`[Sora] Starting video generation: model=${model}, size=${size}, seconds=${clampedSeconds}, audio=${audio}`);
   console.log(`[Sora] Prompt: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
 
   const startTime = Date.now();
 
   try {
+    // Build request body - only include audio if using pro model
+    const requestBody: Record<string, unknown> = {
+      model,
+      prompt,
+      size,
+      seconds: clampedSeconds,
+    };
+
+    // Audio is only supported on sora-2-pro
+    if (model === 'sora-2-pro' && audio) {
+      requestBody.audio = true;
+    }
+
     const response = await apiRequest('/videos', {
       method: 'POST',
-      body: JSON.stringify({
-        model,
-        prompt,
-        size,
-        seconds: clampedSeconds,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {

@@ -102,6 +102,7 @@ export async function POST(request: NextRequest) {
     model?: VideoModel;
     size?: VideoSize;
     seconds?: number;
+    audio?: boolean;
   };
 
   try {
@@ -123,9 +124,9 @@ export async function POST(request: NextRequest) {
 
   const prompt = body.prompt.trim();
 
-  // Validate model
+  // Validate model (default to pro for audio support)
   const validModels: VideoModel[] = ['sora-2', 'sora-2-pro'];
-  const model = body.model && validModels.includes(body.model) ? body.model : 'sora-2';
+  const model = body.model && validModels.includes(body.model) ? body.model : 'sora-2-pro';
 
   // Validate size
   const validSizes: VideoSize[] = ['1920x1080', '1080x1920', '1280x720', '720x1280', '1080x1080'];
@@ -136,7 +137,10 @@ export async function POST(request: NextRequest) {
     ? Math.max(1, Math.min(20, Math.floor(body.seconds)))
     : 5;
 
-  console.log(`[Video Generate] Admin ${userId} starting video: model=${model}, size=${size}, seconds=${seconds}`);
+  // Audio defaults to true for sora-2-pro
+  const audio = typeof body.audio === 'boolean' ? body.audio : (model === 'sora-2-pro');
+
+  console.log(`[Video Generate] Admin ${userId} starting video: model=${model}, size=${size}, seconds=${seconds}, audio=${audio}`);
 
   // Create the video job
   const result = await createVideoJob({
@@ -144,6 +148,7 @@ export async function POST(request: NextRequest) {
     model,
     size,
     seconds,
+    audio,
     userId: userId || undefined,
   });
 
