@@ -302,11 +302,12 @@ export async function createVideoJob(request: VideoJobRequest): Promise<CreateVi
   try {
     // Build request body
     // Note: sora-2-pro includes audio automatically, no parameter needed
+    // IMPORTANT: Sora API expects seconds as a STRING ('4', '8', '12'), not a number
     const requestBody: Record<string, unknown> = {
       model,
       prompt,
       size,
-      seconds: clampedSeconds,
+      seconds: String(clampedSeconds),
     };
 
     const response = await apiRequest('/videos', {
@@ -541,11 +542,12 @@ export async function remixVideo(request: VideoRemixRequest): Promise<CreateVide
   try {
     // Build request body for remix
     // Note: sora-2-pro includes audio automatically, no parameter needed
+    // IMPORTANT: Sora API expects seconds as a STRING ('4', '8', '12'), not a number
     const requestBody: Record<string, unknown> = {
       model,
       prompt,
       size,
-      seconds: clampedSeconds,
+      seconds: String(clampedSeconds),
     };
 
     // Remix endpoint uses the video ID in the URL
