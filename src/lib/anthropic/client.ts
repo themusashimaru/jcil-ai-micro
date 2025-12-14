@@ -850,155 +850,184 @@ export async function createAnthropicCompletionWithSkills(
   const maxTokens = options.maxTokens || 8192; // Higher for document generation
   const temperature = options.temperature ?? 0.7;
 
-  const { system, messages } = convertMessages(options.messages, options.systemPrompt);
+  const { system, messages: initialMessages } = convertMessages(options.messages, options.systemPrompt);
 
   // Build skills configuration
   const skillsConfig = options.skills.map(skill => getSkillConfig(skill));
 
   const maxRetries = Math.max(1, getTotalKeyCount());
+  const maxAgentTurns = 10; // Prevent infinite loops
+
+  // Agentic loop state
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let conversationMessages: any[] = [...initialMessages];
+  const allTextParts: string[] = [];
+  const allFiles: GeneratedFile[] = [];
+  const seenFileIds = new Set<string>();
+  let finalContainerId: string | undefined;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const client = getAnthropicClient();
     lastUsedClient = client;
 
     try {
-      // Use the beta messages API with skills
-      // Skills require the code_execution tool to be included
-      const response = await client.beta.messages.create({
-        model,
-        max_tokens: maxTokens,
-        temperature,
-        betas: SKILLS_BETA_HEADERS,
-        system: [
-          {
-            type: 'text',
-            text: system,
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        messages,
-        tools: [
-          {
-            type: 'code_execution_20250825',
-            name: 'code_execution',
-          },
-        ],
-        container: {
-          skills: skillsConfig,
-        },
-      });
+      // Agentic loop - continue until stop_reason is 'end_turn'
+      for (let turn = 0; turn < maxAgentTurns; turn++) {
+        console.log(`[Anthropic Skills] Turn ${turn + 1}/${maxAgentTurns}`);
 
-      // Extract text content and files
-      // Skills API returns: server_tool_use, bash_code_execution_tool_result, text_editor_code_execution_tool_result
-      // Files copied to $OUTPUT_DIR have file_ids in bash_code_execution_tool_result blocks
-      const textParts: string[] = [];
-      const files: GeneratedFile[] = [];
-      const seenFileIds = new Set<string>();
+        // Use the beta messages API with skills
+        const response = await client.beta.messages.create({
+          model,
+          max_tokens: maxTokens,
+          temperature,
+          betas: SKILLS_BETA_HEADERS,
+          system: [
+            {
+              type: 'text',
+              text: system,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages: conversationMessages,
+          tools: [
+            {
+              type: 'code_execution_20250825',
+              name: 'code_execution',
+            },
+          ],
+          container: finalContainerId ? { id: finalContainerId, skills: skillsConfig } : { skills: skillsConfig },
+        });
 
-      // Debug: Log the full response structure
-      console.log(`[Anthropic Skills] Response content blocks: ${response.content.length}`);
-      console.log(`[Anthropic Skills] Block types: ${response.content.map((b: { type: string }) => b.type).join(', ')}`);
-
-      for (const block of response.content) {
-        if (block.type === 'text') {
-          textParts.push(block.text);
+        // Track container ID for subsequent turns
+        if (response.container?.id) {
+          finalContainerId = response.container.id;
         }
 
-        // Check bash_code_execution_tool_result blocks - this is where files from Skills are
-        if (block.type === 'bash_code_execution_tool_result') {
-          const blockData = block as unknown as Record<string, unknown>;
-          console.log(`[Anthropic Skills] Found bash_code_execution_tool_result:`, JSON.stringify(blockData).slice(0, 1500));
+        // Debug: Log the response structure
+        console.log(`[Anthropic Skills] Turn ${turn + 1} - stop_reason: ${response.stop_reason}`);
+        console.log(`[Anthropic Skills] Turn ${turn + 1} - content blocks: ${response.content.length}`);
+        console.log(`[Anthropic Skills] Turn ${turn + 1} - block types: ${response.content.map((b: { type: string }) => b.type).join(', ')}`);
 
-          // Check content for file information
-          const content = blockData.content as Record<string, unknown> | undefined;
-          if (content) {
-            console.log(`[Anthropic Skills] bash_code_execution content type:`, content.type);
+        // Process response content blocks
+        for (const block of response.content) {
+          if (block.type === 'text') {
+            allTextParts.push(block.text);
+          }
 
-            // Files might be in content.content array
-            if ('content' in content && Array.isArray(content.content)) {
-              for (const item of content.content) {
-                if (item && typeof item === 'object') {
-                  const fileItem = item as Record<string, unknown>;
-                  if ('file_id' in fileItem && !seenFileIds.has(String(fileItem.file_id))) {
-                    seenFileIds.add(String(fileItem.file_id));
-                    files.push({
-                      file_id: String(fileItem.file_id),
-                      filename: fileItem.filename ? String(fileItem.filename) : 'document',
-                      mime_type: fileItem.mime_type ? String(fileItem.mime_type) : 'application/octet-stream',
-                    });
-                    console.log(`[Anthropic Skills] Extracted file from bash result: ${fileItem.file_id}`);
+          // Extract files from bash_code_execution_tool_result blocks
+          if (block.type === 'bash_code_execution_tool_result') {
+            const blockData = block as unknown as Record<string, unknown>;
+            console.log(`[Anthropic Skills] Found bash_code_execution_tool_result:`, JSON.stringify(blockData).slice(0, 1500));
+
+            const content = blockData.content as Record<string, unknown> | undefined;
+            if (content) {
+              // Files might be in content.content array
+              if ('content' in content && Array.isArray(content.content)) {
+                for (const item of content.content) {
+                  if (item && typeof item === 'object') {
+                    const fileItem = item as Record<string, unknown>;
+                    if ('file_id' in fileItem && !seenFileIds.has(String(fileItem.file_id))) {
+                      seenFileIds.add(String(fileItem.file_id));
+                      allFiles.push({
+                        file_id: String(fileItem.file_id),
+                        filename: fileItem.filename ? String(fileItem.filename) : 'document',
+                        mime_type: fileItem.mime_type ? String(fileItem.mime_type) : 'application/octet-stream',
+                      });
+                      console.log(`[Anthropic Skills] Extracted file: ${fileItem.file_id} - ${fileItem.filename}`);
+                    }
                   }
                 }
               }
-            }
 
-            // Also check if file_id is directly on content
-            if ('file_id' in content && !seenFileIds.has(String(content.file_id))) {
+              // Check if file_id is directly on content
+              if ('file_id' in content && !seenFileIds.has(String(content.file_id))) {
+                seenFileIds.add(String(content.file_id));
+                allFiles.push({
+                  file_id: String(content.file_id),
+                  filename: content.filename ? String(content.filename) : 'document',
+                  mime_type: content.mime_type ? String(content.mime_type) : 'application/octet-stream',
+                });
+                console.log(`[Anthropic Skills] Extracted file from content: ${content.file_id}`);
+              }
+            }
+          }
+
+          // Extract files from text_editor_code_execution_tool_result blocks
+          if (block.type === 'text_editor_code_execution_tool_result') {
+            const blockData = block as unknown as Record<string, unknown>;
+            const content = blockData.content as Record<string, unknown> | undefined;
+            if (content && 'file_id' in content && !seenFileIds.has(String(content.file_id))) {
               seenFileIds.add(String(content.file_id));
-              files.push({
+              allFiles.push({
                 file_id: String(content.file_id),
                 filename: content.filename ? String(content.filename) : 'document',
                 mime_type: content.mime_type ? String(content.mime_type) : 'application/octet-stream',
               });
-              console.log(`[Anthropic Skills] Extracted file directly from bash content: ${content.file_id}`);
+              console.log(`[Anthropic Skills] Extracted file from text_editor: ${content.file_id}`);
+            }
+          }
+
+          // Log server_tool_use for debugging
+          if (block.type === 'server_tool_use') {
+            const blockData = block as unknown as Record<string, unknown>;
+            console.log(`[Anthropic Skills] server_tool_use:`, blockData.name);
+          }
+        }
+
+        // Check container for files after each turn
+        if (response.container && 'files' in response.container) {
+          const containerFiles = response.container.files as Array<{
+            file_id?: string;
+            id?: string;
+            filename?: string;
+            name?: string;
+            mime_type?: string;
+          }>;
+          if (Array.isArray(containerFiles)) {
+            for (const file of containerFiles) {
+              const fileId = file.file_id || file.id;
+              if (fileId && !seenFileIds.has(String(fileId))) {
+                seenFileIds.add(String(fileId));
+                allFiles.push({
+                  file_id: String(fileId),
+                  filename: file.filename || file.name || 'document',
+                  mime_type: file.mime_type || 'application/octet-stream',
+                });
+                console.log(`[Anthropic Skills] Extracted file from container: ${fileId}`);
+              }
             }
           }
         }
 
-        // Check text_editor_code_execution_tool_result blocks
-        if (block.type === 'text_editor_code_execution_tool_result') {
-          const blockData = block as unknown as Record<string, unknown>;
-          const content = blockData.content as Record<string, unknown> | undefined;
-          if (content && 'file_id' in content && !seenFileIds.has(String(content.file_id))) {
-            seenFileIds.add(String(content.file_id));
-            files.push({
-              file_id: String(content.file_id),
-              filename: content.filename ? String(content.filename) : 'document',
-              mime_type: content.mime_type ? String(content.mime_type) : 'application/octet-stream',
-            });
-            console.log(`[Anthropic Skills] Extracted file from text_editor result: ${content.file_id}`);
-          }
+        // Check if we're done (stop_reason is 'end_turn')
+        if (response.stop_reason === 'end_turn') {
+          console.log(`[Anthropic Skills] Completed after ${turn + 1} turn(s). Files: ${allFiles.length}`);
+          break;
         }
 
-        // Check for server_tool_use blocks (log for debugging)
-        if (block.type === 'server_tool_use') {
-          const blockData = block as unknown as Record<string, unknown>;
-          console.log(`[Anthropic Skills] Found server_tool_use, name:`, blockData.name);
+        // If stop_reason is 'tool_use', continue the agentic loop
+        if (response.stop_reason === 'tool_use') {
+          // Add the assistant's response to conversation history for next turn
+          conversationMessages = [
+            ...conversationMessages,
+            { role: 'assistant', content: response.content },
+          ];
+          console.log(`[Anthropic Skills] Continuing agentic loop (tool_use)...`);
+          continue;
         }
+
+        // Unknown stop_reason - log and exit
+        console.log(`[Anthropic Skills] Unknown stop_reason: ${response.stop_reason}, ending loop`);
+        break;
       }
 
-      // Check container for files
-      const containerId = response.container?.id;
-      if (response.container && 'files' in response.container) {
-        const containerFiles = response.container.files as Array<{
-          file_id?: string;
-          id?: string;
-          filename?: string;
-          name?: string;
-          mime_type?: string;
-        }>;
-        if (Array.isArray(containerFiles)) {
-          for (const file of containerFiles) {
-            const fileId = file.file_id || file.id;
-            if (fileId && !seenFileIds.has(String(fileId))) {
-              seenFileIds.add(String(fileId));
-              files.push({
-                file_id: String(fileId),
-                filename: file.filename || file.name || 'document',
-                mime_type: file.mime_type || 'application/octet-stream',
-              });
-            }
-          }
-        }
-      }
-
-      console.log(`[Anthropic Skills] Completion successful. Files generated: ${files.length}`, files.map(f => f.filename));
+      console.log(`[Anthropic Skills] Completion successful. Files generated: ${allFiles.length}`, allFiles.map(f => f.filename));
 
       return {
-        text: textParts.join('\n'),
+        text: allTextParts.join('\n'),
         model,
-        files: files.length > 0 ? files : undefined,
-        containerId,
+        files: allFiles.length > 0 ? allFiles : undefined,
+        containerId: finalContainerId,
       };
     } catch (error) {
       if (handleRateLimitError(error) && attempt < maxRetries - 1) {
