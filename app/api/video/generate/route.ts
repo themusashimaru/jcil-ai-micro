@@ -132,10 +132,10 @@ export async function POST(request: NextRequest) {
   const validSizes: VideoSize[] = ['1920x1080', '1080x1920', '1280x720', '720x1280', '1080x1080'];
   const size = body.size && validSizes.includes(body.size) ? body.size : '1280x720';
 
-  // Validate seconds
+  // Validate seconds (default to max for video production)
   const seconds = typeof body.seconds === 'number'
     ? Math.max(1, Math.min(20, Math.floor(body.seconds)))
-    : 5;
+    : 20;
 
   // Audio defaults to true for sora-2-pro
   const audio = typeof body.audio === 'boolean' ? body.audio : (model === 'sora-2-pro');

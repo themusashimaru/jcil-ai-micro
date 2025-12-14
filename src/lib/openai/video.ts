@@ -83,7 +83,7 @@ const VIDEO_COSTS_PER_SECOND: Record<VideoModel, number> = {
 // Default settings
 const DEFAULT_MODEL: VideoModel = 'sora-2-pro'; // Pro model supports audio
 const DEFAULT_SIZE: VideoSize = '1280x720';
-const DEFAULT_SECONDS = 5;
+const DEFAULT_SECONDS = 20; // Max length for video production
 const MAX_SECONDS = 20;
 const MIN_SECONDS = 1;
 const DEFAULT_AUDIO = true; // Enable audio by default for pro model
