@@ -1,34 +1,32 @@
 /**
- * VIDEO GENERATION - START JOB
+ * VIDEO REMIX - EXTEND/CONTINUE A VIDEO
  *
- * POST /api/video/generate
+ * POST /api/video/remix
  *
- * Starts a new Sora video generation job.
+ * Creates a new video based on an existing completed video.
+ * Great for extending scenes or making targeted adjustments
+ * while maintaining continuity from the original.
+ *
  * ADMIN ONLY for now (testing phase).
  *
- * Supports multi-segment videos for durations > 20 seconds.
- * Frontend handles chaining via polling to avoid Vercel timeouts.
- *
  * Request body:
- * - prompt: string (required) - Description of the video
+ * - video_id: string (required) - ID of the completed video to remix
+ * - prompt: string (required) - Description of the continuation/change
  * - model: 'sora-2' | 'sora-2-pro' (optional, default: 'sora-2-pro')
  * - size: string (optional, default: '1280x720')
- * - seconds: number (optional, default: 20, max per segment: 20)
- * - total_seconds: number (optional) - Total video duration, triggers multi-segment
+ * - seconds: number (optional, 1-20, default: 20)
  *
  * Response:
  * - job_id: string - Use this to poll status
  * - status: 'queued' | 'in_progress'
- * - progress: number (0-100)
- * - model, size, seconds: this segment's settings
- * - segment: { current: 1, total: N, seconds_remaining: X } - for multi-segment videos
+ * - remixed_from: string - The source video ID
  */
 
 import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import {
-  createVideoJob,
+  remixVideo,
   VideoModel,
   VideoSize,
   isVideoGenerationAvailable,
@@ -87,14 +85,14 @@ export async function POST(request: NextRequest) {
       isAdmin = userData?.is_admin === true;
     }
   } catch (error) {
-    console.error('[Video Generate] Auth error:', error);
+    console.error('[Video Remix] Auth error:', error);
   }
 
   // ADMIN ONLY for now
   if (!isAdmin) {
     return new Response(
       JSON.stringify({
-        error: 'Video generation is currently available to administrators only.',
+        error: 'Video remix is currently available to administrators only.',
         code: 'admin_only',
       }),
       { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -103,11 +101,11 @@ export async function POST(request: NextRequest) {
 
   // Parse request body
   let body: {
+    video_id?: string;
     prompt?: string;
     model?: VideoModel;
     size?: VideoSize;
     seconds?: number;
-    total_seconds?: number; // For multi-segment videos > 20s
     audio?: boolean;
   };
 
@@ -120,14 +118,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Validate prompt
-  if (!body.prompt || typeof body.prompt !== 'string' || body.prompt.trim().length === 0) {
+  // Validate video_id
+  if (!body.video_id || typeof body.video_id !== 'string' || body.video_id.trim().length === 0) {
     return new Response(
-      JSON.stringify({ error: 'Prompt is required' }),
+      JSON.stringify({ error: 'video_id is required (ID of the video to remix)' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
+  // Validate prompt
+  if (!body.prompt || typeof body.prompt !== 'string' || body.prompt.trim().length === 0) {
+    return new Response(
+      JSON.stringify({ error: 'prompt is required (describe the continuation or change)' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const videoId = body.video_id.trim();
   const prompt = body.prompt.trim();
 
   // Validate model (default to pro for audio support)
@@ -138,30 +145,19 @@ export async function POST(request: NextRequest) {
   const validSizes: VideoSize[] = ['1920x1080', '1080x1920', '1280x720', '720x1280', '1080x1080'];
   const size = body.size && validSizes.includes(body.size) ? body.size : '1280x720';
 
-  // Handle multi-segment videos
-  const MAX_SEGMENT_SECONDS = 20;
-  const totalSeconds = typeof body.total_seconds === 'number' && body.total_seconds > 0
-    ? Math.floor(body.total_seconds)
-    : null;
-
-  // Calculate segment info
-  const totalSegments = totalSeconds ? Math.ceil(totalSeconds / MAX_SEGMENT_SECONDS) : 1;
-  const isMultiSegment = totalSegments > 1;
-
-  // First segment seconds (or single video seconds)
-  const seconds = isMultiSegment
-    ? MAX_SEGMENT_SECONDS // First segment is always max
-    : typeof body.seconds === 'number'
-      ? Math.max(1, Math.min(MAX_SEGMENT_SECONDS, Math.floor(body.seconds)))
-      : MAX_SEGMENT_SECONDS;
+  // Validate seconds (default to max for video production)
+  const seconds = typeof body.seconds === 'number'
+    ? Math.max(1, Math.min(20, Math.floor(body.seconds)))
+    : 20;
 
   // Audio defaults to true for sora-2-pro
   const audio = typeof body.audio === 'boolean' ? body.audio : (model === 'sora-2-pro');
 
-  console.log(`[Video Generate] Admin ${userId} starting video: model=${model}, size=${size}, seconds=${seconds}, audio=${audio}${isMultiSegment ? `, total=${totalSeconds}s (${totalSegments} segments)` : ''}`);
+  console.log(`[Video Remix] Admin ${userId} remixing ${videoId}: model=${model}, size=${size}, seconds=${seconds}, audio=${audio}`);
 
-  // Create the video job
-  const result = await createVideoJob({
+  // Create the remix job
+  const result = await remixVideo({
+    videoId,
     prompt,
     model,
     size,
@@ -184,31 +180,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Build response with segment info for multi-segment videos
-  const responseData: Record<string, unknown> = {
-    job_id: result.job.id,
-    status: result.job.status,
-    progress: result.job.progress,
-    model: result.job.model,
-    size: result.job.size,
-    seconds: result.job.seconds,
-    created_at: result.job.createdAt,
-    prompt, // Include prompt for continuation
-  };
-
-  // Add segment info for multi-segment videos
-  if (isMultiSegment && totalSeconds) {
-    responseData.segment = {
-      current: 1,
-      total: totalSegments,
-      total_seconds: totalSeconds,
-      seconds_remaining: totalSeconds - seconds,
-    };
-  }
-
   // Return the job info
   return new Response(
-    JSON.stringify(responseData),
+    JSON.stringify({
+      job_id: result.job.id,
+      status: result.job.status,
+      progress: result.job.progress,
+      model: result.job.model,
+      size: result.job.size,
+      seconds: result.job.seconds,
+      created_at: result.job.createdAt,
+      remixed_from: videoId,
+    }),
     {
       status: 202, // Accepted - job is processing
       headers: {

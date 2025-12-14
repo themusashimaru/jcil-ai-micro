@@ -257,6 +257,12 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
                 </div>
                 <div className="text-xs text-gray-400">
                   {message.videoJob.model} - {message.videoJob.seconds}s - {message.videoJob.size}
+                  {/* Multi-segment indicator */}
+                  {message.videoJob.segment && (
+                    <span className="ml-2 px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded">
+                      Segment {message.videoJob.segment.current}/{message.videoJob.segment.total}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -272,7 +278,32 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
                 </div>
                 <div className="text-xs text-gray-400 mt-1 text-right">
                   {message.videoJob.progress}%
+                  {message.videoJob.segment && (
+                    <span className="ml-2">
+                      ({message.videoJob.segment.total_seconds - message.videoJob.segment.seconds_remaining}s / {message.videoJob.segment.total_seconds}s total)
+                    </span>
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* Completed segments list */}
+            {message.videoJob.completed_segments && message.videoJob.completed_segments.length > 0 && (
+              <div className="mb-3 space-y-2">
+                <div className="text-xs text-gray-400">Completed segments:</div>
+                {message.videoJob.completed_segments.map((url, idx) => (
+                  <a
+                    key={idx}
+                    href={url}
+                    download={`segment-${idx + 1}.mp4`}
+                    className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    <span>✓ Segment {idx + 1}</span>
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </a>
+                ))}
               </div>
             )}
 
@@ -319,7 +350,13 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Video generation typically takes 1-3 minutes
+                {message.videoJob.segment ? (
+                  <span>
+                    Generating segment {message.videoJob.segment.current} of {message.videoJob.segment.total}...
+                  </span>
+                ) : (
+                  <span>Video generation typically takes 1-3 minutes</span>
+                )}
               </div>
             )}
           </div>

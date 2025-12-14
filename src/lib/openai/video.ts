@@ -34,6 +34,17 @@ export interface VideoJobRequest {
   model?: VideoModel;
   size?: VideoSize;
   seconds?: number; // 1-20 seconds
+  audio?: boolean;  // Enable audio generation (sora-2-pro only)
+  userId?: string;
+}
+
+export interface VideoRemixRequest {
+  videoId: string;      // ID of the completed video to remix/extend
+  prompt: string;       // New prompt describing the change or continuation
+  model?: VideoModel;
+  size?: VideoSize;
+  seconds?: number;
+  audio?: boolean;
   userId?: string;
 }
 
@@ -45,6 +56,7 @@ export interface VideoJob {
   size: VideoSize;
   seconds: number;
   createdAt: number;
+  remixedFromVideoId?: string; // If this is a remix, the source video ID
   error?: {
     code: string;
     message: string;
@@ -80,11 +92,12 @@ const VIDEO_COSTS_PER_SECOND: Record<VideoModel, number> = {
 };
 
 // Default settings
-const DEFAULT_MODEL: VideoModel = 'sora-2';
+const DEFAULT_MODEL: VideoModel = 'sora-2-pro'; // Pro model supports audio
 const DEFAULT_SIZE: VideoSize = '1280x720';
-const DEFAULT_SECONDS = 5;
+const DEFAULT_SECONDS = 20; // Max length for video production
 const MAX_SECONDS = 20;
 const MIN_SECONDS = 1;
+const DEFAULT_AUDIO = true; // Enable audio by default for pro model
 
 // ========================================
 // UTILITIES
@@ -255,6 +268,7 @@ export async function createVideoJob(request: VideoJobRequest): Promise<CreateVi
     model = DEFAULT_MODEL,
     size = DEFAULT_SIZE,
     seconds = DEFAULT_SECONDS,
+    audio = model === 'sora-2-pro' ? DEFAULT_AUDIO : false, // Audio only for pro model
     userId,
   } = request;
 
@@ -272,20 +286,28 @@ export async function createVideoJob(request: VideoJobRequest): Promise<CreateVi
   // Validate seconds
   const clampedSeconds = Math.max(MIN_SECONDS, Math.min(MAX_SECONDS, seconds));
 
-  console.log(`[Sora] Starting video generation: model=${model}, size=${size}, seconds=${clampedSeconds}`);
+  console.log(`[Sora] Starting video generation: model=${model}, size=${size}, seconds=${clampedSeconds}, audio=${audio}`);
   console.log(`[Sora] Prompt: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
 
   const startTime = Date.now();
 
   try {
+    // Build request body - only include audio if using pro model
+    const requestBody: Record<string, unknown> = {
+      model,
+      prompt,
+      size,
+      seconds: clampedSeconds,
+    };
+
+    // Audio is only supported on sora-2-pro
+    if (model === 'sora-2-pro' && audio) {
+      requestBody.audio = true;
+    }
+
     const response = await apiRequest('/videos', {
       method: 'POST',
-      body: JSON.stringify({
-        model,
-        prompt,
-        size,
-        seconds: clampedSeconds,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -472,4 +494,123 @@ export function isVideoGenerationAvailable(): boolean {
  */
 export function estimateVideoCost(model: VideoModel, seconds: number): number {
   return VIDEO_COSTS_PER_SECOND[model] * seconds;
+}
+
+/**
+ * Remix/extend an existing video
+ * Creates a new video based on a completed video with a new prompt
+ * Great for:
+ * - Extending scenes (continue the action)
+ * - Making targeted adjustments while keeping continuity
+ * - Creating variations of a successful generation
+ */
+export async function remixVideo(request: VideoRemixRequest): Promise<CreateVideoResult> {
+  const {
+    videoId,
+    prompt,
+    model = DEFAULT_MODEL,
+    size = DEFAULT_SIZE,
+    seconds = DEFAULT_SECONDS,
+    audio = model === 'sora-2-pro' ? DEFAULT_AUDIO : false,
+    userId,
+  } = request;
+
+  // Validate prompt
+  const validationError = validateVideoPrompt(prompt);
+  if (validationError) {
+    return {
+      ok: false,
+      error: validationError,
+      code: 'content_policy_violation',
+      retryable: false,
+    };
+  }
+
+  const clampedSeconds = Math.max(MIN_SECONDS, Math.min(MAX_SECONDS, seconds));
+
+  console.log(`[Sora] Starting remix of ${videoId}: model=${model}, size=${size}, seconds=${clampedSeconds}, audio=${audio}`);
+  console.log(`[Sora] Remix prompt: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
+
+  const startTime = Date.now();
+
+  try {
+    // Build request body for remix
+    const requestBody: Record<string, unknown> = {
+      model,
+      prompt,
+      size,
+      seconds: clampedSeconds,
+    };
+
+    if (model === 'sora-2-pro' && audio) {
+      requestBody.audio = true;
+    }
+
+    // Remix endpoint uses the video ID in the URL
+    const response = await apiRequest(`/videos/${videoId}/remix`, {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const error = await parseErrorResponse(response);
+      console.error(`[Sora] Remix failed: ${error.code} - ${error.message}`);
+
+      logVideoGeneration(
+        userId || 'anonymous',
+        model,
+        size,
+        clampedSeconds,
+        0,
+        false,
+        Date.now() - startTime
+      );
+
+      return {
+        ok: false,
+        error: error.message,
+        code: error.code,
+        retryable: RETRYABLE_STATUS_CODES.includes(response.status),
+      };
+    }
+
+    const data = await response.json();
+    console.log(`[Sora] Remix job created: ${data.id}, status: ${data.status}`);
+
+    const job: VideoJob = {
+      id: data.id,
+      status: data.status || 'queued',
+      progress: data.progress || 0,
+      model,
+      size,
+      seconds: clampedSeconds,
+      createdAt: data.created_at || Math.floor(Date.now() / 1000),
+      remixedFromVideoId: videoId,
+    };
+
+    return {
+      ok: true,
+      job,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[Sora] Remix error: ${errorMessage}`);
+
+    logVideoGeneration(
+      userId || 'anonymous',
+      model,
+      size,
+      clampedSeconds,
+      0,
+      false,
+      Date.now() - startTime
+    );
+
+    return {
+      ok: false,
+      error: errorMessage,
+      code: 'request_failed',
+      retryable: true,
+    };
+  }
 }
