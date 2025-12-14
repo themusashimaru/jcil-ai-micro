@@ -1190,6 +1190,39 @@ export function ChatClient() {
 
           // Save the image message to database
           await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'image', data.url);
+        } else if (data.type === 'video_job' && data.video_job) {
+          // Video generation job started (admin only)
+          console.log('[ChatClient] Received video job response:', {
+            job_id: data.video_job.job_id,
+            status: data.video_job.status,
+            model: data.video_job.model,
+          });
+
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: data.content || '',
+            model: data.model || modelUsed,
+            videoJob: {
+              job_id: data.video_job.job_id,
+              status: data.video_job.status,
+              progress: data.video_job.progress || 0,
+              model: data.video_job.model,
+              size: data.video_job.size,
+              seconds: data.video_job.seconds,
+              status_url: data.video_job.status_url,
+              download_url: data.video_job.download_url,
+              prompt: data.video_job.prompt,
+              segment: data.video_job.segment,
+            },
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          finalContent = assistantMessage.content;
+
+          // Save the video job message to database
+          await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'text');
         } else {
           // Regular text response
           finalContent = data.content || '';
