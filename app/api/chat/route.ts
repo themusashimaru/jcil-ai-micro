@@ -734,7 +734,8 @@ export async function POST(request: NextRequest) {
     console.log('[Chat API] Active provider:', activeProvider);
 
     // If Anthropic is active and user wants image generation, return unavailable message
-    if (activeProvider === 'anthropic' && routeDecision.target === 'image' && !messageHasUploadedImages) {
+    // EXCEPTION: Admins can use DALL-E 3 for testing
+    if (activeProvider === 'anthropic' && routeDecision.target === 'image' && !messageHasUploadedImages && !isAdmin) {
       return new Response(
         JSON.stringify({
           type: 'text',

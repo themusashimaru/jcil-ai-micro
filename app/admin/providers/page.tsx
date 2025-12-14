@@ -337,8 +337,8 @@ export default function ProvidersPage() {
                     <span style={{ color: 'var(--text-secondary)' }}>Web search (native)</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-red-500">✗</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Image generation unavailable</span>
+                    <span className="text-yellow-500">⚡</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Image generation (admin only via DALL-E)</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-green-500">✓</span>
@@ -523,8 +523,9 @@ export default function ProvidersPage() {
           <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
             <h4 className="font-medium text-yellow-600 mb-2">Image Generation</h4>
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              DALL-E image generation is only available with OpenAI. When Anthropic is active,
-              the chat placeholder will not suggest image creation.
+              DALL-E image generation is available with both providers. When Anthropic is active,
+              only admins can generate images (uses DALL-E via OpenAI API). Regular users see an unavailable message.
+              Configure the image model in the OpenAI section above.
             </p>
           </div>
 
