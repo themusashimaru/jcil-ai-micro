@@ -5,14 +5,17 @@
  * Logs routing decisions for telemetry.
  *
  * Routes (GPT-5 Edition):
+ * - video: Sora for video generation requests (admin only)
  * - image: DALL-E 3 for image generation requests
  * - mini: gpt-5-mini for complex tasks (search, code, files, reasoning)
  * - nano: gpt-5-nano for basic chat (default, cost-optimized)
  */
 
-export type RouteTarget = 'image' | 'mini' | 'nano';
+export type RouteTarget = 'video' | 'image' | 'mini' | 'nano';
 
 export type RouteReason =
+  | 'video-intent'
+  | 'video-button'
   | 'image-intent'
   | 'image-button'
   | 'image-analysis'
@@ -128,6 +131,37 @@ const IMAGE_INTENT_PATTERNS = [
 ];
 
 /**
+ * Video intent detection patterns
+ * Matches requests like "generate/create/make a video/clip/animation..."
+ */
+const VIDEO_INTENT_PATTERNS = [
+  // Direct video generation requests
+  /\b(generate|create|make|render|produce)\b.*\b(video|clip|footage|animation|movie|film)\b/i,
+
+  // Reverse order: "video of...", "clip of..."
+  /\b(video|clip|footage|animation)\b.*\b(of|showing|depicting|about)\b/i,
+
+  // "Can you create/make a video..."
+  /\bcan you\b.*\b(create|generate|make|render)\b.*\b(video|clip|animation)\b/i,
+
+  // "I want/need a video of..."
+  /\b(i want|i need|i'd like|give me|show me)\b.*\b(video|clip|animation|footage)\b/i,
+
+  // Sora-specific requests
+  /\bsora\b.*\b(video|clip|generate|create)\b/i,
+  /\b(use|with)\s+sora\b/i,
+
+  // Cinematic/film requests
+  /\b(cinematic|film|movie)\s+(shot|scene|clip|sequence)\b/i,
+
+  // Animate specific content
+  /\b(animate|animating)\b.*\b(scene|shot|image|picture|this)\b/i,
+
+  // Emoji prefix pattern (from button)
+  /^🎬\s*Generate video:/i,
+];
+
+/**
  * Complex task patterns that require GPT-4o
  */
 const COMPLEX_TASK_PATTERNS = {
@@ -172,6 +206,30 @@ export function parseSizeFromText(text: string): '1024x1024' | '512x512' | '256x
 }
 
 /**
+ * Check if a message indicates video generation intent
+ */
+export function hasVideoIntent(text: string): { isVideo: boolean; matchedPattern?: string } {
+  const normalizedText = text.trim();
+
+  // Check if this is a document request - these should NOT be videos
+  if (isDocumentRequest(normalizedText)) {
+    return { isVideo: false };
+  }
+
+  // Check for video generation patterns
+  for (const pattern of VIDEO_INTENT_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      return {
+        isVideo: true,
+        matchedPattern: pattern.source
+      };
+    }
+  }
+
+  return { isVideo: false };
+}
+
+/**
  * Check if a message indicates image generation intent
  * IMPORTANT: Document requests are EXCLUDED even if they match image patterns
  */
@@ -183,6 +241,14 @@ export function hasImageIntent(text: string): { isImage: boolean; matchedPattern
     return {
       isImage: false,
       excludedReason: 'document-request'
+    };
+  }
+
+  // Check for video first - video requests shouldn't route to image
+  if (hasVideoIntent(normalizedText).isVideo) {
+    return {
+      isImage: false,
+      excludedReason: 'video-request'
     };
   }
 
@@ -247,13 +313,34 @@ export function decideRoute(
   lastUserText: string,
   toolOverride?: string
 ): RouteDecision {
+  // If tool is explicitly set to video (button press), route to video
+  if (toolOverride === 'video') {
+    return {
+      target: 'video',
+      reason: 'video-button',
+      confidence: 1.0,
+      matchedPattern: 'tool-override-video',
+    };
+  }
+
   // If tool is explicitly set to image (button press), route to image
-  if (toolOverride === 'image' || toolOverride === 'video') {
+  if (toolOverride === 'image') {
     return {
       target: 'image',
       reason: 'image-button',
       confidence: 1.0,
-      matchedPattern: 'tool-override',
+      matchedPattern: 'tool-override-image',
+    };
+  }
+
+  // Check for video intent in the message FIRST (video has priority over image)
+  const videoCheck = hasVideoIntent(lastUserText);
+  if (videoCheck.isVideo) {
+    return {
+      target: 'video',
+      reason: 'video-intent',
+      confidence: 0.9,
+      matchedPattern: videoCheck.matchedPattern,
     };
   }
 
