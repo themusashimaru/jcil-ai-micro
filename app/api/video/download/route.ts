@@ -24,6 +24,9 @@ import {
   isVideoGenerationAvailable,
 } from '@/lib/openai/video';
 
+// Allow up to 5 minutes for large video downloads
+export const maxDuration = 300;
+
 export async function GET(request: NextRequest) {
   // Check if video generation is available
   if (!isVideoGenerationAvailable()) {
