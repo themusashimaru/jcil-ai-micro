@@ -14,15 +14,13 @@
  * - Real-time web search with citations
  */
 
-import { getPerplexityModel } from '@/lib/provider/settings';
-
 // Perplexity API endpoint
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
 // Models available
-// sonar: Fast, good for simple lookups
-// sonar-pro: Most accurate, best for complex queries and fact-checking
-const DEFAULT_MODEL = 'sonar-pro'; // Default to sonar-pro for better quality
+// sonar: Default, good balance of speed and accuracy
+// sonar-pro: Most accurate, best for complex queries
+const DEFAULT_MODEL = 'sonar';
 
 /**
  * Extract readable domain name from URL
@@ -294,15 +292,7 @@ export async function perplexitySearch(options: PerplexityOptions): Promise<Perp
     throw new Error('PERPLEXITY_API_KEY is not configured. Set PERPLEXITY_API_KEY or PERPLEXITY_API_KEY_1, _2, etc.');
   }
 
-  // Get model from options, admin settings, or default
-  let model = options.model;
-  if (!model) {
-    try {
-      model = await getPerplexityModel();
-    } catch {
-      model = DEFAULT_MODEL;
-    }
-  }
+  const model = options.model || DEFAULT_MODEL;
 
   // System prompt optimized for accurate, concise answers
   // IMPORTANT: Avoid em dashes (—) and use simple formatting
@@ -387,37 +377,22 @@ ALWAYS:
 
       const data = await response.json();
 
-      // Log raw response structure for debugging
-      console.log('[Perplexity] Raw response keys:', Object.keys(data));
-      if (data.citations) {
-        console.log('[Perplexity] data.citations sample:', JSON.stringify(data.citations.slice(0, 2)));
-      }
-
       // Extract the answer
       const answer = data.choices?.[0]?.message?.content || 'No answer found';
 
       // Extract citations/sources from multiple possible locations
       const sources: Array<{ title: string; url: string; snippet?: string }> = [];
 
-      // Method 1: Check data.citations (standard location - usually just URLs as strings)
+      // Method 1: Check data.citations (standard location)
       if (data.citations && Array.isArray(data.citations)) {
         console.log('[Perplexity] Found citations in data.citations:', data.citations.length);
         for (const citation of data.citations) {
-          // Perplexity often returns citations as simple URL strings
-          if (typeof citation === 'string' && citation.startsWith('http')) {
+          if (citation.url && citation.url.startsWith('http')) {
             sources.push({
-              title: extractDomainFromUrl(citation),
-              url: citation,
+              title: citation.title || extractDomainFromUrl(citation.url),
+              url: citation.url,
+              snippet: citation.snippet,
             });
-          } else if (citation && typeof citation === 'object') {
-            const citationUrl = citation.url || citation.link || citation.source;
-            if (citationUrl && citationUrl.startsWith('http')) {
-              sources.push({
-                title: citation.title || extractDomainFromUrl(citationUrl),
-                url: citationUrl,
-                snippet: citation.snippet,
-              });
-            }
           }
         }
       }
@@ -427,7 +402,7 @@ ALWAYS:
       if (messageCitations && Array.isArray(messageCitations)) {
         console.log('[Perplexity] Found citations in message.citations:', messageCitations.length);
         for (const citation of messageCitations) {
-          const url = typeof citation === 'string' ? citation : (citation.url || citation.link);
+          const url = typeof citation === 'string' ? citation : citation.url;
           if (url && url.startsWith('http') && !sources.some(s => s.url === url)) {
             sources.push({
               title: typeof citation === 'object' ? (citation.title || extractDomainFromUrl(url)) : extractDomainFromUrl(url),

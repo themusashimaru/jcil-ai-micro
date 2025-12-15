@@ -10,8 +10,6 @@
  * - Streaming text responses
  * - Non-streaming for image analysis
  * - Web search integration via Brave
- * - Multiple API key support with automatic failover
- * - Prompt caching for cost savings
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -20,251 +18,18 @@ import { CoreMessage } from 'ai';
 // Default model: Claude Sonnet 4.5
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
 
-// ========================================
-// DUAL-POOL API KEY SYSTEM (DYNAMIC)
-// ========================================
-// Primary Pool: Round-robin load distribution (ANTHROPIC_API_KEY_1, _2, _3, ... unlimited)
-// Fallback Pool: Emergency reserve (ANTHROPIC_API_KEY_FALLBACK_1, _2, _3, ... unlimited)
-// Backward Compatible: Single ANTHROPIC_API_KEY still works
-// NO HARDCODED LIMITS - just add keys in Vercel and they're automatically detected!
+// Initialize Anthropic client
+let anthropicClient: Anthropic | null = null;
 
-interface ApiKeyState {
-  key: string;
-  client: Anthropic;
-  rateLimitedUntil: number; // Timestamp when rate limit expires (0 = not limited)
-  pool: 'primary' | 'fallback';
-  index: number; // Position within its pool
-}
-
-// Separate pools for better management
-const primaryPool: ApiKeyState[] = [];
-const fallbackPool: ApiKeyState[] = [];
-let primaryKeyIndex = 0; // Round-robin index for primary pool
-let fallbackKeyIndex = 0; // Round-robin index for fallback pool
-let initialized = false;
-
-/**
- * Initialize all available Anthropic API keys into their pools
- * FULLY DYNAMIC: Automatically detects ALL configured keys - no limits!
- * Just add ANTHROPIC_API_KEY_N in Vercel and it's automatically picked up
- */
-function initializeApiKeys(): void {
-  if (initialized) return;
-  initialized = true;
-
-  // Dynamically detect ALL numbered primary keys (no limit!)
-  // Keeps looking for ANTHROPIC_API_KEY_1, _2, _3, etc. until one is missing
-  let i = 1;
-  while (true) {
-    const key = process.env[`ANTHROPIC_API_KEY_${i}`];
-    if (!key) break; // Stop when we hit a gap
-
-    primaryPool.push({
-      key,
-      client: new Anthropic({ apiKey: key }),
-      rateLimitedUntil: 0,
-      pool: 'primary',
-      index: i,
-    });
-    i++;
-  }
-
-  // If no numbered keys found, fall back to single ANTHROPIC_API_KEY
-  if (primaryPool.length === 0) {
-    const singleKey = process.env.ANTHROPIC_API_KEY;
-    if (!singleKey) {
-      throw new Error('ANTHROPIC_API_KEY is not configured. Set either ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_1, _2, _3, etc.');
-    }
-    primaryPool.push({
-      key: singleKey,
-      client: new Anthropic({ apiKey: singleKey }),
-      rateLimitedUntil: 0,
-      pool: 'primary',
-      index: 0,
-    });
-  }
-
-  // Dynamically detect ALL fallback keys (no limit!)
-  let j = 1;
-  while (true) {
-    const key = process.env[`ANTHROPIC_API_KEY_FALLBACK_${j}`];
-    if (!key) break; // Stop when we hit a gap
-
-    fallbackPool.push({
-      key,
-      client: new Anthropic({ apiKey: key }),
-      rateLimitedUntil: 0,
-      pool: 'fallback',
-      index: j,
-    });
-    j++;
-  }
-
-  // Log the detected configuration
-  const totalKeys = primaryPool.length + fallbackPool.length;
-  const estimatedRPM = totalKeys * 60;
-  console.log(`[Anthropic] Initialized dual-pool system (dynamic detection):`);
-  console.log(`[Anthropic]   Primary pool: ${primaryPool.length} key(s) (round-robin load distribution)`);
-  console.log(`[Anthropic]   Fallback pool: ${fallbackPool.length} key(s) (emergency reserve)`);
-  console.log(`[Anthropic]   Estimated capacity: ~${estimatedRPM} RPM (${totalKeys} keys × 60 RPM)`);
-}
-
-/**
- * Get an available key from the primary pool (round-robin)
- * Returns null if all primary keys are rate limited
- */
-function getPrimaryClient(): Anthropic | null {
-  const now = Date.now();
-
-  // Round-robin through primary pool
-  for (let i = 0; i < primaryPool.length; i++) {
-    const keyIndex = (primaryKeyIndex + i) % primaryPool.length;
-    const keyState = primaryPool[keyIndex];
-
-    if (keyState.rateLimitedUntil <= now) {
-      // Advance round-robin for next request (load distribution)
-      primaryKeyIndex = (keyIndex + 1) % primaryPool.length;
-      return keyState.client;
-    }
-  }
-
-  return null; // All primary keys are rate limited
-}
-
-/**
- * Get an available key from the fallback pool
- * Returns null if all fallback keys are rate limited
- */
-function getFallbackClient(): Anthropic | null {
-  if (fallbackPool.length === 0) return null;
-
-  const now = Date.now();
-
-  for (let i = 0; i < fallbackPool.length; i++) {
-    const keyIndex = (fallbackKeyIndex + i) % fallbackPool.length;
-    const keyState = fallbackPool[keyIndex];
-
-    if (keyState.rateLimitedUntil <= now) {
-      fallbackKeyIndex = (keyIndex + 1) % fallbackPool.length;
-      console.log(`[Anthropic] Using FALLBACK key ${keyState.index} (primary pool exhausted)`);
-      return keyState.client;
-    }
-  }
-
-  return null; // All fallback keys are also rate limited
-}
-
-/**
- * Get the next available Anthropic client
- * Priority: Primary pool (round-robin) → Fallback pool → Wait for soonest available
- */
 function getAnthropicClient(): Anthropic {
-  initializeApiKeys();
-
-  // Try primary pool first (round-robin for load distribution)
-  const primaryClient = getPrimaryClient();
-  if (primaryClient) {
-    return primaryClient;
-  }
-
-  // Primary pool exhausted - try fallback pool
-  const fallbackClient = getFallbackClient();
-  if (fallbackClient) {
-    return fallbackClient;
-  }
-
-  // All keys rate limited - find the one available soonest
-  const allKeys = [...primaryPool, ...fallbackPool];
-  let soonestKey = allKeys[0];
-
-  for (const key of allKeys) {
-    if (key.rateLimitedUntil < soonestKey.rateLimitedUntil) {
-      soonestKey = key;
+  if (!anthropicClient) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY is not configured');
     }
+    anthropicClient = new Anthropic({ apiKey });
   }
-
-  const waitTime = Math.ceil((soonestKey.rateLimitedUntil - Date.now()) / 1000);
-  console.log(`[Anthropic] All ${allKeys.length} keys rate limited. Using ${soonestKey.pool} key ${soonestKey.index} (available in ${waitTime}s)`);
-
-  return soonestKey.client;
-}
-
-/**
- * Mark a specific API key as rate limited
- */
-function markKeyRateLimited(client: Anthropic, retryAfterSeconds: number = 60): void {
-  const allKeys = [...primaryPool, ...fallbackPool];
-  const keyState = allKeys.find(k => k.client === client);
-
-  if (keyState) {
-    keyState.rateLimitedUntil = Date.now() + (retryAfterSeconds * 1000);
-    console.log(`[Anthropic] ${keyState.pool.toUpperCase()} key ${keyState.index} rate limited for ${retryAfterSeconds}s`);
-
-    // Log pool status
-    const now = Date.now();
-    const availablePrimary = primaryPool.filter(k => k.rateLimitedUntil <= now).length;
-    const availableFallback = fallbackPool.filter(k => k.rateLimitedUntil <= now).length;
-    console.log(`[Anthropic] Pool status: ${availablePrimary}/${primaryPool.length} primary, ${availableFallback}/${fallbackPool.length} fallback available`);
-  }
-}
-
-// Track current client for rate limit marking
-let lastUsedClient: Anthropic | null = null;
-
-/**
- * Check if an error is a rate limit error and handle it
- */
-function handleRateLimitError(error: unknown): boolean {
-  if (error instanceof Anthropic.RateLimitError) {
-    if (lastUsedClient) {
-      markKeyRateLimited(lastUsedClient, 60);
-    }
-    return true;
-  }
-
-  if (error instanceof Error && error.message.toLowerCase().includes('rate limit')) {
-    if (lastUsedClient) {
-      markKeyRateLimited(lastUsedClient, 60);
-    }
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Get stats about API key usage
- */
-export function getApiKeyStats(): {
-  primaryKeys: number;
-  primaryAvailable: number;
-  fallbackKeys: number;
-  fallbackAvailable: number;
-  totalKeys: number;
-  totalAvailable: number;
-} {
-  initializeApiKeys();
-  const now = Date.now();
-
-  const primaryAvailable = primaryPool.filter(k => k.rateLimitedUntil <= now).length;
-  const fallbackAvailable = fallbackPool.filter(k => k.rateLimitedUntil <= now).length;
-
-  return {
-    primaryKeys: primaryPool.length,
-    primaryAvailable,
-    fallbackKeys: fallbackPool.length,
-    fallbackAvailable,
-    totalKeys: primaryPool.length + fallbackPool.length,
-    totalAvailable: primaryAvailable + fallbackAvailable,
-  };
-}
-
-/**
- * Get total number of API keys (for retry logic)
- */
-function getTotalKeyCount(): number {
-  initializeApiKeys();
-  return primaryPool.length + fallbackPool.length;
+  return anthropicClient;
 }
 
 export interface AnthropicChatOptions {
@@ -276,9 +41,6 @@ export interface AnthropicChatOptions {
   systemPrompt?: string;
   // Web search function (injected from Brave Search module)
   webSearchFn?: (query: string) => Promise<BraveSearchResult>;
-  // For token tracking
-  userId?: string;
-  planKey?: string;
 }
 
 export interface BraveSearchResult {
@@ -377,8 +139,6 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
 
 /**
  * Create a chat completion using Claude
- * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
- * Automatically retries with fallback API keys on rate limit errors
  */
 export async function createAnthropicCompletion(options: AnthropicChatOptions): Promise<{
   text: string;
@@ -386,71 +146,47 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
   citations?: Array<{ title: string; url: string }>;
   numSourcesUsed?: number;
 }> {
+  const client = getAnthropicClient();
   const model = options.model || DEFAULT_MODEL;
   const maxTokens = options.maxTokens || 4096;
   const temperature = options.temperature ?? 0.7;
 
   const { system, messages } = convertMessages(options.messages, options.systemPrompt);
 
-  // Retry up to the number of available API keys
-  const maxRetries = Math.max(1, getTotalKeyCount());
+  try {
+    // Non-streaming mode
+    const response = await client.messages.create({
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      system,
+      messages,
+    });
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const client = getAnthropicClient();
-    lastUsedClient = client; // Track for rate limit marking
+    // Extract text from response
+    const textContent = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+      .map(block => block.text)
+      .join('\n');
 
-    try {
-      // Non-streaming mode with prompt caching on system prompt
-      const response = await client.messages.create({
-        model,
-        max_tokens: maxTokens,
-        temperature,
-        // Use array format with cache_control for prompt caching
-        system: [
-          {
-            type: 'text',
-            text: system,
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        messages,
-      });
-
-      // Extract text from response
-      const textContent = response.content
-        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-        .map(block => block.text)
-        .join('\n');
-
-      return {
-        text: textContent,
-        model,
-      };
-    } catch (error) {
-      // Check if this is a rate limit error
-      if (handleRateLimitError(error) && attempt < maxRetries - 1) {
-        console.log(`[Anthropic] Rate limited on attempt ${attempt + 1}, retrying with different key...`);
-        continue; // Try again with next available key
-      }
-
-      console.error('[Anthropic] Chat completion error:', error);
-      throw error;
-    }
+    return {
+      text: textContent,
+      model,
+    };
+  } catch (error) {
+    console.error('[Anthropic] Chat completion error:', error);
+    throw error;
   }
-
-  // Should never reach here, but TypeScript needs this
-  throw new Error('All API keys exhausted');
 }
 
 /**
  * Create a streaming chat completion using Claude
- * Uses prompt caching for the system prompt (90% cost savings on cached tokens)
- * Handles rate limits by rotating to fallback API keys
  */
 export async function createAnthropicStreamingCompletion(options: AnthropicChatOptions): Promise<{
   toTextStreamResponse: (opts?: { headers?: Record<string, string> }) => Response;
   model: string;
 }> {
+  const client = getAnthropicClient();
   const model = options.model || DEFAULT_MODEL;
   const maxTokens = options.maxTokens || 4096;
   const temperature = options.temperature ?? 0.7;
@@ -461,56 +197,32 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
   const { readable, writable } = new TransformStream<string, string>();
   const writer = writable.getWriter();
 
-  // Start streaming in the background with prompt caching on system prompt
+  // Start streaming in the background
   (async () => {
-    const maxRetries = Math.max(1, getTotalKeyCount());
+    try {
+      const stream = await client.messages.stream({
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        system,
+        messages,
+      });
 
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const client = getAnthropicClient();
-      lastUsedClient = client; // Track for rate limit marking
-
-      try {
-        const stream = await client.messages.stream({
-          model,
-          max_tokens: maxTokens,
-          temperature,
-          // Use array format with cache_control for prompt caching
-          system: [
-            {
-              type: 'text',
-              text: system,
-              cache_control: { type: 'ephemeral' },
-            },
-          ],
-          messages,
-        });
-
-        for await (const event of stream) {
-          if (event.type === 'content_block_delta') {
-            const delta = event.delta;
-            if ('text' in delta) {
-              await writer.write(delta.text);
-            }
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta') {
+          const delta = event.delta;
+          if ('text' in delta) {
+            await writer.write(delta.text);
           }
         }
-
-        // Success - exit the retry loop
-        return;
-      } catch (error) {
-        // Check if this is a rate limit error and we can retry
-        if (handleRateLimitError(error) && attempt < maxRetries - 1) {
-          console.log(`[Anthropic] Streaming rate limited on attempt ${attempt + 1}, retrying with different key...`);
-          continue; // Try again with next available key
-        }
-
-        console.error('[Anthropic] Streaming error:', error);
-        await writer.write('\n\n[Error: Stream interrupted. Please try again.]');
-        return;
       }
+    } catch (error) {
+      console.error('[Anthropic] Streaming error:', error);
+      await writer.write('\n\n[Error: Stream interrupted]');
+    } finally {
+      await writer.close();
     }
-  })().finally(() => {
-    writer.close();
-  });
+  })();
 
   return {
     toTextStreamResponse: (opts?: { headers?: Record<string, string> }) => {
@@ -527,17 +239,8 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 }
 
 /**
- * Create a chat completion with PERPLEXITY web search + Claude formatting
- *
- * PERPLEXITY-ONLY SEARCH:
- * 1. Perplexity handles ALL web searches (accurate real-time data)
- * 2. Claude formats and presents the results (conversational style)
- * 3. NO Anthropic native search fallback (it was inaccurate)
- *
- * Perplexity uses the same dual-pool round-robin system as Anthropic:
- * - PERPLEXITY_API_KEY_1, _2, _3, ... (primary pool)
- * - PERPLEXITY_API_KEY_FALLBACK_1, _2, ... (fallback pool)
- * - Or single PERPLEXITY_API_KEY for backward compatibility
+ * Create a chat completion with web search support
+ * Uses Brave Search when available
  */
 export async function createAnthropicCompletionWithSearch(
   options: AnthropicChatOptions
@@ -547,103 +250,67 @@ export async function createAnthropicCompletionWithSearch(
   citations: Array<{ title: string; url: string }>;
   numSourcesUsed: number;
 }> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { webSearchFn, ...rest } = options;
 
+  if (!webSearchFn) {
+    // No search function provided, use regular completion
+    const result = await createAnthropicCompletion(rest);
+    return { ...result, citations: [], numSourcesUsed: 0 };
+  }
+
+  const client = getAnthropicClient();
   const model = rest.model || DEFAULT_MODEL;
   const maxTokens = rest.maxTokens || 4096;
+  const temperature = rest.temperature ?? 0.7;
 
   const { system, messages } = convertMessages(rest.messages, rest.systemPrompt);
 
-  // Get the user's query from the last message
-  const lastMessage = messages[messages.length - 1];
-  const userQuery = typeof lastMessage.content === 'string'
-    ? lastMessage.content
-    : Array.isArray(lastMessage.content)
-      ? lastMessage.content.map(c => 'text' in c ? c.text : '').join(' ')
-      : '';
-
-  // Import Perplexity client
-  const { perplexitySearch, isPerplexityConfigured } = await import('@/lib/perplexity/client');
-
-  // Check if Perplexity is configured
-  if (!isPerplexityConfigured()) {
-    console.error('[Search] Perplexity not configured - web search unavailable');
-    // Return a helpful message instead of failing silently
-    return {
-      text: "I apologize, but web search is currently unavailable. Please configure a Perplexity API key (PERPLEXITY_API_KEY or PERPLEXITY_API_KEY_1, _2, etc.) to enable real-time search capabilities.",
-      model,
-      citations: [],
-      numSourcesUsed: 0,
-    };
-  }
-
-  // Use Perplexity for the search (with its own round-robin + fallback system)
-  console.log('[Perplexity] Executing web search...');
-  const perplexityResult = await perplexitySearch({ query: userQuery });
-  console.log(`[Perplexity] Search complete. ${perplexityResult.sources.length} sources found.`);
-
-  const citations = perplexityResult.sources.map(s => ({
-    title: s.title,
-    url: s.url,
-  }));
-
-  // Create a prompt for Claude to format the Perplexity results
-  // Sources are kept internal - not shown to users (cleaner UX)
-  console.log(`[Claude Formatting] Building response (sources hidden from user)`);
-
-  // Strip citation markers like [1], [2] from the raw Perplexity response
-  const cleanedAnswer = perplexityResult.answer
-    .replace(/\[\d+\]/g, '')  // Remove [1], [2], etc.
-    .replace(/\s{2,}/g, ' ')  // Clean up double spaces
-    .trim();
-
-  const formattingPrompt = `Format the search results below into a helpful response.
-
-SEARCH RESULTS:
-${cleanedAnswer}
-
-USER'S QUESTION: ${userQuery}
-
-FORMATTING RULES:
-1. Present the information conversationally but concisely
-2. Keep ALL data EXACTLY as provided: times, dates, temperatures, timestamps
-3. NO em dashes (—). Use commas, periods, or hyphens only
-4. NO numbered references like [1] or [2]
-5. Do NOT include any sources or citations section - just provide the answer`;
-
-  const formattedMessages = [
-    ...messages.slice(0, -1), // Previous conversation context
-    { role: 'user' as const, content: formattingPrompt },
+  // Define the web search tool
+  const tools: Anthropic.Tool[] = [
+    {
+      name: 'web_search',
+      description: 'Search the web for current information. Use this when the user asks about recent events, current data, or information that may have changed since your training.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          query: {
+            type: 'string',
+            description: 'The search query to look up',
+          },
+        },
+        required: ['query'],
+      },
+    },
   ];
 
-  const maxRetries = Math.max(1, getTotalKeyCount());
+  const citations: Array<{ title: string; url: string }> = [];
+  const currentMessages = [...messages];
+  let iterations = 0;
+  const maxIterations = 3; // Prevent infinite loops
 
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const client = getAnthropicClient();
-    lastUsedClient = client;
+  while (iterations < maxIterations) {
+    iterations++;
 
-    try {
-      const response = await client.messages.create({
-        model,
-        max_tokens: maxTokens,
-        temperature: 0.3, // Lower temperature for more accurate formatting
-        system: [
-          {
-            type: 'text',
-            text: system,
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        messages: formattedMessages,
-      });
+    const response = await client.messages.create({
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      system: system + '\n\nYou have access to web search. Use it when you need current information.',
+      messages: currentMessages,
+      tools,
+    });
 
+    // Check if the model wants to use a tool
+    const toolUseBlocks = response.content.filter(
+      (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
+    );
+
+    if (toolUseBlocks.length === 0) {
+      // No tool use, return the text response
       const textContent = response.content
         .filter((block): block is Anthropic.TextBlock => block.type === 'text')
         .map(block => block.text)
         .join('\n');
-
-      console.log('[Perplexity+Claude] Successfully formatted search results');
 
       return {
         text: textContent,
@@ -651,17 +318,99 @@ FORMATTING RULES:
         citations,
         numSourcesUsed: citations.length,
       };
-    } catch (error) {
-      if (handleRateLimitError(error) && attempt < maxRetries - 1) {
-        console.log(`[Claude] Rate limited on attempt ${attempt + 1}, retrying...`);
-        continue;
+    }
+
+    // Process tool calls
+    for (const toolUse of toolUseBlocks) {
+      if (toolUse.name === 'web_search') {
+        const query = (toolUse.input as { query: string }).query;
+        console.log('[Anthropic] Executing web search:', query);
+
+        try {
+          const searchResults = await webSearchFn(query);
+
+          // Add citations from search results
+          for (const result of searchResults.results.slice(0, 5)) {
+            citations.push({
+              title: result.title,
+              url: result.url,
+            });
+          }
+
+          // Format search results for the model
+          const formattedResults = searchResults.results
+            .slice(0, 5)
+            .map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.description}${r.content ? '\n' + r.content.slice(0, 500) : ''}`)
+            .join('\n\n');
+
+          // Add the assistant's response and tool result to messages
+          currentMessages.push({
+            role: 'assistant',
+            content: response.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text' as const, text: block.text };
+              } else if (block.type === 'tool_use') {
+                return {
+                  type: 'tool_use' as const,
+                  id: block.id,
+                  name: block.name,
+                  input: block.input,
+                };
+              }
+              // Handle other block types (e.g., thinking) by returning empty text
+              return { type: 'text' as const, text: '' };
+            }) as Array<{ type: 'text'; text: string }>,
+          });
+
+          currentMessages.push({
+            role: 'user',
+            content: [{
+              type: 'tool_result' as unknown as 'text',
+              tool_use_id: toolUse.id,
+              content: `Search results for "${query}":\n\n${formattedResults}`,
+            }] as unknown as Array<{ type: 'text'; text: string }>,
+          });
+        } catch (error) {
+          console.error('[Anthropic] Web search error:', error);
+          // Provide error feedback to the model
+          currentMessages.push({
+            role: 'assistant',
+            content: response.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text' as const, text: block.text };
+              } else if (block.type === 'tool_use') {
+                return {
+                  type: 'tool_use' as const,
+                  id: block.id,
+                  name: block.name,
+                  input: block.input,
+                };
+              }
+              // Handle other block types by returning empty text
+              return { type: 'text' as const, text: '' };
+            }) as Array<{ type: 'text'; text: string }>,
+          });
+          currentMessages.push({
+            role: 'user',
+            content: [{
+              type: 'tool_result' as unknown as 'text',
+              tool_use_id: toolUse.id,
+              content: 'Web search failed. Please provide a response based on your knowledge.',
+              is_error: true,
+            }] as unknown as Array<{ type: 'text'; text: string }>,
+          });
+        }
       }
-      throw error;
     }
   }
 
-  // This should never be reached due to the retry logic above
-  throw new Error('All Anthropic API keys exhausted while formatting search results');
+  // If we hit max iterations, return what we have
+  return {
+    text: 'I apologize, but I was unable to complete the search. Please try again.',
+    model,
+    citations,
+    numSourcesUsed: citations.length,
+  };
 }
 
 /**
@@ -678,390 +427,4 @@ export function isImageGenerationRequest(content: string): boolean {
   ];
 
   return imagePatterns.some(pattern => pattern.test(content));
-}
-
-// ========================================
-// ANTHROPIC SKILLS API
-// Document generation capabilities (xlsx, pptx, docx, pdf)
-// ========================================
-
-/**
- * Beta headers required for Skills API
- */
-const SKILLS_BETA_HEADERS = [
-  'skills-2025-10-02',
-  'code-execution-2025-08-25',
-];
-
-const FILES_BETA_HEADER = 'files-api-2025-04-14';
-
-/**
- * Available Anthropic document skills
- */
-export type DocumentSkillType = 'xlsx' | 'pptx' | 'docx' | 'pdf';
-
-export interface SkillParams {
-  skill_id: DocumentSkillType;
-  type: 'anthropic';
-  version: string;
-}
-
-/**
- * Check if the user's message is requesting document generation
- * Returns the type of document if detected, null otherwise
- */
-export function detectDocumentRequest(content: string): DocumentSkillType | null {
-  const lowerContent = content.toLowerCase();
-
-  // PDF patterns for slides/presentations - check FIRST (most specific)
-  // This catches "slides as pdf", "presentation pdf", "powerpoint as pdf"
-  const pdfSlidesPatterns = [
-    /\b(slides?|presentation|powerpoint|deck)\b.*\b(as|in|to)\s*(a\s*)?(pdf|pdf\s*format)\b/i,
-    /\bpdf\b.*\b(slides?|presentation|powerpoint|deck)\b/i,
-    /\b(slides?|presentation)\b.*\bpdf\b/i,
-    /\bpdf\s*(slides?|presentation|deck)\b/i,
-  ];
-
-  // General PDF patterns - expanded
-  const pdfCreatePatterns = [
-    /\b(create|make|generate|build|give me|i need|can you make)\b.*\bpdf\b/i,
-    /\bpdf\b.*\b(file|document|version|format)\b/i,
-    /\b(fillable|form)\b.*\bpdf\b/i,
-    /\bpdf\s*(file|document|version)?\b.*\b(create|make|generate|of|for)\b/i,
-    /\b(save|export|convert)\b.*\b(as|to)\s*pdf\b/i,
-    /\bas\s*a?\s*pdf\b/i, // "as a pdf", "as pdf"
-  ];
-
-  // Excel/Spreadsheet patterns - expanded for common phrasings
-  const excelPatterns = [
-    /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(excel|spreadsheet|xlsx|xls)\b/i,
-    /\b(excel|spreadsheet|xlsx|xls)\b.*\b(file|document|for|with|that)\b/i,
-    /\bbudget\b.*\b(spreadsheet|template|excel)\b/i,
-    /\bfinancial\b.*\b(model|spreadsheet|excel)\b/i,
-    /\bdata\s*(table|sheet)\b/i,
-    /\b(chart|graph)\b.*\b(data|excel|spreadsheet)\b/i,
-    /\b(excel|spreadsheet)\s*(file)?\b/i, // Simple "excel file" or just "spreadsheet"
-    /\btracking\s*(spreadsheet|sheet)\b/i,
-  ];
-
-  // PowerPoint patterns - expanded (but PDF slides patterns take priority)
-  const pptPatterns = [
-    /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(powerpoint|presentation|pptx|ppt|slides?|deck)\b/i,
-    /\b(powerpoint|presentation|pptx|ppt)\b.*\b(file|document|for|about|on|with)\b/i,
-    /\bpitch\s*deck\b/i,
-    /\bslide\s*(show|deck|presentation)?\b/i,
-    /\b\d+\s*slides?\b/i, // "3 slides", "5 slide presentation"
-  ];
-
-  // Word document patterns - expanded and more flexible
-  const docPatterns = [
-    /\b(create|make|generate|build|give me|i need|can you make)\b.*\b(word|docx)\b/i,
-    /\b(word|docx)\s*(document|doc|file)?\b/i, // "word document", "word doc", "word file", or just "word"
-    /\b(create|make|generate|write)\b.*\b(document|doc)\b.*\b(word|docx|editable)\b/i,
-    /\b(create|make|generate|write)\b.*\b(report|letter|memo|manuscript|contract|proposal)\b.*\b(document|word|docx)\b/i,
-    /\beditable\s*(document|doc)\b/i, // "editable document" implies Word
-  ];
-
-  // Check patterns in order of priority:
-  // 1. PDF slides (most specific - "slides as pdf", "presentation as pdf")
-  // 2. General PDF ("make a pdf", "pdf document")
-  // 3. Excel ("spreadsheet", "excel file")
-  // 4. PowerPoint (regular slides without pdf)
-  // 5. Word ("word doc", "docx")
-
-  if (pdfSlidesPatterns.some(pattern => pattern.test(lowerContent))) {
-    console.log('[Document Detection] Matched: PDF slides/presentation');
-    return 'pdf';
-  }
-  if (pdfCreatePatterns.some(pattern => pattern.test(lowerContent))) {
-    console.log('[Document Detection] Matched: PDF');
-    return 'pdf';
-  }
-  if (excelPatterns.some(pattern => pattern.test(lowerContent))) {
-    console.log('[Document Detection] Matched: Excel');
-    return 'xlsx';
-  }
-  if (pptPatterns.some(pattern => pattern.test(lowerContent))) {
-    console.log('[Document Detection] Matched: PowerPoint');
-    return 'pptx';
-  }
-  if (docPatterns.some(pattern => pattern.test(lowerContent))) {
-    console.log('[Document Detection] Matched: Word');
-    return 'docx';
-  }
-
-  return null;
-}
-
-/**
- * Get the appropriate skill configuration for a document type
- */
-export function getSkillConfig(docType: DocumentSkillType): SkillParams {
-  return {
-    skill_id: docType,
-    type: 'anthropic',
-    version: 'latest',
-  };
-}
-
-/**
- * File information returned when a document is generated
- */
-export interface GeneratedFile {
-  file_id: string;
-  filename: string;
-  mime_type: string;
-  size_bytes?: number;
-}
-
-/**
- * Create a chat completion with Skills enabled for document generation
- * Uses the beta API with code execution and skills
- */
-export async function createAnthropicCompletionWithSkills(
-  options: AnthropicChatOptions & {
-    skills: DocumentSkillType[];
-  }
-): Promise<{
-  text: string;
-  model: string;
-  files?: GeneratedFile[];
-  containerId?: string;
-}> {
-  const model = options.model || DEFAULT_MODEL;
-  const maxTokens = options.maxTokens || 8192; // Higher for document generation
-  const temperature = options.temperature ?? 0.7;
-
-  const { system, messages: initialMessages } = convertMessages(options.messages, options.systemPrompt);
-
-  // Build skills configuration
-  const skillsConfig = options.skills.map(skill => getSkillConfig(skill));
-
-  const maxRetries = Math.max(1, getTotalKeyCount());
-  const maxAgentTurns = 10; // Prevent infinite loops
-
-  // Agentic loop state
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let conversationMessages: any[] = [...initialMessages];
-  const allTextParts: string[] = [];
-  const allFiles: GeneratedFile[] = [];
-  const seenFileIds = new Set<string>();
-  let finalContainerId: string | undefined;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const client = getAnthropicClient();
-    lastUsedClient = client;
-
-    try {
-      // Agentic loop - continue until stop_reason is 'end_turn'
-      for (let turn = 0; turn < maxAgentTurns; turn++) {
-        console.log(`[Anthropic Skills] Turn ${turn + 1}/${maxAgentTurns}`);
-
-        // Use the beta messages API with skills
-        const response = await client.beta.messages.create({
-          model,
-          max_tokens: maxTokens,
-          temperature,
-          betas: SKILLS_BETA_HEADERS,
-          system: [
-            {
-              type: 'text',
-              text: system,
-              cache_control: { type: 'ephemeral' },
-            },
-          ],
-          messages: conversationMessages,
-          tools: [
-            {
-              type: 'code_execution_20250825',
-              name: 'code_execution',
-            },
-          ],
-          container: finalContainerId ? { id: finalContainerId, skills: skillsConfig } : { skills: skillsConfig },
-        });
-
-        // Track container ID for subsequent turns
-        if (response.container?.id) {
-          finalContainerId = response.container.id;
-        }
-
-        // Debug: Log the response structure
-        console.log(`[Anthropic Skills] Turn ${turn + 1} - stop_reason: ${response.stop_reason}`);
-        console.log(`[Anthropic Skills] Turn ${turn + 1} - content blocks: ${response.content.length}`);
-        console.log(`[Anthropic Skills] Turn ${turn + 1} - block types: ${response.content.map((b: { type: string }) => b.type).join(', ')}`);
-
-        // Log raw response for debugging (first 3000 chars)
-        console.log(`[Anthropic Skills] Turn ${turn + 1} - raw response:`, JSON.stringify(response).slice(0, 3000));
-
-        // Helper function to recursively extract file_ids from any object
-        const extractFilesFromObject = (obj: unknown, path: string = ''): void => {
-          if (!obj || typeof obj !== 'object') return;
-
-          if (Array.isArray(obj)) {
-            obj.forEach((item, index) => extractFilesFromObject(item, `${path}[${index}]`));
-            return;
-          }
-
-          const record = obj as Record<string, unknown>;
-
-          // Check if this object has a file_id
-          if ('file_id' in record && record.file_id && !seenFileIds.has(String(record.file_id))) {
-            seenFileIds.add(String(record.file_id));
-            allFiles.push({
-              file_id: String(record.file_id),
-              filename: record.filename ? String(record.filename) : record.name ? String(record.name) : 'document',
-              mime_type: record.mime_type ? String(record.mime_type) : 'application/octet-stream',
-            });
-            console.log(`[Anthropic Skills] Found file at ${path}: ${record.file_id} - ${record.filename || record.name || 'unnamed'}`);
-          }
-
-          // Recurse into nested objects
-          for (const [key, value] of Object.entries(record)) {
-            if (value && typeof value === 'object') {
-              extractFilesFromObject(value, path ? `${path}.${key}` : key);
-            }
-          }
-        };
-
-        // Process response content blocks
-        for (const block of response.content) {
-          if (block.type === 'text') {
-            allTextParts.push(block.text);
-          }
-
-          // Extract files from any code execution result blocks
-          if (block.type === 'bash_code_execution_tool_result' ||
-              block.type === 'code_execution_tool_result' ||
-              block.type === 'text_editor_code_execution_tool_result') {
-            console.log(`[Anthropic Skills] Found ${block.type}, extracting files...`);
-            extractFilesFromObject(block, block.type);
-          }
-
-          // Log server_tool_use for debugging
-          if (block.type === 'server_tool_use') {
-            const blockData = block as unknown as Record<string, unknown>;
-            console.log(`[Anthropic Skills] server_tool_use:`, blockData.name);
-          }
-        }
-
-        // Also extract files from the entire response (including container)
-        extractFilesFromObject(response.container, 'container');
-
-        // Check container for files after each turn
-        if (response.container && 'files' in response.container) {
-          const containerFiles = response.container.files as Array<{
-            file_id?: string;
-            id?: string;
-            filename?: string;
-            name?: string;
-            mime_type?: string;
-          }>;
-          if (Array.isArray(containerFiles)) {
-            for (const file of containerFiles) {
-              const fileId = file.file_id || file.id;
-              if (fileId && !seenFileIds.has(String(fileId))) {
-                seenFileIds.add(String(fileId));
-                allFiles.push({
-                  file_id: String(fileId),
-                  filename: file.filename || file.name || 'document',
-                  mime_type: file.mime_type || 'application/octet-stream',
-                });
-                console.log(`[Anthropic Skills] Extracted file from container: ${fileId}`);
-              }
-            }
-          }
-        }
-
-        // Check if we're done (stop_reason is 'end_turn')
-        if (response.stop_reason === 'end_turn') {
-          console.log(`[Anthropic Skills] Completed after ${turn + 1} turn(s). Files: ${allFiles.length}`);
-          break;
-        }
-
-        // If stop_reason is 'tool_use', 'pause_turn', or 'max_tokens', continue the agentic loop
-        // - 'tool_use': Claude wants to use a tool (client-side)
-        // - 'pause_turn': Server-side code execution is paused (needs continuation)
-        // - 'max_tokens': Claude ran out of tokens mid-task (common when reading skill docs or generating content)
-        if (response.stop_reason === 'tool_use' || response.stop_reason === 'pause_turn' || response.stop_reason === 'max_tokens') {
-          // Add the assistant's response to conversation history for next turn
-          conversationMessages = [
-            ...conversationMessages,
-            { role: 'assistant', content: response.content },
-          ];
-          console.log(`[Anthropic Skills] Continuing agentic loop (${response.stop_reason})...`);
-          continue;
-        }
-
-        // Unknown stop_reason - log and exit
-        console.log(`[Anthropic Skills] Unknown stop_reason: ${response.stop_reason}, ending loop`);
-        break;
-      }
-
-      console.log(`[Anthropic Skills] Completion successful. Files generated: ${allFiles.length}`, allFiles.map(f => f.filename));
-
-      return {
-        text: allTextParts.join('\n'),
-        model,
-        files: allFiles.length > 0 ? allFiles : undefined,
-        containerId: finalContainerId,
-      };
-    } catch (error) {
-      if (handleRateLimitError(error) && attempt < maxRetries - 1) {
-        console.log(`[Anthropic Skills] Rate limited on attempt ${attempt + 1}, retrying...`);
-        continue;
-      }
-
-      console.error('[Anthropic Skills] Completion error:', error);
-      throw error;
-    }
-  }
-
-  throw new Error('All API keys exhausted while generating document');
-}
-
-/**
- * Download a file from Anthropic's Files API
- * Returns the file as an ArrayBuffer
- */
-export async function downloadAnthropicFile(fileId: string): Promise<{
-  data: ArrayBuffer;
-  filename: string;
-  mimeType: string;
-}> {
-  initializeApiKeys();
-  const client = getAnthropicClient();
-
-  try {
-    // First get file metadata
-    const metadata = await client.beta.files.retrieveMetadata(fileId, {
-      betas: [FILES_BETA_HEADER],
-    });
-
-    // Then download the file
-    const response = await client.beta.files.download(fileId, {
-      betas: [FILES_BETA_HEADER],
-    });
-
-    const data = await response.arrayBuffer();
-
-    console.log(`[Anthropic Files] Downloaded file: ${metadata.filename} (${metadata.size_bytes} bytes)`);
-
-    return {
-      data,
-      filename: metadata.filename,
-      mimeType: metadata.mime_type,
-    };
-  } catch (error) {
-    console.error('[Anthropic Files] Download error:', error);
-    throw error;
-  }
-}
-
-/**
- * Check if Skills are available for use
- * Returns true if we have API keys configured
- */
-export function isSkillsAvailable(): boolean {
-  initializeApiKeys();
-  return primaryPool.length > 0 || fallbackPool.length > 0;
 }
