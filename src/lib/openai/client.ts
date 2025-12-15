@@ -310,6 +310,19 @@ const WEB_SEARCH_EXCLUSIONS = [
   /\b(i\s+need\s+(help|assistance|your\s+help))\b/i,
 ];
 
+// Patterns that should NOT trigger web search (greetings, casual conversation)
+const WEB_SEARCH_EXCLUSIONS = [
+  // Greetings and casual conversation
+  /^(hi|hello|hey|howdy|greetings|good\s+(morning|afternoon|evening|night))\b/i,
+  /\b(how\s+are\s+you|how'?s\s+it\s+going|how\s+you\s+doing|what'?s\s+up)\b/i,
+  /\b(are\s+you\s+(available|there|free|busy|ready|around))\b/i,
+  /\b(nice\s+to\s+(meet|see|talk))\b/i,
+  /\b(thank\s+you|thanks|appreciate)\b/i,
+  /\b(good\s+to\s+(see|hear|talk|meet))\b/i,
+  /\b(can\s+you\s+help\s+me)\b/i,
+  /\b(i\s+need\s+(help|assistance|your\s+help))\b/i,
+];
+
 /**
  * Check if content requires web search based on patterns
  */
