@@ -121,7 +121,7 @@ export function logImageGeneration(
 }
 
 /**
- * Log video generation (separate billing - higher costs)
+ * Log video generation (separate billing)
  */
 export function logVideoGeneration(
   user_id: string,

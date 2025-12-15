@@ -1227,6 +1227,11 @@ export function ChatClient() {
           // Start polling for video status
           const pollVideoStatus = async () => {
             const statusUrl = data.video_job.status_url;
+            if (!statusUrl) {
+              console.error('[ChatClient] No status URL for video job');
+              return;
+            }
+
             const maxAttempts = 120; // 10 minutes max (5s intervals)
             let attempts = 0;
 
