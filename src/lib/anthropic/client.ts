@@ -592,10 +592,16 @@ export async function createAnthropicCompletionWithSearch(
   // Sources are kept internal - not shown to users (cleaner UX)
   console.log(`[Claude Formatting] Building response (sources hidden from user)`);
 
+  // Strip citation markers like [1], [2] from the raw Perplexity response
+  const cleanedAnswer = perplexityResult.answer
+    .replace(/\[\d+\]/g, '')  // Remove [1], [2], etc.
+    .replace(/\s{2,}/g, ' ')  // Clean up double spaces
+    .trim();
+
   const formattingPrompt = `Format the search results below into a helpful response.
 
 SEARCH RESULTS:
-${perplexityResult.answer}
+${cleanedAnswer}
 
 USER'S QUESTION: ${userQuery}
 
