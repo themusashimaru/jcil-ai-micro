@@ -128,6 +128,8 @@ export function ChatClient() {
   const [isAdmin, setIsAdmin] = useState(false);
   // Track if image generation is available (depends on active provider)
   const [imageGenerationAvailable, setImageGenerationAvailable] = useState(true);
+  // Track active provider (openai or anthropic)
+  const [activeProvider, setActiveProvider] = useState<'openai' | 'anthropic'>('openai');
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -306,11 +308,16 @@ export function ChatClient() {
         if (response.ok) {
           const data = await response.json();
           setImageGenerationAvailable(data.imageGeneration === true);
+          // Set active provider for conditional UI (Search/Fact Check buttons)
+          if (data.activeProvider === 'anthropic' || data.activeProvider === 'openai') {
+            setActiveProvider(data.activeProvider);
+          }
         }
       } catch (error) {
         console.error('[ChatClient] Error checking features:', error);
-        // Default to true on error (OpenAI behavior)
+        // Default to OpenAI behavior on error
         setImageGenerationAvailable(true);
+        setActiveProvider('openai');
       }
     };
     checkFeatures();
@@ -1964,7 +1971,7 @@ export function ChatClient() {
                 isStreaming={isStreaming}
                 disabled={isWaitingForReply}
                 hideImageSuggestion={!imageGenerationAvailable}
-                showSearchButtons={!imageGenerationAvailable}
+                showSearchButtons={activeProvider === 'anthropic'}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
