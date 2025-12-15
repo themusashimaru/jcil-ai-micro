@@ -1223,6 +1223,69 @@ export function ChatClient() {
 
           // Save the video job message to database
           await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'text');
+
+          // Start polling for video status
+          const pollVideoStatus = async () => {
+            const statusUrl = data.video_job.status_url;
+            const maxAttempts = 120; // 10 minutes max (5s intervals)
+            let attempts = 0;
+
+            const poll = async () => {
+              attempts++;
+              try {
+                const statusResponse = await fetch(statusUrl);
+                if (!statusResponse.ok) {
+                  console.error('[ChatClient] Video status check failed:', statusResponse.status);
+                  if (attempts < maxAttempts) {
+                    setTimeout(poll, 5000);
+                  }
+                  return;
+                }
+
+                const statusData = await statusResponse.json();
+                console.log('[ChatClient] Video status:', statusData.status, 'progress:', statusData.progress);
+
+                // Update the message with new status
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId && msg.videoJob
+                      ? {
+                          ...msg,
+                          videoJob: {
+                            ...msg.videoJob,
+                            status: statusData.status,
+                            progress: statusData.progress || msg.videoJob.progress,
+                            download_url: statusData.download_url || msg.videoJob.download_url,
+                            error: statusData.error,
+                          },
+                        }
+                      : msg
+                  )
+                );
+
+                // Continue polling if still in progress
+                if (statusData.status === 'queued' || statusData.status === 'in_progress') {
+                  if (attempts < maxAttempts) {
+                    setTimeout(poll, 5000);
+                  }
+                } else if (statusData.status === 'completed') {
+                  console.log('[ChatClient] Video completed! Download URL:', statusData.download_url);
+                } else if (statusData.status === 'failed') {
+                  console.error('[ChatClient] Video generation failed:', statusData.error);
+                }
+              } catch (error) {
+                console.error('[ChatClient] Error polling video status:', error);
+                if (attempts < maxAttempts) {
+                  setTimeout(poll, 5000);
+                }
+              }
+            };
+
+            // Start polling after a short delay
+            setTimeout(poll, 3000);
+          };
+
+          pollVideoStatus();
         } else {
           // Regular text response
           finalContent = data.content || '';
