@@ -26,7 +26,7 @@ import { useState, useEffect, useRef } from 'react';
 // import { useCallback } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
-import { ChatComposer } from '@/components/chat/ChatComposer';
+import { ChatComposer, SearchMode } from '@/components/chat/ChatComposer';
 import { CodeCommandInterface } from '@/components/code-command';
 // Voice Button - Hidden until feature is production-ready
 // import VoiceButton from './VoiceButton';
@@ -876,7 +876,7 @@ export function ChatClient() {
     }
   };
 
-  const handleSendMessage = async (content: string, attachments: Attachment[]) => {
+  const handleSendMessage = async (content: string, attachments: Attachment[], searchMode?: SearchMode) => {
     if (!content.trim() && attachments.length === 0) return;
 
     // Check for slash commands
@@ -1134,6 +1134,8 @@ export function ChatClient() {
           userContext,
           conversationId: newChatId, // Pass current conversation ID to exclude from history
           // No tool parameter - let users manually select tools via buttons
+          // Pass search mode for Anthropic (search/factcheck triggers Perplexity)
+          searchMode: searchMode || 'none',
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -1962,6 +1964,7 @@ export function ChatClient() {
                 isStreaming={isStreaming}
                 disabled={isWaitingForReply}
                 hideImageSuggestion={!imageGenerationAvailable}
+                showSearchButtons={!imageGenerationAvailable}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton

@@ -46,7 +46,7 @@ import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
-import { getSystemPromptForTool } from '@/lib/openai/tools';
+import { getSystemPromptForTool, getAnthropicSearchOverride } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
@@ -58,6 +58,7 @@ import {
   createAnthropicCompletionWithSkills,
   detectDocumentRequest,
 } from '@/lib/anthropic/client';
+import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
 // import { braveSearch } from '@/lib/brave/search';
@@ -334,6 +335,7 @@ interface ChatRequestBody {
   max_tokens?: number;
   userContext?: UserContext;
   conversationId?: string; // Current conversation ID to exclude from history
+  searchMode?: 'none' | 'search' | 'factcheck'; // User-triggered search mode (Anthropic only)
 }
 
 // Detect if user is asking about previous conversations
@@ -388,7 +390,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body: ChatRequestBody = await request.json();
-    const { messages, tool, temperature, max_tokens, userContext, conversationId } = body;
+    const { messages, tool, temperature, max_tokens, userContext, conversationId, searchMode } = body;
 
     // Validate messages
     if (!messages || messages.length === 0) {
@@ -1167,10 +1169,75 @@ export async function POST(request: NextRequest) {
       console.log('[Chat API] Using Anthropic provider with model:', anthropicModel, 'for tier:', userTier);
 
       // Use unified system prompt for all providers (same as OpenAI)
-      const systemPrompt = isAuthenticated
+      // For Anthropic, append the search button guidance (replaces aggressive auto-search)
+      const baseSystemPrompt = isAuthenticated
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? getSystemPromptForTool(effectiveTool as any)
         : 'You are a helpful AI assistant.';
+
+      // Add Anthropic-specific search guidance (guides users to Search/Fact Check buttons)
+      const systemPrompt = isAuthenticated
+        ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
+        : baseSystemPrompt;
+
+      // Handle user-triggered search modes (Search and Fact Check buttons)
+      if (searchMode && searchMode !== 'none' && isPerplexityConfigured()) {
+        console.log(`[Chat API] Anthropic: User triggered ${searchMode} mode`);
+
+        try {
+          let searchQuery = lastUserContent;
+          let searchSystemPrompt = '';
+
+          if (searchMode === 'search') {
+            // Web search mode - search for current information
+            searchSystemPrompt = `You are a helpful web search assistant. Search the web and provide accurate, up-to-date information with sources. Be concise but comprehensive.`;
+          } else if (searchMode === 'factcheck') {
+            // Fact check mode - verify claims and provide evidence
+            searchSystemPrompt = `You are a fact-checking assistant. Your job is to verify the accuracy of the following claim or statement. Search for reliable sources and provide:
+1. Whether the claim is TRUE, FALSE, PARTIALLY TRUE, or UNVERIFIABLE
+2. The evidence supporting your assessment
+3. Relevant sources and citations
+Be objective and thorough in your fact-checking.`;
+            searchQuery = `Fact check the following: ${lastUserContent}`;
+          }
+
+          const perplexityResult = await perplexitySearch({
+            query: searchQuery,
+            systemPrompt: searchSystemPrompt,
+          });
+
+          // Format the response with sources
+          let responseContent = perplexityResult.answer;
+          if (perplexityResult.sources && perplexityResult.sources.length > 0) {
+            responseContent += '\n\n**Sources:**\n';
+            perplexityResult.sources.forEach((source, index) => {
+              responseContent += `${index + 1}. [${source.title}](${source.url})\n`;
+            });
+          }
+
+          console.log(`[Chat API] Perplexity ${searchMode} completed successfully`);
+
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: responseContent,
+              model: 'perplexity-sonar',
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Model-Used': 'perplexity-sonar',
+                'X-Provider': 'perplexity',
+                'X-Search-Mode': searchMode,
+              },
+            }
+          );
+        } catch (searchError) {
+          console.error(`[Chat API] Perplexity ${searchMode} error:`, searchError);
+          // Fall through to regular chat if search fails
+        }
+      }
 
       // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
       const documentType = detectDocumentRequest(lastUserContent);

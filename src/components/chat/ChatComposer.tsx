@@ -23,12 +23,16 @@ import { createPortal } from 'react-dom';
 import type { Attachment } from '@/app/chat/types';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 
+// Search mode types for Anthropic provider
+export type SearchMode = 'none' | 'search' | 'factcheck';
+
 interface ChatComposerProps {
-  onSendMessage: (content: string, attachments: Attachment[]) => void;
+  onSendMessage: (content: string, attachments: Attachment[], searchMode?: SearchMode) => void;
   onStop?: () => void; // Called when user clicks stop button during streaming
   isStreaming: boolean;
   disabled?: boolean; // When waiting for background reply
   hideImageSuggestion?: boolean; // Hide "Create an image..." when Anthropic is active
+  showSearchButtons?: boolean; // Show Search/Fact Check buttons (Anthropic only)
 }
 
 /**
@@ -99,7 +103,7 @@ const PLACEHOLDER_SUGGESTIONS_NO_IMAGE = PLACEHOLDER_SUGGESTIONS.filter(
   s => !s.toLowerCase().includes('image')
 );
 
-export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons }: ChatComposerProps) {
   // Use filtered suggestions when image generation is not available
   const suggestions = hideImageSuggestion ? PLACEHOLDER_SUGGESTIONS_NO_IMAGE : PLACEHOLDER_SUGGESTIONS;
   const [message, setMessage] = useState('');
@@ -108,6 +112,8 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
   const [fileError, setFileError] = useState<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  // Search mode state (for Anthropic provider)
+  const [searchMode, setSearchMode] = useState<SearchMode>('none');
   // Typewriter animation state
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
@@ -193,9 +199,11 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
       return;
     }
 
-    onSendMessage(message.trim(), attachments);
+    onSendMessage(message.trim(), attachments, searchMode);
     setMessage('');
     setAttachments([]);
+    // Reset search mode after sending (auto-reset like DeepSeek)
+    setSearchMode('none');
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -206,6 +214,23 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (photoInputRef.current) photoInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
+  };
+
+  // Toggle search mode (click to activate, click again to deactivate)
+  const toggleSearchMode = (mode: SearchMode) => {
+    setSearchMode(searchMode === mode ? 'none' : mode);
+  };
+
+  // Get placeholder text based on search mode
+  const getPlaceholderForMode = (): string => {
+    switch (searchMode) {
+      case 'search':
+        return 'Search the web...';
+      case 'factcheck':
+        return 'What do you want to fact check?';
+      default:
+        return '';
+    }
   };
 
   const handleFileSelect = async (files: FileList | null) => {
@@ -403,16 +428,24 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
             onDrop={handleDrop}
           >
           <div className="relative">
-            {/* Typewriter placeholder overlay */}
+            {/* Typewriter placeholder overlay - shows search mode placeholder when active */}
             {!isFocused && !message && !isDragging && (
               <div
                 className="absolute inset-0 flex items-center pointer-events-none py-1.5 px-2 md:p-4"
                 style={{ fontSize: '16px' }}
               >
-                <span className="font-medium" style={{ color: 'var(--primary)' }}>
-                  {displayedText}
-                  <span className="animate-pulse">|</span>
-                </span>
+                {searchMode !== 'none' ? (
+                  // Search mode placeholder (static, no animation)
+                  <span className="font-medium" style={{ color: searchMode === 'search' ? '#3b82f6' : '#10b981' }}>
+                    {getPlaceholderForMode()}
+                  </span>
+                ) : (
+                  // Normal typewriter animation
+                  <span className="font-medium" style={{ color: 'var(--primary)' }}>
+                    {displayedText}
+                    <span className="animate-pulse">|</span>
+                  </span>
+                )}
               </div>
             )}
             <textarea
@@ -477,8 +510,58 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
                 </svg>
               </button>
 
-              {/* REMOVED: Quick Image Generator, Coding Assistant, Data Analysis buttons
-                  Chat now handles all of these naturally through conversation */}
+              {/* Search and Fact Check buttons (Anthropic only) */}
+              {showSearchButtons && (
+                <>
+                  {/* Search button - toggle */}
+                  <button
+                    onClick={() => toggleSearchMode('search')}
+                    disabled={isStreaming || disabled}
+                    className={`rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium ${
+                      searchMode === 'search'
+                        ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
+                        : 'hover:bg-white/5'
+                    }`}
+                    style={{ color: searchMode === 'search' ? '#3b82f6' : 'var(--text-secondary)' }}
+                    title="Search the web"
+                  >
+                    {/* Globe icon */}
+                    <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                      />
+                    </svg>
+                    <span>Search</span>
+                  </button>
+
+                  {/* Fact Check button - toggle */}
+                  <button
+                    onClick={() => toggleSearchMode('factcheck')}
+                    disabled={isStreaming || disabled}
+                    className={`rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium ${
+                      searchMode === 'factcheck'
+                        ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50'
+                        : 'hover:bg-white/5'
+                    }`}
+                    style={{ color: searchMode === 'factcheck' ? '#10b981' : 'var(--text-secondary)' }}
+                    title="Fact check information"
+                  >
+                    {/* Checkmark icon */}
+                    <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span>Fact Check</span>
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="flex items-center justify-center shrink-0">

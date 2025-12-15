@@ -996,10 +996,11 @@ export async function createAnthropicCompletionWithSkills(
           break;
         }
 
-        // If stop_reason is 'tool_use' or 'pause_turn', continue the agentic loop
+        // If stop_reason is 'tool_use', 'pause_turn', or 'max_tokens', continue the agentic loop
         // - 'tool_use': Claude wants to use a tool (client-side)
         // - 'pause_turn': Server-side code execution is paused (needs continuation)
-        if (response.stop_reason === 'tool_use' || response.stop_reason === 'pause_turn') {
+        // - 'max_tokens': Claude ran out of tokens mid-task (common when reading skill docs or generating content)
+        if (response.stop_reason === 'tool_use' || response.stop_reason === 'pause_turn' || response.stop_reason === 'max_tokens') {
           // Add the assistant's response to conversation history for next turn
           conversationMessages = [
             ...conversationMessages,
