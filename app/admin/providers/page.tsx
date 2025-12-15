@@ -54,6 +54,7 @@ export default function ProvidersPage() {
     },
   });
   const [codeCommandModel, setCodeCommandModel] = useState('claude-opus-4-5-20251101');
+  const [perplexityModel, setPerplexityModel] = useState('sonar-pro');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingModels, setIsSavingModels] = useState(false);
@@ -106,6 +107,11 @@ export default function ProvidersPage() {
         // Load Code Command model
         if (data?.codeCommandModel) {
           setCodeCommandModel(data.codeCommandModel);
+        }
+
+        // Load Perplexity model
+        if (data?.perplexityModel) {
+          setPerplexityModel(data.perplexityModel);
         }
 
         if (data?.updatedAt) {
@@ -221,6 +227,7 @@ export default function ProvidersPage() {
           activeProvider,
           providerConfig,
           codeCommandModel,
+          perplexityModel,
         }),
       });
 
@@ -490,6 +497,35 @@ export default function ProvidersPage() {
             />
             <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
               Recommended: claude-opus-4-5-20251101 (best for code) or claude-sonnet-4-5-20250929 (faster)
+            </p>
+          </label>
+        </div>
+
+        {/* Perplexity Model (Web Search) */}
+        <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+          <h4 className="text-lg font-semibold text-blue-500 mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+            Perplexity Model (Web Search)
+          </h4>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+            The model used for web search and fact-checking. Sonar Pro provides better accuracy and source quality.
+          </p>
+          <label className="block max-w-md">
+            <span className="text-sm font-medium">Perplexity Model</span>
+            <select
+              value={perplexityModel}
+              onChange={(e) => {
+                setPerplexityModel(e.target.value);
+                setSuccessMessage(null);
+              }}
+              className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+              style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            >
+              <option value="sonar-pro">sonar-pro (Best quality, recommended)</option>
+              <option value="sonar">sonar (Faster, basic searches)</option>
+            </select>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              sonar-pro: Better accuracy, better sources. sonar: Faster, good for simple lookups.
             </p>
           </label>
         </div>
