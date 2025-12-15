@@ -589,25 +589,8 @@ export async function createAnthropicCompletionWithSearch(
   }));
 
   // Create a prompt for Claude to format the Perplexity results
-  // Build clickable markdown links for sources with proper domain names
-  const validSources = perplexityResult.sources.filter(s => s.url && s.url.startsWith('http'));
-
-  const sourceLinks = validSources.map(s => {
-    let domain = s.title || 'Source';
-    if (!s.title || s.title === 'Source') {
-      try {
-        domain = new URL(s.url).hostname.replace('www.', '');
-      } catch {
-        domain = 'Source';
-      }
-    }
-    return `- [${domain}](${s.url})`;
-  }).join('\n');
-
-  console.log(`[Claude Formatting] Building response with ${validSources.length} source links`);
-  if (validSources.length > 0) {
-    console.log('[Claude Formatting] Source URLs:', validSources.map(s => s.url).join(', '));
-  }
+  // Sources are kept internal - not shown to users (cleaner UX)
+  console.log(`[Claude Formatting] Building response (sources hidden from user)`);
 
   const formattingPrompt = `Format the search results below into a helpful response.
 
@@ -621,14 +604,7 @@ FORMATTING RULES:
 2. Keep ALL data EXACTLY as provided: times, dates, temperatures, timestamps
 3. NO em dashes (—). Use commas, periods, or hyphens only
 4. NO numbered references like [1] or [2]
-
-IMPORTANT - SOURCES:
-At the VERY END of your response, you MUST include this exact section:
-
-**Sources:**
-${sourceLinks}
-
-Copy the sources section EXACTLY as shown above - do not change the markdown link format.`;
+5. Do NOT include any sources or citations section - just provide the answer`;
 
   const formattedMessages = [
     ...messages.slice(0, -1), // Previous conversation context
