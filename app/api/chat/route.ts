@@ -1212,7 +1212,11 @@ Be objective and thorough in your fact-checking.`;
 
           // Return just the answer without sources (cleaner UX for Anthropic)
           // Sources are kept internal - not shown to users
-          const responseContent = perplexityResult.answer;
+          // Also strip citation markers like [1], [2], [3] since we're hiding sources
+          const responseContent = perplexityResult.answer
+            .replace(/\[\d+\]/g, '')  // Remove [1], [2], etc.
+            .replace(/\s{2,}/g, ' ')  // Clean up double spaces left behind
+            .trim();
 
           console.log(`[Chat API] Perplexity ${searchMode} completed successfully`);
 
