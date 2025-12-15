@@ -31,10 +31,14 @@ export interface ProviderSettings {
     anthropic: ProviderConfig;
   };
   codeCommandModel?: string; // Model for Code Command (admin coding assistant)
+  perplexityModel?: string; // Model for Perplexity searches (sonar, sonar-pro)
 }
 
 // Default Code Command model (admin coding assistant)
 const DEFAULT_CODE_COMMAND_MODEL = 'claude-opus-4-5-20251101';
+
+// Default Perplexity model (sonar-pro for better quality)
+const DEFAULT_PERPLEXITY_MODEL = 'sonar-pro';
 
 // Default settings (used when database is not available or no settings exist)
 const DEFAULT_SETTINGS: ProviderSettings = {
@@ -59,6 +63,7 @@ const DEFAULT_SETTINGS: ProviderSettings = {
     },
   },
   codeCommandModel: DEFAULT_CODE_COMMAND_MODEL,
+  perplexityModel: DEFAULT_PERPLEXITY_MODEL,
 };
 
 // Simple cache to avoid repeated database calls
@@ -218,4 +223,13 @@ export async function isImageGenerationAvailable(): Promise<boolean> {
 export async function getCodeCommandModel(): Promise<string> {
   const settings = await getProviderSettings();
   return settings.codeCommandModel || DEFAULT_CODE_COMMAND_MODEL;
+}
+
+/**
+ * Get the Perplexity model (for web search and fact checking)
+ * Returns the configured model or default (sonar-pro)
+ */
+export async function getPerplexityModel(): Promise<string> {
+  const settings = await getProviderSettings();
+  return settings.perplexityModel || DEFAULT_PERPLEXITY_MODEL;
 }

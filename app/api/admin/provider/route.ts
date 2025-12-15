@@ -20,6 +20,7 @@ interface ProviderSettingsRow {
     anthropic?: { model: string };
   };
   code_command_model?: string;
+  perplexity_model?: string;
   updated_by: string | null;
   created_at: string;
   updated_at: string;
@@ -33,6 +34,7 @@ const DEFAULT_SETTINGS = {
     anthropic: { model: 'claude-sonnet-4-5-20250929' },
   },
   code_command_model: 'claude-opus-4-5-20251101',
+  perplexity_model: 'sonar-pro', // Default to sonar-pro for better quality
 };
 
 /**
@@ -68,6 +70,7 @@ export async function GET() {
       activeProvider: settings?.active_provider || DEFAULT_SETTINGS.active_provider,
       providerConfig: settings?.provider_config || DEFAULT_SETTINGS.provider_config,
       codeCommandModel: settings?.code_command_model || DEFAULT_SETTINGS.code_command_model,
+      perplexityModel: settings?.perplexity_model || DEFAULT_SETTINGS.perplexity_model,
       updatedAt: settings?.updated_at,
     });
   } catch (error) {
@@ -88,7 +91,7 @@ export async function PUT(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
     const body = await request.json();
 
-    const { activeProvider, providerConfig, codeCommandModel } = body;
+    const { activeProvider, providerConfig, codeCommandModel, perplexityModel } = body;
 
     // Validate provider
     if (activeProvider && !['openai', 'anthropic'].includes(activeProvider)) {
@@ -103,6 +106,7 @@ export async function PUT(request: NextRequest) {
       active_provider?: string;
       provider_config?: object;
       code_command_model?: string;
+      perplexity_model?: string;
       updated_by: string;
       updated_at: string;
     } = {
@@ -120,6 +124,10 @@ export async function PUT(request: NextRequest) {
 
     if (codeCommandModel) {
       updateData.code_command_model = codeCommandModel;
+    }
+
+    if (perplexityModel) {
+      updateData.perplexity_model = perplexityModel;
     }
 
     // First, check if a row exists
@@ -156,6 +164,7 @@ export async function PUT(request: NextRequest) {
           active_provider: activeProvider || DEFAULT_SETTINGS.active_provider,
           provider_config: providerConfig || DEFAULT_SETTINGS.provider_config,
           code_command_model: codeCommandModel || DEFAULT_SETTINGS.code_command_model,
+          perplexity_model: perplexityModel || DEFAULT_SETTINGS.perplexity_model,
         })
         .select()
         .single();
@@ -181,6 +190,7 @@ export async function PUT(request: NextRequest) {
       activeProvider: settings.active_provider,
       providerConfig: settings.provider_config,
       codeCommandModel: settings.code_command_model || DEFAULT_SETTINGS.code_command_model,
+      perplexityModel: settings.perplexity_model || DEFAULT_SETTINGS.perplexity_model,
       updatedAt: settings.updated_at,
     });
   } catch (error) {

@@ -14,13 +14,15 @@
  * - Real-time web search with citations
  */
 
+import { getPerplexityModel } from '@/lib/provider/settings';
+
 // Perplexity API endpoint
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
 // Models available
-// sonar: Default, good balance of speed and accuracy
-// sonar-pro: Most accurate, best for complex queries
-const DEFAULT_MODEL = 'sonar';
+// sonar: Fast, good for simple lookups
+// sonar-pro: Most accurate, best for complex queries and fact-checking
+const DEFAULT_MODEL = 'sonar-pro'; // Default to sonar-pro for better quality
 
 /**
  * Extract readable domain name from URL
@@ -292,7 +294,15 @@ export async function perplexitySearch(options: PerplexityOptions): Promise<Perp
     throw new Error('PERPLEXITY_API_KEY is not configured. Set PERPLEXITY_API_KEY or PERPLEXITY_API_KEY_1, _2, etc.');
   }
 
-  const model = options.model || DEFAULT_MODEL;
+  // Get model from options, admin settings, or default
+  let model = options.model;
+  if (!model) {
+    try {
+      model = await getPerplexityModel();
+    } catch {
+      model = DEFAULT_MODEL;
+    }
+  }
 
   // System prompt optimized for accurate, concise answers
   // IMPORTANT: Avoid em dashes (—) and use simple formatting
