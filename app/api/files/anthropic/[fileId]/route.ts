@@ -45,15 +45,15 @@ export async function GET(
     console.log(`[Anthropic Files API] Downloading file: ${fileId} for user: ${user.id}`);
 
     // Download file from Anthropic
-    const { data, filename, mimeType } = await downloadAnthropicFile(fileId);
+    const result = await downloadAnthropicFile(fileId);
 
     // Return file with appropriate headers
-    return new NextResponse(data, {
+    return new NextResponse(result.data, {
       status: 200,
       headers: {
-        'Content-Type': mimeType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': data.byteLength.toString(),
+        'Content-Type': result.mimeType,
+        'Content-Disposition': `attachment; filename="${result.filename}"`,
+        'Content-Length': result.data.byteLength.toString(),
         'Cache-Control': 'private, max-age=3600',
       },
     });

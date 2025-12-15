@@ -39,6 +39,8 @@ export interface AnthropicChatOptions {
   temperature?: number;
   stream?: boolean;
   systemPrompt?: string;
+  userId?: string;
+  planKey?: string;
   // Web search function (injected from Brave Search module)
   webSearchFn?: (query: string) => Promise<BraveSearchResult>;
 }
@@ -427,4 +429,78 @@ export function isImageGenerationRequest(content: string): boolean {
   ];
 
   return imagePatterns.some(pattern => pattern.test(content));
+}
+
+/**
+ * Detect if user is requesting a document (Excel, PowerPoint, Word, PDF)
+ * Returns file extension format to match getDocumentFormattingPrompt expectations
+ */
+export function detectDocumentRequest(content: string): 'xlsx' | 'pptx' | 'docx' | 'pdf' | null {
+  const lowerContent = content.toLowerCase();
+
+  // Excel detection
+  if (/\b(excel|spreadsheet|xlsx|xls)\b/.test(lowerContent) ||
+      /\b(budget|financial model|data table)\b.*\b(create|make|generate)\b/.test(lowerContent) ||
+      /\b(create|make|generate)\b.*\b(budget|financial model|data table)\b/.test(lowerContent)) {
+    return 'xlsx';
+  }
+
+  // PowerPoint detection
+  if (/\b(powerpoint|pptx|ppt|presentation|slide deck|slides)\b/.test(lowerContent) ||
+      /\b(create|make|generate)\b.*\b(presentation|slides)\b/.test(lowerContent)) {
+    return 'pptx';
+  }
+
+  // Word detection
+  if (/\b(word document|docx|doc)\b/.test(lowerContent) ||
+      /\b(create|make|generate)\b.*\b(word|docx)\b/.test(lowerContent)) {
+    return 'docx';
+  }
+
+  // PDF detection (explicit)
+  if (/\b(pdf)\b/.test(lowerContent) && /\b(create|make|generate)\b/.test(lowerContent)) {
+    return 'pdf';
+  }
+
+  return null;
+}
+
+/**
+ * Options for Skills-enabled completion
+ */
+export interface AnthropicSkillsOptions extends AnthropicChatOptions {
+  userId?: string;
+  planKey?: string;
+  skills?: string[];
+}
+
+/**
+ * Create Anthropic completion with Skills (agentic loop)
+ */
+export async function createAnthropicCompletionWithSkills(options: AnthropicSkillsOptions): Promise<{
+  text: string;
+  model: string;
+  files?: Array<{ file_id: string; filename: string; mime_type: string }>;
+}> {
+  // For now, just use the regular completion
+  // Skills/agentic functionality can be added later
+  const result = await createAnthropicCompletion(options);
+  return {
+    text: result.text,
+    model: result.model,
+    files: [],
+  };
+}
+
+/**
+ * Download an Anthropic file (placeholder for file handling)
+ */
+export async function downloadAnthropicFile(fileId: string): Promise<{
+  data: ArrayBuffer;
+  filename: string;
+  mimeType: string;
+}> {
+  console.log('[Anthropic] File download requested:', fileId);
+  // Placeholder - throw error for now since we don't have actual file storage
+  throw new Error(`File not found: ${fileId}`);
 }
