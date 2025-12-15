@@ -17,6 +17,18 @@ export interface Chat {
   updatedAt: Date;
 }
 
+export interface VideoSegment {
+  current: number;
+  total: number;
+  total_seconds: number;
+  seconds_remaining: number;
+}
+
+export interface VideoJobError {
+  code: string;
+  message: string;
+}
+
 export interface VideoJobInfo {
   job_id: string;
   status: 'queued' | 'in_progress' | 'completed' | 'failed';
@@ -27,8 +39,17 @@ export interface VideoJobInfo {
   status_url?: string;
   download_url?: string;
   prompt?: string;
-  segment?: number;
-  error?: string;
+  segment?: VideoSegment;
+  completed_segments?: string[]; // Array of completed video URLs
+  error?: VideoJobError;
+}
+
+export interface GeneratedFile {
+  file_id: string;
+  filename: string;
+  mime_type: string;
+  download_url: string;
+  size_bytes?: number;
 }
 
 export interface Message {
@@ -38,10 +59,13 @@ export interface Message {
   toolCalls?: ToolCall[];
   attachments?: Attachment[];
   imageUrl?: string; // For AI-generated images
+  videoUrl?: string; // For completed video generations
   videoJob?: VideoJobInfo; // For Sora video generation jobs
   products?: ShopProduct[]; // For Amazon shopping results
   citations?: string[]; // Source URLs from Live Search
   sourcesUsed?: number; // Number of sources used in search
+  searchProvider?: string; // Search provider used (e.g., 'perplexity')
+  files?: GeneratedFile[]; // Generated documents (Excel, PowerPoint, Word, PDF)
   model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
   timestamp: Date;
   isStreaming?: boolean;
