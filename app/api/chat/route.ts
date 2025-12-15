@@ -1206,14 +1206,9 @@ Be objective and thorough in your fact-checking.`;
             systemPrompt: searchSystemPrompt,
           });
 
-          // Format the response with sources
-          let responseContent = perplexityResult.answer;
-          if (perplexityResult.sources && perplexityResult.sources.length > 0) {
-            responseContent += '\n\n**Sources:**\n';
-            perplexityResult.sources.forEach((source, index) => {
-              responseContent += `${index + 1}. [${source.title}](${source.url})\n`;
-            });
-          }
+          // Return just the answer without sources (cleaner UX for Anthropic)
+          // Sources are kept internal - not shown to users
+          const responseContent = perplexityResult.answer;
 
           console.log(`[Chat API] Perplexity ${searchMode} completed successfully`);
 
