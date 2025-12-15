@@ -1164,6 +1164,10 @@ export async function POST(request: NextRequest) {
     // ANTHROPIC PATH - Claude (tier-specific model)
     // ========================================
     if (activeProvider === 'anthropic') {
+      // IMPORTANT: Disable auto-search for Anthropic
+      // Search ONLY happens via explicit Search/Fact Check buttons
+      const willUseWebSearch = false;
+
       // Get tier-specific model (uses provider settings with tier lookup)
       const anthropicModel = await getModelForTier(userTier);
       console.log('[Chat API] Using Anthropic provider with model:', anthropicModel, 'for tier:', userTier);
