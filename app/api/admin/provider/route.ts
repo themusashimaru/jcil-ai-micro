@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { clearProviderSettingsCache } from '@/lib/provider/settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -179,6 +180,9 @@ export async function PUT(request: NextRequest) {
     if (!settings) {
       return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
     }
+
+    // Clear the cache so next request gets fresh data
+    clearProviderSettingsCache();
 
     console.log('[Provider API] Settings updated:', {
       provider: settings.active_provider,
