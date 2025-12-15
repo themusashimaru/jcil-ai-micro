@@ -167,7 +167,8 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
 
     // Using a small delay to let the DOM update first
     const scrollToBottom = () => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // Use scrollIntoView with block: 'end' to ensure consistent behavior across themes
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     };
 
     // Initial scroll with short delay

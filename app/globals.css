@@ -407,7 +407,7 @@
 
   /* Light mode: Ensure orbs don't interfere with scroll area */
   :root.light-mode .chat-bg-orbs {
-    contain: paint; /* Create paint containment for orbs */
+    /* Removed contain: paint as it was interfering with scroll behavior */
   }
 
   .chat-bg-orbs::before,
