@@ -137,3 +137,45 @@ export function isProviderConfigured(provider: Provider): boolean {
   }
   return false;
 }
+
+/**
+ * Get the model for a user tier
+ * Premium users get the best model, free users get a lighter model
+ */
+export async function getModelForTier(_tier: string, provider?: Provider): Promise<string> {
+  const settings = await getProviderSettings();
+  const activeProvider = provider || settings.activeProvider;
+
+  // For now, all tiers use the same model from settings
+  // This can be expanded to use different models per tier
+  return settings.providerConfig[activeProvider].model;
+}
+
+/**
+ * Get the Perplexity model to use for search
+ */
+export async function getPerplexityModel(): Promise<string> {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return 'sonar-pro';
+  }
+
+  try {
+    const { data } = await supabase
+      .from('provider_settings')
+      .select('perplexity_model')
+      .single();
+
+    return data?.perplexity_model || 'sonar-pro';
+  } catch {
+    return 'sonar-pro';
+  }
+}
+
+/**
+ * Get the Code Command model
+ */
+export async function getCodeCommandModel(): Promise<string> {
+  return 'claude-sonnet-4-5-20250929';
+}
