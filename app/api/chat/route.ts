@@ -1328,6 +1328,85 @@ export async function POST(request: NextRequest) {
     const openaiModel = await getModelForTier(userTier);
     console.log('[Chat API] Using OpenAI provider with model:', openaiModel, 'for tier:', userTier);
 
+    // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
+    // For OpenAI, we generate PDF versions of documents (Excel/PPT/Word not supported)
+    const openaiDocumentType = detectDocumentRequest(lastUserContent);
+    if (openaiDocumentType && isAuthenticated) {
+      console.log(`[Chat API] OpenAI: Document request detected: ${openaiDocumentType}`);
+
+      // For Excel/PPT/Word requests, instruct AI to create content for PDF
+      // OpenAI doesn't have native document generation, so we output formatted content
+      // that the frontend will convert to PDF using [GENERATE_PDF:] marker
+      const docTypeNames: Record<string, string> = {
+        xlsx: 'spreadsheet',
+        pptx: 'presentation',
+        docx: 'document',
+        pdf: 'PDF',
+      };
+      const docName = docTypeNames[openaiDocumentType] || 'document';
+
+      // Add special instruction for OpenAI to format content for PDF generation
+      const pdfFormatInstruction = openaiDocumentType !== 'pdf' ? `
+IMPORTANT: Since you cannot create native ${docName} files, format your response for PDF output instead:
+1. Start with a brief acknowledgment like "I'll create that as a PDF document for you."
+2. Then emit the [GENERATE_PDF: Title] marker followed by the formatted content.
+3. For spreadsheet/budget requests: Use markdown tables with clear headers and totals.
+4. For presentation requests: Create an outline with clear sections.
+5. Example format:
+Creating your ${docName} as a PDF now.
+
+[GENERATE_PDF: Your Title Here]
+
+## Section 1
+Content here...
+
+| Column 1 | Column 2 | Column 3 |
+|----------|----------|----------|
+| Data     | Data     | Data     |
+
+Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
+` : '';
+
+      // Prepend the PDF formatting instruction as a system message
+      const docMessages = pdfFormatInstruction
+        ? [{ role: 'system', content: pdfFormatInstruction }, ...messagesWithContext]
+        : messagesWithContext;
+
+      // Use non-streaming for document generation
+      const docResult = await createChatCompletion({
+        messages: docMessages,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tool: effectiveTool as any,
+        temperature,
+        maxTokens: clampedMaxTokens,
+        stream: false,
+        userId: rateLimitIdentifier,
+        conversationId: conversationId,
+        modelOverride: openaiModel,
+        planKey: userTier,
+      });
+
+      return new Response(
+        JSON.stringify({
+          type: 'text',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          content: (docResult as any).text || '',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          model: (docResult as any).model || openaiModel,
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            'X-Model-Used': (docResult as any).model || openaiModel,
+            'X-Document-Type': openaiDocumentType,
+            'X-Provider': 'openai',
+          },
+        }
+      );
+    }
+
     // Use non-streaming for image analysis (images need special handling)
     if (hasImages) {
       console.log('[Chat API] Using non-streaming mode for image analysis');
