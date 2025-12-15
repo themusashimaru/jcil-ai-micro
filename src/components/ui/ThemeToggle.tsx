@@ -41,7 +41,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
   }
 
   // Get next theme name for aria-label
-  const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'ocean' : 'dark';
+  const nextTheme = theme === 'light' ? 'ocean' : theme === 'ocean' ? 'dark' : 'light';
 
   return (
     <button
@@ -52,8 +52,8 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       aria-label={`Switch to ${nextTheme} mode`}
       title={`Switch to ${nextTheme} mode`}
     >
-      {theme === 'dark' ? (
-        // Sun icon - currently dark, will switch to light
+      {theme === 'light' ? (
+        // Sun icon - currently light, will switch to ocean
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -64,8 +64,8 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <circle cx="12" cy="12" r="5" />
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
-      ) : theme === 'light' ? (
-        // Wave icon - currently light, will switch to ocean
+      ) : theme === 'ocean' ? (
+        // Wave icon - currently ocean, will switch to dark
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -78,7 +78,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <path d="M2 7c2-2 4-3 6-3s4 1 6 3 4 3 6 3 4-1 6-3" />
         </svg>
       ) : (
-        // Moon icon - currently ocean, will switch to dark
+        // Moon icon - currently dark, will switch to light
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"

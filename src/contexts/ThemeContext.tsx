@@ -66,9 +66,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Cycle: dark → light → ocean → dark
+  // Cycle: light → ocean → dark → light
   const toggleTheme = useCallback(() => {
-    const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'ocean' : 'dark';
+    const nextTheme = theme === 'light' ? 'ocean' : theme === 'ocean' ? 'dark' : 'light';
     setTheme(nextTheme);
   }, [theme, setTheme]);
 
