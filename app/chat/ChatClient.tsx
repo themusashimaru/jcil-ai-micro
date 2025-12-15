@@ -1449,11 +1449,27 @@ export function ChatClient() {
         console.log('[ChatClient] Detected GENERATE_PDF marker, title:', pdfTitle);
 
         // Extract the content after the marker (the markdown content for the PDF)
-        const markerEnd = finalContent.indexOf(']', finalContent.indexOf('[GENERATE_PDF:')) + 1;
-        const pdfContent = finalContent.slice(markerEnd).trim();
+        const markerStartIndex = finalContent.indexOf('[GENERATE_PDF:');
+        const markerEnd = finalContent.indexOf(']', markerStartIndex) + 1;
+        const pdfContent = markerEnd > 0 ? finalContent.slice(markerEnd).trim() : '';
 
         // Get any text BEFORE the marker (intro text like "Creating your PDF now.")
-        const textBeforeMarker = finalContent.slice(0, finalContent.indexOf('[GENERATE_PDF:')).trim();
+        const textBeforeMarker = markerStartIndex > 0 ? finalContent.slice(0, markerStartIndex).trim() : '';
+
+        // Validate content before proceeding
+        if (!pdfTitle || !pdfContent || pdfContent.length < 10) {
+          console.warn('[ChatClient] PDF marker found but content is empty or too short');
+          // Don't try to generate, just clean up the response
+          const cleanedContent = textBeforeMarker || 'I tried to generate a PDF but encountered an issue. Please try again with more content.';
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: cleanedContent }
+                : msg
+            )
+          );
+          // Skip the PDF generation
+        } else {
 
         // Show ONLY the intro text + generating status - NOT the full content again
         // User already saw the content in the previous message
@@ -1551,7 +1567,20 @@ export function ChatClient() {
           }
         } catch (pdfError) {
           console.error('[ChatClient] Error during PDF generation:', pdfError);
+          // Show error to user instead of silently failing
+          const errorContent = textBeforeMarker
+            ? `${textBeforeMarker}\n\n⚠️ Sorry, there was an error generating your PDF. Please try again.`
+            : `⚠️ Sorry, there was an error generating your PDF. Please try again.`;
+
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: errorContent }
+                : msg
+            )
+          );
         }
+      }
       }
 
       // Check for [GENERATE_QR: ...] marker in the response
