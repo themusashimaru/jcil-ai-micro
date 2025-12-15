@@ -40,17 +40,20 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
     return null;
   }
 
+  // Get next theme name for aria-label
+  const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'ocean' : 'dark';
+
   return (
     <button
       onClick={toggleTheme}
       disabled={isLoading}
       className={`rounded-lg p-1.5 transition-opacity hover:opacity-70 ${className}`}
       style={{ color: 'var(--text-primary)' }}
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      aria-label={`Switch to ${nextTheme} mode`}
+      title={`Switch to ${nextTheme} mode`}
     >
       {theme === 'dark' ? (
-        // Sun icon for switching to light mode
+        // Sun icon - currently dark, will switch to light
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -61,8 +64,21 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <circle cx="12" cy="12" r="5" />
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
+      ) : theme === 'light' ? (
+        // Wave icon - currently light, will switch to ocean
+        <svg
+          className="h-4 w-4 md:h-5 md:w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+        >
+          <path d="M2 12c2-2 4-3 6-3s4 1 6 3 4 3 6 3 4-1 6-3" />
+          <path d="M2 17c2-2 4-3 6-3s4 1 6 3 4 3 6 3 4-1 6-3" />
+          <path d="M2 7c2-2 4-3 6-3s4 1 6 3 4 3 6 3 4-1 6-3" />
+        </svg>
       ) : (
-        // Moon icon for switching to dark mode
+        // Moon icon - currently ocean, will switch to dark
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-type Theme = 'dark' | 'light';
+type Theme = 'dark' | 'light' | 'ocean';
 
 interface ThemeContextType {
   theme: Theme;
@@ -41,11 +41,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Apply theme to document
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    // Also add/remove a class for Tailwind compatibility
+    // Remove all theme classes first
+    document.documentElement.classList.remove('light-mode', 'ocean-mode');
+    // Add appropriate class
     if (theme === 'light') {
       document.documentElement.classList.add('light-mode');
-    } else {
-      document.documentElement.classList.remove('light-mode');
+    } else if (theme === 'ocean') {
+      document.documentElement.classList.add('ocean-mode');
     }
   }, [theme]);
 
@@ -64,8 +66,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Cycle: dark → light → ocean → dark
   const toggleTheme = useCallback(() => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+    const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'ocean' : 'dark';
+    setTheme(nextTheme);
   }, [theme, setTheme]);
 
   return (
