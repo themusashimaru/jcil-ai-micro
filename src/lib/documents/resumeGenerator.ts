@@ -104,30 +104,21 @@ export async function generateResumeDocx(resume: ResumeDocument): Promise<Buffer
     children.push(createSectionHeader('PROFESSIONAL EXPERIENCE', fontFamily, primaryColor));
 
     for (const exp of resume.experience) {
-      // Job Title
+      // Company Name, Location | Dates (Company BOLD, dates right-aligned)
+      const locationText = exp.location ? ` ${exp.location}` : '';
+      const dateText = exp.endDate ? `${exp.startDate}-${exp.endDate}` : exp.startDate;
+
       children.push(
         new Paragraph({
           children: [
             new TextRun({
-              text: exp.title,
+              text: `${exp.company},`,
               bold: true,
               size: baseFontSize,
               font: fontFamily,
             }),
-          ],
-          spacing: { before: 100 },
-        })
-      );
-
-      // Company, Location | Dates (tabbed for right alignment)
-      const locationText = exp.location ? `, ${exp.location}` : '';
-      const dateText = exp.endDate ? `${exp.startDate} - ${exp.endDate}` : exp.startDate;
-
-      children.push(
-        new Paragraph({
-          children: [
             new TextRun({
-              text: `${exp.company}${locationText}`,
+              text: locationText,
               size: baseFontSize,
               font: fontFamily,
             }),
@@ -145,6 +136,21 @@ export async function generateResumeDocx(resume: ResumeDocument): Promise<Buffer
               type: TabStopType.RIGHT,
               position: TabStopPosition.MAX,
             },
+          ],
+          spacing: { before: 120 },
+        })
+      );
+
+      // Job Title (italic)
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: exp.title,
+              italics: true,
+              size: baseFontSize,
+              font: fontFamily,
+            }),
           ],
           spacing: { after: 50 },
         })

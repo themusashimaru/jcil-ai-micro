@@ -138,13 +138,19 @@ function getDocumentFormattingPrompt(docType: 'xlsx' | 'pptx' | 'docx' | 'pdf'):
 
 You are creating a PROFESSIONAL document. Quality and formatting are paramount.
 
+**CRITICAL: OUTPUT ONLY THE DOCUMENT CONTENT**
+- Do NOT add any explanatory text, commentary, or notes about the document
+- Do NOT explain what you created or describe the formatting
+- Do NOT add tips, suggestions, or "this resume demonstrates..." type text
+- The output should ONLY be the document content that will be rendered
+- End your response immediately after the last line of the document
+
 ### General Rules:
 - Use proper margins (1 inch / 2.5cm on all sides)
 - Use professional fonts: Arial, Helvetica, or Calibri
 - Ensure consistent spacing throughout
 - Use proper heading hierarchy
 - Include page numbers for multi-page documents
-- Save the document to $OUTPUT_DIR with an appropriate filename
 
 `;
 
@@ -258,7 +264,13 @@ function getNativeDocumentPrompt(docType: 'resume' | 'spreadsheet' | 'document' 
 ## NATIVE DOCUMENT GENERATION
 
 You are generating a real, downloadable document. Output ONLY valid JSON that matches the schema below.
-Do NOT include any explanatory text before or after the JSON. The response must be parseable JSON.
+
+**CRITICAL RULES:**
+- Output ONLY the JSON - no explanatory text, commentary, or descriptions
+- Do NOT add any text before the JSON code block
+- Do NOT add any text after the JSON code block (no "This resume includes...", "I've created...", etc.)
+- Do NOT explain what you made or provide tips
+- The ENTIRE response should be the JSON code block and nothing else
 
 IMPORTANT: Wrap your JSON response in \`\`\`json code blocks like this:
 \`\`\`json
