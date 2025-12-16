@@ -90,7 +90,6 @@ function parseInvoiceContent(content: string): InvoiceData {
   };
 
   let currentSection = '';
-  let itemLines: string[] = [];
 
   for (const line of lines) {
     const lowerLine = line.toLowerCase();
