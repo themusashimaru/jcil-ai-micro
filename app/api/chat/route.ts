@@ -745,7 +745,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify({
             type: 'text',
             content: '**Video Generation Coming Soon**\n\nVideo generation with Sora is currently in testing and available to administrators only.\n\nIn the meantime, I can help you with:\n- Describing video concepts in detail\n- Writing video scripts or storyboards\n- Creating images with DALL-E\n- General questions and assistance\n\nIs there something else I can help you with?',
-            model: activeProvider === 'anthropic' ? 'claude-sonnet-4.5' : 'gpt-4o',
+            model: activeProvider === 'anthropic' ? 'sonnet' : 'gpt-5',
           }),
           {
             status: 200,
@@ -911,7 +911,7 @@ export async function POST(request: NextRequest) {
         JSON.stringify({
           type: 'text',
           content: '**Image Generation Not Available**\n\nOur app\'s core focus is on delivering faith-based intelligence and general AI assistance, not multimedia generation. We do not currently have native image generation capabilities.\n\nHowever, I can help you with:\n- Describing images or visual concepts in detail\n- Writing creative descriptions or prompts\n- Answering questions and providing guidance\n- Research and information gathering\n\nIs there something else I can help you with today?',
-          model: 'claude-sonnet-4.5',
+          model: 'sonnet',
         }),
         {
           status: 200,
