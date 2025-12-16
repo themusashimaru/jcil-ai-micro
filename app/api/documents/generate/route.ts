@@ -419,17 +419,21 @@ export async function POST(request: NextRequest) {
           checkPageBreak(15);
           if (isResume) {
             // RESUME: Section headers - bold, with subtle line
-            doc.setFontSize(12);
+            // Add extra space before new sections (except first)
+            if (!isFirstElement) {
+              y += 6; // Space before section header
+            }
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0);
             const resumeH2Text = cleanMarkdown(element.text).text.toUpperCase();
             const resumeH2Wrapped = doc.splitTextToSize(resumeH2Text, contentWidth);
             doc.text(resumeH2Wrapped, margin, y);
-            y += resumeH2Wrapped.length * 5;
-            doc.setDrawColor(100, 100, 100);
-            doc.setLineWidth(0.3);
+            y += resumeH2Wrapped.length * 4.5;
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.4);
             doc.line(margin, y, pageWidth - margin, y);
-            y += 5;
+            y += 4;
           } else if (isInvoice) {
             // INVOICE: Section headers
             doc.setFontSize(12);
@@ -472,13 +476,14 @@ export async function POST(request: NextRequest) {
           checkPageBreak(12);
           if (isResume) {
             // RESUME: Job title / subsection - bold
-            doc.setFontSize(11);
+            y += 3; // Small space before job title/subsection
+            doc.setFontSize(10.5);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 0, 0);
             const resumeH3Text = cleanMarkdown(element.text).text;
             const resumeH3Wrapped = doc.splitTextToSize(resumeH3Text, contentWidth);
             doc.text(resumeH3Wrapped, margin, y);
-            y += resumeH3Wrapped.length * 5 + 2;
+            y += resumeH3Wrapped.length * 4.5 + 1;
           } else if (isBusinessPlan) {
             // BUSINESS PLAN: Subsection headers
             doc.setFontSize(12);
@@ -510,11 +515,11 @@ export async function POST(request: NextRequest) {
 
           if (isResume && !resumeHeaderDone) {
             // RESUME: Contact info - centered, smaller
-            doc.setFontSize(10);
+            doc.setFontSize(9.5);
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(60, 60, 60);
             doc.text(cleaned.text, pageWidth / 2, y, { align: 'center' });
-            y += 6;
+            y += 5;
           } else if (isInvoice && (lowerText.includes('total due') || lowerText.includes('amount due') || lowerText.includes('balance due'))) {
             // INVOICE: Total Due - Large, bold, right-aligned, with background
             checkPageBreak(15);
@@ -567,43 +572,47 @@ export async function POST(request: NextRequest) {
           } else if (isResume) {
             // RESUME PARAGRAPH - Force left-align everything
             // Detect if this looks like a job title
-            const jobTitlePatterns = /(vice president|director|manager|supervisor|coordinator|specialist|analyst|engineer|developer|consultant|associate|assistant|executive|officer|lead|senior|junior|head of|chief)/i;
+            const jobTitlePatterns = /(vice president|director|manager|supervisor|coordinator|specialist|analyst|engineer|developer|consultant|associate|assistant|executive|officer|lead|senior|junior|head of|chief|fellow|resident|attending|surgeon|physician|professor)/i;
             const companyLinePattern = /^(\*\*)?[A-Z][a-zA-Z\s&,\.]+(\*\*)?,?\s*([\w\s]+,\s*[A-Z]{2})?/;
             const datePattern = /\d{4}|present|current/i;
-            const skillsPattern = /^(\*\*)?[A-Za-z]+:(\*\*)?\s/; // Pattern like "Technical: " or "**Leadership:**"
+            const skillsPattern = /^(\*\*)?[A-Za-z]+(\s+[A-Za-z]+)?:(\*\*)?\s/; // Pattern like "Technical: " or "**Surgical Specialties:**"
 
-            const isLikelyJobTitle = jobTitlePatterns.test(cleaned.text) && cleaned.text.length < 60;
+            const isLikelyJobTitle = jobTitlePatterns.test(cleaned.text) && cleaned.text.length < 80;
             const isLikelyCompanyLine = companyLinePattern.test(cleaned.text) && datePattern.test(cleaned.text);
             const isLikelySkillLine = skillsPattern.test(cleaned.text);
 
             if (isLikelyJobTitle) {
               // Job title - bold, left-aligned
+              y += 2; // Small space before job title
               checkPageBreak(6);
-              doc.setFontSize(11);
+              doc.setFontSize(10);
               doc.setFont('helvetica', 'bold');
               doc.setTextColor(0, 0, 0);
-              doc.text(cleaned.text, margin, y);
-              y += 5;
+              const titleWrapped = doc.splitTextToSize(cleaned.text, contentWidth);
+              doc.text(titleWrapped, margin, y);
+              y += titleWrapped.length * 4 + 1;
             } else if (isLikelyCompanyLine) {
-              // Company with dates - normal, left-aligned
+              // Company with dates - bold company, normal date, left-aligned
               checkPageBreak(5);
               doc.setFontSize(10);
-              doc.setFont('helvetica', cleaned.bold ? 'bold' : 'normal');
-              doc.setTextColor(51, 51, 51);
-              doc.text(cleaned.text, margin, y);
-              y += 4;
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(0, 0, 0);
+              const companyWrapped = doc.splitTextToSize(cleaned.text, contentWidth);
+              doc.text(companyWrapped, margin, y);
+              y += companyWrapped.length * 4;
             } else if (isLikelySkillLine) {
-              // Skills line - left-aligned
+              // Skills line - left-aligned with proper wrapping
+              y += 1;
               checkPageBreak(5);
-              doc.setFontSize(10);
+              doc.setFontSize(9.5);
               doc.setFont('helvetica', cleaned.bold ? 'bold' : 'normal');
-              doc.setTextColor(51, 51, 51);
+              doc.setTextColor(0, 0, 0);
               const splitText = doc.splitTextToSize(cleaned.text, contentWidth);
               doc.text(splitText, margin, y);
-              y += splitText.length * 4 + 2;
+              y += splitText.length * 3.8 + 2;
             } else {
               // Regular resume paragraph - left-aligned
-              doc.setFontSize(10);
+              doc.setFontSize(9.5);
               let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
               if (cleaned.bold && cleaned.italic) fontStyle = 'bolditalic';
               else if (cleaned.bold) fontStyle = 'bold';
@@ -612,11 +621,11 @@ export async function POST(request: NextRequest) {
               doc.setTextColor(51, 51, 51);
 
               const splitText = doc.splitTextToSize(cleaned.text, contentWidth);
-              const textHeight = splitText.length * 4;
+              const textHeight = splitText.length * 3.8;
               checkPageBreak(textHeight + 2);
 
               doc.text(splitText, margin, y);
-              y += textHeight + 2;
+              y += textHeight + 1.5;
             }
           } else {
             // Non-resume standard paragraph - consistent line height and spacing
@@ -646,7 +655,7 @@ export async function POST(request: NextRequest) {
             for (const item of element.items) {
               const itemCleaned = cleanMarkdown(item);
               checkPageBreak(isResume ? 5 : 7);
-              doc.setFontSize(isResume ? 10 : 11);
+              doc.setFontSize(isResume ? 9.5 : 11);
               let itemFontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
               if (itemCleaned.bold && itemCleaned.italic) itemFontStyle = 'bolditalic';
               else if (itemCleaned.bold) itemFontStyle = 'bold';
@@ -654,16 +663,17 @@ export async function POST(request: NextRequest) {
               doc.setFont('helvetica', itemFontStyle);
               doc.setTextColor(51, 51, 51);
 
-              // Bullet point
+              // Bullet point - smaller for resumes
               doc.setFillColor(51, 51, 51);
-              doc.circle(margin + 2, y - 1.5, isResume ? 0.6 : 0.8, 'F');
+              doc.circle(margin + 2, y - 1.2, isResume ? 0.5 : 0.8, 'F');
 
-              // Item text - tighter for resumes
-              const itemText = doc.splitTextToSize(itemCleaned.text, contentWidth - 10);
-              doc.text(itemText, margin + 8, y);
-              y += itemText.length * (isResume ? 4 : 5) + (isResume ? 1 : 2);
+              // Item text - tighter line height for resumes
+              const bulletIndent = isResume ? 7 : 8;
+              const itemText = doc.splitTextToSize(itemCleaned.text, contentWidth - bulletIndent - 2);
+              doc.text(itemText, margin + bulletIndent, y);
+              y += itemText.length * (isResume ? 3.8 : 5) + (isResume ? 0.5 : 2);
             }
-            y += isResume ? 1 : 2;
+            y += isResume ? 2 : 2; // Small gap after bullet list
           }
           break;
 
