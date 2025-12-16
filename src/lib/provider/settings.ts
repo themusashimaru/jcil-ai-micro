@@ -9,7 +9,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-export type Provider = 'openai' | 'anthropic';
+export type Provider = 'openai' | 'anthropic' | 'xai';
 
 export interface ProviderConfig {
   model: string;
@@ -20,6 +20,7 @@ export interface ProviderSettings {
   providerConfig: {
     openai: ProviderConfig;
     anthropic: ProviderConfig;
+    xai: ProviderConfig;
   };
 }
 
@@ -29,6 +30,7 @@ const DEFAULT_SETTINGS: ProviderSettings = {
   providerConfig: {
     openai: { model: 'gpt-5-mini' },
     anthropic: { model: 'claude-sonnet-4-5-20250929' },
+    xai: { model: 'grok-3-mini' },
   },
 };
 
@@ -82,11 +84,16 @@ export async function getProviderSettings(): Promise<ProviderSettings> {
     }
 
     // Parse and validate settings
+    const activeProvider: Provider =
+      data.active_provider === 'anthropic' ? 'anthropic' :
+      data.active_provider === 'xai' ? 'xai' : 'openai';
+
     const settings: ProviderSettings = {
-      activeProvider: data.active_provider === 'anthropic' ? 'anthropic' : 'openai',
+      activeProvider,
       providerConfig: {
         openai: data.provider_config?.openai || DEFAULT_SETTINGS.providerConfig.openai,
         anthropic: data.provider_config?.anthropic || DEFAULT_SETTINGS.providerConfig.anthropic,
+        xai: data.provider_config?.xai || DEFAULT_SETTINGS.providerConfig.xai,
       },
     };
 
@@ -130,10 +137,13 @@ export async function getActiveModel(): Promise<string> {
  */
 export function isProviderConfigured(provider: Provider): boolean {
   if (provider === 'openai') {
-    return !!process.env.OPENAI_API_KEY;
+    return !!process.env.OPENAI_API_KEY || !!process.env.OPENAI_API_KEY_1;
   }
   if (provider === 'anthropic') {
-    return !!process.env.ANTHROPIC_API_KEY;
+    return !!process.env.ANTHROPIC_API_KEY || !!process.env.ANTHROPIC_API_KEY_1;
+  }
+  if (provider === 'xai') {
+    return !!process.env.XAI_API_KEY || !!process.env.XAI_API_KEY_1;
   }
   return false;
 }

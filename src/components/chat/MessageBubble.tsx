@@ -629,6 +629,8 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
                     ? 'bg-violet-500/20 text-violet-400'
                     : message.model.includes('opus')
                     ? 'bg-amber-500/20 text-amber-400'
+                    : message.model.includes('grok')
+                    ? 'bg-red-500/20 text-red-400'
                     : message.model.includes('sonar')
                     ? 'bg-orange-500/20 text-orange-400'
                     : 'bg-purple-500/20 text-purple-400'
