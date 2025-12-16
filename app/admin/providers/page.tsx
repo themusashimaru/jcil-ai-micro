@@ -13,7 +13,7 @@
 
 import { useState, useEffect } from 'react';
 
-type Provider = 'openai' | 'anthropic';
+type Provider = 'openai' | 'anthropic' | 'xai';
 
 interface TierModels {
   basic: string;
@@ -30,6 +30,7 @@ interface ProviderModelConfig {
 interface ProviderConfig {
   openai: ProviderModelConfig;
   anthropic: ProviderModelConfig;
+  xai: ProviderModelConfig;
 }
 
 export default function ProvidersPage() {
@@ -50,6 +51,14 @@ export default function ProvidersPage() {
         basic: 'claude-3-5-haiku-20241022',
         pro: 'claude-sonnet-4-5-20250929',
         executive: 'claude-sonnet-4-5-20250929',
+      },
+    },
+    xai: {
+      model: 'grok-3-mini',
+      models: {
+        basic: 'grok-3-mini',
+        pro: 'grok-3',
+        executive: 'grok-3',
       },
     },
   });
@@ -99,6 +108,14 @@ export default function ProvidersPage() {
                 basic: data.providerConfig.anthropic?.models?.basic || 'claude-3-5-haiku-20241022',
                 pro: data.providerConfig.anthropic?.models?.pro || 'claude-sonnet-4-5-20250929',
                 executive: data.providerConfig.anthropic?.models?.executive || 'claude-sonnet-4-5-20250929',
+              },
+            },
+            xai: {
+              model: data.providerConfig.xai?.model || 'grok-3-mini',
+              models: {
+                basic: data.providerConfig.xai?.models?.basic || 'grok-3-mini',
+                pro: data.providerConfig.xai?.models?.pro || 'grok-3',
+                executive: data.providerConfig.xai?.models?.executive || 'grok-3',
               },
             },
           });
@@ -202,6 +219,7 @@ export default function ProvidersPage() {
     // Validate inputs - check all tier models
     const openaiModels = providerConfig.openai.models;
     const anthropicModels = providerConfig.anthropic.models;
+    const xaiModels = providerConfig.xai.models;
 
     if (!openaiModels.basic.trim() || !openaiModels.pro.trim() || !openaiModels.executive.trim()) {
       setError('All OpenAI tier model names must be filled');
@@ -210,6 +228,11 @@ export default function ProvidersPage() {
 
     if (!anthropicModels.basic.trim() || !anthropicModels.pro.trim() || !anthropicModels.executive.trim()) {
       setError('All Anthropic tier model names must be filled');
+      return;
+    }
+
+    if (!xaiModels.basic.trim() || !xaiModels.pro.trim() || !xaiModels.executive.trim()) {
+      setError('All xAI tier model names must be filled');
       return;
     }
 
@@ -283,7 +306,7 @@ export default function ProvidersPage() {
 
       {/* Provider Switch */}
       <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* OpenAI Option */}
           <button
             onClick={() => handleProviderSwitch('openai')}
@@ -342,6 +365,42 @@ export default function ProvidersPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-blue-500">✓</span>
                     <span style={{ color: 'var(--text-secondary)' }}>Web search (native)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-yellow-500">⚡</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Image generation (admin only via DALL-E)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-500">✓</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Vision/Image analysis</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {/* xAI Option */}
+          <button
+            onClick={() => handleProviderSwitch('xai')}
+            disabled={isSaving}
+            className="p-6 rounded-xl border-2 transition-all text-left"
+            style={{
+              borderColor: activeProvider === 'xai' ? '#22c55e' : 'var(--border)',
+              backgroundColor: activeProvider === 'xai' ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+            }}
+          >
+            <div className="flex items-start gap-4">
+              <div
+                className="w-4 h-4 rounded-full mt-1"
+                style={{ backgroundColor: activeProvider === 'xai' ? '#22c55e' : 'var(--text-muted)' }}
+              />
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">xAI (Grok)</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Grok with Perplexity search</p>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-blue-500">✓</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Web search (Perplexity)</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-yellow-500">⚡</span>
@@ -470,6 +529,52 @@ export default function ProvidersPage() {
           </div>
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
             Examples: claude-3-5-haiku-20241022, claude-sonnet-4-5-20250929, claude-opus-4-20250514
+          </p>
+        </div>
+
+        {/* xAI Models */}
+        <div className="mb-8">
+          <h4 className="text-lg font-semibold text-red-500 mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-red-500 rounded-full"></span>
+            xAI (Grok) Models
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label className="block">
+              <span className="text-sm font-medium">Plus Tier</span>
+              <input
+                type="text"
+                value={providerConfig.xai.models.basic}
+                onChange={(e) => handleTierModelChange('xai', 'basic', e.target.value)}
+                placeholder="grok-3-mini"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Pro Tier</span>
+              <input
+                type="text"
+                value={providerConfig.xai.models.pro}
+                onChange={(e) => handleTierModelChange('xai', 'pro', e.target.value)}
+                placeholder="grok-3"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Executive Tier</span>
+              <input
+                type="text"
+                value={providerConfig.xai.models.executive}
+                onChange={(e) => handleTierModelChange('xai', 'executive', e.target.value)}
+                placeholder="grok-3"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+          </div>
+          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+            Examples: grok-3-mini, grok-3, grok-2-mini, grok-2
           </p>
         </div>
 
