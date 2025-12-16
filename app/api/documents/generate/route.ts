@@ -26,6 +26,626 @@ interface DocumentRequest {
   format?: 'pdf' | 'word' | 'both';
 }
 
+// Invoice data structure
+interface InvoiceData {
+  companyName: string;
+  companyAddress: string[];
+  invoiceNumber: string;
+  invoiceDate: string;
+  customerId: string;
+  billTo: string[];
+  shipTo: string[];
+  salesperson: string;
+  poNumber: string;
+  shipDate: string;
+  shipVia: string;
+  fob: string;
+  terms: string;
+  items: Array<{
+    itemNumber: string;
+    description: string;
+    qty: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  subtotal: number;
+  taxRate: number;
+  tax: number;
+  shipping: number;
+  other: number;
+  total: number;
+  notes: string[];
+  payableTo: string;
+}
+
+/**
+ * Parse invoice content from markdown/text to structured data
+ */
+function parseInvoiceContent(content: string): InvoiceData {
+  const lines = content.split('\n').map(l => l.trim()).filter(l => l);
+
+  const data: InvoiceData = {
+    companyName: '[Your Company Name]',
+    companyAddress: ['[Street Address]', '[City, ST ZIP]', 'Phone: [000-000-0000]'],
+    invoiceNumber: 'INV-' + Date.now().toString().slice(-6),
+    invoiceDate: new Date().toLocaleDateString(),
+    customerId: '',
+    billTo: ['[Customer Name]', '[Company]', '[Address]', '[City, ST ZIP]'],
+    shipTo: [],
+    salesperson: '',
+    poNumber: '',
+    shipDate: '',
+    shipVia: '',
+    fob: '',
+    terms: 'Net 30',
+    items: [],
+    subtotal: 0,
+    taxRate: 0,
+    tax: 0,
+    shipping: 0,
+    other: 0,
+    total: 0,
+    notes: [],
+    payableTo: ''
+  };
+
+  let currentSection = '';
+
+  for (const line of lines) {
+    const lowerLine = line.toLowerCase();
+
+    // Extract company name (usually first heading or "From:")
+    if (line.startsWith('# ') && !data.companyName.includes('[')) {
+      data.companyName = line.slice(2).replace(/\*\*/g, '').trim();
+      continue;
+    }
+
+    // Invoice number
+    const invoiceMatch = line.match(/invoice\s*[#:]?\s*(\w+[-]?\d+)/i);
+    if (invoiceMatch) {
+      data.invoiceNumber = invoiceMatch[1];
+    }
+
+    // Date
+    const dateMatch = line.match(/date[:\s]+(.+)/i);
+    if (dateMatch && !lowerLine.includes('ship')) {
+      data.invoiceDate = dateMatch[1].trim();
+    }
+
+    // Customer ID
+    const customerMatch = line.match(/customer\s*(?:id|#)?[:\s]+(.+)/i);
+    if (customerMatch) {
+      data.customerId = customerMatch[1].trim();
+    }
+
+    // Bill To section
+    if (lowerLine.includes('bill to') || lowerLine.includes('billed to')) {
+      currentSection = 'billTo';
+      data.billTo = [];
+      continue;
+    }
+
+    // Ship To section
+    if (lowerLine.includes('ship to') || lowerLine.includes('shipping to')) {
+      currentSection = 'shipTo';
+      data.shipTo = [];
+      continue;
+    }
+
+    // From/Company section
+    if (lowerLine.startsWith('from:') || lowerLine.includes('company:')) {
+      currentSection = 'company';
+      const afterFrom = line.replace(/^from:|company:/i, '').trim();
+      if (afterFrom) data.companyName = afterFrom;
+      continue;
+    }
+
+    // Items/Products section
+    if (lowerLine.includes('item') && lowerLine.includes('description') ||
+        lowerLine.includes('product') || lowerLine.includes('service')) {
+      currentSection = 'items';
+      continue;
+    }
+
+    // Notes section
+    if (lowerLine.includes('note') || lowerLine.includes('comment') || lowerLine.includes('instruction')) {
+      currentSection = 'notes';
+      continue;
+    }
+
+    // Parse totals
+    const subtotalMatch = line.match(/subtotal[:\s]*\$?([\d,]+\.?\d*)/i);
+    if (subtotalMatch) {
+      data.subtotal = parseFloat(subtotalMatch[1].replace(/,/g, ''));
+    }
+
+    const taxRateMatch = line.match(/tax\s*rate[:\s]*([\d.]+)%?/i);
+    if (taxRateMatch) {
+      data.taxRate = parseFloat(taxRateMatch[1]);
+    }
+
+    const taxMatch = line.match(/^tax[:\s]*\$?([\d,]+\.?\d*)/i);
+    if (taxMatch) {
+      data.tax = parseFloat(taxMatch[1].replace(/,/g, ''));
+    }
+
+    const shippingMatch = line.match(/shipping|s\s*&\s*h[:\s]*\$?([\d,]+\.?\d*)/i);
+    if (shippingMatch) {
+      data.shipping = parseFloat(shippingMatch[1].replace(/,/g, '')) || 0;
+    }
+
+    const totalMatch = line.match(/(?:grand\s*)?total[:\s]*\$?([\d,]+\.?\d*)/i);
+    if (totalMatch && !lowerLine.includes('subtotal')) {
+      data.total = parseFloat(totalMatch[1].replace(/,/g, ''));
+    }
+
+    // Parse terms
+    const termsMatch = line.match(/terms?[:\s]+(.+)/i);
+    if (termsMatch) {
+      data.terms = termsMatch[1].trim();
+    }
+
+    // Add to current section
+    if (currentSection === 'billTo' && line && !line.includes(':')) {
+      data.billTo.push(line.replace(/^[-*•]\s*/, ''));
+    } else if (currentSection === 'shipTo' && line && !line.includes(':')) {
+      data.shipTo.push(line.replace(/^[-*•]\s*/, ''));
+    } else if (currentSection === 'company' && line && !line.includes(':')) {
+      data.companyAddress.push(line.replace(/^[-*•]\s*/, ''));
+    } else if (currentSection === 'notes' && line) {
+      data.notes.push(line.replace(/^[-*•\d.]\s*/, ''));
+    }
+
+    // Parse item lines (look for patterns like "Product Name | 5 | $100 | $500")
+    const itemMatch = line.match(/^(.+?)\s*[|]\s*(\d+)\s*[|]\s*\$?([\d,]+\.?\d*)\s*[|]\s*\$?([\d,]+\.?\d*)/);
+    if (itemMatch) {
+      data.items.push({
+        itemNumber: '',
+        description: itemMatch[1].trim(),
+        qty: parseInt(itemMatch[2]),
+        unitPrice: parseFloat(itemMatch[3].replace(/,/g, '')),
+        total: parseFloat(itemMatch[4].replace(/,/g, ''))
+      });
+    }
+
+    // Alternative item pattern: "Description - Qty: 5 @ $100 = $500"
+    const altItemMatch = line.match(/^(.+?)\s*[-–]\s*(?:qty:?\s*)?(\d+)\s*[@x]\s*\$?([\d,]+\.?\d*)/i);
+    if (altItemMatch && !itemMatch) {
+      const qty = parseInt(altItemMatch[2]);
+      const price = parseFloat(altItemMatch[3].replace(/,/g, ''));
+      data.items.push({
+        itemNumber: '',
+        description: altItemMatch[1].trim(),
+        qty: qty,
+        unitPrice: price,
+        total: qty * price
+      });
+    }
+  }
+
+  // Calculate totals if not provided
+  if (data.items.length > 0 && data.subtotal === 0) {
+    data.subtotal = data.items.reduce((sum, item) => sum + item.total, 0);
+  }
+  if (data.tax === 0 && data.taxRate > 0) {
+    data.tax = data.subtotal * (data.taxRate / 100);
+  }
+  if (data.total === 0) {
+    data.total = data.subtotal + data.tax + data.shipping + data.other;
+  }
+
+  // Set payable to company name
+  data.payableTo = data.companyName;
+
+  return data;
+}
+
+/**
+ * Generate professional invoice PDF
+ */
+function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+  let y = margin;
+
+  // Colors
+  const blueColor: [number, number, number] = [30, 64, 138];
+  const darkBlue: [number, number, number] = [20, 45, 100];
+  const black: [number, number, number] = [0, 0, 0];
+  const gray: [number, number, number] = [100, 100, 100];
+  const lightGray: [number, number, number] = [200, 200, 200];
+
+  // === HEADER SECTION ===
+  // Company name (left)
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...blueColor);
+  doc.text(invoiceData.companyName, margin, y);
+
+  // INVOICE title (right)
+  doc.setFontSize(28);
+  doc.setTextColor(...blueColor);
+  doc.text('INVOICE', pageWidth - margin, y, { align: 'right' });
+
+  y += 6;
+
+  // Company address (left)
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...gray);
+  for (const line of invoiceData.companyAddress.slice(0, 4)) {
+    doc.text(line, margin, y);
+    y += 4;
+  }
+
+  // Invoice details (right) - Date, Invoice #, Customer ID
+  let detailY = margin + 10;
+  const detailX = pageWidth - margin - 50;
+  const valueX = pageWidth - margin;
+
+  doc.setFontSize(9);
+  doc.setTextColor(...gray);
+  doc.text('DATE', detailX, detailY);
+  doc.setTextColor(...black);
+  doc.text(invoiceData.invoiceDate, valueX, detailY, { align: 'right' });
+
+  detailY += 5;
+  doc.setTextColor(...gray);
+  doc.text('INVOICE #', detailX, detailY);
+  doc.setTextColor(...black);
+  doc.text(invoiceData.invoiceNumber, valueX, detailY, { align: 'right' });
+
+  if (invoiceData.customerId) {
+    detailY += 5;
+    doc.setTextColor(...gray);
+    doc.text('CUSTOMER ID', detailX, detailY);
+    doc.setTextColor(...black);
+    doc.text(invoiceData.customerId, valueX, detailY, { align: 'right' });
+  }
+
+  y = Math.max(y, detailY) + 10;
+
+  // === BILL TO / SHIP TO SECTION ===
+  const billToWidth = contentWidth * 0.45;
+  const shipToX = margin + billToWidth + 10;
+
+  // Bill To header
+  doc.setFillColor(...darkBlue);
+  doc.rect(margin, y, billToWidth, 7, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('BILL TO:', margin + 3, y + 5);
+
+  // Ship To header (if exists)
+  if (invoiceData.shipTo.length > 0) {
+    doc.rect(shipToX, y, billToWidth, 7, 'F');
+    doc.text('SHIP TO:', shipToX + 3, y + 5);
+  }
+
+  y += 10;
+
+  // Bill To content
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...black);
+  for (const line of invoiceData.billTo.slice(0, 5)) {
+    doc.text(line, margin + 3, y);
+    y += 4;
+  }
+
+  // Ship To content
+  if (invoiceData.shipTo.length > 0) {
+    let shipY = y - (invoiceData.billTo.slice(0, 5).length * 4);
+    for (const line of invoiceData.shipTo.slice(0, 5)) {
+      doc.text(line, shipToX + 3, shipY);
+      shipY += 4;
+    }
+  }
+
+  y += 8;
+
+  // === SALESPERSON / PO INFO TABLE (if data exists) ===
+  if (invoiceData.salesperson || invoiceData.poNumber || invoiceData.terms) {
+    doc.setFillColor(...darkBlue);
+    doc.rect(margin, y, contentWidth, 7, 'F');
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+
+    const cols = ['SALESPERSON', 'P.O.#', 'SHIP DATE', 'SHIP VIA', 'F.O.B.', 'TERMS'];
+    const colWidth = contentWidth / 6;
+    for (let i = 0; i < cols.length; i++) {
+      doc.text(cols[i], margin + i * colWidth + 2, y + 5);
+    }
+
+    y += 7;
+
+    // Values row
+    doc.setDrawColor(...lightGray);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, y, contentWidth, 6);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...black);
+    const values = [
+      invoiceData.salesperson || '',
+      invoiceData.poNumber || '',
+      invoiceData.shipDate || '',
+      invoiceData.shipVia || '',
+      invoiceData.fob || '',
+      invoiceData.terms || ''
+    ];
+    for (let i = 0; i < values.length; i++) {
+      doc.text(values[i], margin + i * colWidth + 2, y + 4);
+    }
+
+    y += 10;
+  }
+
+  // === ITEMS TABLE ===
+  // Header
+  doc.setFillColor(...darkBlue);
+  doc.rect(margin, y, contentWidth, 7, 'F');
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+
+  const itemCols = [
+    { label: 'ITEM #', width: 25, align: 'left' as const },
+    { label: 'DESCRIPTION', width: contentWidth - 95, align: 'left' as const },
+    { label: 'QTY', width: 20, align: 'center' as const },
+    { label: 'UNIT PRICE', width: 25, align: 'right' as const },
+    { label: 'TOTAL', width: 25, align: 'right' as const }
+  ];
+
+  let colX = margin;
+  for (const col of itemCols) {
+    if (col.align === 'right') {
+      doc.text(col.label, colX + col.width - 2, y + 5, { align: 'right' });
+    } else if (col.align === 'center') {
+      doc.text(col.label, colX + col.width / 2, y + 5, { align: 'center' });
+    } else {
+      doc.text(col.label, colX + 2, y + 5);
+    }
+    colX += col.width;
+  }
+
+  y += 7;
+
+  // Item rows
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...black);
+
+  const rowHeight = 7;
+  const maxRows = 10;
+  const itemsToShow = invoiceData.items.slice(0, maxRows);
+
+  // Add sample items if none provided
+  if (itemsToShow.length === 0) {
+    itemsToShow.push(
+      { itemNumber: '[Item #]', description: '[Product/Service Description]', qty: 1, unitPrice: 0, total: 0 }
+    );
+  }
+
+  for (let i = 0; i < maxRows; i++) {
+    const item = itemsToShow[i];
+
+    // Alternating row background
+    if (i % 2 === 0) {
+      doc.setFillColor(248, 248, 248);
+      doc.rect(margin, y, contentWidth, rowHeight, 'F');
+    }
+
+    // Row border
+    doc.setDrawColor(...lightGray);
+    doc.setLineWidth(0.2);
+    doc.rect(margin, y, contentWidth, rowHeight);
+
+    if (item) {
+      doc.setFontSize(9);
+      colX = margin;
+
+      // Item number
+      doc.text(item.itemNumber || '', colX + 2, y + 5);
+      colX += 25;
+
+      // Description
+      const descText = doc.splitTextToSize(item.description, itemCols[1].width - 4);
+      doc.text(descText[0] || '', colX + 2, y + 5);
+      colX += itemCols[1].width;
+
+      // Qty
+      doc.text(item.qty.toString(), colX + 10, y + 5, { align: 'center' });
+      colX += 20;
+
+      // Unit price
+      doc.text(item.unitPrice > 0 ? item.unitPrice.toFixed(2) : '-', colX + 23, y + 5, { align: 'right' });
+      colX += 25;
+
+      // Total
+      doc.text(item.total > 0 ? item.total.toFixed(2) : '-', colX + 23, y + 5, { align: 'right' });
+    }
+
+    y += rowHeight;
+  }
+
+  y += 5;
+
+  // === TOTALS SECTION (right side) ===
+  const totalsX = pageWidth - margin - 70;
+  const totalsValueX = pageWidth - margin;
+
+  // Notes section (left side)
+  const notesWidth = contentWidth - 80;
+  if (invoiceData.notes.length > 0) {
+    doc.setFillColor(230, 230, 230);
+    doc.rect(margin, y - 3, notesWidth, 8, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...black);
+    doc.text('Other Comments or Special Instructions', margin + 2, y + 2);
+
+    let notesY = y + 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    for (const note of invoiceData.notes.slice(0, 3)) {
+      doc.text(note, margin + 2, notesY);
+      notesY += 4;
+    }
+  }
+
+  // Totals
+  doc.setFontSize(9);
+
+  // Subtotal
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...gray);
+  doc.text('SUBTOTAL', totalsX, y);
+  doc.setTextColor(...black);
+  doc.text(invoiceData.subtotal.toFixed(2), totalsValueX, y, { align: 'right' });
+
+  y += 6;
+
+  // Tax rate
+  doc.setTextColor(...gray);
+  doc.text('TAX RATE', totalsX, y);
+  doc.setTextColor(...black);
+  doc.text(invoiceData.taxRate > 0 ? invoiceData.taxRate.toFixed(2) + '%' : '-', totalsValueX, y, { align: 'right' });
+
+  y += 6;
+
+  // Tax
+  doc.setTextColor(...gray);
+  doc.text('TAX', totalsX, y);
+  doc.setTextColor(...black);
+  doc.text(invoiceData.tax > 0 ? invoiceData.tax.toFixed(2) : '-', totalsValueX, y, { align: 'right' });
+
+  y += 6;
+
+  // S&H
+  doc.setTextColor(...gray);
+  doc.text('S & H', totalsX, y);
+  doc.setTextColor(...black);
+  doc.text(invoiceData.shipping > 0 ? invoiceData.shipping.toFixed(2) : '-', totalsValueX, y, { align: 'right' });
+
+  y += 6;
+
+  // Other
+  doc.setTextColor(...gray);
+  doc.text('OTHER', totalsX, y);
+  doc.setTextColor(...black);
+  doc.text(invoiceData.other > 0 ? invoiceData.other.toFixed(2) : '-', totalsValueX, y, { align: 'right' });
+
+  y += 8;
+
+  // Total (bold, with background)
+  doc.setFillColor(...darkBlue);
+  doc.rect(totalsX - 5, y - 5, 75, 9, 'F');
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('TOTAL', totalsX, y);
+  doc.text('$  ' + invoiceData.total.toFixed(2), totalsValueX, y, { align: 'right' });
+
+  y += 20;
+
+  // === FOOTER ===
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...gray);
+  doc.text('If you have any questions about this invoice, please contact', margin, y);
+  y += 4;
+  doc.text('[Name, Phone #, E-mail]', margin, y);
+
+  // Make checks payable to (right)
+  doc.text('Make all checks payable to', pageWidth - margin - 45, y - 4);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...blueColor);
+  doc.text(invoiceData.payableTo || '[Your Company Name]', pageWidth - margin - 45, y);
+
+  y += 8;
+
+  // Thank you message
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bolditalic');
+  doc.setTextColor(...darkBlue);
+  doc.text('Thank You For Your Business!', pageWidth / 2, y, { align: 'center' });
+
+  y += 10;
+
+  // === REMITTANCE SLIP ===
+  doc.setDrawColor(...gray);
+  doc.setLineWidth(0.3);
+  doc.setLineDashPattern([2, 2], 0);
+  doc.line(margin, y, pageWidth - margin, y);
+  doc.setLineDashPattern([], 0);
+
+  y += 3;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...gray);
+  doc.text('Please detach the portion below and return it with your payment.', margin, y);
+
+  y += 8;
+
+  // Remittance header
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...blueColor);
+  doc.text('REMITTANCE', pageWidth / 2, y, { align: 'center' });
+
+  y += 8;
+
+  // Company info (left)
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...black);
+  doc.text(invoiceData.companyName, margin, y);
+
+  // Remittance details (right)
+  const remitX = pageWidth - margin - 50;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...gray);
+  doc.text('DATE', remitX, y);
+  doc.setDrawColor(...lightGray);
+  doc.rect(remitX + 25, y - 3, 25, 5);
+
+  y += 4;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...gray);
+  for (const line of invoiceData.companyAddress.slice(0, 3)) {
+    doc.text(line, margin, y);
+    y += 4;
+  }
+
+  // Invoice # and Customer ID on right
+  let remitY = y - 8;
+  doc.text('INVOICE #', remitX, remitY);
+  doc.setTextColor(...black);
+  doc.text(invoiceData.invoiceNumber, remitX + 35, remitY);
+
+  remitY += 6;
+  doc.setTextColor(...gray);
+  doc.text('CUSTOMER ID', remitX, remitY);
+  doc.setTextColor(...black);
+  doc.text(invoiceData.customerId || '-', remitX + 35, remitY);
+
+  y += 4;
+
+  // Amount enclosed
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...black);
+  doc.text('AMOUNT ENCLOSED', pageWidth - margin - 60, y);
+  doc.setDrawColor(...black);
+  doc.rect(pageWidth - margin - 25, y - 4, 25, 7);
+}
+
 // Get authenticated user ID from session (more secure than trusting request body)
 async function getAuthenticatedUserId(): Promise<string | null> {
   try {
@@ -298,6 +918,87 @@ export async function POST(request: NextRequest) {
       unit: 'mm',
       format: 'a4',
     });
+
+    // === INVOICE: Use dedicated professional template ===
+    if (isInvoice) {
+      console.log('[Documents API] Generating professional invoice PDF');
+      const invoiceData = parseInvoiceContent(content);
+      generateInvoicePDF(doc, invoiceData);
+
+      // Skip to file upload (bypass markdown rendering)
+      // Generate filename
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const pdfFilename = `${safeTitle}_${timestamp}_${randomStr}.pdf`;
+
+      // Generate PDF buffer
+      const pdfBuffer = doc.output('arraybuffer');
+
+      // If Supabase is available and userId provided, upload for secure download
+      if (supabase && userId) {
+        try {
+          await supabase.storage.createBucket('documents', {
+            public: false,
+            fileSizeLimit: 10 * 1024 * 1024,
+          });
+        } catch {
+          // Bucket might already exist
+        }
+
+        const pdfPath = `${userId}/${pdfFilename}`;
+        const { error: pdfUploadError } = await supabase.storage
+          .from('documents')
+          .upload(pdfPath, pdfBuffer, {
+            contentType: 'application/pdf',
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (pdfUploadError) {
+          console.error('[Documents API] Invoice PDF upload error:', pdfUploadError);
+          const pdfBase64 = doc.output('datauristring');
+          return NextResponse.json({
+            success: true,
+            format: 'pdf',
+            title,
+            dataUrl: pdfBase64,
+            filename: pdfFilename,
+            storage: 'fallback',
+          });
+        }
+
+        console.log('[Documents API] Invoice PDF uploaded:', pdfPath);
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+                        request.headers.get('origin') ||
+                        'https://jcil.ai';
+
+        const pdfToken = Buffer.from(JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })).toString('base64url');
+        const pdfProxyUrl = `${baseUrl}/api/documents/download?token=${pdfToken}`;
+
+        return NextResponse.json({
+          success: true,
+          format: 'pdf',
+          title,
+          filename: pdfFilename,
+          downloadUrl: pdfProxyUrl,
+          expiresIn: '1 hour',
+          storage: 'supabase',
+        });
+      }
+
+      // Fallback: Return data URL
+      const pdfBase64 = doc.output('datauristring');
+      return NextResponse.json({
+        success: true,
+        format: 'pdf',
+        title,
+        dataUrl: pdfBase64,
+        filename: pdfFilename,
+        storage: 'local',
+      });
+    }
 
     // Page settings - tighter margins for resumes, professional for business docs
     const pageWidth = doc.internal.pageSize.getWidth();
