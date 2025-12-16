@@ -957,14 +957,25 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
 
   // Helper to add paragraph
   const addParagraph = (text: string) => {
-    if (!text) return;
+    if (!text || typeof text !== 'string') return;
+    const safeText = String(text).trim();
+    if (!safeText) return;
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...textColor);
-    const lines = doc.splitTextToSize(text, contentWidth);
-    for (const line of lines) {
+
+    // Limit text length to prevent extremely long content
+    const truncatedText = safeText.length > 10000 ? safeText.substring(0, 10000) + '...' : safeText;
+    const lines = doc.splitTextToSize(truncatedText, contentWidth);
+
+    // Limit to prevent too many lines on one page
+    const maxLines = 200;
+    const linesToRender = lines.slice(0, maxLines);
+
+    for (const line of linesToRender) {
       checkPageBreak(5);
-      doc.text(line, margin, y);
+      doc.text(String(line), margin, y);
       y += 4.5;
     }
     y += 3;
@@ -972,16 +983,22 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
 
   // Helper to add bullet list
   const addBulletList = (items: string[]) => {
-    if (!items || items.length === 0) return;
+    if (!items || !Array.isArray(items) || items.length === 0) return;
+
+    // Limit to reasonable number of items
+    const safeItems = items.filter(i => i && typeof i === 'string').slice(0, 50);
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...textColor);
-    for (const item of items) {
-      if (!item.trim()) continue;
+
+    for (const item of safeItems) {
+      const safeItem = String(item).trim();
+      if (!safeItem) continue;
       checkPageBreak(6);
       doc.setFillColor(...primaryColor);
       doc.circle(margin + 2, y - 1.5, 1, 'F');
-      const lines = doc.splitTextToSize(item, contentWidth - 10);
+      const lines = doc.splitTextToSize(safeItem.substring(0, 500), contentWidth - 10);
       doc.text(lines, margin + 7, y);
       y += lines.length * 4.5 + 2;
     }
@@ -990,15 +1007,19 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
 
   // Helper to add financial table
   const addFinancialTable = (title: string, rows: Array<{ category: string; year1: string; year2: string; year3: string; year4: string; year5: string }>) => {
-    if (!rows || rows.length === 0) return;
+    if (!rows || !Array.isArray(rows) || rows.length === 0) return;
 
-    checkPageBreak(rows.length * 7 + 20);
+    // Filter out invalid rows and limit to reasonable size
+    const validRows = rows.filter(r => r && typeof r === 'object').slice(0, 20);
+    if (validRows.length === 0) return;
+
+    checkPageBreak(validRows.length * 7 + 20);
 
     // Table title
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...primaryColor);
-    doc.text(title, margin, y);
+    doc.text(title || 'Financial Data', margin, y);
     y += 6;
 
     // Header row
@@ -1022,25 +1043,27 @@ function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...textColor);
 
-    for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-      const row = rows[rowIdx];
+    for (let rowIdx = 0; rowIdx < validRows.length; rowIdx++) {
+      const row = validRows[rowIdx];
+      if (!row) continue;
+
       if (rowIdx % 2 === 0) {
         doc.setFillColor(245, 247, 250);
         doc.rect(margin, y - 4, contentWidth, 6, 'F');
       }
 
       x = margin;
-      doc.text((row.category || '').substring(0, 25), x + 2, y);
+      doc.text(String(row.category || '').substring(0, 25), x + 2, y);
       x += colWidths[0];
-      doc.text(row.year1 || '-', x + 2, y);
+      doc.text(String(row.year1 || '-'), x + 2, y);
       x += colWidths[1];
-      doc.text(row.year2 || '-', x + 2, y);
+      doc.text(String(row.year2 || '-'), x + 2, y);
       x += colWidths[2];
-      doc.text(row.year3 || '-', x + 2, y);
+      doc.text(String(row.year3 || '-'), x + 2, y);
       x += colWidths[3];
-      doc.text(row.year4 || '-', x + 2, y);
+      doc.text(String(row.year4 || '-'), x + 2, y);
       x += colWidths[4];
-      doc.text(row.year5 || '-', x + 2, y);
+      doc.text(String(row.year5 || '-'), x + 2, y);
 
       y += 6;
     }
@@ -1589,8 +1612,33 @@ export async function POST(request: NextRequest) {
     // === INVOICE: Use dedicated professional template ===
     if (isInvoice) {
       console.log('[Documents API] Generating professional invoice PDF');
-      const invoiceData = parseInvoiceContent(content);
-      generateInvoicePDF(doc, invoiceData);
+
+      let invoiceData: InvoiceData;
+      try {
+        invoiceData = parseInvoiceContent(content);
+        console.log('[Documents API] Invoice parsed:', {
+          companyName: invoiceData.companyName,
+          invoiceNumber: invoiceData.invoiceNumber,
+          itemCount: invoiceData.items.length
+        });
+      } catch (parseError) {
+        console.error('[Documents API] Invoice parse error:', parseError);
+        return NextResponse.json(
+          { error: 'Failed to parse invoice content', details: parseError instanceof Error ? parseError.message : 'Unknown parse error' },
+          { status: 500 }
+        );
+      }
+
+      try {
+        generateInvoicePDF(doc, invoiceData);
+        console.log('[Documents API] Invoice PDF generated successfully');
+      } catch (pdfError) {
+        console.error('[Documents API] Invoice PDF generation error:', pdfError);
+        return NextResponse.json(
+          { error: 'Failed to generate invoice PDF', details: pdfError instanceof Error ? pdfError.message : 'Unknown PDF error' },
+          { status: 500 }
+        );
+      }
 
       // Skip to file upload (bypass markdown rendering)
       // Generate filename
@@ -1670,8 +1718,33 @@ export async function POST(request: NextRequest) {
     // === BUSINESS PLAN: Use dedicated professional template ===
     if (isBusinessPlan) {
       console.log('[Documents API] Generating professional business plan PDF');
-      const businessPlanData = parseBusinessPlanContent(content);
-      generateBusinessPlanPDF(doc, businessPlanData);
+
+      let businessPlanData: BusinessPlanData;
+      try {
+        businessPlanData = parseBusinessPlanContent(content);
+        console.log('[Documents API] Business plan parsed:', {
+          companyName: businessPlanData.companyName,
+          hasSummary: !!businessPlanData.executiveSummary.missionStatement,
+          hasDescription: !!businessPlanData.companyDescription.overview
+        });
+      } catch (parseError) {
+        console.error('[Documents API] Business plan parse error:', parseError);
+        return NextResponse.json(
+          { error: 'Failed to parse business plan content', details: parseError instanceof Error ? parseError.message : 'Unknown parse error' },
+          { status: 500 }
+        );
+      }
+
+      try {
+        generateBusinessPlanPDF(doc, businessPlanData);
+        console.log('[Documents API] Business plan PDF generated successfully');
+      } catch (pdfError) {
+        console.error('[Documents API] Business plan PDF generation error:', pdfError);
+        return NextResponse.json(
+          { error: 'Failed to generate business plan PDF', details: pdfError instanceof Error ? pdfError.message : 'Unknown PDF error' },
+          { status: 500 }
+        );
+      }
 
       // Generate filename
       const timestamp = Date.now();
