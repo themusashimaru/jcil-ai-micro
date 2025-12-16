@@ -84,17 +84,67 @@ const components: Components = {
   ),
 
   // Links - use primary color
-  a: ({ href, children }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="underline break-all cursor-pointer hover:opacity-80"
-      style={{ color: 'var(--primary)', pointerEvents: 'auto' }}
-    >
-      {children}
-    </a>
-  ),
+  // For document downloads (PDF, DOCX, XLSX), force download instead of opening
+  a: ({ href, children }) => {
+    const isDocumentLink = href && (
+      href.includes('/api/documents/') ||
+      href.includes('.pdf') ||
+      href.includes('.docx') ||
+      href.includes('.xlsx')
+    );
+
+    if (isDocumentLink) {
+      // Force download for documents (prevents opening in system viewer on mobile)
+      const handleDownload = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (!href) return;
+
+        try {
+          const response = await fetch(href);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          // Extract filename from URL or use default
+          const filename = href.split('/').pop()?.split('?')[0] || 'download';
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        } catch {
+          // Fallback: open in new tab
+          window.open(href, '_blank');
+        }
+      };
+
+      return (
+        <button
+          onClick={handleDownload}
+          className="inline-flex items-center gap-1 underline cursor-pointer hover:opacity-80"
+          style={{ color: 'var(--primary)' }}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          {children}
+        </button>
+      );
+    }
+
+    // Regular links open in new tab
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline break-all cursor-pointer hover:opacity-80"
+        style={{ color: 'var(--primary)', pointerEvents: 'auto' }}
+      >
+        {children}
+      </a>
+    );
+  },
 
   // Code blocks - use theme-aware backgrounds
   code: ({ className, children }) => {
