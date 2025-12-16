@@ -84,17 +84,122 @@ const components: Components = {
   ),
 
   // Links - use primary color
-  a: ({ href, children }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="underline break-all cursor-pointer hover:opacity-80"
-      style={{ color: 'var(--primary)', pointerEvents: 'auto' }}
-    >
-      {children}
-    </a>
-  ),
+  // For document downloads (PDF, DOCX, XLSX), force download instead of opening
+  a: ({ href, children }) => {
+    const isDocumentLink = href && (
+      href.includes('/api/documents/') ||
+      href.includes('.pdf') ||
+      href.includes('.docx') ||
+      href.includes('.xlsx')
+    );
+
+    if (isDocumentLink) {
+      // Determine file type and MIME type
+      const getFileInfo = (url: string): { extension: string; mimeType: string } => {
+        if (url.includes('.pdf') || url.includes('t=pdf') || url.includes('"t":"pdf"')) {
+          return { extension: '.pdf', mimeType: 'application/pdf' };
+        }
+        if (url.includes('.docx') || url.includes('t=docx') || url.includes('"t":"docx"')) {
+          return { extension: '.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+        }
+        if (url.includes('.xlsx') || url.includes('t=xlsx') || url.includes('"t":"xlsx"')) {
+          return { extension: '.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+        }
+        return { extension: '.pdf', mimeType: 'application/pdf' };
+      };
+
+      // Extract filename from URL or children text
+      const getFilename = (): string => {
+        const { extension } = getFileInfo(href || '');
+        // Try to get filename from URL path
+        const urlPath = href?.split('/').pop()?.split('?')[0];
+        if (urlPath && urlPath.includes('.')) return urlPath;
+
+        // Use children text as filename base
+        const childText = typeof children === 'string' ? children :
+          (Array.isArray(children) ? children.join('') : 'document');
+        const safeName = String(childText).replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'document';
+        return safeName + extension;
+      };
+
+      // Check if mobile (iOS or Android)
+      const isMobile = typeof navigator !== 'undefined' &&
+        /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      // Download handler - uses Web Share API on mobile for better experience
+      const handleDownload = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!href) return;
+
+        const filename = getFilename();
+        const { mimeType } = getFileInfo(href);
+
+        try {
+          // Fetch the file first
+          const response = await fetch(href);
+          if (!response.ok) throw new Error('Download failed');
+          const blob = await response.blob();
+
+          // On mobile with Web Share API support, use native share (Save to Files)
+          if (isMobile && navigator.share && navigator.canShare) {
+            const file = new File([blob], filename, { type: mimeType });
+            const shareData = { files: [file] };
+
+            if (navigator.canShare(shareData)) {
+              await navigator.share(shareData);
+              return;
+            }
+          }
+
+          // Desktop or fallback: Create blob URL and trigger download
+          const blobUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = filename;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+
+          // Cleanup
+          setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+          }, 100);
+        } catch (error) {
+          console.error('Download error:', error);
+          // Ultimate fallback - open in new tab
+          window.open(href, '_blank');
+        }
+      };
+
+      return (
+        <button
+          onClick={handleDownload}
+          className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md underline cursor-pointer hover:opacity-80 active:scale-95 transition-transform"
+          style={{ color: 'var(--primary)' }}
+        >
+          <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span>{children}</span>
+        </button>
+      );
+    }
+
+    // Regular links open in new tab
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline break-all cursor-pointer hover:opacity-80"
+        style={{ color: 'var(--primary)', pointerEvents: 'auto' }}
+      >
+        {children}
+      </a>
+    );
+  },
 
   // Code blocks - use theme-aware backgrounds
   code: ({ className, children }) => {
