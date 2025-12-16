@@ -14,6 +14,10 @@
  * - Structured logging with telemetry
  * - Web search caching (30 min TTL)
  * - Prompt caching optimization (50% cost savings on cached prefixes)
+ * - Dual-pool round-robin API key system (same as Anthropic/Perplexity)
+ * - Dynamic key detection (OPENAI_API_KEY_1, _2, _3, ... unlimited)
+ * - Fallback pool (OPENAI_API_KEY_FALLBACK_1, _2, ... unlimited)
+ * - Rate limit handling with automatic key rotation
  */
 
 import { createOpenAI } from '@ai-sdk/openai';
@@ -356,15 +360,244 @@ interface ChatOptions {
   planKey?: string; // User's subscription tier for usage limits
 }
 
+// ========================================
+// DUAL-POOL API KEY SYSTEM (DYNAMIC)
+// ========================================
+// Primary Pool: Round-robin load distribution (OPENAI_API_KEY_1, _2, _3, ... unlimited)
+// Fallback Pool: Emergency reserve (OPENAI_API_KEY_FALLBACK_1, _2, _3, ... unlimited)
+// Backward Compatible: Single OPENAI_API_KEY still works
+// NO HARDCODED LIMITS - just add keys and they're automatically detected!
+
+interface OpenAIKeyState {
+  key: string;
+  rateLimitedUntil: number; // Timestamp when rate limit expires (0 = not limited)
+  pool: 'primary' | 'fallback';
+  index: number; // Position within its pool
+}
+
+// Separate pools for better management
+const openaiPrimaryPool: OpenAIKeyState[] = [];
+const openaiFallbackPool: OpenAIKeyState[] = [];
+let openaiPrimaryKeyIndex = 0; // Round-robin index for primary pool
+let openaiFallbackKeyIndex = 0; // Round-robin index for fallback pool
+let openaiInitialized = false;
+
 /**
- * Get OpenAI API key from environment
+ * Initialize all available OpenAI API keys into their pools
+ * FULLY DYNAMIC: Automatically detects ALL configured keys - no limits!
+ */
+function initializeOpenAIApiKeys(): void {
+  if (openaiInitialized) return;
+  openaiInitialized = true;
+
+  // Dynamically detect ALL numbered primary keys (no limit!)
+  let i = 1;
+  while (true) {
+    const key = process.env[`OPENAI_API_KEY_${i}`];
+    if (!key) break; // Stop when we hit a gap
+
+    openaiPrimaryPool.push({
+      key,
+      rateLimitedUntil: 0,
+      pool: 'primary',
+      index: i,
+    });
+    i++;
+  }
+
+  // If no numbered keys found, fall back to single OPENAI_API_KEY
+  if (openaiPrimaryPool.length === 0) {
+    const singleKey = process.env.OPENAI_API_KEY;
+    if (singleKey) {
+      openaiPrimaryPool.push({
+        key: singleKey,
+        rateLimitedUntil: 0,
+        pool: 'primary',
+        index: 0,
+      });
+    }
+  }
+
+  // Dynamically detect ALL fallback keys (no limit!)
+  let j = 1;
+  while (true) {
+    const key = process.env[`OPENAI_API_KEY_FALLBACK_${j}`];
+    if (!key) break; // Stop when we hit a gap
+
+    openaiFallbackPool.push({
+      key,
+      rateLimitedUntil: 0,
+      pool: 'fallback',
+      index: j,
+    });
+    j++;
+  }
+
+  // Log the detected configuration
+  const totalKeys = openaiPrimaryPool.length + openaiFallbackPool.length;
+  if (totalKeys > 0) {
+    console.log(`[OpenAI] Initialized dual-pool system (dynamic detection):`);
+    console.log(`[OpenAI]   Primary pool: ${openaiPrimaryPool.length} key(s) (round-robin load distribution)`);
+    console.log(`[OpenAI]   Fallback pool: ${openaiFallbackPool.length} key(s) (emergency reserve)`);
+  }
+}
+
+/**
+ * Get an available key state from the primary pool (round-robin)
+ */
+function getOpenAIPrimaryKeyState(): OpenAIKeyState | null {
+  const now = Date.now();
+
+  for (let i = 0; i < openaiPrimaryPool.length; i++) {
+    const keyIndex = (openaiPrimaryKeyIndex + i) % openaiPrimaryPool.length;
+    const keyState = openaiPrimaryPool[keyIndex];
+
+    if (keyState.rateLimitedUntil <= now) {
+      openaiPrimaryKeyIndex = (keyIndex + 1) % openaiPrimaryPool.length;
+      return keyState;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get an available key state from the fallback pool
+ */
+function getOpenAIFallbackKeyState(): OpenAIKeyState | null {
+  if (openaiFallbackPool.length === 0) return null;
+
+  const now = Date.now();
+
+  for (let i = 0; i < openaiFallbackPool.length; i++) {
+    const keyIndex = (openaiFallbackKeyIndex + i) % openaiFallbackPool.length;
+    const keyState = openaiFallbackPool[keyIndex];
+
+    if (keyState.rateLimitedUntil <= now) {
+      openaiFallbackKeyIndex = (keyIndex + 1) % openaiFallbackPool.length;
+      console.log(`[OpenAI] Using FALLBACK key ${keyState.index} (primary pool exhausted)`);
+      return keyState;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Get the next available API key state
+ */
+function getOpenAIApiKeyState(): OpenAIKeyState | null {
+  initializeOpenAIApiKeys();
+
+  if (openaiPrimaryPool.length === 0 && openaiFallbackPool.length === 0) {
+    return null;
+  }
+
+  const primaryKeyState = getOpenAIPrimaryKeyState();
+  if (primaryKeyState) return primaryKeyState;
+
+  const fallbackKeyState = getOpenAIFallbackKeyState();
+  if (fallbackKeyState) return fallbackKeyState;
+
+  // All keys rate limited - find soonest available
+  const allKeys = [...openaiPrimaryPool, ...openaiFallbackPool];
+  let soonestKey = allKeys[0];
+
+  for (const key of allKeys) {
+    if (key.rateLimitedUntil < soonestKey.rateLimitedUntil) {
+      soonestKey = key;
+    }
+  }
+
+  const waitTime = Math.ceil((soonestKey.rateLimitedUntil - Date.now()) / 1000);
+  console.log(`[OpenAI] All ${allKeys.length} keys rate limited. Using ${soonestKey.pool} key ${soonestKey.index} (available in ${waitTime}s)`);
+
+  return soonestKey;
+}
+
+/**
+ * Mark a specific API key as rate limited
+ * Exported for use in retry logic
+ */
+export function markOpenAIKeyRateLimited(apiKey: string, retryAfterSeconds: number = 60): void {
+  const allKeys = [...openaiPrimaryPool, ...openaiFallbackPool];
+  const keyState = allKeys.find(k => k.key === apiKey);
+
+  if (keyState) {
+    keyState.rateLimitedUntil = Date.now() + (retryAfterSeconds * 1000);
+    console.log(`[OpenAI] ${keyState.pool.toUpperCase()} key ${keyState.index} rate limited for ${retryAfterSeconds}s`);
+
+    const now = Date.now();
+    const availablePrimary = openaiPrimaryPool.filter(k => k.rateLimitedUntil <= now).length;
+    const availableFallback = openaiFallbackPool.filter(k => k.rateLimitedUntil <= now).length;
+    console.log(`[OpenAI] Pool status: ${availablePrimary}/${openaiPrimaryPool.length} primary, ${availableFallback}/${openaiFallbackPool.length} fallback available`);
+  }
+}
+
+/**
+ * Get total number of API keys configured
+ * Exported for monitoring/debugging
+ */
+export function getOpenAITotalKeyCount(): number {
+  initializeOpenAIApiKeys();
+  return openaiPrimaryPool.length + openaiFallbackPool.length;
+}
+
+/**
+ * Check if OpenAI is configured
+ */
+export function isOpenAIConfigured(): boolean {
+  initializeOpenAIApiKeys();
+  return openaiPrimaryPool.length > 0 || openaiFallbackPool.length > 0;
+}
+
+/**
+ * Get stats about API key usage
+ */
+export function getOpenAIKeyStats(): {
+  primaryKeys: number;
+  primaryAvailable: number;
+  fallbackKeys: number;
+  fallbackAvailable: number;
+  totalKeys: number;
+  totalAvailable: number;
+} {
+  initializeOpenAIApiKeys();
+  const now = Date.now();
+
+  const primaryAvailable = openaiPrimaryPool.filter(k => k.rateLimitedUntil <= now).length;
+  const fallbackAvailable = openaiFallbackPool.filter(k => k.rateLimitedUntil <= now).length;
+
+  return {
+    primaryKeys: openaiPrimaryPool.length,
+    primaryAvailable,
+    fallbackKeys: openaiFallbackPool.length,
+    fallbackAvailable,
+    totalKeys: openaiPrimaryPool.length + openaiFallbackPool.length,
+    totalAvailable: primaryAvailable + fallbackAvailable,
+  };
+}
+
+/**
+ * Get OpenAI API key (for current round-robin position)
  */
 function getOpenAIApiKey(): string {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
+  const keyState = getOpenAIApiKeyState();
+
+  if (!keyState) {
+    throw new Error('OPENAI_API_KEY is not configured. Set OPENAI_API_KEY or OPENAI_API_KEY_1, _2, etc.');
   }
-  return apiKey;
+
+  return keyState.key;
+}
+
+/**
+ * Get current API key (for rate limit tracking)
+ * Exported for use in retry logic
+ */
+export function getCurrentOpenAIApiKey(): string | null {
+  const keyState = getOpenAIApiKeyState();
+  return keyState?.key || null;
 }
 
 /**

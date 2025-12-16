@@ -1161,6 +1161,125 @@ export async function POST(request: NextRequest) {
       : initialModel;
 
     // ========================================
+    // PERPLEXITY SEARCH (Provider-agnostic)
+    // ========================================
+    // Handle user-triggered search modes (Search and Fact Check buttons)
+    // This runs BEFORE the provider check so it works for both OpenAI and Anthropic
+    // IMPORTANT: Perplexity gets raw facts, then we post-process through main AI
+    // to maintain platform integrity (Christian conservative perspective)
+    if (searchMode && searchMode !== 'none' && isPerplexityConfigured()) {
+      console.log(`[Chat API] User triggered ${searchMode} mode (provider: ${activeProvider})`);
+
+      try {
+        let searchQuery = lastUserContent;
+        let searchSystemPrompt = '';
+
+        if (searchMode === 'search') {
+          // Web search mode - search for current information
+          searchSystemPrompt = `You are a helpful web search assistant. Search the web and provide accurate, up-to-date information with sources. Be concise but comprehensive.`;
+        } else if (searchMode === 'factcheck') {
+          // Fact check mode - verify claims and provide evidence
+          searchSystemPrompt = `You are a fact-checking assistant. Your job is to verify the accuracy of the following claim or statement. Search for reliable sources and provide:
+1. Whether the claim is TRUE, FALSE, PARTIALLY TRUE, or UNVERIFIABLE
+2. The evidence supporting your assessment
+3. Relevant sources and citations
+Be objective and thorough in your fact-checking.`;
+          searchQuery = `Fact check the following: ${lastUserContent}`;
+        }
+
+        const perplexityResult = await perplexitySearch({
+          query: searchQuery,
+          systemPrompt: searchSystemPrompt,
+        });
+
+        // Clean up Perplexity response (remove citation markers)
+        const rawSearchContent = perplexityResult.answer
+          .replace(/\[\d+\]/g, '')  // Remove [1], [2], etc.
+          .replace(/\s{2,}/g, ' ')  // Clean up double spaces left behind
+          .trim();
+
+        console.log(`[Chat API] Perplexity ${searchMode} completed, post-processing through ${activeProvider}`);
+
+        // ========================================
+        // POST-PROCESS THROUGH MAIN AI
+        // ========================================
+        // Send Perplexity results through Anthropic/OpenAI with system prompt
+        // to maintain platform integrity (Christian conservative perspective)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const platformSystemPrompt = getSystemPromptForTool(effectiveTool as any);
+
+        const summaryPrompt = searchMode === 'factcheck'
+          ? `The user asked to fact-check: "${lastUserContent}"
+
+Here are the search results from the web:
+
+${rawSearchContent}
+
+Please summarize this fact-check from our platform's perspective. Present the facts accurately while maintaining our values. Be concise and helpful.`
+          : `The user searched for: "${lastUserContent}"
+
+Here are the search results from the web:
+
+${rawSearchContent}
+
+Please summarize this information from our platform's perspective. Present the facts accurately while maintaining our values. Be concise and helpful.`;
+
+        let finalContent = '';
+        let modelUsed = '';
+
+        if (activeProvider === 'anthropic') {
+          // Post-process through Anthropic
+          const anthropicModel = await getModelForTier(userTier);
+          const result = await createAnthropicCompletion({
+            messages: [{ role: 'user', content: summaryPrompt }],
+            model: anthropicModel,
+            maxTokens: 2048,
+            systemPrompt: platformSystemPrompt,
+          });
+          finalContent = result.text;
+          modelUsed = result.model;
+          console.log(`[Chat API] Search post-processed through Anthropic (${modelUsed})`);
+        } else {
+          // Post-process through OpenAI
+          const openaiModel = await getModelForTier(userTier);
+          const result = await createChatCompletion({
+            messages: [
+              { role: 'system', content: platformSystemPrompt },
+              { role: 'user', content: summaryPrompt },
+            ],
+            stream: false,
+            maxTokens: 2048,
+            modelOverride: openaiModel,
+          });
+          finalContent = await result.text;
+          modelUsed = openaiModel;
+          console.log(`[Chat API] Search post-processed through OpenAI (${modelUsed})`);
+        }
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: finalContent,
+            model: modelUsed,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': modelUsed,
+              'X-Provider': activeProvider,
+              'X-Search-Mode': searchMode,
+              'X-Web-Search': 'perplexity',
+            },
+          }
+        );
+      } catch (searchError) {
+        console.error(`[Chat API] Perplexity ${searchMode} error:`, searchError);
+        // Fall through to regular chat if search fails
+      }
+    }
+
+    // ========================================
     // ANTHROPIC PATH - Claude (tier-specific model)
     // ========================================
     if (activeProvider === 'anthropic') {
@@ -1183,64 +1302,6 @@ export async function POST(request: NextRequest) {
       const systemPrompt = isAuthenticated
         ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
         : baseSystemPrompt;
-
-      // Handle user-triggered search modes (Search and Fact Check buttons)
-      if (searchMode && searchMode !== 'none' && isPerplexityConfigured()) {
-        console.log(`[Chat API] Anthropic: User triggered ${searchMode} mode`);
-
-        try {
-          let searchQuery = lastUserContent;
-          let searchSystemPrompt = '';
-
-          if (searchMode === 'search') {
-            // Web search mode - search for current information
-            searchSystemPrompt = `You are a helpful web search assistant. Search the web and provide accurate, up-to-date information with sources. Be concise but comprehensive.`;
-          } else if (searchMode === 'factcheck') {
-            // Fact check mode - verify claims and provide evidence
-            searchSystemPrompt = `You are a fact-checking assistant. Your job is to verify the accuracy of the following claim or statement. Search for reliable sources and provide:
-1. Whether the claim is TRUE, FALSE, PARTIALLY TRUE, or UNVERIFIABLE
-2. The evidence supporting your assessment
-3. Relevant sources and citations
-Be objective and thorough in your fact-checking.`;
-            searchQuery = `Fact check the following: ${lastUserContent}`;
-          }
-
-          const perplexityResult = await perplexitySearch({
-            query: searchQuery,
-            systemPrompt: searchSystemPrompt,
-          });
-
-          // Return just the answer without sources (cleaner UX for Anthropic)
-          // Sources are kept internal - not shown to users
-          // Also strip citation markers like [1], [2], [3] since we're hiding sources
-          const responseContent = perplexityResult.answer
-            .replace(/\[\d+\]/g, '')  // Remove [1], [2], etc.
-            .replace(/\s{2,}/g, ' ')  // Clean up double spaces left behind
-            .trim();
-
-          console.log(`[Chat API] Perplexity ${searchMode} completed successfully`);
-
-          return new Response(
-            JSON.stringify({
-              type: 'text',
-              content: responseContent,
-              model: 'perplexity-sonar',
-            }),
-            {
-              status: 200,
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Model-Used': 'perplexity-sonar',
-                'X-Provider': 'perplexity',
-                'X-Search-Mode': searchMode,
-              },
-            }
-          );
-        } catch (searchError) {
-          console.error(`[Chat API] Perplexity ${searchMode} error:`, searchError);
-          // Fall through to regular chat if search fails
-        }
-      }
 
       // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
       const documentType = detectDocumentRequest(lastUserContent);

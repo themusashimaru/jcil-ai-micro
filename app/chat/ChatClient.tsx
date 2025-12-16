@@ -128,8 +128,9 @@ export function ChatClient() {
   const [isAdmin, setIsAdmin] = useState(false);
   // Track if image generation is available (depends on active provider)
   const [imageGenerationAvailable, setImageGenerationAvailable] = useState(true);
-  // Track active provider (openai or anthropic)
-  const [activeProvider, setActiveProvider] = useState<'openai' | 'anthropic'>('openai');
+  // Track active provider (openai or anthropic) - kept for future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_activeProvider, setActiveProvider] = useState<'openai' | 'anthropic'>('openai');
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -1971,7 +1972,7 @@ export function ChatClient() {
                 isStreaming={isStreaming}
                 disabled={isWaitingForReply}
                 hideImageSuggestion={!imageGenerationAvailable}
-                showSearchButtons={activeProvider === 'anthropic'}
+                showSearchButtons={true}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
