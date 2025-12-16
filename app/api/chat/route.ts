@@ -58,6 +58,10 @@ import {
   createAnthropicCompletionWithSkills,
   detectDocumentRequest,
 } from '@/lib/anthropic/client';
+import {
+  createXAICompletion,
+  createXAIStreamingCompletion,
+} from '@/lib/xai/client';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
@@ -1239,6 +1243,19 @@ Please summarize this information from our platform's perspective. Present the f
           finalContent = result.text;
           modelUsed = result.model;
           console.log(`[Chat API] Search post-processed through Anthropic (${modelUsed})`);
+        } else if (activeProvider === 'xai') {
+          // Post-process through xAI (Grok)
+          const xaiModel = await getModelForTier(userTier, 'xai');
+          const result = await createXAICompletion({
+            messages: [{ role: 'user', content: summaryPrompt }],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            model: xaiModel as any,
+            maxTokens: 2048,
+            systemPrompt: platformSystemPrompt,
+          });
+          finalContent = result.text;
+          modelUsed = result.model;
+          console.log(`[Chat API] Search post-processed through xAI (${modelUsed})`);
         } else {
           // Post-process through OpenAI
           const openaiModel = await getModelForTier(userTier);
@@ -1448,6 +1465,80 @@ Please summarize this information from our platform's perspective. Present the f
         headers: {
           'X-Model-Used': streamResult.model,
           'X-Provider': 'anthropic',
+        },
+      });
+    }
+
+    // ========================================
+    // XAI PATH - Grok (tier-specific model)
+    // ========================================
+    if (activeProvider === 'xai') {
+      // Get tier-specific model (uses provider settings with tier lookup)
+      const xaiModel = await getModelForTier(userTier, 'xai');
+      console.log('[Chat API] Using xAI provider with model:', xaiModel, 'for tier:', userTier);
+
+      // Use unified system prompt for all providers
+      // Add search button guidance (same as Anthropic - search via Perplexity buttons)
+      const baseSystemPrompt = isAuthenticated
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? getSystemPromptForTool(effectiveTool as any)
+        : 'You are a helpful AI assistant.';
+
+      const systemPrompt = isAuthenticated
+        ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
+        : baseSystemPrompt;
+
+      // Non-streaming for image analysis
+      if (hasImages) {
+        console.log('[Chat API] xAI: Non-streaming mode for image analysis');
+        const result = await createXAICompletion({
+          messages: messagesWithContext,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          model: xaiModel as any,
+          maxTokens: clampedMaxTokens,
+          temperature,
+          systemPrompt,
+          stream: false,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
+        });
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: result.text,
+            model: result.model,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': result.model,
+              'X-Provider': 'xai',
+            },
+          }
+        );
+      }
+
+      // Streaming text chat with xAI
+      console.log('[Chat API] xAI: Streaming mode');
+      const streamResult = await createXAIStreamingCompletion({
+        messages: messagesWithContext,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        model: xaiModel as any,
+        maxTokens: clampedMaxTokens,
+        temperature,
+        systemPrompt,
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        planKey: userTier,
+      });
+
+      return new Response(streamResult.stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'X-Model-Used': streamResult.model,
+          'X-Provider': 'xai',
         },
       });
     }

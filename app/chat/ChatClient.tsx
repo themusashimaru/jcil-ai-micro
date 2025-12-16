@@ -128,9 +128,9 @@ export function ChatClient() {
   const [isAdmin, setIsAdmin] = useState(false);
   // Track if image generation is available (depends on active provider)
   const [imageGenerationAvailable, setImageGenerationAvailable] = useState(true);
-  // Track active provider (openai or anthropic) - kept for future use
+  // Track active provider (openai, anthropic, or xai) - kept for future use
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_activeProvider, setActiveProvider] = useState<'openai' | 'anthropic'>('openai');
+  const [_activeProvider, setActiveProvider] = useState<'openai' | 'anthropic' | 'xai'>('openai');
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -310,7 +310,7 @@ export function ChatClient() {
           const data = await response.json();
           setImageGenerationAvailable(data.imageGeneration === true);
           // Set active provider for conditional UI (Search/Fact Check buttons)
-          if (data.activeProvider === 'anthropic' || data.activeProvider === 'openai') {
+          if (data.activeProvider === 'anthropic' || data.activeProvider === 'openai' || data.activeProvider === 'xai') {
             setActiveProvider(data.activeProvider);
           }
         }
