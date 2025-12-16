@@ -572,13 +572,16 @@ export async function POST(request: NextRequest) {
           } else if (isResume) {
             // RESUME PARAGRAPH - Force left-align everything
             // Detect if this looks like a job title
-            const jobTitlePatterns = /(vice president|director|manager|supervisor|coordinator|specialist|analyst|engineer|developer|consultant|associate|assistant|executive|officer|lead|senior|junior|head of|chief|fellow|resident|attending|surgeon|physician|professor)/i;
-            const companyLinePattern = /^(\*\*)?[A-Z][a-zA-Z\s&,\.]+(\*\*)?,?\s*([\w\s]+,\s*[A-Z]{2})?/;
-            const datePattern = /\d{4}|present|current/i;
+            const jobTitlePatterns = /(vice president|director|manager|supervisor|coordinator|specialist|analyst|engineer|developer|consultant|associate|assistant|executive|officer|lead|senior|junior|head of|chief|fellow|resident|attending|surgeon|physician|professor|technician|nurse|therapist)/i;
             const skillsPattern = /^(\*\*)?[A-Za-z]+(\s+[A-Za-z]+)?:(\*\*)?\s/; // Pattern like "Technical: " or "**Surgical Specialties:**"
 
-            const isLikelyJobTitle = jobTitlePatterns.test(cleaned.text) && cleaned.text.length < 80;
-            const isLikelyCompanyLine = companyLinePattern.test(cleaned.text) && datePattern.test(cleaned.text);
+            // Date pattern to extract dates from company lines
+            // Matches: "June 2019 - Present", "2019 - 2023", "January 2020 - December 2022", "2019", etc.
+            const dateExtractPattern = /\s+((?:(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?\d{4}\s*[-–]\s*(?:(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?(?:\d{4}|Present|Current)|(?:(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?\d{4})$/i;
+
+            const isLikelyJobTitle = jobTitlePatterns.test(cleaned.text) && cleaned.text.length < 80 && !dateExtractPattern.test(cleaned.text);
+            const dateMatch = cleaned.text.match(dateExtractPattern);
+            const isLikelyCompanyLine = dateMatch !== null;
             const isLikelySkillLine = skillsPattern.test(cleaned.text);
 
             if (isLikelyJobTitle) {
@@ -591,14 +594,29 @@ export async function POST(request: NextRequest) {
               const titleWrapped = doc.splitTextToSize(cleaned.text, contentWidth);
               doc.text(titleWrapped, margin, y);
               y += titleWrapped.length * 4 + 1;
-            } else if (isLikelyCompanyLine) {
-              // Company with dates - bold company, normal date, left-aligned
+            } else if (isLikelyCompanyLine && dateMatch) {
+              // Company with dates - company LEFT, date RIGHT on same line
               checkPageBreak(5);
+
+              // Split the text: company/location on left, date on right
+              const dateText = dateMatch[1].trim();
+              const companyText = cleaned.text.replace(dateExtractPattern, '').trim();
+
+              // Draw company name (left-aligned, bold)
               doc.setFontSize(10);
               doc.setFont('helvetica', 'bold');
               doc.setTextColor(0, 0, 0);
-              const companyWrapped = doc.splitTextToSize(cleaned.text, contentWidth);
+
+              // Calculate available width for company (leave room for date)
+              const dateWidth = doc.getTextWidth(dateText);
+              const companyMaxWidth = contentWidth - dateWidth - 10; // 10mm gap
+              const companyWrapped = doc.splitTextToSize(companyText, companyMaxWidth);
               doc.text(companyWrapped, margin, y);
+
+              // Draw date (right-aligned on same line)
+              doc.setFont('helvetica', 'normal');
+              doc.text(dateText, pageWidth - margin, y, { align: 'right' });
+
               y += companyWrapped.length * 4;
             } else if (isLikelySkillLine) {
               // Skills line - left-aligned with proper wrapping
