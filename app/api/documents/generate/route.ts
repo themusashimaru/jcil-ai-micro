@@ -58,6 +58,57 @@ interface InvoiceData {
   payableTo: string;
 }
 
+// Business Plan data structure
+interface BusinessPlanData {
+  companyName: string;
+  confidentialityNotice: string;
+  executiveSummary: {
+    missionStatement: string;
+    companyOverview: string;
+    leadershipTeam: string;
+    financialHighlights: Array<{ metric: string; year1: string; year2: string; year3: string; year4: string; year5: string }>;
+    objectives: string[];
+  };
+  companyDescription: {
+    overview: string;
+    competitiveAdvantages: string;
+    legalStructure: string;
+  };
+  marketAnalysis: {
+    industryAnalysis: string;
+    targetMarket: string;
+    competitiveAnalysis: Array<{ factor: string; yourBusiness: string; competitorA: string; competitorB: string; competitorC: string }>;
+  };
+  organizationManagement: {
+    orgStructure: string;
+    managementTeam: string;
+    advisoryBoard: string;
+  };
+  productsServices: {
+    description: string;
+    intellectualProperty: string;
+    researchDevelopment: string;
+  };
+  marketingSales: {
+    marketingStrategy: string;
+    salesStrategy: string;
+    distributionChannels: string;
+  };
+  financialProjections: {
+    assumptions: string[];
+    incomeStatement: Array<{ category: string; year1: string; year2: string; year3: string; year4: string; year5: string }>;
+    cashFlow: Array<{ category: string; year1: string; year2: string; year3: string; year4: string; year5: string }>;
+    balanceSheet: Array<{ category: string; year1: string; year2: string; year3: string; year4: string; year5: string }>;
+    breakEvenAnalysis: string;
+  };
+  fundingRequest: {
+    currentFunding: string;
+    requirements: string;
+    futureFunding: string;
+  };
+  appendix: string[];
+}
+
 /**
  * Parse invoice content from markdown/text to structured data
  */
@@ -646,6 +697,622 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
   doc.rect(pageWidth - margin - 25, y - 4, 25, 7);
 }
 
+/**
+ * Parse business plan content from markdown/text to structured data
+ */
+function parseBusinessPlanContent(content: string): BusinessPlanData {
+  const lines = content.split('\n');
+
+  const data: BusinessPlanData = {
+    companyName: '[Company Name]',
+    confidentialityNotice: 'This document contains confidential and proprietary information.',
+    executiveSummary: {
+      missionStatement: '',
+      companyOverview: '',
+      leadershipTeam: '',
+      financialHighlights: [],
+      objectives: []
+    },
+    companyDescription: {
+      overview: '',
+      competitiveAdvantages: '',
+      legalStructure: ''
+    },
+    marketAnalysis: {
+      industryAnalysis: '',
+      targetMarket: '',
+      competitiveAnalysis: []
+    },
+    organizationManagement: {
+      orgStructure: '',
+      managementTeam: '',
+      advisoryBoard: ''
+    },
+    productsServices: {
+      description: '',
+      intellectualProperty: '',
+      researchDevelopment: ''
+    },
+    marketingSales: {
+      marketingStrategy: '',
+      salesStrategy: '',
+      distributionChannels: ''
+    },
+    financialProjections: {
+      assumptions: [],
+      incomeStatement: [],
+      cashFlow: [],
+      balanceSheet: [],
+      breakEvenAnalysis: ''
+    },
+    fundingRequest: {
+      currentFunding: '',
+      requirements: '',
+      futureFunding: ''
+    },
+    appendix: []
+  };
+
+  let currentSection = '';
+  let currentSubsection = '';
+  let currentContent: string[] = [];
+
+  const saveCurrentContent = () => {
+    const text = currentContent.join('\n').trim();
+    if (!text) return;
+
+    switch (currentSection) {
+      case 'executive':
+        if (currentSubsection.includes('mission')) data.executiveSummary.missionStatement = text;
+        else if (currentSubsection.includes('overview') || currentSubsection.includes('company')) data.executiveSummary.companyOverview = text;
+        else if (currentSubsection.includes('leadership') || currentSubsection.includes('team')) data.executiveSummary.leadershipTeam = text;
+        else if (currentSubsection.includes('objective')) data.executiveSummary.objectives = text.split('\n').filter(l => l.trim());
+        break;
+      case 'company':
+        if (currentSubsection.includes('competitive') || currentSubsection.includes('advantage')) data.companyDescription.competitiveAdvantages = text;
+        else if (currentSubsection.includes('legal') || currentSubsection.includes('structure')) data.companyDescription.legalStructure = text;
+        else data.companyDescription.overview = text;
+        break;
+      case 'market':
+        if (currentSubsection.includes('industry')) data.marketAnalysis.industryAnalysis = text;
+        else if (currentSubsection.includes('target')) data.marketAnalysis.targetMarket = text;
+        else if (currentSubsection.includes('competitive')) data.marketAnalysis.industryAnalysis += '\n\n' + text;
+        break;
+      case 'organization':
+        if (currentSubsection.includes('management')) data.organizationManagement.managementTeam = text;
+        else if (currentSubsection.includes('advisory')) data.organizationManagement.advisoryBoard = text;
+        else data.organizationManagement.orgStructure = text;
+        break;
+      case 'product':
+        if (currentSubsection.includes('intellectual') || currentSubsection.includes('ip')) data.productsServices.intellectualProperty = text;
+        else if (currentSubsection.includes('r&d') || currentSubsection.includes('research')) data.productsServices.researchDevelopment = text;
+        else data.productsServices.description = text;
+        break;
+      case 'marketing':
+        if (currentSubsection.includes('sales')) data.marketingSales.salesStrategy = text;
+        else if (currentSubsection.includes('distribution')) data.marketingSales.distributionChannels = text;
+        else data.marketingSales.marketingStrategy = text;
+        break;
+      case 'financial':
+        if (currentSubsection.includes('assumption')) data.financialProjections.assumptions = text.split('\n').filter(l => l.trim());
+        else if (currentSubsection.includes('break')) data.financialProjections.breakEvenAnalysis = text;
+        break;
+      case 'funding':
+        if (currentSubsection.includes('current')) data.fundingRequest.currentFunding = text;
+        else if (currentSubsection.includes('requirement')) data.fundingRequest.requirements = text;
+        else if (currentSubsection.includes('future')) data.fundingRequest.futureFunding = text;
+        break;
+      case 'appendix':
+        data.appendix = text.split('\n').filter(l => l.trim());
+        break;
+    }
+    currentContent = [];
+  };
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    const lowerLine = trimmedLine.toLowerCase();
+
+    // Extract company name from title
+    if (trimmedLine.startsWith('# ') && data.companyName === '[Company Name]') {
+      const title = trimmedLine.slice(2).replace(/business plan/i, '').trim();
+      if (title) data.companyName = title;
+      continue;
+    }
+
+    // Detect main sections
+    if (lowerLine.includes('executive summary') || lowerLine.match(/^#*\s*1\./)) {
+      saveCurrentContent();
+      currentSection = 'executive';
+      currentSubsection = '';
+      continue;
+    }
+    if (lowerLine.includes('company description') || lowerLine.match(/^#*\s*2\./)) {
+      saveCurrentContent();
+      currentSection = 'company';
+      currentSubsection = '';
+      continue;
+    }
+    if (lowerLine.includes('market analysis') || lowerLine.match(/^#*\s*3\./)) {
+      saveCurrentContent();
+      currentSection = 'market';
+      currentSubsection = '';
+      continue;
+    }
+    if (lowerLine.includes('organization') || lowerLine.includes('management') && lowerLine.match(/^#*\s*4\./)) {
+      saveCurrentContent();
+      currentSection = 'organization';
+      currentSubsection = '';
+      continue;
+    }
+    if (lowerLine.includes('product') || lowerLine.includes('service') && lowerLine.match(/^#*\s*5\./)) {
+      saveCurrentContent();
+      currentSection = 'product';
+      currentSubsection = '';
+      continue;
+    }
+    if (lowerLine.includes('marketing') || lowerLine.includes('sales') && lowerLine.match(/^#*\s*6\./)) {
+      saveCurrentContent();
+      currentSection = 'marketing';
+      currentSubsection = '';
+      continue;
+    }
+    if (lowerLine.includes('financial') || lowerLine.match(/^#*\s*7\./)) {
+      saveCurrentContent();
+      currentSection = 'financial';
+      currentSubsection = '';
+      continue;
+    }
+    if (lowerLine.includes('funding') || lowerLine.match(/^#*\s*8\./)) {
+      saveCurrentContent();
+      currentSection = 'funding';
+      currentSubsection = '';
+      continue;
+    }
+    if (lowerLine.includes('appendix') || lowerLine.match(/^#*\s*9\./)) {
+      saveCurrentContent();
+      currentSection = 'appendix';
+      currentSubsection = '';
+      continue;
+    }
+
+    // Detect subsections (##, ###, or numbered like 1.1, 2.1, etc.)
+    if (trimmedLine.match(/^#{2,3}\s+/) || trimmedLine.match(/^\d+\.\d+/)) {
+      saveCurrentContent();
+      currentSubsection = lowerLine;
+      continue;
+    }
+
+    // Accumulate content
+    if (trimmedLine && currentSection) {
+      currentContent.push(trimmedLine.replace(/^[-*•]\s*/, ''));
+    }
+  }
+
+  // Save final content
+  saveCurrentContent();
+
+  return data;
+}
+
+/**
+ * Generate professional business plan PDF
+ */
+function generateBusinessPlanPDF(doc: jsPDF, data: BusinessPlanData): void {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  const contentWidth = pageWidth - margin * 2;
+  let y = margin;
+  let pageNumber = 1;
+
+  // Colors
+  const primaryColor: [number, number, number] = [30, 58, 138]; // Dark blue
+  const secondaryColor: [number, number, number] = [59, 130, 246]; // Light blue
+  const textColor: [number, number, number] = [31, 41, 55]; // Dark gray
+  const lightGray: [number, number, number] = [156, 163, 175];
+
+  // Helper to add page break
+  const checkPageBreak = (neededHeight: number): boolean => {
+    if (y + neededHeight > pageHeight - margin - 15) {
+      // Add page number to current page
+      doc.setFontSize(9);
+      doc.setTextColor(...lightGray);
+      doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+      doc.addPage();
+      pageNumber++;
+      y = margin;
+      return true;
+    }
+    return false;
+  };
+
+  // Helper to add section header
+  const addSectionHeader = (title: string) => {
+    checkPageBreak(20);
+    y += 8;
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, y - 5, contentWidth, 10, 'F');
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text(title.toUpperCase(), margin + 5, y + 2);
+    y += 12;
+  };
+
+  // Helper to add subsection header
+  const addSubsectionHeader = (title: string) => {
+    checkPageBreak(15);
+    y += 5;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...primaryColor);
+    doc.text(title, margin, y);
+    doc.setDrawColor(...secondaryColor);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y + 2, margin + doc.getTextWidth(title), y + 2);
+    y += 8;
+  };
+
+  // Helper to add paragraph
+  const addParagraph = (text: string) => {
+    if (!text) return;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...textColor);
+    const lines = doc.splitTextToSize(text, contentWidth);
+    for (const line of lines) {
+      checkPageBreak(5);
+      doc.text(line, margin, y);
+      y += 4.5;
+    }
+    y += 3;
+  };
+
+  // Helper to add bullet list
+  const addBulletList = (items: string[]) => {
+    if (!items || items.length === 0) return;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...textColor);
+    for (const item of items) {
+      if (!item.trim()) continue;
+      checkPageBreak(6);
+      doc.setFillColor(...primaryColor);
+      doc.circle(margin + 2, y - 1.5, 1, 'F');
+      const lines = doc.splitTextToSize(item, contentWidth - 10);
+      doc.text(lines, margin + 7, y);
+      y += lines.length * 4.5 + 2;
+    }
+    y += 2;
+  };
+
+  // Helper to add financial table
+  const addFinancialTable = (title: string, rows: Array<{ category: string; year1: string; year2: string; year3: string; year4: string; year5: string }>) => {
+    if (!rows || rows.length === 0) return;
+
+    checkPageBreak(rows.length * 7 + 20);
+
+    // Table title
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...primaryColor);
+    doc.text(title, margin, y);
+    y += 6;
+
+    // Header row
+    const colWidths = [contentWidth * 0.3, contentWidth * 0.14, contentWidth * 0.14, contentWidth * 0.14, contentWidth * 0.14, contentWidth * 0.14];
+    const headers = ['Category', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'];
+
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+
+    let x = margin;
+    for (let i = 0; i < headers.length; i++) {
+      doc.text(headers[i], x + 2, y);
+      x += colWidths[i];
+    }
+    y += 5;
+
+    // Data rows
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...textColor);
+
+    for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+      const row = rows[rowIdx];
+      if (rowIdx % 2 === 0) {
+        doc.setFillColor(245, 247, 250);
+        doc.rect(margin, y - 4, contentWidth, 6, 'F');
+      }
+
+      x = margin;
+      doc.text((row.category || '').substring(0, 25), x + 2, y);
+      x += colWidths[0];
+      doc.text(row.year1 || '-', x + 2, y);
+      x += colWidths[1];
+      doc.text(row.year2 || '-', x + 2, y);
+      x += colWidths[2];
+      doc.text(row.year3 || '-', x + 2, y);
+      x += colWidths[3];
+      doc.text(row.year4 || '-', x + 2, y);
+      x += colWidths[4];
+      doc.text(row.year5 || '-', x + 2, y);
+
+      y += 6;
+    }
+    y += 5;
+  };
+
+  // === COVER PAGE ===
+  y = pageHeight * 0.3;
+
+  // Company name
+  doc.setFontSize(32);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...primaryColor);
+  const companyLines = doc.splitTextToSize(data.companyName, contentWidth);
+  doc.text(companyLines, pageWidth / 2, y, { align: 'center' });
+  y += companyLines.length * 12 + 10;
+
+  // "Business Plan" title
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...secondaryColor);
+  doc.text('BUSINESS PLAN', pageWidth / 2, y, { align: 'center' });
+  y += 15;
+
+  // Decorative line
+  doc.setDrawColor(...primaryColor);
+  doc.setLineWidth(1);
+  doc.line(pageWidth / 2 - 40, y, pageWidth / 2 + 40, y);
+  y += 20;
+
+  // Date
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...lightGray);
+  doc.text(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }), pageWidth / 2, y, { align: 'center' });
+
+  // Confidentiality notice at bottom
+  y = pageHeight - 40;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(...lightGray);
+  const confidentialLines = doc.splitTextToSize(data.confidentialityNotice, contentWidth - 20);
+  doc.text(confidentialLines, pageWidth / 2, y, { align: 'center' });
+
+  // === PAGE 2: TABLE OF CONTENTS ===
+  doc.addPage();
+  pageNumber++;
+  y = margin;
+
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...primaryColor);
+  doc.text('TABLE OF CONTENTS', pageWidth / 2, y, { align: 'center' });
+  y += 15;
+
+  const tocItems = [
+    { num: '1', title: 'Executive Summary', page: '3' },
+    { num: '2', title: 'Company Description', page: '4' },
+    { num: '3', title: 'Market Analysis', page: '5' },
+    { num: '4', title: 'Organization and Management', page: '6' },
+    { num: '5', title: 'Products or Services', page: '7' },
+    { num: '6', title: 'Marketing and Sales Strategy', page: '8' },
+    { num: '7', title: 'Financial Projections', page: '9' },
+    { num: '8', title: 'Funding Request', page: '11' },
+    { num: '9', title: 'Appendix', page: '12' }
+  ];
+
+  doc.setFontSize(11);
+  for (const item of tocItems) {
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...primaryColor);
+    doc.text(`${item.num}.`, margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...textColor);
+    doc.text(item.title, margin + 10, y);
+
+    // Dots
+    const dotsX = margin + 10 + doc.getTextWidth(item.title) + 2;
+    const pageX = pageWidth - margin - 5;
+    doc.setTextColor(...lightGray);
+    let dotX = dotsX;
+    while (dotX < pageX - 10) {
+      doc.text('.', dotX, y);
+      dotX += 3;
+    }
+    doc.text(item.page, pageX, y, { align: 'right' });
+    y += 8;
+  }
+
+  // === CONTENT PAGES ===
+  doc.addPage();
+  pageNumber++;
+  y = margin;
+
+  // 1. EXECUTIVE SUMMARY
+  addSectionHeader('1. Executive Summary');
+
+  if (data.executiveSummary.missionStatement) {
+    addSubsectionHeader('1.1 Mission Statement');
+    addParagraph(data.executiveSummary.missionStatement);
+  }
+
+  if (data.executiveSummary.companyOverview) {
+    addSubsectionHeader('1.2 Company Overview');
+    addParagraph(data.executiveSummary.companyOverview);
+  }
+
+  if (data.executiveSummary.leadershipTeam) {
+    addSubsectionHeader('1.3 Leadership Team');
+    addParagraph(data.executiveSummary.leadershipTeam);
+  }
+
+  if (data.executiveSummary.financialHighlights.length > 0) {
+    addSubsectionHeader('1.4 Financial Highlights');
+    addFinancialTable('5-Year Financial Summary', data.executiveSummary.financialHighlights.map(h => ({
+      category: h.metric,
+      year1: h.year1,
+      year2: h.year2,
+      year3: h.year3,
+      year4: h.year4,
+      year5: h.year5
+    })));
+  }
+
+  if (data.executiveSummary.objectives.length > 0) {
+    addSubsectionHeader('1.5 Objectives');
+    addBulletList(data.executiveSummary.objectives);
+  }
+
+  // 2. COMPANY DESCRIPTION
+  addSectionHeader('2. Company Description');
+
+  if (data.companyDescription.overview) {
+    addSubsectionHeader('2.1 Company Overview');
+    addParagraph(data.companyDescription.overview);
+  }
+
+  if (data.companyDescription.competitiveAdvantages) {
+    addSubsectionHeader('2.2 Competitive Advantages');
+    addParagraph(data.companyDescription.competitiveAdvantages);
+  }
+
+  if (data.companyDescription.legalStructure) {
+    addSubsectionHeader('2.3 Legal Structure and Ownership');
+    addParagraph(data.companyDescription.legalStructure);
+  }
+
+  // 3. MARKET ANALYSIS
+  addSectionHeader('3. Market Analysis');
+
+  if (data.marketAnalysis.industryAnalysis) {
+    addSubsectionHeader('3.1 Industry Analysis');
+    addParagraph(data.marketAnalysis.industryAnalysis);
+  }
+
+  if (data.marketAnalysis.targetMarket) {
+    addSubsectionHeader('3.2 Target Market');
+    addParagraph(data.marketAnalysis.targetMarket);
+  }
+
+  // 4. ORGANIZATION AND MANAGEMENT
+  addSectionHeader('4. Organization and Management');
+
+  if (data.organizationManagement.orgStructure) {
+    addSubsectionHeader('4.1 Organizational Structure');
+    addParagraph(data.organizationManagement.orgStructure);
+  }
+
+  if (data.organizationManagement.managementTeam) {
+    addSubsectionHeader('4.2 Management Team');
+    addParagraph(data.organizationManagement.managementTeam);
+  }
+
+  if (data.organizationManagement.advisoryBoard) {
+    addSubsectionHeader('4.3 Advisory Board');
+    addParagraph(data.organizationManagement.advisoryBoard);
+  }
+
+  // 5. PRODUCTS OR SERVICES
+  addSectionHeader('5. Products or Services');
+
+  if (data.productsServices.description) {
+    addSubsectionHeader('5.1 Product or Service Description');
+    addParagraph(data.productsServices.description);
+  }
+
+  if (data.productsServices.intellectualProperty) {
+    addSubsectionHeader('5.2 Intellectual Property');
+    addParagraph(data.productsServices.intellectualProperty);
+  }
+
+  if (data.productsServices.researchDevelopment) {
+    addSubsectionHeader('5.3 Research and Development');
+    addParagraph(data.productsServices.researchDevelopment);
+  }
+
+  // 6. MARKETING AND SALES STRATEGY
+  addSectionHeader('6. Marketing and Sales Strategy');
+
+  if (data.marketingSales.marketingStrategy) {
+    addSubsectionHeader('6.1 Marketing Strategy');
+    addParagraph(data.marketingSales.marketingStrategy);
+  }
+
+  if (data.marketingSales.salesStrategy) {
+    addSubsectionHeader('6.2 Sales Strategy');
+    addParagraph(data.marketingSales.salesStrategy);
+  }
+
+  if (data.marketingSales.distributionChannels) {
+    addSubsectionHeader('6.3 Distribution Channels');
+    addParagraph(data.marketingSales.distributionChannels);
+  }
+
+  // 7. FINANCIAL PROJECTIONS
+  addSectionHeader('7. Financial Projections');
+
+  if (data.financialProjections.assumptions.length > 0) {
+    addSubsectionHeader('7.1 Key Assumptions');
+    addBulletList(data.financialProjections.assumptions);
+  }
+
+  if (data.financialProjections.incomeStatement.length > 0) {
+    addSubsectionHeader('7.2 Projected Income Statement');
+    addFinancialTable('Income Statement', data.financialProjections.incomeStatement);
+  }
+
+  if (data.financialProjections.cashFlow.length > 0) {
+    addSubsectionHeader('7.3 Projected Cash Flow');
+    addFinancialTable('Cash Flow Statement', data.financialProjections.cashFlow);
+  }
+
+  if (data.financialProjections.balanceSheet.length > 0) {
+    addSubsectionHeader('7.4 Projected Balance Sheet');
+    addFinancialTable('Balance Sheet', data.financialProjections.balanceSheet);
+  }
+
+  if (data.financialProjections.breakEvenAnalysis) {
+    addSubsectionHeader('7.5 Break-Even Analysis');
+    addParagraph(data.financialProjections.breakEvenAnalysis);
+  }
+
+  // 8. FUNDING REQUEST
+  addSectionHeader('8. Funding Request');
+
+  if (data.fundingRequest.currentFunding) {
+    addSubsectionHeader('8.1 Current Funding');
+    addParagraph(data.fundingRequest.currentFunding);
+  }
+
+  if (data.fundingRequest.requirements) {
+    addSubsectionHeader('8.2 Funding Requirements');
+    addParagraph(data.fundingRequest.requirements);
+  }
+
+  if (data.fundingRequest.futureFunding) {
+    addSubsectionHeader('8.3 Future Funding Plans');
+    addParagraph(data.fundingRequest.futureFunding);
+  }
+
+  // 9. APPENDIX
+  if (data.appendix.length > 0) {
+    addSectionHeader('9. Appendix');
+    addBulletList(data.appendix);
+  }
+
+  // Add final page number
+  doc.setFontSize(9);
+  doc.setTextColor(...lightGray);
+  doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+}
+
 // Get authenticated user ID from session (more secure than trusting request body)
 async function getAuthenticatedUserId(): Promise<string | null> {
   try {
@@ -969,6 +1636,86 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('[Documents API] Invoice PDF uploaded:', pdfPath);
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+                        request.headers.get('origin') ||
+                        'https://jcil.ai';
+
+        const pdfToken = Buffer.from(JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })).toString('base64url');
+        const pdfProxyUrl = `${baseUrl}/api/documents/download?token=${pdfToken}`;
+
+        return NextResponse.json({
+          success: true,
+          format: 'pdf',
+          title,
+          filename: pdfFilename,
+          downloadUrl: pdfProxyUrl,
+          expiresIn: '1 hour',
+          storage: 'supabase',
+        });
+      }
+
+      // Fallback: Return data URL
+      const pdfBase64 = doc.output('datauristring');
+      return NextResponse.json({
+        success: true,
+        format: 'pdf',
+        title,
+        dataUrl: pdfBase64,
+        filename: pdfFilename,
+        storage: 'local',
+      });
+    }
+
+    // === BUSINESS PLAN: Use dedicated professional template ===
+    if (isBusinessPlan) {
+      console.log('[Documents API] Generating professional business plan PDF');
+      const businessPlanData = parseBusinessPlanContent(content);
+      generateBusinessPlanPDF(doc, businessPlanData);
+
+      // Generate filename
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const pdfFilename = `${safeTitle}_${timestamp}_${randomStr}.pdf`;
+
+      // Generate PDF buffer
+      const pdfBuffer = doc.output('arraybuffer');
+
+      // If Supabase is available and userId provided, upload for secure download
+      if (supabase && userId) {
+        try {
+          await supabase.storage.createBucket('documents', {
+            public: false,
+            fileSizeLimit: 10 * 1024 * 1024,
+          });
+        } catch {
+          // Bucket might already exist
+        }
+
+        const pdfPath = `${userId}/${pdfFilename}`;
+        const { error: pdfUploadError } = await supabase.storage
+          .from('documents')
+          .upload(pdfPath, pdfBuffer, {
+            contentType: 'application/pdf',
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (pdfUploadError) {
+          console.error('[Documents API] Business plan PDF upload error:', pdfUploadError);
+          const pdfBase64 = doc.output('datauristring');
+          return NextResponse.json({
+            success: true,
+            format: 'pdf',
+            title,
+            dataUrl: pdfBase64,
+            filename: pdfFilename,
+            storage: 'fallback',
+          });
+        }
+
+        console.log('[Documents API] Business plan PDF uploaded:', pdfPath);
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
                         request.headers.get('origin') ||
