@@ -564,11 +564,65 @@ export async function POST(request: NextRequest) {
             doc.setTextColor(51, 51, 51);
             doc.text(cleaned.text, margin, y);
             y += 4; // Single-spaced for address lines
+          } else if (isResume) {
+            // RESUME PARAGRAPH - Force left-align everything
+            // Detect if this looks like a job title
+            const jobTitlePatterns = /(vice president|director|manager|supervisor|coordinator|specialist|analyst|engineer|developer|consultant|associate|assistant|executive|officer|lead|senior|junior|head of|chief)/i;
+            const companyLinePattern = /^(\*\*)?[A-Z][a-zA-Z\s&,\.]+(\*\*)?,?\s*([\w\s]+,\s*[A-Z]{2})?/;
+            const datePattern = /\d{4}|present|current/i;
+            const skillsPattern = /^(\*\*)?[A-Za-z]+:(\*\*)?\s/; // Pattern like "Technical: " or "**Leadership:**"
+
+            const isLikelyJobTitle = jobTitlePatterns.test(cleaned.text) && cleaned.text.length < 60;
+            const isLikelyCompanyLine = companyLinePattern.test(cleaned.text) && datePattern.test(cleaned.text);
+            const isLikelySkillLine = skillsPattern.test(cleaned.text);
+
+            if (isLikelyJobTitle) {
+              // Job title - bold, left-aligned
+              checkPageBreak(6);
+              doc.setFontSize(11);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(0, 0, 0);
+              doc.text(cleaned.text, margin, y);
+              y += 5;
+            } else if (isLikelyCompanyLine) {
+              // Company with dates - normal, left-aligned
+              checkPageBreak(5);
+              doc.setFontSize(10);
+              doc.setFont('helvetica', cleaned.bold ? 'bold' : 'normal');
+              doc.setTextColor(51, 51, 51);
+              doc.text(cleaned.text, margin, y);
+              y += 4;
+            } else if (isLikelySkillLine) {
+              // Skills line - left-aligned
+              checkPageBreak(5);
+              doc.setFontSize(10);
+              doc.setFont('helvetica', cleaned.bold ? 'bold' : 'normal');
+              doc.setTextColor(51, 51, 51);
+              const splitText = doc.splitTextToSize(cleaned.text, contentWidth);
+              doc.text(splitText, margin, y);
+              y += splitText.length * 4 + 2;
+            } else {
+              // Regular resume paragraph - left-aligned
+              doc.setFontSize(10);
+              let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
+              if (cleaned.bold && cleaned.italic) fontStyle = 'bolditalic';
+              else if (cleaned.bold) fontStyle = 'bold';
+              else if (cleaned.italic) fontStyle = 'italic';
+              doc.setFont('helvetica', fontStyle);
+              doc.setTextColor(51, 51, 51);
+
+              const splitText = doc.splitTextToSize(cleaned.text, contentWidth);
+              const textHeight = splitText.length * 4;
+              checkPageBreak(textHeight + 2);
+
+              doc.text(splitText, margin, y);
+              y += textHeight + 2;
+            }
           } else {
-            // Standard paragraph - consistent line height and spacing
-            const fontSize = isResume ? 10 : (isBusinessPlan ? 11 : (isInvoice ? 10 : 11));
-            const paragraphLineHeight = isResume ? 4 : (isBusinessPlan ? 5.5 : (isInvoice ? 4 : 5));
-            const paragraphSpacing = isResume ? 2 : (isBusinessPlan ? 4 : (isInvoice ? 1 : 3));
+            // Non-resume standard paragraph - consistent line height and spacing
+            const fontSize = isBusinessPlan ? 11 : (isInvoice ? 10 : 11);
+            const paragraphLineHeight = isBusinessPlan ? 5.5 : (isInvoice ? 4 : 5);
+            const paragraphSpacing = isBusinessPlan ? 4 : (isInvoice ? 1 : 3);
 
             doc.setFontSize(fontSize);
             let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';

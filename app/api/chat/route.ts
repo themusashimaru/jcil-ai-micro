@@ -155,77 +155,88 @@ You are creating a PROFESSIONAL document. Quality and formatting are paramount.
 `;
 
   const typeSpecific: Record<string, string> = {
-    pdf: `### PDF Specific Requirements:
+    pdf: `### PDF Resume - USE THIS EXACT MARKDOWN FORMAT:
 
-**RESUME/CV FORMATTING (CRITICAL - FOLLOW EXACTLY):**
+# FULL NAME HERE
 
-1. **HEADER SECTION (CRITICAL):**
-   - DO NOT include any document title like "Resume", "John Smith Resume", "Master Electrician Resume", etc.
-   - The VERY FIRST LINE of the document must be the person's NAME - nothing else above it
-   - Name: 18-24pt bold, centered at top
-   - Contact line directly below name: ONLY phone | email | LinkedIn URL (NO physical address)
-   - Contact info: 10pt, centered, separated by pipes (|)
-   - Example: "(555) 123-4567 | john.doe@email.com | linkedin.com/in/johndoe"
+(555) 123-4567 | email@example.com | linkedin.com/in/username
 
-2. **PROFESSIONAL SUMMARY:**
-   - Section header: 11pt bold, ALL CAPS, LEFT aligned with subtle line below
-   - Summary text: 10pt regular, LEFT aligned
-   - MUST stay within page margins - use text wrapping, do NOT exceed margins
-   - Keep to 3-4 lines maximum
+## PROFESSIONAL SUMMARY
 
-3. **PROFESSIONAL EXPERIENCE (CRITICAL LAYOUT):**
-   - Section header: 11pt bold, ALL CAPS, LEFT aligned with line below
-   - For EACH job entry, format EXACTLY like this:
-     * Line 1: Job Title - 11pt bold, LEFT aligned
-     * Line 2: Company Name, City ST - 10pt regular, LEFT aligned
-     * Line 2 (same line): Date Range - 10pt, RIGHT aligned (use tab or spacing)
-     * Bullet points: 10pt, indented, describe achievements
-   - Example layout:
-     [Job Title]
-     [Company, City ST]                              [Date Range - RIGHT aligned]
-     • Achievement bullet point
-     • Another achievement
+Write 2-3 sentences summarizing qualifications. Keep this as a single paragraph, left-aligned.
 
-4. **EDUCATION:**
-   - Section header: 11pt bold, ALL CAPS, LEFT aligned with line below
-   - ALL education entries LEFT aligned (NOT centered)
-   - Degree and school on separate lines or same line
-   - Graduation date RIGHT aligned on same line as school
+## PROFESSIONAL EXPERIENCE
 
-5. **SKILLS:**
-   - Section header: 11pt bold, ALL CAPS, LEFT aligned
-   - Skills listed LEFT aligned, can use columns or comma-separated
+### Job Title Here
+**Company Name**, City, ST                                    Month Year - Present
 
-6. **GENERAL RULES:**
-   - Page margins: 0.5-0.75 inch on all sides
-   - NO text should extend past margins
-   - Use consistent spacing between sections (10-12pt)
-   - Keep to 1 page if possible, 2 pages maximum
-   - NO generic titles like "Resume Template" - start with actual name
-   - All body text LEFT aligned unless specified otherwise
+- Achievement with quantified results (increased X by Y%)
+- Another accomplishment using action verbs
+- Third bullet point with measurable impact
 
-- For PRESENTATIONS as PDF:
-  * Title slide with large header (36pt+)
-  * Each slide as a new page
-  * Clear visual hierarchy
-  * Bullet points for key information
-  * Include slide numbers
+### Previous Job Title
+**Previous Company**, City, ST                                Month Year - Month Year
 
-- For GENERAL PDFs:
-  * Clear title at top
-  * Proper paragraph spacing (1.15-1.5 line height)
-  * Headers/subheaders in bold
-  * Professional color scheme (navy blue #1e3a5f for headers)
+- Achievement bullet point
+- Another accomplishment
+
+## EDUCATION
+
+### Degree Name (e.g., Bachelor of Science in Business)
+**University Name**, City, ST                                 Year
+
+Honors or GPA if notable
+
+## SKILLS
+
+**Technical:** Skill 1, Skill 2, Skill 3, Skill 4
+**Leadership:** Skill 5, Skill 6, Skill 7
+
+## CERTIFICATIONS
+
+- Certification Name - Issuing Organization (Year)
+- Another Certification (Year)
+
+---
+
+**CRITICAL FORMATTING RULES:**
+1. # = Name (ONLY this is centered)
+2. Contact line = plain text (centered, right below name)
+3. ## = Section headers (PROFESSIONAL EXPERIENCE, EDUCATION, etc.) - LEFT aligned
+4. ### = Job titles and degree names - LEFT aligned, bold
+5. **Bold** = Company names and universities
+6. - = Bullet points for achievements - LEFT aligned
+7. Everything after the contact line must be LEFT ALIGNED
+8. NO commentary or explanation - ONLY the resume content
 `,
     docx: `### Word Document Requirements:
-- Use proper heading styles (Heading 1, Heading 2, etc.)
-- Enable automatic table of contents if document has multiple sections
-- Use consistent paragraph spacing
-- For LETTERS: Include proper business letter format with date, addresses, salutation
-- For REPORTS: Include title page, executive summary, sections with headers
-- For RESUMES: Same professional formatting as PDF resumes
-- Use 11-12pt font for body text
-- Use 1.15 line spacing for readability
+
+**FOR RESUMES - USE EXACT SAME FORMAT AS PDF:**
+- Name centered at top (large, bold)
+- Contact info centered below name
+- Section headers LEFT aligned (PROFESSIONAL EXPERIENCE, EDUCATION, SKILLS)
+- Job titles LEFT aligned, bold
+- Company names bold, with location and dates on same line
+- All bullets LEFT aligned
+- Skills LEFT aligned
+- NO CENTERING except name and contact info
+
+**FOR LETTERS:**
+- Sender address top right
+- Date below sender
+- Recipient address left
+- Salutation, body paragraphs, closing
+- Signature line
+
+**FOR REPORTS:**
+- Title page with centered title
+- All body content LEFT aligned
+- Use heading hierarchy (Heading 1, 2, 3)
+
+**GENERAL:**
+- 11-12pt body text
+- 1.15 line spacing
+- NO commentary - only document content
 `,
     xlsx: `### Excel Spreadsheet Requirements:
 - Use clear column headers in bold
