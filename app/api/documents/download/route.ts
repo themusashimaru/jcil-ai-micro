@@ -19,7 +19,7 @@ import { cookies } from 'next/headers';
 export const runtime = 'nodejs';
 
 // Decode token (encoded as base64url JSON with userId, filename, type)
-function decodeToken(token: string): { userId: string; filename: string; type: 'pdf' | 'docx' } | null {
+function decodeToken(token: string): { userId: string; filename: string; type: 'pdf' | 'docx' | 'xlsx' } | null {
   try {
     const data = JSON.parse(Buffer.from(token, 'base64url').toString());
     if (data.u && data.f && data.t) {
@@ -119,10 +119,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'File not found or expired' }, { status: 404 });
     }
 
-    // Determine content type
-    const contentType = decoded.type === 'pdf'
-      ? 'application/pdf'
-      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    // Determine content type based on file type
+    let contentType: string;
+    switch (decoded.type) {
+      case 'pdf':
+        contentType = 'application/pdf';
+        break;
+      case 'xlsx':
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        break;
+      case 'docx':
+      default:
+        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        break;
+    }
 
     // Create a clean filename for download
     const downloadFilename = decoded.filename;

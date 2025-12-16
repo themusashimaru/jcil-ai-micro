@@ -249,6 +249,339 @@ You are creating a PROFESSIONAL document. Quality and formatting are paramount.
   return basePrompt + (typeSpecific[docType] || '');
 }
 
+/**
+ * Get prompt for native document generation (JSON output)
+ * This instructs the AI to output structured JSON that can be converted to real files
+ */
+function getNativeDocumentPrompt(docType: 'resume' | 'spreadsheet' | 'document' | 'invoice'): string {
+  const basePrompt = `
+## NATIVE DOCUMENT GENERATION
+
+You are generating a real, downloadable document. Output ONLY valid JSON that matches the schema below.
+Do NOT include any explanatory text before or after the JSON. The response must be parseable JSON.
+
+IMPORTANT: Wrap your JSON response in \`\`\`json code blocks like this:
+\`\`\`json
+{
+  "type": "...",
+  ...
+}
+\`\`\`
+`;
+
+  const schemas: Record<string, string> = {
+    resume: `
+### RESUME JSON SCHEMA
+
+Output a JSON object with this structure:
+{
+  "type": "resume",
+  "name": "Full Name",
+  "contact": {
+    "phone": "(555) 123-4567",
+    "email": "email@example.com",
+    "linkedin": "linkedin.com/in/username",
+    "location": "City, State"
+  },
+  "summary": "Brief professional summary (2-3 sentences)",
+  "experience": [
+    {
+      "title": "Job Title",
+      "company": "Company Name",
+      "location": "City, State",
+      "startDate": "Month Year",
+      "endDate": "Month Year or Present",
+      "bullets": [
+        "Achievement with quantified results",
+        "Another accomplishment"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Degree Name",
+      "school": "University Name",
+      "location": "City, State",
+      "graduationDate": "Month Year",
+      "gpa": "3.8/4.0",
+      "honors": ["Dean's List", "Cum Laude"]
+    }
+  ],
+  "skills": ["Skill 1", "Skill 2", "Skill 3"],
+  "certifications": [
+    {
+      "name": "Certification Name",
+      "issuer": "Issuing Organization",
+      "date": "Month Year"
+    }
+  ]
+}
+
+RESUME TIPS:
+- Use strong action verbs (Led, Developed, Increased, Managed)
+- Quantify achievements where possible (increased sales by 40%)
+- Keep bullets concise and impactful
+- Tailor content to the job/industry if specified
+`,
+    spreadsheet: `
+### SPREADSHEET JSON SCHEMA
+
+Output a JSON object with this structure:
+{
+  "type": "spreadsheet",
+  "title": "Spreadsheet Title",
+  "sheets": [
+    {
+      "name": "Sheet1",
+      "rows": [
+        {
+          "isHeader": true,
+          "cells": [
+            { "value": "Column A Header" },
+            { "value": "Column B Header", "alignment": "right" }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Data" },
+            { "value": 1234.56, "currency": true, "alignment": "right" }
+          ]
+        },
+        {
+          "cells": [
+            { "value": "Total", "bold": true },
+            { "formula": "=SUM(B2:B10)", "currency": true, "bold": true, "alignment": "right" }
+          ]
+        }
+      ],
+      "freezeRow": 1,
+      "columnWidths": [30, 15, 15]
+    }
+  ],
+  "format": {
+    "alternatingRowColors": true,
+    "headerColor": "#1e3a5f"
+  }
+}
+
+CELL OPTIONS:
+- value: string or number
+- bold: true/false
+- italic: true/false
+- currency: true (formats as $X,XXX.XX)
+- percent: true (formats as XX.XX%)
+- formula: Excel formula (e.g., "=SUM(A1:A10)")
+- backgroundColor: hex color
+- textColor: hex color
+- alignment: "left", "center", or "right"
+
+SPREADSHEET TIPS:
+- Use formulas for calculations (=SUM, =AVERAGE, etc.)
+- Include totals rows for financial data
+- Use currency formatting for money values
+- Freeze the header row for easy scrolling
+`,
+    document: `
+### WORD DOCUMENT JSON SCHEMA
+
+Output a JSON object with this structure:
+{
+  "type": "document",
+  "title": "Document Title",
+  "sections": [
+    {
+      "type": "paragraph",
+      "content": {
+        "text": "Paragraph text here",
+        "style": "title",
+        "alignment": "center"
+      }
+    },
+    {
+      "type": "paragraph",
+      "content": {
+        "text": "Section Heading",
+        "style": "heading1"
+      }
+    },
+    {
+      "type": "paragraph",
+      "content": {
+        "text": "Body paragraph text",
+        "style": "normal"
+      }
+    },
+    {
+      "type": "paragraph",
+      "content": {
+        "text": "Bullet item",
+        "bulletLevel": 1
+      }
+    },
+    {
+      "type": "table",
+      "content": {
+        "headers": ["Column 1", "Column 2"],
+        "rows": [
+          ["Data 1", "Data 2"],
+          ["Data 3", "Data 4"]
+        ]
+      }
+    },
+    {
+      "type": "pageBreak"
+    },
+    {
+      "type": "horizontalRule"
+    }
+  ],
+  "format": {
+    "fontFamily": "Calibri",
+    "fontSize": 11,
+    "headerText": "Document Header",
+    "footerText": "Page Footer"
+  }
+}
+
+PARAGRAPH STYLES:
+- "title": Large centered title
+- "subtitle": Subtitle text
+- "heading1", "heading2", "heading3": Section headings
+- "normal": Regular paragraph text
+
+PARAGRAPH OPTIONS:
+- bold: true/false
+- italic: true/false
+- alignment: "left", "center", "right", "justify"
+- bulletLevel: 1, 2, 3 (for bullet points)
+`,
+    invoice: `
+### INVOICE JSON SCHEMA
+
+Output a JSON object with this structure:
+{
+  "type": "invoice",
+  "invoiceNumber": "INV-2024-001",
+  "date": "January 15, 2024",
+  "dueDate": "February 15, 2024",
+  "from": {
+    "name": "Your Business Name",
+    "address": ["123 Business St", "City, State 12345"],
+    "phone": "(555) 123-4567",
+    "email": "billing@business.com"
+  },
+  "to": {
+    "name": "Client Name",
+    "address": ["456 Client Ave", "City, State 67890"],
+    "phone": "(555) 987-6543",
+    "email": "client@example.com"
+  },
+  "items": [
+    {
+      "description": "Service or Product Description",
+      "quantity": 2,
+      "unitPrice": 100.00,
+      "total": 200.00
+    }
+  ],
+  "subtotal": 200.00,
+  "taxRate": 8.25,
+  "tax": 16.50,
+  "total": 216.50,
+  "notes": "Thank you for your business!",
+  "paymentTerms": "Net 30",
+  "format": {
+    "primaryColor": "#1e3a5f",
+    "currency": "USD"
+  }
+}
+
+INVOICE TIPS:
+- Calculate totals accurately (subtotal, tax, total)
+- Include clear item descriptions
+- Specify payment terms
+- Add notes for special instructions
+`
+  };
+
+  return basePrompt + (schemas[docType] || schemas.document);
+}
+
+/**
+ * Detect if user is requesting a NATIVE document (for JSON generation)
+ * This is separate from detectDocumentRequest which is for the old markdown approach
+ */
+function detectNativeDocumentRequest(content: string): 'resume' | 'spreadsheet' | 'document' | 'invoice' | null {
+  const lowerContent = content.toLowerCase();
+
+  // Resume detection
+  if (/\b(resume|résumé|cv|curriculum vitae)\b/.test(lowerContent) &&
+      /\b(create|make|generate|build|write|draft)\b/.test(lowerContent)) {
+    return 'resume';
+  }
+
+  // Spreadsheet/Excel detection
+  if (/\b(excel|spreadsheet|xlsx|budget|financial\s*(model|plan|tracker))\b/.test(lowerContent) &&
+      /\b(create|make|generate|build)\b/.test(lowerContent)) {
+    return 'spreadsheet';
+  }
+
+  // Invoice detection
+  if (/\b(invoice|bill|receipt)\b/.test(lowerContent) &&
+      /\b(create|make|generate|build)\b/.test(lowerContent)) {
+    return 'invoice';
+  }
+
+  // General Word document detection
+  if (/\b(word\s*document|docx|letter|memo|report)\b/.test(lowerContent) &&
+      /\b(create|make|generate|build|write|draft)\b/.test(lowerContent)) {
+    return 'document';
+  }
+
+  return null;
+}
+
+/**
+ * Extract JSON document data from AI response
+ * Looks for JSON wrapped in ```json code blocks
+ */
+function extractDocumentJSON(response: string): { json: unknown; cleanResponse: string } | null {
+  // Look for ```json ... ``` blocks
+  const jsonBlockMatch = response.match(/```json\s*([\s\S]*?)```/);
+  if (jsonBlockMatch) {
+    try {
+      const json = JSON.parse(jsonBlockMatch[1].trim());
+      // Validate it has a type field
+      if (json && typeof json === 'object' && 'type' in json) {
+        const validTypes = ['resume', 'spreadsheet', 'document', 'invoice'];
+        if (validTypes.includes(json.type)) {
+          // Remove the JSON block from the response for display
+          const cleanResponse = response
+            .replace(/```json[\s\S]*?```/g, '')
+            .trim();
+          return { json, cleanResponse };
+        }
+      }
+    } catch {
+      // Not valid JSON, continue
+    }
+  }
+
+  // Also try to find raw JSON object (fallback)
+  const jsonObjectMatch = response.match(/\{[\s\S]*"type"\s*:\s*"(resume|spreadsheet|document|invoice)"[\s\S]*\}/);
+  if (jsonObjectMatch) {
+    try {
+      const json = JSON.parse(jsonObjectMatch[0]);
+      const cleanResponse = response.replace(jsonObjectMatch[0], '').trim();
+      return { json, cleanResponse };
+    } catch {
+      // Not valid JSON
+    }
+  }
+
+  return null;
+}
+
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -1320,10 +1653,118 @@ Please summarize this information from our platform's perspective. Present the f
         ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
         : baseSystemPrompt;
 
+      // ========================================
+      // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
+      // ========================================
+      // Check for native document requests first (resume, spreadsheet, invoice, document)
+      const nativeDocType = detectNativeDocumentRequest(lastUserContent);
+      if (nativeDocType && isAuthenticated) {
+        console.log(`[Chat API] Native document generation: ${nativeDocType}`);
+
+        try {
+          // Get the JSON schema prompt for the document type
+          const nativeDocPrompt = getNativeDocumentPrompt(nativeDocType);
+          const enhancedSystemPrompt = `${systemPrompt}\n\n${nativeDocPrompt}`;
+
+          // Get AI to generate structured JSON
+          const result = await createAnthropicCompletion({
+            messages: messagesWithContext,
+            model: anthropicModel,
+            maxTokens: clampedMaxTokens,
+            temperature,
+            systemPrompt: enhancedSystemPrompt,
+            userId: isAuthenticated ? rateLimitIdentifier : undefined,
+            planKey: userTier,
+          });
+
+          // Try to extract JSON document data from response
+          const extractedDoc = extractDocumentJSON(result.text);
+
+          if (extractedDoc) {
+            console.log(`[Chat API] Extracted ${(extractedDoc.json as { type: string }).type} document JSON`);
+
+            // Call the native document generation API
+            const docResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_SITE_URL || 'https://jcil.ai'}/api/documents/native`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Cookie': request.headers.get('cookie') || '',
+                },
+                body: JSON.stringify({
+                  documentData: extractedDoc.json,
+                  returnType: 'url',
+                }),
+              }
+            );
+
+            if (docResponse.ok) {
+              const docResult = await docResponse.json();
+              console.log(`[Chat API] Native document generated: ${docResult.filename}`);
+
+              // Return response with document download link
+              const responseText = extractedDoc.cleanResponse ||
+                `I've created your ${nativeDocType} document. You can download it below.`;
+
+              return new Response(
+                JSON.stringify({
+                  type: 'text',
+                  content: responseText,
+                  model: result.model,
+                  documentDownload: {
+                    url: docResult.downloadUrl || docResult.dataUrl,
+                    filename: docResult.filename,
+                    format: docResult.format,
+                    title: docResult.title,
+                  },
+                }),
+                {
+                  status: 200,
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Model-Used': result.model,
+                    'X-Provider': 'anthropic',
+                    'X-Document-Type': nativeDocType,
+                    'X-Document-Format': docResult.format,
+                  },
+                }
+              );
+            } else {
+              console.error('[Chat API] Native document generation failed:', await docResponse.text());
+              // Fall through to return text response
+            }
+          }
+
+          // If JSON extraction failed, return the text response
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: result.text,
+              model: result.model,
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Model-Used': result.model,
+                'X-Provider': 'anthropic',
+              },
+            }
+          );
+        } catch (nativeDocError) {
+          console.error('[Chat API] Native document error, falling back:', nativeDocError);
+          // Fall through to Skills API
+        }
+      }
+
+      // ========================================
+      // LEGACY DOCUMENT GENERATION (Skills API)
+      // ========================================
       // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
       const documentType = detectDocumentRequest(lastUserContent);
       if (documentType && isAuthenticated) {
-        console.log(`[Chat API] Document generation detected: ${documentType}`);
+        console.log(`[Chat API] Legacy document generation detected: ${documentType}`);
 
         try {
           // Build enhanced system prompt with professional document formatting instructions
@@ -1488,11 +1929,121 @@ Please summarize this information from our platform's perspective. Present the f
         ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
         : baseSystemPrompt;
 
+      // ========================================
+      // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
+      // ========================================
+      // Check for native document requests first (resume, spreadsheet, invoice, document)
+      const xaiNativeDocType = detectNativeDocumentRequest(lastUserContent);
+      if (xaiNativeDocType && isAuthenticated) {
+        console.log(`[Chat API] xAI: Native document generation: ${xaiNativeDocType}`);
+
+        try {
+          // Get the JSON schema prompt for the document type
+          const nativeDocPrompt = getNativeDocumentPrompt(xaiNativeDocType);
+          const enhancedSystemPrompt = `${systemPrompt}\n\n${nativeDocPrompt}`;
+
+          // Get AI to generate structured JSON
+          const result = await createXAICompletion({
+            messages: messagesWithContext,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            model: xaiModel as any,
+            maxTokens: clampedMaxTokens,
+            temperature,
+            systemPrompt: enhancedSystemPrompt,
+            stream: false,
+            userId: isAuthenticated ? rateLimitIdentifier : undefined,
+            planKey: userTier,
+          });
+
+          // Try to extract JSON document data from response
+          const extractedDoc = extractDocumentJSON(result.text);
+
+          if (extractedDoc) {
+            console.log(`[Chat API] xAI: Extracted ${(extractedDoc.json as { type: string }).type} document JSON`);
+
+            // Call the native document generation API
+            const docResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_SITE_URL || 'https://jcil.ai'}/api/documents/native`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Cookie': request.headers.get('cookie') || '',
+                },
+                body: JSON.stringify({
+                  documentData: extractedDoc.json,
+                  returnType: 'url',
+                }),
+              }
+            );
+
+            if (docResponse.ok) {
+              const docResult = await docResponse.json();
+              console.log(`[Chat API] xAI: Native document generated: ${docResult.filename}`);
+
+              // Return response with document download link
+              const responseText = extractedDoc.cleanResponse ||
+                `I've created your ${xaiNativeDocType} document. You can download it below.`;
+
+              return new Response(
+                JSON.stringify({
+                  type: 'text',
+                  content: responseText,
+                  model: result.model,
+                  documentDownload: {
+                    url: docResult.downloadUrl || docResult.dataUrl,
+                    filename: docResult.filename,
+                    format: docResult.format,
+                    title: docResult.title,
+                  },
+                }),
+                {
+                  status: 200,
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Model-Used': result.model,
+                    'X-Provider': 'xai',
+                    'X-Document-Type': xaiNativeDocType,
+                    'X-Document-Format': docResult.format,
+                  },
+                }
+              );
+            } else {
+              console.error('[Chat API] xAI: Native document generation failed:', await docResponse.text());
+              // Fall through to return text response
+            }
+          }
+
+          // If JSON extraction failed, return the text response
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: result.text,
+              model: result.model,
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Model-Used': result.model,
+                'X-Provider': 'xai',
+              },
+            }
+          );
+        } catch (nativeDocError) {
+          console.error('[Chat API] xAI: Native document error, falling back:', nativeDocError);
+          // Fall through to legacy document generation
+        }
+      }
+
+      // ========================================
+      // LEGACY DOCUMENT GENERATION (PDF fallback)
+      // ========================================
       // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
       // For xAI, we generate PDF versions (same as OpenAI - no native doc generation)
       const xaiDocumentType = detectDocumentRequest(lastUserContent);
       if (xaiDocumentType && isAuthenticated) {
-        console.log(`[Chat API] xAI: Document request detected: ${xaiDocumentType}`);
+        console.log(`[Chat API] xAI: Legacy document request detected: ${xaiDocumentType}`);
 
         // Get the comprehensive document formatting prompt
         const documentFormattingInstructions = getDocumentFormattingPrompt(xaiDocumentType);
@@ -1624,11 +2175,128 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
     const openaiModel = await getModelForTier(userTier);
     console.log('[Chat API] Using OpenAI provider with model:', openaiModel, 'for tier:', userTier);
 
+    // ========================================
+    // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
+    // ========================================
+    // Check for native document requests first (resume, spreadsheet, invoice, document)
+    const openaiNativeDocType = detectNativeDocumentRequest(lastUserContent);
+    if (openaiNativeDocType && isAuthenticated) {
+      console.log(`[Chat API] OpenAI: Native document generation: ${openaiNativeDocType}`);
+
+      try {
+        // Get the JSON schema prompt for the document type
+        const nativeDocPrompt = getNativeDocumentPrompt(openaiNativeDocType);
+
+        // Build system prompt with JSON schema instructions
+        const baseSystemPrompt = isAuthenticated
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? getSystemPromptForTool(effectiveTool as any)
+          : 'You are a helpful AI assistant.';
+        const enhancedSystemPrompt = `${baseSystemPrompt}\n\n${nativeDocPrompt}`;
+
+        // Get AI to generate structured JSON
+        const result = await createChatCompletion({
+          messages: [
+            { role: 'system', content: enhancedSystemPrompt },
+            ...messagesWithContext.filter(m => m.role !== 'system'),
+          ],
+          stream: false,
+          maxTokens: clampedMaxTokens,
+          temperature,
+          modelOverride: openaiModel,
+        });
+
+        const responseText = await result.text;
+
+        // Try to extract JSON document data from response
+        const extractedDoc = extractDocumentJSON(responseText);
+
+        if (extractedDoc) {
+          console.log(`[Chat API] OpenAI: Extracted ${(extractedDoc.json as { type: string }).type} document JSON`);
+
+          // Call the native document generation API
+          const docResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_SITE_URL || 'https://jcil.ai'}/api/documents/native`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cookie': request.headers.get('cookie') || '',
+              },
+              body: JSON.stringify({
+                documentData: extractedDoc.json,
+                returnType: 'url',
+              }),
+            }
+          );
+
+          if (docResponse.ok) {
+            const docResult = await docResponse.json();
+            console.log(`[Chat API] OpenAI: Native document generated: ${docResult.filename}`);
+
+            // Return response with document download link
+            const displayText = extractedDoc.cleanResponse ||
+              `I've created your ${openaiNativeDocType} document. You can download it below.`;
+
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: displayText,
+                model: openaiModel,
+                documentDownload: {
+                  url: docResult.downloadUrl || docResult.dataUrl,
+                  filename: docResult.filename,
+                  format: docResult.format,
+                  title: docResult.title,
+                },
+              }),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Model-Used': openaiModel,
+                  'X-Provider': 'openai',
+                  'X-Document-Type': openaiNativeDocType,
+                  'X-Document-Format': docResult.format,
+                },
+              }
+            );
+          } else {
+            console.error('[Chat API] OpenAI: Native document generation failed:', await docResponse.text());
+            // Fall through to return text response
+          }
+        }
+
+        // If JSON extraction failed, return the text response
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: responseText,
+            model: openaiModel,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': openaiModel,
+              'X-Provider': 'openai',
+            },
+          }
+        );
+      } catch (nativeDocError) {
+        console.error('[Chat API] OpenAI: Native document error, falling back:', nativeDocError);
+        // Fall through to legacy document generation
+      }
+    }
+
+    // ========================================
+    // LEGACY DOCUMENT GENERATION (PDF fallback)
+    // ========================================
     // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
     // For OpenAI, we generate PDF versions of documents (Excel/PPT/Word not supported)
     const openaiDocumentType = detectDocumentRequest(lastUserContent);
     if (openaiDocumentType && isAuthenticated) {
-      console.log(`[Chat API] OpenAI: Document request detected: ${openaiDocumentType}`);
+      console.log(`[Chat API] OpenAI: Legacy document request detected: ${openaiDocumentType}`);
 
       // For Excel/PPT/Word requests, instruct AI to create content for PDF
       // OpenAI doesn't have native document generation, so we output formatted content
