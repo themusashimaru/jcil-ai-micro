@@ -1165,6 +1165,8 @@ export async function POST(request: NextRequest) {
     // ========================================
     // Handle user-triggered search modes (Search and Fact Check buttons)
     // This runs BEFORE the provider check so it works for both OpenAI and Anthropic
+    // IMPORTANT: Perplexity gets raw facts, then we post-process through main AI
+    // to maintain platform integrity (Christian conservative perspective)
     if (searchMode && searchMode !== 'none' && isPerplexityConfigured()) {
       console.log(`[Chat API] User triggered ${searchMode} mode (provider: ${activeProvider})`);
 
@@ -1190,29 +1192,84 @@ Be objective and thorough in your fact-checking.`;
           systemPrompt: searchSystemPrompt,
         });
 
-        // Return just the answer without sources (cleaner UX)
-        // Sources are kept internal - not shown to users
-        // Also strip citation markers like [1], [2], [3] since we're hiding sources
-        const responseContent = perplexityResult.answer
+        // Clean up Perplexity response (remove citation markers)
+        const rawSearchContent = perplexityResult.answer
           .replace(/\[\d+\]/g, '')  // Remove [1], [2], etc.
           .replace(/\s{2,}/g, ' ')  // Clean up double spaces left behind
           .trim();
 
-        console.log(`[Chat API] Perplexity ${searchMode} completed successfully`);
+        console.log(`[Chat API] Perplexity ${searchMode} completed, post-processing through ${activeProvider}`);
+
+        // ========================================
+        // POST-PROCESS THROUGH MAIN AI
+        // ========================================
+        // Send Perplexity results through Anthropic/OpenAI with system prompt
+        // to maintain platform integrity (Christian conservative perspective)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const platformSystemPrompt = getSystemPromptForTool(effectiveTool as any);
+
+        const summaryPrompt = searchMode === 'factcheck'
+          ? `The user asked to fact-check: "${lastUserContent}"
+
+Here are the search results from the web:
+
+${rawSearchContent}
+
+Please summarize this fact-check from our platform's perspective. Present the facts accurately while maintaining our values. Be concise and helpful.`
+          : `The user searched for: "${lastUserContent}"
+
+Here are the search results from the web:
+
+${rawSearchContent}
+
+Please summarize this information from our platform's perspective. Present the facts accurately while maintaining our values. Be concise and helpful.`;
+
+        let finalContent = '';
+        let modelUsed = '';
+
+        if (activeProvider === 'anthropic') {
+          // Post-process through Anthropic
+          const anthropicModel = await getModelForTier(userTier);
+          const result = await createAnthropicCompletion({
+            messages: [{ role: 'user', content: summaryPrompt }],
+            model: anthropicModel,
+            maxTokens: 2048,
+            systemPrompt: platformSystemPrompt,
+          });
+          finalContent = result.text;
+          modelUsed = result.model;
+          console.log(`[Chat API] Search post-processed through Anthropic (${modelUsed})`);
+        } else {
+          // Post-process through OpenAI
+          const openaiModel = await getModelForTier(userTier);
+          const result = await createChatCompletion({
+            messages: [
+              { role: 'system', content: platformSystemPrompt },
+              { role: 'user', content: summaryPrompt },
+            ],
+            stream: false,
+            maxTokens: 2048,
+            modelOverride: openaiModel,
+          });
+          finalContent = result.content;
+          modelUsed = result.model;
+          console.log(`[Chat API] Search post-processed through OpenAI (${modelUsed})`);
+        }
 
         return new Response(
           JSON.stringify({
             type: 'text',
-            content: responseContent,
-            model: 'perplexity-sonar',
+            content: finalContent,
+            model: modelUsed,
           }),
           {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'X-Model-Used': 'perplexity-sonar',
-              'X-Provider': 'perplexity',
+              'X-Model-Used': modelUsed,
+              'X-Provider': activeProvider,
               'X-Search-Mode': searchMode,
+              'X-Web-Search': 'perplexity',
             },
           }
         );
