@@ -517,8 +517,9 @@ function getOpenAIApiKeyState(): OpenAIKeyState | null {
 
 /**
  * Mark a specific API key as rate limited
+ * Exported for use in retry logic
  */
-function markOpenAIKeyRateLimited(apiKey: string, retryAfterSeconds: number = 60): void {
+export function markOpenAIKeyRateLimited(apiKey: string, retryAfterSeconds: number = 60): void {
   const allKeys = [...openaiPrimaryPool, ...openaiFallbackPool];
   const keyState = allKeys.find(k => k.key === apiKey);
 
@@ -535,8 +536,9 @@ function markOpenAIKeyRateLimited(apiKey: string, retryAfterSeconds: number = 60
 
 /**
  * Get total number of API keys configured
+ * Exported for monitoring/debugging
  */
-function getOpenAITotalKeyCount(): number {
+export function getOpenAITotalKeyCount(): number {
   initializeOpenAIApiKeys();
   return openaiPrimaryPool.length + openaiFallbackPool.length;
 }
@@ -591,8 +593,9 @@ function getOpenAIApiKey(): string {
 
 /**
  * Get current API key (for rate limit tracking)
+ * Exported for use in retry logic
  */
-function getCurrentOpenAIApiKey(): string | null {
+export function getCurrentOpenAIApiKey(): string | null {
   const keyState = getOpenAIApiKeyState();
   return keyState?.key || null;
 }

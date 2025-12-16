@@ -1251,8 +1251,8 @@ Please summarize this information from our platform's perspective. Present the f
             maxTokens: 2048,
             modelOverride: openaiModel,
           });
-          finalContent = result.content;
-          modelUsed = result.model;
+          finalContent = await result.text;
+          modelUsed = openaiModel;
           console.log(`[Chat API] Search post-processed through OpenAI (${modelUsed})`);
         }
 
