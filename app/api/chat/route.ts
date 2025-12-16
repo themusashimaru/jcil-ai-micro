@@ -1488,6 +1488,80 @@ Please summarize this information from our platform's perspective. Present the f
         ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
         : baseSystemPrompt;
 
+      // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
+      // For xAI, we generate PDF versions (same as OpenAI - no native doc generation)
+      const xaiDocumentType = detectDocumentRequest(lastUserContent);
+      if (xaiDocumentType && isAuthenticated) {
+        console.log(`[Chat API] xAI: Document request detected: ${xaiDocumentType}`);
+
+        // Get the comprehensive document formatting prompt
+        const documentFormattingInstructions = getDocumentFormattingPrompt(xaiDocumentType);
+
+        // For Excel/PPT/Word requests, instruct AI to create content for PDF
+        const docTypeNames: Record<string, string> = {
+          xlsx: 'spreadsheet',
+          pptx: 'presentation',
+          docx: 'document',
+          pdf: 'PDF',
+        };
+        const docName = docTypeNames[xaiDocumentType] || 'document';
+
+        // Add special instruction for xAI to format content for PDF generation
+        const pdfFormatInstruction = xaiDocumentType !== 'pdf' ? `
+IMPORTANT: Since you cannot create native ${docName} files, format your response for PDF output instead:
+1. Start with a brief acknowledgment like "I'll create that as a PDF document for you."
+2. Then emit the [GENERATE_PDF: Title] marker followed by the formatted content.
+3. For spreadsheet/budget requests: Use markdown tables with clear headers and totals.
+4. For presentation requests: Create an outline with clear sections.
+5. Example format:
+Creating your ${docName} as a PDF now.
+
+[GENERATE_PDF: Your Title Here]
+
+## Section 1
+Content here...
+
+| Column 1 | Column 2 | Column 3 |
+|----------|----------|----------|
+| Data     | Data     | Data     |
+
+Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
+` : '';
+
+        // Build enhanced system prompt with document formatting instructions
+        const enhancedSystemPrompt = `${systemPrompt}\n\n${documentFormattingInstructions}${pdfFormatInstruction}`;
+
+        // Use non-streaming for document generation
+        const docResult = await createXAICompletion({
+          messages: messagesWithContext,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          model: xaiModel as any,
+          maxTokens: clampedMaxTokens,
+          temperature,
+          systemPrompt: enhancedSystemPrompt,
+          stream: false,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
+        });
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: docResult.text,
+            model: docResult.model,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': docResult.model,
+              'X-Document-Type': xaiDocumentType,
+              'X-Provider': 'xai',
+            },
+          }
+        );
+      }
+
       // Non-streaming for image analysis
       if (hasImages) {
         console.log('[Chat API] xAI: Non-streaming mode for image analysis');
