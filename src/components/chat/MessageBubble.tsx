@@ -613,7 +613,7 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
                 )}
               </button>
             )}
-            {/* Admin-only model indicator */}
+            {/* Admin-only model indicator - shows EXACT model name for debugging */}
             {isAdmin && !isUser && message.model && (
               <span
                 className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
@@ -629,19 +629,12 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
                     ? 'bg-violet-500/20 text-violet-400'
                     : message.model.includes('opus')
                     ? 'bg-amber-500/20 text-amber-400'
+                    : message.model.includes('sonar')
+                    ? 'bg-orange-500/20 text-orange-400'
                     : 'bg-purple-500/20 text-purple-400'
                 }`}
-                title={`Model: ${message.model}`}
               >
-                {message.model.includes('dall-e')
-                  ? 'dall-e'
-                  : message.model.includes('haiku')
-                  ? 'haiku'
-                  : message.model.includes('sonnet')
-                  ? 'sonnet'
-                  : message.model.includes('opus')
-                  ? 'opus'
-                  : message.model.replace('gpt-5-', '').replace('claude-', '')}
+                {message.model}
               </span>
             )}
             {/* Admin-only search provider indicator */}
