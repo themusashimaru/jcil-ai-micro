@@ -1971,7 +1971,7 @@ export function ChatClient() {
                 isStreaming={isStreaming}
                 disabled={isWaitingForReply}
                 hideImageSuggestion={!imageGenerationAvailable}
-                showSearchButtons={activeProvider === 'anthropic'}
+                showSearchButtons={true}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
