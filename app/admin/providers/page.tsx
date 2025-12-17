@@ -13,7 +13,7 @@
 
 import { useState, useEffect } from 'react';
 
-type Provider = 'openai' | 'anthropic' | 'xai';
+type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek';
 
 interface TierModels {
   basic: string;
@@ -31,6 +31,7 @@ interface ProviderConfig {
   openai: ProviderModelConfig;
   anthropic: ProviderModelConfig;
   xai: ProviderModelConfig;
+  deepseek: ProviderModelConfig;
 }
 
 export default function ProvidersPage() {
@@ -59,6 +60,14 @@ export default function ProvidersPage() {
         basic: 'grok-3-mini',
         pro: 'grok-3',
         executive: 'grok-3',
+      },
+    },
+    deepseek: {
+      model: 'deepseek-chat',
+      models: {
+        basic: 'deepseek-chat',
+        pro: 'deepseek-chat',
+        executive: 'deepseek-chat',
       },
     },
   });
@@ -116,6 +125,14 @@ export default function ProvidersPage() {
                 basic: data.providerConfig.xai?.models?.basic || 'grok-3-mini',
                 pro: data.providerConfig.xai?.models?.pro || 'grok-3',
                 executive: data.providerConfig.xai?.models?.executive || 'grok-3',
+              },
+            },
+            deepseek: {
+              model: data.providerConfig.deepseek?.model || 'deepseek-chat',
+              models: {
+                basic: data.providerConfig.deepseek?.models?.basic || 'deepseek-chat',
+                pro: data.providerConfig.deepseek?.models?.pro || 'deepseek-chat',
+                executive: data.providerConfig.deepseek?.models?.executive || 'deepseek-chat',
               },
             },
           });
@@ -236,6 +253,12 @@ export default function ProvidersPage() {
       return;
     }
 
+    const deepseekModels = providerConfig.deepseek.models;
+    if (!deepseekModels.basic.trim() || !deepseekModels.pro.trim() || !deepseekModels.executive.trim()) {
+      setError('All DeepSeek tier model names must be filled');
+      return;
+    }
+
     setIsSavingModels(true);
     setError(null);
     setSuccessMessage(null);
@@ -306,7 +329,7 @@ export default function ProvidersPage() {
 
       {/* Provider Switch */}
       <div className="rounded-xl p-6 mb-6" style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* OpenAI Option */}
           <button
             onClick={() => handleProviderSwitch('openai')}
@@ -409,6 +432,42 @@ export default function ProvidersPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-green-500">✓</span>
                     <span style={{ color: 'var(--text-secondary)' }}>Vision/Image analysis</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {/* DeepSeek Option */}
+          <button
+            onClick={() => handleProviderSwitch('deepseek')}
+            disabled={isSaving}
+            className="p-6 rounded-xl border-2 transition-all text-left"
+            style={{
+              borderColor: activeProvider === 'deepseek' ? '#22c55e' : 'var(--border)',
+              backgroundColor: activeProvider === 'deepseek' ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+            }}
+          >
+            <div className="flex items-start gap-4">
+              <div
+                className="w-4 h-4 rounded-full mt-1"
+                style={{ backgroundColor: activeProvider === 'deepseek' ? '#22c55e' : 'var(--text-muted)' }}
+              />
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">DeepSeek</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Cost-effective with reasoning mode</p>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-blue-500">✓</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Web search (Perplexity)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-purple-500">🧠</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Deep reasoning mode (R1)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-500">💰</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Very cost-effective</span>
                   </div>
                 </div>
               </div>
@@ -575,6 +634,52 @@ export default function ProvidersPage() {
           </div>
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
             Examples: grok-3-mini, grok-3, grok-2-mini, grok-2
+          </p>
+        </div>
+
+        {/* DeepSeek Models */}
+        <div className="mb-8">
+          <h4 className="text-lg font-semibold text-cyan-500 mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-cyan-500 rounded-full"></span>
+            DeepSeek Models
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label className="block">
+              <span className="text-sm font-medium">Plus Tier</span>
+              <input
+                type="text"
+                value={providerConfig.deepseek.models.basic}
+                onChange={(e) => handleTierModelChange('deepseek', 'basic', e.target.value)}
+                placeholder="deepseek-chat"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Pro Tier</span>
+              <input
+                type="text"
+                value={providerConfig.deepseek.models.pro}
+                onChange={(e) => handleTierModelChange('deepseek', 'pro', e.target.value)}
+                placeholder="deepseek-chat"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Executive Tier</span>
+              <input
+                type="text"
+                value={providerConfig.deepseek.models.executive}
+                onChange={(e) => handleTierModelChange('deepseek', 'executive', e.target.value)}
+                placeholder="deepseek-chat"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+          </div>
+          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+            Models: deepseek-chat (fast), deepseek-reasoner (R1 with chain-of-thought reasoning)
           </p>
         </div>
 
