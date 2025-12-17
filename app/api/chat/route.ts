@@ -42,7 +42,6 @@
  */
 
 import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from '@/lib/openai/client';
-import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
