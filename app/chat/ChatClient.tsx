@@ -128,8 +128,6 @@ export function ChatClient() {
   const [isAdmin, setIsAdmin] = useState(false);
   // Track if image generation is available (depends on active provider)
   const [imageGenerationAvailable, setImageGenerationAvailable] = useState(true);
-  // Track active provider (openai, anthropic, xai, or deepseek) - used for UI features
-  const [activeProvider, setActiveProvider] = useState<'openai' | 'anthropic' | 'xai' | 'deepseek'>('openai');
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -308,16 +306,11 @@ export function ChatClient() {
         if (response.ok) {
           const data = await response.json();
           setImageGenerationAvailable(data.imageGeneration === true);
-          // Set active provider for conditional UI
-          if (data.activeProvider === 'anthropic' || data.activeProvider === 'openai' || data.activeProvider === 'xai' || data.activeProvider === 'deepseek') {
-            setActiveProvider(data.activeProvider);
-          }
         }
       } catch (error) {
         console.error('[ChatClient] Error checking features:', error);
         // Default to OpenAI behavior on error
         setImageGenerationAvailable(true);
-        setActiveProvider('openai');
       }
     };
     checkFeatures();
