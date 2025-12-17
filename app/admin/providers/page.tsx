@@ -25,6 +25,7 @@ interface ProviderModelConfig {
   model: string; // Legacy fallback
   models: TierModels;
   imageModel?: string; // OpenAI only
+  reasoningModels?: TierModels; // DeepSeek only - reasoning model per tier
 }
 
 interface ProviderConfig {
@@ -68,6 +69,11 @@ export default function ProvidersPage() {
         basic: 'deepseek-chat',
         pro: 'deepseek-chat',
         executive: 'deepseek-chat',
+      },
+      reasoningModels: {
+        basic: 'deepseek-reasoner',
+        pro: 'deepseek-reasoner',
+        executive: 'deepseek-reasoner',
       },
     },
   });
@@ -133,6 +139,11 @@ export default function ProvidersPage() {
                 basic: data.providerConfig.deepseek?.models?.basic || 'deepseek-chat',
                 pro: data.providerConfig.deepseek?.models?.pro || 'deepseek-chat',
                 executive: data.providerConfig.deepseek?.models?.executive || 'deepseek-chat',
+              },
+              reasoningModels: {
+                basic: data.providerConfig.deepseek?.reasoningModels?.basic || 'deepseek-reasoner',
+                pro: data.providerConfig.deepseek?.reasoningModels?.pro || 'deepseek-reasoner',
+                executive: data.providerConfig.deepseek?.reasoningModels?.executive || 'deepseek-reasoner',
               },
             },
           });
@@ -229,6 +240,21 @@ export default function ProvidersPage() {
     setSuccessMessage(null);
   };
 
+  // Handle reasoning model changes (DeepSeek only)
+  const handleReasoningModelChange = (tier: keyof TierModels, model: string) => {
+    setProviderConfig(prev => ({
+      ...prev,
+      deepseek: {
+        ...prev.deepseek,
+        reasoningModels: {
+          ...prev.deepseek.reasoningModels!,
+          [tier]: model,
+        },
+      },
+    }));
+    setSuccessMessage(null);
+  };
+
   // Save model settings
   const handleSaveModels = async () => {
     if (isSavingModels) return;
@@ -256,6 +282,12 @@ export default function ProvidersPage() {
     const deepseekModels = providerConfig.deepseek.models;
     if (!deepseekModels.basic.trim() || !deepseekModels.pro.trim() || !deepseekModels.executive.trim()) {
       setError('All DeepSeek tier model names must be filled');
+      return;
+    }
+
+    const deepseekReasoningModels = providerConfig.deepseek.reasoningModels;
+    if (deepseekReasoningModels && (!deepseekReasoningModels.basic.trim() || !deepseekReasoningModels.pro.trim() || !deepseekReasoningModels.executive.trim())) {
+      setError('All DeepSeek reasoning model names must be filled');
       return;
     }
 
@@ -643,7 +675,10 @@ export default function ProvidersPage() {
             <span className="w-3 h-3 bg-cyan-500 rounded-full"></span>
             DeepSeek Models
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          {/* Chat Models */}
+          <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>Chat Models (Regular)</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <label className="block">
               <span className="text-sm font-medium">Plus Tier</span>
               <input
@@ -678,8 +713,49 @@ export default function ProvidersPage() {
               />
             </label>
           </div>
+
+          {/* Reasoning Models */}
+          <p className="text-sm font-medium mb-2 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-purple-500">🧠</span>
+            Reasoning Models (R1 - Deep Thinking)
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+            <label className="block">
+              <span className="text-sm font-medium">Plus Tier</span>
+              <input
+                type="text"
+                value={providerConfig.deepseek.reasoningModels?.basic || ''}
+                onChange={(e) => handleReasoningModelChange('basic', e.target.value)}
+                placeholder="deepseek-reasoner"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Pro Tier</span>
+              <input
+                type="text"
+                value={providerConfig.deepseek.reasoningModels?.pro || ''}
+                onChange={(e) => handleReasoningModelChange('pro', e.target.value)}
+                placeholder="deepseek-reasoner"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Executive Tier</span>
+              <input
+                type="text"
+                value={providerConfig.deepseek.reasoningModels?.executive || ''}
+                onChange={(e) => handleReasoningModelChange('executive', e.target.value)}
+                placeholder="deepseek-reasoner"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+          </div>
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-            Models: deepseek-chat (fast), deepseek-reasoner (R1 with chain-of-thought reasoning)
+            Chat models: deepseek-chat (fast). Reasoning models: deepseek-reasoner (R1 with chain-of-thought, activated via the purple &quot;Reason&quot; button)
           </p>
         </div>
 
