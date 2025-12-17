@@ -11,6 +11,7 @@
 import Link from 'next/link';
 import PricingSection from './components/PricingSection';
 import LandingLogo from './components/LandingLogo';
+import MobileMenu from './components/MobileMenu';
 
 export default function HomePage() {
   return (
@@ -20,17 +21,38 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-4">
           <nav className="flex items-center justify-between">
             <LandingLogo />
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link href="/login" className="px-3 py-2 text-slate-700 hover:text-slate-900 text-sm sm:text-base font-medium transition">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-6">
+              <Link href="#how-it-works" className="text-slate-600 hover:text-slate-900 font-medium transition">
+                How It Works
+              </Link>
+              <Link href="#pricing" className="text-slate-600 hover:text-slate-900 font-medium transition">
+                Pricing
+              </Link>
+              <Link href="/about" className="text-slate-600 hover:text-slate-900 font-medium transition">
+                About
+              </Link>
+              <Link href="/faq" className="text-slate-600 hover:text-slate-900 font-medium transition">
+                FAQ
+              </Link>
+            </div>
+
+            {/* Desktop CTA Buttons */}
+            <div className="hidden md:flex items-center space-x-4">
+              <Link href="/login" className="px-4 py-2 text-slate-700 hover:text-slate-900 font-medium transition">
                 Log In
               </Link>
               <Link
                 href="/signup"
-                className="rounded-xl bg-gradient-to-r from-blue-900 to-blue-700 px-4 py-2 sm:px-6 text-white font-semibold hover:shadow-lg hover:shadow-blue-900/25 text-sm sm:text-base transition-all duration-300"
+                className="rounded-xl bg-gradient-to-r from-blue-900 to-blue-700 px-6 py-2 text-white font-semibold hover:shadow-lg hover:shadow-blue-900/25 transition-all duration-300"
               >
                 Sign Up
               </Link>
             </div>
+
+            {/* Mobile Menu */}
+            <MobileMenu />
           </nav>
         </div>
       </header>
@@ -302,8 +324,8 @@ export default function HomePage() {
                           <span>🧠</span> AI Processing Core
                         </h4>
                         <p className="text-slate-400 text-sm">
-                          Anthropic&apos;s Claude, one of the most advanced AI models in existence, processes
-                          your request within the theological boundaries we&apos;ve established.
+                          World-class AI models from leading providers process your request within
+                          the theological boundaries we&apos;ve established. Multiple providers, one mission.
                         </p>
                       </div>
                     </div>
@@ -506,7 +528,7 @@ export default function HomePage() {
           <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
             {[
               { icon: '💬', title: 'AI Chat', desc: 'Intelligent conversation for any topic' },
-              { icon: '🔍', title: 'Real-Time Fact-Checking', desc: 'Perplexity-powered accurate research' },
+              { icon: '🔍', title: 'Real-Time Search', desc: 'Live web search with source citations' },
               { icon: '📰', title: 'Breaking News', desc: 'Curated news updated every 30 minutes' },
               { icon: '📖', title: 'Bible Study', desc: 'Scripture exploration and study aids' },
               { icon: '✍️', title: 'Writing Tools', desc: 'Essays, emails, and content creation' },
