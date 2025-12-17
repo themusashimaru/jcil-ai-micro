@@ -105,6 +105,9 @@ const PLACEHOLDER_SUGGESTIONS_NO_IMAGE = PLACEHOLDER_SUGGESTIONS.filter(
 );
 
 export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons, showReasoningButton }: ChatComposerProps) {
+  // Debug: log the showReasoningButton prop
+  console.log('[ChatComposer] showReasoningButton:', showReasoningButton);
+
   // Use filtered suggestions when image generation is not available
   const suggestions = hideImageSuggestion ? PLACEHOLDER_SUGGESTIONS_NO_IMAGE : PLACEHOLDER_SUGGESTIONS;
   const [message, setMessage] = useState('');
@@ -569,7 +572,8 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
               )}
 
               {/* Reasoning button (DeepSeek only) - toggle */}
-              {showReasoningButton && (
+              {/* TEMP: Always show for testing, was: showReasoningButton && */}
+              {(showReasoningButton || true) && (
                 <button
                   onClick={() => setReasoningMode(!reasoningMode)}
                   disabled={isStreaming || disabled}
