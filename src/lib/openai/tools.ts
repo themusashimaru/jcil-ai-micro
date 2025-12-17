@@ -118,3 +118,27 @@ For these queries, direct users to the 🌐 Search button:
 Be warm and helpful. Frame buttons as features, not limitations.
 `;
 }
+
+/**
+ * Get Gemini-specific search guidance
+ * Gemini has native Google Search grounding - model decides when to search automatically
+ */
+export function getGeminiSearchGuidance(): string {
+  return `
+**REAL-TIME INFO:** You have access to Google Search to find current information.
+
+When users ask about current events, news, weather, prices, or anything that requires up-to-date information:
+- Search automatically to provide accurate, current information
+- Include relevant facts and context from your search results
+- Cite sources when appropriate to build trust
+
+You can search for:
+- Breaking news and current events
+- Weather and time information
+- Stock prices, sports scores, and live data
+- Recent developments on any topic
+- Fact-checking and verification
+
+Be proactive about searching when it would improve your response accuracy.
+`;
+}
