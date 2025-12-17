@@ -21,6 +21,7 @@ interface ProviderSettingsRow {
     anthropic?: { model: string };
     xai?: { model: string };
     deepseek?: { model: string; reasoningModel?: string };
+    gemini?: { model: string };
   };
   updated_by: string | null;
   created_at: string;
@@ -35,6 +36,7 @@ const DEFAULT_SETTINGS = {
     anthropic: { model: 'claude-sonnet-4-5-20250929' },
     xai: { model: 'grok-3-mini' },
     deepseek: { model: 'deepseek-chat', reasoningModel: 'deepseek-reasoner' },
+    gemini: { model: 'gemini-2.0-flash' },
   },
 };
 
@@ -93,9 +95,9 @@ export async function PUT(request: NextRequest) {
     const { activeProvider, providerConfig } = body;
 
     // Validate provider
-    if (activeProvider && !['openai', 'anthropic', 'xai', 'deepseek'].includes(activeProvider)) {
+    if (activeProvider && !['openai', 'anthropic', 'xai', 'deepseek', 'gemini'].includes(activeProvider)) {
       return NextResponse.json(
-        { error: 'Invalid provider. Must be "openai", "anthropic", "xai", or "deepseek"' },
+        { error: 'Invalid provider. Must be "openai", "anthropic", "xai", "deepseek", or "gemini"' },
         { status: 400 }
       );
     }

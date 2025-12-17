@@ -65,6 +65,10 @@ import {
   createDeepSeekCompletion,
   createDeepSeekStreamingCompletion,
 } from '@/lib/deepseek/client';
+import {
+  createGeminiCompletion,
+  createGeminiStreamingCompletion,
+} from '@/lib/gemini/client';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
@@ -1619,6 +1623,18 @@ Please summarize this information from our platform's perspective. Present the f
           finalContent = result.text;
           modelUsed = result.model;
           console.log(`[Chat API] Search post-processed through DeepSeek (${modelUsed})`);
+        } else if (activeProvider === 'gemini') {
+          // Post-process through Gemini
+          const geminiModel = await getModelForTier(userTier, 'gemini');
+          const result = await createGeminiCompletion({
+            messages: [{ role: 'user', content: summaryPrompt }],
+            model: geminiModel,
+            maxTokens: 2048,
+            systemPrompt: platformSystemPrompt,
+          });
+          finalContent = result.text;
+          modelUsed = result.model;
+          console.log(`[Chat API] Search post-processed through Gemini (${modelUsed})`);
         } else {
           // Post-process through OpenAI
           const openaiModel = await getModelForTier(userTier);
@@ -2437,6 +2453,241 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           'X-Model-Used': streamResult.model,
           'X-Provider': 'deepseek',
           'X-Reasoning-Mode': isReasoning ? 'true' : 'false',
+        },
+      });
+    }
+
+    // ========================================
+    // GEMINI PATH - Google Gemini (tier-specific model)
+    // ========================================
+    if (activeProvider === 'gemini') {
+      // Get tier-specific model (uses provider settings with tier lookup)
+      const geminiModel = await getModelForTier(userTier, 'gemini');
+      console.log('[Chat API] Using Gemini provider with model:', geminiModel, 'for tier:', userTier);
+
+      // Use unified system prompt for all providers
+      // Add search button guidance (same as Anthropic - search via Perplexity buttons)
+      const baseSystemPrompt = isAuthenticated
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? getSystemPromptForTool(effectiveTool as any)
+        : 'You are a helpful AI assistant.';
+
+      const systemPrompt = isAuthenticated
+        ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
+        : baseSystemPrompt;
+
+      // ========================================
+      // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
+      // ========================================
+      // Check for native document requests first (resume, spreadsheet, invoice, document)
+      const geminiNativeDocType = detectNativeDocumentRequest(lastUserContent);
+      if (geminiNativeDocType && isAuthenticated) {
+        console.log(`[Chat API] Gemini: Native document generation: ${geminiNativeDocType}`);
+
+        try {
+          // Get the JSON schema prompt for the document type
+          const nativeDocPrompt = getNativeDocumentPrompt(geminiNativeDocType);
+          const enhancedSystemPrompt = `${systemPrompt}\n\n${nativeDocPrompt}`;
+
+          // Get AI to generate structured JSON
+          const result = await createGeminiCompletion({
+            messages: messagesWithContext,
+            model: geminiModel,
+            maxTokens: clampedMaxTokens,
+            temperature,
+            systemPrompt: enhancedSystemPrompt,
+            userId: isAuthenticated ? rateLimitIdentifier : undefined,
+            planKey: userTier,
+          });
+
+          // Try to extract JSON document data from response
+          let extractedDoc = extractDocumentJSON(result.text);
+
+          // If Gemini failed to produce valid JSON, fallback to GPT-4o-mini
+          if (!extractedDoc) {
+            console.log('[Chat API] Gemini: JSON extraction failed, falling back to GPT-4o-mini...');
+            try {
+              const fallbackResult = await createChatCompletion({
+                messages: [
+                  { role: 'system', content: enhancedSystemPrompt },
+                  ...messagesWithContext.filter(m => m.role !== 'system'),
+                ],
+                modelOverride: 'gpt-4o-mini',
+                maxTokens: clampedMaxTokens,
+                temperature,
+                stream: false,
+              });
+              const fallbackText = await fallbackResult.text;
+              if (fallbackText) {
+                extractedDoc = extractDocumentJSON(fallbackText);
+                if (extractedDoc) {
+                  console.log('[Chat API] Gemini: GPT-4o-mini fallback successful for document JSON');
+                }
+              }
+            } catch (fallbackError) {
+              console.error('[Chat API] Gemini: GPT-4o-mini fallback also failed:', fallbackError);
+            }
+          }
+
+          if (extractedDoc) {
+            console.log(`[Chat API] Gemini: Extracted ${(extractedDoc.json as { type: string }).type} document JSON`);
+
+            // Call the native document generation API
+            const docResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_SITE_URL || 'https://jcil.ai'}/api/documents/native`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Cookie': request.headers.get('cookie') || '',
+                },
+                body: JSON.stringify({
+                  documentData: extractedDoc.json,
+                  returnType: 'url',
+                }),
+              }
+            );
+
+            if (docResponse.ok) {
+              const docResult = await docResponse.json();
+              console.log(`[Chat API] Gemini: Native document generated: ${docResult.filename}`);
+
+              // Return response with document download link
+              const responseText = extractedDoc.cleanResponse ||
+                `I've created your ${geminiNativeDocType} document. You can download it below.`;
+
+              return new Response(
+                JSON.stringify({
+                  type: 'text',
+                  content: responseText,
+                  model: result.model,
+                  documentDownload: {
+                    url: docResult.downloadUrl || docResult.dataUrl,
+                    filename: docResult.filename,
+                    format: docResult.format,
+                    title: docResult.title,
+                  },
+                }),
+                {
+                  status: 200,
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Model-Used': result.model,
+                    'X-Provider': 'gemini',
+                    'X-Document-Type': geminiNativeDocType,
+                    'X-Document-Format': docResult.format,
+                  },
+                }
+              );
+            } else {
+              console.error('[Chat API] Gemini: Native document generation failed:', await docResponse.text());
+              // Fall through to return text response
+            }
+          }
+
+          // If JSON extraction failed, return the text response
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: result.text,
+              model: result.model,
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Model-Used': result.model,
+                'X-Provider': 'gemini',
+              },
+            }
+          );
+        } catch (nativeDocError) {
+          console.error('[Chat API] Gemini: Native document error, falling back:', nativeDocError);
+          // Fall through to legacy document generation
+        }
+      }
+
+      // ========================================
+      // LEGACY DOCUMENT GENERATION (PDF fallback)
+      // ========================================
+      // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
+      // For Gemini, we generate PDF versions (same as xAI/OpenAI - no native doc generation)
+      const geminiDocumentType = detectDocumentRequest(lastUserContent);
+      if (geminiDocumentType && isAuthenticated) {
+        console.log(`[Chat API] Gemini: Legacy document request detected: ${geminiDocumentType}`);
+
+        // Get the comprehensive document formatting prompt
+        const documentFormattingInstructions = getDocumentFormattingPrompt(geminiDocumentType);
+
+        // For Excel/PPT/Word requests, instruct AI to create content for PDF
+        const docTypeNames: Record<string, string> = {
+          xlsx: 'spreadsheet',
+          pptx: 'presentation',
+          docx: 'document',
+          pdf: 'PDF',
+        };
+        const docName = docTypeNames[geminiDocumentType] || 'document';
+
+        // Add special instruction for Gemini to format content for PDF generation
+        const pdfFormatInstruction = geminiDocumentType !== 'pdf' ? `
+IMPORTANT: Since you cannot create native ${docName} files, format your response for PDF output instead:
+- Use clear markdown formatting
+- Use tables (| col1 | col2 |) for spreadsheet-like data
+- Use headers (## and ###) for sections
+- The content will be converted to a professional PDF document` : '';
+
+        const enhancedSystemPrompt = `${systemPrompt}\n\n${documentFormattingInstructions}${pdfFormatInstruction}`;
+
+        // Use non-streaming for document generation (need full content for PDF)
+        const result = await createGeminiCompletion({
+          messages: messagesWithContext,
+          model: geminiModel,
+          maxTokens: clampedMaxTokens,
+          temperature,
+          systemPrompt: enhancedSystemPrompt,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
+        });
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: result.text,
+            model: result.model,
+            documentGeneration: true,
+            documentType: 'pdf', // Always PDF for Gemini
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': result.model,
+              'X-Provider': 'gemini',
+              'X-Document-Type': 'pdf',
+            },
+          }
+        );
+      }
+
+      // ========================================
+      // REGULAR CHAT (streaming)
+      // ========================================
+      const streamResult = await createGeminiStreamingCompletion({
+        messages: messagesWithContext,
+        model: geminiModel,
+        maxTokens: clampedMaxTokens,
+        temperature,
+        systemPrompt,
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        planKey: userTier,
+      });
+
+      return new Response(streamResult.stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'X-Model-Used': streamResult.model,
+          'X-Provider': 'gemini',
         },
       });
     }

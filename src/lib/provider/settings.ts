@@ -9,7 +9,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-export type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek';
+export type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek' | 'gemini';
 
 export interface ProviderConfig {
   model: string;
@@ -23,6 +23,7 @@ export interface ProviderSettings {
     anthropic: ProviderConfig;
     xai: ProviderConfig;
     deepseek: ProviderConfig;
+    gemini: ProviderConfig;
   };
 }
 
@@ -34,6 +35,7 @@ const DEFAULT_SETTINGS: ProviderSettings = {
     anthropic: { model: 'claude-sonnet-4-5-20250929' },
     xai: { model: 'grok-3-mini' },
     deepseek: { model: 'deepseek-chat', reasoningModel: 'deepseek-reasoner' },
+    gemini: { model: 'gemini-2.0-flash' },
   },
 };
 
@@ -90,7 +92,8 @@ export async function getProviderSettings(): Promise<ProviderSettings> {
     const activeProvider: Provider =
       data.active_provider === 'anthropic' ? 'anthropic' :
       data.active_provider === 'xai' ? 'xai' :
-      data.active_provider === 'deepseek' ? 'deepseek' : 'openai';
+      data.active_provider === 'deepseek' ? 'deepseek' :
+      data.active_provider === 'gemini' ? 'gemini' : 'openai';
 
     const settings: ProviderSettings = {
       activeProvider,
@@ -99,6 +102,7 @@ export async function getProviderSettings(): Promise<ProviderSettings> {
         anthropic: data.provider_config?.anthropic || DEFAULT_SETTINGS.providerConfig.anthropic,
         xai: data.provider_config?.xai || DEFAULT_SETTINGS.providerConfig.xai,
         deepseek: data.provider_config?.deepseek || DEFAULT_SETTINGS.providerConfig.deepseek,
+        gemini: data.provider_config?.gemini || DEFAULT_SETTINGS.providerConfig.gemini,
       },
     };
 
@@ -161,6 +165,9 @@ export function isProviderConfigured(provider: Provider): boolean {
   }
   if (provider === 'deepseek') {
     return !!process.env.DEEPSEEK_API_KEY || !!process.env.DEEPSEEK_API_KEY_1;
+  }
+  if (provider === 'gemini') {
+    return !!process.env.GOOGLE_GENERATIVE_AI_API_KEY || !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_GENERATIVE_AI_API_KEY_1 || !!process.env.GEMINI_API_KEY_1;
   }
   return false;
 }
