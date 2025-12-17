@@ -915,9 +915,13 @@ export async function POST(request: NextRequest) {
       console.log(`[Chat API] Admin bypass for user: ${rateLimitIdentifier}`);
     }
 
-    // Moderate user messages before sending to OpenAI
+    // Get provider settings early to determine moderation strategy
+    const providerSettings = await getProviderSettings();
+    const activeProvider: Provider = providerSettings.activeProvider;
+
+    // Moderate user messages (skip for Gemini - uses native safety settings)
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.role === 'user') {
+    if (lastMessage && lastMessage.role === 'user' && activeProvider !== 'gemini') {
       // Extract only text content for moderation (not image data)
       let messageContent: string;
       if (typeof lastMessage.content === 'string') {
@@ -1097,10 +1101,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // PROVIDER CHECK - OpenAI vs Anthropic
+    // PROVIDER CHECK - Already fetched earlier for moderation decision
     // ========================================
-    const providerSettings = await getProviderSettings();
-    const activeProvider: Provider = providerSettings.activeProvider;
     console.log('[Chat API] Active provider:', activeProvider);
 
     // ========================================
