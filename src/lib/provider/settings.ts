@@ -13,6 +13,7 @@ export type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek';
 
 export interface ProviderConfig {
   model: string;
+  reasoningModel?: string; // DeepSeek only
 }
 
 export interface ProviderSettings {
@@ -32,7 +33,7 @@ const DEFAULT_SETTINGS: ProviderSettings = {
     openai: { model: 'gpt-5-mini' },
     anthropic: { model: 'claude-sonnet-4-5-20250929' },
     xai: { model: 'grok-3-mini' },
-    deepseek: { model: 'deepseek-chat' },
+    deepseek: { model: 'deepseek-chat', reasoningModel: 'deepseek-reasoner' },
   },
 };
 
@@ -134,6 +135,15 @@ export async function getActiveProvider(): Promise<Provider> {
 export async function getActiveModel(): Promise<string> {
   const settings = await getProviderSettings();
   return settings.providerConfig[settings.activeProvider].model;
+}
+
+/**
+ * Get the reasoning model for DeepSeek
+ * Returns the reasoning model if available, falls back to 'deepseek-reasoner'
+ */
+export async function getDeepSeekReasoningModel(): Promise<string> {
+  const settings = await getProviderSettings();
+  return settings.providerConfig.deepseek.reasoningModel || 'deepseek-reasoner';
 }
 
 /**

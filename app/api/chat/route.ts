@@ -50,7 +50,7 @@ import { getSystemPromptForTool, getAnthropicSearchOverride } from '@/lib/openai
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
-import { getProviderSettings, Provider, getModelForTier } from '@/lib/provider/settings';
+import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel } from '@/lib/provider/settings';
 import {
   createAnthropicCompletion,
   createAnthropicStreamingCompletion,
@@ -2214,8 +2214,11 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
     // ========================================
     if (activeProvider === 'deepseek') {
       // Get tier-specific model (uses provider settings with tier lookup)
-      const deepseekModel = await getModelForTier(userTier, 'deepseek');
       const isReasoning = reasoningMode === true;
+      // Use reasoning model from settings when reasoning mode is enabled
+      const deepseekModel = isReasoning
+        ? await getDeepSeekReasoningModel()
+        : await getModelForTier(userTier, 'deepseek');
       console.log('[Chat API] Using DeepSeek provider with model:', deepseekModel, 'reasoning:', isReasoning, 'for tier:', userTier);
 
       // Use unified system prompt for all providers

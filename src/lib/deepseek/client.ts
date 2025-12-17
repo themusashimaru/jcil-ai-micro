@@ -384,8 +384,9 @@ export async function createDeepSeekCompletion(options: DeepSeekChatOptions): Pr
     reasoning = false,
   } = options;
 
-  // Use reasoning model if reasoning mode is enabled
-  const selectedModel = reasoning ? REASONING_MODEL : (model || DEFAULT_MODEL);
+  // Use passed model if provided, otherwise fall back to reasoning/default model
+  // This allows the chat API to specify exact models from settings
+  const selectedModel = model || (reasoning ? REASONING_MODEL : DEFAULT_MODEL);
 
   const client = getDeepSeekClient();
   const currentKey = getCurrentDeepSeekApiKey();
@@ -504,8 +505,9 @@ export async function createDeepSeekStreamingCompletion(options: DeepSeekChatOpt
     reasoning = false,
   } = options;
 
-  // Use reasoning model if reasoning mode is enabled
-  const selectedModel = reasoning ? REASONING_MODEL : (model || DEFAULT_MODEL);
+  // Use passed model if provided, otherwise fall back to reasoning/default model
+  // This allows the chat API to specify exact models from settings
+  const selectedModel = model || (reasoning ? REASONING_MODEL : DEFAULT_MODEL);
 
   const client = getDeepSeekClient();
 
