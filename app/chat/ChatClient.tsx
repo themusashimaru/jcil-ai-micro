@@ -307,9 +307,11 @@ export function ChatClient() {
         const response = await fetch('/api/features');
         if (response.ok) {
           const data = await response.json();
+          console.log('[ChatClient] Features API response:', data);
           setImageGenerationAvailable(data.imageGeneration === true);
           // Set active provider for conditional UI (Search/Fact Check buttons, Reasoning button)
           if (data.activeProvider === 'anthropic' || data.activeProvider === 'openai' || data.activeProvider === 'xai' || data.activeProvider === 'deepseek') {
+            console.log('[ChatClient] Setting activeProvider to:', data.activeProvider);
             setActiveProvider(data.activeProvider);
           }
         }
