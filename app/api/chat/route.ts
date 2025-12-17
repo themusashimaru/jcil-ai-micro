@@ -1519,13 +1519,14 @@ export async function POST(request: NextRequest) {
     const willUseWebSearch = shouldUseWebSearch(effectiveTool as any, lastUserText);
 
     // ========================================
-    // PERPLEXITY SEARCH (Provider-agnostic)
+    // PERPLEXITY SEARCH (Provider-agnostic, except Gemini)
     // ========================================
     // Handle user-triggered search modes (Search and Fact Check buttons)
     // This runs BEFORE the provider check so it works for both OpenAI and Anthropic
     // IMPORTANT: Perplexity gets raw facts, then we post-process through main AI
     // to maintain platform integrity (Christian conservative perspective)
-    if (searchMode && searchMode !== 'none' && isPerplexityConfigured()) {
+    // NOTE: Gemini uses native Google Search grounding instead of Perplexity
+    if (searchMode && searchMode !== 'none' && isPerplexityConfigured() && activeProvider !== 'gemini') {
       console.log(`[Chat API] User triggered ${searchMode} mode (provider: ${activeProvider})`);
 
       try {
@@ -1623,20 +1624,9 @@ Please summarize this information from our platform's perspective. Present the f
           finalContent = result.text;
           modelUsed = result.model;
           console.log(`[Chat API] Search post-processed through DeepSeek (${modelUsed})`);
-        } else if (activeProvider === 'gemini') {
-          // Post-process through Gemini
-          const geminiModel = await getModelForTier(userTier, 'gemini');
-          const result = await createGeminiCompletion({
-            messages: [{ role: 'user', content: summaryPrompt }],
-            model: geminiModel,
-            maxTokens: 2048,
-            systemPrompt: platformSystemPrompt,
-          });
-          finalContent = result.text;
-          modelUsed = result.model;
-          console.log(`[Chat API] Search post-processed through Gemini (${modelUsed})`);
         } else {
           // Post-process through OpenAI
+          // NOTE: Gemini uses native Google Search grounding, so it never enters this section
           const openaiModel = await getModelForTier(userTier);
           const result = await createChatCompletion({
             messages: [
@@ -2670,8 +2660,10 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
       }
 
       // ========================================
-      // REGULAR CHAT (streaming)
+      // REGULAR CHAT (streaming with native Google Search)
       // ========================================
+      // Gemini uses native Google Search grounding - model automatically
+      // decides when to search based on the query (no Perplexity needed)
       const streamResult = await createGeminiStreamingCompletion({
         messages: messagesWithContext,
         model: geminiModel,
@@ -2680,6 +2672,7 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
         systemPrompt,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         planKey: userTier,
+        enableSearch: true, // Native Google Search grounding - auto-search when needed
       });
 
       return new Response(streamResult.stream, {
@@ -2688,6 +2681,7 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           'Transfer-Encoding': 'chunked',
           'X-Model-Used': streamResult.model,
           'X-Provider': 'gemini',
+          'X-Native-Search': 'google', // Indicates native search is enabled
         },
       });
     }

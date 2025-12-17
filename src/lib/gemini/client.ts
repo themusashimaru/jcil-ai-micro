@@ -5,6 +5,7 @@
  * - Provide Google Gemini AI chat completion functionality
  * - Support streaming responses
  * - Native vision/image support
+ * - Native Google Search grounding (automatic search when needed)
  * - Full document generation support
  *
  * FEATURES:
@@ -12,16 +13,17 @@
  * - Dynamic key detection (GEMINI_API_KEY_1, _2, _3, ... unlimited)
  * - Fallback pool (GEMINI_API_KEY_FALLBACK_1, _2, ... unlimited)
  * - Rate limit handling with automatic key rotation
+ * - Native Google Search grounding (model decides when to search)
  * - Streaming text responses
  * - Native multimodal support (images, files)
  */
 
-import { GoogleGenerativeAI, Content, Part } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { CoreMessage } from 'ai';
 import { getSystemPromptForTool } from '../openai/tools';
 import type { ToolType } from '../openai/types';
 
-// Default model: Gemini 2.0 Flash (fast, cost-effective)
+// Default model: Gemini 2.0 Flash (fast, cost-effective, supports grounding)
 const DEFAULT_MODEL = 'gemini-2.0-flash';
 
 // ========================================
@@ -37,7 +39,7 @@ interface ApiKeyState {
   rateLimitedUntil: number; // Timestamp when rate limit expires (0 = not limited)
   pool: 'primary' | 'fallback';
   index: number; // Position within its pool
-  client: GoogleGenerativeAI | null; // Cached client instance for this key
+  client: GoogleGenAI | null; // Cached client instance for this key
 }
 
 // Separate pools for better management
@@ -175,14 +177,14 @@ function getCurrentApiKey(): string | null {
 /**
  * Get a Gemini client with the current API key
  */
-function getGeminiClient(): GoogleGenerativeAI {
+function getGeminiClient(): GoogleGenAI {
   initializeApiKeys();
 
   // Try primary pool first
   const primaryKey = getAvailablePrimaryKey();
   if (primaryKey) {
     if (!primaryKey.client) {
-      primaryKey.client = new GoogleGenerativeAI(primaryKey.key);
+      primaryKey.client = new GoogleGenAI({ apiKey: primaryKey.key });
     }
     return primaryKey.client;
   }
@@ -191,7 +193,7 @@ function getGeminiClient(): GoogleGenerativeAI {
   const fallbackKey = getAvailableFallbackKey();
   if (fallbackKey) {
     if (!fallbackKey.client) {
-      fallbackKey.client = new GoogleGenerativeAI(fallbackKey.key);
+      fallbackKey.client = new GoogleGenAI({ apiKey: fallbackKey.key });
     }
     return fallbackKey.client;
   }
@@ -228,11 +230,25 @@ function getCurrentTimeContext(): string {
   return `Current date and time: ${now.toLocaleDateString('en-US', options)}`;
 }
 
+// Content types for the new SDK
+interface GeminiPart {
+  text?: string;
+  inlineData?: {
+    mimeType: string;
+    data: string;
+  };
+}
+
+interface GeminiContent {
+  role: 'user' | 'model';
+  parts: GeminiPart[];
+}
+
 /**
- * Convert CoreMessage to Gemini Content format
+ * Convert CoreMessage to Gemini Content format (new SDK)
  */
-function convertToGeminiMessages(messages: CoreMessage[], systemPrompt: string): { contents: Content[]; systemInstruction: Content } {
-  const contents: Content[] = [];
+function convertToGeminiMessages(messages: CoreMessage[], systemPrompt: string): { contents: GeminiContent[]; systemInstruction: string } {
+  const contents: GeminiContent[] = [];
 
   for (const message of messages) {
     if (message.role === 'system') {
@@ -240,8 +256,8 @@ function convertToGeminiMessages(messages: CoreMessage[], systemPrompt: string):
       continue;
     }
 
-    const role = message.role === 'assistant' ? 'model' : 'user';
-    const parts: Part[] = [];
+    const role: 'user' | 'model' = message.role === 'assistant' ? 'model' : 'user';
+    const parts: GeminiPart[] = [];
 
     if (typeof message.content === 'string') {
       parts.push({ text: message.content });
@@ -265,8 +281,7 @@ function convertToGeminiMessages(messages: CoreMessage[], systemPrompt: string):
               });
             }
           } else if (imageUrl) {
-            // URL image - fetch and convert to base64
-            // For now, just include as text reference
+            // URL image - include as text reference for now
             parts.push({ text: `[Image: ${imageUrl}]` });
           }
         }
@@ -278,12 +293,7 @@ function convertToGeminiMessages(messages: CoreMessage[], systemPrompt: string):
     }
   }
 
-  // Convert system prompt to Content format for Gemini API
-  const systemContent: Content = {
-    role: 'user',
-    parts: [{ text: systemPrompt }],
-  };
-  return { contents, systemInstruction: systemContent };
+  return { contents, systemInstruction: systemPrompt };
 }
 
 // ========================================
@@ -300,14 +310,21 @@ export interface GeminiChatOptions {
   tool?: ToolType;
   userId?: string;
   planKey?: string;
+  enableSearch?: boolean; // Enable Google Search grounding
 }
 
 /**
  * Create a non-streaming chat completion using Gemini
+ * With optional Google Search grounding for real-time information
  */
 export async function createGeminiCompletion(options: GeminiChatOptions): Promise<{
   text: string;
   model: string;
+  groundingMetadata?: {
+    searchEntryPoint?: { renderedContent?: string };
+    groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
+    webSearchQueries?: string[];
+  };
 }> {
   const {
     messages,
@@ -316,6 +333,7 @@ export async function createGeminiCompletion(options: GeminiChatOptions): Promis
     temperature = 0.7,
     systemPrompt,
     tool,
+    enableSearch = false, // Default to false for document generation
   } = options;
 
   const selectedModel = model || DEFAULT_MODEL;
@@ -331,7 +349,7 @@ export async function createGeminiCompletion(options: GeminiChatOptions): Promis
   // Convert messages
   const { contents, systemInstruction } = convertToGeminiMessages(messages, fullSystemPrompt);
 
-  console.log('[Gemini] Creating completion with model:', selectedModel);
+  console.log('[Gemini] Creating completion with model:', selectedModel, 'search:', enableSearch);
 
   const maxRetries = 3;
   let lastError: Error | null = null;
@@ -342,22 +360,40 @@ export async function createGeminiCompletion(options: GeminiChatOptions): Promis
         console.log(`[Gemini] Retry attempt ${attempt + 1}/${maxRetries}`);
       }
 
-      const generativeModel = client.getGenerativeModel({
-        model: selectedModel,
+      // Build config with optional Google Search grounding
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const config: any = {
+        maxOutputTokens: maxTokens,
+        temperature,
         systemInstruction,
-        generationConfig: {
-          maxOutputTokens: maxTokens,
-          temperature,
-        },
+      };
+
+      // Enable Google Search grounding if requested
+      if (enableSearch) {
+        config.tools = [{ googleSearch: {} }];
+      }
+
+      const response = await client.models.generateContent({
+        model: selectedModel,
+        contents,
+        config,
       });
 
-      const result = await generativeModel.generateContent({ contents });
-      const response = await result.response;
-      const text = response.text();
+      const text = response.text || '';
+
+      // Extract grounding metadata if available
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const candidate = (response as any).candidates?.[0];
+      const groundingMetadata = candidate?.groundingMetadata;
+
+      if (groundingMetadata?.webSearchQueries?.length > 0) {
+        console.log('[Gemini] Used Google Search for:', groundingMetadata.webSearchQueries);
+      }
 
       return {
         text,
         model: selectedModel,
+        groundingMetadata,
       };
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
@@ -396,6 +432,7 @@ export async function createGeminiCompletion(options: GeminiChatOptions): Promis
 
 /**
  * Create a streaming chat completion using Gemini
+ * With optional Google Search grounding for real-time information
  */
 export async function createGeminiStreamingCompletion(options: GeminiChatOptions): Promise<{
   stream: ReadableStream<Uint8Array>;
@@ -408,6 +445,7 @@ export async function createGeminiStreamingCompletion(options: GeminiChatOptions
     temperature = 0.7,
     systemPrompt,
     tool,
+    enableSearch = true, // Default to true for chat - auto search when needed
   } = options;
 
   const selectedModel = model || DEFAULT_MODEL;
@@ -417,23 +455,42 @@ export async function createGeminiStreamingCompletion(options: GeminiChatOptions
   // Build system prompt
   const baseSystemPrompt = systemPrompt || getSystemPromptForTool(tool);
   const timeContext = getCurrentTimeContext();
-  const fullSystemPrompt = `${baseSystemPrompt}\n\n---\n\n${timeContext}`;
+
+  // If search is enabled, add guidance about using it
+  const searchGuidance = enableSearch ? `
+You have access to Google Search to find current information. Use it when:
+- User asks about recent events, news, or current information
+- User needs to fact-check something
+- User asks about topics that may have changed since your knowledge cutoff
+- User explicitly asks you to search or look something up
+
+When you use search, naturally incorporate the information into your response.` : '';
+
+  const fullSystemPrompt = `${baseSystemPrompt}${searchGuidance}\n\n---\n\n${timeContext}`;
 
   // Convert messages
   const { contents, systemInstruction } = convertToGeminiMessages(messages, fullSystemPrompt);
 
-  console.log('[Gemini] Creating streaming completion with model:', selectedModel);
+  console.log('[Gemini] Creating streaming completion with model:', selectedModel, 'search:', enableSearch);
 
-  const generativeModel = client.getGenerativeModel({
-    model: selectedModel,
+  // Build config with optional Google Search grounding
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const config: any = {
+    maxOutputTokens: maxTokens,
+    temperature,
     systemInstruction,
-    generationConfig: {
-      maxOutputTokens: maxTokens,
-      temperature,
-    },
-  });
+  };
 
-  const result = await generativeModel.generateContentStream({ contents });
+  // Enable Google Search grounding if requested
+  if (enableSearch) {
+    config.tools = [{ googleSearch: {} }];
+  }
+
+  const response = await client.models.generateContentStream({
+    model: selectedModel,
+    contents,
+    config,
+  });
 
   // Create a TransformStream to convert Gemini stream to text stream
   const encoder = new TextEncoder();
@@ -441,8 +498,8 @@ export async function createGeminiStreamingCompletion(options: GeminiChatOptions
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
+        for await (const chunk of response) {
+          const text = chunk.text;
           if (text) {
             controller.enqueue(encoder.encode(text));
           }
