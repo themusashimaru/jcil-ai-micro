@@ -360,12 +360,19 @@ export async function createGeminiCompletion(options: GeminiChatOptions): Promis
         console.log(`[Gemini] Retry attempt ${attempt + 1}/${maxRetries}`);
       }
 
-      // Build config with optional Google Search grounding
+      // Build config with optional Google Search grounding and safety settings
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const config: any = {
         maxOutputTokens: maxTokens,
         temperature,
         systemInstruction,
+        // Native safety settings - replaces OpenAI moderation for Gemini
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        ],
       };
 
       // Enable Google Search grounding if requested
@@ -473,12 +480,19 @@ When you use search, naturally incorporate the information into your response.` 
 
   console.log('[Gemini] Creating streaming completion with model:', selectedModel, 'search:', enableSearch);
 
-  // Build config with optional Google Search grounding
+  // Build config with optional Google Search grounding and safety settings
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const config: any = {
     maxOutputTokens: maxTokens,
     temperature,
     systemInstruction,
+    // Native safety settings - replaces OpenAI moderation for Gemini
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    ],
   };
 
   // Enable Google Search grounding if requested
