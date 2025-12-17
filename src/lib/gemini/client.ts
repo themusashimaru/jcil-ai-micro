@@ -375,9 +375,14 @@ export async function createGeminiCompletion(options: GeminiChatOptions): Promis
         ],
       };
 
-      // Enable Google Search grounding if requested
+      // Enable built-in tools (multi-tool use supported)
+      // - Google Search: real-time web info, news, facts
+      // - Code Execution: runs Python for math, data analysis, charts
       if (enableSearch) {
-        config.tools = [{ googleSearch: {} }];
+        config.tools = [
+          { googleSearch: {} },
+          { codeExecution: {} },
+        ];
       }
 
       const response = await client.models.generateContent({
@@ -495,9 +500,14 @@ When you use search, naturally incorporate the information into your response.` 
     ],
   };
 
-  // Enable Google Search grounding if requested
+  // Enable built-in tools (multi-tool use supported)
+  // - Google Search: real-time web info, news, facts
+  // - Code Execution: runs Python for math, data analysis, charts
   if (enableSearch) {
-    config.tools = [{ googleSearch: {} }];
+    config.tools = [
+      { googleSearch: {} },
+      { codeExecution: {} },
+    ];
   }
 
   const response = await client.models.generateContentStream({

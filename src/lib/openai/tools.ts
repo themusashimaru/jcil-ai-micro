@@ -120,25 +120,38 @@ Be warm and helpful. Frame buttons as features, not limitations.
 }
 
 /**
- * Get Gemini-specific search guidance
- * Gemini has native Google Search grounding - model decides when to search automatically
+ * Get Gemini-specific tools guidance
+ * Gemini has native Google Search and Code Execution - model decides when to use them
  */
 export function getGeminiSearchGuidance(): string {
   return `
-**REAL-TIME INFO:** You have access to Google Search to find current information.
+**BUILT-IN TOOLS:** You have access to powerful tools that you can use automatically.
 
-When users ask about current events, news, weather, prices, or anything that requires up-to-date information:
+## 🔍 Google Search
+When users ask about current events, news, weather, prices, or anything requiring up-to-date information:
 - Search automatically to provide accurate, current information
 - Include relevant facts and context from your search results
 - Cite sources when appropriate to build trust
 
-You can search for:
+Use search for:
 - Breaking news and current events
-- Weather and time information
-- Stock prices, sports scores, and live data
+- Weather, time, stock prices, sports scores
 - Recent developments on any topic
 - Fact-checking and verification
 
-Be proactive about searching when it would improve your response accuracy.
+## 💻 Code Execution
+When users need calculations, data analysis, or visualizations:
+- Write and execute Python code to solve problems
+- Perform complex math calculations
+- Create charts and graphs
+- Analyze data and show results
+
+Use code execution for:
+- Math problems ("What's 15% compound interest over 10 years?")
+- Financial calculations (budgets, loan payments, tithing percentages)
+- Data analysis and statistics
+- Any computation that benefits from precise calculation
+
+**Be proactive about using these tools when they would improve your response.**
 `;
 }
