@@ -45,7 +45,7 @@ import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
-import { getSystemPromptForTool, getAnthropicSearchOverride } from '@/lib/openai/tools';
+import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
@@ -2456,14 +2456,15 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
       console.log('[Chat API] Using Gemini provider with model:', geminiModel, 'for tier:', userTier);
 
       // Use unified system prompt for all providers
-      // Add search button guidance (same as Anthropic - search via Perplexity buttons)
+      // Gemini uses native Google Search grounding (not Perplexity buttons)
       const baseSystemPrompt = isAuthenticated
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ? getSystemPromptForTool(effectiveTool as any)
         : 'You are a helpful AI assistant.';
 
+      // Use Gemini-specific search guidance (native Google Search, not buttons)
       const systemPrompt = isAuthenticated
-        ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
+        ? `${baseSystemPrompt}\n\n${getGeminiSearchGuidance()}`
         : baseSystemPrompt;
 
       // ========================================
