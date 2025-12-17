@@ -1510,10 +1510,6 @@ export async function POST(request: NextRequest) {
       effectiveTool,
     });
 
-    // Get the initial model (may be overridden by web search routing)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const initialModel = getModelForTool(effectiveTool as any);
-
     // Check if web search will be triggered - this always uses gpt-5-mini
     const lastUserText = getLastUserMessageText(messagesWithContext);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
