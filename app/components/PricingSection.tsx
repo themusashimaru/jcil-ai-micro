@@ -166,9 +166,9 @@ export default function PricingSection() {
       firstMonthPrice: 9,
       features: [
         'Intelligent AI chat assistant',
-        'Real-time fact-checking with Perplexity',
+        'Real-time web search with citations',
+        'Code execution & data analysis',
         'Resume & cover letter writing',
-        'Live web search & research',
         'Writing tools & Bible study',
         'Daily devotional content',
       ],
