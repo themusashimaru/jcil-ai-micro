@@ -2258,7 +2258,33 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
           });
 
           // Try to extract JSON document data from response
-          const extractedDoc = extractDocumentJSON(result.text);
+          let extractedDoc = extractDocumentJSON(result.text);
+
+          // If DeepSeek failed to produce valid JSON, fallback to GPT-4o-mini
+          if (!extractedDoc) {
+            console.log('[Chat API] DeepSeek: JSON extraction failed, falling back to GPT-4o-mini...');
+            try {
+              const fallbackResult = await createChatCompletion({
+                messages: [
+                  { role: 'system', content: enhancedSystemPrompt },
+                  ...messagesWithContext.filter(m => m.role !== 'system'),
+                ],
+                modelOverride: 'gpt-4o-mini',
+                maxTokens: clampedMaxTokens,
+                temperature,
+                stream: false,
+              });
+              const fallbackText = await fallbackResult.text;
+              if (fallbackText) {
+                extractedDoc = extractDocumentJSON(fallbackText);
+                if (extractedDoc) {
+                  console.log('[Chat API] DeepSeek: GPT-4o-mini fallback successful for document JSON');
+                }
+              }
+            } catch (fallbackError) {
+              console.error('[Chat API] DeepSeek: GPT-4o-mini fallback also failed:', fallbackError);
+            }
+          }
 
           if (extractedDoc) {
             console.log(`[Chat API] DeepSeek: Extracted ${(extractedDoc.json as { type: string }).type} document JSON`);
