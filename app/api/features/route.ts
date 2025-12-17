@@ -14,6 +14,8 @@ export async function GET() {
     // Image generation is only available with OpenAI
     const imageGenerationAvailable = settings.activeProvider === 'openai';
 
+    console.log('[Features API] Returning activeProvider:', settings.activeProvider);
+
     return NextResponse.json({
       imageGeneration: imageGenerationAvailable,
       activeProvider: settings.activeProvider,
