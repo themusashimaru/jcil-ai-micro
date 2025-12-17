@@ -13,7 +13,7 @@
 
 import { useState, useEffect } from 'react';
 
-type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek';
+type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek' | 'gemini';
 
 interface TierModels {
   basic: string;
@@ -33,6 +33,7 @@ interface ProviderConfig {
   anthropic: ProviderModelConfig;
   xai: ProviderModelConfig;
   deepseek: ProviderModelConfig;
+  gemini: ProviderModelConfig;
 }
 
 export default function ProvidersPage() {
@@ -74,6 +75,14 @@ export default function ProvidersPage() {
         basic: 'deepseek-reasoner',
         pro: 'deepseek-reasoner',
         executive: 'deepseek-reasoner',
+      },
+    },
+    gemini: {
+      model: 'gemini-2.0-flash',
+      models: {
+        basic: 'gemini-2.0-flash',
+        pro: 'gemini-2.0-flash',
+        executive: 'gemini-1.5-pro',
       },
     },
   });
@@ -144,6 +153,14 @@ export default function ProvidersPage() {
                 basic: data.providerConfig.deepseek?.reasoningModels?.basic || 'deepseek-reasoner',
                 pro: data.providerConfig.deepseek?.reasoningModels?.pro || 'deepseek-reasoner',
                 executive: data.providerConfig.deepseek?.reasoningModels?.executive || 'deepseek-reasoner',
+              },
+            },
+            gemini: {
+              model: data.providerConfig.gemini?.model || 'gemini-2.0-flash',
+              models: {
+                basic: data.providerConfig.gemini?.models?.basic || 'gemini-2.0-flash',
+                pro: data.providerConfig.gemini?.models?.pro || 'gemini-2.0-flash',
+                executive: data.providerConfig.gemini?.models?.executive || 'gemini-1.5-pro',
               },
             },
           });
@@ -505,6 +522,42 @@ export default function ProvidersPage() {
               </div>
             </div>
           </button>
+
+          {/* Gemini Option */}
+          <button
+            onClick={() => handleProviderSwitch('gemini')}
+            disabled={isSaving}
+            className="p-6 rounded-xl border-2 transition-all text-left"
+            style={{
+              borderColor: activeProvider === 'gemini' ? '#22c55e' : 'var(--border)',
+              backgroundColor: activeProvider === 'gemini' ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+            }}
+          >
+            <div className="flex items-start gap-4">
+              <div
+                className="w-4 h-4 rounded-full mt-1"
+                style={{ backgroundColor: activeProvider === 'gemini' ? '#22c55e' : 'var(--text-muted)' }}
+              />
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">Google Gemini</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Fast multimodal with native vision</p>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-blue-500">✓</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Web search (Perplexity)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-green-500">✓</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Native vision/image analysis</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-yellow-500">⚡</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Very fast responses</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </button>
         </div>
 
         {isSaving && (
@@ -755,7 +808,53 @@ export default function ProvidersPage() {
             </label>
           </div>
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-            Chat models: deepseek-chat (fast). Reasoning models: deepseek-reasoner (R1 with chain-of-thought, activated via the purple &quot;Reason&quot; button)
+            Chat models: deepseek-chat (fast). Reasoning models: deepseek-reasoner (R1 with chain-of-thought)
+          </p>
+        </div>
+
+        {/* Gemini Models */}
+        <div className="mb-8">
+          <h4 className="text-lg font-semibold text-blue-500 mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+            Google Gemini Models
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label className="block">
+              <span className="text-sm font-medium">Plus Tier</span>
+              <input
+                type="text"
+                value={providerConfig.gemini.models.basic}
+                onChange={(e) => handleTierModelChange('gemini', 'basic', e.target.value)}
+                placeholder="gemini-2.0-flash"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Pro Tier</span>
+              <input
+                type="text"
+                value={providerConfig.gemini.models.pro}
+                onChange={(e) => handleTierModelChange('gemini', 'pro', e.target.value)}
+                placeholder="gemini-2.0-flash"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Executive Tier</span>
+              <input
+                type="text"
+                value={providerConfig.gemini.models.executive}
+                onChange={(e) => handleTierModelChange('gemini', 'executive', e.target.value)}
+                placeholder="gemini-1.5-pro"
+                className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+          </div>
+          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+            Examples: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-pro, gemini-1.5-flash
           </p>
         </div>
 
