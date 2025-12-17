@@ -27,12 +27,13 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 export type SearchMode = 'none' | 'search' | 'factcheck';
 
 interface ChatComposerProps {
-  onSendMessage: (content: string, attachments: Attachment[], searchMode?: SearchMode) => void;
+  onSendMessage: (content: string, attachments: Attachment[], searchMode?: SearchMode, reasoningMode?: boolean) => void;
   onStop?: () => void; // Called when user clicks stop button during streaming
   isStreaming: boolean;
   disabled?: boolean; // When waiting for background reply
   hideImageSuggestion?: boolean; // Hide "Create an image..." when Anthropic is active
   showSearchButtons?: boolean; // Show Search/Fact Check buttons (Anthropic only)
+  showReasoningButton?: boolean; // Show Reasoning button (DeepSeek only)
 }
 
 /**
@@ -103,7 +104,7 @@ const PLACEHOLDER_SUGGESTIONS_NO_IMAGE = PLACEHOLDER_SUGGESTIONS.filter(
   s => !s.toLowerCase().includes('image')
 );
 
-export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons, showReasoningButton }: ChatComposerProps) {
   // Use filtered suggestions when image generation is not available
   const suggestions = hideImageSuggestion ? PLACEHOLDER_SUGGESTIONS_NO_IMAGE : PLACEHOLDER_SUGGESTIONS;
   const [message, setMessage] = useState('');
@@ -114,6 +115,8 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
   const [isFocused, setIsFocused] = useState(false);
   // Search mode state (for Anthropic provider)
   const [searchMode, setSearchMode] = useState<SearchMode>('none');
+  // Reasoning mode state (for DeepSeek provider)
+  const [reasoningMode, setReasoningMode] = useState(false);
   // Typewriter animation state
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
@@ -199,9 +202,11 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
       return;
     }
 
-    onSendMessage(message.trim(), attachments, searchMode);
+    onSendMessage(message.trim(), attachments, searchMode, reasoningMode);
     setMessage('');
     setAttachments([]);
+    // Reset reasoning mode after sending (per-message toggle)
+    setReasoningMode(false);
     // Reset search mode after sending (auto-reset like DeepSeek)
     setSearchMode('none');
 
@@ -561,6 +566,32 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
                     <span>Fact Check</span>
                   </button>
                 </>
+              )}
+
+              {/* Reasoning button (DeepSeek only) - toggle */}
+              {showReasoningButton && (
+                <button
+                  onClick={() => setReasoningMode(!reasoningMode)}
+                  disabled={isStreaming || disabled}
+                  className={`rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium ${
+                    reasoningMode
+                      ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/50'
+                      : 'hover:bg-white/5'
+                  }`}
+                  style={{ color: reasoningMode ? '#a855f7' : 'var(--text-secondary)' }}
+                  title="Deep reasoning mode (chain-of-thought)"
+                >
+                  {/* Brain icon */}
+                  <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
+                  </svg>
+                  <span>Reason</span>
+                </button>
               )}
             </div>
 

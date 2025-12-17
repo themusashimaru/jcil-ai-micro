@@ -62,6 +62,10 @@ import {
   createXAICompletion,
   createXAIStreamingCompletion,
 } from '@/lib/xai/client';
+import {
+  createDeepSeekCompletion,
+  createDeepSeekStreamingCompletion,
+} from '@/lib/deepseek/client';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
@@ -696,6 +700,7 @@ interface ChatRequestBody {
   userContext?: UserContext;
   conversationId?: string; // Current conversation ID to exclude from history
   searchMode?: 'none' | 'search' | 'factcheck'; // User-triggered search mode (Anthropic only)
+  reasoningMode?: boolean; // User-triggered reasoning mode (DeepSeek only)
 }
 
 // Detect if user is asking about previous conversations
@@ -750,7 +755,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body: ChatRequestBody = await request.json();
-    const { messages, tool, temperature, max_tokens, userContext, conversationId, searchMode } = body;
+    const { messages, tool, temperature, max_tokens, userContext, conversationId, searchMode, reasoningMode } = body;
 
     // Validate messages
     if (!messages || messages.length === 0) {
@@ -1612,6 +1617,19 @@ Please summarize this information from our platform's perspective. Present the f
           finalContent = result.text;
           modelUsed = result.model;
           console.log(`[Chat API] Search post-processed through xAI (${modelUsed})`);
+        } else if (activeProvider === 'deepseek') {
+          // Post-process through DeepSeek
+          const deepseekModel = await getModelForTier(userTier, 'deepseek');
+          const result = await createDeepSeekCompletion({
+            messages: [{ role: 'user', content: summaryPrompt }],
+            model: deepseekModel as 'deepseek-chat' | 'deepseek-reasoner',
+            maxTokens: 2048,
+            systemPrompt: platformSystemPrompt,
+            reasoning: false, // Don't use reasoning for search post-processing
+          });
+          finalContent = result.text;
+          modelUsed = result.model;
+          console.log(`[Chat API] Search post-processed through DeepSeek (${modelUsed})`);
         } else {
           // Post-process through OpenAI
           const openaiModel = await getModelForTier(userTier);
@@ -2187,6 +2205,220 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
           'Transfer-Encoding': 'chunked',
           'X-Model-Used': streamResult.model,
           'X-Provider': 'xai',
+        },
+      });
+    }
+
+    // ========================================
+    // DEEPSEEK PATH - DeepSeek (tier-specific model with reasoning)
+    // ========================================
+    if (activeProvider === 'deepseek') {
+      // Get tier-specific model (uses provider settings with tier lookup)
+      const deepseekModel = await getModelForTier(userTier, 'deepseek');
+      const isReasoning = reasoningMode === true;
+      console.log('[Chat API] Using DeepSeek provider with model:', deepseekModel, 'reasoning:', isReasoning, 'for tier:', userTier);
+
+      // Use unified system prompt for all providers
+      // Add search button guidance (same as Anthropic - search via Perplexity buttons)
+      const baseSystemPrompt = isAuthenticated
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? getSystemPromptForTool(effectiveTool as any)
+        : 'You are a helpful AI assistant.';
+
+      const systemPrompt = isAuthenticated
+        ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
+        : baseSystemPrompt;
+
+      // ========================================
+      // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
+      // ========================================
+      // Check for native document requests first (resume, spreadsheet, invoice, document)
+      const deepseekNativeDocType = detectNativeDocumentRequest(lastUserContent);
+      if (deepseekNativeDocType && isAuthenticated) {
+        console.log(`[Chat API] DeepSeek: Native document generation: ${deepseekNativeDocType}`);
+
+        try {
+          // Get the JSON schema prompt for the document type
+          const nativeDocPrompt = getNativeDocumentPrompt(deepseekNativeDocType);
+          const enhancedSystemPrompt = `${systemPrompt}\n\n${nativeDocPrompt}`;
+
+          // Get AI to generate structured JSON (don't use reasoning for document generation)
+          const result = await createDeepSeekCompletion({
+            messages: messagesWithContext,
+            model: deepseekModel as 'deepseek-chat' | 'deepseek-reasoner',
+            maxTokens: clampedMaxTokens,
+            temperature,
+            systemPrompt: enhancedSystemPrompt,
+            reasoning: false, // Don't use reasoning for document generation
+            userId: isAuthenticated ? rateLimitIdentifier : undefined,
+            planKey: userTier,
+          });
+
+          // Try to extract JSON document data from response
+          const extractedDoc = extractDocumentJSON(result.text);
+
+          if (extractedDoc) {
+            console.log(`[Chat API] DeepSeek: Extracted ${(extractedDoc.json as { type: string }).type} document JSON`);
+
+            // Call the native document generation API
+            const docResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_SITE_URL || 'https://jcil.ai'}/api/documents/native`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Cookie': request.headers.get('cookie') || '',
+                },
+                body: JSON.stringify({
+                  documentData: extractedDoc.json,
+                  returnType: 'url',
+                }),
+              }
+            );
+
+            if (docResponse.ok) {
+              const docResult = await docResponse.json();
+              console.log(`[Chat API] DeepSeek: Native document generated: ${docResult.filename}`);
+
+              // Return response with document download link
+              const responseText = extractedDoc.cleanResponse ||
+                `I've created your ${deepseekNativeDocType} document. You can download it below.`;
+
+              return new Response(
+                JSON.stringify({
+                  type: 'text',
+                  content: responseText,
+                  model: result.model,
+                  documentDownload: {
+                    url: docResult.downloadUrl || docResult.dataUrl,
+                    filename: docResult.filename,
+                    format: docResult.format,
+                    title: docResult.title,
+                  },
+                }),
+                {
+                  status: 200,
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Model-Used': result.model,
+                    'X-Provider': 'deepseek',
+                    'X-Document-Type': deepseekNativeDocType,
+                    'X-Document-Format': docResult.format,
+                  },
+                }
+              );
+            } else {
+              console.error('[Chat API] DeepSeek: Native document generation failed:', await docResponse.text());
+              // Fall through to return text response
+            }
+          }
+
+          // If JSON extraction failed, return the text response
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: result.text,
+              model: result.model,
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Model-Used': result.model,
+                'X-Provider': 'deepseek',
+              },
+            }
+          );
+        } catch (nativeDocError) {
+          console.error('[Chat API] DeepSeek: Native document error, falling back:', nativeDocError);
+          // Fall through to legacy document generation
+        }
+      }
+
+      // ========================================
+      // LEGACY DOCUMENT GENERATION (PDF fallback)
+      // ========================================
+      // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
+      // For DeepSeek, we generate PDF versions (same as xAI/OpenAI - no native doc generation)
+      const deepseekDocumentType = detectDocumentRequest(lastUserContent);
+      if (deepseekDocumentType && isAuthenticated) {
+        console.log(`[Chat API] DeepSeek: Legacy document request detected: ${deepseekDocumentType}`);
+
+        // Get the comprehensive document formatting prompt
+        const documentFormattingInstructions = getDocumentFormattingPrompt(deepseekDocumentType);
+
+        // For Excel/PPT/Word requests, instruct AI to create content for PDF
+        const docTypeNames: Record<string, string> = {
+          xlsx: 'spreadsheet',
+          pptx: 'presentation',
+          docx: 'document',
+          pdf: 'PDF',
+        };
+        const docName = docTypeNames[deepseekDocumentType] || 'document';
+
+        // Add special instruction for DeepSeek to format content for PDF generation
+        const pdfFormatInstruction = deepseekDocumentType !== 'pdf' ? `
+IMPORTANT: Since you cannot create native ${docName} files, format your response for PDF output instead:
+- Use clear markdown formatting
+- Use tables (| col1 | col2 |) for spreadsheet-like data
+- Use headers (## and ###) for sections
+- The content will be converted to a professional PDF document` : '';
+
+        const enhancedSystemPrompt = `${systemPrompt}\n\n${documentFormattingInstructions}${pdfFormatInstruction}`;
+
+        // Use non-streaming for document generation (need full content for PDF)
+        const result = await createDeepSeekCompletion({
+          messages: messagesWithContext,
+          model: deepseekModel as 'deepseek-chat' | 'deepseek-reasoner',
+          maxTokens: clampedMaxTokens,
+          temperature,
+          systemPrompt: enhancedSystemPrompt,
+          reasoning: false, // Don't use reasoning for document generation
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
+        });
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: result.text,
+            model: result.model,
+            documentGeneration: true,
+            documentType: 'pdf', // Always PDF for DeepSeek
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': result.model,
+              'X-Provider': 'deepseek',
+              'X-Document-Type': 'pdf',
+            },
+          }
+        );
+      }
+
+      // ========================================
+      // REGULAR CHAT (streaming) with optional reasoning
+      // ========================================
+      const streamResult = await createDeepSeekStreamingCompletion({
+        messages: messagesWithContext,
+        model: deepseekModel as 'deepseek-chat' | 'deepseek-reasoner',
+        maxTokens: clampedMaxTokens,
+        temperature,
+        systemPrompt,
+        reasoning: isReasoning, // Enable reasoning if user toggled it
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        planKey: userTier,
+      });
+
+      return new Response(streamResult.stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'X-Model-Used': streamResult.model,
+          'X-Provider': 'deepseek',
+          'X-Reasoning-Mode': isReasoning ? 'true' : 'false',
         },
       });
     }

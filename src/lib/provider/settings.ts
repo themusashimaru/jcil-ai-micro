@@ -9,7 +9,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-export type Provider = 'openai' | 'anthropic' | 'xai';
+export type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek';
 
 export interface ProviderConfig {
   model: string;
@@ -21,6 +21,7 @@ export interface ProviderSettings {
     openai: ProviderConfig;
     anthropic: ProviderConfig;
     xai: ProviderConfig;
+    deepseek: ProviderConfig;
   };
 }
 
@@ -31,6 +32,7 @@ const DEFAULT_SETTINGS: ProviderSettings = {
     openai: { model: 'gpt-5-mini' },
     anthropic: { model: 'claude-sonnet-4-5-20250929' },
     xai: { model: 'grok-3-mini' },
+    deepseek: { model: 'deepseek-chat' },
   },
 };
 
@@ -86,7 +88,8 @@ export async function getProviderSettings(): Promise<ProviderSettings> {
     // Parse and validate settings
     const activeProvider: Provider =
       data.active_provider === 'anthropic' ? 'anthropic' :
-      data.active_provider === 'xai' ? 'xai' : 'openai';
+      data.active_provider === 'xai' ? 'xai' :
+      data.active_provider === 'deepseek' ? 'deepseek' : 'openai';
 
     const settings: ProviderSettings = {
       activeProvider,
@@ -94,6 +97,7 @@ export async function getProviderSettings(): Promise<ProviderSettings> {
         openai: data.provider_config?.openai || DEFAULT_SETTINGS.providerConfig.openai,
         anthropic: data.provider_config?.anthropic || DEFAULT_SETTINGS.providerConfig.anthropic,
         xai: data.provider_config?.xai || DEFAULT_SETTINGS.providerConfig.xai,
+        deepseek: data.provider_config?.deepseek || DEFAULT_SETTINGS.providerConfig.deepseek,
       },
     };
 
@@ -144,6 +148,9 @@ export function isProviderConfigured(provider: Provider): boolean {
   }
   if (provider === 'xai') {
     return !!process.env.XAI_API_KEY || !!process.env.XAI_API_KEY_1;
+  }
+  if (provider === 'deepseek') {
+    return !!process.env.DEEPSEEK_API_KEY || !!process.env.DEEPSEEK_API_KEY_1;
   }
   return false;
 }
