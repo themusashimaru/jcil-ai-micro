@@ -593,7 +593,14 @@ export async function createDeepSeekStreamingCompletion(options: DeepSeekChatOpt
         controller.close();
       } catch (error) {
         console.error('[DeepSeek] Streaming error:', error);
-        controller.error(error);
+        // Send a graceful error message to the user instead of crashing
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isRateLimit = errorMessage.includes('rate_limit') || errorMessage.includes('429');
+        const userMessage = isRateLimit
+          ? '\n\n*[Response interrupted: Rate limit reached. Please try again in a moment.]*'
+          : '\n\n*[Response interrupted: Connection error. Please try again.]*';
+        controller.enqueue(encoder.encode(userMessage));
+        controller.close();
       }
     }
   });
