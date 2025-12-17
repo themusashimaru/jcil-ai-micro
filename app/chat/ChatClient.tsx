@@ -128,6 +128,8 @@ export function ChatClient() {
   const [isAdmin, setIsAdmin] = useState(false);
   // Track if image generation is available (depends on active provider)
   const [imageGenerationAvailable, setImageGenerationAvailable] = useState(true);
+  // Track active provider (for conditional UI like search buttons)
+  const [activeProvider, setActiveProvider] = useState<string>('openai');
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -306,11 +308,13 @@ export function ChatClient() {
         if (response.ok) {
           const data = await response.json();
           setImageGenerationAvailable(data.imageGeneration === true);
+          setActiveProvider(data.activeProvider || 'openai');
         }
       } catch (error) {
         console.error('[ChatClient] Error checking features:', error);
         // Default to OpenAI behavior on error
         setImageGenerationAvailable(true);
+        setActiveProvider('openai');
       }
     };
     checkFeatures();
@@ -1964,7 +1968,7 @@ export function ChatClient() {
                 isStreaming={isStreaming}
                 disabled={isWaitingForReply}
                 hideImageSuggestion={!imageGenerationAvailable}
-                showSearchButtons={true}
+                showSearchButtons={activeProvider !== 'gemini'}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
