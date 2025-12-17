@@ -21,6 +21,7 @@ import { CoreMessage } from 'ai';
 import { getSystemPromptForTool } from '../openai/tools';
 import type { ToolType } from '../openai/types';
 import type { DeepSeekModel } from './types';
+import { messagesContainImages, preprocessMessagesForDeepSeek } from './vision-preprocessor';
 
 // Default model: DeepSeek Chat (fast, cost-effective)
 const DEFAULT_MODEL: DeepSeekModel = 'deepseek-chat';
@@ -391,13 +392,22 @@ export async function createDeepSeekCompletion(options: DeepSeekChatOptions): Pr
   const client = getDeepSeekClient();
   const currentKey = getCurrentDeepSeekApiKey();
 
+  // Preprocess images if present (DeepSeek doesn't support vision natively)
+  // Uses GPT-4o-mini to extract text descriptions from images
+  let processedMessages = messages;
+  if (messagesContainImages(messages)) {
+    console.log('[DeepSeek] Images detected - preprocessing with GPT-4o-mini vision...');
+    processedMessages = await preprocessMessagesForDeepSeek(messages);
+    console.log('[DeepSeek] Image preprocessing complete');
+  }
+
   // Build system prompt
   const baseSystemPrompt = systemPrompt || getSystemPromptForTool(tool);
   const timeContext = getCurrentTimeContext();
   const fullSystemPrompt = `${baseSystemPrompt}\n\n---\n\n${timeContext}`;
 
   // Convert messages
-  const openaiMessages = convertToOpenAIMessages(messages, fullSystemPrompt);
+  const openaiMessages = convertToOpenAIMessages(processedMessages, fullSystemPrompt);
 
   console.log('[DeepSeek] Creating completion with model:', selectedModel, 'reasoning:', reasoning, 'stream:', stream);
 
@@ -511,13 +521,22 @@ export async function createDeepSeekStreamingCompletion(options: DeepSeekChatOpt
 
   const client = getDeepSeekClient();
 
+  // Preprocess images if present (DeepSeek doesn't support vision natively)
+  // Uses GPT-4o-mini to extract text descriptions from images
+  let processedMessages = messages;
+  if (messagesContainImages(messages)) {
+    console.log('[DeepSeek] Images detected - preprocessing with GPT-4o-mini vision...');
+    processedMessages = await preprocessMessagesForDeepSeek(messages);
+    console.log('[DeepSeek] Image preprocessing complete');
+  }
+
   // Build system prompt
   const baseSystemPrompt = systemPrompt || getSystemPromptForTool(tool);
   const timeContext = getCurrentTimeContext();
   const fullSystemPrompt = `${baseSystemPrompt}\n\n---\n\n${timeContext}`;
 
   // Convert messages
-  const openaiMessages = convertToOpenAIMessages(messages, fullSystemPrompt);
+  const openaiMessages = convertToOpenAIMessages(processedMessages, fullSystemPrompt);
 
   console.log('[DeepSeek] Creating streaming completion with model:', selectedModel, 'reasoning:', reasoning);
 
