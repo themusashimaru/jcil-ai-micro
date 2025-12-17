@@ -572,7 +572,8 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
               )}
 
               {/* Reasoning button (DeepSeek only) - toggle */}
-              {showReasoningButton && (
+              {/* TEMP: Always show for testing, was: showReasoningButton && */}
+              {(showReasoningButton || true) && (
                 <button
                   onClick={() => setReasoningMode(!reasoningMode)}
                   disabled={isStreaming || disabled}
