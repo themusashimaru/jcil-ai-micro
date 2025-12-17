@@ -42,7 +42,6 @@
  */
 
 import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from '@/lib/openai/client';
-import { getModelForTool } from '@/lib/openai/models';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
@@ -1510,20 +1509,10 @@ export async function POST(request: NextRequest) {
       effectiveTool,
     });
 
-    // Get the initial model (may be overridden by web search routing)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const initialModel = getModelForTool(effectiveTool as any);
-
     // Check if web search will be triggered - this always uses gpt-5-mini
     const lastUserText = getLastUserMessageText(messagesWithContext);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const willUseWebSearch = shouldUseWebSearch(effectiveTool as any, lastUserText);
-
-    // Determine actual model: web search, images, and file attachments all use mini
-    // Mini is the smarter model, better suited for complex analysis tasks
-    const actualModel = willUseWebSearch || hasImages || messageHasFileAttachments
-      ? 'gpt-5-mini'
-      : initialModel;
 
     // ========================================
     // PERPLEXITY SEARCH (Provider-agnostic)
@@ -2455,7 +2444,7 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
     // ========================================
     // OPENAI PATH - GPT (tier-specific model)
     // ========================================
-    // Get tier-specific model from provider settings
+    // Get tier-specific model from provider settings (respects admin configuration)
     const openaiModel = await getModelForTier(userTier);
     console.log('[Chat API] Using OpenAI provider with model:', openaiModel, 'for tier:', userTier);
 
@@ -2683,7 +2672,7 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const resultModel = (result as any).model || actualModel;
+      const resultModel = (result as any).model || openaiModel;
 
       console.log('[Chat API] Image analysis complete, model used:', resultModel);
 
@@ -2708,7 +2697,7 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
     }
 
     // Use streaming for regular text chat
-    console.log('[Chat API] Using streaming mode with model:', actualModel, 'webSearch:', willUseWebSearch);
+    console.log('[Chat API] Using streaming mode with model:', openaiModel, 'webSearch:', willUseWebSearch);
 
     // Create a pending request BEFORE calling AI
     // This allows background workers to complete the request if the user leaves
@@ -2719,7 +2708,7 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
         conversationId,
         messages: messagesWithContext,
         tool: effectiveTool,
-        model: actualModel,
+        model: openaiModel,
       });
       if (pendingRequestId) {
         console.log('[Chat API] Created pending request:', pendingRequestId);
@@ -2755,17 +2744,17 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const streamResponse = (result as any).toTextStreamResponse({
           headers: {
-            'X-Model-Used': actualModel,
+            'X-Model-Used': openaiModel,
             'X-Tool-Type': effectiveTool || 'default',
           },
         });
 
-        console.log('[Chat API] Successfully created stream response with model:', actualModel);
+        console.log('[Chat API] Successfully created stream response with model:', openaiModel);
         return streamResponse;
       } else {
         // Non-streaming result (from web search, etc.)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const resultModel = (result as any).model || actualModel;
+        const resultModel = (result as any).model || openaiModel;
         console.log('[Chat API] Non-streaming result detected, model used:', resultModel);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rawCitations = (result as any).citations || [];
@@ -2849,7 +2838,7 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const numSourcesUsed = (result as any).numSourcesUsed || 0;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fallbackModel = (result as any).model || actualModel;
+      const fallbackModel = (result as any).model || openaiModel;
 
       // Normalize citations to always have title and url
       const fallbackCitations = fallbackRawCitations.map((c: { title?: string; url?: string } | string) => {
