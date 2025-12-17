@@ -307,11 +307,9 @@ export function ChatClient() {
         const response = await fetch('/api/features');
         if (response.ok) {
           const data = await response.json();
-          console.log('[ChatClient] Features API response:', data);
           setImageGenerationAvailable(data.imageGeneration === true);
-          // Set active provider for conditional UI (Search/Fact Check buttons, Reasoning button)
+          // Set active provider for conditional UI
           if (data.activeProvider === 'anthropic' || data.activeProvider === 'openai' || data.activeProvider === 'xai' || data.activeProvider === 'deepseek') {
-            console.log('[ChatClient] Setting activeProvider to:', data.activeProvider);
             setActiveProvider(data.activeProvider);
           }
         }
@@ -885,7 +883,7 @@ export function ChatClient() {
     }
   };
 
-  const handleSendMessage = async (content: string, attachments: Attachment[], searchMode?: SearchMode, reasoningMode?: boolean) => {
+  const handleSendMessage = async (content: string, attachments: Attachment[], searchMode?: SearchMode) => {
     if (!content.trim() && attachments.length === 0) return;
 
     // Check for slash commands
@@ -1145,8 +1143,6 @@ export function ChatClient() {
           // No tool parameter - let users manually select tools via buttons
           // Pass search mode for Anthropic (search/factcheck triggers Perplexity)
           searchMode: searchMode || 'none',
-          // Pass reasoning mode for DeepSeek (uses deepseek-reasoner model)
-          reasoningMode: reasoningMode || false,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -1976,7 +1972,6 @@ export function ChatClient() {
                 disabled={isWaitingForReply}
                 hideImageSuggestion={!imageGenerationAvailable}
                 showSearchButtons={true}
-                showReasoningButton={activeProvider === 'deepseek'}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
