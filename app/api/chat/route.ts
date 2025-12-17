@@ -1519,12 +1519,6 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const willUseWebSearch = shouldUseWebSearch(effectiveTool as any, lastUserText);
 
-    // Determine actual model: web search, images, and file attachments all use mini
-    // Mini is the smarter model, better suited for complex analysis tasks
-    const actualModel = willUseWebSearch || hasImages || messageHasFileAttachments
-      ? 'gpt-5-mini'
-      : initialModel;
-
     // ========================================
     // PERPLEXITY SEARCH (Provider-agnostic)
     // ========================================
