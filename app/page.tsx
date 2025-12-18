@@ -12,6 +12,7 @@ import Link from 'next/link';
 import PricingSection from './components/PricingSection';
 import LandingLogo from './components/LandingLogo';
 import MobileMenu from './components/MobileMenu';
+import ChatDemo from './components/ChatDemo';
 
 export default function HomePage() {
   return (
@@ -173,6 +174,35 @@ export default function HomePage() {
               your thinking, compromise your values, or expose you to content that conflicts
               with your beliefs.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* See It In Action - Chat Demo */}
+      <section className="relative bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 py-16 sm:py-24 overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">See It In Action</h2>
+            <p className="text-lg text-slate-300 max-w-2xl mx-auto">
+              Ask questions about faith, life, and the Bible. Get answers grounded in Scripture and Christian truth.
+            </p>
+          </div>
+
+          <ChatDemo />
+
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-block rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-blue-500/25 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Try It Free
+            </Link>
           </div>
         </div>
       </section>
