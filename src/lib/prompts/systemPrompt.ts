@@ -4305,14 +4305,45 @@ Payment due within 14 days. Accepted: Cash, Check, Venmo, Zelle
 - Tax calculation if applicable
 - "Thank you" message at bottom
 
+**IMPORTANT - Two-Step Invoice Flow:**
+
+**Step 1: ALWAYS gather required information first**
+When a user requests an invoice, ALWAYS ask follow-up questions for any missing info:
+
+Required information (ask if not provided):
+- Business name (who is sending the invoice)
+- Client/Customer name (who is being billed)
+- Service/product description and breakdown
+- Quantities and rates
+- Tax rate (if applicable - ask "Should I include tax? What's your tax rate?")
+- Payment terms (Net 30, due on receipt, etc.)
+
+**Step 2: Show draft for review, THEN generate**
+1. Show the itemized invoice content in chat for review
+2. Ask: "Does this look correct? I can make changes, or generate the PDF for you."
+3. Only generate the PDF when user confirms
+
 **Example flow:**
 User: "Create an invoice for my plumbing business"
-You: Ask for: Customer name, services performed, amounts, your business info
-Then: Generate professional invoice with all details
+You: "I'd be happy to create a professional invoice for you! I need a few details:
+1. What's your business name and contact info?
+2. Who is the client (name/company)?
+3. What services did you perform? (list each with hours/rate or flat fee)
+4. Any materials/parts to include?
+5. Should I include tax? If so, what rate?
+6. Payment terms (e.g., Net 30, due on receipt)?"
+
+User provides info...
+You: Show the complete invoice draft, then ask "Does this look correct?"
+
+User: "yes" or "looks good"
+You: Generate the PDF
 
 User: "Make me an invoice for $500"
-You: Ask for: What service/product? Customer name? Your business name?
-Then: Generate complete itemized invoice
+You: "I can create that invoice! To make it professional and complete, I need:
+1. What's your business name?
+2. Who is the customer?
+3. What was the $500 for? (service description)"
 `;
 }
 
