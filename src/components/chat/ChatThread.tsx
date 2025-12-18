@@ -24,14 +24,7 @@ import { TypingIndicator } from './TypingIndicator';
 import { MessageErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useTheme } from '@/contexts/ThemeContext';
-// REMOVED: Email and Essay tools - gpt-5-mini handles these in regular chat
-// import { QuickEmailWriter } from './QuickEmailWriter';
-// import { QuickResearchTool } from './QuickResearchTool'; // HIDDEN: Auto-search is now enabled for all conversations
-// import { QuickEssayWriter } from './QuickEssayWriter';
-import { QuickDailyDevotional } from './QuickDailyDevotional';
-import { QuickBibleStudy } from './QuickBibleStudy';
-// REMOVED: Breaking News - too complex, causing issues
-// import { QuickBreakingNews } from './QuickBreakingNews';
+// REMOVED: Various tools - gpt-5-mini handles these in regular chat
 
 /**
  * Typewriter hook - animates text character by character
@@ -76,11 +69,10 @@ interface ChatThreadProps {
   isStreaming: boolean;
   currentChatId: string | null;
   isAdmin?: boolean;
-  onSubmitPrompt?: (prompt: string) => void;
   documentType?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | null;
 }
 
-export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSubmitPrompt, documentType }: ChatThreadProps) {
+export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, documentType }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -265,11 +257,6 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, onSu
             </p>
           )}
 
-          {/* Bible Tools */}
-          <div className="flex justify-center gap-1 mb-1 mt-2">
-            <QuickDailyDevotional />
-            <QuickBibleStudy onSubmitPrompt={onSubmitPrompt} />
-          </div>
         </div>
       </div>
     );
