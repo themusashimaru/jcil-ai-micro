@@ -49,7 +49,7 @@ import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuid
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
-import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel } from '@/lib/provider/settings';
+import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel } from '@/lib/provider/settings';
 import {
   createAnthropicCompletion,
   createAnthropicStreamingCompletion,
@@ -69,6 +69,7 @@ import {
   createGeminiCompletion,
   createGeminiStreamingCompletion,
   createGeminiStructuredCompletion,
+  createGeminiImageGeneration,
   getDocumentSchema,
   getDocumentSchemaDescription,
 } from '@/lib/gemini/client';
@@ -598,6 +599,50 @@ function detectNativeDocumentRequest(content: string): 'resume' | 'spreadsheet' 
   if (/\b(word\s*document|docx|letter|memo|report)\b/.test(lowerContent) &&
       /\b(create|make|generate|build|write|draft|download)\b/.test(lowerContent)) {
     return 'document';
+  }
+
+  return null;
+}
+
+/**
+ * Detect if user wants image generation (Nano Banana)
+ *
+ * Triggers on:
+ * - Image/picture requests: "create an image of", "generate a picture", "draw me"
+ * - Slide/presentation requests: "make a slide", "create a powerpoint", "slide deck"
+ *
+ * Returns the type of image generation request
+ */
+function detectImageGenerationRequest(content: string): 'image' | 'slide' | null {
+  const lowerContent = content.toLowerCase();
+
+  // Image/picture detection - explicit creation requests
+  const imagePatterns = [
+    /\b(create|make|generate|draw|design)\s+(an?\s+)?(image|picture|illustration|artwork|graphic|visual)/i,
+    /\b(image|picture|illustration|artwork|graphic|visual)\s+(of|for|showing|depicting)/i,
+    /\bgive\s+me\s+(an?\s+)?(image|picture)/i,
+    /\bdraw\s+me\b/i,
+    /\bdesign\s+(an?\s+)?(logo|banner|poster|flyer)/i,
+  ];
+
+  for (const pattern of imagePatterns) {
+    if (pattern.test(lowerContent)) {
+      return 'image';
+    }
+  }
+
+  // Slide/presentation detection
+  const slidePatterns = [
+    /\b(create|make|generate|build)\s+(a\s+)?(slide|powerpoint|presentation|deck|ppt)/i,
+    /\b(slide\s*deck|power\s*point|presentation)\b/i,
+    /\bslide\s+(for|about|on|showing)/i,
+    /\bppt\s+(for|about|on)/i,
+  ];
+
+  for (const pattern of slidePatterns) {
+    if (pattern.test(lowerContent)) {
+      return 'slide';
+    }
   }
 
   return null;
@@ -2616,6 +2661,84 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           console.error('[Chat API] Gemini: QR Code generation error:', qrError);
         }
         // Fall through to regular chat if QR generation fails
+      }
+
+      // ========================================
+      // NATIVE IMAGE GENERATION (Nano Banana)
+      // ========================================
+      // Check for image/slide generation requests - uses Gemini's native image generation
+      const imageGenRequest = detectImageGenerationRequest(lastUserContent);
+      if (imageGenRequest && isAuthenticated) {
+        console.log(`[Chat API] Gemini: Native image generation: ${imageGenRequest}`);
+
+        try {
+          // Get the image model from admin settings
+          const imageModel = await getGeminiImageModel();
+
+          // Build a prompt for image generation
+          let imagePrompt = lastUserContent;
+
+          // For slides, add context to make it presentation-quality
+          if (imageGenRequest === 'slide') {
+            imagePrompt = `Create a professional presentation slide: ${lastUserContent}. Make it clean, modern, and suitable for a business presentation with clear typography and visual hierarchy.`;
+          }
+
+          // Generate the image using Nano Banana
+          const result = await createGeminiImageGeneration({
+            prompt: imagePrompt,
+            model: imageModel,
+            systemPrompt: imageGenRequest === 'slide'
+              ? 'You are a professional presentation designer. Create clean, modern slides with clear visual hierarchy.'
+              : 'You are a creative image generator. Create high-quality, detailed images based on user descriptions.',
+          });
+
+          console.log('[Chat API] Gemini: Image generated with model:', result.model);
+
+          // Return the image as a data URL
+          const dataUrl = `data:${result.mimeType};base64,${result.imageData}`;
+
+          const responseText = imageGenRequest === 'slide'
+            ? `I've created your presentation slide. Here it is:`
+            : `I've created the image you requested. Here it is:`;
+
+          return new Response(
+            JSON.stringify({
+              type: 'image',
+              content: responseText,
+              imageUrl: dataUrl,
+              model: result.model,
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Model-Used': result.model,
+                'X-Provider': 'gemini',
+                'X-Image-Type': imageGenRequest,
+              },
+            }
+          );
+        } catch (imageError) {
+          console.error('[Chat API] Gemini: Image generation error:', imageError);
+          // Fall through to regular chat if image generation fails
+          // Return a helpful error message
+          const errorMessage = imageError instanceof Error ? imageError.message : 'Unknown error';
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: `I wasn't able to generate that image. ${errorMessage.includes('safety') ? 'The request may have triggered content safety filters.' : 'Please try again with a different description.'}`,
+              model: geminiModel,
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Model-Used': geminiModel,
+                'X-Provider': 'gemini',
+              },
+            }
+          );
+        }
       }
 
       // ========================================

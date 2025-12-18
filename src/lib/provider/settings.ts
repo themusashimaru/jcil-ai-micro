@@ -14,6 +14,7 @@ export type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek' | 'gemini';
 export interface ProviderConfig {
   model: string;
   reasoningModel?: string; // DeepSeek only
+  imageModel?: string; // Gemini only - Nano Banana image generation
 }
 
 export interface ProviderSettings {
@@ -35,7 +36,7 @@ const DEFAULT_SETTINGS: ProviderSettings = {
     anthropic: { model: 'claude-sonnet-4-5-20250929' },
     xai: { model: 'grok-3-mini' },
     deepseek: { model: 'deepseek-chat', reasoningModel: 'deepseek-reasoner' },
-    gemini: { model: 'gemini-2.0-flash' },
+    gemini: { model: 'gemini-2.0-flash', imageModel: 'gemini-2.0-flash-exp-image-generation' },
   },
 };
 
@@ -212,4 +213,13 @@ export async function getPerplexityModel(): Promise<string> {
  */
 export async function getCodeCommandModel(): Promise<string> {
   return 'claude-sonnet-4-5-20250929';
+}
+
+/**
+ * Get the Gemini image model (Nano Banana)
+ * Returns the image model if available, falls back to default
+ */
+export async function getGeminiImageModel(): Promise<string> {
+  const settings = await getProviderSettings();
+  return settings.providerConfig.gemini.imageModel || 'gemini-2.0-flash-exp-image-generation';
 }
