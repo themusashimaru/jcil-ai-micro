@@ -2683,17 +2683,17 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
         }
 
         // Create a job for tracking
-        const job = createImageJob({
+        const job = await createImageJob({
           prompt: imagePrompt,
           type: imageGenRequest,
           model: imageModel,
           userId: rateLimitIdentifier,
         });
 
-        // Start async image generation (don't await)
+        // Start async image generation (don't await the outer promise)
         (async () => {
           try {
-            markJobProcessing(job.id);
+            await markJobProcessing(job.id);
 
             // Generate the image using Nano Banana
             const result = await createGeminiImageGeneration({
@@ -2710,7 +2710,7 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
               ? `I've created your presentation slide. Here it is:`
               : `I've created the image you requested. Here it is:`;
 
-            completeImageJob(job.id, {
+            await completeImageJob(job.id, {
               imageData: result.imageData,
               mimeType: result.mimeType,
               content: responseText,
@@ -2718,7 +2718,7 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           } catch (imageError) {
             console.error('[Chat API] Gemini: Image generation error:', imageError);
             const errorMessage = imageError instanceof Error ? imageError.message : 'Unknown error';
-            failImageJob(job.id, errorMessage);
+            await failImageJob(job.id, errorMessage);
           }
         })();
 
