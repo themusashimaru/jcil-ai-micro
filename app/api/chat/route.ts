@@ -556,7 +556,73 @@ INVOICE TIPS:
  * - Generic requests: "create a resume for me" (lets AI show content first)
  * - Questions: "can you make a resume?"
  */
-function detectNativeDocumentRequest(content: string): 'resume' | 'spreadsheet' | 'document' | 'invoice' | 'qrcode' | null {
+/**
+ * Check if user is confirming they want to generate a spreadsheet
+ * after AI has asked qualifying questions
+ */
+function isSpreadsheetConfirmation(content: string, previousMessages: CoreMessage[]): boolean {
+  const lowerContent = content.toLowerCase();
+
+  // Confirmation patterns - short affirmative responses
+  const isConfirmation = /\b(yes|yep|yeah|sure|ok|okay|please|go\s*ahead|looks?\s*good|perfect|great|that'?s?\s*(good|great|perfect|it)|generate\s*it|create\s*it|make\s*it|do\s*it)\b/.test(lowerContent);
+
+  // Check if there's explicit spreadsheet generation request
+  const hasExplicitGenerate = /\b(generate|create|make|download)\s*(the|my|a)?\s*(spreadsheet|excel|file|xlsx)\b/.test(lowerContent);
+
+  if (hasExplicitGenerate) {
+    return true;
+  }
+
+  if (!isConfirmation) {
+    return false;
+  }
+
+  // Check if previous assistant message was asking about spreadsheet details
+  const lastAssistantMessage = [...previousMessages].reverse().find(m => m.role === 'assistant');
+  if (lastAssistantMessage && typeof lastAssistantMessage.content === 'string') {
+    const assistantContent = lastAssistantMessage.content.toLowerCase();
+    // Check if assistant was discussing spreadsheet and asking questions
+    const wasDiscussingSpreadsheet = /\b(spreadsheet|excel|budget|categories|columns|rows|worksheet)\b/.test(assistantContent);
+    const wasAskingQuestions = /\?|would you like|what.*include|which.*categories|how.*organize/.test(assistantContent);
+
+    if (wasDiscussingSpreadsheet && wasAskingQuestions) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if this is an initial spreadsheet request (should ask questions first)
+ * vs a request that should immediately generate
+ */
+function isInitialSpreadsheetRequest(content: string): boolean {
+  const lowerContent = content.toLowerCase();
+
+  // Check if it's a spreadsheet request
+  const isSpreadsheetRequest = /\b(excel|spreadsheet|xlsx)\b/.test(lowerContent) ||
+    (/\b(budget|financial\s*(model|plan|tracker))\b/.test(lowerContent) &&
+     /\b(excel|spreadsheet|xlsx|file)\b/.test(lowerContent));
+
+  if (!isSpreadsheetRequest) {
+    return false;
+  }
+
+  const actionVerbs = /\b(create|make|generate|build|download|give\s*me|need|want|write|draft)\b/;
+  if (!actionVerbs.test(lowerContent)) {
+    return false;
+  }
+
+  // Check if user is providing detailed specifications (don't ask more questions)
+  // If message is long with specifics, they probably know what they want
+  const hasDetailedSpecs = lowerContent.length > 200 ||
+    /\b(columns?|rows?|sheets?|categories|items|formula|calculate)\b.*\b(columns?|rows?|sheets?|categories|items)\b/.test(lowerContent);
+
+  return !hasDetailedSpecs;
+}
+
+function detectNativeDocumentRequest(content: string, previousMessages?: CoreMessage[]): 'resume' | 'spreadsheet' | 'document' | 'invoice' | 'qrcode' | null {
   const lowerContent = content.toLowerCase();
 
   // Common action verbs for document creation
@@ -567,16 +633,8 @@ function detectNativeDocumentRequest(content: string): 'resume' | 'spreadsheet' 
     return 'qrcode';
   }
 
-  // Spreadsheet/Excel detection - trigger on explicit spreadsheet/excel requests
-  // This is more lenient because spreadsheets are clearly file-based
-  if (/\b(excel|spreadsheet|xlsx)\b/.test(lowerContent) && actionVerbs.test(lowerContent)) {
-    return 'spreadsheet';
-  }
-
-  // Also trigger spreadsheet for budget/financial requests WITH explicit file intent
-  if (/\b(budget|financial\s*(model|plan|tracker))\b/.test(lowerContent) &&
-      /\b(excel|spreadsheet|xlsx|file|download)\b/.test(lowerContent) &&
-      actionVerbs.test(lowerContent)) {
+  // Spreadsheet/Excel detection - check for confirmation if we have message history
+  if (previousMessages && isSpreadsheetConfirmation(content, previousMessages)) {
     return 'spreadsheet';
   }
 
@@ -1772,10 +1830,56 @@ Please summarize this information from our platform's perspective. Present the f
         : baseSystemPrompt;
 
       // ========================================
+      // SPREADSHEET GATHERING (Ask questions first)
+      // ========================================
+      // For initial spreadsheet requests, ask qualifying questions before generating
+      if (isInitialSpreadsheetRequest(lastUserContent)) {
+        console.log('[Chat API] Initial spreadsheet request - asking qualifying questions');
+
+        const spreadsheetGatheringPrompt = `${systemPrompt}
+
+SPREADSHEET REQUEST DETECTED: The user wants to create a spreadsheet/Excel file.
+Before generating the file, ask 2-3 brief qualifying questions to understand their needs:
+
+1. What specific categories or data do they want to track?
+2. What time period (weekly, monthly, yearly)?
+3. Any specific calculations or totals needed?
+
+Keep your questions concise and professional. After they provide details, you can generate the spreadsheet.
+Do NOT show a markdown table - just ask the questions conversationally.`;
+
+        const gatherResult = await createAnthropicCompletion({
+          messages: messagesWithContext,
+          model: anthropicModel,
+          maxTokens: 500,
+          temperature: 0.7,
+          systemPrompt: spreadsheetGatheringPrompt,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
+        });
+
+        return new Response(
+          JSON.stringify({
+            content: gatherResult.text,
+            model: anthropicModel,
+            provider: 'anthropic',
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': anthropicModel,
+              'X-Provider': 'anthropic',
+            },
+          }
+        );
+      }
+
+      // ========================================
       // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
       // ========================================
       // Check for native document requests first (resume, spreadsheet, invoice, document)
-      const nativeDocType = detectNativeDocumentRequest(lastUserContent);
+      const nativeDocType = detectNativeDocumentRequest(lastUserContent, messagesWithContext);
       // QR codes handled separately (Gemini provider)
       if (nativeDocType && nativeDocType !== 'qrcode' && isAuthenticated) {
         console.log(`[Chat API] Native document generation: ${nativeDocType}`);
@@ -2050,10 +2154,57 @@ Please summarize this information from our platform's perspective. Present the f
         : baseSystemPrompt;
 
       // ========================================
+      // SPREADSHEET GATHERING (Ask questions first)
+      // ========================================
+      if (isInitialSpreadsheetRequest(lastUserContent)) {
+        console.log('[Chat API] xAI: Initial spreadsheet request - asking qualifying questions');
+
+        const spreadsheetGatheringPrompt = `${systemPrompt}
+
+SPREADSHEET REQUEST DETECTED: The user wants to create a spreadsheet/Excel file.
+Before generating the file, ask 2-3 brief qualifying questions to understand their needs:
+
+1. What specific categories or data do they want to track?
+2. What time period (weekly, monthly, yearly)?
+3. Any specific calculations or totals needed?
+
+Keep your questions concise and professional. After they provide details, you can generate the spreadsheet.
+Do NOT show a markdown table - just ask the questions conversationally.`;
+
+        const gatherResult = await createXAICompletion({
+          messages: messagesWithContext,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          model: xaiModel as any,
+          maxTokens: 500,
+          temperature: 0.7,
+          systemPrompt: spreadsheetGatheringPrompt,
+          stream: false,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
+        });
+
+        return new Response(
+          JSON.stringify({
+            content: gatherResult.text,
+            model: xaiModel,
+            provider: 'xai',
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': xaiModel,
+              'X-Provider': 'xai',
+            },
+          }
+        );
+      }
+
+      // ========================================
       // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
       // ========================================
       // Check for native document requests first (resume, spreadsheet, invoice, document)
-      const xaiNativeDocType = detectNativeDocumentRequest(lastUserContent);
+      const xaiNativeDocType = detectNativeDocumentRequest(lastUserContent, messagesWithContext);
       if (xaiNativeDocType && xaiNativeDocType !== 'qrcode' && isAuthenticated) {
         console.log(`[Chat API] xAI: Native document generation: ${xaiNativeDocType}`);
         const structuredDocType = xaiNativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
@@ -2313,10 +2464,56 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
         : baseSystemPrompt;
 
       // ========================================
+      // SPREADSHEET GATHERING (Ask questions first)
+      // ========================================
+      if (isInitialSpreadsheetRequest(lastUserContent)) {
+        console.log('[Chat API] DeepSeek: Initial spreadsheet request - asking qualifying questions');
+
+        const spreadsheetGatheringPrompt = `${systemPrompt}
+
+SPREADSHEET REQUEST DETECTED: The user wants to create a spreadsheet/Excel file.
+Before generating the file, ask 2-3 brief qualifying questions to understand their needs:
+
+1. What specific categories or data do they want to track?
+2. What time period (weekly, monthly, yearly)?
+3. Any specific calculations or totals needed?
+
+Keep your questions concise and professional. After they provide details, you can generate the spreadsheet.
+Do NOT show a markdown table - just ask the questions conversationally.`;
+
+        const gatherResult = await createDeepSeekCompletion({
+          messages: messagesWithContext,
+          model: deepseekModel as 'deepseek-chat' | 'deepseek-reasoner',
+          maxTokens: 500,
+          temperature: 0.7,
+          systemPrompt: spreadsheetGatheringPrompt,
+          reasoning: false,
+          userId: isAuthenticated ? rateLimitIdentifier : undefined,
+          planKey: userTier,
+        });
+
+        return new Response(
+          JSON.stringify({
+            content: gatherResult.text,
+            model: deepseekModel,
+            provider: 'deepseek',
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': deepseekModel,
+              'X-Provider': 'deepseek',
+            },
+          }
+        );
+      }
+
+      // ========================================
       // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
       // ========================================
       // Check for native document requests first (resume, spreadsheet, invoice, document)
-      const deepseekNativeDocType = detectNativeDocumentRequest(lastUserContent);
+      const deepseekNativeDocType = detectNativeDocumentRequest(lastUserContent, messagesWithContext);
       if (deepseekNativeDocType && deepseekNativeDocType !== 'qrcode' && isAuthenticated) {
         console.log(`[Chat API] DeepSeek: Native document generation: ${deepseekNativeDocType}`);
         const structuredDocType = deepseekNativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
@@ -2554,10 +2751,53 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
         : baseSystemPrompt;
 
       // ========================================
+      // SPREADSHEET GATHERING (Ask questions first)
+      // ========================================
+      if (isInitialSpreadsheetRequest(lastUserContent)) {
+        console.log('[Chat API] Gemini: Initial spreadsheet request - asking qualifying questions');
+
+        const spreadsheetGatheringPrompt = `${systemPrompt}
+
+SPREADSHEET REQUEST DETECTED: The user wants to create a spreadsheet/Excel file.
+Before generating the file, ask 2-3 brief qualifying questions to understand their needs:
+
+1. What specific categories or data do they want to track?
+2. What time period (weekly, monthly, yearly)?
+3. Any specific calculations or totals needed?
+
+Keep your questions concise and professional. After they provide details, you can generate the spreadsheet.
+Do NOT show a markdown table - just ask the questions conversationally.`;
+
+        const gatherResult = await createGeminiCompletion({
+          messages: messagesWithContext,
+          model: geminiModel,
+          maxTokens: 500,
+          temperature: 0.7,
+          systemPrompt: spreadsheetGatheringPrompt,
+        });
+
+        return new Response(
+          JSON.stringify({
+            content: gatherResult.text,
+            model: geminiModel,
+            provider: 'gemini',
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Model-Used': geminiModel,
+              'X-Provider': 'gemini',
+            },
+          }
+        );
+      }
+
+      // ========================================
       // QR CODE PDF GENERATION
       // ========================================
       // Special handling for QR codes - uses {{QR:url:count}} syntax
-      const geminiNativeDocType = detectNativeDocumentRequest(lastUserContent);
+      const geminiNativeDocType = detectNativeDocumentRequest(lastUserContent, messagesWithContext);
       if (geminiNativeDocType === 'qrcode' && isAuthenticated) {
         console.log('[Chat API] Gemini: QR Code PDF generation');
 
@@ -2897,10 +3137,63 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
     console.log('[Chat API] Using OpenAI provider with model:', openaiModel, 'for tier:', userTier);
 
     // ========================================
+    // SPREADSHEET GATHERING (Ask questions first)
+    // ========================================
+    if (isInitialSpreadsheetRequest(lastUserContent)) {
+      console.log('[Chat API] OpenAI: Initial spreadsheet request - asking qualifying questions');
+
+      const baseSystemPrompt = isAuthenticated
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? getSystemPromptForTool(effectiveTool as any)
+        : 'You are a helpful AI assistant.';
+
+      const spreadsheetGatheringPrompt = `${baseSystemPrompt}
+
+SPREADSHEET REQUEST DETECTED: The user wants to create a spreadsheet/Excel file.
+Before generating the file, ask 2-3 brief qualifying questions to understand their needs:
+
+1. What specific categories or data do they want to track?
+2. What time period (weekly, monthly, yearly)?
+3. Any specific calculations or totals needed?
+
+Keep your questions concise and professional. After they provide details, you can generate the spreadsheet.
+Do NOT show a markdown table - just ask the questions conversationally.`;
+
+      const gatherResult = await createChatCompletion({
+        messages: [
+          { role: 'system', content: spreadsheetGatheringPrompt },
+          ...messagesWithContext.filter(m => m.role !== 'system'),
+        ],
+        stream: false,
+        maxTokens: 500,
+        temperature: 0.7,
+        modelOverride: openaiModel,
+      });
+
+      const responseText = await gatherResult.text;
+
+      return new Response(
+        JSON.stringify({
+          content: responseText,
+          model: openaiModel,
+          provider: 'openai',
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Model-Used': openaiModel,
+            'X-Provider': 'openai',
+          },
+        }
+      );
+    }
+
+    // ========================================
     // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
     // ========================================
     // Check for native document requests first (resume, spreadsheet, invoice, document)
-    const openaiNativeDocType = detectNativeDocumentRequest(lastUserContent);
+    const openaiNativeDocType = detectNativeDocumentRequest(lastUserContent, messagesWithContext);
     if (openaiNativeDocType && openaiNativeDocType !== 'qrcode' && isAuthenticated) {
       console.log(`[Chat API] OpenAI: Native document generation: ${openaiNativeDocType}`);
       const structuredDocType = openaiNativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
