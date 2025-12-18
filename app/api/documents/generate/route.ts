@@ -113,7 +113,17 @@ interface BusinessPlanData {
  * Parse invoice content from markdown/text to structured data
  */
 function parseInvoiceContent(content: string): InvoiceData {
-  const lines = content.split('\n').map(l => l.trim()).filter(l => l);
+  // Strip markdown formatting before parsing
+  const cleanContent = content
+    .replace(/\*\*(.+?)\*\*/g, '$1')  // Remove bold
+    .replace(/\*(.+?)\*/g, '$1')       // Remove italic
+    .replace(/^#+\s*/gm, '')           // Remove headers
+    .replace(/`(.+?)`/g, '$1');        // Remove code formatting
+
+  const lines = cleanContent.split('\n').map(l => l.trim()).filter(l => l);
+
+  // Debug: Log first 20 lines to see what we're parsing
+  console.log('[Invoice Parser] Parsing content, first 20 lines:', lines.slice(0, 20));
 
   const data: InvoiceData = {
     companyName: '[Your Company Name]',
@@ -145,22 +155,80 @@ function parseInvoiceContent(content: string): InvoiceData {
   for (const line of lines) {
     const lowerLine = line.toLowerCase();
 
-    // Extract company name (various formats)
+    // Skip common header lines
+    if (lowerLine === 'invoice draft:' || lowerLine === 'invoice:' ||
+        lowerLine === 'invoice draft' || lowerLine === 'invoice' ||
+        lowerLine === 'here is your invoice:' || lowerLine === 'here is your invoice') {
+      continue;
+    }
+
+    // Extract company name (various formats) - try multiple patterns
+
+    // Pattern 1: "# Company Name" (markdown header)
     if (line.startsWith('# ') && data.companyName.includes('[')) {
-      data.companyName = line.slice(2).replace(/\*\*/g, '').trim();
+      data.companyName = line.slice(2).trim();
+      console.log('[Invoice Parser] Found company name (header):', data.companyName);
       continue;
     }
-    // "Business: Name" format (common AI output)
-    const businessMatch = line.match(/^business[:\s]+(.+)/i);
+
+    // Pattern 2: "Business: Name" or "From: Name" or "Company: Name"
+    const businessMatch = line.match(/^(?:business|from|company)[:\s]+(.+)/i);
     if (businessMatch && data.companyName.includes('[')) {
-      data.companyName = businessMatch[1].replace(/\*\*/g, '').trim();
+      data.companyName = businessMatch[1].trim();
+      console.log('[Invoice Parser] Found company name (business/from):', data.companyName);
       continue;
     }
-    // "Invoice: CompanyName" format (AI sometimes outputs this)
+
+    // Pattern 3: "Invoice: CompanyName" (AI sometimes outputs company after "Invoice:")
     const invoiceCompanyMatch = line.match(/^invoice[:\s]+([A-Za-z].+)/i);
     if (invoiceCompanyMatch && data.companyName.includes('[') && !/\d/.test(invoiceCompanyMatch[1])) {
-      data.companyName = invoiceCompanyMatch[1].replace(/\*\*/g, '').trim();
+      data.companyName = invoiceCompanyMatch[1].trim();
+      console.log('[Invoice Parser] Found company name (invoice:):', data.companyName);
       continue;
+    }
+
+    // Pattern 4: First meaningful line is company name (no colon, starts with capital)
+    // This handles cases like "Kaylan's Bridal" as the first line
+    if (data.companyName.includes('[') && data.items.length === 0) {
+      // Must start with capital letter, can contain apostrophes, not be a common keyword
+      const isCompanyName = /^[A-Z][A-Za-z']+/.test(line) &&
+                            !lowerLine.includes('invoice') &&
+                            !lowerLine.includes('bill') &&
+                            !lowerLine.includes('date') &&
+                            !lowerLine.includes('due') &&
+                            !lowerLine.includes('total') &&
+                            !lowerLine.includes('item') &&
+                            !lowerLine.includes('description') &&
+                            !lowerLine.includes('subtotal') &&
+                            !lowerLine.includes('tax') &&
+                            !lowerLine.includes('payment') &&
+                            !lowerLine.includes('ship') &&
+                            !lowerLine.includes('note');
+
+      // Either no colon, or colon is part of time/money
+      const hasNoMeaningfulColon = !line.includes(':') || /^[^:]+:\s*\$/.test(line);
+
+      if (isCompanyName && hasNoMeaningfulColon) {
+        // Extract company name (might have city/state after it)
+        // Handle: "Kaylan's Bridal" or "Kaylan's Bridal New Philadelphia, Ohio"
+        const parts = line.split(/\s+(?=[A-Z][a-z]+,?\s+[A-Z]{2})/);
+        data.companyName = parts[0].trim();
+        if (parts[1]) {
+          data.companyAddress = [parts[1].trim()];
+        }
+        console.log('[Invoice Parser] Found company name (first line):', data.companyName);
+        continue;
+      }
+    }
+
+    // Pattern 5: Address line (city, state) on second line - set as address
+    if (data.companyName && !data.companyName.includes('[') && data.companyAddress[0]?.includes('[')) {
+      const cityStateMatch = line.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s*([A-Z]{2})?$/);
+      if (cityStateMatch && !lowerLine.includes(':')) {
+        data.companyAddress = [line];
+        console.log('[Invoice Parser] Found company address:', line);
+        continue;
+      }
     }
 
     // Invoice number (only if contains digits)
@@ -209,12 +277,22 @@ function parseInvoiceContent(content: string): InvoiceData {
       continue;
     }
 
-    // Items/Products/Line Items section
+    // Items/Products/Line Items/Description section - catch many variations
     if (lowerLine.includes('line item') ||
         lowerLine.includes('description of work') ||
+        lowerLine === 'description:' ||
+        lowerLine.startsWith('description:') ||
+        lowerLine === 'description' ||
         (lowerLine.includes('item') && lowerLine.includes('description')) ||
-        lowerLine === 'items:' || lowerLine === 'services:') {
+        lowerLine === 'items:' || lowerLine === 'services:' ||
+        lowerLine.includes('services/items') ||
+        lowerLine.includes('items/services') ||
+        lowerLine.includes('breakdown:') ||
+        lowerLine === 'breakdown' ||
+        lowerLine.includes('charges:') ||
+        lowerLine === 'charges') {
       currentSection = 'items';
+      console.log('[Invoice Parser] Entering items section at:', line);
       continue;
     }
 
@@ -247,9 +325,15 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.taxRate = parseFloat(taxRateMatch[1]);
     }
 
-    const taxMatch = line.match(/^tax[:\s]*\$?([\d,]+\.?\d*)/i);
+    // Tax amount (various formats)
+    const taxMatch = line.match(/^(?:sales\s*)?tax(?:\s*\([\d.]+%\))?[:\s]*\$?([\d,]+\.?\d*)/i);
     if (taxMatch) {
       data.tax = parseFloat(taxMatch[1].replace(/,/g, ''));
+    }
+    // Also extract tax rate from "Sales Tax (6.75%):" format
+    const taxRateInParens = line.match(/tax\s*\(([\d.]+)%\)/i);
+    if (taxRateInParens) {
+      data.taxRate = parseFloat(taxRateInParens[1]);
     }
 
     const shippingMatch = line.match(/shipping|s\s*&\s*h[:\s]*\$?([\d,]+\.?\d*)/i);
@@ -278,6 +362,24 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.companyAddress.push(line.replace(/^[-*•]\s*/, ''));
     } else if (currentSection === 'notes' && line) {
       data.notes.push(line.replace(/^[-*•\d.]\s*/, ''));
+    }
+
+    // Handle items in ITEMS/DESCRIPTION section: "Fabric Costs: $500.00"
+    if (currentSection === 'items') {
+      const itemLineMatch = line.match(/^(.+?):\s*\$?([\d,]+\.?\d*)$/);
+      if (itemLineMatch && !lowerLine.includes('total') && !lowerLine.includes('subtotal') && !lowerLine.includes('tax')) {
+        const total = parseFloat(itemLineMatch[2].replace(/,/g, ''));
+        if (total > 0) {
+          data.items.push({
+            itemNumber: '',
+            description: itemLineMatch[1].trim(),
+            qty: 1,
+            unitPrice: total,
+            total: total
+          });
+          continue;
+        }
+      }
     }
 
     // Handle items in MATERIALS section: "Description: $4,500.00"
@@ -403,6 +505,32 @@ function parseInvoiceContent(content: string): InvoiceData {
       });
       continue;
     }
+
+    // CATCH-ALL PATTERN: Any line with description followed by dollar amount
+    // "Fabric Costs: $500.00" or "Design Work $450.00" or "- Wedding gown alterations: $800"
+    const catchAllItemMatch = line.match(/^[-*•]?\s*(.+?)[\s:]+\$(\d[\d,]*\.?\d*)$/);
+    if (catchAllItemMatch && data.items.length < 50) {  // Limit to prevent over-matching
+      const desc = catchAllItemMatch[1].trim();
+      const amount = parseFloat(catchAllItemMatch[2].replace(/,/g, ''));
+      // Skip if it looks like a total/subtotal/tax line
+      if (amount > 0 &&
+          !lowerLine.includes('total') &&
+          !lowerLine.includes('subtotal') &&
+          !lowerLine.includes('tax') &&
+          !lowerLine.includes('shipping') &&
+          !lowerLine.includes('amount due') &&
+          desc.length > 2) {
+        console.log('[Invoice Parser] Catch-all item:', desc, amount);
+        data.items.push({
+          itemNumber: '',
+          description: desc,
+          qty: 1,
+          unitPrice: amount,
+          total: amount
+        });
+        continue;
+      }
+    }
   }
 
   // Calculate totals if not provided
@@ -418,6 +546,18 @@ function parseInvoiceContent(content: string): InvoiceData {
 
   // Set payable to company name
   data.payableTo = data.companyName;
+
+  // Debug: Log final parsed data
+  console.log('[Invoice Parser] Final parsed data:', {
+    companyName: data.companyName,
+    invoiceNumber: data.invoiceNumber,
+    itemCount: data.items.length,
+    items: data.items.slice(0, 5),  // First 5 items
+    subtotal: data.subtotal,
+    tax: data.tax,
+    total: data.total,
+    billTo: data.billTo.slice(0, 2),
+  });
 
   return data;
 }

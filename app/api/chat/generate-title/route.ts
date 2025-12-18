@@ -7,7 +7,9 @@
  * - Creates concise, meaningful titles (3-6 words)
  */
 
+import { getProviderSettings } from '@/lib/provider/settings';
 import { createChatCompletion } from '@/lib/openai/client';
+import { createGeminiCompletion } from '@/lib/gemini/client';
 import { NextRequest } from 'next/server';
 
 interface GenerateTitleRequest {
@@ -34,15 +36,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate a concise title using AI
-    console.log('[API] Calling AI to generate title...');
-    let result;
-    try {
-      result = await createChatCompletion({
-        messages: [
-          {
-            role: 'system',
-            content: `You are a chat title generator. Based on the user's message and assistant's response, create a short, descriptive title for this conversation.
+    // Get the configured provider
+    const providerSettings = await getProviderSettings();
+    const activeProvider = providerSettings.activeProvider;
+
+    // Generate a concise title using AI (respects provider settings)
+    console.log('[API] Calling AI to generate title with provider:', activeProvider);
+
+    const systemPrompt = `You are a chat title generator. Based on the user's message and assistant's response, create a short, descriptive title for this conversation.
 
 Rules:
 - Keep it 3-6 words maximum
@@ -50,15 +51,35 @@ Rules:
 - Use title case (capitalize main words)
 - Be specific, not generic
 - No quotes, no punctuation at end
-- Examples: "Email Writing Help", "Python Code Review", "Daily Devotional", "Bible Study Questions"`,
-          },
-          {
-            role: 'user',
-            content: `User: ${userMessage}\n\nAssistant: ${assistantMessage.slice(0, 300)}...\n\nGenerate a short title (3-6 words) for this conversation:`,
-          },
-        ],
-        stream: false,
-      });
+- Examples: "Email Writing Help", "Python Code Review", "Daily Devotional", "Bible Study Questions"`;
+
+    const userPrompt = `User: ${userMessage}\n\nAssistant: ${assistantMessage.slice(0, 300)}...\n\nGenerate a short title (3-6 words) for this conversation:`;
+
+    let titleText = '';
+    try {
+      // Use the configured provider
+      if (activeProvider === 'gemini') {
+        const geminiResult = await createGeminiCompletion({
+          messages: [
+            { role: 'user', content: userPrompt },
+          ],
+          systemPrompt,
+          enableSearch: false,
+        });
+        titleText = geminiResult.text || '';
+      } else {
+        // Fall back to OpenAI for other providers (openai, anthropic, xai, deepseek)
+        const openaiResult = await createChatCompletion({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          stream: false,
+        });
+        // Handle both string and Promise<string> return types
+        const rawText = openaiResult?.text;
+        titleText = typeof rawText === 'string' ? rawText : await rawText || '';
+      }
     } catch (aiError) {
       console.error('[API] AI call failed:', aiError);
       // Return a generated fallback title based on the user message
@@ -70,9 +91,7 @@ Rules:
     }
 
     // Extract the title and clean it up
-    // Handle both string and Promise<string> return types
-    const textContent = await Promise.resolve(result?.text || '');
-    if (!textContent) {
+    if (!titleText) {
       console.log('[API] No text returned from AI, using fallback title');
       const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
       return new Response(
@@ -80,7 +99,7 @@ Rules:
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
-    let title = textContent.trim();
+    let title = titleText.trim();
     console.log('[API] Raw AI-generated title:', title);
 
     // Remove quotes if present
