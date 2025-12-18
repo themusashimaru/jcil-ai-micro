@@ -1773,6 +1773,32 @@ function parseMarkdown(markdown: string): Array<{
       'INTERESTS', 'ACTIVITIES', 'ADDITIONAL INFORMATION',
     ];
 
+    // Business plan and general business document section headers
+    const businessSectionHeaders = [
+      'EXECUTIVE SUMMARY', 'COMPANY DESCRIPTION', 'COMPANY OVERVIEW', 'BUSINESS OVERVIEW',
+      'MARKET ANALYSIS', 'MARKET RESEARCH', 'INDUSTRY ANALYSIS', 'COMPETITIVE ANALYSIS',
+      'ORGANIZATION AND MANAGEMENT', 'MANAGEMENT TEAM', 'ORGANIZATIONAL STRUCTURE',
+      'PRODUCTS AND SERVICES', 'PRODUCTS OR SERVICES', 'SERVICE OFFERING', 'PRODUCT LINE',
+      'MARKETING AND SALES', 'MARKETING STRATEGY', 'SALES STRATEGY', 'GO-TO-MARKET STRATEGY',
+      'FINANCIAL PROJECTIONS', 'FINANCIAL PLAN', 'FINANCIAL SUMMARY', 'REVENUE MODEL',
+      'FUNDING REQUEST', 'FUNDING REQUIREMENTS', 'INVESTMENT OPPORTUNITY',
+      'APPENDIX', 'SUPPORTING DOCUMENTS', 'ATTACHMENTS',
+      'MISSION STATEMENT', 'VISION STATEMENT', 'COMPANY MISSION', 'OUR MISSION',
+      'TARGET MARKET', 'CUSTOMER SEGMENTS', 'IDEAL CUSTOMER',
+      'VALUE PROPOSITION', 'UNIQUE SELLING PROPOSITION', 'COMPETITIVE ADVANTAGE',
+      'OPERATIONS PLAN', 'OPERATIONAL PLAN', 'BUSINESS OPERATIONS',
+      'MILESTONES', 'TIMELINE', 'ROADMAP', 'KEY MILESTONES',
+      'RISK ANALYSIS', 'RISK ASSESSMENT', 'SWOT ANALYSIS',
+      'CONCLUSION', 'NEXT STEPS', 'CALL TO ACTION',
+      'INTRODUCTION', 'BACKGROUND', 'OVERVIEW', 'ABOUT US', 'WHO WE ARE',
+      'PROBLEM', 'THE PROBLEM', 'PROBLEM STATEMENT',
+      'SOLUTION', 'THE SOLUTION', 'OUR SOLUTION', 'PROPOSED SOLUTION',
+      'BUSINESS MODEL', 'REVENUE STREAMS', 'MONETIZATION',
+      'TEAM', 'THE TEAM', 'OUR TEAM', 'LEADERSHIP', 'KEY PERSONNEL',
+      'TRACTION', 'ACHIEVEMENTS TO DATE', 'PROGRESS',
+      'TERMS AND CONDITIONS', 'LEGAL CONSIDERATIONS',
+    ];
+
     // Check if line is a resume section header (exact match or with ** markers)
     const cleanedLine = line.replace(/^\*\*/, '').replace(/\*\*$/, '').trim();
     const isResumeSectionHeader = resumeSectionHeaders.some(header =>
@@ -1783,6 +1809,19 @@ function parseMarkdown(markdown: string): Array<{
     );
 
     if (isResumeSectionHeader) {
+      elements.push({ type: 'h2', text: cleanedLine.replace(/:$/, '') });
+      continue;
+    }
+
+    // Check if line is a business document section header
+    const isBusinessSectionHeader = businessSectionHeaders.some(header =>
+      cleanedLine.toUpperCase() === header ||
+      cleanedLine.toUpperCase() === header + ':' ||
+      line.toUpperCase() === header ||
+      line.toUpperCase() === header + ':'
+    );
+
+    if (isBusinessSectionHeader) {
       elements.push({ type: 'h2', text: cleanedLine.replace(/:$/, '') });
       continue;
     }
@@ -2282,20 +2321,24 @@ export async function POST(request: NextRequest) {
             doc.line(margin + 30, y, pageWidth - margin - 30, y);
             y += 10;
           } else {
-            // Standard H1 - wrap text to prevent overflow
-            doc.setFontSize(18);
+            // GENERIC DOCUMENTS: Professional centered title with decorative styling
+            y += 5; // Extra space before title
+            doc.setFontSize(20);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(30, 64, 175);
+            doc.setTextColor(30, 58, 138); // Professional dark blue
             const h1Text = cleanMarkdown(element.text).text;
             const h1Wrapped = doc.splitTextToSize(h1Text, contentWidth);
-            const h1Height = h1Wrapped.length * 7;
-            checkPageBreak(h1Height + 8);
-            doc.text(h1Wrapped, margin, y);
-            y += h1Height + 3;
-            doc.setDrawColor(30, 64, 175);
-            doc.setLineWidth(0.5);
-            doc.line(margin, y, pageWidth - margin, y);
-            y += 6;
+            const h1Height = h1Wrapped.length * 8;
+            checkPageBreak(h1Height + 15);
+            // Center the title
+            doc.text(h1Wrapped, pageWidth / 2, y, { align: 'center' });
+            y += h1Height + 5;
+            // Professional underline
+            doc.setDrawColor(30, 58, 138);
+            doc.setLineWidth(0.8);
+            const lineWidth = Math.min(doc.getTextWidth(h1Text), contentWidth * 0.6);
+            doc.line(pageWidth / 2 - lineWidth / 2, y, pageWidth / 2 + lineWidth / 2, y);
+            y += 10;
           }
           isFirstElement = false;
           break;
@@ -2343,15 +2386,21 @@ export async function POST(request: NextRequest) {
             doc.text(bpH2Wrapped, margin + 5, y);
             y += bpH2Height + 4;
           } else {
-            // Standard H2 - wrap text
-            doc.setFontSize(14);
+            // GENERIC DOCUMENTS: Professional section headers with accent styling
+            y += 8; // Extra space before section
+            doc.setFontSize(13);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(30, 64, 175);
             const h2Text = cleanMarkdown(element.text).text;
-            const h2Wrapped = doc.splitTextToSize(h2Text, contentWidth);
-            const h2Height = h2Wrapped.length * 6;
+            const h2Wrapped = doc.splitTextToSize(h2Text, contentWidth - 8);
+            const h2Height = h2Wrapped.length * 5.5 + 6;
             checkPageBreak(h2Height + 5);
-            doc.text(h2Wrapped, margin, y);
+            // Light background with left accent
+            doc.setFillColor(245, 247, 250);
+            doc.rect(margin, y - 4, contentWidth, h2Height, 'F');
+            doc.setFillColor(30, 58, 138);
+            doc.rect(margin, y - 4, 3, h2Height, 'F'); // Left accent bar
+            doc.setTextColor(30, 58, 138);
+            doc.text(h2Wrapped, margin + 8, y);
             y += h2Height + 5;
           }
           resumeHeaderDone = true;
@@ -2381,16 +2430,22 @@ export async function POST(request: NextRequest) {
             doc.text(bpH3Wrapped, margin, y);
             y += bpH3Height + 4;
           } else {
-            // Standard H3 - wrap text
-            doc.setFontSize(12);
+            // GENERIC DOCUMENTS: Subsection headers with subtle styling
+            y += 5; // Space before subsection
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(71, 85, 105);
+            doc.setTextColor(55, 65, 81); // Dark gray
             const h3Text = cleanMarkdown(element.text).text;
             const h3Wrapped = doc.splitTextToSize(h3Text, contentWidth);
-            const h3Height = h3Wrapped.length * 5;
-            checkPageBreak(h3Height + 4);
+            const h3Height = h3Wrapped.length * 4.5;
+            checkPageBreak(h3Height + 6);
             doc.text(h3Wrapped, margin, y);
-            y += h3Height + 4;
+            y += h3Height + 1;
+            // Subtle underline
+            doc.setDrawColor(180, 190, 200);
+            doc.setLineWidth(0.3);
+            doc.line(margin, y, margin + Math.min(doc.getTextWidth(h3Text), contentWidth * 0.4), y);
+            y += 5;
           }
           break;
 
@@ -2745,44 +2800,55 @@ export async function POST(request: NextRequest) {
           if (element.qrData) {
             const qrCount = Math.min(element.qrCount || 1, 20); // Max 20 QR codes
 
-            // Calculate grid layout
-            // For 12 QR codes: 4 columns x 3 rows works well on A4
-            // For fewer, adjust columns
+            // Calculate optimal grid layout for easy cutting
+            // Use larger gaps (10mm) for cutting guides
+            const gap = 10; // 10mm gap between QR codes for cutting
+
+            // Calculate columns based on count for optimal layout
             let cols: number;
-            if (qrCount <= 2) cols = qrCount;
+            if (qrCount === 1) cols = 1;
+            else if (qrCount <= 2) cols = 2;
             else if (qrCount <= 4) cols = 2;
             else if (qrCount <= 6) cols = 3;
-            else cols = 4;
+            else if (qrCount <= 9) cols = 3;
+            else cols = 4; // 10-20 codes use 4 columns
 
             const rows = Math.ceil(qrCount / cols);
 
-            // Calculate QR size based on available space
+            // Calculate QR size based on available space with proper margins
+            const availableWidth = contentWidth - (cols - 1) * gap;
+            const availableHeight = pageHeight - margin * 2 - y - 20; // Extra bottom margin
+
             const qrSize = Math.min(
-              (contentWidth - (cols - 1) * 5) / cols, // Fit width with 5mm gaps
-              (pageHeight - margin * 2 - y - 10) / rows, // Fit remaining height
-              45 // Max size 45mm
+              availableWidth / cols,
+              availableHeight / rows - gap,
+              50 // Max size 50mm for good scannability
             );
 
-            // Generate QR code image
+            // Calculate total grid dimensions for centering
+            const gridWidth = cols * qrSize + (cols - 1) * gap;
+            const gridHeight = rows * qrSize + (rows - 1) * gap;
+            const startX = margin + (contentWidth - gridWidth) / 2; // Center horizontally
+
+            // Generate QR code image with higher quality
             try {
               const qrDataUrl = await QRCode.toDataURL(element.qrData, {
-                width: 300,
-                margin: 1,
+                width: 400, // Higher resolution
+                margin: 2,  // Quiet zone
                 color: { dark: '#000000', light: '#ffffff' },
                 errorCorrectionLevel: 'M',
               });
 
               // Check if we need a new page for the grid
-              const gridHeight = rows * (qrSize + 5);
-              checkPageBreak(gridHeight);
+              checkPageBreak(gridHeight + 10);
 
-              // Draw QR codes in grid
+              // Draw QR codes in centered grid
               for (let i = 0; i < qrCount; i++) {
                 const col = i % cols;
                 const row = Math.floor(i / cols);
 
-                const x = margin + col * (qrSize + 5);
-                const qrY = y + row * (qrSize + 5);
+                const qrX = startX + col * (qrSize + gap);
+                const qrY = y + row * (qrSize + gap);
 
                 // Check page break for each row
                 if (qrY + qrSize > pageHeight - margin) {
@@ -2790,13 +2856,21 @@ export async function POST(request: NextRequest) {
                   y = margin;
                 }
 
-                const finalY = row === 0 ? y : margin + row * (qrSize + 5);
+                const finalY = row === 0 ? y : y + row * (qrSize + gap);
 
                 // Add QR code image
-                doc.addImage(qrDataUrl, 'PNG', x, finalY, qrSize, qrSize);
+                doc.addImage(qrDataUrl, 'PNG', qrX, finalY, qrSize, qrSize);
+
+                // Add subtle cutting guides (light gray dashed lines)
+                if (qrCount > 1) {
+                  doc.setDrawColor(220, 220, 220);
+                  doc.setLineWidth(0.2);
+                  // Draw cutting guide rectangle around each QR
+                  doc.rect(qrX - 2, finalY - 2, qrSize + 4, qrSize + 4);
+                }
               }
 
-              y += gridHeight + 5;
+              y += gridHeight + 15;
             } catch (qrError) {
               console.error('[Documents API] QR generation error:', qrError);
               // Fallback: show text placeholder

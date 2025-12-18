@@ -556,8 +556,15 @@ INVOICE TIPS:
  * - Generic requests: "create a resume for me" (lets AI show content first)
  * - Questions: "can you make a resume?"
  */
-function detectNativeDocumentRequest(content: string): 'resume' | 'spreadsheet' | 'document' | 'invoice' | null {
+function detectNativeDocumentRequest(content: string): 'resume' | 'spreadsheet' | 'document' | 'invoice' | 'qrcode' | null {
   const lowerContent = content.toLowerCase();
+
+  // QR Code detection - special case, doesn't need format intent
+  // User asking for QR code(s) should immediately trigger generation
+  if (/\b(qr\s*code|qrcode)\b/.test(lowerContent) &&
+      /\b(create|make|generate|build|download|give\s*me|need|want)\b/.test(lowerContent)) {
+    return 'qrcode';
+  }
 
   // Check for explicit format/download intent
   const hasExplicitFormatRequest = /\b(pdf|docx|xlsx|word\s*doc|excel\s*file|download|as\s+a\s+(pdf|word|document|file))\b/.test(lowerContent);
@@ -1721,12 +1728,14 @@ Please summarize this information from our platform's perspective. Present the f
       // ========================================
       // Check for native document requests first (resume, spreadsheet, invoice, document)
       const nativeDocType = detectNativeDocumentRequest(lastUserContent);
-      if (nativeDocType && isAuthenticated) {
+      // QR codes handled separately (Gemini provider)
+      if (nativeDocType && nativeDocType !== 'qrcode' && isAuthenticated) {
         console.log(`[Chat API] Native document generation: ${nativeDocType}`);
+        const structuredDocType = nativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
 
         try {
           // Get the JSON schema prompt for the document type
-          const nativeDocPrompt = getNativeDocumentPrompt(nativeDocType);
+          const nativeDocPrompt = getNativeDocumentPrompt(structuredDocType);
           const enhancedSystemPrompt = `${systemPrompt}\n\n${nativeDocPrompt}`;
 
           // Get AI to generate structured JSON
@@ -1997,12 +2006,13 @@ Please summarize this information from our platform's perspective. Present the f
       // ========================================
       // Check for native document requests first (resume, spreadsheet, invoice, document)
       const xaiNativeDocType = detectNativeDocumentRequest(lastUserContent);
-      if (xaiNativeDocType && isAuthenticated) {
+      if (xaiNativeDocType && xaiNativeDocType !== 'qrcode' && isAuthenticated) {
         console.log(`[Chat API] xAI: Native document generation: ${xaiNativeDocType}`);
+        const structuredDocType = xaiNativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
 
         try {
           // Get the JSON schema prompt for the document type
-          const nativeDocPrompt = getNativeDocumentPrompt(xaiNativeDocType);
+          const nativeDocPrompt = getNativeDocumentPrompt(structuredDocType);
           const enhancedSystemPrompt = `${systemPrompt}\n\n${nativeDocPrompt}`;
 
           // Get AI to generate structured JSON
@@ -2259,12 +2269,13 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
       // ========================================
       // Check for native document requests first (resume, spreadsheet, invoice, document)
       const deepseekNativeDocType = detectNativeDocumentRequest(lastUserContent);
-      if (deepseekNativeDocType && isAuthenticated) {
+      if (deepseekNativeDocType && deepseekNativeDocType !== 'qrcode' && isAuthenticated) {
         console.log(`[Chat API] DeepSeek: Native document generation: ${deepseekNativeDocType}`);
+        const structuredDocType = deepseekNativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
 
         try {
           // Get the JSON schema prompt for the document type
-          const nativeDocPrompt = getNativeDocumentPrompt(deepseekNativeDocType);
+          const nativeDocPrompt = getNativeDocumentPrompt(structuredDocType);
           const enhancedSystemPrompt = `${systemPrompt}\n\n${nativeDocPrompt}`;
 
           // Get AI to generate structured JSON (don't use reasoning for document generation)
@@ -2495,17 +2506,131 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
         : baseSystemPrompt;
 
       // ========================================
+      // QR CODE PDF GENERATION
+      // ========================================
+      // Special handling for QR codes - uses {{QR:url:count}} syntax
+      const geminiNativeDocType = detectNativeDocumentRequest(lastUserContent);
+      if (geminiNativeDocType === 'qrcode' && isAuthenticated) {
+        console.log('[Chat API] Gemini: QR Code PDF generation');
+
+        try {
+          // Extract URL/data and count from user message
+          const urlMatch = lastUserContent.match(/(?:https?:\/\/[^\s]+|www\.[^\s]+)/i);
+          const countMatch = lastUserContent.match(/(\d+)\s*(?:qr\s*code|copies|times)/i);
+
+          // Get URL from message or ask for it
+          let qrUrl = urlMatch ? urlMatch[0] : null;
+          let qrCount = countMatch ? parseInt(countMatch[1]) : 1;
+          qrCount = Math.min(Math.max(qrCount, 1), 20); // 1-20 codes
+
+          if (!qrUrl) {
+            // No URL found - ask AI to extract it from context or ask user
+            const result = await createGeminiCompletion({
+              messages: messagesWithContext,
+              model: geminiModel,
+              maxTokens: 500,
+              temperature: 0.3,
+              systemPrompt: `${systemPrompt}\n\nThe user wants to create a QR code. Extract the URL or data they want in the QR code from the conversation. If no URL is specified, ask them to provide one. Respond briefly.`,
+            });
+
+            // Check if response contains a URL
+            const extractedUrl = result.text.match(/(?:https?:\/\/[^\s]+|www\.[^\s]+)/i);
+            if (extractedUrl) {
+              qrUrl = extractedUrl[0];
+            } else {
+              // Return the AI's response asking for URL
+              return new Response(
+                JSON.stringify({
+                  type: 'text',
+                  content: result.text,
+                  model: result.model,
+                }),
+                {
+                  status: 200,
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Model-Used': result.model,
+                    'X-Provider': 'gemini',
+                  },
+                }
+              );
+            }
+          }
+
+          // Create PDF content with QR code syntax
+          const qrPdfContent = `# QR Code\n\n{{QR:${qrUrl}:${qrCount}}}\n\nScan this QR code to visit:\n${qrUrl}`;
+
+          // Call document generator
+          const docResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_SITE_URL || 'https://jcil.ai'}/api/documents/generate`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cookie': request.headers.get('cookie') || '',
+              },
+              body: JSON.stringify({
+                content: qrPdfContent,
+                title: 'QR Code',
+                format: 'pdf',
+              }),
+            }
+          );
+
+          if (docResponse.ok) {
+            const docResult = await docResponse.json();
+            console.log('[Chat API] Gemini: QR Code PDF generated:', docResult.filename);
+
+            const responseText = qrCount > 1
+              ? `I've created a PDF with ${qrCount} QR codes for ${qrUrl}. You can download it below.`
+              : `I've created a QR code PDF for ${qrUrl}. You can download it below.`;
+
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: responseText,
+                model: geminiModel,
+                documentDownload: {
+                  url: docResult.downloadUrl || docResult.dataUrl,
+                  filename: docResult.filename,
+                  format: 'pdf',
+                  title: 'QR Code',
+                },
+              }),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Model-Used': geminiModel,
+                  'X-Provider': 'gemini',
+                  'X-Document-Type': 'qrcode',
+                  'X-Document-Format': 'pdf',
+                },
+              }
+            );
+          } else {
+            const errorText = await docResponse.text();
+            console.error('[Chat API] Gemini: QR PDF generation error:', errorText);
+          }
+        } catch (qrError) {
+          console.error('[Chat API] Gemini: QR Code generation error:', qrError);
+        }
+        // Fall through to regular chat if QR generation fails
+      }
+
+      // ========================================
       // NATIVE DOCUMENT GENERATION (Structured Outputs → DOCX/XLSX)
       // ========================================
       // Uses Gemini's structured outputs feature for guaranteed valid JSON
-      const geminiNativeDocType = detectNativeDocumentRequest(lastUserContent);
-      if (geminiNativeDocType && isAuthenticated) {
+      if (geminiNativeDocType && geminiNativeDocType !== 'qrcode' && isAuthenticated) {
         console.log(`[Chat API] Gemini: Structured document generation: ${geminiNativeDocType}`);
+        // Type assertion - we've already excluded 'qrcode' above
+        const structuredDocType = geminiNativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
 
         try {
           // Get the JSON schema and description for this document type
-          const docSchema = getDocumentSchema(geminiNativeDocType);
-          const schemaDescription = getDocumentSchemaDescription(geminiNativeDocType);
+          const docSchema = getDocumentSchema(structuredDocType);
+          const schemaDescription = getDocumentSchemaDescription(structuredDocType);
 
           // Use Gemini's structured outputs - guarantees valid JSON
           const result = await createGeminiStructuredCompletion({
@@ -2699,12 +2824,13 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
     // ========================================
     // Check for native document requests first (resume, spreadsheet, invoice, document)
     const openaiNativeDocType = detectNativeDocumentRequest(lastUserContent);
-    if (openaiNativeDocType && isAuthenticated) {
+    if (openaiNativeDocType && openaiNativeDocType !== 'qrcode' && isAuthenticated) {
       console.log(`[Chat API] OpenAI: Native document generation: ${openaiNativeDocType}`);
+      const structuredDocType = openaiNativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
 
       try {
         // Get the JSON schema prompt for the document type
-        const nativeDocPrompt = getNativeDocumentPrompt(openaiNativeDocType);
+        const nativeDocPrompt = getNativeDocumentPrompt(structuredDocType);
 
         // Build system prompt with JSON schema instructions
         const baseSystemPrompt = isAuthenticated
