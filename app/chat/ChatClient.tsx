@@ -1311,7 +1311,6 @@ export function ChatClient() {
             });
             // Append download link to the message content
             const downloadUrl = data.documentDownload.url;
-            const filename = data.documentDownload.filename || 'document';
             const format = (data.documentDownload.format || 'file').toUpperCase();
             messageContent += `\n\n✅ **Your ${format} is ready!**\n\n`;
             messageContent += `📄 **[Download ${format}](${downloadUrl})**`;
