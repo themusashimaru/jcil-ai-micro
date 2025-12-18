@@ -1773,6 +1773,32 @@ function parseMarkdown(markdown: string): Array<{
       'INTERESTS', 'ACTIVITIES', 'ADDITIONAL INFORMATION',
     ];
 
+    // Business plan and general business document section headers
+    const businessSectionHeaders = [
+      'EXECUTIVE SUMMARY', 'COMPANY DESCRIPTION', 'COMPANY OVERVIEW', 'BUSINESS OVERVIEW',
+      'MARKET ANALYSIS', 'MARKET RESEARCH', 'INDUSTRY ANALYSIS', 'COMPETITIVE ANALYSIS',
+      'ORGANIZATION AND MANAGEMENT', 'MANAGEMENT TEAM', 'ORGANIZATIONAL STRUCTURE',
+      'PRODUCTS AND SERVICES', 'PRODUCTS OR SERVICES', 'SERVICE OFFERING', 'PRODUCT LINE',
+      'MARKETING AND SALES', 'MARKETING STRATEGY', 'SALES STRATEGY', 'GO-TO-MARKET STRATEGY',
+      'FINANCIAL PROJECTIONS', 'FINANCIAL PLAN', 'FINANCIAL SUMMARY', 'REVENUE MODEL',
+      'FUNDING REQUEST', 'FUNDING REQUIREMENTS', 'INVESTMENT OPPORTUNITY',
+      'APPENDIX', 'SUPPORTING DOCUMENTS', 'ATTACHMENTS',
+      'MISSION STATEMENT', 'VISION STATEMENT', 'COMPANY MISSION', 'OUR MISSION',
+      'TARGET MARKET', 'CUSTOMER SEGMENTS', 'IDEAL CUSTOMER',
+      'VALUE PROPOSITION', 'UNIQUE SELLING PROPOSITION', 'COMPETITIVE ADVANTAGE',
+      'OPERATIONS PLAN', 'OPERATIONAL PLAN', 'BUSINESS OPERATIONS',
+      'MILESTONES', 'TIMELINE', 'ROADMAP', 'KEY MILESTONES',
+      'RISK ANALYSIS', 'RISK ASSESSMENT', 'SWOT ANALYSIS',
+      'CONCLUSION', 'NEXT STEPS', 'CALL TO ACTION',
+      'INTRODUCTION', 'BACKGROUND', 'OVERVIEW', 'ABOUT US', 'WHO WE ARE',
+      'PROBLEM', 'THE PROBLEM', 'PROBLEM STATEMENT',
+      'SOLUTION', 'THE SOLUTION', 'OUR SOLUTION', 'PROPOSED SOLUTION',
+      'BUSINESS MODEL', 'REVENUE STREAMS', 'MONETIZATION',
+      'TEAM', 'THE TEAM', 'OUR TEAM', 'LEADERSHIP', 'KEY PERSONNEL',
+      'TRACTION', 'ACHIEVEMENTS TO DATE', 'PROGRESS',
+      'TERMS AND CONDITIONS', 'LEGAL CONSIDERATIONS',
+    ];
+
     // Check if line is a resume section header (exact match or with ** markers)
     const cleanedLine = line.replace(/^\*\*/, '').replace(/\*\*$/, '').trim();
     const isResumeSectionHeader = resumeSectionHeaders.some(header =>
@@ -1783,6 +1809,19 @@ function parseMarkdown(markdown: string): Array<{
     );
 
     if (isResumeSectionHeader) {
+      elements.push({ type: 'h2', text: cleanedLine.replace(/:$/, '') });
+      continue;
+    }
+
+    // Check if line is a business document section header
+    const isBusinessSectionHeader = businessSectionHeaders.some(header =>
+      cleanedLine.toUpperCase() === header ||
+      cleanedLine.toUpperCase() === header + ':' ||
+      line.toUpperCase() === header ||
+      line.toUpperCase() === header + ':'
+    );
+
+    if (isBusinessSectionHeader) {
       elements.push({ type: 'h2', text: cleanedLine.replace(/:$/, '') });
       continue;
     }
@@ -2282,20 +2321,24 @@ export async function POST(request: NextRequest) {
             doc.line(margin + 30, y, pageWidth - margin - 30, y);
             y += 10;
           } else {
-            // Standard H1 - wrap text to prevent overflow
-            doc.setFontSize(18);
+            // GENERIC DOCUMENTS: Professional centered title with decorative styling
+            y += 5; // Extra space before title
+            doc.setFontSize(20);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(30, 64, 175);
+            doc.setTextColor(30, 58, 138); // Professional dark blue
             const h1Text = cleanMarkdown(element.text).text;
             const h1Wrapped = doc.splitTextToSize(h1Text, contentWidth);
-            const h1Height = h1Wrapped.length * 7;
-            checkPageBreak(h1Height + 8);
-            doc.text(h1Wrapped, margin, y);
-            y += h1Height + 3;
-            doc.setDrawColor(30, 64, 175);
-            doc.setLineWidth(0.5);
-            doc.line(margin, y, pageWidth - margin, y);
-            y += 6;
+            const h1Height = h1Wrapped.length * 8;
+            checkPageBreak(h1Height + 15);
+            // Center the title
+            doc.text(h1Wrapped, pageWidth / 2, y, { align: 'center' });
+            y += h1Height + 5;
+            // Professional underline
+            doc.setDrawColor(30, 58, 138);
+            doc.setLineWidth(0.8);
+            const lineWidth = Math.min(doc.getTextWidth(h1Text), contentWidth * 0.6);
+            doc.line(pageWidth / 2 - lineWidth / 2, y, pageWidth / 2 + lineWidth / 2, y);
+            y += 10;
           }
           isFirstElement = false;
           break;
@@ -2343,15 +2386,21 @@ export async function POST(request: NextRequest) {
             doc.text(bpH2Wrapped, margin + 5, y);
             y += bpH2Height + 4;
           } else {
-            // Standard H2 - wrap text
-            doc.setFontSize(14);
+            // GENERIC DOCUMENTS: Professional section headers with accent styling
+            y += 8; // Extra space before section
+            doc.setFontSize(13);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(30, 64, 175);
             const h2Text = cleanMarkdown(element.text).text;
-            const h2Wrapped = doc.splitTextToSize(h2Text, contentWidth);
-            const h2Height = h2Wrapped.length * 6;
+            const h2Wrapped = doc.splitTextToSize(h2Text, contentWidth - 8);
+            const h2Height = h2Wrapped.length * 5.5 + 6;
             checkPageBreak(h2Height + 5);
-            doc.text(h2Wrapped, margin, y);
+            // Light background with left accent
+            doc.setFillColor(245, 247, 250);
+            doc.rect(margin, y - 4, contentWidth, h2Height, 'F');
+            doc.setFillColor(30, 58, 138);
+            doc.rect(margin, y - 4, 3, h2Height, 'F'); // Left accent bar
+            doc.setTextColor(30, 58, 138);
+            doc.text(h2Wrapped, margin + 8, y);
             y += h2Height + 5;
           }
           resumeHeaderDone = true;
@@ -2381,16 +2430,22 @@ export async function POST(request: NextRequest) {
             doc.text(bpH3Wrapped, margin, y);
             y += bpH3Height + 4;
           } else {
-            // Standard H3 - wrap text
-            doc.setFontSize(12);
+            // GENERIC DOCUMENTS: Subsection headers with subtle styling
+            y += 5; // Space before subsection
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
-            doc.setTextColor(71, 85, 105);
+            doc.setTextColor(55, 65, 81); // Dark gray
             const h3Text = cleanMarkdown(element.text).text;
             const h3Wrapped = doc.splitTextToSize(h3Text, contentWidth);
-            const h3Height = h3Wrapped.length * 5;
-            checkPageBreak(h3Height + 4);
+            const h3Height = h3Wrapped.length * 4.5;
+            checkPageBreak(h3Height + 6);
             doc.text(h3Wrapped, margin, y);
-            y += h3Height + 4;
+            y += h3Height + 1;
+            // Subtle underline
+            doc.setDrawColor(180, 190, 200);
+            doc.setLineWidth(0.3);
+            doc.line(margin, y, margin + Math.min(doc.getTextWidth(h3Text), contentWidth * 0.4), y);
+            y += 5;
           }
           break;
 
