@@ -145,9 +145,15 @@ function parseInvoiceContent(content: string): InvoiceData {
   for (const line of lines) {
     const lowerLine = line.toLowerCase();
 
-    // Extract company name (usually first heading or "From:")
-    if (line.startsWith('# ') && !data.companyName.includes('[')) {
+    // Extract company name (various formats)
+    if (line.startsWith('# ') && data.companyName.includes('[')) {
       data.companyName = line.slice(2).replace(/\*\*/g, '').trim();
+      continue;
+    }
+    // "Business: Name" format (common AI output)
+    const businessMatch = line.match(/^business[:\s]+(.+)/i);
+    if (businessMatch && data.companyName.includes('[')) {
+      data.companyName = businessMatch[1].replace(/\*\*/g, '').trim();
       continue;
     }
 
@@ -157,10 +163,16 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.invoiceNumber = invoiceMatch[1];
     }
 
-    // Date
-    const dateMatch = line.match(/date[:\s]+(.+)/i);
-    if (dateMatch && !lowerLine.includes('ship')) {
+    // Date (avoid matching "Due Date")
+    const dateMatch = line.match(/^date[:\s]+(.+)/i);
+    if (dateMatch && !lowerLine.includes('ship') && !lowerLine.includes('due')) {
       data.invoiceDate = dateMatch[1].trim();
+    }
+
+    // Due Date - set terms
+    const dueDateMatch = line.match(/due\s*date[:\s]+(.+)/i);
+    if (dueDateMatch) {
+      data.terms = `Due: ${dueDateMatch[1].trim()}`;
     }
 
     // Customer ID
@@ -191,9 +203,10 @@ function parseInvoiceContent(content: string): InvoiceData {
       continue;
     }
 
-    // Items/Products section
-    if (lowerLine.includes('item') && lowerLine.includes('description') ||
-        lowerLine.includes('product') || lowerLine.includes('service')) {
+    // Items/Products/Line Items section
+    if (lowerLine.includes('line item') ||
+        (lowerLine.includes('item') && lowerLine.includes('description')) ||
+        lowerLine === 'items:' || lowerLine === 'services:') {
       currentSection = 'items';
       continue;
     }
@@ -225,7 +238,8 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.shipping = parseFloat(shippingMatch[1].replace(/,/g, '')) || 0;
     }
 
-    const totalMatch = line.match(/(?:grand\s*)?total[:\s]*\$?([\d,]+\.?\d*)/i);
+    // Total (various formats: "Total:", "Total Due:", "Grand Total:")
+    const totalMatch = line.match(/(?:grand\s*)?total(?:\s*due)?[:\s]*\$?([\d,]+\.?\d*)/i);
     if (totalMatch && !lowerLine.includes('subtotal')) {
       data.total = parseFloat(totalMatch[1].replace(/,/g, ''));
     }
@@ -259,7 +273,7 @@ function parseInvoiceContent(content: string): InvoiceData {
       });
     }
 
-    // Alternative item pattern: "Description - Qty: 5 @ $100 = $500"
+    // PATTERN 2: "Description - Qty: 5 @ $100 = $500"
     const altItemMatch = line.match(/^(.+?)\s*[-–]\s*(?:qty:?\s*)?(\d+)\s*[@x]\s*\$?([\d,]+\.?\d*)/i);
     if (altItemMatch && !itemMatch) {
       const qty = parseInt(altItemMatch[2]);
@@ -271,6 +285,52 @@ function parseInvoiceContent(content: string): InvoiceData {
         unitPrice: price,
         total: qty * price
       });
+      continue;
+    }
+
+    // PATTERN 3: "Labor: 15 Hours @ $300.00/hr: $4,500.00" (common AI format)
+    const laborMatch = line.match(/^(.+?):\s*(\d+)\s*(?:hours?|hrs?)\s*[@x]\s*\$?([\d,]+\.?\d*)(?:\/(?:hour|hr))?[:\s=]*\$?([\d,]+\.?\d*)?/i);
+    if (laborMatch) {
+      const qty = parseInt(laborMatch[2]);
+      const price = parseFloat(laborMatch[3].replace(/,/g, ''));
+      const total = laborMatch[4] ? parseFloat(laborMatch[4].replace(/,/g, '')) : qty * price;
+      data.items.push({
+        itemNumber: '',
+        description: `${laborMatch[1].trim()} (${qty} hours @ $${price.toFixed(2)}/hr)`,
+        qty: qty,
+        unitPrice: price,
+        total: total
+      });
+      continue;
+    }
+
+    // PATTERN 4: "Materials: Description: $1,200.00" or "Materials (Circuit Breaker): $1200"
+    const materialsMatch = line.match(/^(materials?|parts?|supplies?|equipment)[:\s]*(.+?)?\s*[:\s]\s*\$?([\d,]+\.?\d*)$/i);
+    if (materialsMatch) {
+      const desc = materialsMatch[2]?.trim().replace(/[:\s]+$/, '') || materialsMatch[1];
+      const total = parseFloat(materialsMatch[3].replace(/,/g, ''));
+      data.items.push({
+        itemNumber: '',
+        description: desc,
+        qty: 1,
+        unitPrice: total,
+        total: total
+      });
+      continue;
+    }
+
+    // PATTERN 5: Bullet point items "- Labor: $4,500.00"
+    const bulletItemMatch = line.match(/^[-*•]\s*(.+?):\s*\$?([\d,]+\.?\d*)$/);
+    if (bulletItemMatch && !lowerLine.includes('total') && !lowerLine.includes('subtotal') && !lowerLine.includes('tax')) {
+      const total = parseFloat(bulletItemMatch[2].replace(/,/g, ''));
+      data.items.push({
+        itemNumber: '',
+        description: bulletItemMatch[1].trim(),
+        qty: 1,
+        unitPrice: total,
+        total: total
+      });
+      continue;
     }
   }
 
