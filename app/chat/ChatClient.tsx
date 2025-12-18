@@ -1297,6 +1297,119 @@ export function ChatClient() {
           };
 
           pollVideoStatus();
+        } else if (data.type === 'image_job' && data.jobId) {
+          // Image generation job started (Nano Banana)
+          console.log('[ChatClient] Received image job response:', {
+            job_id: data.jobId,
+            status: data.status,
+            model: data.model,
+          });
+
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: data.content || 'Generating your image...',
+            model: data.model || modelUsed,
+            imageJob: {
+              job_id: data.jobId,
+              status: data.status || 'pending',
+              type: 'image',
+              model: data.model,
+            },
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          finalContent = assistantMessage.content;
+
+          // Start polling for image status
+          const pollImageStatus = async () => {
+            const maxAttempts = 60; // 2 minutes max (2s intervals)
+            let attempts = 0;
+
+            const poll = async () => {
+              attempts++;
+              try {
+                const statusResponse = await fetch(`/api/image-jobs/${data.jobId}`);
+                if (!statusResponse.ok) {
+                  console.error('[ChatClient] Image status check failed:', statusResponse.status);
+                  if (attempts < maxAttempts) {
+                    setTimeout(poll, 2000);
+                  }
+                  return;
+                }
+
+                const statusData = await statusResponse.json();
+                console.log('[ChatClient] Image status:', statusData.status);
+
+                if (statusData.status === 'completed' && statusData.imageUrl) {
+                  // Image is ready - update the message
+                  console.log('[ChatClient] Image completed!');
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? {
+                            ...msg,
+                            content: statusData.content || 'Here\'s your generated image:',
+                            imageUrl: statusData.imageUrl,
+                            imageJob: undefined, // Clear the job since it's done
+                          }
+                        : msg
+                    )
+                  );
+
+                  // Save the image message to database
+                  await saveMessageToDatabase(newChatId, 'assistant', statusData.content || 'Generated image', 'image', statusData.imageUrl);
+                } else if (statusData.status === 'failed') {
+                  // Image generation failed
+                  console.error('[ChatClient] Image generation failed:', statusData.error);
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? {
+                            ...msg,
+                            content: `Sorry, I couldn't generate that image. ${statusData.error || 'Please try again.'}`,
+                            imageJob: {
+                              ...msg.imageJob!,
+                              status: 'failed',
+                              error: statusData.error,
+                            },
+                          }
+                        : msg
+                    )
+                  );
+                } else if (statusData.status === 'pending' || statusData.status === 'processing') {
+                  // Still in progress - update status and continue polling
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId && msg.imageJob
+                        ? {
+                            ...msg,
+                            imageJob: {
+                              ...msg.imageJob,
+                              status: statusData.status,
+                            },
+                          }
+                        : msg
+                    )
+                  );
+                  if (attempts < maxAttempts) {
+                    setTimeout(poll, 2000);
+                  }
+                }
+              } catch (error) {
+                console.error('[ChatClient] Error polling image status:', error);
+                if (attempts < maxAttempts) {
+                  setTimeout(poll, 2000);
+                }
+              }
+            };
+
+            // Start polling after a short delay
+            setTimeout(poll, 1000);
+          };
+
+          pollImageStatus();
         } else {
           // Regular text response
           finalContent = data.content || '';

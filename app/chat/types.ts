@@ -29,6 +29,15 @@ export interface VideoJobError {
   message: string;
 }
 
+export interface ImageJobInfo {
+  job_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  type: 'image' | 'slide';
+  model?: string;
+  imageUrl?: string; // Available when completed
+  error?: string;
+}
+
 export interface VideoJobInfo {
   job_id: string;
   status: 'queued' | 'in_progress' | 'completed' | 'failed';
@@ -61,6 +70,7 @@ export interface Message {
   imageUrl?: string; // For AI-generated images
   videoUrl?: string; // For completed video generations
   videoJob?: VideoJobInfo; // For Sora video generation jobs
+  imageJob?: ImageJobInfo; // For Nano Banana image generation jobs
   products?: ShopProduct[]; // For Amazon shopping results
   citations?: string[]; // Source URLs from Live Search
   sourcesUsed?: number; // Number of sources used in search
