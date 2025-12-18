@@ -156,9 +156,15 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.companyName = businessMatch[1].replace(/\*\*/g, '').trim();
       continue;
     }
+    // "Invoice: CompanyName" format (AI sometimes outputs this)
+    const invoiceCompanyMatch = line.match(/^invoice[:\s]+([A-Za-z].+)/i);
+    if (invoiceCompanyMatch && data.companyName.includes('[') && !/\d/.test(invoiceCompanyMatch[1])) {
+      data.companyName = invoiceCompanyMatch[1].replace(/\*\*/g, '').trim();
+      continue;
+    }
 
-    // Invoice number
-    const invoiceMatch = line.match(/invoice\s*[#:]?\s*(\w+[-]?\d+)/i);
+    // Invoice number (only if contains digits)
+    const invoiceMatch = line.match(/invoice\s*[#:]\s*([A-Z]*[-]?\d+)/i);
     if (invoiceMatch) {
       data.invoiceNumber = invoiceMatch[1];
     }
@@ -205,9 +211,22 @@ function parseInvoiceContent(content: string): InvoiceData {
 
     // Items/Products/Line Items section
     if (lowerLine.includes('line item') ||
+        lowerLine.includes('description of work') ||
         (lowerLine.includes('item') && lowerLine.includes('description')) ||
         lowerLine === 'items:' || lowerLine === 'services:') {
       currentSection = 'items';
+      continue;
+    }
+
+    // Materials section (AI often puts "Materials:" then items on next lines)
+    if (lowerLine === 'materials:' || lowerLine === 'material:' || lowerLine === 'parts:') {
+      currentSection = 'materials';
+      continue;
+    }
+
+    // Labor section (AI often puts "Labor:" then items on next lines)
+    if (lowerLine === 'labor:' || lowerLine === 'labour:' || lowerLine === 'services:') {
+      currentSection = 'labor';
       continue;
     }
 
@@ -238,8 +257,8 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.shipping = parseFloat(shippingMatch[1].replace(/,/g, '')) || 0;
     }
 
-    // Total (various formats: "Total:", "Total Due:", "Grand Total:")
-    const totalMatch = line.match(/(?:grand\s*)?total(?:\s*due)?[:\s]*\$?([\d,]+\.?\d*)/i);
+    // Total (various formats: "Total:", "Total Due:", "Grand Total:", "Total Amount Due:")
+    const totalMatch = line.match(/(?:grand\s*)?total(?:\s*amount)?(?:\s*due)?[:\s]*\$?([\d,]+\.?\d*)/i);
     if (totalMatch && !lowerLine.includes('subtotal')) {
       data.total = parseFloat(totalMatch[1].replace(/,/g, ''));
     }
@@ -259,6 +278,58 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.companyAddress.push(line.replace(/^[-*•]\s*/, ''));
     } else if (currentSection === 'notes' && line) {
       data.notes.push(line.replace(/^[-*•\d.]\s*/, ''));
+    }
+
+    // Handle items in MATERIALS section: "Description: $4,500.00"
+    if (currentSection === 'materials') {
+      const matItemMatch = line.match(/^(.+?):\s*\$?([\d,]+\.?\d*)$/);
+      if (matItemMatch && !lowerLine.includes('total')) {
+        const total = parseFloat(matItemMatch[2].replace(/,/g, ''));
+        if (total > 0) {
+          data.items.push({
+            itemNumber: '',
+            description: `Materials - ${matItemMatch[1].trim()}`,
+            qty: 1,
+            unitPrice: total,
+            total: total
+          });
+          continue;
+        }
+      }
+    }
+
+    // Handle items in LABOR section: "Description: N hours @ $rate/hr: $total"
+    if (currentSection === 'labor') {
+      // Pattern: "Service Name: 25 hours @ $300.00/hr: $7,500.00"
+      const labItemMatch = line.match(/^(.+?):\s*(\d+)\s*(?:hours?|hrs?)\s*[@x]\s*\$?([\d,]+\.?\d*)(?:\/(?:hour|hr))?[:\s=]*\$?([\d,]+\.?\d*)?/i);
+      if (labItemMatch) {
+        const qty = parseInt(labItemMatch[2]);
+        const price = parseFloat(labItemMatch[3].replace(/,/g, ''));
+        const total = labItemMatch[4] ? parseFloat(labItemMatch[4].replace(/,/g, '')) : qty * price;
+        data.items.push({
+          itemNumber: '',
+          description: `Labor - ${labItemMatch[1].trim()} (${qty} hrs @ $${price.toFixed(2)}/hr)`,
+          qty: qty,
+          unitPrice: price,
+          total: total
+        });
+        continue;
+      }
+      // Simpler pattern: "Service Name: $amount"
+      const simpleLabMatch = line.match(/^(.+?):\s*\$?([\d,]+\.?\d*)$/);
+      if (simpleLabMatch && !lowerLine.includes('total')) {
+        const total = parseFloat(simpleLabMatch[2].replace(/,/g, ''));
+        if (total > 0) {
+          data.items.push({
+            itemNumber: '',
+            description: `Labor - ${simpleLabMatch[1].trim()}`,
+            qty: 1,
+            unitPrice: total,
+            total: total
+          });
+          continue;
+        }
+      }
     }
 
     // Parse item lines (look for patterns like "Product Name | 5 | $100 | $500")
