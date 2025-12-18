@@ -27,7 +27,6 @@ import { useState, useEffect, useRef } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer, SearchMode } from '@/components/chat/ChatComposer';
-import { QuickDailyDevotional } from '@/components/chat/QuickDailyDevotional';
 import { CodeCommandInterface } from '@/components/code-command';
 // Voice Button - Hidden until feature is production-ready
 // import VoiceButton from './VoiceButton';
@@ -1839,8 +1838,6 @@ export function ChatClient() {
                 />
               </svg>
             </button>
-            {/* Devotional Button - Always visible in header */}
-            <QuickDailyDevotional />
             {/* Only show logo/site name when a chat is active */}
             {currentChatId && (
               theme === 'light' ? (
