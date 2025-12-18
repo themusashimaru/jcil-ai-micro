@@ -28,14 +28,14 @@ export default function HomePage() {
               <Link href="#how-it-works" className="text-slate-600 hover:text-slate-900 font-medium transition">
                 How It Works
               </Link>
+              <Link href="/coding" className="text-slate-600 hover:text-slate-900 font-medium transition">
+                Coding
+              </Link>
               <Link href="#pricing" className="text-slate-600 hover:text-slate-900 font-medium transition">
                 Pricing
               </Link>
               <Link href="/about" className="text-slate-600 hover:text-slate-900 font-medium transition">
                 About
-              </Link>
-              <Link href="/faq" className="text-slate-600 hover:text-slate-900 font-medium transition">
-                FAQ
               </Link>
             </div>
 
