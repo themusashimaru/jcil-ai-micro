@@ -1438,6 +1438,35 @@ function parseMarkdown(markdown: string): Array<{
       continue;
     }
 
+    // Detect resume section headers (all-caps or bold section names without ## prefix)
+    // These commonly appear when AI doesn't use markdown headers
+    const resumeSectionHeaders = [
+      'PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE', 'OBJECTIVE',
+      'EXPERIENCE', 'PROFESSIONAL EXPERIENCE', 'WORK EXPERIENCE', 'EMPLOYMENT HISTORY', 'WORK HISTORY',
+      'EDUCATION', 'ACADEMIC BACKGROUND', 'ACADEMIC HISTORY',
+      'SKILLS', 'TECHNICAL SKILLS', 'CORE COMPETENCIES', 'KEY SKILLS', 'AREAS OF EXPERTISE',
+      'CERTIFICATIONS', 'CERTIFICATES', 'LICENSES', 'CREDENTIALS', 'LICENSES & CERTIFICATIONS',
+      'AWARDS', 'HONORS', 'ACHIEVEMENTS', 'ACCOMPLISHMENTS', 'AWARDS & HONORS',
+      'PUBLICATIONS', 'RESEARCH', 'PROJECTS', 'PORTFOLIO',
+      'LANGUAGES', 'VOLUNTEER', 'VOLUNTEER EXPERIENCE', 'COMMUNITY SERVICE',
+      'REFERENCES', 'PROFESSIONAL AFFILIATIONS', 'MEMBERSHIPS', 'ASSOCIATIONS',
+      'INTERESTS', 'ACTIVITIES', 'ADDITIONAL INFORMATION',
+    ];
+
+    // Check if line is a resume section header (exact match or with ** markers)
+    const cleanedLine = line.replace(/^\*\*/, '').replace(/\*\*$/, '').trim();
+    const isResumeSectionHeader = resumeSectionHeaders.some(header =>
+      cleanedLine.toUpperCase() === header ||
+      cleanedLine.toUpperCase() === header + ':' ||
+      line.toUpperCase() === header ||
+      line.toUpperCase() === header + ':'
+    );
+
+    if (isResumeSectionHeader) {
+      elements.push({ type: 'h2', text: cleanedLine.replace(/:$/, '') });
+      continue;
+    }
+
     // Horizontal rule (---, ***, ___)
     if (line.match(/^[-*_]{3,}$/)) {
       elements.push({ type: 'hr', text: '' });
@@ -2036,11 +2065,39 @@ export async function POST(request: NextRequest) {
 
           if (isResume && !resumeHeaderDone) {
             // RESUME: Contact info - centered, smaller
-            doc.setFontSize(9.5);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(60, 60, 60);
-            doc.text(cleaned.text, pageWidth / 2, y, { align: 'center' });
-            y += 5;
+            // BUT: if the text is long (>100 chars), it's likely a summary, not contact info
+            // Force left-align for long paragraphs even if we haven't seen a header yet
+            const isLikelyContactInfo = cleaned.text.length < 100 &&
+              !cleaned.text.toLowerCase().includes('experience') &&
+              !cleaned.text.toLowerCase().includes('professional') &&
+              !cleaned.text.toLowerCase().includes('proven track record') &&
+              !cleaned.text.toLowerCase().includes('skilled in') &&
+              !cleaned.text.toLowerCase().includes('expertise in');
+
+            if (isLikelyContactInfo) {
+              doc.setFontSize(9.5);
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(60, 60, 60);
+              doc.text(cleaned.text, pageWidth / 2, y, { align: 'center' });
+              y += 5;
+            } else {
+              // Long text or summary-like content - left align and mark header as done
+              resumeHeaderDone = true;
+              doc.setFontSize(9.5);
+              let fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
+              if (cleaned.bold && cleaned.italic) fontStyle = 'bolditalic';
+              else if (cleaned.bold) fontStyle = 'bold';
+              else if (cleaned.italic) fontStyle = 'italic';
+              doc.setFont('helvetica', fontStyle);
+              doc.setTextColor(51, 51, 51);
+
+              const splitText = doc.splitTextToSize(cleaned.text, contentWidth);
+              const textHeight = splitText.length * 3.8;
+              checkPageBreak(textHeight + 2);
+
+              doc.text(splitText, margin, y);
+              y += textHeight + 1.5;
+            }
           } else if (isInvoice && (lowerText.includes('total due') || lowerText.includes('amount due') || lowerText.includes('balance due'))) {
             // INVOICE: Total Due - Large, bold, right-aligned, with background
             checkPageBreak(15);
@@ -2190,6 +2247,10 @@ export async function POST(request: NextRequest) {
           break;
 
         case 'li':
+          // Bullet points indicate we're past the contact info section
+          if (isResume) {
+            resumeHeaderDone = true;
+          }
           if (element.items) {
             for (const item of element.items) {
               const itemCleaned = cleanMarkdown(item);
