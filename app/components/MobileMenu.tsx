@@ -94,6 +94,15 @@ export default function MobileMenu() {
             </li>
             <li>
               <Link
+                href="/coding"
+                onClick={handleLinkClick}
+                className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-lg transition font-medium"
+              >
+                Coding Assistant
+              </Link>
+            </li>
+            <li>
+              <Link
                 href="#pricing"
                 onClick={handleLinkClick}
                 className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-lg transition font-medium"
@@ -108,15 +117,6 @@ export default function MobileMenu() {
                 className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-lg transition font-medium"
               >
                 About
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/faq"
-                onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-lg transition font-medium"
-              >
-                FAQ
               </Link>
             </li>
             <li>
