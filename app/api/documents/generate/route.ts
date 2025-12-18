@@ -1018,6 +1018,27 @@ function generateInvoicePDF(doc: jsPDF, invoiceData: InvoiceData): void {
 }
 
 /**
+ * Strip markdown formatting from text for clean PDF output
+ */
+function stripMarkdown(text: string): string {
+  return text
+    // Remove bold/italic markers
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    // Remove inline code
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove links but keep text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove headers markers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Clean up extra whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
  * Parse business plan content from markdown/text to structured data
  */
 function parseBusinessPlanContent(content: string): BusinessPlanData {
@@ -1078,7 +1099,8 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
   let currentContent: string[] = [];
 
   const saveCurrentContent = () => {
-    const text = currentContent.join('\n').trim();
+    // Join content and ensure all markdown is stripped
+    const text = currentContent.map(line => stripMarkdown(line)).join('\n').trim();
     if (!text) return;
 
     switch (currentSection) {
@@ -1137,25 +1159,35 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
     if (data.companyName === '[Company Name]') {
       // Pattern 1: "# Company Name" (markdown header)
       if (trimmedLine.startsWith('# ')) {
-        const title = trimmedLine.slice(2).replace(/business plan/i, '').trim();
-        if (title) {
+        const title = stripMarkdown(trimmedLine.slice(2).replace(/business plan/i, ''));
+        if (title && title.length > 2) {
           data.companyName = title;
           continue;
         }
       }
-      // Pattern 2: "Executive Summary: Company Name" (inline with section)
-      const execSummaryMatch = trimmedLine.match(/executive\s+summary[:\s]+(.+)/i);
-      if (execSummaryMatch && execSummaryMatch[1]) {
-        const name = execSummaryMatch[1].replace(/^the\s+/i, '').trim();
+      // Pattern 2: "Business Name: Company Name" (common AI format)
+      const businessNameMatch = trimmedLine.match(/business\s+name[:\s]+(.+)/i);
+      if (businessNameMatch && businessNameMatch[1]) {
+        const name = stripMarkdown(businessNameMatch[1]);
         if (name && name.length > 2) {
           data.companyName = name;
+          continue;
         }
       }
-      // Pattern 3: "Business Plan for Company Name" or "Company Name Business Plan"
+      // Pattern 3: "Company Name: XYZ" or "Name: XYZ"
+      const companyNameMatch = trimmedLine.match(/(?:company\s+)?name[:\s]+(.+)/i);
+      if (companyNameMatch && companyNameMatch[1] && !trimmedLine.toLowerCase().includes('founder')) {
+        const name = stripMarkdown(companyNameMatch[1]);
+        if (name && name.length > 2 && !name.toLowerCase().includes('business plan')) {
+          data.companyName = name;
+          continue;
+        }
+      }
+      // Pattern 4: "Business Plan for Company Name" or "Company Name Business Plan"
       const bpMatch = trimmedLine.match(/business\s+plan\s+(?:for\s+)?(.+)/i) ||
                       trimmedLine.match(/(.+?)\s+business\s+plan/i);
       if (bpMatch && bpMatch[1]) {
-        const name = bpMatch[1].trim();
+        const name = stripMarkdown(bpMatch[1]);
         if (name && name.length > 2 && !name.toLowerCase().includes('summary')) {
           data.companyName = name;
         }
@@ -1254,7 +1286,7 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
     const inlineLabelMatch = trimmedLine.match(/^([A-Z][A-Za-z\s]+):\s*(.*)$/);
     if (inlineLabelMatch && currentSection) {
       const label = inlineLabelMatch[1].toLowerCase();
-      const value = inlineLabelMatch[2].trim();
+      const value = stripMarkdown(inlineLabelMatch[2]);
 
       // Save previous content first
       saveCurrentContent();
@@ -1269,7 +1301,8 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
           continue;
         } else if (label.includes('location') || label.includes('launch') || label.includes('date')) {
           // Store as part of overview
-          data.executiveSummary.companyOverview += (data.executiveSummary.companyOverview ? '\n' : '') + trimmedLine;
+          const cleanedLine = stripMarkdown(trimmedLine);
+          data.executiveSummary.companyOverview += (data.executiveSummary.companyOverview ? '\n' : '') + cleanedLine;
           continue;
         }
       } else if (currentSection === 'market') {
@@ -1288,7 +1321,7 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
         }
       } else if (currentSection === 'organization') {
         if (label.includes('hours') || label.includes('staffing') || label.includes('inventory')) {
-          if (value) currentContent.push(trimmedLine);
+          if (value) currentContent.push(stripMarkdown(trimmedLine));
           continue;
         }
       }
@@ -1301,9 +1334,12 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
 
     // Accumulate content
     if (trimmedLine && currentSection) {
-      // Clean up bullet points and list markers
-      const cleanedLine = trimmedLine.replace(/^[-*•]\s*/, '').replace(/^\d+\)\s*/, '');
-      currentContent.push(cleanedLine);
+      // Clean up bullet points, list markers, and markdown formatting
+      let cleanedLine = trimmedLine.replace(/^[-*•]\s*/, '').replace(/^\d+\)\s*/, '');
+      cleanedLine = stripMarkdown(cleanedLine);
+      if (cleanedLine) {
+        currentContent.push(cleanedLine);
+      }
     }
   }
 
