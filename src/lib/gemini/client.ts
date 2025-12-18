@@ -559,5 +559,408 @@ export function isGeminiConfigured(): boolean {
   return primaryPool.length > 0 || fallbackPool.length > 0;
 }
 
+// ========================================
+// STRUCTURED OUTPUTS (JSON Schema)
+// ========================================
+
+/**
+ * Create a structured output completion using Gemini
+ * Uses response_mime_type: "application/json" for guaranteed valid JSON
+ */
+export async function createGeminiStructuredCompletion<T>(options: {
+  messages: CoreMessage[];
+  model?: string;
+  maxTokens?: number;
+  temperature?: number;
+  systemPrompt?: string;
+  schema: object; // JSON Schema
+  schemaDescription?: string;
+}): Promise<{
+  data: T;
+  model: string;
+}> {
+  const {
+    messages,
+    model = DEFAULT_MODEL,
+    maxTokens = 4096,
+    temperature = 0.5, // Lower temperature for more consistent structured output
+    systemPrompt,
+    schema,
+    schemaDescription,
+  } = options;
+
+  const selectedModel = model || DEFAULT_MODEL;
+  const client = getGeminiClient();
+  const currentKey = getCurrentApiKey();
+
+  // Build system prompt with schema context
+  const timeContext = getCurrentTimeContext();
+  const schemaContext = schemaDescription
+    ? `\n\n${schemaDescription}\n\nGenerate a response that matches the provided JSON schema.`
+    : '\n\nGenerate a response that matches the provided JSON schema.';
+
+  const fullSystemPrompt = systemPrompt
+    ? `${systemPrompt}${schemaContext}\n\n---\n\n${timeContext}`
+    : `You are a helpful assistant that generates structured JSON output.${schemaContext}\n\n---\n\n${timeContext}`;
+
+  // Convert messages
+  const { contents, systemInstruction } = convertToGeminiMessages(messages, fullSystemPrompt);
+
+  console.log('[Gemini] Creating structured completion with model:', selectedModel);
+
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`[Gemini] Structured output retry attempt ${attempt + 1}/${maxRetries}`);
+      }
+
+      // Build config with JSON response format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const config: any = {
+        maxOutputTokens: maxTokens,
+        temperature,
+        systemInstruction,
+        // Enable structured output - guarantees valid JSON
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+        // Native safety settings
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        ],
+      };
+
+      const response = await client.models.generateContent({
+        model: selectedModel,
+        contents,
+        config,
+      });
+
+      const text = response.text || '';
+
+      // Parse the JSON response
+      let data: T;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('[Gemini] Failed to parse structured output:', parseError);
+        console.error('[Gemini] Raw response:', text.substring(0, 500));
+        throw new Error('Failed to parse structured output as JSON');
+      }
+
+      console.log('[Gemini] Structured output generated successfully');
+
+      return {
+        data,
+        model: selectedModel,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Check for rate limit error
+      const isRateLimit = lastError.message.includes('rate_limit') ||
+                          lastError.message.includes('429') ||
+                          lastError.message.includes('RESOURCE_EXHAUSTED') ||
+                          lastError.message.toLowerCase().includes('too many requests');
+
+      if (isRateLimit && currentKey) {
+        const retryMatch = lastError.message.match(/retry.?after[:\s]*(\d+)/i);
+        const retryAfter = retryMatch ? parseInt(retryMatch[1], 10) : 60;
+        markKeyRateLimited(currentKey, retryAfter);
+
+        if (attempt < maxRetries - 1) {
+          console.log(`[Gemini] Rate limited, trying next key...`);
+          continue;
+        }
+      }
+
+      if (attempt === maxRetries - 1) {
+        console.error('[Gemini] Structured completion error (all retries exhausted):', lastError);
+        throw lastError;
+      }
+
+      console.error(`[Gemini] Structured error on attempt ${attempt + 1}, retrying:`, lastError.message);
+    }
+  }
+
+  throw lastError || new Error('All Gemini API keys exhausted');
+}
+
+// ========================================
+// DOCUMENT GENERATION SCHEMAS
+// ========================================
+
+/**
+ * JSON Schema for Resume document generation
+ */
+export const RESUME_SCHEMA = {
+  type: 'object',
+  properties: {
+    type: { type: 'string', enum: ['resume'] },
+    name: { type: 'string', description: 'Full name of the person' },
+    contact: {
+      type: 'object',
+      properties: {
+        phone: { type: 'string' },
+        email: { type: 'string' },
+        linkedin: { type: 'string' },
+        website: { type: 'string' },
+        location: { type: 'string', description: 'City and State only' },
+      },
+    },
+    summary: { type: 'string', description: 'Professional summary (2-3 sentences)' },
+    experience: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          company: { type: 'string' },
+          location: { type: 'string' },
+          startDate: { type: 'string' },
+          endDate: { type: 'string' },
+          bullets: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['title', 'company', 'bullets'],
+      },
+    },
+    education: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          degree: { type: 'string' },
+          school: { type: 'string' },
+          location: { type: 'string' },
+          graduationDate: { type: 'string' },
+          gpa: { type: 'string' },
+          honors: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['degree', 'school'],
+      },
+    },
+    skills: { type: 'array', items: { type: 'string' } },
+    certifications: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          issuer: { type: 'string' },
+          date: { type: 'string' },
+        },
+        required: ['name'],
+      },
+    },
+  },
+  required: ['type', 'name', 'experience', 'education'],
+};
+
+/**
+ * JSON Schema for Spreadsheet document generation
+ */
+export const SPREADSHEET_SCHEMA = {
+  type: 'object',
+  properties: {
+    type: { type: 'string', enum: ['spreadsheet'] },
+    title: { type: 'string' },
+    sheets: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          rows: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                isHeader: { type: 'boolean' },
+                cells: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      value: { type: ['string', 'number', 'null'] },
+                      bold: { type: 'boolean' },
+                      italic: { type: 'boolean' },
+                      currency: { type: 'boolean' },
+                      percent: { type: 'boolean' },
+                      formula: { type: 'string' },
+                      backgroundColor: { type: 'string' },
+                      textColor: { type: 'string' },
+                      alignment: { type: 'string', enum: ['left', 'center', 'right'] },
+                    },
+                  },
+                },
+              },
+              required: ['cells'],
+            },
+          },
+          freezeRow: { type: 'integer' },
+          columnWidths: { type: 'array', items: { type: 'number' } },
+        },
+        required: ['name', 'rows'],
+      },
+    },
+    format: {
+      type: 'object',
+      properties: {
+        alternatingRowColors: { type: 'boolean' },
+        headerColor: { type: 'string' },
+      },
+    },
+  },
+  required: ['type', 'title', 'sheets'],
+};
+
+/**
+ * JSON Schema for Word Document generation
+ */
+export const DOCUMENT_SCHEMA = {
+  type: 'object',
+  properties: {
+    type: { type: 'string', enum: ['document'] },
+    title: { type: 'string' },
+    sections: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['paragraph', 'table', 'pageBreak', 'horizontalRule'] },
+          content: {
+            type: 'object',
+            properties: {
+              text: { type: 'string' },
+              style: { type: 'string', enum: ['normal', 'heading1', 'heading2', 'heading3', 'title', 'subtitle'] },
+              bold: { type: 'boolean' },
+              italic: { type: 'boolean' },
+              alignment: { type: 'string', enum: ['left', 'center', 'right', 'justify'] },
+              bulletLevel: { type: 'integer' },
+              headers: { type: 'array', items: { type: 'string' } },
+              rows: { type: 'array', items: { type: 'array', items: { type: 'string' } } },
+            },
+          },
+        },
+        required: ['type'],
+      },
+    },
+    format: {
+      type: 'object',
+      properties: {
+        fontFamily: { type: 'string' },
+        fontSize: { type: 'number' },
+        headerText: { type: 'string' },
+        footerText: { type: 'string' },
+      },
+    },
+  },
+  required: ['type', 'title', 'sections'],
+};
+
+/**
+ * JSON Schema for Invoice document generation
+ */
+export const INVOICE_SCHEMA = {
+  type: 'object',
+  properties: {
+    type: { type: 'string', enum: ['invoice'] },
+    invoiceNumber: { type: 'string' },
+    date: { type: 'string' },
+    dueDate: { type: 'string' },
+    from: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        address: { type: 'array', items: { type: 'string' } },
+        phone: { type: 'string' },
+        email: { type: 'string' },
+      },
+      required: ['name'],
+    },
+    to: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        address: { type: 'array', items: { type: 'string' } },
+        phone: { type: 'string' },
+        email: { type: 'string' },
+      },
+      required: ['name'],
+    },
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          description: { type: 'string' },
+          quantity: { type: 'number' },
+          unitPrice: { type: 'number' },
+          total: { type: 'number' },
+        },
+        required: ['description', 'quantity', 'unitPrice'],
+      },
+    },
+    subtotal: { type: 'number' },
+    taxRate: { type: 'number' },
+    tax: { type: 'number' },
+    total: { type: 'number' },
+    notes: { type: 'string' },
+    paymentTerms: { type: 'string' },
+    format: {
+      type: 'object',
+      properties: {
+        primaryColor: { type: 'string' },
+        currency: { type: 'string' },
+      },
+    },
+  },
+  required: ['type', 'invoiceNumber', 'date', 'from', 'to', 'items', 'total'],
+};
+
+/**
+ * Get the appropriate schema for a document type
+ */
+export function getDocumentSchema(docType: 'resume' | 'spreadsheet' | 'document' | 'invoice'): object {
+  const schemas: Record<string, object> = {
+    resume: RESUME_SCHEMA,
+    spreadsheet: SPREADSHEET_SCHEMA,
+    document: DOCUMENT_SCHEMA,
+    invoice: INVOICE_SCHEMA,
+  };
+  return schemas[docType] || DOCUMENT_SCHEMA;
+}
+
+/**
+ * Get schema description/prompt for a document type
+ */
+export function getDocumentSchemaDescription(docType: 'resume' | 'spreadsheet' | 'document' | 'invoice'): string {
+  const descriptions: Record<string, string> = {
+    resume: `Generate a professional resume. Use strong action verbs (Led, Developed, Increased, Managed).
+Quantify achievements where possible (e.g., "increased sales by 40%").
+Keep bullet points concise and impactful. Location should be City, State only (no full address for privacy).`,
+
+    spreadsheet: `Generate a spreadsheet with appropriate data, headers, and formatting.
+Use formulas for calculations (=SUM, =AVERAGE, etc.).
+Include totals rows for financial data.
+Use currency formatting for money values.`,
+
+    document: `Generate a well-formatted document with appropriate headings, paragraphs, and sections.
+Use proper heading hierarchy (title, heading1, heading2, etc.).
+Include appropriate formatting (bold, italic) for emphasis.`,
+
+    invoice: `Generate a professional invoice with accurate calculations.
+Calculate totals correctly (subtotal, tax, total).
+Include clear item descriptions and quantities.
+Specify payment terms.`,
+  };
+  return descriptions[docType] || descriptions.document;
+}
+
 // Export types
 export type GeminiModel = string;

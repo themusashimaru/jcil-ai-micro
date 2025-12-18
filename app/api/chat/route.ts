@@ -68,6 +68,9 @@ import {
 import {
   createGeminiCompletion,
   createGeminiStreamingCompletion,
+  createGeminiStructuredCompletion,
+  getDocumentSchema,
+  getDocumentSchemaDescription,
 } from '@/lib/gemini/client';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
@@ -2470,133 +2473,106 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
         : baseSystemPrompt;
 
       // ========================================
-      // NATIVE DOCUMENT GENERATION (NEW: JSON → DOCX/XLSX)
+      // NATIVE DOCUMENT GENERATION (Structured Outputs → DOCX/XLSX)
       // ========================================
-      // Check for native document requests first (resume, spreadsheet, invoice, document)
+      // Uses Gemini's structured outputs feature for guaranteed valid JSON
       const geminiNativeDocType = detectNativeDocumentRequest(lastUserContent);
       if (geminiNativeDocType && isAuthenticated) {
-        console.log(`[Chat API] Gemini: Native document generation: ${geminiNativeDocType}`);
+        console.log(`[Chat API] Gemini: Structured document generation: ${geminiNativeDocType}`);
 
         try {
-          // Get the JSON schema prompt for the document type
-          const nativeDocPrompt = getNativeDocumentPrompt(geminiNativeDocType);
-          const enhancedSystemPrompt = `${systemPrompt}\n\n${nativeDocPrompt}`;
+          // Get the JSON schema and description for this document type
+          const docSchema = getDocumentSchema(geminiNativeDocType);
+          const schemaDescription = getDocumentSchemaDescription(geminiNativeDocType);
 
-          // Get AI to generate structured JSON
-          const result = await createGeminiCompletion({
+          // Use Gemini's structured outputs - guarantees valid JSON
+          const result = await createGeminiStructuredCompletion({
             messages: messagesWithContext,
             model: geminiModel,
             maxTokens: clampedMaxTokens,
-            temperature,
-            systemPrompt: enhancedSystemPrompt,
-            userId: isAuthenticated ? rateLimitIdentifier : undefined,
-            planKey: userTier,
+            temperature: 0.5, // Lower for more consistent output
+            systemPrompt,
+            schema: docSchema,
+            schemaDescription,
           });
 
-          // Try to extract JSON document data from response
-          let extractedDoc = extractDocumentJSON(result.text);
+          console.log(`[Chat API] Gemini: Structured output received for ${geminiNativeDocType}`);
 
-          // If Gemini failed to produce valid JSON, fallback to GPT-4o-mini
-          if (!extractedDoc) {
-            console.log('[Chat API] Gemini: JSON extraction failed, falling back to GPT-4o-mini...');
-            try {
-              const fallbackResult = await createChatCompletion({
-                messages: [
-                  { role: 'system', content: enhancedSystemPrompt },
-                  ...messagesWithContext.filter(m => m.role !== 'system'),
-                ],
-                modelOverride: 'gpt-4o-mini',
-                maxTokens: clampedMaxTokens,
-                temperature,
-                stream: false,
-              });
-              const fallbackText = await fallbackResult.text;
-              if (fallbackText) {
-                extractedDoc = extractDocumentJSON(fallbackText);
-                if (extractedDoc) {
-                  console.log('[Chat API] Gemini: GPT-4o-mini fallback successful for document JSON');
-                }
-              }
-            } catch (fallbackError) {
-              console.error('[Chat API] Gemini: GPT-4o-mini fallback also failed:', fallbackError);
-            }
-          }
-
-          if (extractedDoc) {
-            console.log(`[Chat API] Gemini: Extracted ${(extractedDoc.json as { type: string }).type} document JSON`);
-
-            // Call the native document generation API
-            const docResponse = await fetch(
-              `${process.env.NEXT_PUBLIC_SITE_URL || 'https://jcil.ai'}/api/documents/native`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Cookie': request.headers.get('cookie') || '',
-                },
-                body: JSON.stringify({
-                  documentData: extractedDoc.json,
-                  returnType: 'url',
-                }),
-              }
-            );
-
-            if (docResponse.ok) {
-              const docResult = await docResponse.json();
-              console.log(`[Chat API] Gemini: Native document generated: ${docResult.filename}`);
-
-              // Return response with document download link
-              const responseText = extractedDoc.cleanResponse ||
-                `I've created your ${geminiNativeDocType} document. You can download it below.`;
-
-              return new Response(
-                JSON.stringify({
-                  type: 'text',
-                  content: responseText,
-                  model: result.model,
-                  documentDownload: {
-                    url: docResult.downloadUrl || docResult.dataUrl,
-                    filename: docResult.filename,
-                    format: docResult.format,
-                    title: docResult.title,
-                  },
-                }),
-                {
-                  status: 200,
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-Model-Used': result.model,
-                    'X-Provider': 'gemini',
-                    'X-Document-Type': geminiNativeDocType,
-                    'X-Document-Format': docResult.format,
-                  },
-                }
-              );
-            } else {
-              console.error('[Chat API] Gemini: Native document generation failed:', await docResponse.text());
-              // Fall through to return text response
-            }
-          }
-
-          // If JSON extraction failed, return the text response
-          return new Response(
-            JSON.stringify({
-              type: 'text',
-              content: result.text,
-              model: result.model,
-            }),
+          // Call the native document generation API with the structured data
+          const docResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_SITE_URL || 'https://jcil.ai'}/api/documents/native`,
             {
-              status: 200,
+              method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'X-Model-Used': result.model,
-                'X-Provider': 'gemini',
+                'Cookie': request.headers.get('cookie') || '',
               },
+              body: JSON.stringify({
+                documentData: result.data,
+                returnType: 'url',
+              }),
             }
           );
-        } catch (nativeDocError) {
-          console.error('[Chat API] Gemini: Native document error, falling back:', nativeDocError);
-          // Fall through to legacy document generation
+
+          if (docResponse.ok) {
+            const docResult = await docResponse.json();
+            console.log(`[Chat API] Gemini: Native document generated: ${docResult.filename}`);
+
+            // Return response with document download link
+            const docTypeNames: Record<string, string> = {
+              resume: 'resume',
+              spreadsheet: 'spreadsheet',
+              document: 'document',
+              invoice: 'invoice',
+            };
+            const responseText = `I've created your ${docTypeNames[geminiNativeDocType] || 'document'}. You can download it below.`;
+
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: responseText,
+                model: result.model,
+                documentDownload: {
+                  url: docResult.downloadUrl || docResult.dataUrl,
+                  filename: docResult.filename,
+                  format: docResult.format,
+                  title: docResult.title,
+                },
+              }),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Model-Used': result.model,
+                  'X-Provider': 'gemini',
+                  'X-Document-Type': geminiNativeDocType,
+                  'X-Document-Format': docResult.format,
+                },
+              }
+            );
+          } else {
+            const errorText = await docResponse.text();
+            console.error('[Chat API] Gemini: Document API error:', errorText);
+            // Return error message to user
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: `I created the document data but there was an error generating the file: ${errorText}. Please try again.`,
+                model: result.model,
+              }),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Model-Used': result.model,
+                  'X-Provider': 'gemini',
+                },
+              }
+            );
+          }
+        } catch (structuredError) {
+          console.error('[Chat API] Gemini: Structured output error:', structuredError);
+          // Fall through to legacy document generation (PDF fallback)
         }
       }
 
