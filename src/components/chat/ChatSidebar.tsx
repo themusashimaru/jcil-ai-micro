@@ -313,13 +313,12 @@ export function ChatSidebar({
           glass-morphism
           fixed md:relative
           inset-y-0 left-0 z-50
-          w-72 md:w-80
-          transform transition-transform duration-300 ease-in-out
-          ${collapsed ? '-translate-x-full md:translate-x-0 md:w-0 md:border-0' : 'translate-x-0'}
+          transform transition-all duration-300 ease-in-out
+          ${collapsed ? '-translate-x-full md:translate-x-0 md:w-0 md:overflow-hidden md:border-0' : 'translate-x-0 w-72 md:w-80'}
         `}
         style={{ borderRight: collapsed ? 'none' : '1px solid var(--border)' }}
       >
-        <div className="flex h-full flex-col">
+        <div className={`flex h-full flex-col ${collapsed ? 'md:hidden' : ''}`} style={{ minWidth: '288px' }}>
         {/* Code Command Button - Admin Only */}
         {isAdmin && onOpenCodeCommand && (
           <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -368,9 +367,13 @@ export function ChatSidebar({
         {/* New Chat Button */}
         <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <button
-            onClick={onNewChat}
-            className="sidebar-btn-glass w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition"
-            style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onNewChat();
+            }}
+            className="sidebar-btn-glass w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition relative z-10 cursor-pointer"
+            style={{ backgroundColor: 'var(--primary)', color: 'var(--background)', pointerEvents: 'auto' }}
           >
             + New Chat
           </button>
