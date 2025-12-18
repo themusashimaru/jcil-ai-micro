@@ -20,7 +20,7 @@ export async function GET(
   try {
     const { jobId } = await params;
 
-    const job = getImageJob(jobId);
+    const job = await getImageJob(jobId);
 
     if (!job) {
       return NextResponse.json(
@@ -81,7 +81,7 @@ export async function DELETE(
   try {
     const { jobId } = await params;
 
-    deleteImageJob(jobId);
+    await deleteImageJob(jobId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
