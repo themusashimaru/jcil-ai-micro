@@ -237,8 +237,8 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.invoiceNumber = invoiceMatch[1];
     }
 
-    // Date (avoid matching "Due Date")
-    const dateMatch = line.match(/^date[:\s]+(.+)/i);
+    // Date (avoid matching "Due Date", "Ship Date")
+    const dateMatch = line.match(/^(?:invoice\s*)?date[:\s]+(.+)/i);
     if (dateMatch && !lowerLine.includes('ship') && !lowerLine.includes('due')) {
       data.invoiceDate = dateMatch[1].trim();
     }
@@ -249,6 +249,17 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.terms = `Due: ${dueDateMatch[1].trim()}`;
     }
 
+    // Payment terms (various patterns)
+    const paymentMatch = line.match(/(?:pay(?:ment)?|terms?)[:\s]+(?:within\s+)?(\d+)\s*days?/i);
+    if (paymentMatch) {
+      data.terms = `Net ${paymentMatch[1]}`;
+    }
+    // "Please pay within 7 days" pattern
+    const pleasePayMatch = line.match(/please\s+pay\s+within\s+(\d+)\s*days?/i);
+    if (pleasePayMatch) {
+      data.terms = `Net ${pleasePayMatch[1]}`;
+    }
+
     // Customer ID
     const customerMatch = line.match(/customer\s*(?:id|#)?[:\s]+(.+)/i);
     if (customerMatch) {
@@ -256,9 +267,14 @@ function parseInvoiceContent(content: string): InvoiceData {
     }
 
     // Bill To section
-    if (lowerLine.includes('bill to') || lowerLine.includes('billed to')) {
+    if (lowerLine.includes('bill to') || lowerLine.includes('billed to') || lowerLine.startsWith('to:')) {
       currentSection = 'billTo';
       data.billTo = [];
+      // If "To: Name" is on the same line, extract the name
+      const toNameMatch = line.match(/^to:\s*(.+)/i);
+      if (toNameMatch) {
+        data.billTo.push(toNameMatch[1].trim());
+      }
       continue;
     }
 
@@ -353,9 +369,22 @@ function parseInvoiceContent(content: string): InvoiceData {
       data.terms = termsMatch[1].trim();
     }
 
-    // Add to current section
-    if (currentSection === 'billTo' && line && !line.includes(':')) {
-      data.billTo.push(line.replace(/^[-*•]\s*/, ''));
+    // Add to current section (with guards to prevent incorrect data)
+    if (currentSection === 'billTo' && line) {
+      // Don't add lines that look like invoice metadata, headers, or items
+      const isBillToContent = !line.includes(':') &&
+                              !lowerLine.includes('invoice') &&
+                              !lowerLine.includes('description') &&
+                              !lowerLine.includes('quantity') &&
+                              !lowerLine.includes('unit price') &&
+                              !lowerLine.includes('total') &&
+                              !lowerLine.includes('items') &&
+                              !line.includes('|') &&
+                              !line.includes('@') &&
+                              !/\$[\d,]+/.test(line);
+      if (isBillToContent) {
+        data.billTo.push(line.replace(/^[-*•]\s*/, ''));
+      }
     } else if (currentSection === 'shipTo' && line && !line.includes(':')) {
       data.shipTo.push(line.replace(/^[-*•]\s*/, ''));
     } else if (currentSection === 'company' && line && !line.includes(':')) {
@@ -434,6 +463,25 @@ function parseInvoiceContent(content: string): InvoiceData {
       }
     }
 
+    // PATTERN: "10 Pepperoni Pizzas @ $25.00: $250.00" (QTY DESC @ PRICE: TOTAL)
+    // This common AI format has quantity at the START of the line
+    const qtyFirstMatch = line.match(/^(\d+)\s+(.+?)\s*@\s*\$?([\d,]+\.?\d*)[:\s]*\$?([\d,]+\.?\d*)$/);
+    if (qtyFirstMatch) {
+      const qty = parseInt(qtyFirstMatch[1]);
+      const desc = qtyFirstMatch[2].trim();
+      const unitPrice = parseFloat(qtyFirstMatch[3].replace(/,/g, ''));
+      const total = qtyFirstMatch[4] ? parseFloat(qtyFirstMatch[4].replace(/,/g, '')) : qty * unitPrice;
+      console.log('[Invoice Parser] Matched qty-first format:', desc, qty, unitPrice, total);
+      data.items.push({
+        itemNumber: '',
+        description: desc,
+        qty: qty,
+        unitPrice: unitPrice,
+        total: total
+      });
+      continue;
+    }
+
     // Parse item lines (look for patterns like "Product Name | 5 | $100 | $500")
     const itemMatch = line.match(/^(.+?)\s*[|]\s*(\d+)\s*[|]\s*\$?([\d,]+\.?\d*)\s*[|]\s*\$?([\d,]+\.?\d*)/);
     if (itemMatch) {
@@ -444,6 +492,7 @@ function parseInvoiceContent(content: string): InvoiceData {
         unitPrice: parseFloat(itemMatch[3].replace(/,/g, '')),
         total: parseFloat(itemMatch[4].replace(/,/g, ''))
       });
+      continue;
     }
 
     // PATTERN 2: "Description - Qty: 5 @ $100 = $500"
