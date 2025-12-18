@@ -2800,44 +2800,55 @@ export async function POST(request: NextRequest) {
           if (element.qrData) {
             const qrCount = Math.min(element.qrCount || 1, 20); // Max 20 QR codes
 
-            // Calculate grid layout
-            // For 12 QR codes: 4 columns x 3 rows works well on A4
-            // For fewer, adjust columns
+            // Calculate optimal grid layout for easy cutting
+            // Use larger gaps (10mm) for cutting guides
+            const gap = 10; // 10mm gap between QR codes for cutting
+
+            // Calculate columns based on count for optimal layout
             let cols: number;
-            if (qrCount <= 2) cols = qrCount;
+            if (qrCount === 1) cols = 1;
+            else if (qrCount <= 2) cols = 2;
             else if (qrCount <= 4) cols = 2;
             else if (qrCount <= 6) cols = 3;
-            else cols = 4;
+            else if (qrCount <= 9) cols = 3;
+            else cols = 4; // 10-20 codes use 4 columns
 
             const rows = Math.ceil(qrCount / cols);
 
-            // Calculate QR size based on available space
+            // Calculate QR size based on available space with proper margins
+            const availableWidth = contentWidth - (cols - 1) * gap;
+            const availableHeight = pageHeight - margin * 2 - y - 20; // Extra bottom margin
+
             const qrSize = Math.min(
-              (contentWidth - (cols - 1) * 5) / cols, // Fit width with 5mm gaps
-              (pageHeight - margin * 2 - y - 10) / rows, // Fit remaining height
-              45 // Max size 45mm
+              availableWidth / cols,
+              availableHeight / rows - gap,
+              50 // Max size 50mm for good scannability
             );
 
-            // Generate QR code image
+            // Calculate total grid dimensions for centering
+            const gridWidth = cols * qrSize + (cols - 1) * gap;
+            const gridHeight = rows * qrSize + (rows - 1) * gap;
+            const startX = margin + (contentWidth - gridWidth) / 2; // Center horizontally
+
+            // Generate QR code image with higher quality
             try {
               const qrDataUrl = await QRCode.toDataURL(element.qrData, {
-                width: 300,
-                margin: 1,
+                width: 400, // Higher resolution
+                margin: 2,  // Quiet zone
                 color: { dark: '#000000', light: '#ffffff' },
                 errorCorrectionLevel: 'M',
               });
 
               // Check if we need a new page for the grid
-              const gridHeight = rows * (qrSize + 5);
-              checkPageBreak(gridHeight);
+              checkPageBreak(gridHeight + 10);
 
-              // Draw QR codes in grid
+              // Draw QR codes in centered grid
               for (let i = 0; i < qrCount; i++) {
                 const col = i % cols;
                 const row = Math.floor(i / cols);
 
-                const x = margin + col * (qrSize + 5);
-                const qrY = y + row * (qrSize + 5);
+                const qrX = startX + col * (qrSize + gap);
+                const qrY = y + row * (qrSize + gap);
 
                 // Check page break for each row
                 if (qrY + qrSize > pageHeight - margin) {
@@ -2845,13 +2856,21 @@ export async function POST(request: NextRequest) {
                   y = margin;
                 }
 
-                const finalY = row === 0 ? y : margin + row * (qrSize + 5);
+                const finalY = row === 0 ? y : y + row * (qrSize + gap);
 
                 // Add QR code image
-                doc.addImage(qrDataUrl, 'PNG', x, finalY, qrSize, qrSize);
+                doc.addImage(qrDataUrl, 'PNG', qrX, finalY, qrSize, qrSize);
+
+                // Add subtle cutting guides (light gray dashed lines)
+                if (qrCount > 1) {
+                  doc.setDrawColor(220, 220, 220);
+                  doc.setLineWidth(0.2);
+                  // Draw cutting guide rectangle around each QR
+                  doc.rect(qrX - 2, finalY - 2, qrSize + 4, qrSize + 4);
+                }
               }
 
-              y += gridHeight + 5;
+              y += gridHeight + 15;
             } catch (qrError) {
               console.error('[Documents API] QR generation error:', qrError);
               // Fallback: show text placeholder
