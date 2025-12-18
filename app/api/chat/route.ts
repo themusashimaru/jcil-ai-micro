@@ -543,31 +543,53 @@ INVOICE TIPS:
 /**
  * Detect if user is requesting a NATIVE document (for JSON generation)
  * This is separate from detectDocumentRequest which is for the old markdown approach
+ *
+ * IMPORTANT: Only triggers on EXPLICIT download requests, not initial content requests.
+ * This allows the two-step flow: 1) Show content for review, 2) Generate document on confirmation.
+ *
+ * Triggers on:
+ * - Explicit format requests: "create a PDF resume", "make word document", "generate xlsx"
+ * - Download language: "download as docx", "give me the pdf"
+ * - Confirmation + format: "yes make it a pdf", "looks good create the document"
+ *
+ * Does NOT trigger on:
+ * - Generic requests: "create a resume for me" (lets AI show content first)
+ * - Questions: "can you make a resume?"
  */
 function detectNativeDocumentRequest(content: string): 'resume' | 'spreadsheet' | 'document' | 'invoice' | null {
   const lowerContent = content.toLowerCase();
 
-  // Resume detection
+  // Check for explicit format/download intent
+  const hasExplicitFormatRequest = /\b(pdf|docx|xlsx|word\s*doc|excel\s*file|download|as\s+a\s+(pdf|word|document|file))\b/.test(lowerContent);
+  const hasConfirmationWithFormat = /\b(yes|looks?\s*good|perfect|great|that'?s?\s*(good|great|perfect)|make\s*it|generate\s*it|create\s*it)\b/.test(lowerContent) &&
+                                    /\b(pdf|docx|xlsx|word|document|file|download)\b/.test(lowerContent);
+
+  // Only proceed if there's explicit format/download intent
+  if (!hasExplicitFormatRequest && !hasConfirmationWithFormat) {
+    return null;
+  }
+
+  // Resume detection - with explicit format request
   if (/\b(resume|résumé|cv|curriculum vitae)\b/.test(lowerContent) &&
-      /\b(create|make|generate|build|write|draft)\b/.test(lowerContent)) {
+      /\b(create|make|generate|build|write|draft|download)\b/.test(lowerContent)) {
     return 'resume';
   }
 
   // Spreadsheet/Excel detection
   if (/\b(excel|spreadsheet|xlsx|budget|financial\s*(model|plan|tracker))\b/.test(lowerContent) &&
-      /\b(create|make|generate|build)\b/.test(lowerContent)) {
+      /\b(create|make|generate|build|download)\b/.test(lowerContent)) {
     return 'spreadsheet';
   }
 
   // Invoice detection
   if (/\b(invoice|bill|receipt)\b/.test(lowerContent) &&
-      /\b(create|make|generate|build)\b/.test(lowerContent)) {
+      /\b(create|make|generate|build|download)\b/.test(lowerContent)) {
     return 'invoice';
   }
 
   // General Word document detection
   if (/\b(word\s*document|docx|letter|memo|report)\b/.test(lowerContent) &&
-      /\b(create|make|generate|build|write|draft)\b/.test(lowerContent)) {
+      /\b(create|make|generate|build|write|draft|download)\b/.test(lowerContent)) {
     return 'document';
   }
 
