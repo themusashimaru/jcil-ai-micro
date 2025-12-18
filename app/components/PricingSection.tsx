@@ -32,18 +32,22 @@ function PricingCard({
   onSubscribe,
   loading,
 }: PricingCardProps) {
+  // Landing page colors - consistent navy blue branding
+  const navyBlue = '#1e3a5f';
+  const navyBlueLight = '#2d4a6f';
+
   return (
     <div
-      className="glass-morphism rounded-2xl p-6 sm:p-8 relative flex flex-col"
+      className="rounded-2xl p-6 sm:p-8 relative flex flex-col bg-white shadow-lg"
       style={{
-        border: popular ? '2px solid var(--primary)' : '1px solid var(--border)',
+        border: popular ? `2px solid ${navyBlue}` : '1px solid #e2e8f0',
       }}
     >
       {/* Popular Badge */}
       {popular && (
         <div
-          className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-semibold"
-          style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+          className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-sm font-semibold text-white"
+          style={{ background: `linear-gradient(to right, ${navyBlue}, ${navyBlueLight})` }}
         >
           MOST POPULAR
         </div>
@@ -56,20 +60,20 @@ function PricingCard({
         </span>
       </div>
 
-      <h3 className="mb-2 text-xl sm:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
-      <p className="mb-4 text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>{description}</p>
+      <h3 className="mb-2 text-xl sm:text-2xl font-bold text-slate-900">{title}</h3>
+      <p className="mb-4 text-sm sm:text-base text-slate-600">{description}</p>
       <div className="mb-2">
-        <span className="text-4xl sm:text-5xl font-bold" style={{ color: 'var(--text-primary)' }}>${firstMonthPrice}</span>
-        <span style={{ color: 'var(--text-secondary)' }}> first month</span>
+        <span className="text-4xl sm:text-5xl font-bold text-slate-900">${firstMonthPrice}</span>
+        <span className="text-slate-600"> first month</span>
       </div>
       <div className="mb-6">
-        <span className="text-sm line-through" style={{ color: 'var(--text-muted)' }}>${price}/mo</span>
-        <span className="text-sm ml-2" style={{ color: 'var(--text-secondary)' }}>then ${price}/mo</span>
+        <span className="text-sm line-through text-slate-400">${price}/mo</span>
+        <span className="text-sm ml-2 text-slate-600">then ${price}/mo</span>
       </div>
       <ul className="mb-8 space-y-3 text-sm flex-1">
         {features.map((feature, index) => (
-          <li key={index} className="flex items-start" style={{ color: 'var(--text-primary)' }}>
-            <span className="mr-2 mt-0.5 flex-shrink-0" style={{ color: 'rgb(74, 222, 128)' }}>✓</span>
+          <li key={index} className="flex items-start text-slate-700">
+            <span className="mr-2 mt-0.5 flex-shrink-0 text-green-500">✓</span>
             <span>{feature}</span>
           </li>
         ))}
@@ -77,10 +81,9 @@ function PricingCard({
       <button
         onClick={() => onSubscribe(tier)}
         disabled={loading}
-        className="block w-full rounded-lg py-3 text-center font-semibold transition hover:opacity-90"
+        className="block w-full rounded-lg py-3 text-center font-semibold text-white transition hover:shadow-lg hover:shadow-blue-900/25"
         style={{
-          backgroundColor: 'var(--primary)',
-          color: 'var(--background)',
+          background: `linear-gradient(to right, ${navyBlue}, ${navyBlueLight})`,
           opacity: loading ? 0.5 : 1,
           cursor: loading ? 'not-allowed' : 'pointer',
         }}
@@ -216,12 +219,12 @@ export default function PricingSection() {
         </div>
       </div>
 
-      <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>Simple, Transparent Pricing</h2>
-      <p className="mb-2 text-center text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>Choose the plan that fits your needs</p>
-      <p className="mb-8 sm:mb-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>Cancel anytime. No hidden fees.</p>
+      <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold text-slate-900">Simple, Transparent Pricing</h2>
+      <p className="mb-2 text-center text-sm sm:text-base text-slate-600">Choose the plan that fits your needs</p>
+      <p className="mb-8 sm:mb-12 text-center text-sm text-slate-500">Cancel anytime. No hidden fees.</p>
 
       {error && (
-        <div className="mb-8 mx-auto max-w-2xl rounded-lg p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
+        <div className="mb-8 mx-auto max-w-2xl rounded-lg p-4 bg-red-50 border border-red-200 text-red-600">
           {error}
         </div>
       )}
@@ -239,7 +242,7 @@ export default function PricingSection() {
 
       {/* Trust Note */}
       <div className="mt-12 text-center">
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-sm text-slate-500">
           Secure payment powered by Stripe. Your payment information is never stored on our servers.
         </p>
       </div>
