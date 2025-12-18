@@ -1301,10 +1301,28 @@ export function ChatClient() {
           // Regular text response
           finalContent = data.content || '';
 
+          // Check if this response includes a document download (native generation)
+          // This happens when Gemini/etc generates native DOCX/XLSX files
+          let messageContent = data.content || '';
+          if (data.documentDownload?.url) {
+            console.log('[ChatClient] Document download included in response:', {
+              filename: data.documentDownload.filename,
+              format: data.documentDownload.format,
+            });
+            // Append download link to the message content
+            const downloadUrl = data.documentDownload.url;
+            const filename = data.documentDownload.filename || 'document';
+            const format = (data.documentDownload.format || 'file').toUpperCase();
+            messageContent += `\n\n✅ **Your ${format} is ready!**\n\n`;
+            messageContent += `📄 **[Download ${format}](${downloadUrl})**`;
+            messageContent += `\n\n*Link expires in 1 hour. If you need it later, just ask me to generate again.*`;
+            finalContent = messageContent;
+          }
+
           const assistantMessage: Message = {
             id: assistantMessageId,
             role: 'assistant',
-            content: data.content || '',
+            content: messageContent,
             citations: data.citations || [],
             sourcesUsed: data.sourcesUsed || 0,
             model: data.model || modelUsed,
