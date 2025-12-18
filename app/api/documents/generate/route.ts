@@ -1611,9 +1611,14 @@ export async function POST(request: NextRequest) {
     const isResume = lowerTitle.includes('resume') ||
                      lowerTitle.includes('résumé') ||
                      lowerTitle.includes('cv') ||
+                     lowerTitle.includes('curriculum vitae') ||
                      lowerContent.includes('work experience') ||
                      lowerContent.includes('professional experience') ||
-                     lowerContent.includes('education') && lowerContent.includes('skills');
+                     lowerContent.includes('employment history') ||
+                     lowerContent.includes('career summary') ||
+                     lowerContent.includes('professional summary') ||
+                     (lowerContent.includes('education') && lowerContent.includes('skills')) ||
+                     (lowerContent.includes('certifications') && lowerContent.includes('experience'));
 
     const isInvoice = lowerTitle.includes('invoice') ||
                       lowerTitle.includes('receipt') ||
@@ -1630,6 +1635,15 @@ export async function POST(request: NextRequest) {
                            lowerContent.includes('market analysis') ||
                            lowerContent.includes('financial projections') ||
                            (lowerContent.includes('business') && lowerContent.includes('strategy'));
+
+    // Log detected document type for debugging
+    console.log('[Documents API] Document type detection:', {
+      title,
+      isResume,
+      isInvoice,
+      isBusinessPlan,
+      effectiveType: isInvoice ? 'invoice' : (isResume ? 'resume' : (isBusinessPlan ? 'business_plan' : 'generic'))
+    });
 
     // Create PDF
     const doc = new jsPDF({
@@ -1745,7 +1759,8 @@ export async function POST(request: NextRequest) {
     }
 
     // === BUSINESS PLAN: Use dedicated professional template ===
-    if (isBusinessPlan) {
+    // IMPORTANT: Only if NOT a resume (resumes often contain business/strategy keywords)
+    if (isBusinessPlan && !isResume) {
       console.log('[Documents API] Generating professional business plan PDF');
 
       let businessPlanData: BusinessPlanData;
