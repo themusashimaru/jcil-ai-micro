@@ -2720,13 +2720,38 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           );
         } catch (imageError) {
           console.error('[Chat API] Gemini: Image generation error:', imageError);
-          // Fall through to regular chat if image generation fails
           // Return a helpful error message
           const errorMessage = imageError instanceof Error ? imageError.message : 'Unknown error';
+
+          // Check if it's a rate limit error from Gemini
+          const isRateLimit = errorMessage.includes('429') ||
+                              errorMessage.includes('RESOURCE_EXHAUSTED') ||
+                              errorMessage.includes('rate_limit') ||
+                              errorMessage.toLowerCase().includes('too many requests');
+
+          if (isRateLimit) {
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: `Image generation rate limit reached. The Gemini image model has strict usage limits. Please try again in a few minutes.`,
+                model: geminiModel,
+              }),
+              {
+                status: 429,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Model-Used': geminiModel,
+                  'X-Provider': 'gemini',
+                  'Retry-After': '60',
+                },
+              }
+            );
+          }
+
           return new Response(
             JSON.stringify({
               type: 'text',
-              content: `I wasn't able to generate that image. ${errorMessage.includes('safety') ? 'The request may have triggered content safety filters.' : 'Please try again with a different description.'}`,
+              content: `I wasn't able to generate that image. ${errorMessage.includes('safety') ? 'The request may have triggered content safety filters.' : `Error: ${errorMessage}`}`,
               model: geminiModel,
             }),
             {
