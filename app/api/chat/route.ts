@@ -559,44 +559,48 @@ INVOICE TIPS:
 function detectNativeDocumentRequest(content: string): 'resume' | 'spreadsheet' | 'document' | 'invoice' | 'qrcode' | null {
   const lowerContent = content.toLowerCase();
 
+  // Common action verbs for document creation
+  const actionVerbs = /\b(create|make|generate|build|download|give\s*me|need|want|write|draft)\b/;
+
   // QR Code detection - special case, doesn't need format intent
-  // User asking for QR code(s) should immediately trigger generation
-  if (/\b(qr\s*code|qrcode)\b/.test(lowerContent) &&
-      /\b(create|make|generate|build|download|give\s*me|need|want)\b/.test(lowerContent)) {
+  if (/\b(qr\s*code|qrcode)\b/.test(lowerContent) && actionVerbs.test(lowerContent)) {
     return 'qrcode';
   }
 
-  // Check for explicit format/download intent
-  const hasExplicitFormatRequest = /\b(pdf|docx|xlsx|word\s*doc|excel\s*file|download|as\s+a\s+(pdf|word|document|file))\b/.test(lowerContent);
-  const hasConfirmationWithFormat = /\b(yes|looks?\s*good|perfect|great|that'?s?\s*(good|great|perfect)|make\s*it|generate\s*it|create\s*it)\b/.test(lowerContent) &&
-                                    /\b(pdf|docx|xlsx|word|document|file|download)\b/.test(lowerContent);
+  // Spreadsheet/Excel detection - trigger on explicit spreadsheet/excel requests
+  // This is more lenient because spreadsheets are clearly file-based
+  if (/\b(excel|spreadsheet|xlsx)\b/.test(lowerContent) && actionVerbs.test(lowerContent)) {
+    return 'spreadsheet';
+  }
 
-  // Only proceed if there's explicit format/download intent
+  // Also trigger spreadsheet for budget/financial requests WITH explicit file intent
+  if (/\b(budget|financial\s*(model|plan|tracker))\b/.test(lowerContent) &&
+      /\b(excel|spreadsheet|xlsx|file|download)\b/.test(lowerContent) &&
+      actionVerbs.test(lowerContent)) {
+    return 'spreadsheet';
+  }
+
+  // For other document types, require explicit format/download intent
+  const hasExplicitFormatRequest = /\b(pdf|docx|word\s*doc|download|as\s+a\s+(pdf|word|document|file))\b/.test(lowerContent);
+  const hasConfirmationWithFormat = /\b(yes|looks?\s*good|perfect|great|that'?s?\s*(good|great|perfect)|make\s*it|generate\s*it|create\s*it)\b/.test(lowerContent) &&
+                                    /\b(pdf|docx|word|document|file|download)\b/.test(lowerContent);
+
   if (!hasExplicitFormatRequest && !hasConfirmationWithFormat) {
     return null;
   }
 
   // Resume detection - with explicit format request
-  if (/\b(resume|résumé|cv|curriculum vitae)\b/.test(lowerContent) &&
-      /\b(create|make|generate|build|write|draft|download)\b/.test(lowerContent)) {
+  if (/\b(resume|résumé|cv|curriculum vitae)\b/.test(lowerContent) && actionVerbs.test(lowerContent)) {
     return 'resume';
   }
 
-  // Spreadsheet/Excel detection
-  if (/\b(excel|spreadsheet|xlsx|budget|financial\s*(model|plan|tracker))\b/.test(lowerContent) &&
-      /\b(create|make|generate|build|download)\b/.test(lowerContent)) {
-    return 'spreadsheet';
-  }
-
   // Invoice detection
-  if (/\b(invoice|bill|receipt)\b/.test(lowerContent) &&
-      /\b(create|make|generate|build|download)\b/.test(lowerContent)) {
+  if (/\b(invoice|bill|receipt)\b/.test(lowerContent) && actionVerbs.test(lowerContent)) {
     return 'invoice';
   }
 
   // General Word document detection
-  if (/\b(word\s*document|docx|letter|memo|report)\b/.test(lowerContent) &&
-      /\b(create|make|generate|build|write|draft|download)\b/.test(lowerContent)) {
+  if (/\b(word\s*document|docx|letter|memo|report)\b/.test(lowerContent) && actionVerbs.test(lowerContent)) {
     return 'document';
   }
 
