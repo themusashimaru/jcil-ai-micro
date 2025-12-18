@@ -49,8 +49,7 @@ import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuid
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
-import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel } from '@/lib/provider/settings';
-import { createImageJob, markJobProcessing, completeImageJob, failImageJob } from '@/lib/image-generation/jobs';
+import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel } from '@/lib/provider/settings';
 import {
   createAnthropicCompletion,
   createAnthropicStreamingCompletion,
@@ -70,7 +69,6 @@ import {
   createGeminiCompletion,
   createGeminiStreamingCompletion,
   createGeminiStructuredCompletion,
-  createGeminiImageGeneration,
   getDocumentSchema,
   getDocumentSchemaDescription,
 } from '@/lib/gemini/client';
@@ -2665,84 +2663,29 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
       }
 
       // ========================================
-      // NATIVE IMAGE GENERATION (Nano Banana) - ASYNC with Polling
+      // IMAGE/SLIDE GENERATION - TEMPORARILY DISABLED
       // ========================================
-      // Check for image/slide generation requests - uses Gemini's native image generation
-      // Image generation takes 20-60 seconds, so we use async processing with polling
+      // Return a friendly message explaining our focus areas
       const imageGenRequest = detectImageGenerationRequest(lastUserContent);
-      if (imageGenRequest && isAuthenticated) {
-        console.log(`[Chat API] Gemini: Native image generation: ${imageGenRequest}`);
+      if (imageGenRequest) {
+        console.log(`[Chat API] Image generation requested but disabled: ${imageGenRequest}`);
 
-        // Get the image model from admin settings
-        const imageModel = await getGeminiImageModel();
-
-        // Build a prompt for image generation
-        let imagePrompt = lastUserContent;
-        if (imageGenRequest === 'slide') {
-          imagePrompt = `Create a professional presentation slide: ${lastUserContent}. Make it clean, modern, and suitable for a business presentation with clear typography and visual hierarchy.`;
-        }
-
-        // Create a job for tracking
-        const job = await createImageJob({
-          prompt: imagePrompt,
-          type: imageGenRequest,
-          model: imageModel,
-          userId: rateLimitIdentifier,
-        });
-
-        // Start async image generation (don't await the outer promise)
-        (async () => {
-          try {
-            await markJobProcessing(job.id);
-
-            // Generate the image using Nano Banana
-            const result = await createGeminiImageGeneration({
-              prompt: imagePrompt,
-              model: imageModel,
-              systemPrompt: imageGenRequest === 'slide'
-                ? 'You are a professional presentation designer. Create clean, modern slides with clear visual hierarchy.'
-                : 'You are a creative image generator. Create high-quality, detailed images based on user descriptions.',
-            });
-
-            console.log('[Chat API] Gemini: Image generated with model:', result.model);
-
-            const responseText = imageGenRequest === 'slide'
-              ? `I've created your presentation slide. Here it is:`
-              : `I've created the image you requested. Here it is:`;
-
-            await completeImageJob(job.id, {
-              imageData: result.imageData,
-              mimeType: result.mimeType,
-              content: responseText,
-            });
-          } catch (imageError) {
-            console.error('[Chat API] Gemini: Image generation error:', imageError);
-            const errorMessage = imageError instanceof Error ? imageError.message : 'Unknown error';
-            await failImageJob(job.id, errorMessage);
-          }
-        })();
-
-        // Return immediately with job ID for polling
-        const responseText = imageGenRequest === 'slide'
-          ? `Creating your presentation slide... This may take 20-60 seconds.`
-          : `Generating your image... This may take 20-60 seconds.`;
+        const friendlyMessage = imageGenRequest === 'slide'
+          ? `I appreciate your interest in creating slides! While I'm not currently set up for slide or presentation generation, I excel at helping with:\n\n• **Writing & Content** - Articles, emails, reports, and creative writing\n• **Programming & Code** - Development, debugging, and code review\n• **Data & Analysis** - Research, data interpretation, and summaries\n• **Documents** - Resumes, spreadsheets, invoices, and formatted documents\n\nWould you like help with any of these? I'd be happy to assist with the content for your presentation in text form!`
+          : `I appreciate your interest in image creation! While I'm not currently set up for image generation, I excel at helping with:\n\n• **Writing & Content** - Articles, emails, reports, and creative writing\n• **Programming & Code** - Development, debugging, and code review\n• **Data & Analysis** - Research, data interpretation, and summaries\n• **Documents** - Resumes, spreadsheets, invoices, and formatted documents\n\nWould you like help with any of these instead?`;
 
         return new Response(
           JSON.stringify({
-            type: 'image_job',
-            content: responseText,
-            jobId: job.id,
-            model: imageModel,
-            status: 'pending',
+            content: friendlyMessage,
+            model: geminiModel,
+            provider: 'gemini',
           }),
           {
-            status: 202, // Accepted
+            status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'X-Model-Used': imageModel,
+              'X-Model-Used': geminiModel,
               'X-Provider': 'gemini',
-              'X-Image-Type': imageGenRequest,
-              'X-Job-Id': job.id,
             },
           }
         );
