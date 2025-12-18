@@ -1133,57 +1133,104 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
     const trimmedLine = line.trim();
     const lowerLine = trimmedLine.toLowerCase();
 
-    // Extract company name from title
-    if (trimmedLine.startsWith('# ') && data.companyName === '[Company Name]') {
-      const title = trimmedLine.slice(2).replace(/business plan/i, '').trim();
-      if (title) data.companyName = title;
-      continue;
+    // Extract company name from various formats
+    if (data.companyName === '[Company Name]') {
+      // Pattern 1: "# Company Name" (markdown header)
+      if (trimmedLine.startsWith('# ')) {
+        const title = trimmedLine.slice(2).replace(/business plan/i, '').trim();
+        if (title) {
+          data.companyName = title;
+          continue;
+        }
+      }
+      // Pattern 2: "Executive Summary: Company Name" (inline with section)
+      const execSummaryMatch = trimmedLine.match(/executive\s+summary[:\s]+(.+)/i);
+      if (execSummaryMatch && execSummaryMatch[1]) {
+        const name = execSummaryMatch[1].replace(/^the\s+/i, '').trim();
+        if (name && name.length > 2) {
+          data.companyName = name;
+        }
+      }
+      // Pattern 3: "Business Plan for Company Name" or "Company Name Business Plan"
+      const bpMatch = trimmedLine.match(/business\s+plan\s+(?:for\s+)?(.+)/i) ||
+                      trimmedLine.match(/(.+?)\s+business\s+plan/i);
+      if (bpMatch && bpMatch[1]) {
+        const name = bpMatch[1].trim();
+        if (name && name.length > 2 && !name.toLowerCase().includes('summary')) {
+          data.companyName = name;
+        }
+      }
     }
 
-    // Detect main sections
-    if (lowerLine.includes('executive summary') || lowerLine.match(/^#*\s*1\./)) {
+    // Detect main sections (improved patterns for various AI output formats)
+    // Executive Summary
+    if (lowerLine.includes('executive summary') || lowerLine.match(/^#+\s*1\.\s/)) {
       saveCurrentContent();
       currentSection = 'executive';
       currentSubsection = '';
       continue;
     }
-    if (lowerLine.includes('company description') || lowerLine.match(/^#*\s*2\./)) {
+    // Company Description
+    if (lowerLine.includes('company description') || lowerLine.match(/^#+\s*2\.\s/)) {
       saveCurrentContent();
       currentSection = 'company';
       currentSubsection = '';
       continue;
     }
-    if (lowerLine.includes('market analysis') || lowerLine.match(/^#*\s*3\./)) {
+    // Market Analysis (also matches "1. Market Analysis" format)
+    if (lowerLine.includes('market analysis') || lowerLine.match(/^\d+\.\s*market/i)) {
       saveCurrentContent();
       currentSection = 'market';
       currentSubsection = '';
       continue;
     }
-    if (lowerLine.includes('organization') || lowerLine.includes('management') && lowerLine.match(/^#*\s*4\./)) {
+    // Organization/Management
+    if ((lowerLine.includes('organization') && lowerLine.includes('management')) ||
+        lowerLine.match(/^\d+\.\s*organization/i) || lowerLine.match(/^#+\s*4\.\s/)) {
       saveCurrentContent();
       currentSection = 'organization';
       currentSubsection = '';
       continue;
     }
-    if (lowerLine.includes('product') || lowerLine.includes('service') && lowerLine.match(/^#*\s*5\./)) {
+    // Operational Plan (common AI format)
+    if (lowerLine.includes('operational plan') || lowerLine.match(/^\d+\.\s*operational/i)) {
+      saveCurrentContent();
+      currentSection = 'organization';
+      currentSubsection = '';
+      continue;
+    }
+    // Products/Services
+    if ((lowerLine.includes('product') || lowerLine.includes('service')) &&
+        (lowerLine.match(/^\d+\./) || lowerLine.match(/^#+/))) {
       saveCurrentContent();
       currentSection = 'product';
       currentSubsection = '';
       continue;
     }
-    if (lowerLine.includes('marketing') || lowerLine.includes('sales') && lowerLine.match(/^#*\s*6\./)) {
+    // Marketing/Sales
+    if ((lowerLine.includes('marketing') || lowerLine.includes('sales')) &&
+        (lowerLine.match(/^\d+\./) || lowerLine.match(/^#+/))) {
       saveCurrentContent();
       currentSection = 'marketing';
       currentSubsection = '';
       continue;
     }
-    if (lowerLine.includes('financial') || lowerLine.match(/^#*\s*7\./)) {
+    // Financial Projections (also matches "3. Financial Projections" format)
+    if (lowerLine.includes('financial') || lowerLine.match(/^\d+\.\s*financial/i)) {
       saveCurrentContent();
       currentSection = 'financial';
       currentSubsection = '';
       continue;
     }
-    if (lowerLine.includes('funding') || lowerLine.match(/^#*\s*8\./)) {
+    // Initial Investment (treat as funding/financial)
+    if (lowerLine.includes('initial investment') || lowerLine.includes('investment breakdown')) {
+      saveCurrentContent();
+      currentSection = 'funding';
+      currentSubsection = 'requirements';
+      continue;
+    }
+    // Funding Request
+    if (lowerLine.includes('funding') || lowerLine.match(/^\d+\.\s*funding/i)) {
       saveCurrentContent();
       currentSection = 'funding';
       currentSubsection = '';
@@ -1196,21 +1243,82 @@ function parseBusinessPlanContent(content: string): BusinessPlanData {
       continue;
     }
 
-    // Detect subsections (##, ###, or numbered like 1.1, 2.1, etc.)
+    // Detect subsections (##, ###, numbered like 1.1, 2.1, or inline "Label:" format)
     if (trimmedLine.match(/^#{2,3}\s+/) || trimmedLine.match(/^\d+\.\d+/)) {
       saveCurrentContent();
       currentSubsection = lowerLine;
       continue;
     }
 
+    // Handle inline "Label: Content" format (common in AI output)
+    const inlineLabelMatch = trimmedLine.match(/^([A-Z][A-Za-z\s]+):\s*(.*)$/);
+    if (inlineLabelMatch && currentSection) {
+      const label = inlineLabelMatch[1].toLowerCase();
+      const value = inlineLabelMatch[2].trim();
+
+      // Save previous content first
+      saveCurrentContent();
+
+      // Assign inline values directly to data structure
+      if (currentSection === 'executive') {
+        if (label.includes('mission')) {
+          data.executiveSummary.missionStatement = value;
+          continue;
+        } else if (label.includes('objective') || label.includes('goal')) {
+          if (value) data.executiveSummary.objectives.push(value);
+          continue;
+        } else if (label.includes('location') || label.includes('launch') || label.includes('date')) {
+          // Store as part of overview
+          data.executiveSummary.companyOverview += (data.executiveSummary.companyOverview ? '\n' : '') + trimmedLine;
+          continue;
+        }
+      } else if (currentSection === 'market') {
+        if (label.includes('competitive') || label.includes('edge') || label.includes('advantage')) {
+          currentSubsection = 'competitive';
+          if (value) currentContent.push(value);
+          continue;
+        } else if (label.includes('pricing') || label.includes('strategy')) {
+          currentSubsection = 'pricing';
+          if (value) currentContent.push(value);
+          continue;
+        } else if (label.includes('target')) {
+          currentSubsection = 'target';
+          if (value) currentContent.push(value);
+          continue;
+        }
+      } else if (currentSection === 'organization') {
+        if (label.includes('hours') || label.includes('staffing') || label.includes('inventory')) {
+          if (value) currentContent.push(trimmedLine);
+          continue;
+        }
+      }
+
+      // If we couldn't match specifically, use label as subsection
+      currentSubsection = label;
+      if (value) currentContent.push(value);
+      continue;
+    }
+
     // Accumulate content
     if (trimmedLine && currentSection) {
-      currentContent.push(trimmedLine.replace(/^[-*•]\s*/, ''));
+      // Clean up bullet points and list markers
+      const cleanedLine = trimmedLine.replace(/^[-*•]\s*/, '').replace(/^\d+\)\s*/, '');
+      currentContent.push(cleanedLine);
     }
   }
 
   // Save final content
   saveCurrentContent();
+
+  // Fallback: If still no company name, try to extract from content
+  if (data.companyName === '[Company Name]') {
+    // Look for patterns like "The [Name] Cafe" or "[Name] Coffee"
+    const allText = Object.values(data.executiveSummary).join(' ') + ' ' + data.companyDescription.overview;
+    const cafeMatch = allText.match(/(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:Cafe|Coffee|Restaurant|Bistro|Shop)/i);
+    if (cafeMatch) {
+      data.companyName = cafeMatch[0].trim();
+    }
+  }
 
   return data;
 }
