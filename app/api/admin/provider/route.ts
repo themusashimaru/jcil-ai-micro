@@ -21,7 +21,7 @@ interface ProviderSettingsRow {
     anthropic?: { model: string };
     xai?: { model: string };
     deepseek?: { model: string; reasoningModel?: string };
-    gemini?: { model: string };
+    gemini?: { model: string; imageModel?: string };
   };
   updated_by: string | null;
   created_at: string;
@@ -36,7 +36,7 @@ const DEFAULT_SETTINGS = {
     anthropic: { model: 'claude-sonnet-4-5-20250929' },
     xai: { model: 'grok-3-mini' },
     deepseek: { model: 'deepseek-chat', reasoningModel: 'deepseek-reasoner' },
-    gemini: { model: 'gemini-2.0-flash' },
+    gemini: { model: 'gemini-2.0-flash', imageModel: 'gemini-2.0-flash-exp-image-generation' },
   },
 };
 

@@ -962,5 +962,124 @@ Specify payment terms.`,
   return descriptions[docType] || descriptions.document;
 }
 
+// ========================================
+// NATIVE IMAGE GENERATION (Nano Banana)
+// ========================================
+
+/**
+ * Default image generation model - Gemini native image generation
+ */
+const DEFAULT_IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
+
+/**
+ * Create an image using Gemini's native image generation (Nano Banana)
+ * Returns base64 image data
+ */
+export async function createGeminiImageGeneration(options: {
+  prompt: string;
+  systemPrompt?: string;
+  model?: string; // Custom image model from admin settings
+}): Promise<{
+  imageData: string; // Base64 encoded image data
+  mimeType: string;
+  model: string;
+}> {
+  const { prompt, systemPrompt, model } = options;
+  const imageModel = model || DEFAULT_IMAGE_MODEL;
+
+  const client = getGeminiClient();
+  const currentKey = getCurrentApiKey();
+
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  console.log('[Gemini] Creating image with Nano Banana:', imageModel);
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`[Gemini] Image generation retry attempt ${attempt + 1}/${maxRetries}`);
+      }
+
+      // Build the full prompt
+      const fullPrompt = systemPrompt
+        ? `${systemPrompt}\n\nUser request: ${prompt}`
+        : prompt;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const config: any = {
+        responseModalities: ['TEXT', 'IMAGE'],
+        // Safety settings for image generation
+        safetySettings: [
+          { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+          { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        ],
+      };
+
+      const response = await client.models.generateContent({
+        model: imageModel,
+        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+        config,
+      });
+
+      // Extract image from response
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const candidates = (response as any).candidates;
+      if (!candidates || candidates.length === 0) {
+        throw new Error('No response candidates from image generation');
+      }
+
+      const parts = candidates[0]?.content?.parts;
+      if (!parts || parts.length === 0) {
+        throw new Error('No parts in image generation response');
+      }
+
+      // Find the image part
+      for (const part of parts) {
+        if (part.inlineData) {
+          console.log('[Gemini] Image generated successfully');
+          return {
+            imageData: part.inlineData.data,
+            mimeType: part.inlineData.mimeType || 'image/png',
+            model: imageModel,
+          };
+        }
+      }
+
+      throw new Error('No image data in response');
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Check for rate limit error
+      const isRateLimit = lastError.message.includes('rate_limit') ||
+                          lastError.message.includes('429') ||
+                          lastError.message.includes('RESOURCE_EXHAUSTED') ||
+                          lastError.message.toLowerCase().includes('too many requests');
+
+      if (isRateLimit && currentKey) {
+        const retryMatch = lastError.message.match(/retry.?after[:\s]*(\d+)/i);
+        const retryAfter = retryMatch ? parseInt(retryMatch[1], 10) : 60;
+        markKeyRateLimited(currentKey, retryAfter);
+
+        if (attempt < maxRetries - 1) {
+          console.log(`[Gemini] Image generation rate limited, trying next key...`);
+          continue;
+        }
+      }
+
+      if (attempt === maxRetries - 1) {
+        console.error('[Gemini] Image generation error (all retries exhausted):', lastError);
+        throw lastError;
+      }
+
+      console.error(`[Gemini] Image generation error on attempt ${attempt + 1}, retrying:`, lastError.message);
+    }
+  }
+
+  throw lastError || new Error('All Gemini API keys exhausted for image generation');
+}
+
 // Export types
 export type GeminiModel = string;

@@ -84,6 +84,7 @@ export default function ProvidersPage() {
         pro: 'gemini-2.0-flash',
         executive: 'gemini-1.5-pro',
       },
+      imageModel: 'gemini-2.0-flash-exp-image-generation',
     },
   });
   const [codeCommandModel, setCodeCommandModel] = useState('claude-opus-4-5-20251101');
@@ -162,6 +163,7 @@ export default function ProvidersPage() {
                 pro: data.providerConfig.gemini?.models?.pro || 'gemini-2.0-flash',
                 executive: data.providerConfig.gemini?.models?.executive || 'gemini-1.5-pro',
               },
+              imageModel: data.providerConfig.gemini?.imageModel || 'gemini-2.0-flash-exp-image-generation',
             },
           });
         }
@@ -251,6 +253,18 @@ export default function ProvidersPage() {
       ...prev,
       openai: {
         ...prev.openai,
+        imageModel: model,
+      },
+    }));
+    setSuccessMessage(null);
+  };
+
+  // Handle Gemini image model change (Nano Banana)
+  const handleGeminiImageModelChange = (model: string) => {
+    setProviderConfig(prev => ({
+      ...prev,
+      gemini: {
+        ...prev.gemini,
         imageModel: model,
       },
     }));
@@ -544,11 +558,15 @@ export default function ProvidersPage() {
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-blue-500">✓</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>Web search (Perplexity)</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Web search (native Google)</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-green-500">✓</span>
                     <span style={{ color: 'var(--text-secondary)' }}>Native vision/image analysis</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-yellow-500">🍌</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Image generation (Nano Banana)</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-yellow-500">⚡</span>
@@ -818,7 +836,7 @@ export default function ProvidersPage() {
             <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
             Google Gemini Models
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <label className="block">
               <span className="text-sm font-medium">Plus Tier</span>
               <input
@@ -853,8 +871,25 @@ export default function ProvidersPage() {
               />
             </label>
           </div>
+          <label className="block max-w-md">
+            <span className="text-sm font-medium flex items-center gap-2">
+              <span className="text-yellow-500">🍌</span>
+              Image Model (Nano Banana)
+            </span>
+            <input
+              type="text"
+              value={providerConfig.gemini.imageModel || ''}
+              onChange={(e) => handleGeminiImageModelChange(e.target.value)}
+              placeholder="gemini-2.0-flash-exp-image-generation"
+              className="mt-1 w-full rounded-lg px-4 py-2 focus:outline-none transition"
+              style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+              Native Gemini image generation for images and slides. Leave empty to disable.
+            </p>
+          </label>
           <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-            Examples: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-pro, gemini-1.5-flash
+            Chat models: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-pro, gemini-1.5-flash
           </p>
         </div>
 
