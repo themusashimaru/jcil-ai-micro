@@ -2,11 +2,13 @@
  * CONTACT PAGE
  *
  * PURPOSE:
- * - Simple contact information display
- * - Shows email address for inquiries
+ * - Secure contact form for external visitors
+ * - No exposed email address
+ * - Connects to admin inbox via support tickets API
  */
 
 import Link from 'next/link';
+import ContactForm from '@/components/contact-form';
 
 export default function ContactPage() {
   return (
@@ -41,26 +43,10 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Contact Content */}
+      {/* Contact Form */}
       <section className="container mx-auto px-4 pb-20">
         <div className="mx-auto max-w-2xl">
-          {/* Email Contact */}
-          <div className="glass-morphism rounded-2xl p-8 sm:p-12 text-center">
-            <div className="text-5xl mb-6">📧</div>
-            <h2 className="text-2xl sm:text-3xl font-bold mb-4">Get in Touch</h2>
-            <p className="text-gray-300 mb-8 text-lg">
-              For all inquiries, please reach out to us at:
-            </p>
-            <a
-              href="mailto:info@jcil.ai"
-              className="inline-block text-2xl sm:text-3xl font-semibold text-[#4DFFFF] hover:text-white transition-colors"
-            >
-              info@jcil.ai
-            </a>
-            <p className="text-gray-400 mt-8 text-sm">
-              We typically respond within 24-48 hours during business days.
-            </p>
-          </div>
+          <ContactForm />
 
           {/* Quick Links */}
           <div className="mt-8 glass-morphism rounded-2xl p-6">
