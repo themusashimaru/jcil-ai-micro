@@ -6,11 +6,19 @@
  * - Ensures type consistency across the chat interface
  */
 
+export interface ChatFolder {
+  id: string;
+  name: string;
+  color: string | null;
+  position: number;
+}
+
 export interface Chat {
   id: string;
   title: string;
   summary?: string;
-  folder?: string;
+  folder?: ChatFolder | null;
+  folderId?: string | null;
   isPinned: boolean;
   lastMessage: string;
   createdAt: Date;

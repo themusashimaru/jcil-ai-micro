@@ -51,10 +51,13 @@ export async function GET() {
 
     console.log('[API] GET /api/conversations - User ID:', user.id, 'Email:', user.email);
 
-    // Fetch conversations
+    // Fetch conversations with folder info
     const { data: conversations, error } = await supabase
       .from('conversations')
-      .select('*')
+      .select(`
+        *,
+        folder:chat_folders(id, name, color)
+      `)
       .eq('user_id', user.id)
       .is('deleted_at', null)
       .order('last_message_at', { ascending: false });
