@@ -60,7 +60,6 @@ export default function InboxButton() {
       <button
         onClick={() => setIsOpen(true)}
         className="relative p-2 rounded-lg transition hover:opacity-80"
-        style={{ backgroundColor: 'var(--primary-hover)' }}
         title="Inbox"
       >
         <svg

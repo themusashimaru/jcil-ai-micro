@@ -183,17 +183,17 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-4">
+      {/* Backdrop - hidden on mobile since we go full screen */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 hidden md:block"
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }}
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal - Full screen on mobile, constrained on desktop */}
       <div
-        className="relative w-full max-w-3xl h-[80vh] max-h-[700px] rounded-2xl overflow-hidden flex flex-col"
+        className="relative w-full h-full md:max-w-3xl md:h-[80vh] md:max-h-[700px] md:rounded-2xl overflow-hidden flex flex-col"
         style={{
           backgroundColor: 'var(--surface)',
           border: '1px solid var(--border)',
