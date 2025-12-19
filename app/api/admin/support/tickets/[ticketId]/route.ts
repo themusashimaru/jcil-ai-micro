@@ -192,6 +192,13 @@ export async function POST(
 
     const supabase = getSupabaseAdmin();
 
+    // Get ticket to check if it's internal (from a user)
+    const { data: ticket } = await supabase
+      .from('support_tickets')
+      .select('user_id, source, subject')
+      .eq('id', ticketId)
+      .single();
+
     // Get admin info
     const { data: adminData } = await supabase
       .from('admin_users')
@@ -199,7 +206,7 @@ export async function POST(
       .eq('email', auth.user.email)
       .single();
 
-    // Create the reply
+    // Create the reply in support_replies
     const { data: reply, error } = await supabase
       .from('support_replies')
       .insert({
@@ -227,6 +234,29 @@ export async function POST(
         .from('support_tickets')
         .update({ status: 'awaiting_reply' })
         .eq('id', ticketId);
+
+      // For internal tickets (from logged-in users), also send to their inbox
+      if (ticket?.user_id && ticket.source === 'internal') {
+        const { error: messageError } = await supabase
+          .from('user_messages')
+          .insert({
+            recipient_user_id: ticket.user_id,
+            sender_admin_id: adminData?.id || null,
+            sender_admin_email: auth.user.email,
+            subject: `Re: ${ticket.subject || 'Your Support Request'}`,
+            message: message.trim(),
+            message_type: 'support_response',
+            priority: 'normal',
+            is_broadcast: false,
+          });
+
+        if (messageError) {
+          console.error('[Admin Support API] Error sending to user inbox:', messageError);
+          // Don't fail the request - reply was still saved
+        } else {
+          console.log(`[Admin Audit] Reply also sent to user inbox: ${ticket.user_id}`);
+        }
+      }
     }
 
     console.log(`[Admin Audit] Reply added to ticket ${ticketId}`);
