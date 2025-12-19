@@ -3,6 +3,41 @@
  *
  * Fetches relevant prompt content from Supabase based on conversation topic.
  * Only loads what's needed, reducing token usage by ~90%.
+ *
+ * =================== ARCHITECTURE NOTES ===================
+ *
+ * This is the RETRIEVAL layer of the prompt system.
+ * It fetches faith content from Supabase only when needed.
+ *
+ * FLOW:
+ * 1. slimPrompt.ts → isFaithTopic() detects if faith content needed
+ * 2. slimPrompt.ts → getRelevantCategories() determines which categories
+ * 3. THIS FILE → getKnowledgeBaseContent() fetches from Supabase
+ * 4. chat/route.ts → Appends KB content to system prompt
+ *
+ * SUPABASE TABLE: knowledge_base
+ * Columns: id, category, subcategory, title, content, keywords, priority
+ * Categories: worldview, apologetics, pastoral, cults, gospel
+ *
+ * TO ADD NEW FAITH CONTENT:
+ * - Add rows to knowledge_base table in Supabase (NOT in code)
+ * - Use existing categories OR add new ones and update getRelevantCategories()
+ *
+ * TO ADD NEW CATEGORY:
+ * 1. Add content to Supabase with new category name
+ * 2. Update getRelevantCategories() in slimPrompt.ts with trigger keywords
+ * 3. Optionally add fallback in getFallbackContent() below
+ *
+ * CACHING:
+ * - Results cached for 1 minute (CACHE_TTL_MS)
+ * - Call clearKnowledgeBaseCache() to force refresh
+ *
+ * FALLBACK:
+ * - If Supabase fails, getFallbackContent() provides minimal guidance
+ * - This ensures chat works even without database
+ *
+ * SEE ALSO: src/lib/prompts/slimPrompt.ts for full architecture docs
+ * =========================================================
  */
 
 import { createClient } from '@supabase/supabase-js';
