@@ -97,26 +97,40 @@ export default function ContactForm() {
     }
   };
 
-  // Shared input styles
-  const inputStyles = "w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition";
+  // Inline styles to override any theme
+  const containerStyle = {
+    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+    border: '1px solid rgba(55, 65, 81, 1)',
+    backdropFilter: 'blur(10px)',
+  };
+
+  const inputStyle = {
+    backgroundColor: 'rgba(31, 41, 55, 0.8)',
+    border: '1px solid rgba(75, 85, 99, 1)',
+    color: '#ffffff',
+  };
 
   if (submitStatus === 'success') {
     return (
-      <div className="rounded-2xl p-8 sm:p-12 text-center bg-gray-900/80 border border-gray-800 backdrop-blur-sm">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-cyan-500/20 flex items-center justify-center">
-          <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="rounded-2xl p-8 sm:p-12 text-center" style={containerStyle}>
+        <div
+          className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(34, 211, 238, 0.2)' }}
+        >
+          <svg className="w-8 h-8" style={{ color: '#22d3ee' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-white">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: '#22d3ee' }}>
           Message Sent!
         </h2>
-        <p className="text-gray-400 mb-8">
+        <p className="mb-8" style={{ color: '#9ca3af' }}>
           Thank you for reaching out. We typically respond within 24-48 hours during business days.
         </p>
         <button
           onClick={() => setSubmitStatus('idle')}
-          className="px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 transition text-sm font-medium text-white"
+          className="px-6 py-3 rounded-lg transition text-sm font-medium"
+          style={{ backgroundColor: 'rgba(55, 65, 81, 1)', color: '#ffffff', border: '1px solid rgba(75, 85, 99, 1)' }}
         >
           Send Another Message
         </button>
@@ -125,25 +139,28 @@ export default function ContactForm() {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-2xl p-8 sm:p-12 bg-gray-900/80 border border-gray-800 backdrop-blur-sm"
-    >
+    <form onSubmit={handleSubmit} className="rounded-2xl p-8 sm:p-12" style={containerStyle}>
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-500/20 flex items-center justify-center">
-          <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div
+          className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(34, 211, 238, 0.2)' }}
+        >
+          <svg className="w-8 h-8" style={{ color: '#22d3ee' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         </div>
-        <h2 className="text-2xl sm:text-3xl font-bold text-white">Get in Touch</h2>
-        <p className="text-gray-400 mt-2">
+        <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: '#ffffff' }}>Get in Touch</h2>
+        <p className="mt-2" style={{ color: '#9ca3af' }}>
           Fill out the form below and we&apos;ll get back to you soon.
         </p>
       </div>
 
       {submitStatus === 'error' && (
-        <div className="mb-6 p-4 rounded-lg bg-red-900/30 border border-red-800 text-red-400">
+        <div
+          className="mb-6 p-4 rounded-lg"
+          style={{ backgroundColor: 'rgba(127, 29, 29, 0.3)', border: '1px solid rgba(153, 27, 27, 1)', color: '#f87171' }}
+        >
           {errorMessage}
         </div>
       )}
@@ -151,7 +168,7 @@ export default function ContactForm() {
       <div className="space-y-5">
         {/* Name */}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+          <label htmlFor="name" className="block text-sm font-medium mb-2" style={{ color: '#d1d5db' }}>
             Your Name
           </label>
           <input
@@ -162,14 +179,15 @@ export default function ContactForm() {
             onChange={handleChange}
             placeholder="John Doe"
             maxLength={100}
-            className={inputStyles}
+            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition"
+            style={{ ...inputStyle, outlineColor: '#22d3ee' }}
           />
         </div>
 
         {/* Email */}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-            Email Address <span className="text-red-400">*</span>
+          <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: '#d1d5db' }}>
+            Email Address <span style={{ color: '#f87171' }}>*</span>
           </label>
           <input
             type="email"
@@ -179,14 +197,15 @@ export default function ContactForm() {
             onChange={handleChange}
             required
             placeholder="you@example.com"
-            className={inputStyles}
+            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition"
+            style={inputStyle}
           />
         </div>
 
         {/* Category Dropdown */}
         <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-2">
-            Reason for Contact <span className="text-red-400">*</span>
+          <label htmlFor="category" className="block text-sm font-medium mb-2" style={{ color: '#d1d5db' }}>
+            Reason for Contact <span style={{ color: '#f87171' }}>*</span>
           </label>
           <div className="relative">
             <select
@@ -195,16 +214,17 @@ export default function ContactForm() {
               value={formData.category}
               onChange={handleChange}
               required
-              className={`${inputStyles} appearance-none cursor-pointer pr-10`}
+              className="w-full px-4 py-3 rounded-lg appearance-none cursor-pointer pr-10 focus:outline-none focus:ring-2 transition"
+              style={inputStyle}
             >
               {CONTACT_CATEGORIES.map(cat => (
-                <option key={cat.value} value={cat.value} className="bg-gray-900 text-white">
+                <option key={cat.value} value={cat.value} style={{ backgroundColor: '#1f2937', color: '#ffffff' }}>
                   {cat.label}
                 </option>
               ))}
             </select>
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" style={{ color: '#6b7280' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
@@ -213,8 +233,8 @@ export default function ContactForm() {
 
         {/* Subject */}
         <div>
-          <label htmlFor="subject" className="block text-sm font-medium text-gray-300 mb-2">
-            Subject <span className="text-red-400">*</span>
+          <label htmlFor="subject" className="block text-sm font-medium mb-2" style={{ color: '#d1d5db' }}>
+            Subject <span style={{ color: '#f87171' }}>*</span>
           </label>
           <input
             type="text"
@@ -226,14 +246,15 @@ export default function ContactForm() {
             minLength={3}
             maxLength={200}
             placeholder="Brief description of your inquiry"
-            className={inputStyles}
+            className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition"
+            style={inputStyle}
           />
         </div>
 
         {/* Message */}
         <div>
-          <label htmlFor="message" className="block text-sm font-medium text-gray-300 mb-2">
-            Message <span className="text-red-400">*</span>
+          <label htmlFor="message" className="block text-sm font-medium mb-2" style={{ color: '#d1d5db' }}>
+            Message <span style={{ color: '#f87171' }}>*</span>
           </label>
           <textarea
             id="message"
@@ -245,9 +266,10 @@ export default function ContactForm() {
             maxLength={5000}
             rows={5}
             placeholder="How can we help you?"
-            className={`${inputStyles} resize-none`}
+            className="w-full px-4 py-3 rounded-lg resize-none focus:outline-none focus:ring-2 transition"
+            style={inputStyle}
           />
-          <p className="text-xs text-gray-500 mt-1 text-right">{formData.message.length}/5000</p>
+          <p className="text-xs mt-1 text-right" style={{ color: '#6b7280' }}>{formData.message.length}/5000</p>
         </div>
 
         {/* Honeypot - hidden from users, catches bots */}
@@ -266,7 +288,12 @@ export default function ContactForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-4 rounded-lg bg-gradient-to-r from-cyan-500 to-cyan-600 text-black font-semibold hover:from-cyan-400 hover:to-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-cyan-500/25"
+          className="w-full py-4 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          style={{
+            background: 'linear-gradient(to right, #06b6d4, #0891b2)',
+            color: '#000000',
+            boxShadow: '0 10px 25px -5px rgba(6, 182, 212, 0.3)'
+          }}
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
@@ -282,7 +309,7 @@ export default function ContactForm() {
         </button>
       </div>
 
-      <p className="text-gray-500 text-xs mt-6 text-center">
+      <p className="text-xs mt-6 text-center" style={{ color: '#6b7280' }}>
         We typically respond within 24-48 hours during business days.
       </p>
     </form>

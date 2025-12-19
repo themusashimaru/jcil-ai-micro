@@ -49,24 +49,30 @@ export default function ContactPage() {
           <ContactForm />
 
           {/* Quick Links */}
-          <div className="mt-8 glass-morphism rounded-2xl p-6">
-            <h3 className="mb-4 text-xl font-semibold text-center">Quick Links</h3>
+          <div
+            className="mt-8 rounded-2xl p-6"
+            style={{ backgroundColor: 'rgba(17, 24, 39, 0.95)', border: '1px solid rgba(55, 65, 81, 1)' }}
+          >
+            <h3 className="mb-4 text-xl font-semibold text-center text-white">Quick Links</h3>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
                 href="/faq"
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm"
+                className="px-4 py-2 rounded-lg transition text-sm text-white"
+                style={{ backgroundColor: 'rgba(55, 65, 81, 0.5)' }}
               >
                 FAQ
               </Link>
               <Link
                 href="/about"
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm"
+                className="px-4 py-2 rounded-lg transition text-sm text-white"
+                style={{ backgroundColor: 'rgba(55, 65, 81, 0.5)' }}
               >
                 About Us
               </Link>
               <Link
                 href="/"
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm"
+                className="px-4 py-2 rounded-lg transition text-sm text-white"
+                style={{ backgroundColor: 'rgba(55, 65, 81, 0.5)' }}
               >
                 Home
               </Link>
