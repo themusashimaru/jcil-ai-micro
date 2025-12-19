@@ -1,10 +1,58 @@
 /**
  * SLIM SYSTEM PROMPT
+ * ===================
  *
  * Professional-first approach: Be excellent at tasks, faith when relevant.
  * Heavy faith content is loaded from knowledge base only when needed.
  *
  * Token usage: ~3,000 tokens (vs 55,000 for full prompt)
+ *
+ * =================== ARCHITECTURE NOTES ===================
+ *
+ * HOW THE PROMPT SYSTEM WORKS:
+ * 1. Slim prompt (this file) is ALWAYS sent with every message
+ * 2. If isFaithTopic() returns true, knowledge base content is appended
+ * 3. Tools.ts has a minimal default prompt for identity/generation markers
+ *
+ * FILES INVOLVED:
+ * - THIS FILE: src/lib/prompts/slimPrompt.ts
+ *   -> buildSlimCorePrompt(): Core identity and "professional first" rules
+ *   -> buildSlimSystemPrompt(): Adds vision/doc capabilities
+ *   -> isFaithTopic(): Detects if message needs faith content
+ *   -> getRelevantCategories(): Determines which KB categories to load
+ *
+ * - src/lib/knowledge/knowledgeBase.ts
+ *   -> getKnowledgeBaseContent(): Fetches from Supabase by category
+ *   -> Has fallback content if DB is unavailable
+ *
+ * - src/lib/openai/tools.ts
+ *   -> getSystemPromptForTool(): Tool-specific prompts + minimal default
+ *   -> Default keeps: identity, generation markers, formatting rules
+ *
+ * - app/api/chat/route.ts (around line 1610-1640)
+ *   -> Combines slim prompt + KB content for authenticated users
+ *
+ * - Supabase table: knowledge_base
+ *   -> Categories: worldview, apologetics, pastoral, cults, gospel
+ *   -> Add new faith content here, not in code
+ *
+ * TO EDIT BEHAVIOR:
+ * - AI too religious on regular tasks? Edit RESPONSE PHILOSOPHY section below
+ * - AI not religious enough on faith? Edit isFaithTopic() keywords or KB content
+ * - Add new faith knowledge? Add to Supabase knowledge_base table
+ * - Change identity? Edit both here AND tools.ts default case
+ *
+ * TO ADD NEW CAPABILITIES:
+ * - Vision/PDF/etc: Edit buildSlimSystemPrompt() and tools.ts generation markers
+ * - New faith category: Add to Supabase + update getRelevantCategories()
+ *
+ * TESTING:
+ * - "Write me an email" → Should be professional, NO Bible verses
+ * - "What does the Bible say about X" → Should include Scripture
+ * - "Help me with code" → Professional, no religious content
+ * - "Is homosexuality a sin?" → Should load worldview KB content
+ *
+ * =========================================================
  */
 
 /**
