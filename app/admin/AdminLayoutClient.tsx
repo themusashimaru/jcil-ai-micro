@@ -31,6 +31,7 @@ export default function AdminLayoutClient({
     { name: 'CMS', href: '/admin/cms', icon: '📝', disabled: true },
     { name: 'Devotionals', href: '/admin/devotionals', icon: '📖', disabled: true },
     { name: 'Inbox', href: '/admin/inbox', icon: '📬' },
+    { name: 'Messages', href: '/admin/messages', icon: '✉️' },
     { name: 'Live', href: '/admin/live', icon: '🔴', disabled: true },
     { name: 'Logs', href: '/admin/logs', icon: '📋', disabled: true },
     { name: 'Moderation', href: '/admin/moderation', icon: '🛡️', disabled: true },
