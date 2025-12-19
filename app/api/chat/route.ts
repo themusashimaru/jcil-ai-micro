@@ -1832,12 +1832,28 @@ Please summarize this information from our platform's perspective. Present the f
       const anthropicModel = await getModelForTier(userTier);
       console.log('[Chat API] Using Anthropic provider with model:', anthropicModel, 'for tier:', userTier);
 
-      // Use unified system prompt for all providers (same as OpenAI)
-      // For Anthropic, append the search button guidance (replaces aggressive auto-search)
-      const baseSystemPrompt = isAuthenticated
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? getSystemPromptForTool(effectiveTool as any)
-        : 'You are a helpful AI assistant.';
+      // Build Anthropic system prompt using slim prompt + KB
+      let baseSystemPrompt = 'You are a helpful AI assistant.';
+
+      if (isAuthenticated) {
+        // Start with slim core prompt (professional first, faith when asked)
+        baseSystemPrompt = buildSlimSystemPrompt({
+          includeVision: true,
+          includeDocuments: true,
+        });
+
+        // Check if this is a faith topic that needs additional context
+        if (isFaithTopic(lastUserContent)) {
+          const categories = getRelevantCategories(lastUserContent);
+          console.log(`[Chat API] Anthropic: Faith topic detected, loading KB categories: ${categories.join(', ')}`);
+
+          // Load relevant knowledge base content
+          const kbContent = await getKnowledgeBaseContent(categories);
+          if (kbContent) {
+            baseSystemPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
+          }
+        }
+      }
 
       // Add Anthropic-specific search guidance (guides users to Search/Fact Check buttons)
       const systemPrompt = isAuthenticated
@@ -2157,12 +2173,24 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
       const xaiModel = await getModelForTier(userTier, 'xai');
       console.log('[Chat API] Using xAI provider with model:', xaiModel, 'for tier:', userTier);
 
-      // Use unified system prompt for all providers
-      // Add search button guidance (same as Anthropic - search via Perplexity buttons)
-      const baseSystemPrompt = isAuthenticated
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? getSystemPromptForTool(effectiveTool as any)
-        : 'You are a helpful AI assistant.';
+      // Build xAI system prompt using slim prompt + KB
+      let baseSystemPrompt = 'You are a helpful AI assistant.';
+
+      if (isAuthenticated) {
+        baseSystemPrompt = buildSlimSystemPrompt({
+          includeVision: true,
+          includeDocuments: true,
+        });
+
+        if (isFaithTopic(lastUserContent)) {
+          const categories = getRelevantCategories(lastUserContent);
+          console.log(`[Chat API] xAI: Faith topic detected, loading KB categories: ${categories.join(', ')}`);
+          const kbContent = await getKnowledgeBaseContent(categories);
+          if (kbContent) {
+            baseSystemPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
+          }
+        }
+      }
 
       const systemPrompt = isAuthenticated
         ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
@@ -2467,12 +2495,24 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
         : await getModelForTier(userTier, 'deepseek');
       console.log('[Chat API] Using DeepSeek provider with model:', deepseekModel, 'reasoning:', isReasoning, 'for tier:', userTier);
 
-      // Use unified system prompt for all providers
-      // Add search button guidance (same as Anthropic - search via Perplexity buttons)
-      const baseSystemPrompt = isAuthenticated
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? getSystemPromptForTool(effectiveTool as any)
-        : 'You are a helpful AI assistant.';
+      // Build DeepSeek system prompt using slim prompt + KB
+      let baseSystemPrompt = 'You are a helpful AI assistant.';
+
+      if (isAuthenticated) {
+        baseSystemPrompt = buildSlimSystemPrompt({
+          includeVision: true,
+          includeDocuments: true,
+        });
+
+        if (isFaithTopic(lastUserContent)) {
+          const categories = getRelevantCategories(lastUserContent);
+          console.log(`[Chat API] DeepSeek: Faith topic detected, loading KB categories: ${categories.join(', ')}`);
+          const kbContent = await getKnowledgeBaseContent(categories);
+          if (kbContent) {
+            baseSystemPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
+          }
+        }
+      }
 
       const systemPrompt = isAuthenticated
         ? `${baseSystemPrompt}\n\n${getAnthropicSearchOverride()}`
@@ -2753,12 +2793,30 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
       const geminiModel = await getModelForTier(userTier, 'gemini');
       console.log('[Chat API] Using Gemini provider with model:', geminiModel, 'for tier:', userTier);
 
-      // Use unified system prompt for all providers
-      // Gemini uses native Google Search grounding (not Perplexity buttons)
-      const baseSystemPrompt = isAuthenticated
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? getSystemPromptForTool(effectiveTool as any)
-        : 'You are a helpful AI assistant.';
+      // Build Gemini system prompt using slim prompt + KB (same as other paths)
+      // IMPORTANT: Gemini ignores system messages in messagesWithContext,
+      // so we must pass the full prompt via the systemPrompt parameter
+      let baseSystemPrompt = 'You are a helpful AI assistant.';
+
+      if (isAuthenticated) {
+        // Start with slim core prompt (professional first, faith when asked)
+        baseSystemPrompt = buildSlimSystemPrompt({
+          includeVision: true,
+          includeDocuments: true,
+        });
+
+        // Check if this is a faith topic that needs additional context
+        if (isFaithTopic(lastUserContent)) {
+          const categories = getRelevantCategories(lastUserContent);
+          console.log(`[Chat API] Gemini: Faith topic detected, loading KB categories: ${categories.join(', ')}`);
+
+          // Load relevant knowledge base content
+          const kbContent = await getKnowledgeBaseContent(categories);
+          if (kbContent) {
+            baseSystemPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
+          }
+        }
+      }
 
       // Use Gemini-specific search guidance (native Google Search, not buttons)
       const systemPrompt = isAuthenticated
@@ -3157,9 +3215,9 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
     if (isInitialSpreadsheetRequest(lastUserContent)) {
       console.log('[Chat API] OpenAI: Initial spreadsheet request - asking qualifying questions');
 
+      // Use slim prompt for OpenAI spreadsheet gathering
       const baseSystemPrompt = isAuthenticated
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? getSystemPromptForTool(effectiveTool as any)
+        ? buildSlimSystemPrompt({ includeVision: true, includeDocuments: true })
         : 'You are a helpful AI assistant.';
 
       const spreadsheetGatheringPrompt = `${baseSystemPrompt}
@@ -3217,10 +3275,9 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
         // Get the JSON schema prompt for the document type
         const nativeDocPrompt = getNativeDocumentPrompt(structuredDocType);
 
-        // Build system prompt with JSON schema instructions
+        // Build system prompt with JSON schema instructions (use slim prompt)
         const baseSystemPrompt = isAuthenticated
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ? getSystemPromptForTool(effectiveTool as any)
+          ? buildSlimSystemPrompt({ includeVision: true, includeDocuments: true })
           : 'You are a helpful AI assistant.';
         const enhancedSystemPrompt = `${baseSystemPrompt}\n\n${nativeDocPrompt}`;
 
