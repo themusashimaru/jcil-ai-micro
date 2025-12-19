@@ -145,6 +145,7 @@ export default function ContactForm() {
             value={formData.name}
             onChange={handleChange}
             placeholder="John Doe"
+            maxLength={100}
             className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#4DFFFF]/50 focus:ring-1 focus:ring-[#4DFFFF]/50 transition"
           />
         </div>
@@ -200,6 +201,8 @@ export default function ContactForm() {
             value={formData.subject}
             onChange={handleChange}
             required
+            minLength={3}
+            maxLength={200}
             placeholder="Brief description of your inquiry"
             className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#4DFFFF]/50 focus:ring-1 focus:ring-[#4DFFFF]/50 transition"
           />
@@ -216,10 +219,13 @@ export default function ContactForm() {
             value={formData.message}
             onChange={handleChange}
             required
+            minLength={10}
+            maxLength={5000}
             rows={5}
             placeholder="How can we help you?"
             className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#4DFFFF]/50 focus:ring-1 focus:ring-[#4DFFFF]/50 transition resize-none"
           />
+          <p className="text-xs text-gray-500 mt-1 text-right">{formData.message.length}/5000</p>
         </div>
 
         {/* Honeypot - hidden from users, catches bots */}
