@@ -555,6 +555,8 @@ export function ChatClient() {
             title: string;
             summary: string | null;
             tool_context: string | null;
+            folder_id: string | null;
+            folder: { id: string; name: string; color: string | null } | null;
             created_at: string;
             updated_at: string;
             last_message_at: string;
@@ -562,6 +564,13 @@ export function ChatClient() {
             id: conv.id,
             title: conv.title,
             summary: conv.summary || undefined,
+            folderId: conv.folder_id || undefined,
+            folder: conv.folder ? {
+              id: conv.folder.id,
+              name: conv.folder.name,
+              color: conv.folder.color,
+              position: 0,
+            } : undefined,
             isPinned: false, // TODO: Add isPinned to database schema
             lastMessage: '', // We'll update this if needed
             createdAt: new Date(conv.created_at),
@@ -653,8 +662,36 @@ export function ChatClient() {
     );
   };
 
-  const handleMoveToFolder = (chatId: string, folder: string | undefined) => {
-    setChats(chats.map((chat) => (chat.id === chatId ? { ...chat, folder } : chat)));
+  const handleMoveToFolder = async (chatId: string, folderId: string | null, folderData?: { id: string; name: string; color: string | null }) => {
+    // Optimistically update UI
+    setChats(chats.map((chat) => {
+      if (chat.id === chatId) {
+        return {
+          ...chat,
+          folderId: folderId || undefined,
+          folder: folderData ? { ...folderData, position: 0 } : undefined,
+        };
+      }
+      return chat;
+    }));
+
+    // Call API to persist change
+    try {
+      const response = await fetch(`/api/conversations/${chatId}/folder`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_id: folderId }),
+      });
+
+      if (!response.ok) {
+        console.error('[ChatClient] Failed to move chat to folder');
+        // Revert on error
+        setChats(chats);
+      }
+    } catch (error) {
+      console.error('[ChatClient] Error moving chat to folder:', error);
+      setChats(chats);
+    }
   };
 
   /* REMOVED: handleImageGenerated, Code and Data handlers - all handled naturally in chat
