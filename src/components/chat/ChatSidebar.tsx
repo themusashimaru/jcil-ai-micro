@@ -19,6 +19,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import type { Chat } from '@/app/chat/types';
+import InboxButton from '@/components/inbox/InboxButton';
 
 interface ChatSidebarProps {
   chats: Chat[];
@@ -344,24 +345,29 @@ export function ChatSidebar({
           </div>
         )}
 
-        {/* Sidebar Header with Close Button */}
+        {/* Sidebar Header with Inbox and Close Button */}
         <div className="p-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Chats</h2>
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('toggle-sidebar'))}
-            className="rounded-lg p-1.5 transition-colors md:hidden"
-            style={{ color: 'var(--text-primary)' }}
-            aria-label="Close sidebar"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Inbox Button */}
+            <InboxButton />
+            {/* Close Sidebar Button - Mobile Only */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('toggle-sidebar'))}
+              className="rounded-lg p-1.5 transition-colors md:hidden"
+              style={{ color: 'var(--text-primary)' }}
+              aria-label="Close sidebar"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* New Chat Button */}
