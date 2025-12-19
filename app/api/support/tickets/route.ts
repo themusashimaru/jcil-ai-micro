@@ -14,6 +14,23 @@ export const runtime = 'nodejs';
 
 const RATE_LIMIT = 5; // 5 tickets per hour
 
+// Input validation constants
+const MAX_NAME_LENGTH = 100;
+const MAX_SUBJECT_LENGTH = 200;
+const MAX_MESSAGE_LENGTH = 5000;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Sanitize input - strip potential script tags as defense in depth
+ * (React escapes on display, but this adds server-side protection)
+ */
+function sanitizeInput(input: string): string {
+  return input
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*>/g, '') // Strip all HTML tags
+    .trim();
+}
+
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -122,6 +139,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate input lengths
+    if (subject.length > MAX_SUBJECT_LENGTH) {
+      return NextResponse.json(
+        { error: `Subject must be ${MAX_SUBJECT_LENGTH} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json(
+        { error: `Message must be ${MAX_MESSAGE_LENGTH} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    if (senderName && senderName.length > MAX_NAME_LENGTH) {
+      return NextResponse.json(
+        { error: `Name must be ${MAX_NAME_LENGTH} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format if provided
+    if (senderEmail && !EMAIL_REGEX.test(senderEmail)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize inputs (defense in depth)
+    const sanitizedSubject = sanitizeInput(subject);
+    const sanitizedMessage = sanitizeInput(message);
+    const sanitizedName = senderName ? sanitizeInput(senderName) : null;
+
     // Get IP for rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                request.headers.get('x-real-ip') ||
@@ -167,7 +219,7 @@ export async function POST(request: NextRequest) {
       }
 
       email = senderEmail;
-      name = senderName || null;
+      name = sanitizedName;
       rateLimitKey = ip;
     }
 
@@ -180,7 +232,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the ticket
+    // Create the ticket with sanitized inputs
     const { data: ticket, error } = await supabase
       .from('support_tickets')
       .insert({
@@ -189,8 +241,8 @@ export async function POST(request: NextRequest) {
         sender_email: email,
         sender_name: name,
         category,
-        subject: subject.trim(),
-        message: message.trim(),
+        subject: sanitizedSubject,
+        message: sanitizedMessage,
         ip_address: ip,
         user_agent: userAgent,
       })

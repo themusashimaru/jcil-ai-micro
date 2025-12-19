@@ -156,8 +156,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">10. Contact Information</h2>
             <p>
-              For questions regarding these Terms, please contact us at:<br />
-              <strong className="text-slate-700">Email:</strong> <a href="mailto:info@jcil.ai" className="text-blue-600 hover:underline">info@jcil.ai</a>
+              For questions regarding these Terms, please <a href="/contact" className="text-blue-600 hover:underline">contact us</a>.
             </p>
           </section>
         </div>

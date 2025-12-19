@@ -111,7 +111,7 @@ export default function PrivacyPage() {
                 <strong className="text-slate-700">Data Availability:</strong> We can only produce records that currently exist within our 6-month retention window. We cannot recover data that has passed the 6-month hard deletion mark.
               </li>
               <li>
-                <strong className="text-slate-700">Request Process:</strong> Verified law enforcement agencies or users requesting their own data for legal purposes may submit requests to info@jcil.ai.
+                <strong className="text-slate-700">Request Process:</strong> Verified law enforcement agencies or users requesting their own data for legal purposes may submit requests through our <a href="/contact" className="text-blue-600 hover:underline">contact form</a>.
               </li>
               <li>
                 <strong className="text-slate-700">Preservation:</strong> Upon receipt of a valid preservation order from law enforcement, we may pause the automatic deletion clock for specific records identified in the order.
@@ -139,7 +139,7 @@ export default function PrivacyPage() {
               If you have questions about this policy or need to submit a data request, please contact us at:
             </p>
             <p className="mt-4">
-              <strong className="text-slate-700">Email:</strong> <a href="mailto:info@jcil.ai" className="text-blue-600 hover:underline">info@jcil.ai</a>
+              <a href="/contact" className="text-blue-600 hover:underline font-medium">Contact Us →</a>
             </p>
           </section>
         </div>
