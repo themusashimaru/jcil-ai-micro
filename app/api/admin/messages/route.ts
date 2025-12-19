@@ -5,9 +5,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -21,41 +20,6 @@ function getSupabaseAdmin() {
   }
 
   return createClient(supabaseUrl, supabaseServiceKey);
-}
-
-async function getAuthenticatedClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
-
-async function verifyAdmin(supabase: ReturnType<typeof getSupabaseAdmin>, userId: string) {
-  const { data: admin } = await supabase
-    .from('admin_users')
-    .select('id, email, role')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .single();
-
-  return admin;
 }
 
 const VALID_MESSAGE_TYPES = [
@@ -77,20 +41,10 @@ const VALID_TIERS = ['free', 'basic', 'pro', 'executive', 'all'];
  */
 export async function GET(request: NextRequest) {
   try {
-    const authClient = await getAuthenticatedClient();
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin();
+    if (!auth.authorized) return auth.response;
 
     const supabase = getSupabaseAdmin();
-    const admin = await verifyAdmin(supabase, user.id);
-
-    if (!admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -173,19 +127,20 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const authClient = await getAuthenticatedClient();
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireAdmin(request);
+    if (!auth.authorized) return auth.response;
 
     const supabase = getSupabaseAdmin();
-    const admin = await verifyAdmin(supabase, user.id);
 
-    if (!admin) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
+    // Get admin details for sender info
+    const { data: adminData } = await supabase
+      .from('admin_users')
+      .select('id, email')
+      .eq('id', auth.adminUser.id)
+      .single();
+
+    const adminEmail = adminData?.email || auth.user.email || 'admin@jcil.ai';
+    const adminId = auth.adminUser.id;
 
     const body = await request.json();
     const {
@@ -310,8 +265,8 @@ export async function POST(request: NextRequest) {
       .insert({
         recipient_user_id: finalRecipientUserId,
         recipient_tier: finalRecipientTier,
-        sender_admin_id: admin.id,
-        sender_admin_email: admin.email,
+        sender_admin_id: adminId,
+        sender_admin_email: adminEmail,
         subject: subject.trim(),
         message: message.trim(),
         message_type,
@@ -335,7 +290,7 @@ export async function POST(request: NextRequest) {
       ? `${broadcastSentCount} users (${recipient_tier})`
       : `1 user`;
 
-    console.log(`[Admin Messages API] Message sent by ${admin.email} to ${recipientDescription}`);
+    console.log(`[Admin Messages API] Message sent by ${adminEmail} to ${recipientDescription}`);
 
     return NextResponse.json({
       success: true,
