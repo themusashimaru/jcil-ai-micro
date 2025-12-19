@@ -2753,12 +2753,30 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
       const geminiModel = await getModelForTier(userTier, 'gemini');
       console.log('[Chat API] Using Gemini provider with model:', geminiModel, 'for tier:', userTier);
 
-      // Use unified system prompt for all providers
-      // Gemini uses native Google Search grounding (not Perplexity buttons)
-      const baseSystemPrompt = isAuthenticated
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? getSystemPromptForTool(effectiveTool as any)
-        : 'You are a helpful AI assistant.';
+      // Build Gemini system prompt using slim prompt + KB (same as other paths)
+      // IMPORTANT: Gemini ignores system messages in messagesWithContext,
+      // so we must pass the full prompt via the systemPrompt parameter
+      let baseSystemPrompt = 'You are a helpful AI assistant.';
+
+      if (isAuthenticated) {
+        // Start with slim core prompt (professional first, faith when asked)
+        baseSystemPrompt = buildSlimSystemPrompt({
+          includeVision: true,
+          includeDocuments: true,
+        });
+
+        // Check if this is a faith topic that needs additional context
+        if (isFaithTopic(lastUserContent)) {
+          const categories = getRelevantCategories(lastUserContent);
+          console.log(`[Chat API] Gemini: Faith topic detected, loading KB categories: ${categories.join(', ')}`);
+
+          // Load relevant knowledge base content
+          const kbContent = await getKnowledgeBaseContent(categories);
+          if (kbContent) {
+            baseSystemPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
+          }
+        }
+      }
 
       // Use Gemini-specific search guidance (native Google Search, not buttons)
       const systemPrompt = isAuthenticated
