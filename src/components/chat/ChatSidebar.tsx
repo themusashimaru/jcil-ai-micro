@@ -340,10 +340,50 @@ export function ChatSidebar({
                   style={{ color: 'var(--text-primary)' }}
                 >
                   <span>Move to folder</span>
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`h-4 w-4 transition-transform ${moveMenuOpen ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
+                {/* Move to folder - inline expanded */}
+                {moveMenuOpen && (
+                  <div className="py-1" style={{ borderTop: '1px solid var(--border)', marginTop: '4px' }}>
+                    {chat.folder && (
+                      <button
+                        onClick={() => {
+                          onMoveToFolder(chat.id, null);
+                          setActiveMenu(null);
+                          setShowMoveMenu(null);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm pl-6"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        Remove from folder
+                      </button>
+                    )}
+                    {folders.map(folder => (
+                      <button
+                        key={folder.id}
+                        onClick={() => {
+                          onMoveToFolder(chat.id, folder.id, { id: folder.id, name: folder.name, color: folder.color });
+                          setActiveMenu(null);
+                          setShowMoveMenu(null);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 pl-6"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {folder.color && (
+                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: folder.color }} />
+                        )}
+                        <span className="truncate">{folder.name}</span>
+                      </button>
+                    ))}
+                    {folders.length === 0 && (
+                      <div className="px-4 py-2 text-sm pl-6" style={{ color: 'var(--text-muted)' }}>
+                        No folders yet
+                      </div>
+                    )}
+                  </div>
+                )}
                 <hr style={{ borderColor: 'var(--border)', margin: '4px 0' }} />
                 <button
                   onClick={() => { if (confirm('Delete this chat?')) { onDeleteChat(chat.id); } setActiveMenu(null); }}
@@ -351,50 +391,6 @@ export function ChatSidebar({
                 >
                   Delete
                 </button>
-              </div>
-            )}
-
-            {/* Move to folder submenu */}
-            {moveMenuOpen && (
-              <div
-                className="absolute left-full top-12 z-30 ml-2 w-48 rounded-lg py-1 shadow-xl"
-                style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
-              >
-                {chat.folder && (
-                  <button
-                    onClick={() => {
-                      onMoveToFolder(chat.id, null);
-                      setActiveMenu(null);
-                      setShowMoveMenu(null);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    Remove from folder
-                  </button>
-                )}
-                {folders.map(folder => (
-                  <button
-                    key={folder.id}
-                    onClick={() => {
-                      onMoveToFolder(chat.id, folder.id, { id: folder.id, name: folder.name, color: folder.color });
-                      setActiveMenu(null);
-                      setShowMoveMenu(null);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm flex items-center gap-2"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {folder.color && (
-                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: folder.color }} />
-                    )}
-                    <span className="truncate">{folder.name}</span>
-                  </button>
-                ))}
-                {folders.length === 0 && (
-                  <div className="px-4 py-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-                    No folders yet
-                  </div>
-                )}
               </div>
             )}
           </>
