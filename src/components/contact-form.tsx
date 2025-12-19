@@ -30,7 +30,7 @@ interface FormState {
   category: string;
   subject: string;
   message: string;
-  honeypot: string; // Spam protection - should remain empty
+  honeypot: string;
 }
 
 export default function ContactForm() {
@@ -81,7 +81,6 @@ export default function ContactForm() {
       }
 
       setSubmitStatus('success');
-      // Reset form
       setFormData({
         name: '',
         email: '',
@@ -98,19 +97,26 @@ export default function ContactForm() {
     }
   };
 
+  // Shared input styles
+  const inputStyles = "w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition";
+
   if (submitStatus === 'success') {
     return (
-      <div className="glass-morphism rounded-2xl p-8 sm:p-12 text-center">
-        <div className="text-5xl mb-6">✓</div>
-        <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-[#4DFFFF]">
+      <div className="rounded-2xl p-8 sm:p-12 text-center bg-gray-900/80 border border-gray-800 backdrop-blur-sm">
+        <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-cyan-500/20 flex items-center justify-center">
+          <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-white">
           Message Sent!
         </h2>
-        <p className="text-gray-300 mb-6">
+        <p className="text-gray-400 mb-8">
           Thank you for reaching out. We typically respond within 24-48 hours during business days.
         </p>
         <button
           onClick={() => setSubmitStatus('idle')}
-          className="px-6 py-3 rounded-lg bg-white/10 hover:bg-white/20 transition text-sm font-medium"
+          className="px-6 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 transition text-sm font-medium text-white"
         >
           Send Another Message
         </button>
@@ -119,15 +125,25 @@ export default function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="glass-morphism rounded-2xl p-8 sm:p-12">
-      <div className="text-5xl mb-6 text-center">📬</div>
-      <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-center">Get in Touch</h2>
-      <p className="text-gray-400 mb-8 text-center">
-        Fill out the form below and we&apos;ll get back to you soon.
-      </p>
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-2xl p-8 sm:p-12 bg-gray-900/80 border border-gray-800 backdrop-blur-sm"
+    >
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-500/20 flex items-center justify-center">
+          <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold text-white">Get in Touch</h2>
+        <p className="text-gray-400 mt-2">
+          Fill out the form below and we&apos;ll get back to you soon.
+        </p>
+      </div>
 
       {submitStatus === 'error' && (
-        <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+        <div className="mb-6 p-4 rounded-lg bg-red-900/30 border border-red-800 text-red-400">
           {errorMessage}
         </div>
       )}
@@ -146,7 +162,7 @@ export default function ContactForm() {
             onChange={handleChange}
             placeholder="John Doe"
             maxLength={100}
-            className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#4DFFFF]/50 focus:ring-1 focus:ring-[#4DFFFF]/50 transition"
+            className={inputStyles}
           />
         </div>
 
@@ -163,7 +179,7 @@ export default function ContactForm() {
             onChange={handleChange}
             required
             placeholder="you@example.com"
-            className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#4DFFFF]/50 focus:ring-1 focus:ring-[#4DFFFF]/50 transition"
+            className={inputStyles}
           />
         </div>
 
@@ -172,21 +188,27 @@ export default function ContactForm() {
           <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-2">
             Reason for Contact <span className="text-red-400">*</span>
           </label>
-          <select
-            id="category"
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#4DFFFF]/50 focus:ring-1 focus:ring-[#4DFFFF]/50 transition appearance-none cursor-pointer"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
-          >
-            {CONTACT_CATEGORIES.map(cat => (
-              <option key={cat.value} value={cat.value} className="bg-gray-900">
-                {cat.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              required
+              className={`${inputStyles} appearance-none cursor-pointer pr-10`}
+            >
+              {CONTACT_CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value} className="bg-gray-900 text-white">
+                  {cat.label}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
         </div>
 
         {/* Subject */}
@@ -204,7 +226,7 @@ export default function ContactForm() {
             minLength={3}
             maxLength={200}
             placeholder="Brief description of your inquiry"
-            className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#4DFFFF]/50 focus:ring-1 focus:ring-[#4DFFFF]/50 transition"
+            className={inputStyles}
           />
         </div>
 
@@ -223,7 +245,7 @@ export default function ContactForm() {
             maxLength={5000}
             rows={5}
             placeholder="How can we help you?"
-            className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#4DFFFF]/50 focus:ring-1 focus:ring-[#4DFFFF]/50 transition resize-none"
+            className={`${inputStyles} resize-none`}
           />
           <p className="text-xs text-gray-500 mt-1 text-right">{formData.message.length}/5000</p>
         </div>
@@ -244,7 +266,7 @@ export default function ContactForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-4 rounded-lg bg-[#4DFFFF] text-black font-semibold hover:bg-[#3dcccc] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          className="w-full py-4 rounded-lg bg-gradient-to-r from-cyan-500 to-cyan-600 text-black font-semibold hover:from-cyan-400 hover:to-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-cyan-500/25"
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
