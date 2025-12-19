@@ -357,7 +357,7 @@ export function ChatSidebar({
             {/* Move to folder submenu */}
             {moveMenuOpen && (
               <div
-                className="absolute right-52 top-12 z-30 w-48 rounded-lg py-1 shadow-xl"
+                className="absolute left-full top-12 z-30 ml-2 w-48 rounded-lg py-1 shadow-xl"
                 style={{ backgroundColor: 'var(--background)', border: '1px solid var(--border)' }}
               >
                 {chat.folder && (
