@@ -150,7 +150,7 @@ export function ChatSidebar({
 
     return {
       pinnedChats: pinned,
-      folderGroups: Object.values(groups).filter(g => g.chats.length > 0),
+      folderGroups: Object.values(groups), // Show all folders, even empty ones
       unorganizedChats: unorganized,
     };
   }, [filteredChats, folders]);
@@ -677,17 +677,19 @@ export function ChatSidebar({
               <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Color (optional)</label>
               <div className="flex flex-wrap gap-2">
                 <button
+                  type="button"
                   onClick={() => setFolderForm({ ...folderForm, color: '' })}
-                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${!folderForm.color ? 'border-white' : 'border-transparent'}`}
+                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${!folderForm.color ? 'border-white ring-2 ring-white/50' : 'border-transparent hover:border-gray-400'}`}
                   style={{ backgroundColor: 'var(--glass-bg)' }}
                 >
                   {!folderForm.color && <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>}
                 </button>
                 {FOLDER_COLORS.map(color => (
                   <button
+                    type="button"
                     key={color}
                     onClick={() => setFolderForm({ ...folderForm, color })}
-                    className={`w-8 h-8 rounded-full border-2 ${folderForm.color === color ? 'border-white' : 'border-transparent'}`}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${folderForm.color === color ? 'border-white ring-2 ring-white/50 scale-110' : 'border-transparent hover:border-gray-400 hover:scale-105'}`}
                     style={{ backgroundColor: color }}
                   />
                 ))}
@@ -695,6 +697,7 @@ export function ChatSidebar({
             </div>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={() => setShowFolderModal(false)}
                 className="flex-1 rounded-lg px-4 py-2.5 text-sm"
                 style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
@@ -702,6 +705,7 @@ export function ChatSidebar({
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={editingFolder ? handleUpdateFolder : handleCreateFolder}
                 className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold"
                 style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
