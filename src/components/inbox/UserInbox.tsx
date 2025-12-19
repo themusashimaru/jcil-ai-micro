@@ -12,6 +12,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Message {
   id: string;
@@ -182,11 +183,14 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-4">
-      {/* Backdrop - hidden on mobile since we go full screen */}
+  // Use portal to render at document body level, escaping sidebar constraints
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center md:p-4">
+      {/* Backdrop */}
       <div
-        className="absolute inset-0 hidden md:block"
+        className="absolute inset-0"
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)' }}
         onClick={onClose}
       />
@@ -281,7 +285,8 @@ export default function UserInbox({ isOpen, onClose }: UserInboxProps) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
