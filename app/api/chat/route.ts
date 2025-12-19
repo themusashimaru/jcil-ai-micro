@@ -44,7 +44,8 @@
 import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from '@/lib/openai/client';
 import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
-import { buildFullSystemPrompt } from '@/lib/prompts/systemPrompt';
+import { buildSlimSystemPrompt, isFaithTopic, getRelevantCategories } from '@/lib/prompts/slimPrompt';
+import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
@@ -1606,13 +1607,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Add Slingshot 2.0 system prompt for authenticated users
-    // This includes routing logic and behavior guidelines
+    // Uses SLIM prompt by default, loads faith content from KB only when relevant
     const effectiveTool = tool;
 
     if (isAuthenticated) {
-      const slingshotPrompt = buildFullSystemPrompt({
-        includeImageCapability: true,
+      // Start with slim core prompt (professional first, faith when asked)
+      let slingshotPrompt = buildSlimSystemPrompt({
+        includeVision: true,
+        includeDocuments: true,
       });
+
+      // Check if this is a faith topic that needs additional context
+      if (isFaithTopic(lastUserContent)) {
+        const categories = getRelevantCategories(lastUserContent);
+        console.log(`[Chat API] Faith topic detected, loading KB categories: ${categories.join(', ')}`);
+
+        // Load relevant knowledge base content
+        const kbContent = await getKnowledgeBaseContent(categories);
+        if (kbContent) {
+          slingshotPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
+        }
+      }
 
       const slingshotSystemMessage = {
         role: 'system' as const,
