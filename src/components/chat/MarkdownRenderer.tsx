@@ -103,23 +103,52 @@ const components: Components = {
     );
 
     if (isDocumentLink) {
-      // Determine file type and MIME type
-      const getFileInfo = (url: string): { extension: string; mimeType: string } => {
-        if (url.includes('.pdf') || url.includes('t=pdf') || url.includes('"t":"pdf"')) {
+      // Decode token from URL to get file info (token is base64url encoded JSON)
+      const decodeTokenFromUrl = (url: string): { type?: string; filename?: string } => {
+        try {
+          const urlObj = new URL(url, window.location.origin);
+          const token = urlObj.searchParams.get('token');
+          if (token) {
+            // Base64url decode: replace URL-safe chars and decode
+            const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+            const decoded = JSON.parse(atob(base64));
+            console.log('[MarkdownRenderer] Decoded token:', decoded);
+            return { type: decoded.t, filename: decoded.f };
+          }
+        } catch (e) {
+          console.warn('[MarkdownRenderer] Failed to decode token:', e);
+        }
+        return {};
+      };
+
+      // Parse token once
+      const tokenInfo = decodeTokenFromUrl(href);
+
+      // Determine file type and MIME type from decoded token
+      const getFileInfo = (): { extension: string; mimeType: string } => {
+        const fileType = tokenInfo.type?.toLowerCase();
+
+        if (fileType === 'pdf' || href.includes('.pdf')) {
           return { extension: '.pdf', mimeType: 'application/pdf' };
         }
-        if (url.includes('.docx') || url.includes('t=docx') || url.includes('"t":"docx"')) {
+        if (fileType === 'docx' || href.includes('.docx')) {
           return { extension: '.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
         }
-        if (url.includes('.xlsx') || url.includes('t=xlsx') || url.includes('"t":"xlsx"')) {
+        if (fileType === 'xlsx' || href.includes('.xlsx')) {
           return { extension: '.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
         }
+        // Default based on URL patterns as fallback
         return { extension: '.pdf', mimeType: 'application/pdf' };
       };
 
-      // Extract filename from URL or children text
+      // Extract filename from decoded token or fallback to URL/children
       const getFilename = (): string => {
-        const { extension } = getFileInfo(href || '');
+        // Use filename from decoded token if available
+        if (tokenInfo.filename) {
+          return tokenInfo.filename;
+        }
+
+        const { extension } = getFileInfo();
         // Try to get filename from URL path
         const urlPath = href?.split('/').pop()?.split('?')[0];
         if (urlPath && urlPath.includes('.')) return urlPath;
@@ -146,9 +175,9 @@ const components: Components = {
         }
 
         const filename = getFilename();
-        const { mimeType } = getFileInfo(href);
+        const { mimeType } = getFileInfo();
 
-        console.log('[MarkdownRenderer] Starting download:', { href, filename, mimeType });
+        console.log('[MarkdownRenderer] Starting download:', { href, filename, mimeType, tokenInfo });
 
         try {
           // Fetch the file first
