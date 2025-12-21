@@ -94,7 +94,7 @@ const components: Components = {
     );
 
     // Debug: log all links and whether they're detected as documents
-    console.log('[MarkdownRenderer] Link rendered:', { href, isDocumentLink, children: typeof children === 'string' ? children : 'complex' });
+    console.log('[MarkdownRenderer] Link rendered: href=' + href + ', isDoc=' + isDocumentLink);
 
     if (isDocumentLink) {
       // Determine file type and MIME type
@@ -196,6 +196,8 @@ const components: Components = {
         }
       };
 
+      console.log('[MarkdownRenderer] Rendering download BUTTON for:', href);
+
       return (
         <button
           onClick={handleDownload}
@@ -211,6 +213,8 @@ const components: Components = {
     }
 
     // Regular links open in new tab
+    console.log('[MarkdownRenderer] Rendering regular LINK (not document) for:', href);
+
     return (
       <a
         href={href}
