@@ -130,16 +130,30 @@ const components: Components = {
       const handleDownload = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!href) return;
+
+        if (!href) {
+          console.error('[MarkdownRenderer] No href for download');
+          return;
+        }
 
         const filename = getFilename();
         const { mimeType } = getFileInfo(href);
 
+        console.log('[MarkdownRenderer] Starting download:', { href, filename, mimeType });
+
         try {
           // Fetch the file first
-          const response = await fetch(href);
-          if (!response.ok) throw new Error('Download failed');
+          const response = await fetch(href, { credentials: 'include' });
+
+          if (!response.ok) {
+            console.error('[MarkdownRenderer] Download response not ok:', response.status, response.statusText);
+            // Try opening in new tab as fallback
+            window.open(href, '_blank', 'noopener,noreferrer');
+            return;
+          }
+
           const blob = await response.blob();
+          console.log('[MarkdownRenderer] Blob received:', blob.size, 'bytes');
 
           // On mobile with Web Share API support, use native share (Save to Files)
           if (isMobile && navigator.share && navigator.canShare) {
@@ -167,9 +181,15 @@ const components: Components = {
             window.URL.revokeObjectURL(blobUrl);
           }, 100);
         } catch (error) {
-          console.error('Download error:', error);
-          // Ultimate fallback - open in new tab
-          window.open(href, '_blank');
+          console.error('[MarkdownRenderer] Download error:', error);
+          // Ultimate fallback - open in new tab (don't throw!)
+          try {
+            window.open(href, '_blank', 'noopener,noreferrer');
+          } catch (openError) {
+            console.error('[MarkdownRenderer] Could not open window:', openError);
+            // Show user-friendly message
+            alert('Download failed. Please try generating the document again.');
+          }
         }
       };
 
