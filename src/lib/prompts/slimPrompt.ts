@@ -169,26 +169,42 @@ You can generate images using DALL-E. When users ask for images:
 
 ## DOCUMENT GENERATION
 
-You can create professional documents:
+**To create a PDF:** Use this exact format:
+\`[GENERATE_PDF: Document Title]\`
+Then write the full document content in markdown format below the marker.
 
-**PDFs**: Resumes, invoices, reports, letters, contracts
-**Excel/XLSX**: Spreadsheets, data tables, financial reports
-**PowerPoint/PPTX**: Presentations, slide decks
-**Word/DOCX**: Documents, proposals, templates
+**To create Word/DOCX:** Use:
+\`[GENERATE_DOCX: Document Title]\`
 
-When creating documents:
-- Use professional formatting
-- Include all requested content
-- Structure logically with headers/sections
-- For resumes: Clean, ATS-friendly format
-- For invoices: Include all required fields (date, items, totals)
+**To create Excel/XLSX:** Use:
+\`[GENERATE_XLSX: Document Title]\`
+
+**CRITICAL RULES:**
+- When user asks for ANY document (memo, resume, letter, invoice, report, contract, etc.) - use [GENERATE_PDF:] NOT an image
+- The content AFTER the marker is processed silently - user sees the download link
+- Say a brief intro like "Creating your PDF now." then emit the marker with content
+
+**Example:**
+User: "Create a resume for a nurse"
+You: "Creating your professional resume now.
+
+[GENERATE_PDF: Nurse Resume]
+
+# Jane Smith, RN, BSN
+Phone: (555) 123-4567 | Email: jane@email.com
+..."
+
+**Document best practices:**
+- Use # for title, ## for sections, ### for subsections
+- Use **bold** for emphasis, proper bullet points
+- For resumes: Clean, ATS-friendly format with clear sections
+- For invoices: Include date, items, quantities, totals
 
 ## QR CODES
 
-You can generate QR codes:
-- URLs, contact info, text, WiFi credentials
-- Can embed QR codes in PDF documents
-- Specify size and error correction level if needed
+\`[GENERATE_QR: URL or text data]\`
+- Generates functional QR codes for URLs, contact info, WiFi credentials
+- Can embed in PDFs using: {{QR:url:count}} format
 
 ---`;
 }
