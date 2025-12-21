@@ -86,15 +86,21 @@ const components: Components = {
   // Links - use primary color
   // For document downloads (PDF, DOCX, XLSX), force download instead of opening
   a: ({ href, children }) => {
+    // Debug: log all links
+    console.log('[MarkdownRenderer] Link rendered: href=' + href + ', isDoc=' + (href && (href.includes('/api/documents/') || href.includes('.pdf'))));
+
+    // SAFETY: If href is empty or invalid, render as plain text (prevents navigation crash)
+    if (!href || href === '' || href === '#') {
+      console.warn('[MarkdownRenderer] Empty or invalid href detected, rendering as text');
+      return <span style={{ color: 'var(--primary)' }}>{children}</span>;
+    }
+
     const isDocumentLink = href && (
       href.includes('/api/documents/') ||
       href.includes('.pdf') ||
       href.includes('.docx') ||
       href.includes('.xlsx')
     );
-
-    // Debug: log all links and whether they're detected as documents
-    console.log('[MarkdownRenderer] Link rendered: href=' + href + ', isDoc=' + isDocumentLink);
 
     if (isDocumentLink) {
       // Determine file type and MIME type
