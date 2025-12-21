@@ -93,6 +93,9 @@ const components: Components = {
       href.includes('.xlsx')
     );
 
+    // Debug: log all links and whether they're detected as documents
+    console.log('[MarkdownRenderer] Link rendered:', { href, isDocumentLink, children: typeof children === 'string' ? children : 'complex' });
+
     if (isDocumentLink) {
       // Determine file type and MIME type
       const getFileInfo = (url: string): { extension: string; mimeType: string } => {
