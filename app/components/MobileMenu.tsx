@@ -42,11 +42,11 @@ export default function MobileMenu() {
       {/* Hamburger Button - Only visible on mobile */}
       <button
         onClick={() => setIsOpen(true)}
-        className="md:hidden p-2 text-slate-700 hover:text-slate-900 transition"
+        className="md:hidden p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition"
         aria-label="Open menu"
       >
-        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        <svg className="w-6 h-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
 
@@ -60,9 +60,10 @@ export default function MobileMenu() {
 
       {/* Slide-out Menu */}
       <div
-        className={`fixed top-0 right-0 h-full w-72 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
+        className={`fixed top-0 right-0 h-full w-72 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
+        style={{ backgroundColor: '#ffffff' }}
       >
         {/* Close Button */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
