@@ -518,11 +518,44 @@ When you use search, naturally incorporate the information into your response.` 
 
   // Create a TransformStream to convert Gemini stream to text stream
   const encoder = new TextEncoder();
+  let codeExecutionShown = false; // Track if we've shown the code execution indicator
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
         for await (const chunk of response) {
+          // Check for code execution parts in the response
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const candidates = (chunk as any).candidates;
+          if (candidates?.[0]?.content?.parts) {
+            for (const part of candidates[0].content.parts) {
+              // Detect code execution - show indicator before code runs
+              if (part.executableCode && !codeExecutionShown) {
+                codeExecutionShown = true;
+                const codeIndicator = '\n\n```python\n# ⚡ Running code...\n' +
+                  (part.executableCode.code || '') + '\n```\n\n';
+                controller.enqueue(encoder.encode(codeIndicator));
+                console.log('[Gemini] Code execution detected');
+              }
+
+              // Show code execution result
+              if (part.codeExecutionResult) {
+                const outcome = part.codeExecutionResult.outcome;
+                const output = part.codeExecutionResult.output || '';
+                if (outcome === 'OUTCOME_OK' && output) {
+                  const resultIndicator = '\n**Output:**\n```\n' + output + '\n```\n\n';
+                  controller.enqueue(encoder.encode(resultIndicator));
+                  console.log('[Gemini] Code execution result:', outcome);
+                } else if (outcome !== 'OUTCOME_OK') {
+                  const errorIndicator = '\n**⚠️ Code Error:**\n```\n' + output + '\n```\n\n';
+                  controller.enqueue(encoder.encode(errorIndicator));
+                  console.log('[Gemini] Code execution error:', outcome);
+                }
+              }
+            }
+          }
+
+          // Regular text output
           const text = chunk.text;
           if (text) {
             controller.enqueue(encoder.encode(text));
