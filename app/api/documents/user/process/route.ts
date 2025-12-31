@@ -1,0 +1,322 @@
+/**
+ * DOCUMENT PROCESSING API
+ *
+ * Processes uploaded documents:
+ * 1. Downloads file from storage
+ * 2. Extracts text content
+ * 3. Chunks into smaller pieces
+ * 4. Generates embeddings
+ * 5. Stores in vector database
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { GoogleGenAI } from '@google/genai';
+
+// Helper to create authenticated Supabase client
+async function createSupabaseClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Server Component context
+          }
+        },
+      },
+    }
+  );
+}
+
+// Initialize Gemini for embeddings (same provider as chat!)
+const gemini = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY_1 || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
+});
+
+// Chunk settings
+const CHUNK_SIZE = 500; // tokens (approximate)
+const CHUNK_OVERLAP = 50; // tokens overlap between chunks
+
+/**
+ * Simple text chunking by paragraphs and sentences
+ */
+function chunkText(text: string, maxChunkSize: number = CHUNK_SIZE): string[] {
+  const chunks: string[] = [];
+
+  // Split by double newlines (paragraphs)
+  const paragraphs = text.split(/\n\s*\n/);
+
+  let currentChunk = '';
+
+  for (const paragraph of paragraphs) {
+    const trimmedPara = paragraph.trim();
+    if (!trimmedPara) continue;
+
+    // Rough token estimate: ~4 chars per token
+    const paraTokens = Math.ceil(trimmedPara.length / 4);
+    const currentTokens = Math.ceil(currentChunk.length / 4);
+
+    if (currentTokens + paraTokens > maxChunkSize && currentChunk) {
+      // Save current chunk and start new one
+      chunks.push(currentChunk.trim());
+
+      // Keep some overlap
+      const words = currentChunk.split(' ');
+      const overlapWords = words.slice(-Math.floor(CHUNK_OVERLAP / 2));
+      currentChunk = overlapWords.join(' ') + '\n\n' + trimmedPara;
+    } else {
+      currentChunk += (currentChunk ? '\n\n' : '') + trimmedPara;
+    }
+  }
+
+  // Don't forget the last chunk
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks;
+}
+
+/**
+ * Extract text from different file types
+ */
+async function extractText(
+  fileBuffer: ArrayBuffer,
+  fileType: string,
+  _mimeType: string
+): Promise<{ text: string; pageCount?: number }> {
+  const buffer = Buffer.from(fileBuffer);
+
+  switch (fileType) {
+    case 'txt':
+    case 'csv':
+      return { text: buffer.toString('utf-8') };
+
+    case 'pdf':
+      // Use pdf-parse for PDFs
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pdfParseModule = await import('pdf-parse') as any;
+        const pdfParse = pdfParseModule.default || pdfParseModule;
+        const data = await pdfParse(buffer);
+        return {
+          text: data.text,
+          pageCount: data.numpages,
+        };
+      } catch (error) {
+        console.error('[Process] PDF parsing error:', error);
+        throw new Error('Failed to parse PDF');
+      }
+
+    case 'docx':
+    case 'doc':
+      // Use mammoth for Word docs
+      try {
+        const mammoth = await import('mammoth');
+        const result = await mammoth.extractRawText({ buffer });
+        return { text: result.value };
+      } catch (error) {
+        console.error('[Process] DOCX parsing error:', error);
+        throw new Error('Failed to parse Word document');
+      }
+
+    case 'xlsx':
+    case 'xls':
+      // Use xlsx for Excel files
+      try {
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        let text = '';
+
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName];
+          const csv = XLSX.utils.sheet_to_csv(sheet);
+          text += `\n=== Sheet: ${sheetName} ===\n${csv}\n`;
+        }
+
+        return { text };
+      } catch (error) {
+        console.error('[Process] Excel parsing error:', error);
+        throw new Error('Failed to parse Excel file');
+      }
+
+    default:
+      throw new Error(`Unsupported file type: ${fileType}`);
+  }
+}
+
+/**
+ * Generate embeddings for text chunks using Gemini
+ * Uses text-embedding-004 model (768 dimensions)
+ */
+async function generateEmbeddings(chunks: string[]): Promise<number[][]> {
+  const embeddings: number[][] = [];
+
+  // Process chunks one at a time (Gemini embedding API)
+  for (const chunk of chunks) {
+    try {
+      const response = await gemini.models.embedContent({
+        model: 'text-embedding-004',
+        contents: chunk,
+      });
+
+      if (response.embeddings?.[0]?.values) {
+        embeddings.push(response.embeddings[0].values);
+      } else {
+        console.error('[Process] No embedding returned for chunk');
+        // Use zero vector as fallback
+        embeddings.push(new Array(768).fill(0));
+      }
+    } catch (error) {
+      console.error('[Process] Embedding error:', error);
+      // Use zero vector as fallback
+      embeddings.push(new Array(768).fill(0));
+    }
+  }
+
+  return embeddings;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { documentId } = await request.json();
+
+    if (!documentId) {
+      return NextResponse.json({ error: 'Document ID required' }, { status: 400 });
+    }
+
+    const supabase = await createSupabaseClient();
+
+    // Get document record
+    const { data: document, error: docError } = await supabase
+      .from('user_documents')
+      .select('*')
+      .eq('id', documentId)
+      .single();
+
+    if (docError || !document) {
+      console.error('[Process] Document not found:', docError);
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+    }
+
+    // Update status to processing
+    await supabase
+      .from('user_documents')
+      .update({ status: 'processing' })
+      .eq('id', documentId);
+
+    try {
+      // Download file from storage
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('user-documents')
+        .download(document.storage_path);
+
+      if (downloadError || !fileData) {
+        throw new Error('Failed to download file');
+      }
+
+      // Extract text content
+      const fileBuffer = await fileData.arrayBuffer();
+      const { text, pageCount } = await extractText(
+        fileBuffer,
+        document.file_type,
+        document.mime_type
+      );
+
+      if (!text || text.trim().length === 0) {
+        throw new Error('No text content extracted from document');
+      }
+
+      // Chunk the text
+      const chunks = chunkText(text);
+      console.log(`[Process] Document ${documentId}: ${chunks.length} chunks created`);
+
+      // Generate embeddings
+      const embeddings = await generateEmbeddings(chunks);
+      console.log(`[Process] Document ${documentId}: ${embeddings.length} embeddings generated`);
+
+      // Delete existing chunks (in case of re-processing)
+      await supabase
+        .from('user_document_chunks')
+        .delete()
+        .eq('document_id', documentId);
+
+      // Insert chunks with embeddings
+      const chunkRecords = chunks.map((content, index) => ({
+        document_id: documentId,
+        user_id: document.user_id,
+        content,
+        chunk_index: index,
+        embedding: JSON.stringify(embeddings[index]), // pgvector accepts JSON array
+        token_count: Math.ceil(content.length / 4),
+      }));
+
+      // Insert in batches to avoid payload limits
+      const insertBatchSize = 50;
+      for (let i = 0; i < chunkRecords.length; i += insertBatchSize) {
+        const batch = chunkRecords.slice(i, i + insertBatchSize);
+        const { error: insertError } = await supabase
+          .from('user_document_chunks')
+          .insert(batch);
+
+        if (insertError) {
+          console.error('[Process] Chunk insert error:', insertError);
+          throw new Error('Failed to insert chunks');
+        }
+      }
+
+      // Calculate word count
+      const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
+
+      // Update document as ready
+      await supabase
+        .from('user_documents')
+        .update({
+          status: 'ready',
+          chunk_count: chunks.length,
+          page_count: pageCount || null,
+          word_count: wordCount,
+          processed_at: new Date().toISOString(),
+        })
+        .eq('id', documentId);
+
+      console.log(`[Process] Document ${documentId}: Processing complete`);
+
+      return NextResponse.json({
+        success: true,
+        chunks: chunks.length,
+        wordCount,
+        pageCount,
+      });
+    } catch (processingError) {
+      console.error('[Process] Processing error:', processingError);
+
+      // Update document with error
+      await supabase
+        .from('user_documents')
+        .update({
+          status: 'error',
+          error_message: processingError instanceof Error ? processingError.message : 'Processing failed',
+        })
+        .eq('id', documentId);
+
+      return NextResponse.json({
+        error: processingError instanceof Error ? processingError.message : 'Processing failed'
+      }, { status: 500 });
+    }
+  } catch (error) {
+    console.error('[Process] Unexpected error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
