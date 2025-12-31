@@ -1,44 +1,17 @@
 'use client';
 
 import { useTheme } from '@/contexts/ThemeContext';
-import { useState, useEffect } from 'react';
 
 interface ThemeToggleProps {
   className?: string;
 }
 
 /**
- * Theme toggle button for switching between dark and light modes.
- * Only visible to admin users (light mode is admin-only for now).
+ * Theme toggle button for switching between dark, light, and ocean modes.
+ * Available to all authenticated users.
  */
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const { theme, toggleTheme, isLoading } = useTheme();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
-
-  // Check if user is admin on mount
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const response = await fetch('/api/user/is-admin');
-        if (response.ok) {
-          const data = await response.json();
-          setIsAdmin(data.isAdmin === true);
-        }
-      } catch (error) {
-        console.error('[ThemeToggle] Error checking admin status:', error);
-      } finally {
-        setCheckingAdmin(false);
-      }
-    };
-
-    checkAdminStatus();
-  }, []);
-
-  // Don't show toggle for non-admins or while loading
-  if (checkingAdmin || !isAdmin) {
-    return null;
-  }
 
   // Get next theme name for aria-label
   const nextTheme = theme === 'light' ? 'ocean' : theme === 'ocean' ? 'dark' : 'light';
