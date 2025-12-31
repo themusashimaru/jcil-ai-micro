@@ -81,8 +81,8 @@ CREATE TABLE IF NOT EXISTS user_document_chunks (
   page_number INTEGER, -- For PDFs
   section_title TEXT, -- If detected
 
-  -- Vector embedding (1536 dimensions for OpenAI text-embedding-3-small)
-  embedding vector(1536),
+  -- Vector embedding (768 dimensions for Gemini text-embedding-004)
+  embedding vector(768),
 
   -- Token count for context management
   token_count INTEGER,
@@ -151,7 +151,7 @@ CREATE POLICY "Users can delete own chunks" ON user_document_chunks
 -- Function to search user's documents by semantic similarity
 CREATE OR REPLACE FUNCTION search_user_documents(
   p_user_id UUID,
-  p_query_embedding vector(1536),
+  p_query_embedding vector(768),
   p_match_count INTEGER DEFAULT 5,
   p_match_threshold FLOAT DEFAULT 0.7
 )

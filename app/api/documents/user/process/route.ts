@@ -10,12 +10,38 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import OpenAI from 'openai';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { GoogleGenAI } from '@google/genai';
 
-// Initialize OpenAI for embeddings
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Helper to create authenticated Supabase client
+async function createSupabaseClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Server Component context
+          }
+        },
+      },
+    }
+  );
+}
+
+// Initialize Gemini for embeddings (same provider as chat!)
+const gemini = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY_1 || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
 });
 
 // Chunk settings
@@ -68,7 +94,7 @@ function chunkText(text: string, maxChunkSize: number = CHUNK_SIZE): string[] {
 async function extractText(
   fileBuffer: ArrayBuffer,
   fileType: string,
-  mimeType: string
+  _mimeType: string
 ): Promise<{ text: string; pageCount?: number }> {
   const buffer = Buffer.from(fileBuffer);
 
@@ -80,7 +106,9 @@ async function extractText(
     case 'pdf':
       // Use pdf-parse for PDFs
       try {
-        const pdfParse = (await import('pdf-parse')).default;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pdfParseModule = await import('pdf-parse') as any;
+        const pdfParse = pdfParseModule.default || pdfParseModule;
         const data = await pdfParse(buffer);
         return {
           text: data.text,
@@ -129,24 +157,31 @@ async function extractText(
 }
 
 /**
- * Generate embeddings for text chunks using OpenAI
+ * Generate embeddings for text chunks using Gemini
+ * Uses text-embedding-004 model (768 dimensions)
  */
 async function generateEmbeddings(chunks: string[]): Promise<number[][]> {
   const embeddings: number[][] = [];
 
-  // Process in batches of 100 (OpenAI limit)
-  const batchSize = 100;
+  // Process chunks one at a time (Gemini embedding API)
+  for (const chunk of chunks) {
+    try {
+      const response = await gemini.models.embedContent({
+        model: 'text-embedding-004',
+        contents: chunk,
+      });
 
-  for (let i = 0; i < chunks.length; i += batchSize) {
-    const batch = chunks.slice(i, i + batchSize);
-
-    const response = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: batch,
-    });
-
-    for (const item of response.data) {
-      embeddings.push(item.embedding);
+      if (response.embeddings?.[0]?.values) {
+        embeddings.push(response.embeddings[0].values);
+      } else {
+        console.error('[Process] No embedding returned for chunk');
+        // Use zero vector as fallback
+        embeddings.push(new Array(768).fill(0));
+      }
+    } catch (error) {
+      console.error('[Process] Embedding error:', error);
+      // Use zero vector as fallback
+      embeddings.push(new Array(768).fill(0));
     }
   }
 
@@ -161,7 +196,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Document ID required' }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createSupabaseClient();
 
     // Get document record
     const { data: document, error: docError } = await supabase
