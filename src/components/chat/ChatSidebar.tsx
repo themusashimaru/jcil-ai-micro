@@ -20,6 +20,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Chat, ChatFolder } from '@/app/chat/types';
 import InboxButton from '@/components/inbox/InboxButton';
+import MyFilesPanel from '@/components/documents/MyFilesPanel';
 
 interface ChatSidebarProps {
   chats: Chat[];
@@ -516,6 +517,9 @@ export function ChatSidebar({
               </button>
             </div>
           )}
+
+          {/* My Files - Admin Only (Testing Phase) */}
+          {isAdmin && <MyFilesPanel />}
 
           {/* Header */}
           <div className="p-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
