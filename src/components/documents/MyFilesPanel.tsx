@@ -70,6 +70,9 @@ export default function MyFilesPanel() {
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'folder' | 'file'; item: Folder | Document } | null>(null);
 
+  // Move menu state (for mobile-friendly file moving)
+  const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
+
   // Load data when panel expands
   useEffect(() => {
     if (isExpanded) {
@@ -79,12 +82,15 @@ export default function MyFilesPanel() {
 
   // Close context menu on click outside
   useEffect(() => {
-    const handleClick = () => setContextMenu(null);
-    if (contextMenu) {
+    const handleClick = () => {
+      setContextMenu(null);
+      setShowMoveMenu(null);
+    };
+    if (contextMenu || showMoveMenu) {
       document.addEventListener('click', handleClick);
       return () => document.removeEventListener('click', handleClick);
     }
-  }, [contextMenu]);
+  }, [contextMenu, showMoveMenu]);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -465,7 +471,7 @@ export default function MyFilesPanel() {
 
       {/* Expanded Panel */}
       {isExpanded && (
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-3 pt-2">
           {/* Action Buttons Row */}
           <div className="flex gap-2 mb-3">
             {/* Upload Button */}
@@ -611,7 +617,7 @@ export default function MyFilesPanel() {
                         folderDocs(folder.id).map(doc => (
                           <div
                             key={doc.id}
-                            className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors"
+                            className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors relative"
                             style={{ backgroundColor: 'var(--glass-bg)' }}
                             onContextMenu={(e) => handleContextMenu(e, 'file', doc)}
                           >
@@ -627,12 +633,73 @@ export default function MyFilesPanel() {
                                 {getStatusBadge(doc.status)}
                               </div>
                             </div>
+                            {/* Move button */}
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowMoveMenu(showMoveMenu === doc.id ? null : doc.id);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all"
+                                style={{ backgroundColor: 'var(--glass-bg)' }}
+                                title="Move file"
+                              >
+                                <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
+                              </button>
+                              {/* Move dropdown */}
+                              {showMoveMenu === doc.id && (
+                                <div
+                                  className="absolute right-0 top-full mt-1 z-50 py-1 rounded-lg shadow-lg min-w-32"
+                                  style={{
+                                    backgroundColor: 'var(--background)',
+                                    border: '1px solid var(--border)',
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="px-2 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>Move to:</div>
+                                  {/* Move to root */}
+                                  <button
+                                    onClick={() => {
+                                      handleMoveFile(doc.id, null);
+                                      setShowMoveMenu(null);
+                                    }}
+                                    className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2"
+                                    style={{ color: 'var(--text-primary)' }}
+                                  >
+                                    <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                    </svg>
+                                    Unfiled
+                                  </button>
+                                  {/* Other folders */}
+                                  {folders.filter(f => f.id !== folder.id).map(otherFolder => (
+                                    <button
+                                      key={otherFolder.id}
+                                      onClick={() => {
+                                        handleMoveFile(doc.id, otherFolder.id);
+                                        setShowMoveMenu(null);
+                                      }}
+                                      className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2"
+                                      style={{ color: 'var(--text-primary)' }}
+                                    >
+                                      <svg className="w-3 h-3" style={{ color: otherFolder.color }} fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                                      </svg>
+                                      {otherFolder.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteFile(doc.id);
                               }}
                               className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
+                              title="Delete file"
                             >
                               <svg className="w-3 h-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -655,7 +722,7 @@ export default function MyFilesPanel() {
               {rootDocs.map(doc => (
                 <div
                   key={doc.id}
-                  className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors"
+                  className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors relative"
                   style={{ backgroundColor: 'var(--glass-bg)' }}
                   onContextMenu={(e) => handleContextMenu(e, 'file', doc)}
                 >
@@ -671,12 +738,60 @@ export default function MyFilesPanel() {
                       {getStatusBadge(doc.status)}
                     </div>
                   </div>
+                  {/* Move button */}
+                  {folders.length > 0 && (
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowMoveMenu(showMoveMenu === doc.id ? null : doc.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all"
+                        style={{ backgroundColor: 'var(--glass-bg)' }}
+                        title="Move to folder"
+                      >
+                        <svg className="w-3 h-3" style={{ color: 'var(--text-muted)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                      </button>
+                      {/* Move dropdown */}
+                      {showMoveMenu === doc.id && (
+                        <div
+                          className="absolute right-0 top-full mt-1 z-50 py-1 rounded-lg shadow-lg min-w-32"
+                          style={{
+                            backgroundColor: 'var(--background)',
+                            border: '1px solid var(--border)',
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="px-2 py-1 text-xs" style={{ color: 'var(--text-muted)' }}>Move to folder:</div>
+                          {folders.map(folder => (
+                            <button
+                              key={folder.id}
+                              onClick={() => {
+                                handleMoveFile(doc.id, folder.id);
+                                setShowMoveMenu(null);
+                              }}
+                              className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2"
+                              style={{ color: 'var(--text-primary)' }}
+                            >
+                              <svg className="w-3 h-3" style={{ color: folder.color }} fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                              </svg>
+                              {folder.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteFile(doc.id);
                     }}
                     className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
+                    title="Delete file"
                   >
                     <svg className="w-3 h-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
