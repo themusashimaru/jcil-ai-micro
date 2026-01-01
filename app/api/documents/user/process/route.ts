@@ -10,32 +10,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 
-// Helper to create authenticated Supabase client
-async function createSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
+// Service role client for database and storage operations (bypasses RLS)
+function createServiceClient() {
+  return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Server Component context
-          }
-        },
-      },
-    }
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
   );
 }
 
@@ -104,15 +87,17 @@ async function extractText(
       return { text: buffer.toString('utf-8') };
 
     case 'pdf':
-      // Use pdf-parse for PDFs
+      // Use unpdf for PDFs (serverless-friendly)
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pdfParseModule = await import('pdf-parse') as any;
-        const pdfParse = pdfParseModule.default || pdfParseModule;
-        const data = await pdfParse(buffer);
+        const { extractText } = await import('unpdf');
+        const result = await extractText(buffer, { mergePages: true });
+        // Handle both string and string[] return types
+        const textContent = Array.isArray(result.text)
+          ? result.text.join('\n')
+          : String(result.text || '');
         return {
-          text: data.text,
-          pageCount: data.numpages,
+          text: textContent,
+          pageCount: result.totalPages,
         };
       } catch (error) {
         console.error('[Process] PDF parsing error:', error);
@@ -196,7 +181,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Document ID required' }, { status: 400 });
     }
 
-    const supabase = await createSupabaseClient();
+    const supabase = createServiceClient();
 
     // Get document record
     const { data: document, error: docError } = await supabase
