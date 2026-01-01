@@ -1631,14 +1631,18 @@ export async function POST(request: NextRequest) {
       }
 
       // Search user's uploaded documents for relevant context (RAG)
+      console.log(`[Chat API] Starting RAG search for user ${rateLimitIdentifier}, query: "${lastUserContent.substring(0, 50)}..."`);
       try {
-        const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
-          matchCount: 3,
-          matchThreshold: 0.6,
+        const { contextString, results } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+          matchCount: 5,
+          matchThreshold: 0.1, // Very low threshold - will match almost anything
         });
+        console.log(`[Chat API] RAG search returned ${results?.length || 0} results`);
         if (contextString) {
-          console.log(`[Chat API] Found relevant user documents for user ${rateLimitIdentifier}`);
+          console.log(`[Chat API] Adding document context to prompt (${contextString.length} chars)`);
           slingshotPrompt += '\n\n---\n\n' + contextString;
+        } else {
+          console.log(`[Chat API] No document context found for user ${rateLimitIdentifier}`);
         }
       } catch (docSearchError) {
         console.error('[Chat API] User document search failed:', docSearchError);
@@ -1871,13 +1875,14 @@ Please summarize this information from our platform's perspective. Present the f
         }
 
         // Search user's uploaded documents for relevant context (RAG)
+        console.log(`[Chat API] Anthropic: Starting RAG search for user ${rateLimitIdentifier}`);
         try {
-          const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
-            matchCount: 3,
-            matchThreshold: 0.6,
+          const { contextString, results } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+            matchCount: 5,
+            matchThreshold: 0.1,
           });
+          console.log(`[Chat API] Anthropic: RAG returned ${results?.length || 0} results`);
           if (contextString) {
-            console.log(`[Chat API] Anthropic: Found relevant user documents`);
             baseSystemPrompt += '\n\n---\n\n' + contextString;
           }
         } catch (docSearchError) {
@@ -2223,12 +2228,12 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
 
         // Search user's uploaded documents for relevant context (RAG)
         try {
-          const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
-            matchCount: 3,
-            matchThreshold: 0.6,
+          const { contextString, results } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+            matchCount: 5,
+            matchThreshold: 0.1,
           });
+          console.log(`[Chat API] xAI: RAG returned ${results?.length || 0} results`);
           if (contextString) {
-            console.log(`[Chat API] xAI: Found relevant user documents`);
             baseSystemPrompt += '\n\n---\n\n' + contextString;
           }
         } catch (docSearchError) {
@@ -2559,12 +2564,12 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
 
         // Search user's uploaded documents for relevant context (RAG)
         try {
-          const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
-            matchCount: 3,
-            matchThreshold: 0.6,
+          const { contextString, results } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+            matchCount: 5,
+            matchThreshold: 0.1,
           });
+          console.log(`[Chat API] DeepSeek: RAG returned ${results?.length || 0} results`);
           if (contextString) {
-            console.log(`[Chat API] DeepSeek: Found relevant user documents`);
             baseSystemPrompt += '\n\n---\n\n' + contextString;
           }
         } catch (docSearchError) {
@@ -2876,13 +2881,14 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
         }
 
         // Search user's uploaded documents for relevant context (RAG)
+        console.log(`[Chat API] Gemini: Starting RAG search for user ${rateLimitIdentifier}`);
         try {
-          const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
-            matchCount: 3,
-            matchThreshold: 0.6,
+          const { contextString, results } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+            matchCount: 5,
+            matchThreshold: 0.1,
           });
+          console.log(`[Chat API] Gemini: RAG returned ${results?.length || 0} results`);
           if (contextString) {
-            console.log(`[Chat API] Gemini: Found relevant user documents`);
             baseSystemPrompt += '\n\n---\n\n' + contextString;
           }
         } catch (docSearchError) {
