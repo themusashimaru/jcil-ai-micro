@@ -214,12 +214,21 @@ function isObviouslySimple(message: string): boolean {
   if (message.endsWith('?') && message.length < 50) return true;
 
   // No conjunctions suggesting multiple tasks
-  const complexIndicators = ['and then', 'after that', 'also', 'additionally',
-                             'as well as', 'create a', 'make a', 'generate'];
+  const complexIndicators = [
+    'and then', 'after that', 'also', 'additionally', 'as well as',
+    'create a', 'make a', 'generate', 'write a', 'build a',
+    'analyze', 'research', 'find', 'search', 'compare',
+    ', and ', // Comma followed by "and" indicates list of actions
+  ];
   const hasComplexIndicator = complexIndicators.some(ind => lowerMessage.includes(ind));
 
-  // If no complex indicators and message is relatively short, it's probably simple
-  if (!hasComplexIndicator && message.length < 100) return true;
+  // Check for multiple action verbs (indicates multi-step task)
+  const actionVerbs = ['find', 'search', 'research', 'analyze', 'create', 'write', 'make', 'build', 'compare', 'summarize', 'generate', 'calculate', 'review'];
+  const verbCount = actionVerbs.filter(verb => lowerMessage.includes(verb)).length;
+  const hasMultipleActions = verbCount >= 2;
+
+  // If no complex indicators AND no multiple actions AND message is short, it's simple
+  if (!hasComplexIndicator && !hasMultipleActions && message.length < 100) return true;
 
   return false;
 }
