@@ -228,6 +228,38 @@ export interface Database {
           created_at?: string
         }
       }
+      user_learning: {
+        Row: {
+          id: string
+          user_id: string
+          preference_type: 'format_style' | 'response_length' | 'communication_tone' | 'domain_expertise' | 'topic_interest' | 'output_preference'
+          preference_value: string
+          confidence: number
+          observation_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          preference_type: 'format_style' | 'response_length' | 'communication_tone' | 'domain_expertise' | 'topic_interest' | 'output_preference'
+          preference_value: string
+          confidence?: number
+          observation_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          preference_type?: 'format_style' | 'response_length' | 'communication_tone' | 'domain_expertise' | 'topic_interest' | 'output_preference'
+          preference_value?: string
+          confidence?: number
+          observation_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       admin_users_summary: {
