@@ -11,9 +11,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
-// Helper to create authenticated Supabase client
+// Helper to create authenticated Supabase client (for auth & database)
 async function createSupabaseClient() {
   const cookieStore = await cookies();
   return createServerClient(
@@ -35,6 +36,15 @@ async function createSupabaseClient() {
         },
       },
     }
+  );
+}
+
+// Service role client for storage operations (bypasses RLS)
+function createStorageClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
   );
 }
 
@@ -152,21 +162,25 @@ export async function POST(request: NextRequest) {
     const storagePath = `${user.id}/${documentId}/${file.name}`;
     const displayName = customName?.trim() || file.name.replace(/\.[^/.]+$/, '');
 
+    // Use service role client for storage (bypasses RLS)
+    const storageClient = createStorageClient();
+
     // Upload to Supabase Storage
-    const { error: uploadError } = await supabase.storage
+    const fileBuffer = await file.arrayBuffer();
+    const { error: uploadError } = await storageClient.storage
       .from('user-documents')
-      .upload(storagePath, file, {
+      .upload(storagePath, fileBuffer, {
         contentType: file.type,
         upsert: false,
       });
 
     if (uploadError) {
       console.error('[Documents API] Upload error:', uploadError);
-      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+      return NextResponse.json({ error: `Failed to upload file: ${uploadError.message}` }, { status: 500 });
     }
 
-    // Create document record
-    const { data: document, error: insertError } = await supabase
+    // Create document record (use service role to bypass RLS for insert too)
+    const { data: document, error: insertError } = await storageClient
       .from('user_documents')
       .insert({
         id: documentId,
@@ -185,9 +199,9 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       // Clean up uploaded file
-      await supabase.storage.from('user-documents').remove([storagePath]);
+      await storageClient.storage.from('user-documents').remove([storagePath]);
       console.error('[Documents API] Insert error:', insertError);
-      return NextResponse.json({ error: 'Failed to create document record' }, { status: 500 });
+      return NextResponse.json({ error: `Failed to create document record: ${insertError.message}` }, { status: 500 });
     }
 
     // Trigger async processing (chunking + embedding)
@@ -261,32 +275,37 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Document ID is required' }, { status: 400 });
     }
 
+    // Use service role client for storage and deletes
+    const storageClient = createStorageClient();
+
     // Get document to find storage path
-    const { data: document } = await supabase
+    const { data: document } = await storageClient
       .from('user_documents')
-      .select('storage_path')
+      .select('storage_path, user_id')
       .eq('id', id)
-      .eq('user_id', user.id)
       .single();
+
+    // Verify ownership
+    if (!document || document.user_id !== user.id) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+    }
 
     if (document?.storage_path) {
       // Delete from storage
-      await supabase.storage.from('user-documents').remove([document.storage_path]);
+      await storageClient.storage.from('user-documents').remove([document.storage_path]);
     }
 
     // Delete chunks (cascade should handle this, but be explicit)
-    await supabase
+    await storageClient
       .from('user_document_chunks')
       .delete()
-      .eq('document_id', id)
-      .eq('user_id', user.id);
+      .eq('document_id', id);
 
     // Delete document record
-    const { error } = await supabase
+    const { error } = await storageClient
       .from('user_documents')
       .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('id', id);
 
     if (error) {
       console.error('[Documents API] Delete error:', error);
