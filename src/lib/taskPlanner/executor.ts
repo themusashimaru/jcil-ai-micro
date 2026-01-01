@@ -13,6 +13,7 @@
  */
 
 import { createGeminiCompletion } from '@/lib/gemini/client';
+import { executeForTaskType } from './tools';
 import type { CoreMessage } from 'ai';
 import type { SubTask, TaskPlan } from './index';
 
@@ -50,127 +51,7 @@ const CONFIG = {
 };
 
 // ============================================================================
-// Step Execution Prompts (Improved)
-// ============================================================================
-
-function getStepPrompt(step: SubTask, context: ExecutionContext): string {
-  // Build context from previous steps - more detailed
-  const previousResults = context.completedSteps
-    .filter(r => r.success)
-    .map(r => {
-      // Include more context from successful steps
-      const preview = r.output.length > 800
-        ? r.output.slice(0, 800) + '\n[...truncated for brevity]'
-        : r.output;
-      return `**Step ${r.taskId} Results:**\n${preview}`;
-    })
-    .join('\n\n---\n\n');
-
-  const contextSection = previousResults
-    ? `\n## Context from Previous Steps\n\n${previousResults}\n\n---\n\n`
-    : '';
-
-  const progressInfo = `[Step ${step.id} of ${context.totalSteps}]`;
-
-  switch (step.type) {
-    case 'research':
-      return `${progressInfo} You are executing step ${step.id} of a multi-step task.
-
-**Original User Request:** "${context.originalRequest}"
-${contextSection}
-**Your Current Task:** ${step.description}
-
-## Instructions
-1. Search for relevant, up-to-date information
-2. Focus specifically on what's needed for this step
-3. Provide factual findings with key details
-4. Be thorough but concise - this feeds into the next step
-5. Include specific data points, names, numbers when available
-
-## Output Format
-Provide your research findings in a clear, structured format:`;
-
-    case 'analysis':
-      return `${progressInfo} You are executing step ${step.id} of a multi-step task.
-
-**Original User Request:** "${context.originalRequest}"
-${contextSection}
-**Your Current Task:** ${step.description}
-
-## Instructions
-1. Analyze the information gathered in previous steps
-2. Identify key patterns, trends, or insights
-3. Use code execution for any calculations if needed
-4. Draw specific, actionable conclusions
-5. Support your analysis with evidence from the research
-
-## Output Format
-Provide your analysis with clear sections and takeaways:`;
-
-    case 'generation':
-      return `${progressInfo} You are executing step ${step.id} of a multi-step task.
-
-**Original User Request:** "${context.originalRequest}"
-${contextSection}
-**Your Current Task:** ${step.description}
-
-## Instructions
-1. Generate the requested content using insights from previous steps
-2. Make it professional, well-structured, and complete
-3. Include all relevant information gathered earlier
-4. Format appropriately for the content type
-5. Ensure it directly addresses the user's original request
-
-## Output Format
-Generate high-quality, professional content:`;
-
-    case 'creative':
-      return `${progressInfo} You are executing step ${step.id} of a multi-step task.
-
-**Original User Request:** "${context.originalRequest}"
-${contextSection}
-**Your Current Task:** ${step.description}
-
-## Instructions
-1. Create engaging, creative content
-2. Build on insights from previous steps
-3. Make it compelling and well-crafted
-4. Match the tone to the user's request
-5. Be original while staying relevant
-
-## Output Format
-Create your content:`;
-
-    case 'calculation':
-      return `${progressInfo} You are executing step ${step.id} of a multi-step task.
-
-**Original User Request:** "${context.originalRequest}"
-${contextSection}
-**Your Current Task:** ${step.description}
-
-## Instructions
-1. Perform the required calculations accurately
-2. Use code execution for complex math
-3. Show your methodology clearly
-4. Double-check results for accuracy
-5. Present findings in an easy-to-understand format
-
-## Output Format
-Provide calculations with clear explanations:`;
-
-    default:
-      return `${progressInfo} You are executing step ${step.id} of a multi-step task.
-
-**Original User Request:** "${context.originalRequest}"
-${contextSection}
-**Your Current Task:** ${step.description}
-
-Complete this step thoroughly and provide clear output:`;
-  }
-}
-
-// ============================================================================
-// Step Executor with Retry Logic
+// Step Executor with Retry Logic (Uses Tool Registry)
 // ============================================================================
 
 async function executeStepWithRetry(
@@ -183,6 +64,12 @@ async function executeStepWithRetry(
   const startTime = Date.now();
   let lastError = '';
 
+  // Build context from previous successful steps
+  const previousContext = context.completedSteps
+    .filter(r => r.success)
+    .map(r => r.output)
+    .join('\n\n---\n\n');
+
   for (let attempt = 0; attempt <= CONFIG.maxRetries; attempt++) {
     if (attempt > 0) {
       console.log(`[TaskExecutor] Retry ${attempt}/${CONFIG.maxRetries} for step ${step.id}`);
@@ -190,32 +77,38 @@ async function executeStepWithRetry(
     }
 
     try {
-      const prompt = getStepPrompt(step, context);
-      const messages: CoreMessage[] = [{ role: 'user', content: prompt }];
-
-      // Enable search for research/analysis, code execution for calculations
-      const enableSearch = ['research', 'analysis', 'calculation'].includes(step.type);
-
-      const result = await createGeminiCompletion({
-        messages,
-        model,
-        maxTokens: CONFIG.maxTokensPerStep,
-        temperature: step.type === 'creative' ? 0.8 : 0.5,
-        enableSearch,
-        userId,
-        planKey: userTier,
-      });
+      // Use Tool Registry to execute the step
+      const toolResult = await executeForTaskType(
+        step.type,
+        {
+          query: step.description,
+          context: previousContext || undefined,
+          originalRequest: context.originalRequest,
+        },
+        {
+          model,
+          userId,
+          userTier,
+          maxTokens: CONFIG.maxTokensPerStep,
+          temperature: step.type === 'creative' ? 0.8 : 0.5,
+        }
+      );
 
       const durationMs = Date.now() - startTime;
-      console.log(`[TaskExecutor] Step ${step.id} completed in ${durationMs}ms`);
 
-      return {
-        taskId: step.id,
-        success: true,
-        output: result.text,
-        durationMs,
-        retryCount: attempt,
-      };
+      if (toolResult.success) {
+        console.log(`[TaskExecutor] Step ${step.id} completed in ${durationMs}ms using tool`);
+        return {
+          taskId: step.id,
+          success: true,
+          output: toolResult.content,
+          durationMs,
+          retryCount: attempt,
+        };
+      } else {
+        lastError = toolResult.error || 'Tool execution failed';
+        console.error(`[TaskExecutor] Step ${step.id} tool failed:`, lastError);
+      }
     } catch (error) {
       lastError = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[TaskExecutor] Step ${step.id} attempt ${attempt + 1} failed:`, lastError);
