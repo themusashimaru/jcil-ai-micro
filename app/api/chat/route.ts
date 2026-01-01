@@ -84,6 +84,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { analyzeRequest, isTaskPlanningEnabled } from '@/lib/taskPlanner';
+import { executeTaskPlan, isSequentialExecutionEnabled } from '@/lib/taskPlanner/executor';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -1230,11 +1231,14 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // TASK PLANNING (Phase 1: Detection Only)
+    // TASK PLANNING (Phase 1 & 2)
     // ========================================
-    // Analyze complex requests and create execution plans
+    // Phase 1: Detect complex requests and show task plan
+    // Phase 2: Sequential execution with progress tracking
     // Feature flag controlled - off by default for safety
     let taskPlanText: string | null = null;
+    let taskPlanResult: Awaited<ReturnType<typeof analyzeRequest>> | null = null;
+
     if (isTaskPlanningEnabled() && lastUserContent) {
       try {
         // Get recent context for better classification
@@ -1244,14 +1248,40 @@ export async function POST(request: NextRequest) {
           .map((m: CoreMessage) => typeof m.content === 'string' ? m.content.slice(0, 200) : '')
           .join('\n');
 
-        const planResult = await analyzeRequest(lastUserContent, recentContext || undefined);
+        taskPlanResult = await analyzeRequest(lastUserContent, recentContext || undefined);
 
-        if (planResult.shouldShowPlan && planResult.planDisplayText) {
-          taskPlanText = planResult.planDisplayText;
+        if (taskPlanResult.shouldShowPlan) {
+          taskPlanText = taskPlanResult.planDisplayText;
           console.log('[Chat API] Task plan generated:', {
-            subtasks: planResult.plan.subtasks?.length || 0,
-            summary: planResult.plan.summary
+            subtasks: taskPlanResult.plan.subtasks?.length || 0,
+            summary: taskPlanResult.plan.summary
           });
+
+          // Phase 2: If sequential execution is enabled, execute the plan
+          if (isSequentialExecutionEnabled() && taskPlanResult.plan.subtasks.length > 0) {
+            console.log('[Chat API] Starting sequential task execution');
+
+            // Get the model to use (Gemini for now)
+            const geminiModel = await getModelForTier(userTier, 'gemini');
+
+            const executionStream = await executeTaskPlan(
+              taskPlanResult.plan,
+              lastUserContent,
+              geminiModel,
+              isAuthenticated ? rateLimitIdentifier : undefined,
+              userTier
+            );
+
+            return new Response(executionStream, {
+              headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Transfer-Encoding': 'chunked',
+                'X-Model-Used': geminiModel,
+                'X-Provider': 'gemini',
+                'X-Task-Plan': 'sequential',
+              },
+            });
+          }
         }
       } catch (error) {
         // Task planning failure should never break the chat
