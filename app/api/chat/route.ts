@@ -84,7 +84,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { analyzeRequest, isTaskPlanningEnabled } from '@/lib/taskPlanner';
-import { executeTaskPlan, isSequentialExecutionEnabled } from '@/lib/taskPlanner/executor';
+import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '@/lib/taskPlanner/executor';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -1227,6 +1227,70 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error('Error fetching conversation history:', error);
         // Continue without history if there's an error
+      }
+    }
+
+    // ========================================
+    // CHECKPOINT CONTINUATION (Phase 4)
+    // ========================================
+    // Check if user wants to continue from a checkpoint
+    // Looks for "continue" message and checkpoint state in previous assistant message
+    if (isSequentialExecutionEnabled() && lastUserContent) {
+      const normalizedMessage = lastUserContent.toLowerCase().trim();
+      const isContinueRequest = normalizedMessage === 'continue' ||
+                                normalizedMessage === 'yes' ||
+                                normalizedMessage === 'proceed' ||
+                                normalizedMessage.startsWith('continue');
+
+      if (isContinueRequest) {
+        // Look for checkpoint in recent assistant messages
+        const assistantMessages = messages
+          .filter((m: CoreMessage) => m.role === 'assistant')
+          .slice(-3); // Check last 3 assistant messages
+
+        for (const msg of assistantMessages) {
+          const content = typeof msg.content === 'string' ? msg.content : '';
+          const checkpointMatch = content.match(/<!-- CHECKPOINT:([A-Za-z0-9+/=]+) -->/);
+
+          if (checkpointMatch) {
+            try {
+              const encodedState = checkpointMatch[1];
+              const decodedState = Buffer.from(encodedState, 'base64').toString('utf-8');
+              const checkpointState: CheckpointState = JSON.parse(decodedState);
+
+              console.log('[Chat API] Resuming from checkpoint:', {
+                nextStep: checkpointState.nextStepIndex + 1,
+                totalSteps: checkpointState.plan.subtasks.length,
+                completedSteps: checkpointState.completedSteps.length
+              });
+
+              // Resume execution from checkpoint
+              const geminiModel = await getModelForTier(userTier, 'gemini');
+
+              const executionStream = await executeTaskPlan(
+                checkpointState.plan,
+                checkpointState.originalRequest,
+                geminiModel,
+                isAuthenticated ? rateLimitIdentifier : undefined,
+                userTier,
+                checkpointState // Pass checkpoint state to resume
+              );
+
+              return new Response(executionStream, {
+                headers: {
+                  'Content-Type': 'text/plain; charset=utf-8',
+                  'Transfer-Encoding': 'chunked',
+                  'X-Model-Used': geminiModel,
+                  'X-Provider': 'gemini',
+                  'X-Task-Plan': 'resumed',
+                },
+              });
+            } catch (parseError) {
+              console.error('[Chat API] Failed to parse checkpoint state:', parseError);
+              // Continue with normal flow if checkpoint parsing fails
+            }
+          }
+        }
       }
     }
 

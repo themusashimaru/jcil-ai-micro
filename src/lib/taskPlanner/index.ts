@@ -30,6 +30,7 @@ export interface SubTask {
   type: TaskType;
   dependsOn: number[]; // IDs of tasks this depends on
   estimatedTool: string; // Which tool/capability will be used
+  requiresCheckpoint?: boolean; // If true, pause after this step for user confirmation
 }
 
 export interface TaskPlan {
@@ -80,7 +81,11 @@ const TASK_CLASSIFICATION_SCHEMA = {
             type: 'array',
             items: { type: 'number' }
           },
-          estimatedTool: { type: 'string' }
+          estimatedTool: { type: 'string' },
+          requiresCheckpoint: {
+            type: 'boolean',
+            description: 'True if user should confirm before proceeding to next step (for major decisions or deliverables)'
+          }
         },
         required: ['id', 'description', 'type', 'dependsOn', 'estimatedTool']
       }
@@ -128,7 +133,15 @@ Examples of COMPLEX requests:
 For each subtask, specify:
 - type: research, analysis, generation, conversation, creative, or calculation
 - estimatedTool: googleSearch, codeExecution, documentGeneration, or chat
-- dependsOn: IDs of tasks that must complete first (empty array if none)`;
+- dependsOn: IDs of tasks that must complete first (empty array if none)
+- requiresCheckpoint: true/false - Set to TRUE for steps where user should confirm before proceeding
+
+CHECKPOINT GUIDELINES (requiresCheckpoint):
+- Set TRUE after research steps if the findings significantly affect next steps
+- Set TRUE before generating final deliverables (documents, reports)
+- Set TRUE when the user needs to make a decision
+- Set FALSE for routine steps that should flow automatically
+- When in doubt for 3+ step tasks, add a checkpoint after step 1 or 2`;
 
 /**
  * Analyzes a user request and creates a task plan
