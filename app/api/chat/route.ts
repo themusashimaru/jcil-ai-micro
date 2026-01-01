@@ -85,6 +85,7 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { analyzeRequest, isTaskPlanningEnabled } from '@/lib/taskPlanner';
 import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '@/lib/taskPlanner/executor';
+import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -1144,6 +1145,20 @@ export async function POST(request: NextRequest) {
         .join(' ');
     }
 
+    // USER LEARNING: Fire async learning extraction (non-blocking)
+    // This runs in background and learns from user's message patterns
+    if (isLearningEnabled() && isAuthenticated && rateLimitIdentifier && lastUserContent) {
+      // Fire and forget - don't await, let it run in background
+      extractAndLearn({
+        userMessages: [lastUserContent],
+        assistantMessages: messages
+          .filter((m: CoreMessage) => m.role === 'assistant')
+          .slice(-3)
+          .map((m: CoreMessage) => typeof m.content === 'string' ? m.content : ''),
+        userId: rateLimitIdentifier,
+      }).catch(err => console.error('[Chat API] Background learning failed:', err));
+    }
+
     if (lastUserContent && isAskingAboutHistory(lastUserContent)) {
       try {
         // Get authenticated Supabase client
@@ -1807,6 +1822,20 @@ export async function POST(request: NextRequest) {
         // Don't fail the request if document search fails
       }
 
+      // USER LEARNING: Inject learned preferences (lowest priority - style only)
+      if (isLearningEnabled() && isAuthenticated && rateLimitIdentifier) {
+        try {
+          const learnedContext = await getLearnedContext(rateLimitIdentifier);
+          if (learnedContext.promptInjection) {
+            slingshotPrompt += learnedContext.promptInjection;
+            console.log(`[Chat API] Injected ${learnedContext.preferences.length} learned preferences`);
+          }
+        } catch (learnError) {
+          console.error('[Chat API] Learning context fetch failed:', learnError);
+          // Don't fail the request if learning fails
+        }
+      }
+
       const slingshotSystemMessage = {
         role: 'system' as const,
         content: slingshotPrompt,
@@ -2045,6 +2074,19 @@ Please summarize this information from our platform's perspective. Present the f
           }
         } catch (docSearchError) {
           console.error('[Chat API] Anthropic: User document search failed:', docSearchError);
+        }
+
+        // USER LEARNING: Inject learned preferences (lowest priority - style only)
+        if (isLearningEnabled() && rateLimitIdentifier) {
+          try {
+            const learnedContext = await getLearnedContext(rateLimitIdentifier);
+            if (learnedContext.promptInjection) {
+              baseSystemPrompt += learnedContext.promptInjection;
+              console.log(`[Chat API] Anthropic: Injected ${learnedContext.preferences.length} learned preferences`);
+            }
+          } catch (learnError) {
+            console.error('[Chat API] Anthropic: Learning context failed:', learnError);
+          }
         }
       }
 
@@ -2397,6 +2439,19 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
         } catch (docSearchError) {
           console.error('[Chat API] xAI: User document search failed:', docSearchError);
         }
+
+        // USER LEARNING: Inject learned preferences (lowest priority - style only)
+        if (isLearningEnabled() && rateLimitIdentifier) {
+          try {
+            const learnedContext = await getLearnedContext(rateLimitIdentifier);
+            if (learnedContext.promptInjection) {
+              baseSystemPrompt += learnedContext.promptInjection;
+              console.log(`[Chat API] xAI: Injected ${learnedContext.preferences.length} learned preferences`);
+            }
+          } catch (learnError) {
+            console.error('[Chat API] xAI: Learning context failed:', learnError);
+          }
+        }
       }
 
       const systemPrompt = isAuthenticated
@@ -2733,6 +2788,19 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
         } catch (docSearchError) {
           console.error('[Chat API] DeepSeek: User document search failed:', docSearchError);
         }
+
+        // USER LEARNING: Inject learned preferences (lowest priority - style only)
+        if (isLearningEnabled() && rateLimitIdentifier) {
+          try {
+            const learnedContext = await getLearnedContext(rateLimitIdentifier);
+            if (learnedContext.promptInjection) {
+              baseSystemPrompt += learnedContext.promptInjection;
+              console.log(`[Chat API] DeepSeek: Injected ${learnedContext.preferences.length} learned preferences`);
+            }
+          } catch (learnError) {
+            console.error('[Chat API] DeepSeek: Learning context failed:', learnError);
+          }
+        }
       }
 
       const systemPrompt = isAuthenticated
@@ -3051,6 +3119,19 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           }
         } catch (docSearchError) {
           console.error('[Chat API] Gemini: User document search failed:', docSearchError);
+        }
+
+        // USER LEARNING: Inject learned preferences (lowest priority - style only)
+        if (isLearningEnabled() && rateLimitIdentifier) {
+          try {
+            const learnedContext = await getLearnedContext(rateLimitIdentifier);
+            if (learnedContext.promptInjection) {
+              baseSystemPrompt += learnedContext.promptInjection;
+              console.log(`[Chat API] Gemini: Injected ${learnedContext.preferences.length} learned preferences`);
+            }
+          } catch (learnError) {
+            console.error('[Chat API] Gemini: Learning context failed:', learnError);
+          }
         }
       }
 
