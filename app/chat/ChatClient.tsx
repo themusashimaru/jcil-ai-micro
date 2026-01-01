@@ -998,11 +998,12 @@ export function ChatClient() {
     // If replying to a message, prepend the quoted context
     let finalContent = content;
     if (replyingTo) {
-      // Truncate long messages for the quote
+      // Truncate long messages for the quote - clean format for the AI
       const quotedContent = replyingTo.content.length > 200
         ? replyingTo.content.slice(0, 200) + '...'
         : replyingTo.content;
-      finalContent = `Regarding your earlier response:\n> "${quotedContent}"\n\n${content}`;
+      // Simple bracketed format that AI understands but looks clean to user
+      finalContent = `[Replying to: "${quotedContent}"]\n\n${content}`;
       // Clear the reply state
       setReplyingTo(null);
     }
