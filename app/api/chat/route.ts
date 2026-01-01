@@ -83,6 +83,7 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { analyzeRequest, isTaskPlanningEnabled } from '@/lib/taskPlanner';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -138,6 +139,37 @@ function truncateMessages(messages: CoreMessage[], maxMessages: number = MAX_CON
 function clampMaxTokens(requestedTokens?: number): number {
   if (!requestedTokens) return DEFAULT_RESPONSE_TOKENS;
   return Math.min(Math.max(requestedTokens, 256), MAX_RESPONSE_TOKENS);
+}
+
+/**
+ * Prepend text to a ReadableStream
+ * Used for task planning to show the plan before the AI response
+ */
+function prependToStream(prefixText: string, stream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  const prefixBytes = encoder.encode(prefixText);
+
+  return new ReadableStream({
+    async start(controller) {
+      // First, send the prefix
+      controller.enqueue(prefixBytes);
+
+      // Then, pipe the original stream
+      const reader = stream.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          controller.enqueue(value);
+        }
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      } finally {
+        reader.releaseLock();
+      }
+    }
+  });
 }
 
 /**
@@ -1194,6 +1226,36 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error('Error fetching conversation history:', error);
         // Continue without history if there's an error
+      }
+    }
+
+    // ========================================
+    // TASK PLANNING (Phase 1: Detection Only)
+    // ========================================
+    // Analyze complex requests and create execution plans
+    // Feature flag controlled - off by default for safety
+    let taskPlanText: string | null = null;
+    if (isTaskPlanningEnabled() && lastUserContent) {
+      try {
+        // Get recent context for better classification
+        const recentContext = messages
+          .slice(-3)
+          .filter((m: CoreMessage) => m.role === 'assistant')
+          .map((m: CoreMessage) => typeof m.content === 'string' ? m.content.slice(0, 200) : '')
+          .join('\n');
+
+        const planResult = await analyzeRequest(lastUserContent, recentContext || undefined);
+
+        if (planResult.shouldShowPlan && planResult.planDisplayText) {
+          taskPlanText = planResult.planDisplayText;
+          console.log('[Chat API] Task plan generated:', {
+            subtasks: planResult.plan.subtasks?.length || 0,
+            summary: planResult.plan.summary
+          });
+        }
+      } catch (error) {
+        // Task planning failure should never break the chat
+        console.error('[Chat API] Task planning error (non-fatal):', error);
       }
     }
 
@@ -3269,13 +3331,19 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
         enableSearch: true, // Native Google Search grounding - auto-search when needed
       });
 
-      return new Response(streamResult.stream, {
+      // If task plan exists, prepend it to the stream
+      const responseStream = taskPlanText
+        ? prependToStream(taskPlanText, streamResult.stream)
+        : streamResult.stream;
+
+      return new Response(responseStream, {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           'Transfer-Encoding': 'chunked',
           'X-Model-Used': streamResult.model,
           'X-Provider': 'gemini',
           'X-Native-Search': 'google', // Indicates native search is enabled
+          ...(taskPlanText ? { 'X-Task-Plan': 'true' } : {}),
         },
       });
     }
