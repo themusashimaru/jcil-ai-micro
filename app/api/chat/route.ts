@@ -1250,7 +1250,9 @@ export async function POST(request: NextRequest) {
 
         for (const msg of assistantMessages) {
           const content = typeof msg.content === 'string' ? msg.content : '';
-          const checkpointMatch = content.match(/<!-- CHECKPOINT:([A-Za-z0-9+/=]+) -->/);
+          // Look for checkpoint in both new format [c:STATE] and old HTML comment format
+          const checkpointMatch = content.match(/\[c:([A-Za-z0-9+/=]+)\]/) ||
+                                  content.match(/<!-- CHECKPOINT:([A-Za-z0-9+/=]+) -->/);
 
           if (checkpointMatch) {
             try {

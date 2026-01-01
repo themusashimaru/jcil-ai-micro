@@ -371,9 +371,21 @@ const components: Components = {
   ),
 };
 
+/**
+ * Filter out internal checkpoint state markers from content
+ * These are used for resume functionality and shouldn't be visible to users
+ */
+function filterInternalMarkers(text: string): string {
+  // Remove checkpoint state: [c:BASE64_STATE]
+  return text.replace(/\[c:[A-Za-z0-9+/=]+\]/g, '');
+}
+
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
-  // Pre-process content to convert plain URLs to clickable markdown links
-  const processedContent = autoLinkifyUrls(content);
+  // Pre-process content:
+  // 1. Filter out internal markers (checkpoint state, etc.)
+  // 2. Convert plain URLs to clickable markdown links
+  const filteredContent = filterInternalMarkers(content);
+  const processedContent = autoLinkifyUrls(filteredContent);
 
   return (
     <div className="markdown-content" style={{ color: 'inherit' }}>
