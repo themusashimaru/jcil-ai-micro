@@ -153,6 +153,12 @@ export default function HomePage() {
               </svg>
               <span>Faith-Based Values</span>
             </div>
+            <div className="flex items-center gap-2">
+              <svg className="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+              <span>Private Document Storage</span>
+            </div>
           </div>
         </div>
       </section>
@@ -458,6 +464,7 @@ export default function HomePage() {
                       '50 core beliefs + 100 apologetic defenses',
                       'Strengthens and defends the faith',
                       'We never sell your data. Ever.',
+                      'Private document storage - AI recalls your files',
                       'Family-safe by design',
                       'Anchored to eternal, unchanging truth',
                       'Mission: strengthen the brethren, reach the lost',
@@ -558,6 +565,8 @@ export default function HomePage() {
           <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
             {[
               { icon: '💬', title: 'AI Chat', desc: 'Intelligent conversation for any topic' },
+              { icon: '📁', title: 'My Files', desc: 'Upload documents, organize in folders, AI remembers everything' },
+              { icon: '🧠', title: 'Document Memory', desc: 'Ask questions about your uploaded files - AI recalls instantly' },
               { icon: '🔍', title: 'Real-Time Search', desc: 'Live web search with source citations' },
               { icon: '📰', title: 'Breaking News', desc: 'Curated news updated every 30 minutes' },
               { icon: '📖', title: 'Bible Study', desc: 'Scripture exploration and study aids' },
@@ -578,6 +587,77 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* My Files Feature Highlight */}
+      <section className="relative bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-64 h-64 bg-cyan-100/40 rounded-full blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-64 h-64 bg-blue-100/30 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center mb-12">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-100 text-cyan-800 text-sm font-medium mb-4">
+              New Feature
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">My Files - Your Personal AI Memory</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Upload your documents, organize them in folders, and let JCIL.AI remember everything for you.
+              Ask questions about your files anytime - the AI recalls instantly.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-lg transition-shadow">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100">
+                <svg className="h-6 w-6 text-cyan-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">Upload Anything</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">
+                PDFs, Word documents, text files - upload your important documents securely.
+                Each file is privately stored and only visible to you.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-lg transition-shadow">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                <svg className="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">Organize in Folders</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">
+                Create folders, move files between them, keep your documents organized exactly how you want.
+                Full control over your personal library.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-lg transition-shadow">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                <svg className="h-6 w-6 text-purple-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">AI Recalls Everything</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">
+                Ask questions in chat and JCIL.AI automatically searches your documents.
+                Get answers with citations - know exactly which file the info came from.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-10 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-800 text-sm font-medium">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <span>Complete Privacy - Your files are never shared or used to train AI models</span>
+            </div>
           </div>
         </div>
       </section>
