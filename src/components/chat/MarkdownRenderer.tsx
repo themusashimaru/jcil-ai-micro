@@ -263,9 +263,14 @@ const components: Components = {
     );
   },
 
-  // Code blocks - use theme-aware backgrounds
+  // Code blocks - use theme-aware backgrounds with language headers
   code: ({ className, children }) => {
     const isInline = !className;
+
+    // Extract language from className (e.g., "language-python" -> "python")
+    const language = className?.replace('language-', '') || '';
+    const isPython = language === 'python';
+
     if (isInline) {
       return (
         <code
@@ -276,19 +281,57 @@ const components: Components = {
         </code>
       );
     }
-    // Block code
+
+    // Block code with language header for Python
+    if (isPython) {
+      return (
+        <div className="rounded-lg overflow-hidden my-2" style={{ backgroundColor: 'var(--glass-bg)' }}>
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b"
+            style={{
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-muted)'
+            }}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.372 0 5.372 2.664 5.372 5.328v2.332h6.75v.778H3.84C1.72 8.438 0 10.5 0 13.5s1.72 5.062 3.84 5.062h2.16v-2.5c0-2.328 2.016-4.406 4.5-4.406h6.75c2.016 0 3.75-1.664 3.75-3.656V5.328C21 2.664 18.984 0 12 0zm-3.375 3.094a1.219 1.219 0 110 2.437 1.219 1.219 0 010-2.437z"/>
+              <path d="M18.628 8.438v2.5c0 2.328-2.016 4.406-4.5 4.406H7.378c-2.016 0-3.75 1.664-3.75 3.656v2.672c0 2.664 2.016 5.328 8.372 5.328 6.628 0 6.628-2.664 6.628-5.328v-2.332h-6.75v-.778h9.282c2.12 0 3.84-2.062 3.84-5.062s-1.72-5.062-3.84-5.062h-2.532zm-3.253 10.468a1.219 1.219 0 110 2.437 1.219 1.219 0 010-2.437z"/>
+            </svg>
+            <span>Python</span>
+          </div>
+          <code
+            className="block p-3 text-sm font-mono overflow-x-auto"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            {children}
+          </code>
+        </div>
+      );
+    }
+
+    // Regular block code
     return (
       <code
         className="block p-3 rounded-lg text-sm font-mono overflow-x-auto my-2"
-        style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--primary)' }}
+        style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)' }}
       >
         {children}
       </code>
     );
   },
-  pre: ({ children }) => (
-    <pre className="rounded-lg overflow-x-auto my-2" style={{ backgroundColor: 'var(--glass-bg)' }}>{children}</pre>
-  ),
+  pre: ({ children }) => {
+    // Check if the child is our custom Python block (which handles its own wrapper)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const childType = (children as any)?.type?.name;
+    if (childType === 'code') {
+      // Let the code component handle its own styling
+      return <>{children}</>;
+    }
+    return (
+      <pre className="rounded-lg overflow-x-auto my-2" style={{ backgroundColor: 'var(--glass-bg)' }}>{children}</pre>
+    );
+  },
 
   // Blockquotes - inherit text color
   blockquote: ({ children }) => (

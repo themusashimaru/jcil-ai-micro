@@ -532,8 +532,11 @@ When you use search, naturally incorporate the information into your response.` 
               // Detect code execution - show indicator before code runs
               if (part.executableCode && !codeExecutionShown) {
                 codeExecutionShown = true;
-                const codeIndicator = '\n\n```python\n# ⚡ Running code...\n' +
-                  (part.executableCode.code || '') + '\n```\n\n';
+                const code = part.executableCode.code || '';
+                // Clean, professional code execution display
+                const codeIndicator = '\n\n---\n\n' +
+                  '**Running Code**\n\n' +
+                  '```python\n' + code + '\n```\n\n';
                 controller.enqueue(encoder.encode(codeIndicator));
                 console.log('[Gemini] Code execution detected');
               }
@@ -543,11 +546,13 @@ When you use search, naturally incorporate the information into your response.` 
                 const outcome = part.codeExecutionResult.outcome;
                 const output = part.codeExecutionResult.output || '';
                 if (outcome === 'OUTCOME_OK' && output) {
-                  const resultIndicator = '\n**Output:**\n```\n' + output + '\n```\n\n';
+                  // Clean output display
+                  const resultIndicator = '**Result:**\n\n```\n' + output.trim() + '\n```\n\n---\n\n';
                   controller.enqueue(encoder.encode(resultIndicator));
                   console.log('[Gemini] Code execution result:', outcome);
                 } else if (outcome !== 'OUTCOME_OK') {
-                  const errorIndicator = '\n**⚠️ Code Error:**\n```\n' + output + '\n```\n\n';
+                  // Error display
+                  const errorIndicator = '**Error:**\n\n```\n' + output.trim() + '\n```\n\n---\n\n';
                   controller.enqueue(encoder.encode(errorIndicator));
                   console.log('[Gemini] Code execution error:', outcome);
                 }
