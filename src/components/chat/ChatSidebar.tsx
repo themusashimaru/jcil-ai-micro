@@ -518,8 +518,8 @@ export function ChatSidebar({
             </div>
           )}
 
-          {/* My Files - Admin Only (Testing Phase) */}
-          {isAdmin && <MyFilesPanel />}
+          {/* My Files - Available to all users */}
+          <MyFilesPanel />
 
           {/* Header */}
           <div className="p-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
