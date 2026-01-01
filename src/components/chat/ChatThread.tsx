@@ -70,9 +70,10 @@ interface ChatThreadProps {
   currentChatId: string | null;
   isAdmin?: boolean;
   documentType?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | null;
+  onReply?: (message: Message) => void;
 }
 
-export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, documentType }: ChatThreadProps) {
+export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, documentType, onReply }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -289,6 +290,7 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, docu
                   message={message}
                   isLast={index === messages.length - 1}
                   isAdmin={isAdmin}
+                  onReply={onReply}
                 />
               </MessageErrorBoundary>
             </div>
