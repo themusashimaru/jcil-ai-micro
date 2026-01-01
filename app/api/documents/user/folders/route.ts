@@ -11,9 +11,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
-// Helper to create authenticated Supabase client
+// Helper to create authenticated Supabase client (for auth)
 async function createSupabaseClient() {
   const cookieStore = await cookies();
   return createServerClient(
@@ -38,6 +39,15 @@ async function createSupabaseClient() {
   );
 }
 
+// Service role client for database operations (bypasses RLS)
+function createDbClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
+}
+
 export async function GET() {
   try {
     const supabase = await createSupabaseClient();
@@ -47,7 +57,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: folders, error } = await supabase
+    const db = createDbClient();
+    const { data: folders, error } = await db
       .from('user_document_folders')
       .select('*')
       .eq('user_id', user.id)
@@ -81,8 +92,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Folder name is required' }, { status: 400 });
     }
 
+    const db = createDbClient();
+
     // Check folder limit based on tier (we'll add tier check later)
-    const { count } = await supabase
+    const { count } = await db
       .from('user_document_folders')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
@@ -95,7 +108,7 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
-    const { data: folder, error } = await supabase
+    const { data: folder, error } = await db
       .from('user_document_folders')
       .insert({
         user_id: user.id,
@@ -138,17 +151,29 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
     }
 
+    const db = createDbClient();
+
+    // Verify ownership first
+    const { data: existing } = await db
+      .from('user_document_folders')
+      .select('user_id')
+      .eq('id', id)
+      .single();
+
+    if (!existing || existing.user_id !== user.id) {
+      return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+    }
+
     const updateData: Record<string, unknown> = {};
     if (name !== undefined) updateData.name = name.trim();
     if (color !== undefined) updateData.color = color;
     if (icon !== undefined) updateData.icon = icon;
     if (parentFolderId !== undefined) updateData.parent_folder_id = parentFolderId;
 
-    const { data: folder, error } = await supabase
+    const { data: folder, error } = await db
       .from('user_document_folders')
       .update(updateData)
       .eq('id', id)
-      .eq('user_id', user.id)
       .select()
       .single();
 
@@ -183,26 +208,36 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
     }
 
+    const db = createDbClient();
+
+    // Verify ownership first
+    const { data: existing } = await db
+      .from('user_document_folders')
+      .select('user_id')
+      .eq('id', id)
+      .single();
+
+    if (!existing || existing.user_id !== user.id) {
+      return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+    }
+
     // Move documents in this folder to root (folder_id = null)
-    await supabase
+    await db
       .from('user_documents')
       .update({ folder_id: null })
-      .eq('folder_id', id)
-      .eq('user_id', user.id);
+      .eq('folder_id', id);
 
     // Move subfolders to root
-    await supabase
+    await db
       .from('user_document_folders')
       .update({ parent_folder_id: null })
-      .eq('parent_folder_id', id)
-      .eq('user_id', user.id);
+      .eq('parent_folder_id', id);
 
     // Delete the folder
-    const { error } = await supabase
+    const { error } = await db
       .from('user_document_folders')
       .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
+      .eq('id', id);
 
     if (error) {
       console.error('[Folders API] Error deleting folder:', error);
