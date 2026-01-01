@@ -86,6 +86,7 @@ import { cookies } from 'next/headers';
 import { analyzeRequest, isTaskPlanningEnabled } from '@/lib/taskPlanner';
 import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '@/lib/taskPlanner/executor';
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
+import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -1309,6 +1310,35 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+    }
+
+    // ========================================
+    // MULTI-AGENT ORCHESTRATION
+    // ========================================
+    // For complex research + deliverable requests, use Researcher → Analyst → Writer pipeline
+    // Feature flag controlled - off by default for safety
+    if (isOrchestrationEnabled() && lastUserContent && shouldUseOrchestration(lastUserContent)) {
+      console.log('[Chat API] Using multi-agent orchestration for request');
+
+      const geminiModel = await getModelForTier(userTier, 'gemini');
+
+      const orchestrationStream = await orchestrateAgents(lastUserContent, {
+        model: geminiModel,
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        userTier,
+        enableResearcher: true,
+        enableAnalyst: true,
+      });
+
+      return new Response(orchestrationStream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'X-Model-Used': geminiModel,
+          'X-Provider': 'gemini',
+          'X-Orchestration': 'multi-agent',
+        },
+      });
     }
 
     // ========================================
