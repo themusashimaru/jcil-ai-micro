@@ -22,6 +22,7 @@ import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } fr
 import { createPortal } from 'react-dom';
 import type { Attachment, Message } from '@/app/chat/types';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
+import { ConnectorsButton } from './ConnectorsButton';
 
 // Search mode types for Anthropic provider
 export type SearchMode = 'none' | 'search' | 'factcheck';
@@ -537,6 +538,9 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
                   />
                 </svg>
               </button>
+
+              {/* Connectors button (GitHub, Vercel, etc.) */}
+              <ConnectorsButton disabled={isStreaming || disabled} />
 
               {/* Search and Fact Check buttons (Anthropic only) */}
               {showSearchButtons && (
