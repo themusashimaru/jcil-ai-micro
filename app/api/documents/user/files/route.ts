@@ -204,13 +204,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Failed to create document record: ${insertError.message}` }, { status: 500 });
     }
 
-    // Trigger async processing (chunking + embedding)
-    // This will be done by a separate API call or edge function
-    fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/documents/user/process`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documentId }),
-    }).catch(err => console.error('[Documents API] Failed to trigger processing:', err));
+    // Note: Processing is triggered by the client after upload completes
+    // This ensures proper error handling and UI feedback
 
     return NextResponse.json({ document }, { status: 201 });
   } catch (error) {
