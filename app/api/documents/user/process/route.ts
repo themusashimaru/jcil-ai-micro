@@ -90,7 +90,9 @@ async function extractText(
       // Use unpdf for PDFs (serverless-friendly)
       try {
         const { extractText } = await import('unpdf');
-        const result = await extractText(buffer, { mergePages: true });
+        // unpdf expects Uint8Array, not Node.js Buffer
+        const uint8Array = new Uint8Array(buffer);
+        const result = await extractText(uint8Array, { mergePages: true });
         // Handle both string and string[] return types
         const textContent = Array.isArray(result.text)
           ? result.text.join('\n')
@@ -101,7 +103,7 @@ async function extractText(
         };
       } catch (error) {
         console.error('[Process] PDF parsing error:', error);
-        throw new Error('Failed to parse PDF');
+        throw new Error(`Failed to parse PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
 
     case 'docx':
