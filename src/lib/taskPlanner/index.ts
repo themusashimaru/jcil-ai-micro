@@ -17,12 +17,13 @@ import type { CoreMessage } from 'ai';
 // ============================================================================
 
 export type TaskType =
-  | 'research'      // Web search, fact-finding
-  | 'analysis'      // Data analysis, code execution
-  | 'generation'    // Document creation (resume, spreadsheet, etc.)
-  | 'conversation'  // Simple Q&A, follow-ups
-  | 'creative'      // Writing, brainstorming
-  | 'calculation';  // Math, formulas
+  | 'research'        // Web search, fact-finding
+  | 'deep-research'   // Comprehensive parallel research (multiple sub-queries)
+  | 'analysis'        // Data analysis, code execution
+  | 'generation'      // Document creation (resume, spreadsheet, etc.)
+  | 'conversation'    // Simple Q&A, follow-ups
+  | 'creative'        // Writing, brainstorming
+  | 'calculation';    // Math, formulas
 
 export interface SubTask {
   id: number;
@@ -75,7 +76,7 @@ const TASK_CLASSIFICATION_SCHEMA = {
           description: { type: 'string' },
           type: {
             type: 'string',
-            enum: ['research', 'analysis', 'generation', 'conversation', 'creative', 'calculation']
+            enum: ['research', 'deep-research', 'analysis', 'generation', 'conversation', 'creative', 'calculation']
           },
           dependsOn: {
             type: 'array',
@@ -131,10 +132,21 @@ Examples of COMPLEX requests:
 - "Calculate my monthly expenses from this data and then create a budget document"
 
 For each subtask, specify:
-- type: research, analysis, generation, conversation, creative, or calculation
-- estimatedTool: googleSearch, codeExecution, documentGeneration, or chat
+- type: One of these based on the task nature:
+  * research - Simple web search, quick fact-finding
+  * deep-research - Comprehensive research requiring multiple angles (use for "research X thoroughly", "deep dive into", "analyze the market for")
+  * analysis - Data analysis, processing information
+  * generation - Creating documents, reports, content
+  * conversation - Simple Q&A, follow-ups
+  * creative - Writing, brainstorming
+  * calculation - Math, formulas
+- estimatedTool: googleSearch, deepResearch, codeExecution, documentGeneration, or chat
 - dependsOn: IDs of tasks that must complete first (empty array if none)
 - requiresCheckpoint: true/false - Set to TRUE for steps where user should confirm before proceeding
+
+WHEN TO USE deep-research vs research:
+- Use "deep-research" for: market analysis, competitor research, comprehensive topic research, trend analysis
+- Use "research" for: quick fact lookup, simple questions, single-source queries
 
 CHECKPOINT GUIDELINES (requiresCheckpoint):
 - Set TRUE after research steps if the findings significantly affect next steps
