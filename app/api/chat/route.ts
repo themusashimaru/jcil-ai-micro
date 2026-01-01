@@ -46,6 +46,7 @@ import { moderateContent } from '@/lib/openai/moderation';
 import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
 import { buildSlimSystemPrompt, isFaithTopic, getRelevantCategories } from '@/lib/prompts/slimPrompt';
 import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
+import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
@@ -1629,6 +1630,21 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Search user's uploaded documents for relevant context (RAG)
+      try {
+        const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+          matchCount: 3,
+          matchThreshold: 0.6,
+        });
+        if (contextString) {
+          console.log(`[Chat API] Found relevant user documents for user ${rateLimitIdentifier}`);
+          slingshotPrompt += '\n\n---\n\n' + contextString;
+        }
+      } catch (docSearchError) {
+        console.error('[Chat API] User document search failed:', docSearchError);
+        // Don't fail the request if document search fails
+      }
+
       const slingshotSystemMessage = {
         role: 'system' as const,
         content: slingshotPrompt,
@@ -1852,6 +1868,20 @@ Please summarize this information from our platform's perspective. Present the f
           if (kbContent) {
             baseSystemPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
           }
+        }
+
+        // Search user's uploaded documents for relevant context (RAG)
+        try {
+          const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+            matchCount: 3,
+            matchThreshold: 0.6,
+          });
+          if (contextString) {
+            console.log(`[Chat API] Anthropic: Found relevant user documents`);
+            baseSystemPrompt += '\n\n---\n\n' + contextString;
+          }
+        } catch (docSearchError) {
+          console.error('[Chat API] Anthropic: User document search failed:', docSearchError);
         }
       }
 
@@ -2190,6 +2220,20 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
             baseSystemPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
           }
         }
+
+        // Search user's uploaded documents for relevant context (RAG)
+        try {
+          const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+            matchCount: 3,
+            matchThreshold: 0.6,
+          });
+          if (contextString) {
+            console.log(`[Chat API] xAI: Found relevant user documents`);
+            baseSystemPrompt += '\n\n---\n\n' + contextString;
+          }
+        } catch (docSearchError) {
+          console.error('[Chat API] xAI: User document search failed:', docSearchError);
+        }
       }
 
       const systemPrompt = isAuthenticated
@@ -2512,6 +2556,20 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
             baseSystemPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
           }
         }
+
+        // Search user's uploaded documents for relevant context (RAG)
+        try {
+          const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+            matchCount: 3,
+            matchThreshold: 0.6,
+          });
+          if (contextString) {
+            console.log(`[Chat API] DeepSeek: Found relevant user documents`);
+            baseSystemPrompt += '\n\n---\n\n' + contextString;
+          }
+        } catch (docSearchError) {
+          console.error('[Chat API] DeepSeek: User document search failed:', docSearchError);
+        }
       }
 
       const systemPrompt = isAuthenticated
@@ -2815,6 +2873,20 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           if (kbContent) {
             baseSystemPrompt += '\n\n---\n\n## FAITH TOPIC CONTEXT\n\n' + kbContent;
           }
+        }
+
+        // Search user's uploaded documents for relevant context (RAG)
+        try {
+          const { contextString } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
+            matchCount: 3,
+            matchThreshold: 0.6,
+          });
+          if (contextString) {
+            console.log(`[Chat API] Gemini: Found relevant user documents`);
+            baseSystemPrompt += '\n\n---\n\n' + contextString;
+          }
+        } catch (docSearchError) {
+          console.error('[Chat API] Gemini: User document search failed:', docSearchError);
         }
       }
 
