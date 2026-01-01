@@ -203,12 +203,20 @@ Write your response:`;
 // Main Executor - Creates a streaming response with progress updates
 // ============================================================================
 
+export interface CheckpointState {
+  plan: TaskPlan;
+  originalRequest: string;
+  completedSteps: StepResult[];
+  nextStepIndex: number;
+}
+
 export async function executeTaskPlan(
   plan: TaskPlan,
   originalRequest: string,
   model: string,
   userId?: string,
-  userTier?: string
+  userTier?: string,
+  resumeFrom?: CheckpointState // Optional: resume from a checkpoint
 ): Promise<ReadableStream<Uint8Array>> {
   const encoder = new TextEncoder();
 
@@ -217,21 +225,28 @@ export async function executeTaskPlan(
       const executionStartTime = Date.now();
 
       try {
-        // Initialize context
+        // Initialize or restore context
+        const startIndex = resumeFrom?.nextStepIndex || 0;
         const context: ExecutionContext = {
           originalRequest,
-          completedSteps: [],
-          currentStepIndex: 0,
+          completedSteps: resumeFrom?.completedSteps || [],
+          currentStepIndex: startIndex,
           totalSteps: plan.subtasks.length,
           startTime: executionStartTime,
         };
 
-        // Stream the task plan header
-        const planHeader = formatPlanHeader(plan);
-        controller.enqueue(encoder.encode(planHeader));
+        // Stream the task plan header (only if starting fresh)
+        if (!resumeFrom) {
+          const planHeader = formatPlanHeader(plan);
+          controller.enqueue(encoder.encode(planHeader));
+        } else {
+          // Show resumption message
+          const resumeMsg = `\n**Continuing from step ${startIndex + 1}...**\n\n`;
+          controller.enqueue(encoder.encode(resumeMsg));
+        }
 
         // Execute each subtask sequentially
-        for (let i = 0; i < plan.subtasks.length; i++) {
+        for (let i = startIndex; i < plan.subtasks.length; i++) {
           const step = plan.subtasks[i];
           context.currentStepIndex = step.id;
 
@@ -252,6 +267,17 @@ export async function executeTaskPlan(
             const stepErrorText = formatStepError(step, result);
             controller.enqueue(encoder.encode(stepErrorText));
             context.completedSteps.push(result);
+          }
+
+          // Check for checkpoint AFTER step completes (not on last step)
+          const isLastStep = i === plan.subtasks.length - 1;
+          if (step.requiresCheckpoint && !isLastStep && result.success) {
+            // Pause at checkpoint
+            const remainingSteps = plan.subtasks.slice(i + 1);
+            const checkpointText = formatCheckpoint(step, remainingSteps, context, plan);
+            controller.enqueue(encoder.encode(checkpointText));
+            controller.close();
+            return; // Exit - user will trigger continuation
           }
         }
 
@@ -349,6 +375,46 @@ function formatStepComplete(_step: SubTask, result: StepResult): string {
 function formatStepError(_step: SubTask, result: StepResult): string {
   const duration = formatDuration(result.durationMs);
   return `⚠️ **Issue encountered** (${duration}, ${result.retryCount + 1} attempts)\n> ${result.error}\n> *Continuing with available information...*\n\n`;
+}
+
+function formatCheckpoint(
+  completedStep: SubTask,
+  remainingSteps: SubTask[],
+  context: ExecutionContext,
+  plan: TaskPlan
+): string {
+  const completedCount = context.completedSteps.length;
+  const totalCount = plan.subtasks.length;
+
+  const remainingList = remainingSteps
+    .map((s, idx) => `  ${completedCount + idx + 1}. ${s.description}`)
+    .join('\n');
+
+  // Encode checkpoint state for resumption (base64 JSON)
+  const checkpointState: CheckpointState = {
+    plan,
+    originalRequest: context.originalRequest,
+    completedSteps: context.completedSteps,
+    nextStepIndex: completedCount,
+  };
+  const encodedState = Buffer.from(JSON.stringify(checkpointState)).toString('base64');
+
+  return `
+---
+
+⏸️ **Checkpoint - Step ${completedCount}/${totalCount} Complete**
+
+I've completed the ${completedStep.description.toLowerCase()}. Before I continue, would you like to:
+
+**Remaining steps:**
+${remainingList}
+
+---
+
+👉 **Reply "continue" to proceed** with the remaining steps, or let me know if you'd like to adjust the plan.
+
+<!-- CHECKPOINT:${encodedState} -->
+`;
 }
 
 function formatSynthesisStart(successCount: number, totalCount: number): string {
