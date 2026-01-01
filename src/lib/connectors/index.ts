@@ -28,24 +28,21 @@ export async function getAllConnectorStatuses(
     connectors.push(github);
   } else {
     connectors.push({
-      type: 'github',
-      status: 'disconnected',
       ...CONNECTOR_CONFIGS.github,
+      status: 'disconnected',
     });
   }
 
   // Vercel (coming soon)
   connectors.push({
-    type: 'vercel',
-    status: 'disconnected',
     ...CONNECTOR_CONFIGS.vercel,
+    status: 'disconnected',
   });
 
   // Supabase (coming soon)
   connectors.push({
-    type: 'supabase',
-    status: 'disconnected',
     ...CONNECTOR_CONFIGS.supabase,
+    status: 'disconnected',
   });
 
   return connectors;
