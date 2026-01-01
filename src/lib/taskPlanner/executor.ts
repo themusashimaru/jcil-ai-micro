@@ -326,11 +326,9 @@ function formatPlanHeader(plan: TaskPlan): string {
   };
 
   const lines = [
-    '┌─────────────────────────────────────────┐',
-    '│  **Task Plan**                          │',
-    '└─────────────────────────────────────────┘',
+    '## 📋 Task Plan',
     '',
-    `*${plan.summary}*`,
+    `> ${plan.summary}`,
     '',
   ];
 
@@ -399,6 +397,7 @@ function formatCheckpoint(
   };
   const encodedState = Buffer.from(JSON.stringify(checkpointState)).toString('base64');
 
+  // Hide checkpoint state at the end - will be filtered by frontend or ignored by users
   return `
 ---
 
@@ -413,7 +412,7 @@ ${remainingList}
 
 👉 **Reply "continue" to proceed** with the remaining steps, or let me know if you'd like to adjust the plan.
 
-<!-- CHECKPOINT:${encodedState} -->
+[c:${encodedState}]
 `;
 }
 
