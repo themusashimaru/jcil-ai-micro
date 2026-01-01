@@ -20,7 +20,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } from 'react';
 import { createPortal } from 'react-dom';
-import type { Attachment } from '@/app/chat/types';
+import type { Attachment, Message } from '@/app/chat/types';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 
 // Search mode types for Anthropic provider
@@ -33,6 +33,8 @@ interface ChatComposerProps {
   disabled?: boolean; // When waiting for background reply
   hideImageSuggestion?: boolean; // Hide "Create an image..." when Anthropic is active
   showSearchButtons?: boolean; // Show Search/Fact Check buttons (Anthropic only)
+  replyingTo?: Message | null; // Message being replied to
+  onClearReply?: () => void; // Clear the reply
 }
 
 /**
@@ -103,7 +105,7 @@ const PLACEHOLDER_SUGGESTIONS_NO_IMAGE = PLACEHOLDER_SUGGESTIONS.filter(
   s => !s.toLowerCase().includes('image')
 );
 
-export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons, replyingTo, onClearReply }: ChatComposerProps) {
   // Use filtered suggestions when image generation is not available
   const suggestions = hideImageSuggestion ? PLACEHOLDER_SUGGESTIONS_NO_IMAGE : PLACEHOLDER_SUGGESTIONS;
   const [message, setMessage] = useState('');
@@ -347,6 +349,31 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
   return (
     <div className="glass-morphism py-0 px-1 md:p-4 pb-safe" style={{ border: 'none' }}>
       <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
+        {/* Reply Preview */}
+        {replyingTo && (
+          <div className="mb-2 flex items-start gap-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <svg className="h-4 w-4 mt-0.5 text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs text-blue-400 font-medium">Replying to:</span>
+              <p className="text-xs text-gray-300 mt-0.5 line-clamp-2">
+                {replyingTo.content.length > 150
+                  ? replyingTo.content.slice(0, 150) + '...'
+                  : replyingTo.content}
+              </p>
+            </div>
+            <button
+              onClick={onClearReply}
+              className="p-1 rounded hover:bg-white/10 transition-colors flex-shrink-0"
+              title="Cancel reply"
+            >
+              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
         {/* Attachments Preview */}
         {attachments.length > 0 && (
           <div className="mb-2 md:mb-3 flex flex-wrap gap-2 md:gap-3">

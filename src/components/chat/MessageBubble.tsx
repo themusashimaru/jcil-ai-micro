@@ -25,9 +25,10 @@ interface MessageBubbleProps {
   message: Message;
   isLast: boolean;
   isAdmin?: boolean;
+  onReply?: (message: Message) => void;
 }
 
-export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubbleProps) {
+export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
   // Track save status per file (by index)
@@ -773,6 +774,18 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin }: MessageBubb
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 )}
+              </button>
+            )}
+            {/* Reply button - AI messages only */}
+            {!isUser && onReply && (
+              <button
+                onClick={() => onReply(message)}
+                className="p-1 rounded hover:bg-white/10 transition-colors"
+                title="Reply to this message"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--text-muted)' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                </svg>
               </button>
             )}
             {/* Admin-only model indicator - shows EXACT model name for debugging */}

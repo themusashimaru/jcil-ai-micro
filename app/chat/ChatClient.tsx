@@ -144,6 +144,8 @@ export function ChatClient() {
   // Chat continuation - track when generating summary
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [continuationDismissed, setContinuationDismissed] = useState(false);
+  // Reply to message feature - tracks which message is being replied to
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   // AbortController for cancelling in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
   // Polling interval ref for background reply checking
@@ -993,10 +995,22 @@ export function ChatClient() {
       newChatId = currentChatId;
     }
 
+    // If replying to a message, prepend the quoted context
+    let finalContent = content;
+    if (replyingTo) {
+      // Truncate long messages for the quote
+      const quotedContent = replyingTo.content.length > 200
+        ? replyingTo.content.slice(0, 200) + '...'
+        : replyingTo.content;
+      finalContent = `Regarding your earlier response:\n> "${quotedContent}"\n\n${content}`;
+      // Clear the reply state
+      setReplyingTo(null);
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content,
+      content: finalContent,
       attachments: attachments.length > 0 ? attachments : undefined,
       timestamp: new Date(),
     };
@@ -2102,6 +2116,7 @@ export function ChatClient() {
                 currentChatId={currentChatId}
                 isAdmin={isAdmin}
                 documentType={pendingDocumentType}
+                onReply={(message) => setReplyingTo(message)}
               />
               {/* Reply incoming indicator - shown when waiting for background response */}
               {isWaitingForReply && (
@@ -2135,6 +2150,8 @@ export function ChatClient() {
                 disabled={isWaitingForReply}
                 hideImageSuggestion={!imageGenerationAvailable}
                 showSearchButtons={activeProvider !== 'gemini'}
+                replyingTo={replyingTo}
+                onClearReply={() => setReplyingTo(null)}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
