@@ -214,23 +214,47 @@ ${input.context ? `**Data/Information to Analyze:**\n${input.context}\n` : ''}
 };
 
 /**
- * Code Tool - Code execution and calculations
+ * Code Tool - Iterative Code Execution with Self-Correction
+ *
+ * This tool implements a Run → Error → Fix → Retry loop:
+ * 1. Execute the initial code
+ * 2. Detect errors in output (tracebacks, exceptions, etc.)
+ * 3. Analyze the error and generate a fix
+ * 4. Retry with the corrected code
+ * 5. Repeat until success or max retries reached
  */
 const codeTool: Tool = {
   id: 'code',
   name: 'Code Execution',
-  description: 'Execute Python code for calculations, data processing, and automation',
+  description: 'Execute Python code with automatic error detection and self-correction',
   capabilities: [
     'Perform complex calculations',
     'Process and transform data',
     'Generate charts and visualizations',
     'Automate repetitive tasks',
     'Validate and verify results',
+    'Automatically fix and retry on errors',
   ],
   taskTypes: ['calculation'],
 
   async execute(input: ToolInput, config: ToolConfig): Promise<ToolOutput> {
-    const prompt = `You are a Python programmer. Write and execute code to complete the task.
+    const MAX_RETRIES = 3;
+    const startTime = Date.now();
+
+    interface ExecutionAttempt {
+      iteration: number;
+      code?: string;
+      output: string;
+      error?: string;
+      fixed: boolean;
+    }
+
+    const attempts: ExecutionAttempt[] = [];
+    let currentOutput = '';
+    let lastCode = '';
+
+    // Initial prompt for first execution
+    const initialPrompt = `You are a Python programmer. Write and execute code to complete the task.
 
 **Task:** ${input.query}
 
@@ -248,8 +272,10 @@ ${input.context ? `**Available Data/Context:**\n${input.context}\n` : ''}
 **Write and execute your code:**`;
 
     try {
-      const messages: CoreMessage[] = [{ role: 'user', content: prompt }];
-      const result = await createGeminiCompletion({
+      // === ITERATION 1: Initial Execution ===
+      console.log('[CodeTool] Starting execution (attempt 1)...');
+      const messages: CoreMessage[] = [{ role: 'user', content: initialPrompt }];
+      let result = await createGeminiCompletion({
         messages,
         model: config.model,
         maxTokens: config.maxTokens || 2048,
@@ -259,20 +285,253 @@ ${input.context ? `**Available Data/Context:**\n${input.context}\n` : ''}
         planKey: config.userTier,
       });
 
+      currentOutput = result.text;
+      lastCode = extractCode(currentOutput);
+
+      // Check for errors in initial output
+      let errorInfo = detectCodeError(currentOutput);
+
+      attempts.push({
+        iteration: 1,
+        code: lastCode,
+        output: currentOutput,
+        error: errorInfo?.message,
+        fixed: false,
+      });
+
+      // === RETRY LOOP: Fix and Retry on Errors ===
+      let retryCount = 0;
+      while (errorInfo && retryCount < MAX_RETRIES) {
+        retryCount++;
+        console.log(`[CodeTool] Error detected, attempting fix (retry ${retryCount}/${MAX_RETRIES})...`);
+        console.log(`[CodeTool] Error type: ${errorInfo.type} - ${errorInfo.message}`);
+
+        // Generate fix prompt with error context
+        const fixPrompt = buildFixPrompt({
+          originalTask: input.query,
+          originalRequest: input.originalRequest,
+          previousCode: lastCode,
+          errorOutput: currentOutput,
+          errorType: errorInfo.type,
+          errorMessage: errorInfo.message,
+          retryCount,
+          context: input.context,
+        });
+
+        // Execute the fix
+        const fixMessages: CoreMessage[] = [{ role: 'user', content: fixPrompt }];
+        result = await createGeminiCompletion({
+          messages: fixMessages,
+          model: config.model,
+          maxTokens: config.maxTokens || 2048,
+          temperature: Math.min(0.3 + retryCount * 0.1, 0.6), // Slightly increase temp on retries
+          enableSearch: true,
+          userId: config.userId,
+          planKey: config.userTier,
+        });
+
+        currentOutput = result.text;
+        lastCode = extractCode(currentOutput);
+        errorInfo = detectCodeError(currentOutput);
+
+        attempts.push({
+          iteration: retryCount + 1,
+          code: lastCode,
+          output: currentOutput,
+          error: errorInfo?.message,
+          fixed: !errorInfo,
+        });
+      }
+
+      const totalTime = Date.now() - startTime;
+      const wasFixed = retryCount > 0 && !errorInfo;
+      const failed = !!errorInfo;
+
+      // Build the final response
+      let finalContent = currentOutput;
+
+      if (wasFixed) {
+        finalContent = `✅ **Code executed successfully after ${retryCount} ${retryCount === 1 ? 'fix' : 'fixes'}**\n\n${currentOutput}`;
+      } else if (failed) {
+        finalContent = `⚠️ **Code encountered errors after ${MAX_RETRIES} retry attempts**\n\n${currentOutput}\n\n---\n**Error Summary:** ${errorInfo?.message || 'Unknown error'}`;
+      }
+
+      console.log(`[CodeTool] Completed in ${totalTime}ms | Attempts: ${attempts.length} | Success: ${!failed}`);
+
       return {
-        success: true,
-        content: result.text,
-        metadata: { tool: 'code' },
+        success: !failed,
+        content: finalContent,
+        metadata: {
+          tool: 'code',
+          iterative: true,
+          attempts: attempts.length,
+          wasFixed,
+          totalTimeMs: totalTime,
+          history: attempts.map(a => ({
+            iteration: a.iteration,
+            hasError: !!a.error,
+            fixed: a.fixed,
+          })),
+        },
       };
     } catch (error) {
       return {
         success: false,
         content: '',
         error: error instanceof Error ? error.message : 'Code execution failed',
+        metadata: { tool: 'code', iterative: true, attempts: attempts.length },
       };
     }
   },
 };
+
+// ============================================================================
+// Code Execution Helper Functions
+// ============================================================================
+
+interface CodeError {
+  type: 'syntax' | 'runtime' | 'import' | 'type' | 'value' | 'attribute' | 'index' | 'key' | 'timeout' | 'unknown';
+  message: string;
+  line?: number;
+  traceback?: string;
+}
+
+/**
+ * Detect errors in code execution output
+ */
+function detectCodeError(output: string): CodeError | null {
+  if (!output) return null;
+
+  // Python error patterns
+  const errorPatterns: { pattern: RegExp; type: CodeError['type'] }[] = [
+    { pattern: /SyntaxError:\s*(.+)/i, type: 'syntax' },
+    { pattern: /IndentationError:\s*(.+)/i, type: 'syntax' },
+    { pattern: /NameError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /ImportError:\s*(.+)/i, type: 'import' },
+    { pattern: /ModuleNotFoundError:\s*(.+)/i, type: 'import' },
+    { pattern: /TypeError:\s*(.+)/i, type: 'type' },
+    { pattern: /ValueError:\s*(.+)/i, type: 'value' },
+    { pattern: /AttributeError:\s*(.+)/i, type: 'attribute' },
+    { pattern: /IndexError:\s*(.+)/i, type: 'index' },
+    { pattern: /KeyError:\s*(.+)/i, type: 'key' },
+    { pattern: /ZeroDivisionError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /FileNotFoundError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /TimeoutError:\s*(.+)/i, type: 'timeout' },
+    { pattern: /RecursionError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /MemoryError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /RuntimeError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /Exception:\s*(.+)/i, type: 'runtime' },
+    { pattern: /Error:\s*(.+)/i, type: 'unknown' },
+    { pattern: /Traceback \(most recent call last\)/i, type: 'runtime' },
+  ];
+
+  for (const { pattern, type } of errorPatterns) {
+    const match = output.match(pattern);
+    if (match) {
+      // Extract line number if present
+      const lineMatch = output.match(/line (\d+)/i);
+      const line = lineMatch ? parseInt(lineMatch[1], 10) : undefined;
+
+      // Extract traceback if present
+      const tracebackMatch = output.match(/Traceback[\s\S]*?(?=\n\n|\n[A-Z]|$)/);
+      const traceback = tracebackMatch ? tracebackMatch[0] : undefined;
+
+      return {
+        type,
+        message: match[1] || match[0],
+        line,
+        traceback,
+      };
+    }
+  }
+
+  // Check for explicit failure indicators
+  if (/failed|error|exception|crash/i.test(output) && /\b(could not|cannot|unable to)\b/i.test(output)) {
+    return {
+      type: 'unknown',
+      message: 'Code execution appears to have failed',
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Extract code blocks from output
+ */
+function extractCode(output: string): string {
+  // Match Python code blocks
+  const codeBlockMatch = output.match(/```(?:python)?\n?([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
+  }
+  return '';
+}
+
+/**
+ * Build a prompt to fix the error
+ */
+function buildFixPrompt(params: {
+  originalTask: string;
+  originalRequest: string;
+  previousCode: string;
+  errorOutput: string;
+  errorType: CodeError['type'];
+  errorMessage: string;
+  retryCount: number;
+  context?: string;
+}): string {
+  const { originalTask, originalRequest, previousCode, errorOutput, errorType, errorMessage, retryCount, context } = params;
+
+  const errorGuidance: Record<CodeError['type'], string> = {
+    syntax: 'Check for missing colons, brackets, quotes, or incorrect indentation.',
+    runtime: 'Check for undefined variables, incorrect function calls, or logic errors.',
+    import: 'The module may not be available. Use standard library alternatives or implement the logic manually.',
+    type: 'Check the data types being used. You may need type conversion or different approach.',
+    value: 'The value is invalid for the operation. Check input validation and edge cases.',
+    attribute: 'The object does not have this attribute. Check the object type and available methods.',
+    index: 'Index is out of range. Check array/list bounds and use length checks.',
+    key: 'The key does not exist in the dictionary. Use .get() or check key existence first.',
+    timeout: 'The code took too long. Optimize the algorithm or reduce data size.',
+    unknown: 'An unexpected error occurred. Review the approach and try a simpler solution.',
+  };
+
+  return `You are debugging Python code that encountered an error. Fix the issue and run the corrected code.
+
+**Original Task:** ${originalTask}
+${originalRequest !== originalTask ? `**Full Request:** ${originalRequest}` : ''}
+${context ? `**Context:**\n${context}\n` : ''}
+
+**Previous Code That Failed:**
+\`\`\`python
+${previousCode || 'No code extracted'}
+\`\`\`
+
+**Error Output:**
+${errorOutput}
+
+**Error Type:** ${errorType}
+**Error Message:** ${errorMessage}
+
+**Debugging Guidance:** ${errorGuidance[errorType] || 'Review the error and fix the issue.'}
+
+**This is retry attempt ${retryCount}.**
+
+**Instructions:**
+1. Analyze the error carefully
+2. Identify the root cause
+3. Write CORRECTED Python code that avoids this error
+4. Execute the corrected code
+5. Verify the results are correct
+
+**Important:**
+- Do NOT repeat the same mistake
+- If a library is unavailable, use standard Python or an alternative
+- Add error handling where appropriate
+- Test with edge cases if relevant
+
+**Write and execute the FIXED code:**`;
+}
 
 /**
  * Generation Tool - Content and document creation
