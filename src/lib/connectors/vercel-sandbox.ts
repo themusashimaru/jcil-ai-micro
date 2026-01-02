@@ -17,7 +17,7 @@ import ms from 'ms';
 
 // Types for sandbox operations
 export interface SandboxConfig {
-  teamId?: string;  // Optional for personal accounts
+  teamId: string;   // Required - even personal Pro accounts have a Team ID
   projectId: string;
   token: string;
 }
@@ -63,9 +63,19 @@ export async function executeSandbox(
   let sandbox: Sandbox | null = null;
 
   try {
+    // Log config (without token) for debugging
+    console.log('[Sandbox] Creating sandbox with config:', {
+      teamId: config.teamId ? `${config.teamId.substring(0, 8)}...` : 'NOT SET',
+      projectId: config.projectId ? `${config.projectId.substring(0, 8)}...` : 'NOT SET',
+      hasToken: !!config.token,
+      runtime: options.runtime || 'node22',
+      timeout: options.timeout || ms('5m'),
+      vcpus: options.vcpus || 2,
+    });
+
     // Create sandbox with authentication
     sandbox = await Sandbox.create({
-      ...(config.teamId && { teamId: config.teamId }),
+      teamId: config.teamId,
       projectId: config.projectId,
       token: config.token,
       runtime: options.runtime || 'node22',
@@ -102,6 +112,18 @@ export async function executeSandbox(
     };
 
   } catch (error) {
+    // Log detailed error info for debugging
+    console.error('[Sandbox] Error details:', {
+      error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown',
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      errorStack: error instanceof Error ? error.stack : undefined,
+      // Check if error has additional properties
+      errorBody: (error as Record<string, unknown>)?.body,
+      errorStatus: (error as Record<string, unknown>)?.status,
+      errorResponse: (error as Record<string, unknown>)?.response,
+    });
+
     return {
       success: false,
       outputs,
