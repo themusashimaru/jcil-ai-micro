@@ -43,13 +43,13 @@
 
 import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from '@/lib/openai/client';
 import { moderateContent } from '@/lib/openai/moderation';
-import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
+import type { ToolType } from '@/lib/openai/types';
 import { buildSlimSystemPrompt, isFaithTopic, getRelevantCategories } from '@/lib/prompts/slimPrompt';
 import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
-import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
+import { decideRoute, logRouteDecision } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel } from '@/lib/provider/settings';
 import {
@@ -71,6 +71,7 @@ import {
   createGeminiCompletion,
   createGeminiStreamingCompletion,
   createGeminiStructuredCompletion,
+  createGeminiImageGeneration,
   getDocumentSchema,
   getDocumentSchemaDescription,
 } from '@/lib/gemini/client';
@@ -79,8 +80,7 @@ import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
 // import { braveSearch } from '@/lib/brave/search';
 import { NextRequest } from 'next/server';
-import { CoreMessage, generateText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
@@ -1754,40 +1754,64 @@ export async function POST(request: NextRequest) {
 
     // Check if we should route to website/landing page generation
     if (routeDecision.target === 'website') {
-      console.log('[Chat API] Routing to website generation');
+      console.log('[Chat API] Routing to website generation with Gemini');
 
-      // System prompt for generating landing page HTML
-      const websiteSystemPrompt = `You are an expert web developer. Generate a complete, single-file HTML landing page based on the user's request.
+      // Enhanced system prompt for high-quality landing page generation
+      const websiteSystemPrompt = `You are an elite web developer and UX designer specializing in high-converting landing pages.
 
-IMPORTANT RULES:
-1. Output ONLY the HTML code - no explanations, no markdown code blocks
-2. Include all CSS in a <style> tag in the <head>
-3. Include any JavaScript in a <script> tag at the end of the <body>
-4. Use modern, responsive design with Tailwind-like utility patterns
-5. Include beautiful gradients, shadows, and modern typography
-6. Make it mobile-responsive
-7. Include realistic placeholder content (not lorem ipsum)
-8. Add smooth animations and hover effects
-9. Use a professional color scheme appropriate for the business type
+BEFORE GENERATING CODE, you must:
+1. Research typical pricing for this type of business in the mentioned location (or assume a major US city)
+2. Research common services/packages this business type offers
+3. Consider the target customer demographics and what appeals to them
+4. Plan compelling copy that addresses customer pain points
 
-The HTML should be ready to render directly in an iframe.`;
+GENERATE A COMPLETE, PRODUCTION-READY LANDING PAGE:
+
+STRUCTURE REQUIREMENTS:
+- Hero section with compelling headline, subheadline, and clear CTA
+- Services/packages section with realistic pricing (research-based)
+- About section with credibility builders
+- Testimonials section (3 realistic reviews with names and locations)
+- Contact/booking section with form
+- Footer with business hours, location, social links
+
+DESIGN REQUIREMENTS:
+- Modern, premium aesthetic with gradients and glassmorphism effects
+- Professional color scheme matching the industry (e.g., dark/gold for luxury, clean/fresh for wellness)
+- Smooth animations and micro-interactions
+- Mobile-first responsive design
+- Professional typography with Google Fonts
+- High contrast for accessibility
+
+TECHNICAL REQUIREMENTS:
+- Output ONLY raw HTML - no markdown code blocks, no explanations
+- All CSS in <style> tag (use CSS custom properties for theming)
+- Minimal JavaScript for interactions in <script> tag
+- Include Google Fonts via CDN link
+- Use semantic HTML5 elements
+- Render perfectly in an iframe
+
+CONTENT REQUIREMENTS:
+- Realistic pricing based on industry standards
+- Compelling, benefit-focused copy (not generic)
+- Clear value propositions
+- Strong calls-to-action
+- Professional placeholder phone/email/address
+
+Make it look like a $5,000 custom website, not a template.`;
 
       try {
-        // Create OpenAI provider for website generation
-        const openaiProvider = createOpenAI({
-          apiKey: process.env.OPENAI_API_KEY,
+        // Use Gemini for high-quality website generation with grounding
+        const websiteResult = await createGeminiCompletion({
+          messages: [
+            { role: 'user', content: lastUserContent }
+          ],
+          tool: 'code' as ToolType,
+          systemPrompt: websiteSystemPrompt,
+          userId: rateLimitIdentifier,
         });
 
-        // Generate the landing page HTML
-        const result = await generateText({
-          model: openaiProvider('gpt-4o'),
-          system: websiteSystemPrompt,
-          prompt: lastUserContent,
-          temperature: 0.7,
-          maxOutputTokens: 8000,
-        });
-
-        const generatedCode = result.text || '';
+        const generatedCode = websiteResult.text || '';
 
         // Clean the code - remove markdown code blocks if present
         let cleanCode = generatedCode.trim();
@@ -1809,8 +1833,8 @@ The HTML should be ready to render directly in an iframe.`;
         return new Response(
           JSON.stringify({
             type: 'code_preview',
-            content: `**${title}**\n\nI've generated a complete landing page for you. Click "Open Preview" to see it live, or copy the code to use in your project.\n\n*Tip: You can ask me to modify colors, add sections, or change the layout!*`,
-            model: 'gpt-4o',
+            content: `**${title}**\n\nI've generated a premium landing page with:\n- Industry-standard pricing\n- Compelling copy and testimonials\n- Modern responsive design\n- Professional contact section\n\nClick "Open Preview" to see it live!\n\n*Tip: Ask me to adjust colors, pricing, services, or add new sections!*`,
+            model: 'gemini-2.0-flash',
             codePreview: {
               code: cleanCode,
               language: 'html',
@@ -1824,6 +1848,7 @@ The HTML should be ready to render directly in an iframe.`;
               'Content-Type': 'application/json',
               'X-Route-Target': 'website',
               'X-Route-Reason': routeDecision.reason,
+              'X-Model-Used': 'gemini-2.0-flash',
             },
           }
         );
@@ -1833,7 +1858,7 @@ The HTML should be ready to render directly in an iframe.`;
           JSON.stringify({
             type: 'text',
             content: 'Sorry, I encountered an error generating the website. Please try again.',
-            model: 'gpt-4o',
+            model: 'gemini-2.0-flash',
           }),
           { status: 500 }
         );
@@ -1903,17 +1928,14 @@ The HTML should be ready to render directly in an iframe.`;
         prompt = prompt.replace(/^🎨\s*Generate image:\s*/i, '').trim();
       }
 
-      // Parse size from user text (supports 256, 512, 1024)
-      const size: ImageSize = parseSizeFromText(prompt);
-
-      // Log image request with user, model, promptHash, size
+      // Log image request with user, model, promptHash
       const promptHash = prompt.slice(0, 32).replace(/\s+/g, '_');
+      const imageModel = 'gemini-2.0-flash-exp-image-generation';
       console.log('[Chat API] Image generation request:', {
         user_id: rateLimitIdentifier,
         type: 'image',
-        model: 'dall-e-3',
+        model: imageModel,
         promptHash,
-        size,
         reason: routeDecision.reason,
         confidence: routeDecision.confidence,
         imageUsage: {
@@ -1923,33 +1945,37 @@ The HTML should be ready to render directly in an iframe.`;
         },
       });
 
-      // Use new fallback-enabled image generation
+      // Use Gemini for image generation
       const startTime = Date.now();
-      const imageResult = await generateImageWithFallback(prompt, size, rateLimitIdentifier);
-      const latencyMs = Date.now() - startTime;
+      try {
+        const geminiImageResult = await createGeminiImageGeneration({
+          prompt,
+          systemPrompt: 'You are a professional image generator. Create high-quality, visually stunning images based on the user prompt. Focus on composition, lighting, and artistic quality.',
+        });
+        const latencyMs = Date.now() - startTime;
 
-      // Log completion
-      console.log('[Chat API] Image generation complete:', {
-        user_id: rateLimitIdentifier,
-        type: 'image',
-        model: 'dall-e-3',
-        promptHash,
-        size,
-        ok: imageResult.ok,
-        latency_ms: latencyMs,
-      });
+        // Log completion
+        console.log('[Chat API] Gemini image generation complete:', {
+          user_id: rateLimitIdentifier,
+          type: 'image',
+          model: geminiImageResult.model,
+          promptHash,
+          ok: true,
+          latency_ms: latencyMs,
+        });
 
-      if (imageResult.ok) {
+        // Convert base64 to data URL
+        const dataUrl = `data:${geminiImageResult.mimeType};base64,${geminiImageResult.imageData}`;
+
         // Include usage warning if at 80%
         const usageWarning = getImageLimitWarningMessage(imageUsage);
 
         return new Response(
           JSON.stringify({
             type: 'image',
-            url: imageResult.image,
+            url: dataUrl,
             prompt,
-            model: imageResult.model,
-            size: imageResult.size,
+            model: geminiImageResult.model,
             routeReason: routeDecision.reason,
             ...(usageWarning && { usageWarning }),
             usage: {
@@ -1964,20 +1990,31 @@ The HTML should be ready to render directly in an iframe.`;
               'Content-Type': 'application/json',
               'X-Route-Target': 'image',
               'X-Route-Reason': routeDecision.reason,
-              'X-Model-Used': imageResult.model || 'dall-e-3',
+              'X-Model-Used': geminiImageResult.model,
               'X-Image-Remaining': String(imageUsage.remaining),
             },
           }
         );
-      } else {
+      } catch (imageError) {
+        const latencyMs = Date.now() - startTime;
+        const errorMessage = imageError instanceof Error ? imageError.message : 'Unknown error';
+        console.error('[Chat API] Gemini image generation failed:', {
+          user_id: rateLimitIdentifier,
+          error: errorMessage,
+          latency_ms: latencyMs,
+        });
         // Return text fallback instead of error
         return new Response(
           JSON.stringify({
             type: 'image_fallback',
-            content: imageResult.fallbackText,
-            retryHint: imageResult.retryHint,
-            suggestedPrompts: imageResult.suggestedPrompts,
-            error: imageResult.error,
+            content: `I wasn't able to generate that image. Here's what I can tell you about "${prompt}":\n\nThe image would show ${prompt}. If you'd like, I can try again with a more specific description, or I can help you with something else.`,
+            retryHint: 'Try being more specific about colors, style, or composition.',
+            suggestedPrompts: [
+              `${prompt}, digital art style`,
+              `${prompt}, photorealistic`,
+              `${prompt}, illustration style`,
+            ],
+            error: errorMessage,
             routeReason: routeDecision.reason,
           }),
           {
