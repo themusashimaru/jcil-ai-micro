@@ -51,7 +51,7 @@ import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuid
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
-import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel } from '@/lib/provider/settings';
+import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel } from '@/lib/provider/settings';
 import {
   createAnthropicCompletion,
   createAnthropicStreamingCompletion,
@@ -1801,6 +1801,10 @@ CONTENT REQUIREMENTS:
 Make it look like a $5,000 custom website, not a template.`;
 
       try {
+        // Get model from admin settings
+        const geminiModel = await getModelForTier('pro', 'gemini');
+        console.log('[Chat API] Using Gemini model from settings:', geminiModel);
+
         // Use Gemini for high-quality website generation with grounding
         const websiteResult = await createGeminiCompletion({
           messages: [
@@ -1809,6 +1813,7 @@ Make it look like a $5,000 custom website, not a template.`;
           tool: 'code' as ToolType,
           systemPrompt: websiteSystemPrompt,
           userId: rateLimitIdentifier,
+          model: geminiModel, // Use model from admin settings
         });
 
         const generatedCode = websiteResult.text || '';
@@ -1834,7 +1839,7 @@ Make it look like a $5,000 custom website, not a template.`;
           JSON.stringify({
             type: 'code_preview',
             content: `**${title}**\n\nI've generated a premium landing page with:\n- Industry-standard pricing\n- Compelling copy and testimonials\n- Modern responsive design\n- Professional contact section\n\nClick "Open Preview" to see it live!\n\n*Tip: Ask me to adjust colors, pricing, services, or add new sections!*`,
-            model: 'gemini-2.0-flash',
+            model: geminiModel,
             codePreview: {
               code: cleanCode,
               language: 'html',
@@ -1848,17 +1853,18 @@ Make it look like a $5,000 custom website, not a template.`;
               'Content-Type': 'application/json',
               'X-Route-Target': 'website',
               'X-Route-Reason': routeDecision.reason,
-              'X-Model-Used': 'gemini-2.0-flash',
+              'X-Model-Used': geminiModel,
             },
           }
         );
       } catch (error) {
         console.error('[Chat API] Website generation error:', error);
+        const fallbackModel = await getModelForTier('pro', 'gemini');
         return new Response(
           JSON.stringify({
             type: 'text',
             content: 'Sorry, I encountered an error generating the website. Please try again.',
-            model: 'gemini-2.0-flash',
+            model: fallbackModel,
           }),
           { status: 500 }
         );
@@ -1928,9 +1934,12 @@ Make it look like a $5,000 custom website, not a template.`;
         prompt = prompt.replace(/^🎨\s*Generate image:\s*/i, '').trim();
       }
 
+      // Get image model from admin settings
+      const imageModel = await getGeminiImageModel();
+      console.log('[Chat API] Using Gemini image model from settings:', imageModel);
+
       // Log image request with user, model, promptHash
       const promptHash = prompt.slice(0, 32).replace(/\s+/g, '_');
-      const imageModel = 'gemini-2.0-flash-exp-image-generation';
       console.log('[Chat API] Image generation request:', {
         user_id: rateLimitIdentifier,
         type: 'image',
@@ -1951,6 +1960,7 @@ Make it look like a $5,000 custom website, not a template.`;
         const geminiImageResult = await createGeminiImageGeneration({
           prompt,
           systemPrompt: 'You are a professional image generator. Create high-quality, visually stunning images based on the user prompt. Focus on composition, lighting, and artistic quality.',
+          model: imageModel, // Use model from admin settings
         });
         const latencyMs = Date.now() - startTime;
 
