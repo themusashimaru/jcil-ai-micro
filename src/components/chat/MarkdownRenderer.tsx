@@ -432,12 +432,11 @@ export function MarkdownRenderer({
             showPushButton={codeExecution.githubConnected}
             onTest={async (code, lang) => {
               const result = await codeExecution.testCode(code, lang);
+              const output = result.outputs.map(o => o.stdout || o.stderr).join('\n') || result.error || '';
               if (onTestResult) {
-                onTestResult({
-                  success: result.success,
-                  output: result.outputs.map(o => o.stdout || o.stderr).join('\n'),
-                });
+                onTestResult({ success: result.success, output });
               }
+              return { success: result.success, output };
             }}
             onPush={async (code, lang) => {
               // Determine filename from language
