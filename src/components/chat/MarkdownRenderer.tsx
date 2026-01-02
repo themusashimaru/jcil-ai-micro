@@ -426,8 +426,11 @@ export function MarkdownRenderer({
       console.log('[MarkdownRenderer] Code block render:', { enableCodeActions, hasCodeExecution: !!codeExecution, language });
       if (enableCodeActions && codeExecution) {
         console.log('[MarkdownRenderer] Rendering CodeBlockWithActions with onTest');
+        // Use a stable key based on code content to prevent re-mounting
+        const codeHash = codeContent.slice(0, 50) + codeContent.length;
         return (
           <CodeBlockWithActions
+            key={codeHash}
             code={codeContent}
             language={language}
             showTestButton={true}
