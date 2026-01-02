@@ -3,7 +3,7 @@
  * =======================
  *
  * Links a GitHub account to an existing user's account.
- * This allows users who signed up with email to connect their GitHub.
+ * Uses signInWithOAuth which will auto-link if emails match.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -13,11 +13,14 @@ import { cookies } from 'next/headers';
 export const runtime = 'nodejs';
 
 /**
- * GET - Initiate GitHub OAuth linking
+ * GET - Initiate GitHub OAuth linking via signInWithOAuth
+ * This approach works without enabling "manual linking" in Supabase
+ * If the GitHub email matches the current user's email, accounts merge
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const redirectTo = searchParams.get('redirect') || '/chat';
+  const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -42,35 +45,36 @@ export async function GET(request: NextRequest) {
   );
 
   // Check if user is authenticated
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (userError || !user) {
-    return NextResponse.redirect(new URL('/login?error=not_authenticated', request.url));
+  if (user) {
+    // Check if already linked to GitHub
+    const hasGitHub = user.identities?.some(i => i.provider === 'github');
+    if (hasGitHub) {
+      return NextResponse.redirect(new URL(`${redirectTo}?github=already_linked`, origin));
+    }
   }
 
-  // Check if already linked to GitHub
-  const hasGitHub = user.identities?.some(i => i.provider === 'github');
-  if (hasGitHub) {
-    return NextResponse.redirect(new URL(`${redirectTo}?github=already_linked`, request.url));
-  }
-
-  // Initiate GitHub OAuth to link identity
-  const { data, error } = await supabase.auth.linkIdentity({
+  // Use signInWithOAuth - this will:
+  // 1. If email matches existing account: link the GitHub identity
+  // 2. If no match: create new account with GitHub
+  // The callback will preserve the session
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'github',
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+      redirectTo: `${origin}/api/auth/callback?next=${encodeURIComponent(redirectTo)}&linking=true`,
       scopes: 'repo read:user user:email',
     },
   });
 
   if (error) {
-    console.error('[Link GitHub] Error:', error);
-    return NextResponse.redirect(new URL(`${redirectTo}?error=link_failed`, request.url));
+    console.error('[Link GitHub] OAuth Error:', error);
+    return NextResponse.redirect(new URL(`${redirectTo}?error=oauth_failed&message=${encodeURIComponent(error.message)}`, origin));
   }
 
   if (data?.url) {
     return NextResponse.redirect(data.url);
   }
 
-  return NextResponse.redirect(new URL(`${redirectTo}?error=no_url`, request.url));
+  return NextResponse.redirect(new URL(`${redirectTo}?error=no_oauth_url`, origin));
 }
