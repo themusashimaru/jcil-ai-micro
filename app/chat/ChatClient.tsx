@@ -1253,6 +1253,32 @@ export function ChatClient() {
 
           // Save the image message to database
           await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'image', data.url);
+        } else if (data.type === 'code_preview' && data.codePreview) {
+          // Website/landing page code generation response
+          console.log('[ChatClient] Received code preview response:', {
+            title: data.codePreview.title,
+            language: data.codePreview.language,
+          });
+
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: data.content || 'Here is your generated code:',
+            model: data.model || modelUsed,
+            codePreview: {
+              code: data.codePreview.code,
+              language: data.codePreview.language,
+              title: data.codePreview.title,
+              description: data.codePreview.description,
+            },
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          finalContent = assistantMessage.content;
+
+          // Save the code preview message to database
+          await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'text');
         } else if (data.type === 'video_job' && data.video_job) {
           // Video generation job started (admin only)
           console.log('[ChatClient] Received video job response:', {

@@ -69,6 +69,13 @@ export interface GeneratedFile {
   size_bytes?: number;
 }
 
+export interface CodePreview {
+  code: string;
+  language: 'html' | 'react' | 'vue' | 'svelte';
+  title?: string;
+  description?: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -84,6 +91,7 @@ export interface Message {
   sourcesUsed?: number; // Number of sources used in search
   searchProvider?: string; // Search provider used (e.g., 'perplexity')
   files?: GeneratedFile[]; // Generated documents (Excel, PowerPoint, Word, PDF)
+  codePreview?: CodePreview; // For live code previews (landing pages, websites)
   model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
   timestamp: Date;
   isStreaming?: boolean;

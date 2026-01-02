@@ -79,7 +79,8 @@ import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
 // import { braveSearch } from '@/lib/brave/search';
 import { NextRequest } from 'next/server';
-import { CoreMessage } from 'ai';
+import { CoreMessage, generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
@@ -1749,6 +1750,94 @@ export async function POST(request: NextRequest) {
           },
         }
       );
+    }
+
+    // Check if we should route to website/landing page generation
+    if (routeDecision.target === 'website') {
+      console.log('[Chat API] Routing to website generation');
+
+      // System prompt for generating landing page HTML
+      const websiteSystemPrompt = `You are an expert web developer. Generate a complete, single-file HTML landing page based on the user's request.
+
+IMPORTANT RULES:
+1. Output ONLY the HTML code - no explanations, no markdown code blocks
+2. Include all CSS in a <style> tag in the <head>
+3. Include any JavaScript in a <script> tag at the end of the <body>
+4. Use modern, responsive design with Tailwind-like utility patterns
+5. Include beautiful gradients, shadows, and modern typography
+6. Make it mobile-responsive
+7. Include realistic placeholder content (not lorem ipsum)
+8. Add smooth animations and hover effects
+9. Use a professional color scheme appropriate for the business type
+
+The HTML should be ready to render directly in an iframe.`;
+
+      try {
+        // Create OpenAI provider for website generation
+        const openaiProvider = createOpenAI({
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+
+        // Generate the landing page HTML
+        const result = await generateText({
+          model: openaiProvider('gpt-4o'),
+          system: websiteSystemPrompt,
+          prompt: lastUserContent,
+          temperature: 0.7,
+          maxOutputTokens: 8000,
+        });
+
+        const generatedCode = result.text || '';
+
+        // Clean the code - remove markdown code blocks if present
+        let cleanCode = generatedCode.trim();
+        if (cleanCode.startsWith('```html')) {
+          cleanCode = cleanCode.slice(7);
+        }
+        if (cleanCode.startsWith('```')) {
+          cleanCode = cleanCode.slice(3);
+        }
+        if (cleanCode.endsWith('```')) {
+          cleanCode = cleanCode.slice(0, -3);
+        }
+        cleanCode = cleanCode.trim();
+
+        // Extract title from the HTML
+        const titleMatch = cleanCode.match(/<title>([^<]+)<\/title>/i);
+        const title = titleMatch ? titleMatch[1] : 'Landing Page';
+
+        return new Response(
+          JSON.stringify({
+            type: 'code_preview',
+            content: `**${title}**\n\nI've generated a complete landing page for you. Click "Open Preview" to see it live, or copy the code to use in your project.\n\n*Tip: You can ask me to modify colors, add sections, or change the layout!*`,
+            model: 'gpt-4o',
+            codePreview: {
+              code: cleanCode,
+              language: 'html',
+              title: title,
+              description: `Generated from: ${lastUserContent.slice(0, 100)}${lastUserContent.length > 100 ? '...' : ''}`,
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Route-Target': 'website',
+              'X-Route-Reason': routeDecision.reason,
+            },
+          }
+        );
+      } catch (error) {
+        console.error('[Chat API] Website generation error:', error);
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: 'Sorry, I encountered an error generating the website. Please try again.',
+            model: 'gpt-4o',
+          }),
+          { status: 500 }
+        );
+      }
     }
 
     // Check if we should route to image generation (only if no uploaded images)
