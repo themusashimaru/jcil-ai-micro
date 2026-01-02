@@ -37,7 +37,7 @@ export interface TestReport {
 }
 
 // Test templates for common scenarios
-const TEST_TEMPLATES: Record<string, (componentName: string, code: string) => string> = {
+const TEST_TEMPLATES: Record<string, (name: string) => string> = {
   react: (componentName: string) => `
 import { render, screen } from '@testing-library/react';
 import ${componentName} from './${componentName}';

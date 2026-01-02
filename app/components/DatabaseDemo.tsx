@@ -11,7 +11,21 @@
 
 import { useState, useEffect } from 'react';
 
-const TABLES = [
+interface Column {
+  name: string;
+  type: string;
+  pk?: boolean;
+  unique?: boolean;
+  fk?: string;
+}
+
+interface Table {
+  name: string;
+  icon: string;
+  columns: Column[];
+}
+
+const TABLES: Table[] = [
   {
     name: 'users',
     icon: '👤',
