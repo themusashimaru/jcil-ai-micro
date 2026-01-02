@@ -16,10 +16,156 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
+
+/**
+ * Code Preview Block Component
+ * Displays generated code with preview and copy functionality
+ */
+interface CodePreviewBlockProps {
+  code: string;
+  language: string;
+  title?: string;
+  description?: string;
+}
+
+function CodePreviewBlock({ code, language, title, description }: CodePreviewBlockProps) {
+  const [showCode, setShowCode] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  }, [code]);
+
+  const openPreview = useCallback(() => {
+    setPreviewOpen(true);
+  }, []);
+
+  const closePreview = useCallback(() => {
+    setPreviewOpen(false);
+  }, []);
+
+  return (
+    <div className="mb-3 rounded-xl border border-white/10 bg-white/5 overflow-hidden max-w-xl">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🌐</span>
+          <div>
+            <div className="font-medium text-white text-sm">{title || 'Generated Code'}</div>
+            {description && (
+              <div className="text-xs text-gray-400 truncate max-w-[200px]">{description}</div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-300 uppercase">
+            {language}
+          </span>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2 px-4 py-3">
+        <button
+          onClick={openPreview}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-500 text-white text-sm font-medium hover:from-violet-600 hover:to-cyan-600 transition-all shadow-lg shadow-violet-500/25"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          Open Preview
+        </button>
+
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-all"
+        >
+          {copied ? (
+            <>
+              <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Code
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={() => setShowCode(!showCode)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-all"
+        >
+          <svg className={`w-4 h-4 transition-transform ${showCode ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+          {showCode ? 'Hide Code' : 'View Code'}
+        </button>
+      </div>
+
+      {/* Collapsible Code Block */}
+      {showCode && (
+        <div className="px-4 pb-4">
+          <pre className="bg-black/40 rounded-lg p-4 overflow-x-auto text-xs text-gray-300 max-h-[400px] overflow-y-auto">
+            <code>{code}</code>
+          </pre>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="relative w-[95vw] h-[90vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-800 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                </div>
+                <span className="ml-2 text-sm font-medium text-white">{title || 'Preview'}</span>
+              </div>
+              <button
+                onClick={closePreview}
+                className="p-2 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-white"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Iframe Preview */}
+            <iframe
+              srcDoc={code}
+              className="w-full h-[calc(100%-52px)] bg-white"
+              title={title || 'Code Preview'}
+              sandbox="allow-scripts allow-same-origin"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface MessageBubbleProps {
   message: Message;
@@ -277,6 +423,16 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
               </svg>
             </a>
           </div>
+        )}
+
+        {/* Code Preview (Landing Pages, Websites) */}
+        {message.codePreview && (
+          <CodePreviewBlock
+            code={message.codePreview.code}
+            language={message.codePreview.language}
+            title={message.codePreview.title}
+            description={message.codePreview.description}
+          />
         )}
 
         {/* Generated Video */}

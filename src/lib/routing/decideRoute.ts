@@ -11,7 +11,7 @@
  * - nano: gpt-5-nano for basic chat (default, cost-optimized)
  */
 
-export type RouteTarget = 'video' | 'image' | 'mini' | 'nano';
+export type RouteTarget = 'video' | 'image' | 'website' | 'mini' | 'nano';
 
 export type RouteReason =
   | 'video-intent'
@@ -20,6 +20,8 @@ export type RouteReason =
   | 'image-button'
   | 'image-analysis'
   | 'file-analysis'
+  | 'website-intent'
+  | 'website-button'
   | 'code-task'
   | 'research-task'
   | 'file-operation'
@@ -128,6 +130,29 @@ const IMAGE_INTENT_PATTERNS = [
 
   // Direct "pic of" or "picture of" at start
   /^(a\s+)?(pic|picture|image)\s+(of|showing)\s+/i,
+];
+
+/**
+ * Website/landing page intent detection patterns
+ * Matches requests like "create a landing page", "build a website"
+ */
+const WEBSITE_INTENT_PATTERNS = [
+  // Direct website/landing page requests
+  /\b(create|make|build|generate|design)\b.*\b(landing\s*page|website|webpage|web\s*page|web\s*app|site)\b/i,
+
+  // Reverse order
+  /\b(landing\s*page|website|webpage|web\s*app)\b.*\b(for|about|with)\b/i,
+
+  // Give me / I want patterns
+  /\b(give\s+me|i\s+want|i\s+need)\b.*\b(landing\s*page|website|webpage)\b/i,
+
+  // Code/HTML specific
+  /\b(html|frontend|ui)\s+(code|page)?\s+(for|about)\b/i,
+  /\b(spin\s*up|scaffold|bootstrap)\b.*\b(landing\s*page|website|site|app)\b/i,
+
+  // Business landing pages (common requests)
+  /\b(auto\s*detailing|car\s*wash|cleaning|plumbing|restaurant|salon|gym|fitness|dental|law\s*firm|agency|barbershop|landscaping|hvac|roofing|photography|wedding|bakery|florist|spa)\b.*\b(landing\s*page|website|page|site)\b/i,
+  /\b(landing\s*page|website|page|site)\b.*\b(auto\s*detailing|car\s*wash|cleaning|plumbing|restaurant|salon|gym|fitness|dental|law\s*firm|agency|barbershop|landscaping|hvac|roofing|photography|wedding|bakery|florist|spa)\b/i,
 ];
 
 /**
@@ -266,6 +291,30 @@ export function hasImageIntent(text: string): { isImage: boolean; matchedPattern
 }
 
 /**
+ * Check if a message indicates website/landing page generation intent
+ */
+export function hasWebsiteIntent(text: string): { isWebsite: boolean; matchedPattern?: string } {
+  const normalizedText = text.trim();
+
+  // Check if this is a document request - documents should not be websites
+  if (isDocumentRequest(normalizedText)) {
+    return { isWebsite: false };
+  }
+
+  // Check for website generation patterns
+  for (const pattern of WEBSITE_INTENT_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      return {
+        isWebsite: true,
+        matchedPattern: pattern.source
+      };
+    }
+  }
+
+  return { isWebsite: false };
+}
+
+/**
  * Check if a message requires complex task handling (GPT-4o)
  */
 function requiresComplexTask(text: string): { isComplex: boolean; reason?: RouteReason } {
@@ -333,7 +382,28 @@ export function decideRoute(
     };
   }
 
-  // Check for video intent in the message FIRST (video has priority over image)
+  // If tool is explicitly set to website (button press), route to website
+  if (toolOverride === 'website') {
+    return {
+      target: 'website',
+      reason: 'website-button',
+      confidence: 1.0,
+      matchedPattern: 'tool-override-website',
+    };
+  }
+
+  // Check for website intent FIRST (landing pages before other routes)
+  const websiteCheck = hasWebsiteIntent(lastUserText);
+  if (websiteCheck.isWebsite) {
+    return {
+      target: 'website',
+      reason: 'website-intent',
+      confidence: 0.95,
+      matchedPattern: websiteCheck.matchedPattern,
+    };
+  }
+
+  // Check for video intent in the message
   const videoCheck = hasVideoIntent(lastUserText);
   if (videoCheck.isVideo) {
     return {
