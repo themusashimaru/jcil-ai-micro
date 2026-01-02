@@ -124,7 +124,10 @@ export function CodeBlockWithActions({
           {/* Test button */}
           {showTestButton && canTest && onTest && (
             <button
-              onClick={handleTest}
+              onClick={() => {
+                console.log('[CodeBlock] TEST BUTTON CLICKED!');
+                handleTest();
+              }}
               disabled={testing}
               className="p-1.5 rounded hover:bg-white/10 transition-colors disabled:opacity-50"
               title="Test in Sandbox"
