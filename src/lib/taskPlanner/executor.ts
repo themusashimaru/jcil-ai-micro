@@ -60,7 +60,8 @@ async function executeStepWithRetry(
   model: string,
   userId?: string,
   userTier?: string,
-  githubToken?: string
+  githubToken?: string,
+  selectedRepo?: SelectedRepoContext
 ): Promise<StepResult> {
   const startTime = Date.now();
   let lastError = '';
@@ -93,6 +94,7 @@ async function executeStepWithRetry(
           maxTokens: CONFIG.maxTokensPerStep,
           temperature: step.type === 'creative' ? 0.8 : 0.5,
           githubToken,
+          selectedRepo,
         }
       );
 
@@ -212,6 +214,13 @@ export interface CheckpointState {
   nextStepIndex: number;
 }
 
+export interface SelectedRepoContext {
+  owner: string;
+  repo: string;
+  fullName: string;
+  defaultBranch: string;
+}
+
 export async function executeTaskPlan(
   plan: TaskPlan,
   originalRequest: string,
@@ -219,7 +228,8 @@ export async function executeTaskPlan(
   userId?: string,
   userTier?: string,
   resumeFrom?: CheckpointState, // Optional: resume from a checkpoint
-  githubToken?: string // For code review tasks
+  githubToken?: string, // For code review tasks
+  selectedRepo?: SelectedRepoContext // User-selected repo from dropdown
 ): Promise<ReadableStream<Uint8Array>> {
   const encoder = new TextEncoder();
 
@@ -258,7 +268,7 @@ export async function executeTaskPlan(
           controller.enqueue(encoder.encode(stepStartText));
 
           // Execute the step with retry
-          const result = await executeStepWithRetry(step, context, model, userId, userTier, githubToken);
+          const result = await executeStepWithRetry(step, context, model, userId, userTier, githubToken, selectedRepo);
 
           if (result.success) {
             // Show success with timing and preview

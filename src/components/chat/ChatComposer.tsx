@@ -23,12 +23,22 @@ import { createPortal } from 'react-dom';
 import type { Attachment, Message } from '@/app/chat/types';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 import { ConnectorsButton } from './ConnectorsButton';
+import { RepoDropdown } from './RepoDropdown';
+import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 
 // Search mode types for Anthropic provider
 export type SearchMode = 'none' | 'search' | 'factcheck';
 
+// Selected repo info passed to API
+export interface SelectedRepoInfo {
+  owner: string;
+  repo: string;
+  fullName: string;
+  defaultBranch: string;
+}
+
 interface ChatComposerProps {
-  onSendMessage: (content: string, attachments: Attachment[], searchMode?: SearchMode) => void;
+  onSendMessage: (content: string, attachments: Attachment[], searchMode?: SearchMode, selectedRepo?: SelectedRepoInfo | null) => void;
   onStop?: () => void; // Called when user clicks stop button during streaming
   isStreaming: boolean;
   disabled?: boolean; // When waiting for background reply
@@ -107,6 +117,10 @@ const PLACEHOLDER_SUGGESTIONS_NO_IMAGE = PLACEHOLDER_SUGGESTIONS.filter(
 );
 
 export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons, replyingTo, onClearReply }: ChatComposerProps) {
+  // Get selected repo from context (optional - may not be in provider)
+  const codeExecution = useCodeExecutionOptional();
+  const selectedRepo = codeExecution?.selectedRepo;
+
   // Use filtered suggestions when image generation is not available
   const suggestions = hideImageSuggestion ? PLACEHOLDER_SUGGESTIONS_NO_IMAGE : PLACEHOLDER_SUGGESTIONS;
   const [message, setMessage] = useState('');
@@ -202,7 +216,15 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
       return;
     }
 
-    onSendMessage(message.trim(), attachments, searchMode);
+    // Convert selected repo to API format
+    const repoInfo = selectedRepo ? {
+      owner: selectedRepo.owner,
+      repo: selectedRepo.name,
+      fullName: selectedRepo.fullName,
+      defaultBranch: selectedRepo.defaultBranch,
+    } : null;
+
+    onSendMessage(message.trim(), attachments, searchMode, repoInfo);
     setMessage('');
     setAttachments([]);
     // Reset search mode after sending
@@ -541,6 +563,9 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
 
               {/* Connectors button (GitHub, Vercel, etc.) */}
               <ConnectorsButton disabled={isStreaming || disabled} />
+
+              {/* Repository selector (shows when GitHub connected) */}
+              <RepoDropdown disabled={isStreaming || disabled} />
 
               {/* Search and Fact Check buttons (Anthropic only) */}
               {showSearchButtons && (

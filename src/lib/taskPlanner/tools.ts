@@ -54,6 +54,13 @@ export interface Tool {
   execute: (input: ToolInput, config: ToolConfig) => Promise<ToolOutput>;
 }
 
+export interface SelectedRepoContext {
+  owner: string;
+  repo: string;
+  fullName: string;
+  defaultBranch: string;
+}
+
 export interface ToolConfig {
   model: string;
   userId?: string;
@@ -61,6 +68,7 @@ export interface ToolConfig {
   maxTokens?: number;
   temperature?: number;
   githubToken?: string; // For code review tasks
+  selectedRepo?: SelectedRepoContext; // User-selected repo from dropdown
 }
 
 // ============================================================================
@@ -609,21 +617,32 @@ const codeReviewTool: Tool = {
       };
     }
 
-    // Extract GitHub URL from query or parameters
-    const query = input.query;
-    const urlMatch = query.match(/github\.com\/([^/\s]+)\/([^/\s]+)/i) ||
-                     query.match(/\b([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)\b/);
+    // Use selectedRepo if available, otherwise extract from query
+    let owner: string;
+    let repo: string;
 
-    if (!urlMatch) {
-      return {
-        success: false,
-        content: '',
-        error: 'Could not find a GitHub repository URL or owner/repo in the request. Please provide a GitHub URL like github.com/owner/repo.',
-      };
+    if (config.selectedRepo) {
+      // User has selected a repo from the dropdown
+      owner = config.selectedRepo.owner;
+      repo = config.selectedRepo.repo;
+      console.log(`[CodeReview] Using selected repo: ${config.selectedRepo.fullName}`);
+    } else {
+      // Try to extract GitHub URL from query
+      const query = input.query;
+      const urlMatch = query.match(/github\.com\/([^/\s]+)\/([^/\s]+)/i) ||
+                       query.match(/\b([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)\b/);
+
+      if (!urlMatch) {
+        return {
+          success: false,
+          content: '',
+          error: 'No repository selected. Please select a repository from the dropdown or provide a GitHub URL like github.com/owner/repo.',
+        };
+      }
+
+      owner = urlMatch[1];
+      repo = urlMatch[2];
     }
-
-    const owner = urlMatch[1];
-    const repo = urlMatch[2];
 
     console.log(`[CodeReview] Fetching repository: ${owner}/${repo}`);
 
@@ -665,12 +684,13 @@ const codeReviewTool: Tool = {
         .join('\n\n');
 
       // Determine review type from query
+      const userQuery = input.query;
       let reviewFocus = 'comprehensive';
-      if (/bug|issue|problem|error|fix/i.test(query)) reviewFocus = 'bugs';
-      else if (/security|vulnerability|exploit/i.test(query)) reviewFocus = 'security';
-      else if (/improve|refactor|clean|better/i.test(query)) reviewFocus = 'improvements';
-      else if (/explain|understand|how.*work/i.test(query)) reviewFocus = 'explain';
-      else if (/architect|structure|design|pattern/i.test(query)) reviewFocus = 'architecture';
+      if (/bug|issue|problem|error|fix/i.test(userQuery)) reviewFocus = 'bugs';
+      else if (/security|vulnerability|exploit/i.test(userQuery)) reviewFocus = 'security';
+      else if (/improve|refactor|clean|better/i.test(userQuery)) reviewFocus = 'improvements';
+      else if (/explain|understand|how.*work/i.test(userQuery)) reviewFocus = 'explain';
+      else if (/architect|structure|design|pattern/i.test(userQuery)) reviewFocus = 'architecture';
 
       const reviewPrompts: Record<string, string> = {
         comprehensive: `Provide a comprehensive code review including:

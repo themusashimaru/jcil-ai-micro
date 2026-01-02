@@ -937,6 +937,13 @@ interface UserContext {
   purpose?: string;
 }
 
+interface SelectedRepo {
+  owner: string;
+  repo: string;
+  fullName: string;
+  defaultBranch: string;
+}
+
 interface ChatRequestBody {
   messages: CoreMessage[];
   tool?: string;
@@ -946,6 +953,7 @@ interface ChatRequestBody {
   conversationId?: string; // Current conversation ID to exclude from history
   searchMode?: 'none' | 'search' | 'factcheck'; // User-triggered search mode (Anthropic only)
   reasoningMode?: boolean; // User-triggered reasoning mode (DeepSeek only)
+  selectedRepo?: SelectedRepo; // User-selected GitHub repo for code review
 }
 
 // Detect if user is asking about previous conversations
@@ -1000,7 +1008,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body: ChatRequestBody = await request.json();
-    const { messages, tool, temperature, max_tokens, userContext, conversationId, searchMode, reasoningMode } = body;
+    const { messages, tool, temperature, max_tokens, userContext, conversationId, searchMode, reasoningMode, selectedRepo } = body;
 
     // Validate messages
     if (!messages || messages.length === 0) {
@@ -1365,7 +1373,8 @@ export async function POST(request: NextRequest) {
                 isAuthenticated ? rateLimitIdentifier : undefined,
                 userTier,
                 checkpointState, // Pass checkpoint state to resume
-                githubToken || undefined // Pass GitHub token for code review
+                githubToken || undefined, // Pass GitHub token for code review
+                selectedRepo // Pass user-selected repo for code review
               );
 
               return new Response(executionStream, {
@@ -1456,7 +1465,8 @@ export async function POST(request: NextRequest) {
               isAuthenticated ? rateLimitIdentifier : undefined,
               userTier,
               undefined, // No checkpoint state
-              githubToken || undefined // Pass GitHub token for code review
+              githubToken || undefined, // Pass GitHub token for code review
+              selectedRepo // Pass user-selected repo for code review
             );
 
             return new Response(executionStream, {
