@@ -34,7 +34,7 @@ export interface SandboxExecutionOptions {
   runtime?: 'node22' | 'python3.13';
   /** Timeout in milliseconds (default: 5 minutes) */
   timeout?: number;
-  /** vCPUs (1-8, default: 2) */
+  /** vCPUs (2-8, default: 2) - minimum is 2 */
   vcpus?: number;
 }
 
@@ -269,7 +269,7 @@ export async function quickTest(
     commands,
     runtime,
     timeout: ms('2m'),
-    vcpus: 1,
+    vcpus: 2, // Minimum is 2 vCPUs
   });
 }
 
