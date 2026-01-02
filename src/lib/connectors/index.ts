@@ -3,16 +3,18 @@
  * =================
  *
  * Central hub for all external service connectors.
- * Currently supports: GitHub
- * Coming soon: Vercel, Supabase
+ * Currently supports: GitHub, Vercel Sandbox
+ * Coming soon: Supabase
  */
 
 export * from './types';
 export * from './github';
+export * from './vercel-sandbox';
 
 import type { Connector, ConnectorType } from './types';
 import { CONNECTOR_CONFIGS } from './types';
 import { getGitHubConnectionStatus } from './github';
+import { isSandboxConfigured } from './vercel-sandbox';
 
 /**
  * Get status of all connectors for a user
@@ -33,10 +35,10 @@ export async function getAllConnectorStatuses(
     });
   }
 
-  // Vercel (coming soon)
+  // Vercel Sandbox (server-side, uses JCIL's credentials)
   connectors.push({
     ...CONNECTOR_CONFIGS.vercel,
-    status: 'disconnected',
+    status: isSandboxConfigured() ? 'connected' : 'disconnected',
   });
 
   // Supabase (coming soon)
@@ -52,8 +54,14 @@ export async function getAllConnectorStatuses(
  * Check if a specific connector is available
  */
 export function isConnectorAvailable(type: ConnectorType): boolean {
-  // Currently only GitHub is fully implemented
-  return type === 'github';
+  switch (type) {
+    case 'github':
+      return true;
+    case 'vercel':
+      return isSandboxConfigured();
+    default:
+      return false;
+  }
 }
 
 /**

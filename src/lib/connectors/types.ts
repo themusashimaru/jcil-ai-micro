@@ -59,9 +59,9 @@ export const CONNECTOR_CONFIGS: Record<ConnectorType, ConnectorConfig> = {
   },
   vercel: {
     type: 'vercel',
-    displayName: 'Vercel',
+    displayName: 'Vercel Sandbox',
     icon: '▲',
-    description: 'Deploy projects instantly (coming soon)',
+    description: 'Execute & test code in isolated VMs',
   },
   supabase: {
     type: 'supabase',
