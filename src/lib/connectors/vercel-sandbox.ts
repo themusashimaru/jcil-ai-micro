@@ -17,7 +17,7 @@ import ms from 'ms';
 
 // Types for sandbox operations
 export interface SandboxConfig {
-  teamId?: string;  // Optional for personal accounts
+  teamId: string;   // Required - even personal Pro accounts have a Team ID
   projectId: string;
   token: string;
 }
@@ -63,15 +63,35 @@ export async function executeSandbox(
   let sandbox: Sandbox | null = null;
 
   try {
-    // Create sandbox with authentication
-    sandbox = await Sandbox.create({
-      ...(config.teamId && { teamId: config.teamId }),
-      projectId: config.projectId,
-      token: config.token,
+    // Check if OIDC token is available (automatic on Vercel)
+    const hasOIDC = !!process.env.VERCEL_OIDC_TOKEN;
+
+    console.log('[Sandbox] Creating sandbox:', {
+      authMethod: hasOIDC ? 'OIDC' : 'Access Token',
       runtime: options.runtime || 'node22',
       timeout: options.timeout || ms('5m'),
-      resources: { vcpus: options.vcpus || 2 },
+      vcpus: options.vcpus || 2,
     });
+
+    // Create sandbox - prefer OIDC (automatic on Vercel), fall back to access token
+    if (hasOIDC) {
+      // OIDC auth - no credentials needed, SDK handles it automatically
+      sandbox = await Sandbox.create({
+        runtime: options.runtime || 'node22',
+        timeout: options.timeout || ms('5m'),
+        resources: { vcpus: options.vcpus || 2 },
+      });
+    } else {
+      // Access token auth - requires teamId, projectId, token
+      sandbox = await Sandbox.create({
+        teamId: config.teamId,
+        projectId: config.projectId,
+        token: config.token,
+        runtime: options.runtime || 'node22',
+        timeout: options.timeout || ms('5m'),
+        resources: { vcpus: options.vcpus || 2 },
+      });
+    }
 
     // Write files to sandbox if provided
     if (options.files && options.files.length > 0) {
@@ -102,6 +122,18 @@ export async function executeSandbox(
     };
 
   } catch (error) {
+    // Log detailed error info for debugging
+    console.error('[Sandbox] Error details:', {
+      error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown',
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      errorStack: error instanceof Error ? error.stack : undefined,
+      // Check if error has additional properties
+      errorBody: (error as Record<string, unknown>)?.body,
+      errorStatus: (error as Record<string, unknown>)?.status,
+      errorResponse: (error as Record<string, unknown>)?.response,
+    });
+
     return {
       success: false,
       outputs,
@@ -261,10 +293,19 @@ export async function buildAndTest(
 
 /**
  * Check if Vercel Sandbox is configured
- * VERCEL_TEAM_ID is optional (not needed for personal accounts)
+ * Supports two authentication methods:
+ * 1. OIDC (automatic on Vercel) - just needs VERCEL_OIDC_TOKEN
+ * 2. Access tokens - needs VERCEL_TEAM_ID, VERCEL_PROJECT_ID, VERCEL_TOKEN
  */
 export function isSandboxConfigured(): boolean {
+  // OIDC is automatic on Vercel deployments
+  if (process.env.VERCEL_OIDC_TOKEN) {
+    return true;
+  }
+
+  // Fall back to access token auth
   return !!(
+    process.env.VERCEL_TEAM_ID &&
     process.env.VERCEL_PROJECT_ID &&
     process.env.VERCEL_TOKEN
   );
@@ -279,8 +320,25 @@ export function getSandboxConfig(): SandboxConfig | null {
   }
 
   return {
-    teamId: process.env.VERCEL_TEAM_ID,  // Optional
+    teamId: process.env.VERCEL_TEAM_ID!, // Required for token auth
     projectId: process.env.VERCEL_PROJECT_ID!,
     token: process.env.VERCEL_TOKEN!,
   };
+}
+
+/**
+ * Get missing configuration details for error messages
+ */
+export function getMissingSandboxConfig(): string[] {
+  // If OIDC is available, nothing is missing
+  if (process.env.VERCEL_OIDC_TOKEN) {
+    return [];
+  }
+
+  // For access token auth, check all three vars
+  const missing: string[] = [];
+  if (!process.env.VERCEL_TEAM_ID) missing.push('VERCEL_TEAM_ID');
+  if (!process.env.VERCEL_PROJECT_ID) missing.push('VERCEL_PROJECT_ID');
+  if (!process.env.VERCEL_TOKEN) missing.push('VERCEL_TOKEN');
+  return missing;
 }
