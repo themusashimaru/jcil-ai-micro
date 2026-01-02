@@ -17,7 +17,7 @@ import ms from 'ms';
 
 // Types for sandbox operations
 export interface SandboxConfig {
-  teamId: string;
+  teamId?: string;  // Optional for personal accounts
   projectId: string;
   token: string;
 }
@@ -65,7 +65,7 @@ export async function executeSandbox(
   try {
     // Create sandbox with authentication
     sandbox = await Sandbox.create({
-      teamId: config.teamId,
+      ...(config.teamId && { teamId: config.teamId }),
       projectId: config.projectId,
       token: config.token,
       runtime: options.runtime || 'node22',
@@ -261,10 +261,10 @@ export async function buildAndTest(
 
 /**
  * Check if Vercel Sandbox is configured
+ * VERCEL_TEAM_ID is optional (not needed for personal accounts)
  */
 export function isSandboxConfigured(): boolean {
   return !!(
-    process.env.VERCEL_TEAM_ID &&
     process.env.VERCEL_PROJECT_ID &&
     process.env.VERCEL_TOKEN
   );
@@ -279,7 +279,7 @@ export function getSandboxConfig(): SandboxConfig | null {
   }
 
   return {
-    teamId: process.env.VERCEL_TEAM_ID!,
+    teamId: process.env.VERCEL_TEAM_ID,  // Optional
     projectId: process.env.VERCEL_PROJECT_ID!,
     token: process.env.VERCEL_TOKEN!,
   };
