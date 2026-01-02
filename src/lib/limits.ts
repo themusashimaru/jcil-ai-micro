@@ -24,13 +24,13 @@ const TOKEN_LIMITS: Record<string, number> = {
   executive: 5_000_000,  // 5M tokens
 };
 
-// Image generation has been removed from the platform
+// Image generation limits per plan (monthly)
 const IMAGE_LIMITS: Record<string, number> = {
-  free: 0,
-  plus: 0,
-  basic: 0,
-  pro: 0,
-  executive: 0,
+  free: 5,           // 5 images/month for free users
+  plus: 20,          // 20 images/month
+  basic: 20,         // 20 images/month (legacy alias)
+  pro: 50,           // 50 images/month
+  executive: 100,    // 100 images/month
 };
 
 // Redis client (optional - graceful fallback if not configured)
