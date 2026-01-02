@@ -17,7 +17,7 @@ import { useState } from 'react';
 interface CodeBlockWithActionsProps {
   code: string;
   language: string;
-  onTest?: (code: string, language: string) => Promise<void>;
+  onTest?: (code: string, language: string) => Promise<{ success: boolean; output: string }>;
   onPush?: (code: string, language: string) => Promise<void>;
   showTestButton?: boolean;
   showPushButton?: boolean;
@@ -60,7 +60,8 @@ export function CodeBlockWithActions({
     setTesting(true);
     setTestResult(null);
     try {
-      await onTest(code, language);
+      const result = await onTest(code, language);
+      setTestResult(result);
     } catch (error) {
       setTestResult({
         success: false,
