@@ -23,8 +23,9 @@ import {
   createBranch,
   createPullRequest,
   compareBranches,
-  // pushFiles, // Will be used for push code feature
+  pushFiles,
   getBranches,
+  createRepository,
 } from '@/lib/connectors';
 
 // ============================================================================
@@ -213,23 +214,47 @@ ${input.context ? `**Data/Information to Analyze:**\n${input.context}\n` : ''}
 };
 
 /**
- * Code Tool - Code execution and calculations
+ * Code Tool - Iterative Code Execution with Self-Correction
+ *
+ * This tool implements a Run → Error → Fix → Retry loop:
+ * 1. Execute the initial code
+ * 2. Detect errors in output (tracebacks, exceptions, etc.)
+ * 3. Analyze the error and generate a fix
+ * 4. Retry with the corrected code
+ * 5. Repeat until success or max retries reached
  */
 const codeTool: Tool = {
   id: 'code',
   name: 'Code Execution',
-  description: 'Execute Python code for calculations, data processing, and automation',
+  description: 'Execute Python code with automatic error detection and self-correction',
   capabilities: [
     'Perform complex calculations',
     'Process and transform data',
     'Generate charts and visualizations',
     'Automate repetitive tasks',
     'Validate and verify results',
+    'Automatically fix and retry on errors',
   ],
   taskTypes: ['calculation'],
 
   async execute(input: ToolInput, config: ToolConfig): Promise<ToolOutput> {
-    const prompt = `You are a Python programmer. Write and execute code to complete the task.
+    const MAX_RETRIES = 3;
+    const startTime = Date.now();
+
+    interface ExecutionAttempt {
+      iteration: number;
+      code?: string;
+      output: string;
+      error?: string;
+      fixed: boolean;
+    }
+
+    const attempts: ExecutionAttempt[] = [];
+    let currentOutput = '';
+    let lastCode = '';
+
+    // Initial prompt for first execution
+    const initialPrompt = `You are a Python programmer. Write and execute code to complete the task.
 
 **Task:** ${input.query}
 
@@ -247,8 +272,10 @@ ${input.context ? `**Available Data/Context:**\n${input.context}\n` : ''}
 **Write and execute your code:**`;
 
     try {
-      const messages: CoreMessage[] = [{ role: 'user', content: prompt }];
-      const result = await createGeminiCompletion({
+      // === ITERATION 1: Initial Execution ===
+      console.log('[CodeTool] Starting execution (attempt 1)...');
+      const messages: CoreMessage[] = [{ role: 'user', content: initialPrompt }];
+      let result = await createGeminiCompletion({
         messages,
         model: config.model,
         maxTokens: config.maxTokens || 2048,
@@ -258,20 +285,253 @@ ${input.context ? `**Available Data/Context:**\n${input.context}\n` : ''}
         planKey: config.userTier,
       });
 
+      currentOutput = result.text;
+      lastCode = extractCode(currentOutput);
+
+      // Check for errors in initial output
+      let errorInfo = detectCodeError(currentOutput);
+
+      attempts.push({
+        iteration: 1,
+        code: lastCode,
+        output: currentOutput,
+        error: errorInfo?.message,
+        fixed: false,
+      });
+
+      // === RETRY LOOP: Fix and Retry on Errors ===
+      let retryCount = 0;
+      while (errorInfo && retryCount < MAX_RETRIES) {
+        retryCount++;
+        console.log(`[CodeTool] Error detected, attempting fix (retry ${retryCount}/${MAX_RETRIES})...`);
+        console.log(`[CodeTool] Error type: ${errorInfo.type} - ${errorInfo.message}`);
+
+        // Generate fix prompt with error context
+        const fixPrompt = buildFixPrompt({
+          originalTask: input.query,
+          originalRequest: input.originalRequest,
+          previousCode: lastCode,
+          errorOutput: currentOutput,
+          errorType: errorInfo.type,
+          errorMessage: errorInfo.message,
+          retryCount,
+          context: input.context,
+        });
+
+        // Execute the fix
+        const fixMessages: CoreMessage[] = [{ role: 'user', content: fixPrompt }];
+        result = await createGeminiCompletion({
+          messages: fixMessages,
+          model: config.model,
+          maxTokens: config.maxTokens || 2048,
+          temperature: Math.min(0.3 + retryCount * 0.1, 0.6), // Slightly increase temp on retries
+          enableSearch: true,
+          userId: config.userId,
+          planKey: config.userTier,
+        });
+
+        currentOutput = result.text;
+        lastCode = extractCode(currentOutput);
+        errorInfo = detectCodeError(currentOutput);
+
+        attempts.push({
+          iteration: retryCount + 1,
+          code: lastCode,
+          output: currentOutput,
+          error: errorInfo?.message,
+          fixed: !errorInfo,
+        });
+      }
+
+      const totalTime = Date.now() - startTime;
+      const wasFixed = retryCount > 0 && !errorInfo;
+      const failed = !!errorInfo;
+
+      // Build the final response
+      let finalContent = currentOutput;
+
+      if (wasFixed) {
+        finalContent = `✅ **Code executed successfully after ${retryCount} ${retryCount === 1 ? 'fix' : 'fixes'}**\n\n${currentOutput}`;
+      } else if (failed) {
+        finalContent = `⚠️ **Code encountered errors after ${MAX_RETRIES} retry attempts**\n\n${currentOutput}\n\n---\n**Error Summary:** ${errorInfo?.message || 'Unknown error'}`;
+      }
+
+      console.log(`[CodeTool] Completed in ${totalTime}ms | Attempts: ${attempts.length} | Success: ${!failed}`);
+
       return {
-        success: true,
-        content: result.text,
-        metadata: { tool: 'code' },
+        success: !failed,
+        content: finalContent,
+        metadata: {
+          tool: 'code',
+          iterative: true,
+          attempts: attempts.length,
+          wasFixed,
+          totalTimeMs: totalTime,
+          history: attempts.map(a => ({
+            iteration: a.iteration,
+            hasError: !!a.error,
+            fixed: a.fixed,
+          })),
+        },
       };
     } catch (error) {
       return {
         success: false,
         content: '',
         error: error instanceof Error ? error.message : 'Code execution failed',
+        metadata: { tool: 'code', iterative: true, attempts: attempts.length },
       };
     }
   },
 };
+
+// ============================================================================
+// Code Execution Helper Functions
+// ============================================================================
+
+interface CodeError {
+  type: 'syntax' | 'runtime' | 'import' | 'type' | 'value' | 'attribute' | 'index' | 'key' | 'timeout' | 'unknown';
+  message: string;
+  line?: number;
+  traceback?: string;
+}
+
+/**
+ * Detect errors in code execution output
+ */
+function detectCodeError(output: string): CodeError | null {
+  if (!output) return null;
+
+  // Python error patterns
+  const errorPatterns: { pattern: RegExp; type: CodeError['type'] }[] = [
+    { pattern: /SyntaxError:\s*(.+)/i, type: 'syntax' },
+    { pattern: /IndentationError:\s*(.+)/i, type: 'syntax' },
+    { pattern: /NameError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /ImportError:\s*(.+)/i, type: 'import' },
+    { pattern: /ModuleNotFoundError:\s*(.+)/i, type: 'import' },
+    { pattern: /TypeError:\s*(.+)/i, type: 'type' },
+    { pattern: /ValueError:\s*(.+)/i, type: 'value' },
+    { pattern: /AttributeError:\s*(.+)/i, type: 'attribute' },
+    { pattern: /IndexError:\s*(.+)/i, type: 'index' },
+    { pattern: /KeyError:\s*(.+)/i, type: 'key' },
+    { pattern: /ZeroDivisionError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /FileNotFoundError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /TimeoutError:\s*(.+)/i, type: 'timeout' },
+    { pattern: /RecursionError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /MemoryError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /RuntimeError:\s*(.+)/i, type: 'runtime' },
+    { pattern: /Exception:\s*(.+)/i, type: 'runtime' },
+    { pattern: /Error:\s*(.+)/i, type: 'unknown' },
+    { pattern: /Traceback \(most recent call last\)/i, type: 'runtime' },
+  ];
+
+  for (const { pattern, type } of errorPatterns) {
+    const match = output.match(pattern);
+    if (match) {
+      // Extract line number if present
+      const lineMatch = output.match(/line (\d+)/i);
+      const line = lineMatch ? parseInt(lineMatch[1], 10) : undefined;
+
+      // Extract traceback if present
+      const tracebackMatch = output.match(/Traceback[\s\S]*?(?=\n\n|\n[A-Z]|$)/);
+      const traceback = tracebackMatch ? tracebackMatch[0] : undefined;
+
+      return {
+        type,
+        message: match[1] || match[0],
+        line,
+        traceback,
+      };
+    }
+  }
+
+  // Check for explicit failure indicators
+  if (/failed|error|exception|crash/i.test(output) && /\b(could not|cannot|unable to)\b/i.test(output)) {
+    return {
+      type: 'unknown',
+      message: 'Code execution appears to have failed',
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Extract code blocks from output
+ */
+function extractCode(output: string): string {
+  // Match Python code blocks
+  const codeBlockMatch = output.match(/```(?:python)?\n?([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
+  }
+  return '';
+}
+
+/**
+ * Build a prompt to fix the error
+ */
+function buildFixPrompt(params: {
+  originalTask: string;
+  originalRequest: string;
+  previousCode: string;
+  errorOutput: string;
+  errorType: CodeError['type'];
+  errorMessage: string;
+  retryCount: number;
+  context?: string;
+}): string {
+  const { originalTask, originalRequest, previousCode, errorOutput, errorType, errorMessage, retryCount, context } = params;
+
+  const errorGuidance: Record<CodeError['type'], string> = {
+    syntax: 'Check for missing colons, brackets, quotes, or incorrect indentation.',
+    runtime: 'Check for undefined variables, incorrect function calls, or logic errors.',
+    import: 'The module may not be available. Use standard library alternatives or implement the logic manually.',
+    type: 'Check the data types being used. You may need type conversion or different approach.',
+    value: 'The value is invalid for the operation. Check input validation and edge cases.',
+    attribute: 'The object does not have this attribute. Check the object type and available methods.',
+    index: 'Index is out of range. Check array/list bounds and use length checks.',
+    key: 'The key does not exist in the dictionary. Use .get() or check key existence first.',
+    timeout: 'The code took too long. Optimize the algorithm or reduce data size.',
+    unknown: 'An unexpected error occurred. Review the approach and try a simpler solution.',
+  };
+
+  return `You are debugging Python code that encountered an error. Fix the issue and run the corrected code.
+
+**Original Task:** ${originalTask}
+${originalRequest !== originalTask ? `**Full Request:** ${originalRequest}` : ''}
+${context ? `**Context:**\n${context}\n` : ''}
+
+**Previous Code That Failed:**
+\`\`\`python
+${previousCode || 'No code extracted'}
+\`\`\`
+
+**Error Output:**
+${errorOutput}
+
+**Error Type:** ${errorType}
+**Error Message:** ${errorMessage}
+
+**Debugging Guidance:** ${errorGuidance[errorType] || 'Review the error and fix the issue.'}
+
+**This is retry attempt ${retryCount}.**
+
+**Instructions:**
+1. Analyze the error carefully
+2. Identify the root cause
+3. Write CORRECTED Python code that avoids this error
+4. Execute the corrected code
+5. Verify the results are correct
+
+**Important:**
+- Do NOT repeat the same mistake
+- If a library is unavailable, use standard Python or an alternative
+- Add error handling where appropriate
+- Test with edge cases if relevant
+
+**Write and execute the FIXED code:**`;
+}
 
 /**
  * Generation Tool - Content and document creation
@@ -1214,6 +1474,342 @@ Example: "Push the code from above to \`feature-branch\` as \`src/utils.ts\`"`,
   };
 }
 
+/**
+ * Project Scaffolding Tool - Generate multi-file projects
+ *
+ * Creates complete project structures with multiple files,
+ * proper directory layout, and pushes to GitHub.
+ */
+const projectScaffoldTool: Tool = {
+  id: 'project-scaffold',
+  name: 'Project Scaffolding',
+  description: 'Generate complete multi-file projects and push to GitHub',
+  capabilities: [
+    'Create full project structures',
+    'Generate multiple files (HTML, CSS, JS, etc.)',
+    'Set up proper directory layouts',
+    'Push complete projects to GitHub',
+    'Create landing pages, apps, and tools',
+  ],
+  taskTypes: ['project-scaffold'],
+
+  async execute(input: ToolInput, config: ToolConfig): Promise<ToolOutput> {
+    const startTime = Date.now();
+
+    // Check for GitHub token
+    if (!config.githubToken) {
+      return {
+        success: false,
+        content: '',
+        error: 'GitHub not connected. Please connect your GitHub account in Settings > Connectors to create projects.',
+      };
+    }
+
+    try {
+      // Step 1: Plan the project structure
+      console.log('[ProjectScaffold] Planning project structure...');
+      const projectPlan = await planProjectStructure(input.query, input.originalRequest, config);
+
+      if (!projectPlan.success) {
+        return {
+          success: false,
+          content: '',
+          error: projectPlan.error || 'Failed to plan project structure',
+        };
+      }
+
+      // Step 2: Generate file contents
+      console.log(`[ProjectScaffold] Generating ${projectPlan.files.length} files...`);
+      const generatedFiles = await generateProjectFiles(projectPlan, config);
+
+      if (generatedFiles.length === 0) {
+        return {
+          success: false,
+          content: '',
+          error: 'Failed to generate project files',
+        };
+      }
+
+      // Step 3: Create repo or use selected repo
+      let repoInfo: { owner: string; repo: string; url: string };
+
+      if (config.selectedRepo) {
+        // Use existing repo
+        repoInfo = {
+          owner: config.selectedRepo.owner,
+          repo: config.selectedRepo.repo,
+          url: `https://github.com/${config.selectedRepo.fullName}`,
+        };
+        console.log(`[ProjectScaffold] Using existing repo: ${repoInfo.url}`);
+      } else {
+        // Create new repo
+        const repoName = generateRepoName(projectPlan.name);
+        console.log(`[ProjectScaffold] Creating new repo: ${repoName}`);
+
+        const newRepo = await createRepository(config.githubToken, {
+          name: repoName,
+          description: projectPlan.description,
+          private: false,
+          autoInit: true,
+        });
+
+        if (!newRepo) {
+          return {
+            success: false,
+            content: '',
+            error: 'Failed to create GitHub repository',
+          };
+        }
+
+        repoInfo = {
+          owner: newRepo.owner,
+          repo: newRepo.name,
+          url: newRepo.htmlUrl,
+        };
+
+        // Wait a moment for repo to initialize
+        await sleep(2000);
+      }
+
+      // Step 4: Push all files
+      console.log(`[ProjectScaffold] Pushing ${generatedFiles.length} files to ${repoInfo.url}...`);
+
+      const pushResult = await pushFiles(config.githubToken, {
+        owner: repoInfo.owner,
+        repo: repoInfo.repo,
+        branch: 'main',
+        message: `🚀 Initial project scaffold: ${projectPlan.name}\n\nGenerated by JCIL.ai`,
+        files: generatedFiles,
+      });
+
+      if (!pushResult.success) {
+        return {
+          success: false,
+          content: '',
+          error: pushResult.error || 'Failed to push files to GitHub',
+        };
+      }
+
+      const durationMs = Date.now() - startTime;
+
+      // Build success response
+      const fileList = generatedFiles.map(f => `- \`${f.path}\``).join('\n');
+
+      return {
+        success: true,
+        content: `## 🚀 Project Created Successfully!
+
+**${projectPlan.name}**
+
+${projectPlan.description}
+
+### Repository
+🔗 [${repoInfo.owner}/${repoInfo.repo}](${repoInfo.url})
+
+### Files Created (${generatedFiles.length})
+${fileList}
+
+### Next Steps
+- Clone the repo: \`git clone ${repoInfo.url}.git\`
+- Install dependencies (if applicable)
+- Start building!
+
+*Generated in ${formatDuration(durationMs)}*`,
+        artifacts: [
+          {
+            type: 'url',
+            name: 'GitHub Repository',
+            content: repoInfo.url,
+          },
+          ...generatedFiles.map(f => ({
+            type: 'file' as const,
+            name: f.path,
+            content: f.content,
+          })),
+        ],
+        metadata: {
+          repoUrl: repoInfo.url,
+          filesCreated: generatedFiles.length,
+          projectName: projectPlan.name,
+          durationMs,
+        },
+      };
+    } catch (error) {
+      console.error('[ProjectScaffold] Error:', error);
+      return {
+        success: false,
+        content: '',
+        error: error instanceof Error ? error.message : 'Project scaffolding failed',
+      };
+    }
+  },
+};
+
+// Project Scaffolding Helper Types and Functions
+
+interface ProjectPlan {
+  success: boolean;
+  name: string;
+  description: string;
+  files: { path: string; description: string }[];
+  error?: string;
+}
+
+interface GeneratedFile {
+  path: string;
+  content: string;
+}
+
+async function planProjectStructure(
+  query: string,
+  originalRequest: string,
+  config: ToolConfig
+): Promise<ProjectPlan> {
+  const planPrompt = `You are a project architect. Plan the file structure for this project request.
+
+**Request:** ${query}
+**Full Context:** ${originalRequest}
+
+Respond with ONLY a JSON object (no markdown, no explanation) in this exact format:
+{
+  "name": "project-name",
+  "description": "Brief description of the project",
+  "files": [
+    { "path": "index.html", "description": "Main HTML page" },
+    { "path": "styles.css", "description": "Stylesheet" },
+    { "path": "script.js", "description": "JavaScript logic" }
+  ]
+}
+
+RULES:
+- Keep it simple and focused (3-10 files typically)
+- Use appropriate file extensions
+- Include a README.md
+- For static sites: HTML, CSS, JS
+- For React/Next.js: include package.json, component files
+- Paths should be relative (no leading /)
+- Focus on core functionality first`;
+
+  try {
+    const messages: CoreMessage[] = [{ role: 'user', content: planPrompt }];
+    const result = await createGeminiCompletion({
+      messages,
+      model: config.model,
+      userId: config.userId,
+      maxTokens: 1024,
+      temperature: 0.3,
+    });
+
+    // Parse the JSON response
+    const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { success: false, name: '', description: '', files: [], error: 'Failed to parse project plan' };
+    }
+
+    const plan = JSON.parse(jsonMatch[0]);
+    return {
+      success: true,
+      name: plan.name || 'my-project',
+      description: plan.description || '',
+      files: plan.files || [],
+    };
+  } catch (error) {
+    console.error('[ProjectScaffold] Plan failed:', error);
+    return { success: false, name: '', description: '', files: [], error: 'Failed to plan project' };
+  }
+}
+
+async function generateProjectFiles(
+  plan: ProjectPlan,
+  config: ToolConfig
+): Promise<GeneratedFile[]> {
+  const files: GeneratedFile[] = [];
+
+  // Generate files in parallel (batch of 3)
+  const batchSize = 3;
+  for (let i = 0; i < plan.files.length; i += batchSize) {
+    const batch = plan.files.slice(i, i + batchSize);
+    const batchResults = await Promise.all(
+      batch.map(file => generateFileContent(file, plan, config))
+    );
+    files.push(...batchResults.filter((f): f is GeneratedFile => f !== null));
+  }
+
+  return files;
+}
+
+async function generateFileContent(
+  file: { path: string; description: string },
+  plan: ProjectPlan,
+  config: ToolConfig
+): Promise<GeneratedFile | null> {
+  const ext = file.path.split('.').pop()?.toLowerCase() || '';
+
+  const generatePrompt = `Generate the content for this file in a ${plan.name} project.
+
+**File:** ${file.path}
+**Purpose:** ${file.description}
+**Project:** ${plan.name} - ${plan.description}
+
+**Other files in project:**
+${plan.files.map(f => `- ${f.path}: ${f.description}`).join('\n')}
+
+RESPOND WITH ONLY THE FILE CONTENT. No markdown code blocks, no explanations.
+Just the raw file content that should be saved.
+
+${ext === 'json' ? 'Ensure valid JSON.' : ''}
+${ext === 'html' ? 'Include proper DOCTYPE and structure.' : ''}
+${ext === 'css' ? 'Use modern CSS with good defaults.' : ''}
+${ext === 'js' || ext === 'ts' ? 'Use modern JavaScript/TypeScript.' : ''}
+${file.path === 'README.md' ? 'Include project title, description, setup instructions, and usage.' : ''}`;
+
+  try {
+    const messages: CoreMessage[] = [{ role: 'user', content: generatePrompt }];
+    const result = await createGeminiCompletion({
+      messages,
+      model: config.model,
+      userId: config.userId,
+      maxTokens: 4096,
+      temperature: 0.5,
+    });
+
+    // Clean up the content (remove any markdown code blocks if present)
+    let content = result.text;
+    const codeBlockMatch = content.match(/```[\w]*\n?([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      content = codeBlockMatch[1];
+    }
+
+    return {
+      path: file.path,
+      content: content.trim(),
+    };
+  } catch (error) {
+    console.error(`[ProjectScaffold] Failed to generate ${file.path}:`, error);
+    return null;
+  }
+}
+
+function generateRepoName(projectName: string): string {
+  // Convert to kebab-case and sanitize
+  return projectName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 50) || 'new-project';
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${(ms / 60000).toFixed(1)}m`;
+}
+
+// Small sleep helper
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // ============================================================================
 // Tool Registry
 // ============================================================================
@@ -1231,6 +1827,7 @@ class ToolRegistry {
     this.register(conversationTool);
     this.register(codeReviewTool); // GitHub code review
     this.register(gitWorkflowTool); // Git operations (branches, PRs, push)
+    this.register(projectScaffoldTool); // Multi-file project generation
   }
 
   /**
