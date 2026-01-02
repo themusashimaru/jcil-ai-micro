@@ -103,3 +103,117 @@ export interface GitHubPushResult {
   repoUrl?: string;
   error?: string;
 }
+
+// ============================================================================
+// GitHub Read Operations - Types
+// ============================================================================
+
+export interface GitHubFileContent {
+  name: string;
+  path: string;
+  sha: string;
+  size: number;
+  type: 'file' | 'dir' | 'symlink' | 'submodule';
+  content?: string;        // Base64 decoded content (for files)
+  encoding?: string;
+  htmlUrl: string;
+  downloadUrl?: string;
+}
+
+export interface GitHubTreeItem {
+  path: string;
+  mode: string;
+  type: 'blob' | 'tree';
+  sha: string;
+  size?: number;
+  url: string;
+}
+
+export interface GitHubRepoTree {
+  sha: string;
+  tree: GitHubTreeItem[];
+  truncated: boolean;
+}
+
+export interface GitHubBranch {
+  name: string;
+  sha: string;
+  protected: boolean;
+}
+
+export interface GitHubCommit {
+  sha: string;
+  message: string;
+  author: {
+    name: string;
+    email: string;
+    date: string;
+  };
+  htmlUrl: string;
+}
+
+// ============================================================================
+// GitHub PR Operations - Types
+// ============================================================================
+
+export interface GitHubPROptions {
+  owner: string;
+  repo: string;
+  title: string;
+  body: string;
+  head: string;          // Branch with changes
+  base: string;          // Target branch (usually main)
+  draft?: boolean;
+}
+
+export interface GitHubPRResult {
+  success: boolean;
+  prNumber?: number;
+  prUrl?: string;
+  error?: string;
+}
+
+export interface GitHubCompareResult {
+  ahead: number;
+  behind: number;
+  status: 'ahead' | 'behind' | 'identical' | 'diverged';
+  files: {
+    filename: string;
+    status: 'added' | 'removed' | 'modified' | 'renamed';
+    additions: number;
+    deletions: number;
+    patch?: string;
+  }[];
+  commits: GitHubCommit[];
+}
+
+// ============================================================================
+// GitHub Clone/Fetch Operations - Types
+// ============================================================================
+
+export interface GitHubCloneOptions {
+  owner: string;
+  repo: string;
+  branch?: string;
+  path?: string;          // Specific path to fetch (for partial clone)
+  depth?: number;         // How deep to recurse directories
+  maxFiles?: number;      // Limit number of files
+  maxFileSize?: number;   // Skip files larger than this (bytes)
+  includePatterns?: string[];  // Only include matching paths
+  excludePatterns?: string[];  // Exclude matching paths
+}
+
+export interface GitHubCloneResult {
+  success: boolean;
+  files: {
+    path: string;
+    content: string;
+    size: number;
+    language?: string;
+  }[];
+  tree: GitHubTreeItem[];
+  truncated: boolean;
+  totalFiles: number;
+  fetchedFiles: number;
+  error?: string;
+}

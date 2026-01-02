@@ -23,7 +23,8 @@ export type TaskType =
   | 'generation'      // Document creation (resume, spreadsheet, etc.)
   | 'conversation'    // Simple Q&A, follow-ups
   | 'creative'        // Writing, brainstorming
-  | 'calculation';    // Math, formulas
+  | 'calculation'     // Math, formulas
+  | 'code-review';    // GitHub repository analysis and review
 
 export interface SubTask {
   id: number;
@@ -76,7 +77,7 @@ const TASK_CLASSIFICATION_SCHEMA = {
           description: { type: 'string' },
           type: {
             type: 'string',
-            enum: ['research', 'deep-research', 'analysis', 'generation', 'conversation', 'creative', 'calculation']
+            enum: ['research', 'deep-research', 'analysis', 'generation', 'conversation', 'creative', 'calculation', 'code-review']
           },
           dependsOn: {
             type: 'array',
@@ -148,9 +149,17 @@ For each subtask, specify:
   * conversation - Simple Q&A, follow-ups
   * creative - Writing, brainstorming
   * calculation - Math, formulas
-- estimatedTool: googleSearch, deepResearch, codeExecution, documentGeneration, or chat
+  * code-review - Analyzing GitHub repositories, reviewing code, finding bugs (use when user provides a GitHub URL or asks to review their project/code)
+- estimatedTool: googleSearch, deepResearch, codeExecution, documentGeneration, githubReview, or chat
 - dependsOn: IDs of tasks that must complete first (empty array if none)
 - requiresCheckpoint: true/false - Set to TRUE for steps where user should confirm before proceeding
+
+WHEN TO USE code-review:
+- User provides a GitHub URL (github.com/owner/repo)
+- User asks to "review my code/project/repo"
+- User asks to "analyze my codebase"
+- User asks "what's wrong with my code"
+- User asks to "help me with my GitHub project"
 
 WHEN TO USE deep-research vs research:
 - Use "deep-research" for: market analysis, competitor research, comprehensive topic research, trend analysis
