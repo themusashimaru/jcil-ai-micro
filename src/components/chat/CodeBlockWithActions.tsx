@@ -56,13 +56,20 @@ export function CodeBlockWithActions({
   };
 
   const handleTest = async () => {
-    if (!onTest) return;
+    console.log('[CodeBlock] handleTest called', { hasOnTest: !!onTest, language, codeLength: code.length });
+    if (!onTest) {
+      console.log('[CodeBlock] No onTest function provided!');
+      return;
+    }
     setTesting(true);
     setTestResult(null);
     try {
+      console.log('[CodeBlock] Calling onTest...');
       const result = await onTest(code, language);
+      console.log('[CodeBlock] onTest result:', result);
       setTestResult(result);
     } catch (error) {
+      console.error('[CodeBlock] onTest error:', error);
       setTestResult({
         success: false,
         output: error instanceof Error ? error.message : 'Test failed',
