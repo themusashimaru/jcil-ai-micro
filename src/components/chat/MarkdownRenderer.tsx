@@ -423,7 +423,9 @@ export function MarkdownRenderer({
       }
 
       // Block code - use CodeBlockWithActions when enabled
+      console.log('[MarkdownRenderer] Code block render:', { enableCodeActions, hasCodeExecution: !!codeExecution, language });
       if (enableCodeActions && codeExecution) {
+        console.log('[MarkdownRenderer] Rendering CodeBlockWithActions with onTest');
         return (
           <CodeBlockWithActions
             code={codeContent}
@@ -431,7 +433,9 @@ export function MarkdownRenderer({
             showTestButton={true}
             showPushButton={codeExecution.githubConnected}
             onTest={async (code, lang) => {
+              console.log('[MarkdownRenderer] onTest called with:', { lang, codeLength: code.length });
               const result = await codeExecution.testCode(code, lang);
+              console.log('[MarkdownRenderer] testCode result:', result);
               const output = result.outputs.map(o => o.stdout || o.stderr).join('\n') || result.error || '';
               if (onTestResult) {
                 onTestResult({ success: result.success, output });
