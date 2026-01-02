@@ -103,33 +103,41 @@ const TASK_CLASSIFICATION_SCHEMA = {
 // Classification Logic
 // ============================================================================
 
-const CLASSIFICATION_PROMPT = `You are a task classifier for an AI assistant. Analyze the user's request and determine if it requires multiple distinct steps.
+const CLASSIFICATION_PROMPT = `You are a task classifier for an AI assistant. Analyze the user's request and determine if it TRULY requires multiple distinct steps.
 
-A request is COMPLEX if it requires 2 or more of these distinct actions:
-- Web research (searching for current information)
-- Data analysis (processing numbers, creating charts)
-- Document generation (creating resumes, spreadsheets, reports)
-- Multi-part deliverables (e.g., "research X AND create a document about it")
+⚠️ CRITICAL: DEFAULT TO SIMPLE. Only mark as complex if there are GENUINELY MULTIPLE DISTINCT PHASES.
 
-A request is SIMPLE if it:
-- Is a single question
-- Is a single document request
-- Is a follow-up to previous conversation
-- Can be answered directly without multiple tools
-- Is casual conversation
+A request is COMPLEX ONLY if it requires 2+ of these DISTINCT phases:
+1. RESEARCH PHASE: Searching the web for current information the AI doesn't know
+2. ANALYSIS PHASE: Processing data, calculations, comparisons
+3. CREATION PHASE: Generating a document/report based on gathered information
 
-IMPORTANT: Do NOT over-classify. Only mark as complex if there are genuinely distinct steps needed.
+A request is SIMPLE if:
+- It's a single question or request
+- It can be answered directly from AI knowledge
+- It's writing code, explaining concepts, creating content
+- It's a follow-up or conversation
+- NO external research is needed
 
-Examples of SIMPLE requests:
-- "What's the weather like?"
-- "Create a resume for me"
-- "Explain how photosynthesis works"
-- "What did we discuss yesterday?"
+🚨 SIMPLE REQUESTS (DO NOT OVERCOMPLICATE):
+- "Write hello world in Python" → SIMPLE (just write the code!)
+- "Create a function that sorts arrays" → SIMPLE (just write it!)
+- "Explain how React works" → SIMPLE (AI knows this)
+- "Write me an email" → SIMPLE (just write it!)
+- "Create a resume" → SIMPLE (gather info conversationally, then create)
+- "What's 2+2?" → SIMPLE (just answer!)
+- "How do I use TypeScript?" → SIMPLE (explain it!)
 
-Examples of COMPLEX requests:
-- "Research competitors in the fitness app market and create a spreadsheet comparing them"
-- "Find the latest AI news, analyze the trends, and write a summary report"
-- "Calculate my monthly expenses from this data and then create a budget document"
+🔧 COMPLEX REQUESTS (genuinely need multiple phases):
+- "Research current crypto prices AND create a report" → COMPLEX (needs live research + document)
+- "Find competitor analysis AND make a comparison spreadsheet" → COMPLEX (research + creation)
+- "Look up the latest AI news AND summarize the trends" → COMPLEX (web search + synthesis)
+
+THE KEY QUESTION: Does this REQUIRE external web research/data that the AI doesn't already know?
+- If NO → SIMPLE. Just do it.
+- If YES, and also needs document creation → COMPLEX.
+
+Code generation is ALWAYS simple. The AI knows programming languages. Don't "research" how to write hello world.
 
 For each subtask, specify:
 - type: One of these based on the task nature:
@@ -238,22 +246,65 @@ function isObviouslySimple(message: string): boolean {
   // Short questions (ends with ? and less than 50 chars)
   if (message.endsWith('?') && message.length < 50) return true;
 
-  // No conjunctions suggesting multiple tasks
+  // =========================================================================
+  // SIMPLE CODE GENERATION - These should NEVER trigger task planning
+  // =========================================================================
+  // Single code snippets, examples, or basic programming tasks
+  const simpleCodePatterns = [
+    /^write (a |an |me )?(hello world|fizzbuzz|fibonacci|factorial)/i,
+    /^(write|create|make|show|give) (a |an |me )?(simple |basic )?(function|class|script|code|program|snippet)/i,
+    /^(write|create|show|give) (a |an |me )?.*\b(in|using) (typescript|javascript|python|java|go|rust|c\+\+|ruby|php|swift|kotlin)/i,
+    /^how (do|would) (i|you) (write|create|make)/i,
+    /^(can you )?(write|create|show|make) (a |an )?(simple |basic |quick )?(example|demo|snippet)/i,
+    /^(code|implement|write) (a |an )?\w+ (function|method|class)/i,
+    /^print\b/i,
+    /^console\.log/i,
+    /^hello world/i,
+  ];
+
+  for (const pattern of simpleCodePatterns) {
+    if (pattern.test(lowerMessage)) {
+      console.log('[TaskPlanner] Simple code request detected - skipping classification');
+      return true;
+    }
+  }
+
+  // Simple document/content requests (no research needed)
+  const simpleContentPatterns = [
+    /^(write|draft|create) (a |an )?(short |brief )?(email|message|note|letter)/i,
+    /^(explain|describe|tell me about|what is)/i,
+    /^(summarize|rewrite|translate|convert)/i,
+  ];
+
+  for (const pattern of simpleContentPatterns) {
+    if (pattern.test(lowerMessage)) return true;
+  }
+
+  // Multi-step indicators - these genuinely need planning
   const complexIndicators = [
-    'and then', 'after that', 'also', 'additionally', 'as well as',
-    'create a', 'make a', 'generate', 'write a', 'build a',
-    'analyze', 'research', 'find', 'search', 'compare',
-    ', and ', // Comma followed by "and" indicates list of actions
+    'and then', 'after that', 'additionally', 'as well as',
+    'research', 'find out', 'look up', 'search for',
+    'compare', 'analyze the market', 'investigate',
+    ', then ', // Sequential tasks
+    ', and ', // Multiple tasks in a list
   ];
   const hasComplexIndicator = complexIndicators.some(ind => lowerMessage.includes(ind));
 
-  // Check for multiple action verbs (indicates multi-step task)
-  const actionVerbs = ['find', 'search', 'research', 'analyze', 'create', 'write', 'make', 'build', 'compare', 'summarize', 'generate', 'calculate', 'review'];
-  const verbCount = actionVerbs.filter(verb => lowerMessage.includes(verb)).length;
-  const hasMultipleActions = verbCount >= 2;
+  // Check for multiple DISTINCT action verbs (not just any verb)
+  // Only count verbs that suggest separate tasks
+  const researchVerbs = ['research', 'investigate', 'find out', 'look up', 'search for'];
+  const analysisVerbs = ['analyze', 'compare', 'evaluate', 'assess'];
+  const creationVerbs = ['create', 'write', 'build', 'make', 'generate'];
 
-  // If no complex indicators AND no multiple actions AND message is short, it's simple
-  if (!hasComplexIndicator && !hasMultipleActions && message.length < 100) return true;
+  const hasResearch = researchVerbs.some(v => lowerMessage.includes(v));
+  const hasAnalysis = analysisVerbs.some(v => lowerMessage.includes(v));
+  const hasCreation = creationVerbs.some(v => lowerMessage.includes(v));
+
+  // Only complex if combining research/analysis WITH creation
+  const hasMultiplePhases = (hasResearch || hasAnalysis) && hasCreation;
+
+  // If no complex indicators AND no multi-phase work, it's simple
+  if (!hasComplexIndicator && !hasMultiplePhases) return true;
 
   return false;
 }
