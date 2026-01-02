@@ -17,7 +17,15 @@
 import { createGeminiCompletion } from '@/lib/gemini/client';
 import type { CoreMessage } from 'ai';
 import type { TaskType } from './index';
-import { cloneRepo, getRepoInfo } from '@/lib/connectors';
+import {
+  cloneRepo,
+  getRepoInfo,
+  createBranch,
+  createPullRequest,
+  compareBranches,
+  // pushFiles, // Will be used for push code feature
+  getBranches,
+} from '@/lib/connectors';
 
 // ============================================================================
 // Types
@@ -801,6 +809,411 @@ ${reviewPrompts[reviewFocus]}
   },
 };
 
+/**
+ * Git Workflow Tool - GitHub operations (branches, PRs, push, etc.)
+ *
+ * Handles git operations like creating branches, pull requests,
+ * pushing code, and comparing branches.
+ */
+const gitWorkflowTool: Tool = {
+  id: 'git-workflow',
+  name: 'Git Workflow',
+  description: 'Create branches, pull requests, push code, and manage git operations',
+  capabilities: [
+    'Create new branches',
+    'Create pull requests',
+    'Push code to repositories',
+    'Compare branches (show diffs)',
+    'List branches',
+  ],
+  taskTypes: ['git-workflow'],
+
+  async execute(input: ToolInput, config: ToolConfig): Promise<ToolOutput> {
+    const startTime = Date.now();
+
+    // Check for GitHub token
+    if (!config.githubToken) {
+      return {
+        success: false,
+        content: '',
+        error: 'GitHub not connected. Please connect your GitHub account in Settings > Connectors to perform git operations.',
+      };
+    }
+
+    // Check for selected repo
+    if (!config.selectedRepo) {
+      return {
+        success: false,
+        content: '',
+        error: 'No repository selected. Please select a repository from the dropdown to perform git operations.',
+      };
+    }
+
+    const { owner, repo, defaultBranch } = config.selectedRepo;
+    const query = input.query.toLowerCase();
+
+    try {
+      // Detect operation type from query
+      if (/create\s+(a\s+)?pr|pull\s+request|open\s+(a\s+)?pr/i.test(query)) {
+        return await handleCreatePR(input, config, owner, repo, defaultBranch, startTime);
+      }
+
+      if (/create\s+(a\s+)?branch|new\s+branch/i.test(query)) {
+        return await handleCreateBranch(input, config, owner, repo, defaultBranch, startTime);
+      }
+
+      if (/compare|diff|difference|changes\s+between/i.test(query)) {
+        return await handleCompareBranches(input, config, owner, repo, defaultBranch, startTime);
+      }
+
+      if (/list\s+branch|show\s+branch|branches/i.test(query)) {
+        return await handleListBranches(config, owner, repo, startTime);
+      }
+
+      if (/push|commit|upload/i.test(query)) {
+        return await handlePushCode(input, config, owner, repo, startTime);
+      }
+
+      // Default: show available operations
+      return {
+        success: true,
+        content: `## Git Workflow for ${owner}/${repo}
+
+I can help you with the following git operations:
+
+1. **Create a Pull Request** - "Create a PR from feature-branch to main"
+2. **Create a Branch** - "Create a new branch called feature-x"
+3. **Compare Branches** - "Show the diff between main and develop"
+4. **List Branches** - "Show me all branches"
+5. **Push Code** - "Push these changes to my-branch"
+
+What would you like to do?`,
+        metadata: {
+          repo: `${owner}/${repo}`,
+          durationMs: Date.now() - startTime,
+        },
+      };
+    } catch (error) {
+      console.error('[GitWorkflow] Error:', error);
+      return {
+        success: false,
+        content: '',
+        error: error instanceof Error ? error.message : 'Git operation failed',
+      };
+    }
+  },
+};
+
+// Git Workflow Helper Functions
+
+async function handleCreatePR(
+  input: ToolInput,
+  config: ToolConfig,
+  owner: string,
+  repo: string,
+  _defaultBranch: string,
+  startTime: number
+): Promise<ToolOutput> {
+  // Extract branch names from query
+  const query = input.query;
+
+  // Try to extract "from X to Y" pattern
+  const fromToMatch = query.match(/from\s+(\S+)\s+to\s+(\S+)/i);
+  // Or "X into Y" pattern
+  const intoMatch = query.match(/(\S+)\s+into\s+(\S+)/i);
+
+  let head: string;
+  let base: string;
+
+  if (fromToMatch) {
+    head = fromToMatch[1];
+    base = fromToMatch[2];
+  } else if (intoMatch) {
+    head = intoMatch[1];
+    base = intoMatch[2];
+  } else {
+    // Ask for clarification
+    return {
+      success: true,
+      content: `To create a pull request, I need to know which branches to use.
+
+Please specify like:
+- "Create a PR from **feature-branch** to **main**"
+- "Create a PR from **develop** into **main**"
+
+**Available branches:**`,
+      metadata: { needsBranches: true },
+    };
+  }
+
+  // Extract title from query or generate one
+  const titleMatch = query.match(/titled?\s*[:"']([^"']+)[:"']|title\s*:\s*(.+)/i);
+  const title = titleMatch
+    ? (titleMatch[1] || titleMatch[2]).trim()
+    : `Merge ${head} into ${base}`;
+
+  // Create the PR
+  const result = await createPullRequest(config.githubToken!, {
+    owner,
+    repo,
+    title,
+    body: `## Summary\n\nPull request created via JCIL.ai assistant.\n\n**Source:** \`${head}\`\n**Target:** \`${base}\``,
+    head,
+    base,
+  });
+
+  if (!result.success) {
+    return {
+      success: false,
+      content: '',
+      error: result.error || 'Failed to create pull request',
+    };
+  }
+
+  return {
+    success: true,
+    content: `## Pull Request Created! 🎉
+
+**Title:** ${title}
+**PR #${result.prNumber}**
+
+🔗 [View Pull Request](${result.prUrl})
+
+The PR merges \`${head}\` → \`${base}\`
+
+**Next steps:**
+- Review the changes in the PR
+- Add reviewers if needed
+- Merge when ready`,
+    artifacts: [{
+      type: 'url',
+      name: 'Pull Request',
+      content: result.prUrl!,
+    }],
+    metadata: {
+      prNumber: result.prNumber,
+      prUrl: result.prUrl,
+      head,
+      base,
+      durationMs: Date.now() - startTime,
+    },
+  };
+}
+
+async function handleCreateBranch(
+  input: ToolInput,
+  config: ToolConfig,
+  owner: string,
+  repo: string,
+  defaultBranch: string,
+  startTime: number
+): Promise<ToolOutput> {
+  // Extract branch name from query
+  const nameMatch = input.query.match(/(?:branch|called|named)\s+['""]?([a-zA-Z0-9_/-]+)['""]?/i);
+
+  if (!nameMatch) {
+    return {
+      success: true,
+      content: `To create a branch, please specify the name:
+
+- "Create a branch called **feature-login**"
+- "Create a new branch named **bugfix-123**"`,
+      metadata: { needsBranchName: true },
+    };
+  }
+
+  const branchName = nameMatch[1];
+
+  // Check if "from X" is specified
+  const fromMatch = input.query.match(/from\s+(\S+)/i);
+  const fromBranch = fromMatch ? fromMatch[1] : defaultBranch;
+
+  const result = await createBranch(config.githubToken!, owner, repo, branchName, fromBranch);
+
+  if (!result.success) {
+    return {
+      success: false,
+      content: '',
+      error: result.error || 'Failed to create branch',
+    };
+  }
+
+  return {
+    success: true,
+    content: `## Branch Created! 🌿
+
+**New branch:** \`${branchName}\`
+**Based on:** \`${fromBranch}\`
+
+You can now:
+- Push code to this branch
+- Create a PR when ready`,
+    metadata: {
+      branchName,
+      fromBranch,
+      sha: result.sha,
+      durationMs: Date.now() - startTime,
+    },
+  };
+}
+
+async function handleCompareBranches(
+  input: ToolInput,
+  config: ToolConfig,
+  owner: string,
+  repo: string,
+  defaultBranch: string,
+  startTime: number
+): Promise<ToolOutput> {
+  // Extract branch names
+  const compareMatch = input.query.match(/(?:between|compare)\s+(\S+)\s+(?:and|to|with)\s+(\S+)/i);
+
+  let base: string;
+  let head: string;
+
+  if (compareMatch) {
+    base = compareMatch[1];
+    head = compareMatch[2];
+  } else {
+    // Try single branch (compare to default)
+    const singleMatch = input.query.match(/(?:diff|changes|compare)\s+(\S+)/i);
+    if (singleMatch) {
+      base = defaultBranch;
+      head = singleMatch[1];
+    } else {
+      return {
+        success: true,
+        content: `To compare branches, please specify:
+
+- "Compare **main** and **develop**"
+- "Show diff between **main** and **feature-branch**"
+- "What changed in **my-branch**" (compares to ${defaultBranch})`,
+        metadata: { needsBranches: true },
+      };
+    }
+  }
+
+  const result = await compareBranches(config.githubToken!, owner, repo, base, head);
+
+  if (!result) {
+    return {
+      success: false,
+      content: '',
+      error: 'Failed to compare branches. Make sure both branches exist.',
+    };
+  }
+
+  // Format the comparison
+  let content = `## Branch Comparison: \`${base}\` ↔ \`${head}\`
+
+**Status:** ${result.status}
+**Commits ahead:** ${result.ahead} | **Behind:** ${result.behind}
+**Files changed:** ${result.files.length}
+
+`;
+
+  if (result.files.length > 0) {
+    content += `### Changed Files\n\n`;
+    for (const file of result.files.slice(0, 20)) {
+      const icon = file.status === 'added' ? '➕' : file.status === 'removed' ? '➖' : '📝';
+      content += `${icon} \`${file.filename}\` (+${file.additions}/-${file.deletions})\n`;
+    }
+    if (result.files.length > 20) {
+      content += `\n*...and ${result.files.length - 20} more files*\n`;
+    }
+  }
+
+  if (result.commits.length > 0) {
+    content += `\n### Recent Commits\n\n`;
+    for (const commit of result.commits.slice(0, 5)) {
+      const shortSha = commit.sha.substring(0, 7);
+      const shortMsg = commit.message.split('\n')[0].substring(0, 60);
+      content += `- \`${shortSha}\` ${shortMsg}\n`;
+    }
+  }
+
+  return {
+    success: true,
+    content,
+    metadata: {
+      base,
+      head,
+      status: result.status,
+      ahead: result.ahead,
+      behind: result.behind,
+      filesChanged: result.files.length,
+      commits: result.commits.length,
+      durationMs: Date.now() - startTime,
+    },
+  };
+}
+
+async function handleListBranches(
+  config: ToolConfig,
+  owner: string,
+  repo: string,
+  startTime: number
+): Promise<ToolOutput> {
+  const branches = await getBranches(config.githubToken!, owner, repo);
+
+  if (branches.length === 0) {
+    return {
+      success: true,
+      content: `No branches found in ${owner}/${repo}.`,
+      metadata: { durationMs: Date.now() - startTime },
+    };
+  }
+
+  let content = `## Branches in ${owner}/${repo}\n\n`;
+
+  for (const branch of branches) {
+    const protectedIcon = branch.protected ? '🔒' : '';
+    content += `- \`${branch.name}\` ${protectedIcon}\n`;
+  }
+
+  content += `\n**Total:** ${branches.length} branches`;
+
+  return {
+    success: true,
+    content,
+    metadata: {
+      branchCount: branches.length,
+      durationMs: Date.now() - startTime,
+    },
+  };
+}
+
+async function handlePushCode(
+  _input: ToolInput,
+  _config: ToolConfig,
+  _owner: string,
+  _repo: string,
+  startTime: number
+): Promise<ToolOutput> {
+  // This is more complex - would need code from context
+  // For now, provide guidance (will be enhanced in Project Scaffolding phase)
+  return {
+    success: true,
+    content: `## Push Code to GitHub
+
+To push code, I need:
+1. The **file content** you want to push
+2. The **file path** (e.g., \`src/app.js\`)
+3. The **branch** to push to
+4. A **commit message**
+
+You can:
+- Share the code you want to push
+- Or use the code execution results from a previous step
+
+Example: "Push the code from above to \`feature-branch\` as \`src/utils.ts\`"`,
+    metadata: {
+      needsCode: true,
+      durationMs: Date.now() - startTime,
+    },
+  };
+}
+
 // ============================================================================
 // Tool Registry
 // ============================================================================
@@ -817,6 +1230,7 @@ class ToolRegistry {
     this.register(generationTool);
     this.register(conversationTool);
     this.register(codeReviewTool); // GitHub code review
+    this.register(gitWorkflowTool); // Git operations (branches, PRs, push)
   }
 
   /**

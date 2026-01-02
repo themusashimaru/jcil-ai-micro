@@ -24,7 +24,8 @@ export type TaskType =
   | 'conversation'    // Simple Q&A, follow-ups
   | 'creative'        // Writing, brainstorming
   | 'calculation'     // Math, formulas
-  | 'code-review';    // GitHub repository analysis and review
+  | 'code-review'     // GitHub repository analysis and review
+  | 'git-workflow';   // Git operations: branches, PRs, commits, push
 
 export interface SubTask {
   id: number;
@@ -77,7 +78,7 @@ const TASK_CLASSIFICATION_SCHEMA = {
           description: { type: 'string' },
           type: {
             type: 'string',
-            enum: ['research', 'deep-research', 'analysis', 'generation', 'conversation', 'creative', 'calculation', 'code-review']
+            enum: ['research', 'deep-research', 'analysis', 'generation', 'conversation', 'creative', 'calculation', 'code-review', 'git-workflow']
           },
           dependsOn: {
             type: 'array',
@@ -150,7 +151,8 @@ For each subtask, specify:
   * creative - Writing, brainstorming
   * calculation - Math, formulas
   * code-review - Analyzing GitHub repositories, reviewing code, finding bugs (use when user provides a GitHub URL or asks to review their project/code)
-- estimatedTool: googleSearch, deepResearch, codeExecution, documentGeneration, githubReview, or chat
+  * git-workflow - Git operations like creating branches, making PRs, pushing code, comparing branches
+- estimatedTool: googleSearch, deepResearch, codeExecution, documentGeneration, githubReview, gitWorkflow, or chat
 - dependsOn: IDs of tasks that must complete first (empty array if none)
 - requiresCheckpoint: true/false - Set to TRUE for steps where user should confirm before proceeding
 
@@ -160,6 +162,14 @@ WHEN TO USE code-review:
 - User asks to "analyze my codebase"
 - User asks "what's wrong with my code"
 - User asks to "help me with my GitHub project"
+
+WHEN TO USE git-workflow:
+- User asks to "create a PR/pull request"
+- User asks to "create a branch"
+- User asks to "push this code to GitHub"
+- User asks to "show me the diff between branches"
+- User asks to "commit these changes"
+- Any GitHub write operation (not just reading/reviewing)
 
 WHEN TO USE deep-research vs research:
 - Use "deep-research" for: market analysis, competitor research, comprehensive topic research, trend analysis
