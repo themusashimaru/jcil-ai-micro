@@ -56,13 +56,20 @@ export function CodeBlockWithActions({
   };
 
   const handleTest = async () => {
-    if (!onTest) return;
+    console.log('[CodeBlock] handleTest called', { hasOnTest: !!onTest, language, codeLength: code.length });
+    if (!onTest) {
+      console.log('[CodeBlock] No onTest function provided!');
+      return;
+    }
     setTesting(true);
     setTestResult(null);
     try {
+      console.log('[CodeBlock] Calling onTest...');
       const result = await onTest(code, language);
+      console.log('[CodeBlock] onTest result:', result);
       setTestResult(result);
     } catch (error) {
+      console.error('[CodeBlock] onTest error:', error);
       setTestResult({
         success: false,
         output: error instanceof Error ? error.message : 'Test failed',
@@ -117,7 +124,10 @@ export function CodeBlockWithActions({
           {/* Test button */}
           {showTestButton && canTest && onTest && (
             <button
-              onClick={handleTest}
+              onClick={() => {
+                console.log('[CodeBlock] TEST BUTTON CLICKED!');
+                handleTest();
+              }}
               disabled={testing}
               className="p-1.5 rounded hover:bg-white/10 transition-colors disabled:opacity-50"
               title="Test in Sandbox"

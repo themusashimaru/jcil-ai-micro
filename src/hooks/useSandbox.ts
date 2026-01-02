@@ -74,6 +74,7 @@ export function useSandbox() {
     code: string,
     language: string = 'javascript'
   ): Promise<SandboxTestResult> => {
+    console.log('[useSandbox] testCode called:', { language, codeLength: code.length });
     setTesting(true);
     setError(null);
     setResult(null);
@@ -88,7 +89,9 @@ export function useSandbox() {
         tsx: 'typescript',
       };
       const normalizedLang = langMap[language.toLowerCase()] || language.toLowerCase();
+      console.log('[useSandbox] Normalized language:', normalizedLang);
 
+      console.log('[useSandbox] Calling /api/sandbox...');
       const response = await fetch('/api/sandbox', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,12 +102,16 @@ export function useSandbox() {
         }),
       });
 
+      console.log('[useSandbox] Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('[useSandbox] Error response:', errorData);
         throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
       const data: SandboxTestResult = await response.json();
+      console.log('[useSandbox] Success result:', data);
       setResult(data);
       return data;
     } catch (err) {
