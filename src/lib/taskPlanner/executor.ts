@@ -303,9 +303,10 @@ export async function executeTaskPlan(
         const finalOutput = await synthesizeResults(context, plan, model, userId, userTier);
         controller.enqueue(encoder.encode(finalOutput));
 
-        // Add completion footer
+        // Add completion footer with proactive suggestions
         const totalDuration = Date.now() - executionStartTime;
-        const footer = formatCompletionFooter(successCount, plan.subtasks.length, totalDuration);
+        const taskTypes = plan.subtasks.map(s => s.type);
+        const footer = formatCompletionFooter(successCount, plan.subtasks.length, totalDuration, taskTypes);
         controller.enqueue(encoder.encode(footer));
 
         controller.close();
@@ -437,9 +438,90 @@ function formatSynthesisStart(successCount: number, totalCount: number): string 
   }
 }
 
-function formatCompletionFooter(successCount: number, totalCount: number, durationMs: number): string {
+function formatCompletionFooter(successCount: number, totalCount: number, durationMs: number, taskTypes?: string[]): string {
   const duration = formatDuration(durationMs);
-  return `\n\n---\n*✓ Task completed in ${duration} (${successCount}/${totalCount} steps successful)*`;
+  let footer = `\n\n---\n*✓ Task completed in ${duration} (${successCount}/${totalCount} steps successful)*`;
+
+  // Add proactive suggestions based on task types
+  if (successCount === totalCount && taskTypes && taskTypes.length > 0) {
+    const suggestions = getProactiveSuggestions(taskTypes);
+    if (suggestions.length > 0) {
+      footer += '\n\n**What else can I help with?**\n';
+      suggestions.forEach(s => {
+        footer += `- ${s}\n`;
+      });
+    }
+  }
+
+  return footer;
+}
+
+/**
+ * Get proactive suggestions based on completed task types
+ */
+function getProactiveSuggestions(taskTypes: string[]): string[] {
+  const suggestions: string[] = [];
+  const seen = new Set<string>();
+
+  for (const type of taskTypes) {
+    let typeSuggestions: string[] = [];
+
+    switch (type) {
+      case 'research':
+      case 'deep-research':
+        typeSuggestions = [
+          'Create a summary document or presentation',
+          'Dive deeper into a specific area',
+          'Compare this with alternative approaches',
+        ];
+        break;
+      case 'analysis':
+        typeSuggestions = [
+          'Generate a report with visualizations',
+          'Explore related data or trends',
+          'Create an action plan based on findings',
+        ];
+        break;
+      case 'generation':
+        typeSuggestions = [
+          'Refine or adjust the content',
+          'Create additional versions for different audiences',
+          'Export to a different format',
+        ];
+        break;
+      case 'code-review':
+        typeSuggestions = [
+          'Fix the issues I identified',
+          'Add tests for the code',
+          'Refactor for better performance',
+          'Create a PR with the improvements',
+        ];
+        break;
+      case 'creative':
+        typeSuggestions = [
+          'Explore alternative creative directions',
+          'Expand on a specific element',
+          'Create variations of this concept',
+        ];
+        break;
+      default:
+        typeSuggestions = [
+          'Refine or adjust this output',
+          'Create a related document',
+        ];
+    }
+
+    // Add unique suggestions
+    for (const s of typeSuggestions) {
+      if (!seen.has(s)) {
+        seen.add(s);
+        suggestions.push(s);
+      }
+    }
+  }
+
+  // Limit to top 3 suggestions
+  return suggestions.slice(0, 3);
 }
 
 function formatFatalError(errorMessage: string): string {

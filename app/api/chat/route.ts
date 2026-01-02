@@ -944,6 +944,34 @@ interface SelectedRepo {
   defaultBranch: string;
 }
 
+/**
+ * Build GitHub repo context for system prompt
+ * This tells the AI what repo the user is working with
+ */
+function buildRepoContextPrompt(repo: SelectedRepo | undefined): string {
+  if (!repo) return '';
+
+  return `
+
+---
+
+## ACTIVE GITHUB REPOSITORY
+
+The user has selected **${repo.fullName}** to work with.
+
+- **Repository:** ${repo.repo}
+- **Owner:** ${repo.owner}
+- **Default Branch:** ${repo.defaultBranch}
+
+You have access to this repository. Be proactive:
+- If they ask to "review my code" or "check my project" - analyze the repo and provide actionable feedback
+- Suggest specific improvements with code examples
+- After reviewing, offer to help fix issues or add features
+- If they haven't asked anything yet, you can say: "I see you're working on ${repo.repo}. Would you like me to review the code, find potential bugs, or help with something specific?"
+
+---`;
+}
+
 interface ChatRequestBody {
   messages: CoreMessage[];
   tool?: string;
@@ -1952,6 +1980,12 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+      if (selectedRepo) {
+        slingshotPrompt += buildRepoContextPrompt(selectedRepo);
+        console.log(`[Chat API] Added GitHub repo context: ${selectedRepo.fullName}`);
+      }
+
       const slingshotSystemMessage = {
         role: 'system' as const,
         content: slingshotPrompt,
@@ -2203,6 +2237,12 @@ Please summarize this information from our platform's perspective. Present the f
           } catch (learnError) {
             console.error('[Chat API] Anthropic: Learning context failed:', learnError);
           }
+        }
+
+        // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+        if (selectedRepo) {
+          baseSystemPrompt += buildRepoContextPrompt(selectedRepo);
+          console.log(`[Chat API] Anthropic: Added GitHub repo context: ${selectedRepo.fullName}`);
         }
       }
 
@@ -2568,6 +2608,12 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
             console.error('[Chat API] xAI: Learning context failed:', learnError);
           }
         }
+
+        // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+        if (selectedRepo) {
+          baseSystemPrompt += buildRepoContextPrompt(selectedRepo);
+          console.log(`[Chat API] xAI: Added GitHub repo context: ${selectedRepo.fullName}`);
+        }
       }
 
       const systemPrompt = isAuthenticated
@@ -2917,6 +2963,12 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
             console.error('[Chat API] DeepSeek: Learning context failed:', learnError);
           }
         }
+
+        // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+        if (selectedRepo) {
+          baseSystemPrompt += buildRepoContextPrompt(selectedRepo);
+          console.log(`[Chat API] DeepSeek: Added GitHub repo context: ${selectedRepo.fullName}`);
+        }
       }
 
       const systemPrompt = isAuthenticated
@@ -3248,6 +3300,12 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           } catch (learnError) {
             console.error('[Chat API] Gemini: Learning context failed:', learnError);
           }
+        }
+
+        // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+        if (selectedRepo) {
+          baseSystemPrompt += buildRepoContextPrompt(selectedRepo);
+          console.log(`[Chat API] Gemini: Added GitHub repo context: ${selectedRepo.fullName}`);
         }
       }
 
