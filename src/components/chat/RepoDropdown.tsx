@@ -109,7 +109,7 @@ export function RepoDropdown({ disabled }: RepoDropdownProps) {
         disabled={disabled}
         className={`rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium ${
           selectedRepo
-            ? 'bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/50'
+            ? 'text-purple-400'
             : 'hover:bg-white/5'
         }`}
         style={{ color: selectedRepo ? '#a855f7' : 'var(--text-secondary)' }}
