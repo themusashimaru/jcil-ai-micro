@@ -168,6 +168,41 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     switch (action) {
+      case 'listRepos': {
+        // List user's GitHub repositories
+        const repos = await listUserRepos(token);
+        return NextResponse.json({ repos });
+      }
+
+      case 'pushFiles': {
+        // Alias for push-files (camelCase version)
+        const { owner, repo, branch, message, files } = body;
+
+        if (!owner || !repo || !message || !files || files.length === 0) {
+          return NextResponse.json({
+            error: 'owner, repo, message, and files required',
+          }, { status: 400 });
+        }
+
+        const result = await pushFiles(token, {
+          owner,
+          repo,
+          branch,
+          message,
+          files,
+        });
+
+        if (!result.success) {
+          return NextResponse.json({ error: result.error || 'Push failed' }, { status: 500 });
+        }
+
+        return NextResponse.json({
+          success: true,
+          commitSha: result.commitSha,
+          repoUrl: result.repoUrl,
+        });
+      }
+
       case 'create-repo': {
         const { name, description, isPrivate } = body;
 

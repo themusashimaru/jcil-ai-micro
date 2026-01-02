@@ -62,9 +62,9 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
   const connectedCount = connectors.filter(c => c.status === 'connected').length;
 
   const handleConnectGitHub = () => {
-    // Redirect to login with GitHub OAuth
-    // This will get the provider_token we need
-    window.location.href = '/login?provider=github&redirect=/chat';
+    // Use identity linking to connect GitHub to existing account
+    // This preserves the current session and adds GitHub as a linked identity
+    window.location.href = '/api/auth/link-github?redirect=/chat';
   };
 
   return (
