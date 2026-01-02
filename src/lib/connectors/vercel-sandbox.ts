@@ -17,9 +17,12 @@ import ms from 'ms';
 
 // Types for sandbox operations
 export interface SandboxConfig {
-  teamId: string;   // Required - even personal Pro accounts have a Team ID
-  projectId: string;
-  token: string;
+  // For OIDC auth (preferred on Vercel)
+  oidcToken?: string;
+  // For access token auth (fallback)
+  teamId?: string;
+  projectId?: string;
+  token?: string;
 }
 
 export interface SandboxExecutionOptions {
@@ -63,30 +66,45 @@ export async function executeSandbox(
   let sandbox: Sandbox | null = null;
 
   try {
-    // Check if OIDC token is available (automatic on Vercel)
-    const hasOIDC = !!process.env.VERCEL_OIDC_TOKEN;
+    // Check which auth method to use
+    const hasOIDC = !!config.oidcToken;
 
     console.log('[Sandbox] Creating sandbox:', {
       authMethod: hasOIDC ? 'OIDC' : 'Access Token',
+      hasOidcToken: !!config.oidcToken,
+      hasAccessToken: !!config.token,
       runtime: options.runtime || 'node22',
       timeout: options.timeout || ms('5m'),
       vcpus: options.vcpus || 2,
     });
 
-    // Create sandbox - prefer OIDC (automatic on Vercel), fall back to access token
+    // Create sandbox - prefer OIDC, fall back to access token
     if (hasOIDC) {
-      // OIDC auth - no credentials needed, SDK handles it automatically
-      sandbox = await Sandbox.create({
-        runtime: options.runtime || 'node22',
-        timeout: options.timeout || ms('5m'),
-        resources: { vcpus: options.vcpus || 2 },
-      });
+      // OIDC auth - SDK handles authentication via VERCEL_OIDC_TOKEN env var
+      // We need to set it temporarily for the SDK to pick up
+      const originalOidcToken = process.env.VERCEL_OIDC_TOKEN;
+      process.env.VERCEL_OIDC_TOKEN = config.oidcToken;
+
+      try {
+        sandbox = await Sandbox.create({
+          runtime: options.runtime || 'node22',
+          timeout: options.timeout || ms('5m'),
+          resources: { vcpus: options.vcpus || 2 },
+        });
+      } finally {
+        // Restore original value
+        if (originalOidcToken) {
+          process.env.VERCEL_OIDC_TOKEN = originalOidcToken;
+        } else {
+          delete process.env.VERCEL_OIDC_TOKEN;
+        }
+      }
     } else {
       // Access token auth - requires teamId, projectId, token
       sandbox = await Sandbox.create({
-        teamId: config.teamId,
-        projectId: config.projectId,
-        token: config.token,
+        teamId: config.teamId!,
+        projectId: config.projectId!,
+        token: config.token!,
         runtime: options.runtime || 'node22',
         timeout: options.timeout || ms('5m'),
         resources: { vcpus: options.vcpus || 2 },
@@ -294,11 +312,18 @@ export async function buildAndTest(
 /**
  * Check if Vercel Sandbox is configured
  * Supports two authentication methods:
- * 1. OIDC (automatic on Vercel) - just needs VERCEL_OIDC_TOKEN
+ * 1. OIDC (from request header on Vercel) - preferred
  * 2. Access tokens - needs VERCEL_TEAM_ID, VERCEL_PROJECT_ID, VERCEL_TOKEN
+ *
+ * @param oidcToken - OIDC token from request header (x-vercel-oidc-token)
  */
-export function isSandboxConfigured(): boolean {
-  // OIDC is automatic on Vercel deployments
+export function isSandboxConfigured(oidcToken?: string | null): boolean {
+  // OIDC from request header (Vercel serverless functions)
+  if (oidcToken) {
+    return true;
+  }
+
+  // OIDC from env (local dev with vercel env pull)
   if (process.env.VERCEL_OIDC_TOKEN) {
     return true;
   }
@@ -312,26 +337,35 @@ export function isSandboxConfigured(): boolean {
 }
 
 /**
- * Get sandbox config from environment
+ * Get sandbox config from environment or OIDC token
+ *
+ * @param oidcToken - OIDC token from request header (x-vercel-oidc-token)
  */
-export function getSandboxConfig(): SandboxConfig | null {
-  if (!isSandboxConfigured()) {
+export function getSandboxConfig(oidcToken?: string | null): SandboxConfig | null {
+  if (!isSandboxConfigured(oidcToken)) {
     return null;
   }
 
+  // Prefer OIDC auth (from header or env)
+  const effectiveOidcToken = oidcToken || process.env.VERCEL_OIDC_TOKEN;
+  if (effectiveOidcToken) {
+    return { oidcToken: effectiveOidcToken };
+  }
+
+  // Fall back to access token auth
   return {
-    teamId: process.env.VERCEL_TEAM_ID!, // Required for token auth
-    projectId: process.env.VERCEL_PROJECT_ID!,
-    token: process.env.VERCEL_TOKEN!,
+    teamId: process.env.VERCEL_TEAM_ID,
+    projectId: process.env.VERCEL_PROJECT_ID,
+    token: process.env.VERCEL_TOKEN,
   };
 }
 
 /**
  * Get missing configuration details for error messages
  */
-export function getMissingSandboxConfig(): string[] {
-  // If OIDC is available, nothing is missing
-  if (process.env.VERCEL_OIDC_TOKEN) {
+export function getMissingSandboxConfig(oidcToken?: string | null): string[] {
+  // If OIDC is available (from header or env), nothing is missing
+  if (oidcToken || process.env.VERCEL_OIDC_TOKEN) {
     return [];
   }
 
