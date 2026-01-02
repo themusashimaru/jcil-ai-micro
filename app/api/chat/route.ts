@@ -83,10 +83,12 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import crypto from 'crypto';
 import { analyzeRequest, isTaskPlanningEnabled } from '@/lib/taskPlanner';
 import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '@/lib/taskPlanner/executor';
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
+import { isConnectorsEnabled } from '@/lib/connectors';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -142,6 +144,71 @@ function truncateMessages(messages: CoreMessage[], maxMessages: number = MAX_CON
 function clampMaxTokens(requestedTokens?: number): number {
   if (!requestedTokens) return DEFAULT_RESPONSE_TOKENS;
   return Math.min(Math.max(requestedTokens, 256), MAX_RESPONSE_TOKENS);
+}
+
+// ========================================
+// GitHub Token Helpers (for Code Review)
+// ========================================
+
+/**
+ * Get encryption key for token decryption
+ */
+function getEncryptionKey(): Buffer {
+  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return crypto.createHash('sha256').update(key).digest();
+}
+
+/**
+ * Decrypt GitHub token stored in database
+ */
+function decryptToken(encryptedData: string): string | null {
+  try {
+    const parts = encryptedData.split(':');
+    if (parts.length !== 3) return null;
+
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+
+    const key = getEncryptionKey();
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get user's GitHub token for code review tasks
+ */
+async function getGitHubTokenForUser(userId: string): Promise<string | null> {
+  if (!isConnectorsEnabled()) return null;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) return null;
+
+  try {
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: connector } = await adminClient
+      .from('connectors')
+      .select('encrypted_token')
+      .eq('user_id', userId)
+      .eq('type', 'github')
+      .single();
+
+    if (!connector?.encrypted_token) return null;
+
+    return decryptToken(connector.encrypted_token);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -1038,6 +1105,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Get GitHub token for code review tasks (if user is authenticated and has connected GitHub)
+    let githubToken: string | null = null;
+    if (isAuthenticated && isConnectorsEnabled()) {
+      githubToken = await getGitHubTokenForUser(rateLimitIdentifier);
+    }
+
     // Admin bypass: skip rate limiting and usage limits for admins
     if (!isAdmin) {
       // Check rate limit
@@ -1291,7 +1364,8 @@ export async function POST(request: NextRequest) {
                 geminiModel,
                 isAuthenticated ? rateLimitIdentifier : undefined,
                 userTier,
-                checkpointState // Pass checkpoint state to resume
+                checkpointState, // Pass checkpoint state to resume
+                githubToken || undefined // Pass GitHub token for code review
               );
 
               return new Response(executionStream, {
@@ -1380,7 +1454,9 @@ export async function POST(request: NextRequest) {
               lastUserContent,
               geminiModel,
               isAuthenticated ? rateLimitIdentifier : undefined,
-              userTier
+              userTier,
+              undefined, // No checkpoint state
+              githubToken || undefined // Pass GitHub token for code review
             );
 
             return new Response(executionStream, {
