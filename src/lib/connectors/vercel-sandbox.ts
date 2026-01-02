@@ -63,25 +63,35 @@ export async function executeSandbox(
   let sandbox: Sandbox | null = null;
 
   try {
-    // Log config (without token) for debugging
-    console.log('[Sandbox] Creating sandbox with config:', {
-      teamId: config.teamId ? `${config.teamId.substring(0, 8)}...` : 'NOT SET',
-      projectId: config.projectId ? `${config.projectId.substring(0, 8)}...` : 'NOT SET',
-      hasToken: !!config.token,
+    // Check if OIDC token is available (automatic on Vercel)
+    const hasOIDC = !!process.env.VERCEL_OIDC_TOKEN;
+
+    console.log('[Sandbox] Creating sandbox:', {
+      authMethod: hasOIDC ? 'OIDC' : 'Access Token',
       runtime: options.runtime || 'node22',
       timeout: options.timeout || ms('5m'),
       vcpus: options.vcpus || 2,
     });
 
-    // Create sandbox with authentication
-    sandbox = await Sandbox.create({
-      teamId: config.teamId,
-      projectId: config.projectId,
-      token: config.token,
-      runtime: options.runtime || 'node22',
-      timeout: options.timeout || ms('5m'),
-      resources: { vcpus: options.vcpus || 2 },
-    });
+    // Create sandbox - prefer OIDC (automatic on Vercel), fall back to access token
+    if (hasOIDC) {
+      // OIDC auth - no credentials needed, SDK handles it automatically
+      sandbox = await Sandbox.create({
+        runtime: options.runtime || 'node22',
+        timeout: options.timeout || ms('5m'),
+        resources: { vcpus: options.vcpus || 2 },
+      });
+    } else {
+      // Access token auth - requires teamId, projectId, token
+      sandbox = await Sandbox.create({
+        teamId: config.teamId,
+        projectId: config.projectId,
+        token: config.token,
+        runtime: options.runtime || 'node22',
+        timeout: options.timeout || ms('5m'),
+        resources: { vcpus: options.vcpus || 2 },
+      });
+    }
 
     // Write files to sandbox if provided
     if (options.files && options.files.length > 0) {
@@ -283,11 +293,17 @@ export async function buildAndTest(
 
 /**
  * Check if Vercel Sandbox is configured
- * VERCEL_TEAM_ID is required when using access token authentication.
- * Even personal Pro accounts have a team ID in Vercel's system.
- * Find it at: Vercel Dashboard → Settings → General → "Team ID"
+ * Supports two authentication methods:
+ * 1. OIDC (automatic on Vercel) - just needs VERCEL_OIDC_TOKEN
+ * 2. Access tokens - needs VERCEL_TEAM_ID, VERCEL_PROJECT_ID, VERCEL_TOKEN
  */
 export function isSandboxConfigured(): boolean {
+  // OIDC is automatic on Vercel deployments
+  if (process.env.VERCEL_OIDC_TOKEN) {
+    return true;
+  }
+
+  // Fall back to access token auth
   return !!(
     process.env.VERCEL_TEAM_ID &&
     process.env.VERCEL_PROJECT_ID &&
@@ -314,6 +330,12 @@ export function getSandboxConfig(): SandboxConfig | null {
  * Get missing configuration details for error messages
  */
 export function getMissingSandboxConfig(): string[] {
+  // If OIDC is available, nothing is missing
+  if (process.env.VERCEL_OIDC_TOKEN) {
+    return [];
+  }
+
+  // For access token auth, check all three vars
   const missing: string[] = [];
   if (!process.env.VERCEL_TEAM_ID) missing.push('VERCEL_TEAM_ID');
   if (!process.env.VERCEL_PROJECT_ID) missing.push('VERCEL_PROJECT_ID');
