@@ -26,9 +26,11 @@ interface MessageBubbleProps {
   isLast: boolean;
   isAdmin?: boolean;
   onReply?: (message: Message) => void;
+  /** Enable code execution actions (Test/Push buttons) on code blocks */
+  enableCodeActions?: boolean;
 }
 
-export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply }: MessageBubbleProps) {
+export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enableCodeActions }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
   // Track save status per file (by index)
@@ -554,8 +556,11 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply }: Me
               // User messages: simple text with linkified URLs
               <div className="whitespace-pre-wrap">{linkifyToReact(message.content)}</div>
             ) : (
-              // AI messages: full markdown rendering
-              <MarkdownRenderer content={message.content} />
+              // AI messages: full markdown rendering with optional code actions
+              <MarkdownRenderer
+                content={message.content}
+                enableCodeActions={enableCodeActions}
+              />
             )}
           </div>
 

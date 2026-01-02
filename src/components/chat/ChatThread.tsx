@@ -71,9 +71,10 @@ interface ChatThreadProps {
   isAdmin?: boolean;
   documentType?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | null;
   onReply?: (message: Message) => void;
+  enableCodeActions?: boolean;
 }
 
-export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, documentType, onReply }: ChatThreadProps) {
+export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, documentType, onReply, enableCodeActions }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -291,6 +292,7 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, docu
                   isLast={index === messages.length - 1}
                   isAdmin={isAdmin}
                   onReply={onReply}
+                  enableCodeActions={enableCodeActions}
                 />
               </MessageErrorBoundary>
             </div>

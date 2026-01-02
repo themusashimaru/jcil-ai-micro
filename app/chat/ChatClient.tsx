@@ -39,6 +39,8 @@ import { useUserProfile } from '@/contexts/UserProfileContext';
 import PasskeyPromptModal, { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
+import { CodeExecutionProvider, useCodeExecution } from '@/contexts/CodeExecutionContext';
+import { RepoSelector } from '@/components/chat/RepoSelector';
 import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
@@ -1995,6 +1997,7 @@ export function ChatClient() {
   const { theme } = useTheme();
 
   return (
+    <CodeExecutionProvider>
     <div className="flex h-screen flex-col" style={{ backgroundColor: 'var(--background)' }}>
       {/* Header */}
       <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
@@ -2118,6 +2121,7 @@ export function ChatClient() {
                 isAdmin={isAdmin}
                 documentType={pendingDocumentType}
                 onReply={(message) => setReplyingTo(message)}
+                enableCodeActions
               />
               {/* Reply incoming indicator - shown when waiting for background response */}
               {isWaitingForReply && (
@@ -2181,6 +2185,28 @@ export function ChatClient() {
           dismissPasskeyPrompt();
         }}
       />
+
+      {/* GitHub Repo Selector Modal - for code push to GitHub */}
+      <RepoSelectorWrapper />
     </div>
+    </CodeExecutionProvider>
+  );
+}
+
+/**
+ * Wrapper component for RepoSelector that connects to CodeExecutionContext
+ */
+function RepoSelectorWrapper() {
+  const { showRepoSelector, setShowRepoSelector, selectRepo } = useCodeExecution();
+
+  return (
+    <RepoSelector
+      isOpen={showRepoSelector}
+      onClose={() => setShowRepoSelector(false)}
+      onSelect={(repo) => {
+        selectRepo(repo);
+        setShowRepoSelector(false);
+      }}
+    />
   );
 }
