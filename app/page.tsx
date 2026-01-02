@@ -17,6 +17,10 @@ import TechDemo from './components/TechDemo';
 import LivePreviewDemo from './components/LivePreviewDemo';
 import DeployDemo from './components/DeployDemo';
 import MultiAgentDemo from './components/MultiAgentDemo';
+import AutoTestDemo from './components/AutoTestDemo';
+import DatabaseDemo from './components/DatabaseDemo';
+import ApiBuilderDemo from './components/ApiBuilderDemo';
+import ImageGenDemo from './components/ImageGenDemo';
 
 export default function HomePage() {
   return (
@@ -643,6 +647,90 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Auto-Testing Demo */}
+      <section className="relative bg-gradient-to-b from-black via-cyan-900/10 to-black py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <AutoTestDemo />
+
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-block rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-cyan-500/25 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Build with Confidence
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Database Designer Demo */}
+      <section className="relative bg-gradient-to-b from-black via-emerald-900/10 to-black py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <DatabaseDemo />
+
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-block rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-emerald-500/25 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Design Your Database
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* API Builder Demo */}
+      <section className="relative bg-gradient-to-b from-black via-blue-900/10 to-black py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <ApiBuilderDemo />
+
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-block rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-blue-500/25 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Build Your API
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Image Generation Demo */}
+      <section className="relative bg-gradient-to-b from-black via-pink-900/10 to-black py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <ImageGenDemo />
+
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-block rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-pink-500/25 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Create Images with AI
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Faith Demo - Chat */}
       <section className="relative bg-gradient-to-b from-black to-slate-900 py-16 sm:py-24 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -761,13 +849,13 @@ export default function HomePage() {
               { icon: '👁️', title: 'Live Preview', desc: 'See generated code render instantly' },
               { icon: '☁️', title: 'One-Click Deploy', desc: 'Vercel & Netlify integration' },
               { icon: '🤖', title: 'Multi-Agent', desc: '5 specialized agents working together' },
+              { icon: '🧪', title: 'Auto-Testing', desc: 'AI-generated tests with coverage' },
+              { icon: '🗄️', title: 'Database Designer', desc: 'Supabase schema generation' },
+              { icon: '🔌', title: 'API Builder', desc: 'REST APIs with Zod validation' },
+              { icon: '🎨', title: 'Image Generation', desc: 'AI-powered image creation' },
               { icon: '💻', title: 'Code Execution', desc: 'Run Python with auto-fix on errors' },
               { icon: '📦', title: 'GitHub Workflow', desc: 'Branches, PRs, diffs, push' },
-              { icon: '🔬', title: 'Deep Research', desc: 'Parallel multi-source research' },
               { icon: '🧠', title: 'Persistent Memory', desc: 'Remembers you across sessions' },
-              { icon: '💬', title: 'AI Chat', desc: 'Intelligent conversation' },
-              { icon: '📁', title: 'My Files', desc: 'Upload docs, AI recalls everything' },
-              { icon: '🔍', title: 'Real-Time Search', desc: 'Live web search with citations' },
               { icon: '📖', title: 'Bible Study', desc: 'Scripture exploration & study' },
             ].map((tool, index) => (
               <div
