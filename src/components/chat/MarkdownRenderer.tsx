@@ -6,6 +6,7 @@
  * - Styled for dark glassmorphism theme
  * - Handles headers, bold, italic, lists, code, links
  * - Auto-linkifies plain URLs that aren't in markdown format
+ * - Code blocks with Test/Push actions (Vercel Sandbox + GitHub)
  *
  * USAGE:
  * - <MarkdownRenderer content={message.content} />
@@ -15,9 +16,15 @@
 
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
+import { CodeBlockWithActions } from './CodeBlockWithActions';
+import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 
 interface MarkdownRendererProps {
   content: string;
+  /** Enable code execution actions (Test/Push buttons) */
+  enableCodeActions?: boolean;
+  /** Callback when test result is received */
+  onTestResult?: (result: { success: boolean; output: string }) => void;
 }
 
 /**
@@ -380,18 +387,147 @@ function filterInternalMarkers(text: string): string {
   return text.replace(/\[c:[A-Za-z0-9+/=]+\]/g, '');
 }
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+export function MarkdownRenderer({
+  content,
+  enableCodeActions = false,
+  onTestResult
+}: MarkdownRendererProps) {
+  // Get code execution context (optional - gracefully handle if not in provider)
+  const codeExecution = useCodeExecutionOptional();
+
   // Pre-process content:
   // 1. Filter out internal markers (checkpoint state, etc.)
   // 2. Convert plain URLs to clickable markdown links
   const filteredContent = filterInternalMarkers(content);
   const processedContent = autoLinkifyUrls(filteredContent);
 
+  // Create components with code action handlers
+  const componentsWithActions: Components = {
+    ...components,
+    // Override code block rendering when actions are enabled
+    code: ({ className, children }) => {
+      const isInline = !className;
+      const language = className?.replace('language-', '') || '';
+      const codeContent = String(children).replace(/\n$/, '');
+
+      // Inline code - simple styling
+      if (isInline) {
+        return (
+          <code
+            className="px-1.5 py-0.5 rounded text-sm font-mono"
+            style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--primary)' }}
+          >
+            {children}
+          </code>
+        );
+      }
+
+      // Block code - use CodeBlockWithActions when enabled
+      if (enableCodeActions && codeExecution) {
+        return (
+          <CodeBlockWithActions
+            code={codeContent}
+            language={language}
+            showTestButton={true}
+            showPushButton={codeExecution.githubConnected}
+            onTest={async (code, lang) => {
+              const result = await codeExecution.testCode(code, lang);
+              if (onTestResult) {
+                onTestResult({
+                  success: result.success,
+                  output: result.outputs.map(o => o.stdout || o.stderr).join('\n'),
+                });
+              }
+            }}
+            onPush={async (code, lang) => {
+              // Determine filename from language
+              const ext = getExtensionForLanguage(lang);
+              const filename = `code${ext}`;
+
+              if (!codeExecution.selectedRepo) {
+                codeExecution.setShowRepoSelector(true);
+                return;
+              }
+
+              await codeExecution.pushToGitHub(code, filename);
+            }}
+          />
+        );
+      }
+
+      // Default block code rendering (no actions)
+      return (
+        <div className="rounded-lg overflow-hidden my-2" style={{ backgroundColor: 'var(--glass-bg)' }}>
+          {language && (
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border-b"
+              style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderColor: 'var(--border)',
+                color: 'var(--text-muted)'
+              }}
+            >
+              <span>{getDisplayLanguage(language)}</span>
+            </div>
+          )}
+          <code
+            className="block p-3 text-sm font-mono overflow-x-auto"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            {children}
+          </code>
+        </div>
+      );
+    },
+  };
+
   return (
     <div className="markdown-content" style={{ color: 'inherit' }}>
-      <ReactMarkdown components={components}>
+      <ReactMarkdown components={componentsWithActions}>
         {processedContent}
       </ReactMarkdown>
     </div>
   );
+}
+
+// Helper to get file extension from language
+function getExtensionForLanguage(lang: string): string {
+  const map: Record<string, string> = {
+    javascript: '.js',
+    js: '.js',
+    typescript: '.ts',
+    ts: '.ts',
+    jsx: '.jsx',
+    tsx: '.tsx',
+    python: '.py',
+    py: '.py',
+    html: '.html',
+    css: '.css',
+    json: '.json',
+    bash: '.sh',
+    sh: '.sh',
+    sql: '.sql',
+  };
+  return map[lang.toLowerCase()] || '.txt';
+}
+
+// Helper to get display name for language
+function getDisplayLanguage(lang: string): string {
+  const map: Record<string, string> = {
+    js: 'JavaScript',
+    javascript: 'JavaScript',
+    ts: 'TypeScript',
+    typescript: 'TypeScript',
+    jsx: 'React JSX',
+    tsx: 'React TSX',
+    py: 'Python',
+    python: 'Python',
+    html: 'HTML',
+    css: 'CSS',
+    json: 'JSON',
+    bash: 'Bash',
+    sh: 'Shell',
+    sql: 'SQL',
+  };
+  return map[lang.toLowerCase()] || lang.toUpperCase();
 }
