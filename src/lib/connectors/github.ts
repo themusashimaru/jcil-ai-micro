@@ -14,6 +14,16 @@ import type {
   GitHubCreateRepoOptions,
   GitHubPushOptions,
   GitHubPushResult,
+  GitHubFileContent,
+  GitHubRepoTree,
+  GitHubTreeItem,
+  GitHubBranch,
+  GitHubCommit,
+  GitHubPROptions,
+  GitHubPRResult,
+  GitHubCompareResult,
+  GitHubCloneOptions,
+  GitHubCloneResult,
 } from './types';
 
 // ============================================================================
@@ -368,4 +378,581 @@ export async function checkTokenScopes(token: string): Promise<{
       scopes: [],
     };
   }
+}
+
+// ============================================================================
+// Repository Read Operations
+// ============================================================================
+
+/**
+ * Get contents of a file or directory in a repository
+ */
+export async function getRepoContents(
+  token: string,
+  owner: string,
+  repo: string,
+  path: string = '',
+  branch?: string
+): Promise<GitHubFileContent | GitHubFileContent[] | null> {
+  try {
+    const octokit = createOctokit(token);
+    const { data } = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path,
+      ref: branch,
+    });
+
+    // Handle single file
+    if (!Array.isArray(data)) {
+      const file = data as {
+        name: string;
+        path: string;
+        sha: string;
+        size: number;
+        type: 'file' | 'dir' | 'symlink' | 'submodule';
+        content?: string;
+        encoding?: string;
+        html_url: string;
+        download_url?: string | null;
+      };
+
+      return {
+        name: file.name,
+        path: file.path,
+        sha: file.sha,
+        size: file.size,
+        type: file.type,
+        content: file.content
+          ? Buffer.from(file.content, 'base64').toString('utf-8')
+          : undefined,
+        encoding: file.encoding,
+        htmlUrl: file.html_url,
+        downloadUrl: file.download_url || undefined,
+      };
+    }
+
+    // Handle directory listing
+    return data.map((item) => ({
+      name: item.name,
+      path: item.path,
+      sha: item.sha,
+      size: item.size ?? 0,
+      type: item.type as 'file' | 'dir' | 'symlink' | 'submodule',
+      htmlUrl: item.html_url ?? '',
+      downloadUrl: item.download_url || undefined,
+    }));
+  } catch (error) {
+    console.error('[GitHub Connector] Failed to get contents:', error);
+    return null;
+  }
+}
+
+/**
+ * Get a single file's content (convenience wrapper)
+ */
+export async function getFileContent(
+  token: string,
+  owner: string,
+  repo: string,
+  path: string,
+  branch?: string
+): Promise<{ content: string; sha: string } | null> {
+  const result = await getRepoContents(token, owner, repo, path, branch);
+
+  if (!result || Array.isArray(result)) {
+    return null;
+  }
+
+  if (result.type !== 'file' || !result.content) {
+    return null;
+  }
+
+  return {
+    content: result.content,
+    sha: result.sha,
+  };
+}
+
+/**
+ * Get the full tree of a repository (all files and directories)
+ */
+export async function getRepoTree(
+  token: string,
+  owner: string,
+  repo: string,
+  branch?: string,
+  recursive: boolean = true
+): Promise<GitHubRepoTree | null> {
+  try {
+    const octokit = createOctokit(token);
+
+    // Get the branch SHA first
+    let treeSha: string;
+    if (branch) {
+      const { data: branchData } = await octokit.rest.repos.getBranch({
+        owner,
+        repo,
+        branch,
+      });
+      treeSha = branchData.commit.sha;
+    } else {
+      const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
+      const { data: branchData } = await octokit.rest.repos.getBranch({
+        owner,
+        repo,
+        branch: repoData.default_branch,
+      });
+      treeSha = branchData.commit.sha;
+    }
+
+    const { data } = await octokit.rest.git.getTree({
+      owner,
+      repo,
+      tree_sha: treeSha,
+      recursive: recursive ? 'true' : undefined,
+    });
+
+    return {
+      sha: data.sha,
+      tree: data.tree.map((item) => ({
+        path: item.path || '',
+        mode: item.mode || '',
+        type: item.type as 'blob' | 'tree',
+        sha: item.sha || '',
+        size: item.size,
+        url: item.url || '',
+      })),
+      truncated: data.truncated ?? false,
+    };
+  } catch (error) {
+    console.error('[GitHub Connector] Failed to get tree:', error);
+    return null;
+  }
+}
+
+/**
+ * List branches in a repository
+ */
+export async function getBranches(
+  token: string,
+  owner: string,
+  repo: string
+): Promise<GitHubBranch[]> {
+  try {
+    const octokit = createOctokit(token);
+    const { data } = await octokit.rest.repos.listBranches({
+      owner,
+      repo,
+      per_page: 100,
+    });
+
+    return data.map((branch) => ({
+      name: branch.name,
+      sha: branch.commit.sha,
+      protected: branch.protected,
+    }));
+  } catch (error) {
+    console.error('[GitHub Connector] Failed to list branches:', error);
+    return [];
+  }
+}
+
+/**
+ * Get recent commits for a branch
+ */
+export async function getCommits(
+  token: string,
+  owner: string,
+  repo: string,
+  branch?: string,
+  limit: number = 20
+): Promise<GitHubCommit[]> {
+  try {
+    const octokit = createOctokit(token);
+    const { data } = await octokit.rest.repos.listCommits({
+      owner,
+      repo,
+      sha: branch,
+      per_page: limit,
+    });
+
+    return data.map((commit) => ({
+      sha: commit.sha,
+      message: commit.commit.message,
+      author: {
+        name: commit.commit.author?.name || 'Unknown',
+        email: commit.commit.author?.email || '',
+        date: commit.commit.author?.date || '',
+      },
+      htmlUrl: commit.html_url,
+    }));
+  } catch (error) {
+    console.error('[GitHub Connector] Failed to list commits:', error);
+    return [];
+  }
+}
+
+// ============================================================================
+// Smart Clone - Fetch Repository Contents
+// ============================================================================
+
+/**
+ * Detect language from file extension
+ */
+function detectLanguage(path: string): string | undefined {
+  const ext = path.split('.').pop()?.toLowerCase();
+  const langMap: Record<string, string> = {
+    ts: 'typescript',
+    tsx: 'typescript',
+    js: 'javascript',
+    jsx: 'javascript',
+    py: 'python',
+    rb: 'ruby',
+    go: 'go',
+    rs: 'rust',
+    java: 'java',
+    kt: 'kotlin',
+    swift: 'swift',
+    cs: 'csharp',
+    cpp: 'cpp',
+    c: 'c',
+    h: 'c',
+    hpp: 'cpp',
+    php: 'php',
+    sql: 'sql',
+    md: 'markdown',
+    json: 'json',
+    yaml: 'yaml',
+    yml: 'yaml',
+    xml: 'xml',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    less: 'less',
+    sh: 'bash',
+    bash: 'bash',
+    zsh: 'bash',
+    dockerfile: 'dockerfile',
+  };
+  return ext ? langMap[ext] : undefined;
+}
+
+/**
+ * Check if a path matches any of the patterns
+ */
+function matchesPattern(path: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => {
+    // Simple glob matching
+    const regex = new RegExp(
+      '^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$'
+    );
+    return regex.test(path);
+  });
+}
+
+/**
+ * Smart clone - fetch repository files with filters
+ * This is the main function for "reviewing" a repository
+ */
+export async function cloneRepo(
+  token: string,
+  options: GitHubCloneOptions
+): Promise<GitHubCloneResult> {
+  const {
+    owner,
+    repo,
+    branch,
+    path: basePath = '',
+    maxFiles = 100,
+    maxFileSize = 100 * 1024, // 100KB default
+    includePatterns = [],
+    excludePatterns = [
+      'node_modules/*',
+      '.git/*',
+      'dist/*',
+      'build/*',
+      '.next/*',
+      'coverage/*',
+      '*.lock',
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+      '*.min.js',
+      '*.min.css',
+      '*.map',
+      '.env*',
+    ],
+  } = options;
+
+  try {
+    // Get the full tree first
+    const tree = await getRepoTree(token, owner, repo, branch);
+    if (!tree) {
+      return {
+        success: false,
+        files: [],
+        tree: [],
+        truncated: false,
+        totalFiles: 0,
+        fetchedFiles: 0,
+        error: 'Failed to fetch repository tree',
+      };
+    }
+
+    // Filter to only blobs (files) in the target path
+    const fileItems = tree.tree.filter((item) => {
+      if (item.type !== 'blob') return false;
+      if (basePath && !item.path.startsWith(basePath)) return false;
+      if (item.size && item.size > maxFileSize) return false;
+      if (excludePatterns.length && matchesPattern(item.path, excludePatterns)) return false;
+      if (includePatterns.length && !matchesPattern(item.path, includePatterns)) return false;
+      return true;
+    });
+
+    const totalFiles = fileItems.length;
+    const filesToFetch = fileItems.slice(0, maxFiles);
+
+    // Fetch file contents in parallel (with concurrency limit)
+    const octokit = createOctokit(token);
+    const files: GitHubCloneResult['files'] = [];
+    const batchSize = 10;
+
+    for (let i = 0; i < filesToFetch.length; i += batchSize) {
+      const batch = filesToFetch.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(async (item) => {
+          try {
+            const { data } = await octokit.rest.repos.getContent({
+              owner,
+              repo,
+              path: item.path,
+              ref: branch,
+            });
+
+            if (!Array.isArray(data) && 'content' in data && data.content) {
+              return {
+                path: item.path,
+                content: Buffer.from(data.content, 'base64').toString('utf-8'),
+                size: item.size || 0,
+                language: detectLanguage(item.path),
+              };
+            }
+            return null;
+          } catch {
+            // Skip files that fail to fetch
+            return null;
+          }
+        })
+      );
+
+      files.push(...batchResults.filter((f): f is NonNullable<typeof f> => f !== null));
+    }
+
+    return {
+      success: true,
+      files,
+      tree: tree.tree as GitHubTreeItem[],
+      truncated: totalFiles > maxFiles,
+      totalFiles,
+      fetchedFiles: files.length,
+    };
+  } catch (error) {
+    console.error('[GitHub Connector] Clone failed:', error);
+    return {
+      success: false,
+      files: [],
+      tree: [],
+      truncated: false,
+      totalFiles: 0,
+      fetchedFiles: 0,
+      error: error instanceof Error ? error.message : 'Clone failed',
+    };
+  }
+}
+
+// ============================================================================
+// Pull Request Operations
+// ============================================================================
+
+/**
+ * Create a new branch from another branch
+ */
+export async function createBranch(
+  token: string,
+  owner: string,
+  repo: string,
+  branchName: string,
+  fromBranch?: string
+): Promise<{ success: boolean; sha?: string; error?: string }> {
+  try {
+    const octokit = createOctokit(token);
+
+    // Get the SHA of the source branch
+    let sourceSha: string;
+    if (fromBranch) {
+      const { data: branchData } = await octokit.rest.repos.getBranch({
+        owner,
+        repo,
+        branch: fromBranch,
+      });
+      sourceSha = branchData.commit.sha;
+    } else {
+      const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
+      const { data: branchData } = await octokit.rest.repos.getBranch({
+        owner,
+        repo,
+        branch: repoData.default_branch,
+      });
+      sourceSha = branchData.commit.sha;
+    }
+
+    // Create the new branch
+    await octokit.rest.git.createRef({
+      owner,
+      repo,
+      ref: `refs/heads/${branchName}`,
+      sha: sourceSha,
+    });
+
+    return { success: true, sha: sourceSha };
+  } catch (error) {
+    console.error('[GitHub Connector] Create branch failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create branch',
+    };
+  }
+}
+
+/**
+ * Create a pull request
+ */
+export async function createPullRequest(
+  token: string,
+  options: GitHubPROptions
+): Promise<GitHubPRResult> {
+  try {
+    const octokit = createOctokit(token);
+    const { data } = await octokit.rest.pulls.create({
+      owner: options.owner,
+      repo: options.repo,
+      title: options.title,
+      body: options.body,
+      head: options.head,
+      base: options.base,
+      draft: options.draft,
+    });
+
+    return {
+      success: true,
+      prNumber: data.number,
+      prUrl: data.html_url,
+    };
+  } catch (error) {
+    console.error('[GitHub Connector] Create PR failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create pull request',
+    };
+  }
+}
+
+/**
+ * Compare two branches
+ */
+export async function compareBranches(
+  token: string,
+  owner: string,
+  repo: string,
+  base: string,
+  head: string
+): Promise<GitHubCompareResult | null> {
+  try {
+    const octokit = createOctokit(token);
+    const { data } = await octokit.rest.repos.compareCommits({
+      owner,
+      repo,
+      base,
+      head,
+    });
+
+    return {
+      ahead: data.ahead_by,
+      behind: data.behind_by,
+      status: data.status as 'ahead' | 'behind' | 'identical' | 'diverged',
+      files: (data.files || []).map((file) => ({
+        filename: file.filename,
+        status: file.status as 'added' | 'removed' | 'modified' | 'renamed',
+        additions: file.additions,
+        deletions: file.deletions,
+        patch: file.patch,
+      })),
+      commits: data.commits.map((commit) => ({
+        sha: commit.sha,
+        message: commit.commit.message,
+        author: {
+          name: commit.commit.author?.name || 'Unknown',
+          email: commit.commit.author?.email || '',
+          date: commit.commit.author?.date || '',
+        },
+        htmlUrl: commit.html_url,
+      })),
+    };
+  } catch (error) {
+    console.error('[GitHub Connector] Compare failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Get repository info (for parsing URLs)
+ */
+export async function getRepoInfo(
+  token: string,
+  owner: string,
+  repo: string
+): Promise<GitHubRepo | null> {
+  try {
+    const octokit = createOctokit(token);
+    const { data } = await octokit.rest.repos.get({ owner, repo });
+
+    return {
+      name: data.name,
+      fullName: data.full_name,
+      description: data.description,
+      private: data.private,
+      defaultBranch: data.default_branch,
+      htmlUrl: data.html_url,
+      owner: data.owner.login,
+    };
+  } catch (error) {
+    console.error('[GitHub Connector] Get repo info failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Parse a GitHub URL into owner and repo
+ */
+export function parseGitHubUrl(url: string): { owner: string; repo: string } | null {
+  // Handle various GitHub URL formats:
+  // https://github.com/owner/repo
+  // https://github.com/owner/repo.git
+  // git@github.com:owner/repo.git
+  // github.com/owner/repo
+
+  const patterns = [
+    /github\.com[/:]([^/]+)\/([^/.]+)(?:\.git)?/,
+    /^([^/]+)\/([^/]+)$/,  // Just "owner/repo"
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return { owner: match[1], repo: match[2] };
+    }
+  }
+
+  return null;
 }

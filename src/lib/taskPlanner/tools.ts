@@ -17,6 +17,7 @@
 import { createGeminiCompletion } from '@/lib/gemini/client';
 import type { CoreMessage } from 'ai';
 import type { TaskType } from './index';
+import { cloneRepo, getRepoInfo } from '@/lib/connectors';
 
 // ============================================================================
 // Types
@@ -59,6 +60,7 @@ export interface ToolConfig {
   userTier?: string;
   maxTokens?: number;
   temperature?: number;
+  githubToken?: string; // For code review tasks
 }
 
 // ============================================================================
@@ -575,6 +577,210 @@ ${combinedFindings}
   },
 };
 
+/**
+ * Code Review Tool - GitHub repository analysis
+ *
+ * Fetches repository contents and provides code review,
+ * bug detection, improvement suggestions, and architectural analysis.
+ */
+const codeReviewTool: Tool = {
+  id: 'code-review',
+  name: 'GitHub Code Review',
+  description: 'Analyze GitHub repositories, review code, find bugs, and suggest improvements',
+  capabilities: [
+    'Review code for bugs and issues',
+    'Analyze code architecture and patterns',
+    'Suggest improvements and refactoring',
+    'Identify security vulnerabilities',
+    'Explain how code works',
+    'Review pull request changes',
+  ],
+  taskTypes: ['code-review'],
+
+  async execute(input: ToolInput, config: ToolConfig): Promise<ToolOutput> {
+    const startTime = Date.now();
+
+    // Check for GitHub token
+    if (!config.githubToken) {
+      return {
+        success: false,
+        content: '',
+        error: 'GitHub not connected. Please connect your GitHub account in Settings > Connectors to review repositories.',
+      };
+    }
+
+    // Extract GitHub URL from query or parameters
+    const query = input.query;
+    const urlMatch = query.match(/github\.com\/([^/\s]+)\/([^/\s]+)/i) ||
+                     query.match(/\b([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)\b/);
+
+    if (!urlMatch) {
+      return {
+        success: false,
+        content: '',
+        error: 'Could not find a GitHub repository URL or owner/repo in the request. Please provide a GitHub URL like github.com/owner/repo.',
+      };
+    }
+
+    const owner = urlMatch[1];
+    const repo = urlMatch[2];
+
+    console.log(`[CodeReview] Fetching repository: ${owner}/${repo}`);
+
+    try {
+      // Step 1: Get repo info
+      const repoInfo = await getRepoInfo(config.githubToken, owner, repo);
+      if (!repoInfo) {
+        return {
+          success: false,
+          content: '',
+          error: `Repository not found: ${owner}/${repo}. Make sure the repository exists and you have access to it.`,
+        };
+      }
+
+      // Step 2: Clone/fetch repository contents
+      const cloneResult = await cloneRepo(config.githubToken, {
+        owner,
+        repo,
+        maxFiles: 50,
+        maxFileSize: 50 * 1024, // 50KB per file
+      });
+
+      if (!cloneResult.success) {
+        return {
+          success: false,
+          content: '',
+          error: cloneResult.error || 'Failed to fetch repository contents',
+        };
+      }
+
+      console.log(`[CodeReview] Fetched ${cloneResult.fetchedFiles}/${cloneResult.totalFiles} files`);
+
+      // Step 3: Format files for context
+      const fileContext = cloneResult.files
+        .map(f => {
+          const lang = f.language || '';
+          return `### ${f.path}\n\`\`\`${lang}\n${f.content}\n\`\`\``;
+        })
+        .join('\n\n');
+
+      // Determine review type from query
+      let reviewFocus = 'comprehensive';
+      if (/bug|issue|problem|error|fix/i.test(query)) reviewFocus = 'bugs';
+      else if (/security|vulnerability|exploit/i.test(query)) reviewFocus = 'security';
+      else if (/improve|refactor|clean|better/i.test(query)) reviewFocus = 'improvements';
+      else if (/explain|understand|how.*work/i.test(query)) reviewFocus = 'explain';
+      else if (/architect|structure|design|pattern/i.test(query)) reviewFocus = 'architecture';
+
+      const reviewPrompts: Record<string, string> = {
+        comprehensive: `Provide a comprehensive code review including:
+1. **Overview** - What does this project do?
+2. **Code Quality** - Is the code clean, readable, and well-organized?
+3. **Potential Issues** - Any bugs, edge cases, or problems?
+4. **Security** - Any security concerns?
+5. **Suggestions** - How could this code be improved?`,
+
+        bugs: `Focus on finding bugs and issues:
+1. **Logic Errors** - Any incorrect logic or edge cases not handled?
+2. **Runtime Errors** - Potential crashes, null references, type errors?
+3. **Data Issues** - Race conditions, memory leaks, data corruption?
+4. **Error Handling** - Missing try/catch, unhandled promises?
+5. Provide specific line numbers and fixes for each issue.`,
+
+        security: `Focus on security vulnerabilities:
+1. **Injection Risks** - SQL, command, XSS injection vulnerabilities?
+2. **Authentication** - Auth bypass, weak auth, exposed secrets?
+3. **Data Exposure** - Sensitive data leaks, insecure storage?
+4. **Dependencies** - Known vulnerable packages?
+5. Provide OWASP classification and remediation steps.`,
+
+        improvements: `Focus on improvements and refactoring:
+1. **Code Smells** - Duplicated code, long functions, god classes?
+2. **Performance** - Any inefficient algorithms or patterns?
+3. **Maintainability** - How could this be easier to maintain?
+4. **Best Practices** - What modern patterns could be applied?
+5. Provide specific refactoring suggestions with examples.`,
+
+        explain: `Explain how this codebase works:
+1. **Project Structure** - How are files and folders organized?
+2. **Architecture** - What patterns/frameworks are used?
+3. **Key Components** - What are the main modules and their purposes?
+4. **Data Flow** - How does data move through the system?
+5. **Entry Points** - Where does execution start?`,
+
+        architecture: `Analyze the architecture:
+1. **Design Patterns** - What patterns are used (MVC, microservices, etc.)?
+2. **Separation of Concerns** - Is logic properly separated?
+3. **Dependencies** - How are components coupled?
+4. **Scalability** - Will this architecture scale?
+5. **Recommendations** - Architectural improvements to consider.`,
+      };
+
+      const reviewPrompt = `You are an expert code reviewer analyzing a GitHub repository.
+
+**Repository:** ${owner}/${repo}
+${repoInfo.description ? `**Description:** ${repoInfo.description}` : ''}
+**Files Analyzed:** ${cloneResult.fetchedFiles} of ${cloneResult.totalFiles}
+${cloneResult.truncated ? '*Note: Repository has more files than shown*' : ''}
+
+**User's Request:** ${input.originalRequest}
+
+---
+**CODE FILES:**
+
+${fileContext}
+
+---
+**REVIEW INSTRUCTIONS:**
+
+${reviewPrompts[reviewFocus]}
+
+**Important:**
+- Be specific - reference file names and line numbers
+- Provide actionable feedback with code examples where helpful
+- Focus on the most important issues first
+- Keep the review constructive and professional
+
+**Your Code Review:**`;
+
+      // Step 4: Run the review with Gemini
+      const messages: CoreMessage[] = [{ role: 'user', content: reviewPrompt }];
+      const result = await createGeminiCompletion({
+        messages,
+        model: config.model,
+        maxTokens: 4096,
+        temperature: 0.4,
+        enableSearch: false,
+        userId: config.userId,
+        planKey: config.userTier,
+      });
+
+      const totalTime = Date.now() - startTime;
+      console.log(`[CodeReview] Review completed in ${totalTime}ms`);
+
+      return {
+        success: true,
+        content: result.text,
+        metadata: {
+          tool: 'code-review',
+          repository: `${owner}/${repo}`,
+          filesAnalyzed: cloneResult.fetchedFiles,
+          totalFiles: cloneResult.totalFiles,
+          reviewFocus,
+          durationMs: totalTime,
+        },
+      };
+    } catch (error) {
+      console.error('[CodeReview] Error:', error);
+      return {
+        success: false,
+        content: '',
+        error: error instanceof Error ? error.message : 'Code review failed',
+      };
+    }
+  },
+};
+
 // ============================================================================
 // Tool Registry
 // ============================================================================
@@ -590,6 +796,7 @@ class ToolRegistry {
     this.register(codeTool);
     this.register(generationTool);
     this.register(conversationTool);
+    this.register(codeReviewTool); // GitHub code review
   }
 
   /**

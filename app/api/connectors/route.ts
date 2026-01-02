@@ -17,6 +17,16 @@ import {
   createRepository,
   pushFiles,
   isConnectorsEnabled,
+  cloneRepo,
+  getRepoTree,
+  getFileContent,
+  getRepoInfo,
+  getBranches,
+  getCommits,
+  createBranch,
+  createPullRequest,
+  compareBranches,
+  parseGitHubUrl,
 } from '@/lib/connectors';
 
 export const runtime = 'nodejs';
@@ -263,6 +273,203 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ success: true, repo });
+      }
+
+      // ========================================================================
+      // Repository Read Operations (for AI code review)
+      // ========================================================================
+
+      case 'clone-repo':
+      case 'cloneRepo': {
+        // Smart clone - fetch repository files with filters
+        const { branch, path, maxFiles, maxFileSize, includePatterns, excludePatterns } = body;
+        let { owner, repo } = body;
+
+        // Support URL input (e.g., "https://github.com/owner/repo")
+        if (body.url && !owner) {
+          const parsed = parseGitHubUrl(body.url);
+          if (!parsed) {
+            return NextResponse.json({ error: 'Invalid GitHub URL' }, { status: 400 });
+          }
+          owner = parsed.owner;
+          repo = parsed.repo;
+        }
+
+        if (!owner || !repo) {
+          return NextResponse.json({ error: 'owner and repo required (or url)' }, { status: 400 });
+        }
+
+        const cloneResult = await cloneRepo(token, {
+          owner,
+          repo,
+          branch,
+          path,
+          maxFiles: maxFiles || 100,
+          maxFileSize: maxFileSize || 100 * 1024,
+          includePatterns,
+          excludePatterns,
+        });
+
+        if (!cloneResult.success) {
+          return NextResponse.json({ error: cloneResult.error || 'Clone failed' }, { status: 500 });
+        }
+
+        return NextResponse.json(cloneResult);
+      }
+
+      case 'get-tree':
+      case 'getTree': {
+        // Get repository tree (directory structure)
+        const { branch, recursive } = body;
+        let { owner, repo } = body;
+
+        if (body.url && !owner) {
+          const parsed = parseGitHubUrl(body.url);
+          if (!parsed) {
+            return NextResponse.json({ error: 'Invalid GitHub URL' }, { status: 400 });
+          }
+          owner = parsed.owner;
+          repo = parsed.repo;
+        }
+
+        if (!owner || !repo) {
+          return NextResponse.json({ error: 'owner and repo required (or url)' }, { status: 400 });
+        }
+
+        const tree = await getRepoTree(token, owner, repo, branch, recursive !== false);
+        if (!tree) {
+          return NextResponse.json({ error: 'Failed to fetch repository tree' }, { status: 500 });
+        }
+
+        return NextResponse.json(tree);
+      }
+
+      case 'get-file':
+      case 'getFile': {
+        // Get single file content
+        const { owner, repo, path: filePath, branch } = body;
+
+        if (!owner || !repo || !filePath) {
+          return NextResponse.json({ error: 'owner, repo, and path required' }, { status: 400 });
+        }
+
+        const file = await getFileContent(token, owner, repo, filePath, branch);
+        if (!file) {
+          return NextResponse.json({ error: 'File not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(file);
+      }
+
+      case 'get-repo-info':
+      case 'getRepoInfo': {
+        // Get repository metadata
+        let { owner, repo } = body;
+
+        if (body.url && !owner) {
+          const parsed = parseGitHubUrl(body.url);
+          if (!parsed) {
+            return NextResponse.json({ error: 'Invalid GitHub URL' }, { status: 400 });
+          }
+          owner = parsed.owner;
+          repo = parsed.repo;
+        }
+
+        if (!owner || !repo) {
+          return NextResponse.json({ error: 'owner and repo required (or url)' }, { status: 400 });
+        }
+
+        const repoInfo = await getRepoInfo(token, owner, repo);
+        if (!repoInfo) {
+          return NextResponse.json({ error: 'Repository not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(repoInfo);
+      }
+
+      case 'get-branches':
+      case 'getBranches': {
+        const { owner, repo } = body;
+
+        if (!owner || !repo) {
+          return NextResponse.json({ error: 'owner and repo required' }, { status: 400 });
+        }
+
+        const branches = await getBranches(token, owner, repo);
+        return NextResponse.json({ branches });
+      }
+
+      case 'get-commits':
+      case 'getCommits': {
+        const { owner, repo, branch, limit } = body;
+
+        if (!owner || !repo) {
+          return NextResponse.json({ error: 'owner and repo required' }, { status: 400 });
+        }
+
+        const commits = await getCommits(token, owner, repo, branch, limit || 20);
+        return NextResponse.json({ commits });
+      }
+
+      // ========================================================================
+      // Pull Request Operations
+      // ========================================================================
+
+      case 'create-branch':
+      case 'createBranch': {
+        const { owner, repo, branchName, fromBranch } = body;
+
+        if (!owner || !repo || !branchName) {
+          return NextResponse.json({ error: 'owner, repo, and branchName required' }, { status: 400 });
+        }
+
+        const branchResult = await createBranch(token, owner, repo, branchName, fromBranch);
+        if (!branchResult.success) {
+          return NextResponse.json({ error: branchResult.error || 'Failed to create branch' }, { status: 500 });
+        }
+
+        return NextResponse.json(branchResult);
+      }
+
+      case 'create-pr':
+      case 'createPR': {
+        const { owner, repo, title, body: prBody, head, base, draft } = body;
+
+        if (!owner || !repo || !title || !head || !base) {
+          return NextResponse.json({ error: 'owner, repo, title, head, and base required' }, { status: 400 });
+        }
+
+        const prResult = await createPullRequest(token, {
+          owner,
+          repo,
+          title,
+          body: prBody || '',
+          head,
+          base,
+          draft,
+        });
+
+        if (!prResult.success) {
+          return NextResponse.json({ error: prResult.error || 'Failed to create pull request' }, { status: 500 });
+        }
+
+        return NextResponse.json(prResult);
+      }
+
+      case 'compare-branches':
+      case 'compareBranches': {
+        const { owner, repo, base, head } = body;
+
+        if (!owner || !repo || !base || !head) {
+          return NextResponse.json({ error: 'owner, repo, base, and head required' }, { status: 400 });
+        }
+
+        const comparison = await compareBranches(token, owner, repo, base, head);
+        if (!comparison) {
+          return NextResponse.json({ error: 'Failed to compare branches' }, { status: 500 });
+        }
+
+        return NextResponse.json(comparison);
       }
 
       default:
