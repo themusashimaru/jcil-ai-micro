@@ -232,7 +232,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          preference_type: 'format_style' | 'response_length' | 'communication_tone' | 'domain_expertise' | 'topic_interest' | 'output_preference'
+          preference_type: 'format_style' | 'response_length' | 'communication_tone' | 'domain_expertise' | 'topic_interest' | 'output_preference' | 'explicit_memory' | 'project_context' | 'personal_info' | 'work_context'
           preference_value: string
           confidence: number
           observation_count: number
@@ -242,7 +242,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          preference_type: 'format_style' | 'response_length' | 'communication_tone' | 'domain_expertise' | 'topic_interest' | 'output_preference'
+          preference_type: 'format_style' | 'response_length' | 'communication_tone' | 'domain_expertise' | 'topic_interest' | 'output_preference' | 'explicit_memory' | 'project_context' | 'personal_info' | 'work_context'
           preference_value: string
           confidence?: number
           observation_count?: number
@@ -252,7 +252,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
-          preference_type?: 'format_style' | 'response_length' | 'communication_tone' | 'domain_expertise' | 'topic_interest' | 'output_preference'
+          preference_type?: 'format_style' | 'response_length' | 'communication_tone' | 'domain_expertise' | 'topic_interest' | 'output_preference' | 'explicit_memory' | 'project_context' | 'personal_info' | 'work_context'
           preference_value?: string
           confidence?: number
           observation_count?: number

@@ -38,7 +38,11 @@ export type PreferenceType =
   | 'communication_tone'  // formal, casual, professional
   | 'domain_expertise'    // tech, finance, medical, legal, etc.
   | 'topic_interest'      // recurring topics they ask about
-  | 'output_preference';  // code examples, step-by-step, etc.
+  | 'output_preference'   // code examples, step-by-step, etc.
+  | 'explicit_memory'     // User explicitly asked to remember something
+  | 'project_context'     // Current project/repo the user is working on
+  | 'personal_info'       // Name, role, company, etc.
+  | 'work_context';       // Current work/tasks they're doing
 
 export interface UserPreference {
   id?: string;
@@ -323,9 +327,7 @@ function buildPromptInjection(preferences: UserPreference[]): string | null {
 
   const parts: string[] = [
     '',
-    '## USER PREFERENCES (Style Only - Do Not Override Core Values)',
-    '',
-    'Based on past conversations, this user prefers:',
+    '## USER CONTEXT & PREFERENCES',
     '',
   ];
 
@@ -335,6 +337,60 @@ function buildPromptInjection(preferences: UserPreference[]): string | null {
     const list = byType.get(pref.preference_type) || [];
     list.push(pref.preference_value);
     byType.set(pref.preference_type, list);
+  }
+
+  // =========================================================================
+  // PERSISTENT MEMORY (user explicitly asked to remember)
+  // =========================================================================
+
+  const personalInfo = byType.get('personal_info');
+  if (personalInfo) {
+    parts.push('### About This User');
+    for (const info of personalInfo) {
+      parts.push(`- ${info}`);
+    }
+    parts.push('');
+  }
+
+  const workContext = byType.get('work_context');
+  if (workContext) {
+    parts.push('### Work Context');
+    for (const ctx of workContext) {
+      parts.push(`- ${ctx}`);
+    }
+    parts.push('');
+  }
+
+  const projectContext = byType.get('project_context');
+  if (projectContext) {
+    parts.push('### Current Projects');
+    for (const proj of projectContext) {
+      parts.push(`- ${proj}`);
+    }
+    parts.push('');
+  }
+
+  const explicitMemories = byType.get('explicit_memory');
+  if (explicitMemories) {
+    parts.push('### Things to Remember');
+    for (const mem of explicitMemories) {
+      parts.push(`- ${mem}`);
+    }
+    parts.push('');
+  }
+
+  // =========================================================================
+  // STYLE PREFERENCES (learned from behavior)
+  // =========================================================================
+
+  const hasStylePrefs =
+    byType.has('format_style') ||
+    byType.has('response_length') ||
+    byType.has('domain_expertise') ||
+    byType.has('communication_tone');
+
+  if (hasStylePrefs) {
+    parts.push('### Style Preferences');
   }
 
   // Format style
@@ -372,7 +428,7 @@ function buildPromptInjection(preferences: UserPreference[]): string | null {
   }
 
   parts.push('');
-  parts.push('*Apply these style preferences where appropriate, but NEVER override core Christian values or faith content.*');
+  parts.push('*Use this context to personalize responses. Never override core values or faith content.*');
   parts.push('');
 
   return parts.join('\n');
@@ -399,4 +455,297 @@ export function clearLearningCache(userId?: string): void {
     preferenceCache.clear();
   }
   console.log('[UserLearning] Cache cleared');
+}
+
+// ============================================================================
+// EXPLICIT MEMORY SYSTEM
+// ============================================================================
+
+/**
+ * Detect if user is asking to remember something explicitly
+ */
+export function detectMemoryCommand(message: string): {
+  isRemember: boolean;
+  isForget: boolean;
+  isRecall: boolean;
+  content: string | null;
+} {
+  const lower = message.toLowerCase();
+
+  // Remember patterns
+  const rememberPatterns = [
+    /(?:please\s+)?remember\s+(?:that\s+)?(.+)/i,
+    /(?:please\s+)?keep\s+in\s+mind\s+(?:that\s+)?(.+)/i,
+    /(?:please\s+)?note\s+(?:that\s+)?(.+)/i,
+    /(?:please\s+)?don'?t\s+forget\s+(?:that\s+)?(.+)/i,
+    /my\s+name\s+is\s+(\w+)/i,
+    /i(?:'m|\s+am)\s+(?:a\s+)?(\w+(?:\s+\w+)?)\s+(?:at|from|working\s+on)/i,
+    /i\s+work\s+(?:at|for|on)\s+(.+)/i,
+    /i(?:'m|\s+am)\s+working\s+on\s+(.+)/i,
+    /i\s+prefer\s+(.+)/i,
+    /call\s+me\s+(\w+)/i,
+  ];
+
+  for (const pattern of rememberPatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      return { isRemember: true, isForget: false, isRecall: false, content: match[1].trim() };
+    }
+  }
+
+  // Forget patterns
+  const forgetPatterns = [
+    /(?:please\s+)?forget\s+(?:that\s+)?(.+)/i,
+    /(?:please\s+)?don'?t\s+remember\s+(.+)/i,
+    /(?:please\s+)?remove\s+(?:the\s+)?memory\s+(?:about\s+)?(.+)/i,
+    /(?:please\s+)?clear\s+(?:my\s+)?(?:memories?|preferences?)/i,
+  ];
+
+  for (const pattern of forgetPatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      return { isRemember: false, isForget: true, isRecall: false, content: match[1]?.trim() || null };
+    }
+  }
+
+  // Recall patterns
+  if (
+    lower.includes('what do you remember') ||
+    lower.includes('what have you learned') ||
+    lower.includes('show my memories') ||
+    lower.includes('what do you know about me')
+  ) {
+    return { isRemember: false, isForget: false, isRecall: true, content: null };
+  }
+
+  return { isRemember: false, isForget: false, isRecall: false, content: null };
+}
+
+/**
+ * Store an explicit memory for a user
+ */
+export async function storeExplicitMemory(
+  userId: string,
+  memory: string,
+  memoryType: 'explicit_memory' | 'personal_info' | 'project_context' | 'work_context' = 'explicit_memory'
+): Promise<boolean> {
+  const supabase = getSupabase();
+  if (!supabase || !userId || !memory) {
+    return false;
+  }
+
+  try {
+    // Check if similar memory already exists
+    const { data: existing } = await supabase
+      .from('user_learning')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('preference_type', memoryType)
+      .eq('preference_value', memory)
+      .single();
+
+    if (existing) {
+      // Boost confidence if already exists
+      await supabase
+        .from('user_learning')
+        .update({
+          confidence: Math.min(1.0, existing.confidence + 0.2),
+          observation_count: existing.observation_count + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+    } else {
+      // Insert new memory with high confidence (user explicitly asked)
+      await supabase
+        .from('user_learning')
+        .insert({
+          user_id: userId,
+          preference_type: memoryType,
+          preference_value: memory,
+          confidence: 0.9, // High confidence for explicit memories
+          observation_count: 1,
+        });
+    }
+
+    // Clear cache
+    preferenceCache.delete(userId);
+    console.log(`[UserLearning] Stored explicit memory for user ${userId.slice(0, 8)}...: "${memory.slice(0, 50)}..."`);
+
+    return true;
+  } catch (error) {
+    console.error('[UserLearning] Failed to store memory:', error);
+    return false;
+  }
+}
+
+/**
+ * Delete a specific memory or all memories of a type
+ */
+export async function forgetMemory(
+  userId: string,
+  memoryContent?: string,
+  memoryType?: PreferenceType
+): Promise<boolean> {
+  const supabase = getSupabase();
+  if (!supabase || !userId) {
+    return false;
+  }
+
+  try {
+    let query = supabase
+      .from('user_learning')
+      .delete()
+      .eq('user_id', userId);
+
+    if (memoryType) {
+      query = query.eq('preference_type', memoryType);
+    }
+
+    if (memoryContent) {
+      query = query.ilike('preference_value', `%${memoryContent}%`);
+    }
+
+    await query;
+
+    // Clear cache
+    preferenceCache.delete(userId);
+    console.log(`[UserLearning] Deleted memories for user ${userId.slice(0, 8)}...`);
+
+    return true;
+  } catch (error) {
+    console.error('[UserLearning] Failed to forget memory:', error);
+    return false;
+  }
+}
+
+/**
+ * Get all memories for a user (for "what do you remember" queries)
+ */
+export async function getAllMemories(userId: string): Promise<UserPreference[]> {
+  const supabase = getSupabase();
+  if (!supabase || !userId) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('user_learning')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('[UserLearning] Failed to get memories:', error);
+      return [];
+    }
+
+    return (data || []) as UserPreference[];
+  } catch (error) {
+    console.error('[UserLearning] Error getting memories:', error);
+    return [];
+  }
+}
+
+/**
+ * Format memories for display to user
+ */
+export function formatMemoriesForDisplay(memories: UserPreference[]): string {
+  if (memories.length === 0) {
+    return "I don't have any memories stored for you yet. You can ask me to remember things by saying \"Remember that...\" or \"My name is...\"";
+  }
+
+  const grouped = new Map<PreferenceType, string[]>();
+  for (const mem of memories) {
+    const list = grouped.get(mem.preference_type) || [];
+    list.push(mem.preference_value);
+    grouped.set(mem.preference_type, list);
+  }
+
+  const lines: string[] = ['## What I Remember About You\n'];
+
+  const typeLabels: Partial<Record<PreferenceType, string>> = {
+    explicit_memory: '💭 Explicit Memories',
+    personal_info: '👤 Personal Info',
+    project_context: '📁 Projects',
+    work_context: '💼 Work Context',
+    format_style: '📝 Format Preferences',
+    response_length: '📏 Response Length',
+    communication_tone: '🎭 Tone',
+    domain_expertise: '🧠 Expertise Areas',
+    topic_interest: '🎯 Interests',
+    output_preference: '⚙️ Output Preferences',
+  };
+
+  for (const [type, values] of grouped) {
+    const label = typeLabels[type] || type;
+    lines.push(`### ${label}`);
+    for (const val of values) {
+      lines.push(`- ${val}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('\n*You can ask me to forget specific things or clear all memories.*');
+
+  return lines.join('\n');
+}
+
+/**
+ * Process a message for memory commands (call this from chat route)
+ */
+export async function processMemoryCommand(
+  userId: string,
+  message: string
+): Promise<{ handled: boolean; response?: string }> {
+  const command = detectMemoryCommand(message);
+
+  if (command.isRecall) {
+    const memories = await getAllMemories(userId);
+    return {
+      handled: true,
+      response: formatMemoriesForDisplay(memories),
+    };
+  }
+
+  if (command.isRemember && command.content) {
+    // Detect memory type based on content
+    let memoryType: 'explicit_memory' | 'personal_info' | 'project_context' | 'work_context' = 'explicit_memory';
+
+    const content = command.content.toLowerCase();
+    if (/^(my name|i'?m\s+called|call me)/i.test(content) || /name/i.test(message)) {
+      memoryType = 'personal_info';
+    } else if (/project|repo|codebase|working on/i.test(content)) {
+      memoryType = 'project_context';
+    } else if (/work|job|company|team|role/i.test(content)) {
+      memoryType = 'work_context';
+    }
+
+    const success = await storeExplicitMemory(userId, command.content, memoryType);
+
+    if (success) {
+      return {
+        handled: false, // Let the AI also respond naturally
+        response: undefined,
+      };
+    }
+  }
+
+  if (command.isForget) {
+    if (command.content) {
+      await forgetMemory(userId, command.content);
+      return {
+        handled: true,
+        response: `Got it, I've forgotten what you mentioned about "${command.content}".`,
+      };
+    } else {
+      // Clear all memories
+      await forgetMemory(userId);
+      return {
+        handled: true,
+        response: "I've cleared all my memories about you. We're starting fresh!",
+      };
+    }
+  }
+
+  return { handled: false };
 }
