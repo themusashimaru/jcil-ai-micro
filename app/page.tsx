@@ -14,6 +14,9 @@ import LandingLogo from './components/LandingLogo';
 import MobileMenu from './components/MobileMenu';
 import ChatDemo from './components/ChatDemo';
 import TechDemo from './components/TechDemo';
+import LivePreviewDemo from './components/LivePreviewDemo';
+import DeployDemo from './components/DeployDemo';
+import MultiAgentDemo from './components/MultiAgentDemo';
 
 export default function HomePage() {
   return (
@@ -100,9 +103,10 @@ export default function HomePage() {
             <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
               {[
                 { icon: '🚀', label: 'Project Scaffolding' },
-                { icon: '🔄', label: 'Self-Correcting Code' },
+                { icon: '👁️', label: 'Live Code Preview' },
+                { icon: '☁️', label: 'One-Click Deploy' },
+                { icon: '🤖', label: 'Multi-Agent System' },
                 { icon: '🧠', label: 'Persistent Memory' },
-                { icon: '🤖', label: 'Autonomous Mode' },
                 { icon: '📦', label: 'GitHub Integration' },
               ].map((feature, i) => (
                 <div
@@ -163,6 +167,10 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-green-400">✓</span>
+              <span className="text-slate-300">Live Code Preview</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-green-400">✓</span>
               <span className="text-slate-300">Auto-Push to GitHub</span>
             </div>
             <div className="flex items-center gap-2">
@@ -172,10 +180,6 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <span className="text-green-400">✓</span>
               <span className="text-slate-300">Cross-Session Memory</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span>
-              <span className="text-slate-300">Deep Research Mode</span>
             </div>
           </div>
         </div>
@@ -576,6 +580,69 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Live Code Preview Demo */}
+      <section className="relative bg-gradient-to-b from-black via-purple-900/20 to-black py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <LivePreviewDemo />
+
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-block rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-purple-500/25 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Try Live Preview
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* One-Click Deploy Demo */}
+      <section className="relative bg-gradient-to-b from-black via-green-900/10 to-black py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-green-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <DeployDemo />
+
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-block rounded-xl bg-gradient-to-r from-green-600 to-teal-600 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-green-500/25 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Deploy Your First Project
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Multi-Agent Orchestration Demo */}
+      <section className="relative bg-gradient-to-b from-black via-amber-900/10 to-black py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <MultiAgentDemo />
+
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-block rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-amber-500/25 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Try Multi-Agent Mode
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Faith Demo - Chat */}
       <section className="relative bg-gradient-to-b from-black to-slate-900 py-16 sm:py-24 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -691,6 +758,9 @@ export default function HomePage() {
           <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
             {[
               { icon: '🚀', title: 'Project Builder', desc: 'Full app generation + GitHub push' },
+              { icon: '👁️', title: 'Live Preview', desc: 'See generated code render instantly' },
+              { icon: '☁️', title: 'One-Click Deploy', desc: 'Vercel & Netlify integration' },
+              { icon: '🤖', title: 'Multi-Agent', desc: '5 specialized agents working together' },
               { icon: '💻', title: 'Code Execution', desc: 'Run Python with auto-fix on errors' },
               { icon: '📦', title: 'GitHub Workflow', desc: 'Branches, PRs, diffs, push' },
               { icon: '🔬', title: 'Deep Research', desc: 'Parallel multi-source research' },
@@ -699,9 +769,6 @@ export default function HomePage() {
               { icon: '📁', title: 'My Files', desc: 'Upload docs, AI recalls everything' },
               { icon: '🔍', title: 'Real-Time Search', desc: 'Live web search with citations' },
               { icon: '📖', title: 'Bible Study', desc: 'Scripture exploration & study' },
-              { icon: '✍️', title: 'Writing Tools', desc: 'Essays, emails, content' },
-              { icon: '📄', title: 'Resume Builder', desc: 'Professional resumes & letters' },
-              { icon: '📊', title: 'Data Analysis', desc: 'Spreadsheet analysis' },
             ].map((tool, index) => (
               <div
                 key={index}
