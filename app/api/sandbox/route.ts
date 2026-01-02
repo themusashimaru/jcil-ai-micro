@@ -14,6 +14,7 @@ import {
   buildAndTest,
   getSandboxConfig,
   isSandboxConfigured,
+  getMissingSandboxConfig,
 } from '@/lib/connectors/vercel-sandbox';
 
 // Rate limits per subscription tier (executions per month)
@@ -29,8 +30,15 @@ export async function POST(req: NextRequest) {
   try {
     // Check if sandbox is configured
     if (!isSandboxConfigured()) {
+      const missing = getMissingSandboxConfig();
       return NextResponse.json(
-        { error: 'Sandbox not configured' },
+        {
+          error: 'Sandbox not configured',
+          missing,
+          hint: missing.includes('VERCEL_TEAM_ID')
+            ? 'Find your Team ID at: Vercel Dashboard → Settings → General. Even personal Pro accounts have a Team ID.'
+            : undefined
+        },
         { status: 503 }
       );
     }
@@ -175,9 +183,14 @@ export async function GET() {
     const configured = isSandboxConfigured();
 
     if (!configured) {
+      const missing = getMissingSandboxConfig();
       return NextResponse.json({
         available: false,
         reason: 'Sandbox not configured',
+        missing,
+        hint: missing.includes('VERCEL_TEAM_ID')
+          ? 'Find your Team ID at: Vercel Dashboard → Settings → General. Even personal Pro accounts have a Team ID.'
+          : undefined
       });
     }
 

@@ -261,10 +261,13 @@ export async function buildAndTest(
 
 /**
  * Check if Vercel Sandbox is configured
- * VERCEL_TEAM_ID is optional (not needed for personal accounts)
+ * VERCEL_TEAM_ID is required when using access token authentication.
+ * Even personal Pro accounts have a team ID in Vercel's system.
+ * Find it at: Vercel Dashboard → Settings → General → "Team ID"
  */
 export function isSandboxConfigured(): boolean {
   return !!(
+    process.env.VERCEL_TEAM_ID &&
     process.env.VERCEL_PROJECT_ID &&
     process.env.VERCEL_TOKEN
   );
@@ -279,8 +282,19 @@ export function getSandboxConfig(): SandboxConfig | null {
   }
 
   return {
-    teamId: process.env.VERCEL_TEAM_ID,  // Optional
+    teamId: process.env.VERCEL_TEAM_ID!, // Required for token auth
     projectId: process.env.VERCEL_PROJECT_ID!,
     token: process.env.VERCEL_TOKEN!,
   };
+}
+
+/**
+ * Get missing configuration details for error messages
+ */
+export function getMissingSandboxConfig(): string[] {
+  const missing: string[] = [];
+  if (!process.env.VERCEL_TEAM_ID) missing.push('VERCEL_TEAM_ID');
+  if (!process.env.VERCEL_PROJECT_ID) missing.push('VERCEL_PROJECT_ID');
+  if (!process.env.VERCEL_TOKEN) missing.push('VERCEL_TOKEN');
+  return missing;
 }
