@@ -4,7 +4,7 @@
  *
  * Button to show connected services (GitHub, Vercel, etc.)
  * Displays in chat composer action bar.
- * Uses Personal Access Token for GitHub connection.
+ * Uses Personal Access Token for GitHub and Vercel connections.
  */
 
 'use client';
@@ -19,6 +19,14 @@ interface GitHubStatus {
   error?: string;
 }
 
+interface VercelStatus {
+  connected: boolean;
+  username?: string;
+  email?: string;
+  teamId?: string;
+  error?: string;
+}
+
 interface ConnectorsButtonProps {
   disabled?: boolean;
 }
@@ -30,51 +38,68 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
   // GitHub state
   const [githubStatus, setGithubStatus] = useState<GitHubStatus>({ connected: false });
   const [loading, setLoading] = useState(false);
-  const [showTokenInput, setShowTokenInput] = useState(false);
-  const [tokenInput, setTokenInput] = useState('');
-  const [tokenError, setTokenError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [showGitHubTokenInput, setShowGitHubTokenInput] = useState(false);
+  const [githubTokenInput, setGithubTokenInput] = useState('');
+  const [githubTokenError, setGithubTokenError] = useState('');
+  const [githubSaving, setGithubSaving] = useState(false);
+
+  // Vercel state
+  const [vercelStatus, setVercelStatus] = useState<VercelStatus>({ connected: false });
+  const [showVercelTokenInput, setShowVercelTokenInput] = useState(false);
+  const [vercelTokenInput, setVercelTokenInput] = useState('');
+  const [vercelTokenError, setVercelTokenError] = useState('');
+  const [vercelSaving, setVercelSaving] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Fetch GitHub status when modal opens
+  // Fetch status when modal opens
   useEffect(() => {
     if (showModal) {
-      fetchGitHubStatus();
+      fetchAllStatuses();
     }
   }, [showModal]);
 
-  const fetchGitHubStatus = async () => {
+  const fetchAllStatuses = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/user/github-token');
-      if (response.ok) {
-        const data = await response.json();
+      // Fetch GitHub and Vercel status in parallel
+      const [githubRes, vercelRes] = await Promise.all([
+        fetch('/api/user/github-token'),
+        fetch('/api/user/vercel-token'),
+      ]);
+
+      if (githubRes.ok) {
+        const data = await githubRes.json();
         setGithubStatus(data);
       }
+      if (vercelRes.ok) {
+        const data = await vercelRes.json();
+        setVercelStatus(data);
+      }
     } catch (error) {
-      console.error('[ConnectorsButton] Failed to fetch GitHub status:', error);
+      console.error('[ConnectorsButton] Failed to fetch status:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveToken = async () => {
-    if (!tokenInput.trim()) {
-      setTokenError('Please enter a token');
+  // GitHub handlers
+  const handleSaveGitHubToken = async () => {
+    if (!githubTokenInput.trim()) {
+      setGithubTokenError('Please enter a token');
       return;
     }
 
-    setSaving(true);
-    setTokenError('');
+    setGithubSaving(true);
+    setGithubTokenError('');
 
     try {
       const response = await fetch('/api/user/github-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tokenInput.trim() }),
+        body: JSON.stringify({ token: githubTokenInput.trim() }),
       });
 
       const data = await response.json();
@@ -85,25 +110,72 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
           username: data.username,
           avatarUrl: data.avatarUrl,
         });
-        setShowTokenInput(false);
-        setTokenInput('');
+        setShowGitHubTokenInput(false);
+        setGithubTokenInput('');
       } else {
-        setTokenError(data.error || 'Failed to save token');
+        setGithubTokenError(data.error || 'Failed to save token');
       }
     } catch (error) {
-      console.error('[ConnectorsButton] Failed to save token:', error);
-      setTokenError('Failed to connect. Please try again.');
+      console.error('[ConnectorsButton] Failed to save GitHub token:', error);
+      setGithubTokenError('Failed to connect. Please try again.');
     } finally {
-      setSaving(false);
+      setGithubSaving(false);
     }
   };
 
-  const handleDisconnect = async () => {
+  const handleDisconnectGitHub = async () => {
     try {
       await fetch('/api/user/github-token', { method: 'DELETE' });
       setGithubStatus({ connected: false });
     } catch (error) {
-      console.error('[ConnectorsButton] Failed to disconnect:', error);
+      console.error('[ConnectorsButton] Failed to disconnect GitHub:', error);
+    }
+  };
+
+  // Vercel handlers
+  const handleSaveVercelToken = async () => {
+    if (!vercelTokenInput.trim()) {
+      setVercelTokenError('Please enter a token');
+      return;
+    }
+
+    setVercelSaving(true);
+    setVercelTokenError('');
+
+    try {
+      const response = await fetch('/api/user/vercel-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: vercelTokenInput.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setVercelStatus({
+          connected: true,
+          username: data.username,
+          email: data.email,
+        });
+        setShowVercelTokenInput(false);
+        setVercelTokenInput('');
+      } else {
+        setVercelTokenError(data.error || 'Failed to save token');
+      }
+    } catch (error) {
+      console.error('[ConnectorsButton] Failed to save Vercel token:', error);
+      setVercelTokenError('Failed to connect. Please try again.');
+    } finally {
+      setVercelSaving(false);
+    }
+  };
+
+  const handleDisconnectVercel = async () => {
+    try {
+      await fetch('/api/user/vercel-token', { method: 'DELETE' });
+      setVercelStatus({ connected: false });
+    } catch (error) {
+      console.error('[ConnectorsButton] Failed to disconnect Vercel:', error);
     }
   };
 
@@ -122,7 +194,7 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
         </svg>
         {/* Connected indicator */}
-        {githubStatus.connected && (
+        {(githubStatus.connected || vercelStatus.connected) && (
           <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500" />
         )}
       </button>
@@ -135,9 +207,12 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
             className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm"
             onClick={() => {
               setShowModal(false);
-              setShowTokenInput(false);
-              setTokenInput('');
-              setTokenError('');
+              setShowGitHubTokenInput(false);
+              setGithubTokenInput('');
+              setGithubTokenError('');
+              setShowVercelTokenInput(false);
+              setVercelTokenInput('');
+              setVercelTokenError('');
             }}
           />
           {/* Modal Content */}
@@ -148,9 +223,12 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
               <button
                 onClick={() => {
                   setShowModal(false);
-                  setShowTokenInput(false);
-                  setTokenInput('');
-                  setTokenError('');
+                  setShowGitHubTokenInput(false);
+                  setGithubTokenInput('');
+                  setGithubTokenError('');
+                  setShowVercelTokenInput(false);
+                  setVercelTokenInput('');
+                  setVercelTokenError('');
                 }}
                 className="p-1 rounded-lg hover:bg-white/10 transition-colors"
               >
@@ -185,7 +263,7 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
                         </div>
                       ) : (
                         <button
-                          onClick={() => setShowTokenInput(true)}
+                          onClick={() => setShowGitHubTokenInput(true)}
                           className="px-3 py-1.5 text-sm font-medium rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
                         >
                           Connect
@@ -194,7 +272,7 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
                     </div>
 
                     {/* Token Input Section */}
-                    {showTokenInput && !githubStatus.connected && (
+                    {showGitHubTokenInput && !githubStatus.connected && (
                       <div className="mt-4 pt-4 border-t border-white/10">
                         <p className="text-xs text-gray-400 mb-3">
                           Create a <a
@@ -209,33 +287,33 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
 
                         <input
                           type="password"
-                          value={tokenInput}
+                          value={githubTokenInput}
                           onChange={(e) => {
-                            setTokenInput(e.target.value);
-                            setTokenError('');
+                            setGithubTokenInput(e.target.value);
+                            setGithubTokenError('');
                           }}
                           placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                           className="w-full px-3 py-2 text-sm rounded-lg bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           autoComplete="off"
                         />
 
-                        {tokenError && (
-                          <p className="mt-2 text-xs text-red-400">{tokenError}</p>
+                        {githubTokenError && (
+                          <p className="mt-2 text-xs text-red-400">{githubTokenError}</p>
                         )}
 
                         <div className="mt-3 flex gap-2">
                           <button
-                            onClick={handleSaveToken}
-                            disabled={saving || !tokenInput.trim()}
+                            onClick={handleSaveGitHubToken}
+                            disabled={githubSaving || !githubTokenInput.trim()}
                             className="flex-1 px-3 py-2 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white"
                           >
-                            {saving ? 'Connecting...' : 'Connect'}
+                            {githubSaving ? 'Connecting...' : 'Connect'}
                           </button>
                           <button
                             onClick={() => {
-                              setShowTokenInput(false);
-                              setTokenInput('');
-                              setTokenError('');
+                              setShowGitHubTokenInput(false);
+                              setGithubTokenInput('');
+                              setGithubTokenError('');
                             }}
                             className="px-3 py-2 text-sm font-medium rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
                           >
@@ -249,7 +327,7 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
                     {githubStatus.connected && (
                       <div className="mt-3 pt-3 border-t border-white/10">
                         <button
-                          onClick={handleDisconnect}
+                          onClick={handleDisconnectGitHub}
                           className="text-xs text-red-400 hover:text-red-300 transition-colors"
                         >
                           Disconnect GitHub
@@ -258,16 +336,94 @@ export function ConnectorsButton({ disabled }: ConnectorsButtonProps) {
                     )}
                   </div>
 
-                  {/* Vercel Connector (Coming Soon) */}
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-white/5 opacity-50">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">▲</span>
-                      <div>
-                        <p className="font-medium text-white">Vercel</p>
-                        <p className="text-xs text-gray-400">Deploy projects instantly</p>
+                  {/* Vercel Connector */}
+                  <div className="p-3 rounded-lg border border-white/10 bg-white/5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">▲</span>
+                        <div>
+                          <p className="font-medium text-white">Vercel</p>
+                          <p className="text-xs text-gray-400">Deploy projects instantly</p>
+                        </div>
                       </div>
+                      {vercelStatus.connected ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-green-400">@{vercelStatus.username}</span>
+                          <span className="h-2 w-2 rounded-full bg-green-500" />
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowVercelTokenInput(true)}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
+                        >
+                          Connect
+                        </button>
+                      )}
                     </div>
-                    <span className="text-xs text-gray-500">Coming Soon</span>
+
+                    {/* Vercel Token Input Section */}
+                    {showVercelTokenInput && !vercelStatus.connected && (
+                      <div className="mt-4 pt-4 border-t border-white/10">
+                        <p className="text-xs text-gray-400 mb-3">
+                          Create a <a
+                            href="https://vercel.com/account/tokens"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:underline"
+                          >
+                            Vercel Access Token
+                          </a> with deployment permissions
+                        </p>
+
+                        <input
+                          type="password"
+                          value={vercelTokenInput}
+                          onChange={(e) => {
+                            setVercelTokenInput(e.target.value);
+                            setVercelTokenError('');
+                          }}
+                          placeholder="Your Vercel token..."
+                          className="w-full px-3 py-2 text-sm rounded-lg bg-black/30 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          autoComplete="off"
+                        />
+
+                        {vercelTokenError && (
+                          <p className="mt-2 text-xs text-red-400">{vercelTokenError}</p>
+                        )}
+
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={handleSaveVercelToken}
+                            disabled={vercelSaving || !vercelTokenInput.trim()}
+                            className="flex-1 px-3 py-2 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white"
+                          >
+                            {vercelSaving ? 'Connecting...' : 'Connect'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowVercelTokenInput(false);
+                              setVercelTokenInput('');
+                              setVercelTokenError('');
+                            }}
+                            className="px-3 py-2 text-sm font-medium rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Vercel Disconnect Button */}
+                    {vercelStatus.connected && (
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <button
+                          onClick={handleDisconnectVercel}
+                          className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          Disconnect Vercel
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Supabase Connector (Coming Soon) */}

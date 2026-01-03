@@ -166,7 +166,7 @@ export async function createWebsiteSession(
       created_at: session.createdAt,
       updated_at: session.updatedAt,
     });
-  } catch (err) {
+  } catch {
     console.log('[WebsitePipeline] Session table may not exist, using in-memory session');
   }
 
@@ -196,7 +196,7 @@ export async function updateWebsiteSession(session: WebsiteSession): Promise<voi
       created_at: session.createdAt,
       updated_at: session.updatedAt,
     });
-  } catch (err) {
+  } catch {
     console.log('[WebsitePipeline] Could not persist session update');
   }
 }
@@ -899,7 +899,7 @@ export async function pushWebsiteToGitHub(
         autoInit: true,
       });
       console.log(`[WebsitePipeline] Created new repo: ${repoFullName}`);
-    } catch (createError) {
+    } catch {
       // Repo might already exist, which is fine
       console.log(`[WebsitePipeline] Repo may already exist: ${repoFullName}`);
     }

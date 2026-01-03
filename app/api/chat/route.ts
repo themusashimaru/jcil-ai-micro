@@ -43,7 +43,7 @@
 
 import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from '@/lib/openai/client';
 import { moderateContent } from '@/lib/openai/moderation';
-import type { ToolType } from '@/lib/openai/types';
+// ToolType removed - now using website pipeline directly
 import { buildSlimSystemPrompt, isFaithTopic, getRelevantCategories } from '@/lib/prompts/slimPrompt';
 import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
@@ -1483,11 +1483,13 @@ export async function POST(request: NextRequest) {
 
     // FORGE & MUSASHI: Skip task planning for direct routes (website, video, image)
     // These have their own specialized handlers that are more powerful
+    // Do early route check (without file uploads) to determine if we should skip
     const skipTaskPlanningForRoutes: RouteTarget[] = ['website', 'video', 'image'];
-    const shouldSkipTaskPlanning = skipTaskPlanningForRoutes.includes(routeDecision.target);
+    const earlyRouteCheck = decideRoute(lastUserContent, tool);
+    const shouldSkipTaskPlanning = skipTaskPlanningForRoutes.includes(earlyRouteCheck.target);
 
     if (shouldSkipTaskPlanning) {
-      console.log(`[Chat API] FORGE & MUSASHI: Skipping task planner for direct route: ${routeDecision.target}`);
+      console.log(`[Chat API] FORGE & MUSASHI: Skipping task planner for direct route: ${earlyRouteCheck.target}`);
     }
 
     if (isTaskPlanningEnabled() && lastUserContent && !shouldSkipTaskPlanning) {
