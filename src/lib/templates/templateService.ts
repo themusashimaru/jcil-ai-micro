@@ -13,7 +13,7 @@
  * - Full responsive design (mobile, tablet, desktop)
  */
 
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { createServerClient } from '@/lib/supabase/client';
 
 // Template category type (matches the database enum)
 export type TemplateCategory =
@@ -336,11 +336,12 @@ export function extractBusinessInfo(prompt: string): Partial<BusinessInfo> {
  * Get the best template for a given category
  */
 export async function getTemplateByCategory(category: TemplateCategory): Promise<WebsiteTemplate | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = createServerClient();
   if (!supabase) return null;
 
   try {
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
       .from('website_templates')
       .select('*')
       .eq('category', category)
@@ -362,11 +363,12 @@ export async function getTemplateByCategory(category: TemplateCategory): Promise
  * Search templates by text query
  */
 export async function searchTemplates(query: string): Promise<WebsiteTemplate[]> {
-  const supabase = getSupabaseAdmin();
+  const supabase = createServerClient();
   if (!supabase) return [];
 
   try {
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
       .from('website_templates')
       .select('*')
       .eq('is_active', true)
@@ -386,11 +388,12 @@ export async function searchTemplates(query: string): Promise<WebsiteTemplate[]>
  * Get template by ID
  */
 export async function getTemplateById(id: string): Promise<WebsiteTemplate | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = createServerClient();
   if (!supabase) return null;
 
   try {
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
       .from('website_templates')
       .select('*')
       .eq('id', id)
@@ -408,13 +411,14 @@ export async function getTemplateById(id: string): Promise<WebsiteTemplate | nul
  * Increment template usage counter
  */
 export async function incrementTemplateUsage(templateId: string): Promise<void> {
-  const supabase = getSupabaseAdmin();
+  const supabase = createServerClient();
   if (!supabase) return;
 
   try {
-    await supabase.rpc('increment_template_usage', { template_id: templateId });
+    // Type assertion needed as RPC functions aren't in generated types yet
+    await (supabase.rpc as CallableFunction)('increment_template_usage', { template_id: templateId });
   } catch {
-    // Silently fail
+    // Silently fail - function may not exist in all environments
   }
 }
 
@@ -487,11 +491,12 @@ export async function saveGeneratedSite(
   businessType: string,
   generatedHtml: string
 ): Promise<string | null> {
-  const supabase = getSupabaseAdmin();
+  const supabase = createServerClient();
   if (!supabase) return null;
 
   try {
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
       .from('generated_sites')
       .insert({
         user_id: userId,
@@ -520,11 +525,12 @@ export async function saveGeneratedSite(
  * Get all active templates
  */
 export async function getAllTemplates(): Promise<WebsiteTemplate[]> {
-  const supabase = getSupabaseAdmin();
+  const supabase = createServerClient();
   if (!supabase) return [];
 
   try {
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
       .from('website_templates')
       .select('*')
       .eq('is_active', true)
