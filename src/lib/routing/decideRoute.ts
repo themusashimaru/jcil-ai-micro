@@ -1160,6 +1160,323 @@ const GITHUB_INTENT_PATTERNS = [
   /\b(in-?app\s+message|announcement|banner|toast)\b/i,
   /\b(intercom|drift|crisp|zendesk\s+chat)\b/i,
   /\b(support\s+chat|live\s+chat|help\s+desk)\b/i,
+
+  // ============================================
+  // 🎮 GAMING & INTERACTIVE (25 patterns)
+  // Game development, engines, multiplayer
+  // ============================================
+  // Game Engines
+  /\b(unity|unreal|godot|phaser|pixi\.?js)\s+(game|project|setup|help)\b/i,
+  /\b(game\s+engine|game\s+framework|2d\s+game|3d\s+game)\b/i,
+  /\b(build|create|make|develop)\s+(a\s+)?(game|video\s+game|mobile\s+game)\b/i,
+  /\b(unity)\s+(c#|csharp|script|prefab|scene|asset)\b/i,
+  /\b(unreal)\s+(blueprint|c\+\+|actor|component)\b/i,
+  /\b(godot)\s+(gdscript|node|scene|signal)\b/i,
+  // Game Mechanics
+  /\b(game\s+loop|update\s+loop|render\s+loop|tick)\b/i,
+  /\b(physics|collision|hitbox|rigidbody|raycast)\b/i,
+  /\b(sprite|animation|tilemap|parallax|scrolling)\b/i,
+  /\b(player\s+controller|character\s+controller|movement)\b/i,
+  /\b(enemy\s+ai|pathfinding|a\*|navigation|navmesh)\b/i,
+  /\b(inventory|crafting|skill\s+tree|leveling|xp)\b/i,
+  /\b(save\s+game|load\s+game|checkpoint|progress)\b/i,
+  // Multiplayer & Online
+  /\b(multiplayer|netcode|photon|mirror|fishnet)\b/i,
+  /\b(game\s+server|dedicated\s+server|matchmaking|lobby)\b/i,
+  /\b(leaderboard|high\s+score|ranking|achievement)\b/i,
+  /\b(real-?time\s+multiplayer|turn-?based|co-?op)\b/i,
+  // Game Assets
+  /\b(game\s+art|pixel\s+art|sprite\s+sheet|texture)\b/i,
+  /\b(sound\s+effect|sfx|game\s+music|audio\s+loop)\b/i,
+  /\b(level\s+design|level\s+editor|procedural\s+generation)\b/i,
+  // Web Games
+  /\b(html5\s+game|canvas\s+game|webgl|three\.?js\s+game)\b/i,
+  /\b(browser\s+game|web\s+game|javascript\s+game)\b/i,
+
+  // ============================================
+  // ⛓️ BLOCKCHAIN & WEB3 (25 patterns)
+  // Smart contracts, NFTs, DeFi, wallets
+  // ============================================
+  // Smart Contracts
+  /\b(smart\s+contract|solidity|vyper|rust\s+contract)\b/i,
+  /\b(ethereum|polygon|solana|avalanche|arbitrum|optimism)\s+(contract|deploy|develop)\b/i,
+  /\b(erc-?20|erc-?721|erc-?1155|token\s+standard)\b/i,
+  /\b(hardhat|foundry|truffle|remix)\s+(project|deploy|test)\b/i,
+  /\b(abi|bytecode|contract\s+verification|etherscan)\b/i,
+  /\b(gas|gas\s+optimization|gas\s+fee|gwei)\b/i,
+  // NFTs
+  /\b(nft|non-?fungible|mint|minting)\b/i,
+  /\b(nft\s+marketplace|opensea|rarible|blur)\b/i,
+  /\b(nft\s+metadata|ipfs|arweave|token\s+uri)\b/i,
+  /\b(nft\s+collection|pfp|generative\s+art)\b/i,
+  // DeFi
+  /\b(defi|decentralized\s+finance|yield|staking)\b/i,
+  /\b(swap|liquidity|pool|amm|uniswap|sushiswap)\b/i,
+  /\b(lending|borrowing|aave|compound)\b/i,
+  /\b(tokenomics|vesting|airdrop|ico|ido)\b/i,
+  // Wallets & Integration
+  /\b(wallet|metamask|rainbow|coinbase\s+wallet)\b/i,
+  /\b(connect\s+wallet|wallet\s+connect|web3\s+modal)\b/i,
+  /\b(ethers\.?js|web3\.?js|viem|wagmi)\b/i,
+  /\b(sign\s+message|transaction|approve|transfer)\b/i,
+  // Blockchain Data
+  /\b(blockchain|on-?chain|off-?chain|oracle|chainlink)\b/i,
+  /\b(the\s+graph|subgraph|indexer|blockchain\s+data)\b/i,
+  /\b(dao|governance|voting|proposal|multisig)\b/i,
+
+  // ============================================
+  // 📝 WORDPRESS & CMS (20 patterns)
+  // WordPress, headless CMS, content management
+  // ============================================
+  // WordPress
+  /\b(wordpress|wp)\s+(theme|plugin|site|blog|help)\b/i,
+  /\b(wordpress)\s+(develop|customize|install|migrate)\b/i,
+  /\b(wp-?admin|wp-?content|wp-?config|functions\.php)\b/i,
+  /\b(wordpress\s+theme|theme\s+development|child\s+theme)\b/i,
+  /\b(wordpress\s+plugin|plugin\s+development|wp\s+hook)\b/i,
+  /\b(gutenberg|block\s+editor|custom\s+block|acf)\b/i,
+  /\b(woocommerce|wp\s+ecommerce|wordpress\s+shop)\b/i,
+  /\b(wordpress\s+rest\s+api|wp\s+json|headless\s+wordpress)\b/i,
+  // Headless CMS
+  /\b(headless\s+cms|content\s+management|cms)\b/i,
+  /\b(strapi|sanity|contentful|prismic|directus)\b/i,
+  /\b(cms\s+api|content\s+api|structured\s+content)\b/i,
+  /\b(rich\s+text|markdown\s+editor|wysiwyg)\b/i,
+  // Other CMS
+  /\b(drupal|joomla|ghost|keystone)\b/i,
+  /\b(static\s+site|jamstack|netlify\s+cms)\b/i,
+  /\b(blog\s+platform|publishing|content\s+workflow)\b/i,
+
+  // ============================================
+  // 🔷 GRAPHQL (20 patterns)
+  // Queries, mutations, schemas, clients
+  // ============================================
+  // Basics
+  /\b(graphql)\s+(api|query|mutation|schema|setup)\b/i,
+  /\b(graphql)\s+(server|client|endpoint|playground)\b/i,
+  /\b(query|mutation|subscription)\s+(graphql)?\b.*\b(write|create|fix)\b/i,
+  /\b(gql|graphql\s+tag|tagged\s+template)\b/i,
+  // Schema & Types
+  /\b(graphql\s+schema|type\s+definition|sdl)\b/i,
+  /\b(resolver|field\s+resolver|root\s+resolver)\b/i,
+  /\b(input\s+type|enum|interface|union)\s+(graphql)?\b/i,
+  /\b(nullable|non-?null|scalar|custom\s+scalar)\b/i,
+  // Clients & Tools
+  /\b(apollo|apollo\s+client|apollo\s+server)\b/i,
+  /\b(urql|relay|graphql-?request)\b/i,
+  /\b(graphql\s+codegen|type\s+generation|introspection)\b/i,
+  /\b(dataloader|n\+1|batching|caching)\s+(graphql)?\b/i,
+  // Advanced
+  /\b(federation|subgraph|supergraph|apollo\s+federation)\b/i,
+  /\b(persisted\s+query|query\s+complexity|depth\s+limit)\b/i,
+  /\b(graphql\s+subscription|real-?time\s+graphql|websocket\s+graphql)\b/i,
+
+  // ============================================
+  // 🏗️ MICROSERVICES (20 patterns)
+  // Service architecture, messaging, patterns
+  // ============================================
+  // Architecture
+  /\b(microservice|micro-?service)\s+(architecture|design|pattern)\b/i,
+  /\b(service-?oriented|soa|distributed\s+system)\b/i,
+  /\b(monolith|monolithic)\s+(to\s+microservice|migration|split)\b/i,
+  /\b(domain-?driven|ddd|bounded\s+context|aggregate)\b/i,
+  // Communication
+  /\b(service\s+mesh|istio|linkerd|envoy)\b/i,
+  /\b(api\s+gateway|kong|traefik|nginx\s+gateway)\b/i,
+  /\b(grpc|protobuf|protocol\s+buffer|rpc)\b/i,
+  /\b(message\s+broker|rabbitmq|kafka|nats|redis\s+streams)\b/i,
+  /\b(event-?driven|event\s+bus|event\s+sourcing)\b/i,
+  // Patterns
+  /\b(saga|saga\s+pattern|choreography|orchestration)\b/i,
+  /\b(circuit\s+breaker|bulkhead|retry\s+pattern|fallback)\b/i,
+  /\b(service\s+discovery|consul|eureka|etcd)\b/i,
+  /\b(sidecar|ambassador|anti-?corruption\s+layer)\b/i,
+  // Operations
+  /\b(distributed\s+tracing|jaeger|zipkin|opentracing)\b/i,
+  /\b(health\s+check|readiness|liveness|probe)\b/i,
+  /\b(config\s+server|feature\s+toggle|canary\s+deploy)\b/i,
+
+  // ============================================
+  // 🖥️ DESKTOP APPS (15 patterns)
+  // Electron, Tauri, native features
+  // ============================================
+  /\b(electron|electron\.?js)\s+(app|project|build|package)\b/i,
+  /\b(tauri)\s+(app|project|rust|build)\b/i,
+  /\b(desktop\s+app|desktop\s+application|native\s+app)\b/i,
+  /\b(build|create|develop)\s+(a\s+)?(desktop|native)\s+app\b/i,
+  /\b(electron)\s+(main|renderer|preload|ipc)\b/i,
+  /\b(system\s+tray|tray\s+icon|menu\s+bar\s+app)\b/i,
+  /\b(native\s+menu|context\s+menu|application\s+menu)\b/i,
+  /\b(auto-?update|electron-?updater|app\s+update)\b/i,
+  /\b(electron-?builder|electron-?forge|package\s+electron)\b/i,
+  /\b(file\s+system|fs\s+access|native\s+file)\s+(desktop)?\b/i,
+  /\b(notification|desktop\s+notification|native\s+notification)\b/i,
+  /\b(window|browser\s+window|frameless|transparent\s+window)\b/i,
+  /\b(dmg|appimage|snap|windows\s+installer|msi|nsis)\b/i,
+
+  // ============================================
+  // ⌨️ CLI TOOLS (15 patterns)
+  // Command line apps, terminal UI
+  // ============================================
+  /\b(cli|command\s+line)\s+(app|tool|application|interface)\b/i,
+  /\b(build|create|develop)\s+(a\s+)?(cli|command\s+line)\b/i,
+  /\b(commander|yargs|meow|oclif|clipanion)\b/i,
+  /\b(inquirer|prompts|enquirer)\s+(prompt|question|input)\b/i,
+  /\b(terminal\s+ui|tui|blessed|ink|terminal-?kit)\b/i,
+  /\b(chalk|colors|ansi|terminal\s+color|colorize)\b/i,
+  /\b(ora|spinner|progress|loading)\s+(cli|terminal)?\b/i,
+  /\b(argv|argument|flag|option)\s+(parse|parsing|parser)\b/i,
+  /\b(cli\s+command|subcommand|command\s+handler)\b/i,
+  /\b(stdin|stdout|stderr|pipe|stream)\s+(cli|command)?\b/i,
+  /\b(interactive\s+cli|repl|readline)\b/i,
+  /\b(npm\s+bin|npx|global\s+install|shebang)\b/i,
+  /\b(boxen|figlet|ascii\s+art|banner)\b/i,
+
+  // ============================================
+  // 🧩 BROWSER EXTENSIONS (15 patterns)
+  // Chrome, Firefox, manifest, scripts
+  // ============================================
+  /\b(browser\s+extension|chrome\s+extension|firefox\s+extension)\b/i,
+  /\b(build|create|develop)\s+(a\s+)?(browser|chrome|firefox)\s+extension\b/i,
+  /\b(manifest\.json|manifest\s+v3|mv3|manifest\s+v2)\b/i,
+  /\b(content\s+script|background\s+script|service\s+worker)\s+(extension)?\b/i,
+  /\b(popup|popup\.html|extension\s+popup|browser\s+action)\b/i,
+  /\b(options\s+page|settings\s+page|extension\s+options)\b/i,
+  /\b(chrome\.storage|browser\.storage|extension\s+storage)\b/i,
+  /\b(chrome\.tabs|browser\.tabs|tab\s+api)\b/i,
+  /\b(chrome\.runtime|browser\.runtime|message\s+passing)\b/i,
+  /\b(inject\s+script|web\s+accessible|content\s+security)\s+(extension)?\b/i,
+  /\b(extension\s+permission|host\s+permission|activeTab)\b/i,
+  /\b(chrome\s+web\s+store|firefox\s+add-?on|extension\s+publish)\b/i,
+  /\b(webextension|cross-?browser\s+extension|polyfill)\b/i,
+
+  // ============================================
+  // 📊 DATA SCIENCE & ANALYTICS (20 patterns)
+  // Python data, visualization, notebooks
+  // ============================================
+  // Data Manipulation
+  /\b(pandas|dataframe|series)\s+(python|query|manipulation)?\b/i,
+  /\b(numpy|ndarray|array\s+operation|vectorize)\b/i,
+  /\b(data\s+cleaning|data\s+wrangling|etl|data\s+pipeline)\b/i,
+  /\b(csv|excel|parquet|json)\s+(read|write|parse|process)\b/i,
+  /\b(merge|join|concat|pivot|melt)\s+(dataframe|data)?\b/i,
+  /\b(groupby|aggregate|rolling|resample)\b/i,
+  // Visualization
+  /\b(matplotlib|seaborn|plotly|bokeh)\s+(chart|plot|graph)?\b/i,
+  /\b(d3|d3\.?js|data\s+visualization|interactive\s+chart)\b/i,
+  /\b(chart\.?js|recharts|nivo|victory)\b/i,
+  /\b(bar\s+chart|line\s+chart|pie\s+chart|scatter\s+plot|heatmap)\b/i,
+  /\b(dashboard|data\s+dashboard|analytics\s+dashboard)\b/i,
+  // Notebooks & Tools
+  /\b(jupyter|notebook|ipynb|colab)\b/i,
+  /\b(jupyterlab|jupyter\s+kernel|notebook\s+server)\b/i,
+  /\b(sql\s+query|database\s+query)\s+(analysis|analytics)?\b/i,
+  // Statistics
+  /\b(statistics|statistical\s+analysis|hypothesis\s+test)\b/i,
+  /\b(regression|correlation|distribution|probability)\b/i,
+  /\b(scipy|statsmodels|statistical\s+model)\b/i,
+
+  // ============================================
+  // 🤖 AUTOMATION & SCRIPTING (15 patterns)
+  // Shell, scraping, scheduling
+  // ============================================
+  /\b(automation|automate)\s+(task|workflow|process|script)\b/i,
+  /\b(shell\s+script|bash\s+script|zsh|powershell)\b/i,
+  /\b(python\s+script|automation\s+script|scripting)\b/i,
+  /\b(puppeteer|playwright)\s+(scrape|automate|browser)?\b/i,
+  /\b(web\s+scraping|scraper|crawler|crawling)\b/i,
+  /\b(cheerio|beautiful\s*soup|scrapy)\b/i,
+  /\b(selenium|webdriver|browser\s+automation)\b/i,
+  /\b(make|makefile|task\s+runner|npm\s+script)\b/i,
+  /\b(gulp|grunt|just|taskfile)\b/i,
+  /\b(cron|scheduled\s+task|recurring\s+job|automation\s+schedule)\b/i,
+  /\b(github\s+actions|gitlab\s+ci|automation\s+pipeline)\b/i,
+  /\b(zapier|n8n|pipedream|integromat|make\.com)\b/i,
+  /\b(rpa|robotic\s+process|ui\s+automation)\b/i,
+
+  // ============================================
+  // ⚡ PERFORMANCE & OPTIMIZATION (20 patterns)
+  // Speed, bundle size, caching, profiling
+  // ============================================
+  // Bundle & Build
+  /\b(bundle\s+size|chunk|code\s+splitting|tree\s+shaking)\b/i,
+  /\b(webpack|vite|rollup|esbuild)\s+(optimize|config|bundle)?\b/i,
+  /\b(minify|minification|uglify|terser|compress)\b/i,
+  /\b(lazy\s+load|dynamic\s+import|route\s+splitting)\b/i,
+  /\b(dead\s+code|unused\s+code|eliminate|purge)\b/i,
+  // Runtime Performance
+  /\b(performance|optimize|optimization|speed\s+up)\b/i,
+  /\b(slow|performance\s+issue|bottleneck|lag)\b/i,
+  /\b(memoization|memo|usememo|usecallback|cache)\b/i,
+  /\b(virtual\s+list|virtualization|windowing|react-?window)\b/i,
+  /\b(debounce|throttle|requestanimationframe|raf)\b/i,
+  /\b(web\s+worker|worker\s+thread|offload|background\s+thread)\b/i,
+  // Profiling & Measurement
+  /\b(profile|profiler|profiling|flame\s+graph)\b/i,
+  /\b(lighthouse|pagespeed|performance\s+audit|web\s+vitals)\b/i,
+  /\b(memory\s+leak|heap|garbage\s+collection|gc)\b/i,
+  /\b(devtools|chrome\s+devtools|performance\s+tab)\b/i,
+  // Caching
+  /\b(cache|caching)\s+(strategy|layer|invalidation|bust)\b/i,
+  /\b(service\s+worker|sw|cache\s+api|stale-?while-?revalidate)\b/i,
+  /\b(cdn|edge\s+cache|cloudflare|fastly)\b/i,
+  /\b(redis\s+cache|memcached|in-?memory\s+cache)\b/i,
+
+  // ============================================
+  // 🎨 DESIGN SYSTEMS (15 patterns)
+  // Component libraries, Storybook, tokens
+  // ============================================
+  /\b(design\s+system|component\s+library|ui\s+library)\b/i,
+  /\b(build|create|develop)\s+(a\s+)?design\s+system\b/i,
+  /\b(storybook|chromatic|histoire)\b/i,
+  /\b(storybook)\s+(story|addon|config|setup)\b/i,
+  /\b(design\s+token|css\s+variable|theme\s+token)\b/i,
+  /\b(style\s+guide|brand\s+guide|ui\s+documentation)\b/i,
+  /\b(atomic\s+design|atom|molecule|organism|template)\b/i,
+  /\b(component\s+api|prop|variant|compound\s+component)\b/i,
+  /\b(radix|headless\s+ui|reach\s+ui|ariakit)\b/i,
+  /\b(shadcn|shadcn\/ui|ui\s+components)\b/i,
+  /\b(chakra|material\s+ui|mui|ant\s+design|mantine)\b/i,
+  /\b(figma\s+to\s+code|design\s+handoff|design\s+to\s+dev)\b/i,
+  /\b(theming|theme\s+provider|dark\s+mode|light\s+mode)\b/i,
+
+  // ============================================
+  // 📋 API DESIGN (15 patterns)
+  // REST best practices, versioning, docs
+  // ============================================
+  /\b(api\s+design|rest\s+api|restful)\s+(best\s+practice|design|pattern)?\b/i,
+  /\b(api\s+versioning|version\s+api|v1|v2|api\s+version)\b/i,
+  /\b(api\s+endpoint|route\s+design|url\s+structure)\b/i,
+  /\b(http\s+method|get|post|put|patch|delete)\s+(api|endpoint)?\b/i,
+  /\b(status\s+code|http\s+status|error\s+response|api\s+error)\b/i,
+  /\b(pagination|cursor|offset|limit|page\s+size)\s+(api)?\b/i,
+  /\b(filter|sort|search)\s+(api|query|parameter)?\b/i,
+  /\b(api\s+authentication|api\s+key|bearer|oauth)\b/i,
+  /\b(rate\s+limit|throttle|quota|api\s+limit)\b/i,
+  /\b(openapi|swagger|api\s+spec|api\s+documentation)\b/i,
+  /\b(postman|insomnia|api\s+client|api\s+testing)\b/i,
+  /\b(hateoas|hypermedia|self-?documenting)\b/i,
+  /\b(api\s+gateway|backend\s+for\s+frontend|bff)\b/i,
+
+  // ============================================
+  // 🔄 MIGRATION & UPGRADES (15 patterns)
+  // Framework migrations, version upgrades
+  // ============================================
+  /\b(migrate|migration)\s+(from|to)\s+(react|vue|angular|next|nuxt)\b/i,
+  /\b(upgrade|update)\s+(react|vue|next|node|typescript)\s+(version)?\b/i,
+  /\b(breaking\s+change|deprecation|deprecated|legacy)\b/i,
+  /\b(codemod|jscodeshift|ast\s+transform)\b/i,
+  /\b(refactor|rewrite|modernize)\s+(legacy|old|codebase)\b/i,
+  /\b(class\s+component)\s+(to|into)\s+(function|hook|functional)\b/i,
+  /\b(javascript)\s+(to|into)\s+(typescript|ts)\b/i,
+  /\b(commonjs|cjs)\s+(to|into)\s+(esm|es\s+module)\b/i,
+  /\b(pages\s+router)\s+(to|into)\s+(app\s+router)\b/i,
+  /\b(webpack)\s+(to|into)\s+(vite|esbuild|turbopack)\b/i,
+  /\b(rest)\s+(to|into)\s+(graphql)\b/i,
+  /\b(version\s+bump|major\s+version|minor\s+version)\b/i,
+  /\b(backward\s+compatible|backwards\s+compatibility|bc\s+break)\b/i,
+  /\b(tech\s+debt|technical\s+debt|code\s+debt)\b/i,
+  /\b(sunset|end\s+of\s+life|eol|deprecated\s+api)\b/i,
 ];
 
 /**
