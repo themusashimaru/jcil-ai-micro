@@ -11,7 +11,7 @@
  * - nano: gpt-5-nano for basic chat (default, cost-optimized)
  */
 
-export type RouteTarget = 'video' | 'image' | 'website' | 'mini' | 'nano';
+export type RouteTarget = 'video' | 'image' | 'website' | 'github' | 'mini' | 'nano';
 
 export type RouteReason =
   | 'video-intent'
@@ -22,6 +22,8 @@ export type RouteReason =
   | 'file-analysis'
   | 'website-intent'
   | 'website-button'
+  | 'github-intent'
+  | 'github-button'
   | 'code-task'
   | 'research-task'
   | 'file-operation'
@@ -153,6 +155,331 @@ const WEBSITE_INTENT_PATTERNS = [
   // Business landing pages (common requests)
   /\b(auto\s*detailing|car\s*wash|cleaning|plumbing|restaurant|salon|gym|fitness|dental|law\s*firm|agency|barbershop|landscaping|hvac|roofing|photography|wedding|bakery|florist|spa)\b.*\b(landing\s*page|website|page|site)\b/i,
   /\b(landing\s*page|website|page|site)\b.*\b(auto\s*detailing|car\s*wash|cleaning|plumbing|restaurant|salon|gym|fitness|dental|law\s*firm|agency|barbershop|landscaping|hvac|roofing|photography|wedding|bakery|florist|spa)\b/i,
+];
+
+/**
+ * GitHub/Developer Intent Detection Patterns
+ * ===========================================
+ *
+ * Comprehensive pattern matching for ALL developer workflows:
+ * - Repository operations (clone, fork, branch, merge)
+ * - Code analysis & review (bugs, security, performance)
+ * - Debugging & troubleshooting (errors, stack traces, failures)
+ * - Code generation (features, components, APIs)
+ * - Testing (unit, integration, e2e, coverage)
+ * - Refactoring (cleanup, modernize, extract, rename)
+ * - DevOps & deployment (CI/CD, Docker, deploy)
+ * - Documentation (README, API docs, comments)
+ * - Dependencies (update, security, conflicts)
+ * - Project setup (scaffold, boilerplate, config)
+ */
+const GITHUB_INTENT_PATTERNS = [
+  // ============================================
+  // GITHUB URL & REPOSITORY REFERENCES
+  // ============================================
+  // Explicit GitHub URLs
+  /https?:\/\/github\.com\/[^/\s]+\/[^/\s]+/i,
+  /github\.com\/[^/\s]+\/[^/\s]+/i,
+  // Short form "owner/repo"
+  /\b[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+\b.*\b(review|analyze|check|clone|fork|look|help|fix|debug|test)\b/i,
+  /\b(review|analyze|check|clone|fork|look|help|fix|debug|test)\b.*\b[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+\b/i,
+  // GitLab/Bitbucket (we can support these too)
+  /https?:\/\/(gitlab\.com|bitbucket\.org)\/[^/\s]+\/[^/\s]+/i,
+
+  // ============================================
+  // REPOSITORY OPERATIONS
+  // ============================================
+  // Clone & fork
+  /\b(clone|fork|copy)\b.*\b(repo|repository|project)\b/i,
+  /\b(repo|repository)\b.*\b(clone|fork|copy)\b/i,
+  // Branch operations
+  /\b(create|make|new|delete|switch|checkout)\b.*\bbranch\b/i,
+  /\bbranch\b.*\b(create|make|new|delete|switch|checkout|from|off)\b/i,
+  /\b(merge|rebase|cherry-pick|squash)\b.*\b(branch|into|from)\b/i,
+  /\b(feature|hotfix|bugfix|release)\s+branch\b/i,
+  // Commit operations
+  /\b(commit|stage|unstage|stash|pop)\b.*\b(changes?|files?|code)\b/i,
+  /\b(amend|revert|reset|undo)\b.*\bcommit\b/i,
+  /\bcommit\s+(message|history|log)\b/i,
+  // Push/pull operations
+  /\b(push|pull|fetch|sync)\b.*\b(repo|repository|branch|remote|origin|upstream)\b/i,
+  /\b(force\s+push|push\s+force|--force)\b/i,
+  // PR/MR operations
+  /\b(pull\s*request|pr|merge\s*request|mr)\b/i,
+  /\b(create|open|submit|review|merge|close)\b.*\b(pr|pull\s*request)\b/i,
+  /\b(draft|wip)\s+(pr|pull\s*request)\b/i,
+  // Issues
+  /\b(issue|bug\s*report|feature\s*request)\b.*\b(create|open|close|fix|resolve)\b/i,
+  /\bfix(es)?\s+#\d+\b/i,
+  /\bclose(s)?\s+#\d+\b/i,
+  // Repository settings
+  /\b(repo|repository)\s+(settings?|config|permissions?|visibility)\b/i,
+  /\b(public|private)\s+(repo|repository)\b/i,
+
+  // ============================================
+  // CODE ANALYSIS & REVIEW
+  // ============================================
+  // General review requests
+  /\b(review|analyze|check|examine|audit|inspect|evaluate|assess)\b.*\b(my\s+)?(code|codebase|repo|repository|project|app|application|implementation)\b/i,
+  /\b(my\s+)?(code|codebase|repo|repository|project)\b.*\b(review|analyze|check|examine|audit|inspect)\b/i,
+  /\bcode\s*review\b/i,
+  /\blook\s+(at|over|through)\s+(my\s+)?(code|repo|project|codebase)\b/i,
+  // Architecture analysis
+  /\b(analyze|review|explain|understand)\b.*\b(architecture|structure|design|patterns?)\b/i,
+  /\b(architecture|structure|design)\s+(review|analysis|diagram|overview)\b/i,
+  /\bhow\s+(does|is)\s+(my\s+)?(app|code|project)\s+(structured|organized|architected)\b/i,
+  // Quality analysis
+  /\b(code\s+)?quality\s+(check|review|analysis|report|score)\b/i,
+  /\b(technical\s+)?debt\s+(analysis|review|report)\b/i,
+  /\bcode\s+(smell|smells|antipattern|anti-pattern)\b/i,
+  /\b(maintainability|readability|complexity)\s+(score|analysis|check)\b/i,
+  // Security analysis
+  /\bsecurity\s+(audit|review|scan|check|analysis|vulnerability|vulnerabilities)\b/i,
+  /\b(find|check|scan)\s+(for\s+)?(security\s+)?(vulnerabilities|exploits|issues)\b/i,
+  /\b(owasp|cve|security\s+hole|injection|xss|csrf|sqli)\b/i,
+  /\b(hardcode|exposed|leaked)\s+(secret|key|password|credential|token|api\s*key)\b/i,
+  // Performance analysis
+  /\b(performance|perf)\s+(review|analysis|audit|check|optimization|bottleneck)\b/i,
+  /\b(slow|performance\s+issue|bottleneck|memory\s+leak|optimization)\b/i,
+  /\b(optimize|speed\s+up|make\s+faster|improve\s+performance)\b/i,
+  /\b(time|space)\s+complexity\b/i,
+  /\bbig\s*o\s+(notation|analysis)\b/i,
+  // Dependency analysis
+  /\b(dependency|dependencies)\s+(analysis|audit|check|tree|graph|update)\b/i,
+  /\b(outdated|deprecated|vulnerable)\s+(package|dependency|dependencies|module)\b/i,
+  /\b(npm|yarn|pnpm)\s+(audit|outdated)\b/i,
+  /\b(update|upgrade)\s+(all\s+)?(dependencies|packages|modules)\b/i,
+
+  // ============================================
+  // DEBUGGING & TROUBLESHOOTING
+  // ============================================
+  // Error fixing
+  /\b(fix|solve|resolve|debug|troubleshoot)\b.*\b(error|bug|issue|problem|crash|exception)\b/i,
+  /\b(error|bug|issue|problem|crash|exception)\b.*\b(fix|solve|resolve|help)\b/i,
+  /\bwhy\s+(is|does|am|are)\s+(my|the|this)\b.*\b(not\s+working|failing|broken|crashing|erroring)\b/i,
+  /\bwhat('s|\s+is)\s+wrong\s+with\b/i,
+  /\bhelp\s+(me\s+)?(fix|debug|solve|understand)\b/i,
+  // Specific error types
+  /\b(typeerror|syntaxerror|referenceerror|rangeerror|uncaught)\b/i,
+  /\b(null|undefined)\s+(error|reference|is\s+not)\b/i,
+  /\bcannot\s+(read|find|resolve|import|require)\b/i,
+  /\bmodule\s+not\s+found\b/i,
+  /\btype\s+['"]?[A-Za-z]+['"]?\s+is\s+not\s+assignable\b/i,
+  // Stack traces & logs
+  /\b(stack\s*trace|traceback|error\s*log|console\s*error)\b/i,
+  /\b(at\s+\w+\s*\(|\.js:\d+:\d+|\.ts:\d+:\d+|\.py:\d+)\b/i,
+  // Build failures
+  /\b(build|compile|compilation)\s+(fail|failed|failing|error|broken)\b/i,
+  /\b(webpack|vite|rollup|esbuild|tsc|babel)\s+(error|fail|issue)\b/i,
+  /\bnpm\s+(run\s+)?(build|start|dev)\s+(fail|error|not\s+working)\b/i,
+  // Runtime issues
+  /\b(runtime|execution)\s+(error|exception|failure|crash)\b/i,
+  /\b(infinite\s+loop|recursion|stack\s+overflow|memory\s+leak|out\s+of\s+memory)\b/i,
+  /\b(freeze|freezing|frozen|hang|hanging|unresponsive)\b/i,
+  // Test failures
+  /\btest(s)?\s+(fail|failing|failed|broken|not\s+passing)\b/i,
+  /\b(jest|mocha|vitest|pytest|junit)\s+(fail|error)\b/i,
+  /\bassert(ion)?\s+(fail|error)\b/i,
+  // Deployment issues
+  /\b(deploy|deployment)\s+(fail|failed|error|issue|broken)\b/i,
+  /\b(vercel|netlify|heroku|aws|docker)\s+(error|fail|issue)\b/i,
+  /\b(ci|cd|pipeline)\s+(fail|failed|error|broken)\b/i,
+
+  // ============================================
+  // CODE GENERATION & WRITING
+  // ============================================
+  // Feature implementation
+  /\b(implement|add|create|build|write|develop)\b.*\b(feature|functionality|capability)\b/i,
+  /\b(new\s+)?feature\b.*\b(for|to|in)\b.*\b(my|the|this)\b/i,
+  /\badd\s+(a\s+)?(new\s+)?/i,
+  // Component creation
+  /\b(create|make|build|write|generate)\b.*\b(component|module|class|function|hook|service|util|helper)\b/i,
+  /\b(react|vue|angular|svelte)\s+component\b/i,
+  /\bcustom\s+hook\b/i,
+  // API development
+  /\b(create|build|implement|add)\b.*\b(api|endpoint|route|handler)\b/i,
+  /\b(rest|graphql|grpc)\s+(api|endpoint)\b/i,
+  /\b(get|post|put|patch|delete)\s+(endpoint|route|handler)\b/i,
+  /\bcrud\s+(api|operations?|endpoints?)\b/i,
+  // Database operations
+  /\b(create|write|add)\b.*\b(model|schema|migration|query|table)\b/i,
+  /\b(prisma|mongoose|sequelize|typeorm|drizzle)\s+(model|schema|migration)\b/i,
+  /\b(sql|database)\s+(query|schema|migration)\b/i,
+  // Boilerplate & scaffolding
+  /\b(generate|create|scaffold|bootstrap)\b.*\b(boilerplate|template|starter|skeleton)\b/i,
+  /\b(setup|initialize|init|create)\s+(a\s+)?(new\s+)?(project|app|application)\b/i,
+  /\bnpx\s+create-\w+\b/i,
+
+  // ============================================
+  // TESTING
+  // ============================================
+  // Test creation
+  /\b(write|create|add|generate)\b.*\b(test|tests|spec|specs)\b/i,
+  /\b(unit|integration|e2e|end-to-end|acceptance|functional)\s+test/i,
+  /\b(test|testing)\s+(coverage|suite|case|scenario)\b/i,
+  // Test frameworks
+  /\b(jest|mocha|vitest|cypress|playwright|testing-library|enzyme|pytest|rspec)\b/i,
+  // Test utilities
+  /\b(mock|stub|spy|fake|fixture)\b.*\b(data|function|service|api)\b/i,
+  /\bhow\s+to\s+(test|mock|stub)\b/i,
+  // Test coverage
+  /\b(increase|improve|add)\s+(test\s+)?coverage\b/i,
+  /\bcoverage\s+(report|threshold|percentage)\b/i,
+  /\b(100|full|complete)\s*(%)?\s*coverage\b/i,
+  // Fix failing tests
+  /\bfix\s+(the\s+)?(failing|broken|red)\s+tests?\b/i,
+  /\bmake\s+tests?\s+(pass|green)\b/i,
+
+  // ============================================
+  // REFACTORING
+  // ============================================
+  // General refactoring
+  /\b(refactor|restructure|reorganize|clean\s*up|tidy)\b.*\b(code|codebase|file|function|class|component)\b/i,
+  /\b(code|codebase)\b.*\b(refactor|cleanup|clean\s*up)\b/i,
+  /\bclean(er)?\s+code\b/i,
+  // Specific refactoring operations
+  /\b(extract|split|break\s+up|separate)\b.*\b(function|method|class|component|module|file)\b/i,
+  /\b(rename|move|relocate)\b.*\b(function|method|class|variable|file|folder)\b/i,
+  /\b(combine|merge|consolidate)\b.*\b(files?|functions?|classes?|components?)\b/i,
+  /\b(remove|delete|eliminate)\s+(dead|unused|duplicate|redundant)\s+(code|functions?|imports?)\b/i,
+  // Code modernization
+  /\b(modernize|update|upgrade|convert)\b.*\b(code|syntax|to\s+es6|to\s+typescript|to\s+async)\b/i,
+  /\b(convert|migrate)\s+(from|to)\b/i,
+  /\b(class|function)\s+component\s+(to|from)\s+(hook|functional)\b/i,
+  // DRY principle
+  /\b(dry|don't\s+repeat|duplicate|duplicated|duplication|repeated)\s*(code|yourself)?\b/i,
+  /\breduce\s+(duplication|repetition|redundancy)\b/i,
+  // SOLID principles
+  /\b(solid|single\s+responsibility|open.?closed|liskov|interface\s+segregation|dependency\s+inversion)\b/i,
+
+  // ============================================
+  // DEVOPS & DEPLOYMENT
+  // ============================================
+  // CI/CD
+  /\b(ci|cd|cicd|ci\/cd|continuous\s+integration|continuous\s+deployment)\b/i,
+  /\b(github\s+actions?|gitlab\s+ci|jenkins|circleci|travis)\b/i,
+  /\b(workflow|pipeline|action)\s+(file|yaml|yml|config)\b/i,
+  /\b(setup|create|configure)\b.*\b(ci|cd|pipeline|workflow)\b/i,
+  // Docker & containers
+  /\b(docker|dockerfile|container|kubernetes|k8s|helm|compose)\b/i,
+  /\b(containerize|dockerize)\b.*\b(app|application|project)\b/i,
+  /\b(build|run|push)\s+(docker\s+)?(image|container)\b/i,
+  // Deployment
+  /\b(deploy|deployment|ship|release)\b.*\b(to|on|with)\s+(vercel|netlify|heroku|aws|gcp|azure|digitalocean|fly\.io|railway)\b/i,
+  /\b(vercel|netlify|heroku|aws|render|fly)\s+(deploy|config|setup)\b/i,
+  /\b(production|staging|preview)\s+(deploy|deployment|environment)\b/i,
+  // Environment & config
+  /\b(environment|env)\s+(variable|var|config|setup)\b/i,
+  /\b\.env\s*(file|local|production|development)?\b/i,
+  /\b(secret|credential|api\s*key)\s+(management|rotation|storage)\b/i,
+  // Infrastructure
+  /\b(terraform|pulumi|cloudformation|infrastructure\s+as\s+code|iac)\b/i,
+  /\b(serverless|lambda|edge\s+function|cloudflare\s+worker)\b/i,
+
+  // ============================================
+  // DOCUMENTATION
+  // ============================================
+  // README & docs
+  /\b(write|create|generate|update|improve)\b.*\b(readme|documentation|docs|api\s+docs)\b/i,
+  /\b(readme|documentation|docs)\b.*\b(for|about)\b/i,
+  /\badd\s+documentation\b/i,
+  // Code comments
+  /\b(add|write|generate)\b.*\b(comments?|jsdoc|tsdoc|docstring|documentation)\b.*\b(to|for)\b/i,
+  /\b(document|explain)\s+(this|the|my)\s+(code|function|class|method)\b/i,
+  // API documentation
+  /\b(swagger|openapi|postman|insomnia)\s+(spec|specification|collection)\b/i,
+  /\bapi\s+documentation\b/i,
+  // Changelog & release notes
+  /\b(changelog|release\s+notes|version\s+history)\b/i,
+  /\bkeep\s*a\s*changelog\b/i,
+
+  // ============================================
+  // DEPENDENCIES & PACKAGES
+  // ============================================
+  // Package management
+  /\b(install|add|remove|uninstall)\s+(package|dependency|module|library)\b/i,
+  /\b(npm|yarn|pnpm|pip|cargo|go\s+get)\s+(install|add|remove)\b/i,
+  /\bpackage\.json\b/i,
+  // Version updates
+  /\b(update|upgrade|bump)\s+(version|dependencies|packages|modules)\b/i,
+  /\b(major|minor|patch)\s+(version|update|upgrade|bump)\b/i,
+  /\b(breaking\s+change|semver|semantic\s+version)\b/i,
+  // Dependency conflicts
+  /\b(dependency|version|peer)\s+(conflict|mismatch|issue|error)\b/i,
+  /\b(resolve|fix)\s+(dependency|version)\s+(conflict|issue)\b/i,
+  /\bpeer\s+dependency\b/i,
+  // Security updates
+  /\b(security\s+)?(vulnerability|advisory|patch)\s+(fix|update|alert)\b/i,
+  /\bdependabot\b/i,
+  /\bnpm\s+audit\s+fix\b/i,
+
+  // ============================================
+  // PROJECT SETUP & CONFIGURATION
+  // ============================================
+  // Project initialization
+  /\b(start|begin|initialize|setup)\s+(a\s+)?(new\s+)?(project|app|repo)\b/i,
+  /\b(from\s+)?scratch\b.*\b(project|app|build)\b/i,
+  /\b(bootstrap|scaffold|generate)\s+(project|app|application)\b/i,
+  // Configuration files
+  /\b(config|configuration|configure)\b.*\b(file|setup|settings)\b/i,
+  /\b(tsconfig|eslint|prettier|babel|webpack|vite|jest|tailwind)\.?(config|rc|json|js|ts)?\b/i,
+  /\b(setup|configure|add)\s+(typescript|eslint|prettier|testing|tailwind)\b/i,
+  // Framework setup
+  /\b(next\.?js|react|vue|angular|svelte|nuxt|remix|astro)\s+(project|app|setup|config)\b/i,
+  /\b(setup|start|create)\s+(next\.?js|react|vue|angular|svelte|nuxt|remix)\b/i,
+  // Tooling
+  /\b(setup|configure|add)\s+(linter|formatter|bundler|transpiler)\b/i,
+  /\b(husky|lint-staged|commitlint|pre-commit)\b/i,
+
+  // ============================================
+  // VERSION CONTROL & GIT
+  // ============================================
+  // Git commands
+  /\bgit\s+(status|log|diff|show|blame|bisect|stash|rebase|cherry-pick)\b/i,
+  /\bhow\s+to\s+(git|use\s+git)\b/i,
+  // Git flow
+  /\b(git\s*flow|trunk\s+based|feature\s+branch)\b/i,
+  /\b(branching|merging)\s+(strategy|workflow)\b/i,
+  // Conflicts
+  /\b(merge|rebase)\s+conflict\b/i,
+  /\bresolve\s+(merge\s+)?conflict\b/i,
+  /\b(conflict|conflicting)\s+(file|change|line)\b/i,
+  // History
+  /\b(commit|git)\s+history\b/i,
+  /\b(rewrite|clean\s*up|squash)\s+(history|commits?)\b/i,
+  /\bgit\s+(log|reflog|bisect)\b/i,
+
+  // ============================================
+  // HELP & EXPLANATION REQUESTS
+  // ============================================
+  // General help with code
+  /\b(help|assist)\s+(me\s+)?(with|on|understand|fix|debug)\b.*\b(code|project|repo|app)\b/i,
+  /\b(explain|understand|learn)\s+(this|the|my)\s+(code|function|component|architecture)\b/i,
+  /\bwhat\s+(does|is)\s+(this|the)\s+(code|function|class|method)\s+(do|doing|for)\b/i,
+  // How-to questions
+  /\bhow\s+(do|can|should|would)\s+(i|we|you)\b.*\b(implement|build|create|fix|test|deploy)\b/i,
+  /\bwhat('s|\s+is)\s+the\s+best\s+(way|practice|approach)\s+to\b/i,
+  /\bshow\s+me\s+how\s+to\b/i,
+  // Best practices
+  /\bbest\s+(practice|approach|way|pattern)\b/i,
+  /\b(recommended|proper|correct|right)\s+(way|approach|pattern|practice)\b/i,
+  /\b(anti-?pattern|code\s+smell|bad\s+practice)\b/i,
+
+  // ============================================
+  // SPECIFIC TECHNOLOGIES & FRAMEWORKS
+  // ============================================
+  // Frontend frameworks
+  /\b(react|vue|angular|svelte|solid|preact|qwik|next\.?js|nuxt|remix|gatsby|astro)\b.*\b(help|issue|error|problem|question)\b/i,
+  // Backend frameworks
+  /\b(express|fastify|nest\.?js|django|flask|fastapi|rails|laravel|spring|gin)\b.*\b(help|issue|error|problem)\b/i,
+  // Languages (with code context)
+  /\b(typescript|javascript|python|rust|go|java|kotlin|swift|ruby|php|c\+\+|csharp|c#)\b.*\b(help|error|issue|question|code)\b/i,
+  // Databases
+  /\b(postgres|mysql|mongodb|redis|sqlite|supabase|firebase|prisma|drizzle|mongoose)\b.*\b(help|query|issue|error|schema)\b/i,
+  // State management
+  /\b(redux|zustand|jotai|recoil|mobx|pinia|vuex)\b.*\b(help|issue|state|store)\b/i,
+  // Styling
+  /\b(tailwind|css|sass|scss|styled-components|emotion|css-modules)\b.*\b(help|issue|style|layout)\b/i,
 ];
 
 /**
@@ -315,6 +642,25 @@ export function hasWebsiteIntent(text: string): { isWebsite: boolean; matchedPat
 }
 
 /**
+ * Check if a message indicates GitHub/code review intent
+ */
+export function hasGitHubIntent(text: string): { isGitHub: boolean; matchedPattern?: string } {
+  const normalizedText = text.trim();
+
+  // Check for GitHub patterns
+  for (const pattern of GITHUB_INTENT_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      return {
+        isGitHub: true,
+        matchedPattern: pattern.source
+      };
+    }
+  }
+
+  return { isGitHub: false };
+}
+
+/**
  * Check if a message requires complex task handling (GPT-4o)
  */
 function requiresComplexTask(text: string): { isComplex: boolean; reason?: RouteReason } {
@@ -392,6 +738,16 @@ export function decideRoute(
     };
   }
 
+  // If tool is explicitly set to github (button press), route to github
+  if (toolOverride === 'github') {
+    return {
+      target: 'github',
+      reason: 'github-button',
+      confidence: 1.0,
+      matchedPattern: 'tool-override-github',
+    };
+  }
+
   // Check for website intent FIRST (landing pages before other routes)
   const websiteCheck = hasWebsiteIntent(lastUserText);
   if (websiteCheck.isWebsite) {
@@ -400,6 +756,17 @@ export function decideRoute(
       reason: 'website-intent',
       confidence: 0.95,
       matchedPattern: websiteCheck.matchedPattern,
+    };
+  }
+
+  // Check for GitHub/code review intent (before video/image)
+  const githubCheck = hasGitHubIntent(lastUserText);
+  if (githubCheck.isGitHub) {
+    return {
+      target: 'github',
+      reason: 'github-intent',
+      confidence: 0.95,
+      matchedPattern: githubCheck.matchedPattern,
     };
   }
 
