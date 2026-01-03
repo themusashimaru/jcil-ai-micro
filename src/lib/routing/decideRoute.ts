@@ -11,7 +11,7 @@
  * - nano: gpt-5-nano for basic chat (default, cost-optimized)
  */
 
-export type RouteTarget = 'video' | 'image' | 'website' | 'mini' | 'nano';
+export type RouteTarget = 'video' | 'image' | 'website' | 'github' | 'mini' | 'nano';
 
 export type RouteReason =
   | 'video-intent'
@@ -22,6 +22,8 @@ export type RouteReason =
   | 'file-analysis'
   | 'website-intent'
   | 'website-button'
+  | 'github-intent'
+  | 'github-button'
   | 'code-task'
   | 'research-task'
   | 'file-operation'
@@ -153,6 +155,39 @@ const WEBSITE_INTENT_PATTERNS = [
   // Business landing pages (common requests)
   /\b(auto\s*detailing|car\s*wash|cleaning|plumbing|restaurant|salon|gym|fitness|dental|law\s*firm|agency|barbershop|landscaping|hvac|roofing|photography|wedding|bakery|florist|spa)\b.*\b(landing\s*page|website|page|site)\b/i,
   /\b(landing\s*page|website|page|site)\b.*\b(auto\s*detailing|car\s*wash|cleaning|plumbing|restaurant|salon|gym|fitness|dental|law\s*firm|agency|barbershop|landscaping|hvac|roofing|photography|wedding|bakery|florist|spa)\b/i,
+];
+
+/**
+ * GitHub/code review intent detection patterns
+ * Matches requests like "review my repo", "analyze github.com/..."
+ */
+const GITHUB_INTENT_PATTERNS = [
+  // Explicit GitHub URL references
+  /https?:\/\/github\.com\/[^/\s]+\/[^/\s]+/i,
+  /github\.com\/[^/\s]+\/[^/\s]+/i,
+
+  // Review/analyze repository patterns
+  /\b(review|analyze|check|look at|examine|audit)\b.*\b(my\s+)?(repo|repository|code|codebase|project)\b/i,
+  /\b(my\s+)?(repo|repository|code|codebase|project)\b.*\b(review|analyze|check|look at|examine|audit)\b/i,
+
+  // GitHub-specific requests
+  /\b(github|git)\s+(repo|repository)\b/i,
+  /\bclone\b.*\b(repo|repository)\b/i,
+
+  // Code review requests
+  /\b(code\s+review|review\s+code|pull\s+request|pr)\b/i,
+
+  // Help with repo patterns
+  /\b(help|assist)\b.*\b(my\s+)?(repo|repository|codebase)\b/i,
+
+  // What's in my repo patterns
+  /\bwhat('s| is)\s+(in|wrong with)\s+(my\s+)?(repo|repository|code)\b/i,
+
+  // Improve/refactor repo patterns
+  /\b(improve|refactor|optimize|fix)\s+(my\s+)?(repo|repository|codebase)\b/i,
+
+  // Short form "owner/repo" with action keywords
+  /\b(review|analyze|check)\b.*\b[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\b/i,
 ];
 
 /**
@@ -315,6 +350,25 @@ export function hasWebsiteIntent(text: string): { isWebsite: boolean; matchedPat
 }
 
 /**
+ * Check if a message indicates GitHub/code review intent
+ */
+export function hasGitHubIntent(text: string): { isGitHub: boolean; matchedPattern?: string } {
+  const normalizedText = text.trim();
+
+  // Check for GitHub patterns
+  for (const pattern of GITHUB_INTENT_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      return {
+        isGitHub: true,
+        matchedPattern: pattern.source
+      };
+    }
+  }
+
+  return { isGitHub: false };
+}
+
+/**
  * Check if a message requires complex task handling (GPT-4o)
  */
 function requiresComplexTask(text: string): { isComplex: boolean; reason?: RouteReason } {
@@ -392,6 +446,16 @@ export function decideRoute(
     };
   }
 
+  // If tool is explicitly set to github (button press), route to github
+  if (toolOverride === 'github') {
+    return {
+      target: 'github',
+      reason: 'github-button',
+      confidence: 1.0,
+      matchedPattern: 'tool-override-github',
+    };
+  }
+
   // Check for website intent FIRST (landing pages before other routes)
   const websiteCheck = hasWebsiteIntent(lastUserText);
   if (websiteCheck.isWebsite) {
@@ -400,6 +464,17 @@ export function decideRoute(
       reason: 'website-intent',
       confidence: 0.95,
       matchedPattern: websiteCheck.matchedPattern,
+    };
+  }
+
+  // Check for GitHub/code review intent (before video/image)
+  const githubCheck = hasGitHubIntent(lastUserText);
+  if (githubCheck.isGitHub) {
+    return {
+      target: 'github',
+      reason: 'github-intent',
+      confidence: 0.95,
+      matchedPattern: githubCheck.matchedPattern,
     };
   }
 

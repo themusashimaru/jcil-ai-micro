@@ -90,6 +90,10 @@ import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
 import { isConnectorsEnabled } from '@/lib/connectors';
+import {
+  githubFunctionDeclarations,
+  executeGitHubTool,
+} from '@/lib/gemini/githubTools';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -1864,6 +1868,204 @@ Make it look like a $5,000 custom website, not a template.`;
           JSON.stringify({
             type: 'text',
             content: 'Sorry, I encountered an error generating the website. Please try again.',
+            model: fallbackModel,
+          }),
+          { status: 500 }
+        );
+      }
+    }
+
+    // ========================================
+    // GITHUB CODE REVIEW (with Tool Calling)
+    // ========================================
+    if (routeDecision.target === 'github') {
+      console.log('[Chat API] Routing to GitHub code review');
+
+      // Check if user is authenticated
+      if (!isAuthenticated || !rateLimitIdentifier) {
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: 'To review GitHub repositories, please sign in first. Then connect your GitHub account in Settings > Connectors.',
+            model: 'system',
+          }),
+          { status: 401 }
+        );
+      }
+
+      // Get user's GitHub token
+      const githubToken = await getGitHubTokenForUser(rateLimitIdentifier);
+
+      if (!githubToken) {
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `**GitHub Not Connected**
+
+To review repositories, you need to connect your GitHub account:
+
+1. Go to **Settings** → **Connectors**
+2. Click **Connect GitHub**
+3. Authorize access to your repositories
+4. Come back and ask me to review your code!
+
+Once connected, I can:
+- 📖 Read and analyze your codebase
+- 🔍 Find bugs and security issues
+- 💡 Suggest improvements
+- 📝 Create branches and pull requests`,
+            model: 'system',
+          }),
+          { status: 200 }
+        );
+      }
+
+      try {
+        // Get model from admin settings
+        const geminiModel = await getModelForTier('pro', 'gemini');
+        console.log('[Chat API] GitHub review using Gemini model:', geminiModel);
+
+        // System prompt for code review
+        const codeReviewSystemPrompt = `You are an expert code reviewer and software architect with deep knowledge of:
+- Modern software development best practices
+- Security vulnerabilities (OWASP Top 10)
+- Performance optimization
+- Clean code principles
+- Design patterns and architecture
+
+When asked to review code or analyze a repository:
+1. Use the github_clone_repo tool to fetch the repository contents
+2. Analyze the code structure, architecture, and quality
+3. Look for potential bugs, security issues, and performance problems
+4. Suggest specific improvements with code examples
+5. Be constructive and prioritize the most important issues
+
+When providing feedback:
+- Be specific with file names and line references
+- Explain WHY something is an issue, not just what
+- Provide concrete suggestions for improvement
+- Highlight positive aspects as well as issues
+- Prioritize critical issues over minor style preferences
+
+Available tools:
+- github_clone_repo: Fetch repository files for analysis
+- github_get_file: Get a specific file's content
+- github_get_repo_info: Get repository metadata
+- github_list_branches: List available branches
+- github_create_branch: Create a new branch for fixes
+- github_push_files: Push code changes
+- github_create_pr: Create a pull request with fixes`;
+
+        // Import the Gemini SDK for tool calling
+        const { GoogleGenAI } = await import('@google/genai');
+        const genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || '' });
+
+        // Build initial messages with conversation history
+        // Use the original messages array, converting to Gemini format
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const geminiMessages: any[] = messages.map((msg: CoreMessage) => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) }],
+        }));
+
+        // Tool calling loop - keep going until we get a final response
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let currentMessages: any[] = geminiMessages;
+        const maxIterations = 10; // Safety limit
+        let iteration = 0;
+        let finalResponse = '';
+
+        while (iteration < maxIterations) {
+          iteration++;
+          console.log(`[Chat API] GitHub tool loop iteration ${iteration}`);
+
+          // Make the API call with tools
+          const response = await genai.models.generateContent({
+            model: geminiModel,
+            contents: currentMessages,
+            config: {
+              systemInstruction: codeReviewSystemPrompt,
+              tools: [{ functionDeclarations: githubFunctionDeclarations }],
+            },
+          });
+
+          const candidate = response.candidates?.[0];
+          if (!candidate?.content?.parts) {
+            console.error('[Chat API] No valid response from Gemini');
+            break;
+          }
+
+          const parts = candidate.content.parts;
+
+          // Check if there are function calls
+          const functionCalls = parts.filter((p: { functionCall?: unknown }) => p.functionCall);
+
+          if (functionCalls.length === 0) {
+            // No function calls - this is the final text response
+            const textParts = parts.filter((p: { text?: string }) => p.text);
+            finalResponse = textParts.map((p: { text?: string }) => p.text || '').join('\n');
+            break;
+          }
+
+          // Execute each function call
+          const functionResults = [];
+          for (const part of functionCalls) {
+            const fc = part.functionCall as { name: string; args: Record<string, unknown> };
+            console.log(`[Chat API] Executing GitHub tool: ${fc.name}`);
+
+            const result = await executeGitHubTool(fc.name, fc.args || {}, {
+              githubToken,
+            });
+
+            functionResults.push({
+              functionResponse: {
+                name: fc.name,
+                response: result,
+              },
+            });
+          }
+
+          // Add the model's response and function results to the conversation
+          currentMessages = [
+            ...currentMessages,
+            {
+              role: 'model',
+              parts: parts,
+            },
+            {
+              role: 'user',
+              parts: functionResults,
+            },
+          ];
+        }
+
+        if (!finalResponse) {
+          finalResponse = 'I was able to analyze the repository but encountered an issue generating the final response. Please try again.';
+        }
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: finalResponse,
+            model: geminiModel,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Route-Target': 'github',
+              'X-Route-Reason': routeDecision.reason,
+              'X-Model-Used': geminiModel,
+            },
+          }
+        );
+      } catch (error) {
+        console.error('[Chat API] GitHub review error:', error);
+        const fallbackModel = await getModelForTier('pro', 'gemini');
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `I encountered an error while trying to review the repository: ${error instanceof Error ? error.message : 'Unknown error'}. Please make sure your GitHub is connected and try again.`,
             model: fallbackModel,
           }),
           { status: 500 }
