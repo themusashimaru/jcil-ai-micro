@@ -1870,8 +1870,20 @@ OUTPUT THE COMPLETE HTML FILE NOW:`;
 
         let generatedCode = '';
 
-        // FORGE & MUSASHI: Use Template RAG if we have a matching template
-        if (usingTemplate && template) {
+        // FORGE & MUSASHI: Validate template HTML before using
+        // Templates must have real HTML content, not just placeholder comments
+        const isValidTemplateHtml = (html: string | undefined): boolean => {
+          if (!html || html.length < 200) return false;
+          // Check for placeholder markers that indicate template wasn't filled
+          if (html.includes('<!-- FULL HTML') || html.includes('<!-- PASTE FULL HTML')) return false;
+          // Must contain basic HTML structure
+          return html.includes('<!DOCTYPE') || (html.includes('<html') && html.includes('<body'));
+        };
+
+        const templateHasValidHtml = template && isValidTemplateHtml(template.html_template);
+
+        // FORGE & MUSASHI: Use Template RAG only if we have valid HTML
+        if (usingTemplate && template && templateHasValidHtml) {
           console.log('[Chat API] Using Template RAG - Applying template:', template.name);
 
           // Prepare business info object
@@ -1907,8 +1919,12 @@ OUTPUT THE COMPLETE HTML FILE NOW:`;
 
           console.log('[Chat API] Template applied successfully');
         } else {
-          // Fallback to AI generation if no template found
-          console.log('[Chat API] No template found, using AI generation');
+          // Fallback to AI generation if no template found or template has invalid/placeholder HTML
+          if (template && !templateHasValidHtml) {
+            console.log('[Chat API] Template found but has placeholder HTML, using AI generation instead:', template.name);
+          } else {
+            console.log('[Chat API] No template found, using AI generation');
+          }
 
           const websiteResult = await createGeminiCompletion({
             messages: [
@@ -1954,6 +1970,33 @@ OUTPUT THE COMPLETE HTML FILE NOW:`;
               `.hero { $1 background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${heroImageDataUrl}'); background-size: cover; background-position: center; }`
             );
           }
+        }
+
+        // Validate that we have actual HTML content, not just empty or placeholder
+        if (!generatedCode || generatedCode.length < 200 ||
+            (!generatedCode.includes('<') && !generatedCode.includes('>'))) {
+          console.error('[Chat API] Generated code is invalid or empty:', generatedCode?.substring(0, 100));
+          throw new Error('Generated HTML was empty or invalid. Please try again.');
+        }
+
+        // If the generated code doesn't have proper HTML structure, wrap it
+        if (!generatedCode.includes('<!DOCTYPE') && !generatedCode.includes('<html')) {
+          console.log('[Chat API] Adding HTML wrapper to generated content');
+          generatedCode = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${businessName}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+${generatedCode}
+</body>
+</html>`;
         }
 
         // Extract title
