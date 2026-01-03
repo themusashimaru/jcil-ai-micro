@@ -16,6 +16,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createGeminiCompletion, createGeminiImageGeneration } from '@/lib/gemini/client';
 import type { ToolType } from '@/lib/openai/types';
+import { searchUserDocuments } from '@/lib/documents/userSearch';
 
 // ============================================================================
 // Types
@@ -70,6 +71,14 @@ export interface GenerationContext {
   existingSession?: WebsiteSession;
   isModification?: boolean;
   modificationRequest?: string;
+  // Brand context from user's uploaded documents
+  userBrandContext?: {
+    content: string;
+    hasLogo?: boolean;
+    hasBrandGuidelines?: boolean;
+    hasContent?: boolean;
+    documentNames: string[];
+  };
 }
 
 export interface GenerationResult {
@@ -217,6 +226,77 @@ function mapSessionFromDb(data: Record<string, unknown>): WebsiteSession {
     githubRepo: data.github_repo as string | undefined,
     vercelUrl: data.vercel_url as string | undefined,
   };
+}
+
+// ============================================================================
+// User Brand Context
+// ============================================================================
+
+/**
+ * Fetch user's uploaded documents for brand context
+ * Searches for brand guidelines, logos, company info, content docs
+ */
+async function fetchUserBrandContext(
+  userId: string,
+  businessName: string,
+  industry: string
+): Promise<{
+  content: string;
+  hasLogo: boolean;
+  hasBrandGuidelines: boolean;
+  hasContent: boolean;
+  documentNames: string[];
+}> {
+  const emptyResult = {
+    content: '',
+    hasLogo: false,
+    hasBrandGuidelines: false,
+    hasContent: false,
+    documentNames: [],
+  };
+
+  try {
+    // Search for brand-related content
+    const brandQuery = `${businessName} brand guidelines colors fonts logo style design company about services ${industry}`;
+    const { results, contextString } = await searchUserDocuments(userId, brandQuery, {
+      matchCount: 10,
+      matchThreshold: 0.25, // Lower threshold to catch more brand-related content
+    });
+
+    if (!results || results.length === 0) {
+      console.log('[WebsitePipeline] No user documents found for brand context');
+      return emptyResult;
+    }
+
+    // Analyze what types of content we found
+    const documentNames = [...new Set(results.map(r => r.document_name))];
+    const contentLower = contextString.toLowerCase();
+
+    const hasLogo = contentLower.includes('logo') ||
+                    documentNames.some(n => n.toLowerCase().includes('logo'));
+    const hasBrandGuidelines = contentLower.includes('brand') ||
+                                contentLower.includes('guideline') ||
+                                contentLower.includes('style guide') ||
+                                documentNames.some(n => n.toLowerCase().includes('brand'));
+    const hasContent = contentLower.includes('about') ||
+                       contentLower.includes('service') ||
+                       contentLower.includes('mission') ||
+                       contentLower.includes('vision');
+
+    console.log(`[WebsitePipeline] Brand context: logo=${hasLogo}, guidelines=${hasBrandGuidelines}, content=${hasContent}`);
+    console.log(`[WebsitePipeline] Found documents: ${documentNames.join(', ')}`);
+
+    return {
+      content: contextString,
+      hasLogo,
+      hasBrandGuidelines,
+      hasContent,
+      documentNames,
+    };
+  } catch (error) {
+    console.error('[WebsitePipeline] Error fetching brand context:', error);
+    return emptyResult;
+  }
 }
 
 // ============================================================================
@@ -446,6 +526,19 @@ export async function generateWebsiteHtml(
   // Build asset context for the AI
   const assetContext = buildAssetContext(assets);
 
+  // Build user brand context section if available
+  const brandContextSection = context.userBrandContext?.content
+    ? `
+USER'S BRAND DOCUMENTS (CRITICAL - USE THIS INFO):
+The user has uploaded brand documents. Incorporate this information into the website:
+${context.userBrandContext.content}
+
+${context.userBrandContext.hasBrandGuidelines ? '⚠️ BRAND GUIDELINES DETECTED - Follow any color, font, and style guidelines mentioned above.' : ''}
+${context.userBrandContext.hasContent ? '⚠️ COMPANY CONTENT DETECTED - Use the about text, mission, services mentioned above.' : ''}
+Documents found: ${context.userBrandContext.documentNames.join(', ')}
+`
+    : '';
+
   const systemPrompt = `You are FORGE & MUSASHI - the most elite web development AI team ever created.
 You build websites that make $15,000+ agencies jealous.
 
@@ -453,7 +546,7 @@ BUSINESS CONTEXT:
 - Business Name: "${context.businessName}"
 - Industry: ${context.industry}
 - User Request: "${context.userPrompt}"
-
+${brandContextSection}
 AVAILABLE ASSETS (already generated, use these exact URLs):
 ${assetContext}
 
@@ -781,6 +874,14 @@ export async function generateCompleteWebsite(
         title: session.businessName,
         description: modResult.changesDescription,
       };
+    }
+
+    // Fetch user's brand documents for context
+    console.log('[WebsitePipeline] Searching user documents for brand context...');
+    const brandContext = await fetchUserBrandContext(userId, context.businessName, context.industry);
+    if (brandContext.content) {
+      context.userBrandContext = brandContext;
+      console.log(`[WebsitePipeline] Found brand context from ${brandContext.documentNames.length} documents`);
     }
 
     // Create new session
