@@ -49,7 +49,9 @@ import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
-import { decideRoute, logRouteDecision, RouteTarget } from '@/lib/routing/decideRoute';
+import { decideRoute, logRouteDecision, RouteTarget, hasCodeExecutionIntent } from '@/lib/routing/decideRoute';
+import { executeCode, extractCodeBlocks, shouldTestCode } from '@/lib/agents/codeExecutor';
+import { isSandboxConfigured } from '@/lib/connectors/vercel-sandbox';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel, getVideoModel } from '@/lib/provider/settings';
 import {
@@ -2027,6 +2029,131 @@ export async function POST(request: NextRequest) {
           }),
           {
             status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
+    // ========================================
+    // CODE EXECUTION (VM Sandbox)
+    // ========================================
+    // Check for code execution requests - run tests, build, execute code
+    const executionCheck = hasCodeExecutionIntent(lastUserContent);
+    if (executionCheck.isExecution) {
+      console.log('[Chat API] Code execution intent detected:', executionCheck.matchedPattern);
+
+      // Get OIDC token from request headers (Vercel provides this)
+      const oidcToken = request.headers.get('x-vercel-oidc-token');
+
+      // Check if sandbox is available
+      if (!isSandboxConfigured(oidcToken)) {
+        console.log('[Chat API] Sandbox not configured, providing guidance');
+        // Still handle the request but inform about sandbox status
+        const geminiModel = await getModelForTier('pro', 'gemini');
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `**Code Execution**\n\nI can see you want to run code! The sandbox VM is being configured.\n\nIn the meantime, here's what I can help with:\n- Review your code for errors\n- Suggest fixes\n- Explain what the code does\n\nWould you like me to analyze the code instead?`,
+            model: geminiModel,
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // Look for code in recent messages
+      const recentMessages = messages.slice(-5);
+      let codeToExecute: { language: string; code: string } | null = null;
+
+      for (const msg of recentMessages.reverse()) {
+        if (msg.role === 'assistant' && typeof msg.content === 'string') {
+          const blocks = extractCodeBlocks(msg.content);
+          // Find first executable code block
+          const executableBlock = blocks.find(b =>
+            ['javascript', 'typescript', 'python', 'js', 'ts', 'py'].includes(b.language.toLowerCase())
+          );
+          if (executableBlock) {
+            codeToExecute = {
+              language: executableBlock.language.toLowerCase().replace('js', 'javascript').replace('ts', 'typescript').replace('py', 'python'),
+              code: executableBlock.code,
+            };
+            break;
+          }
+        }
+      }
+
+      if (!codeToExecute) {
+        // Check user's message for code
+        const userBlocks = extractCodeBlocks(lastUserContent);
+        const executableUserBlock = userBlocks.find(b =>
+          ['javascript', 'typescript', 'python', 'js', 'ts', 'py'].includes(b.language.toLowerCase())
+        );
+        if (executableUserBlock) {
+          codeToExecute = {
+            language: executableUserBlock.language.toLowerCase().replace('js', 'javascript').replace('ts', 'typescript').replace('py', 'python'),
+            code: executableUserBlock.code,
+          };
+        }
+      }
+
+      if (codeToExecute && shouldTestCode(codeToExecute.code, codeToExecute.language)) {
+        console.log(`[Chat API] Executing ${codeToExecute.language} code in sandbox...`);
+
+        try {
+          const result = await executeCode({
+            type: 'snippet',
+            language: codeToExecute.language as 'javascript' | 'typescript' | 'python',
+            code: codeToExecute.code,
+          });
+
+          const geminiModel = await getModelForTier('pro', 'gemini');
+          const statusEmoji = result.success ? '✅' : '❌';
+          const statusText = result.success ? 'Success' : 'Failed';
+
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: `**Code Execution ${statusEmoji} ${statusText}**\n\n\`\`\`\n${result.output}\n\`\`\`\n${result.errors.length > 0 ? `\n**Errors:**\n${result.errors.join('\n')}\n` : ''}${result.suggestion ? `\n**Suggestion:** ${result.suggestion}` : ''}\n\n*Executed in ${result.executionTime}ms*`,
+              model: geminiModel,
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Execution-Time': String(result.executionTime),
+                'X-Execution-Success': String(result.success),
+              },
+            }
+          );
+        } catch (error) {
+          console.error('[Chat API] Code execution error:', error);
+          const geminiModel = await getModelForTier('pro', 'gemini');
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: `**Code Execution Error**\n\n${error instanceof Error ? error.message : 'Unknown error occurred'}\n\nPlease try again or paste the code you'd like me to run.`,
+              model: geminiModel,
+            }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        }
+      } else {
+        // No executable code found
+        const geminiModel = await getModelForTier('pro', 'gemini');
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `**Ready to Execute**\n\nI'm ready to run your code! Please share the code you'd like me to execute.\n\nSupported languages:\n- JavaScript / TypeScript\n- Python\n\nJust paste your code in a code block:\n\`\`\`javascript\nconsole.log('Hello World!');\n\`\`\``,
+            model: geminiModel,
+          }),
+          {
+            status: 200,
             headers: { 'Content-Type': 'application/json' },
           }
         );

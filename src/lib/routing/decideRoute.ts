@@ -219,6 +219,64 @@ export function hasWebsiteModificationIntent(text: string): { isModification: bo
 }
 
 /**
+ * Code Execution Intent Detection Patterns
+ * Matches requests to run, test, execute, or build code
+ */
+const CODE_EXECUTION_PATTERNS = [
+  // Run/Execute requests
+  /\b(run|execute|test|try)\s+(this|the|my|that)\s+(code|script|function|program|file)\b/i,
+  /\b(run|execute)\s+(it|this)\b/i,
+  /\bcan\s+you\s+(run|test|execute|try)\s+(this|the|my|it)\b/i,
+  /\b(let'?s|let\s+me|i\s+want\s+to)\s+(run|test|execute|try)\s+(it|this|the)\b/i,
+
+  // Test requests
+  /\b(run|execute)\s+(the\s+)?(tests?|unit\s+tests?|integration\s+tests?|e2e)\b/i,
+  /\bnpm\s+(run\s+)?(test|build|start|dev)\b/i,
+  /\byarn\s+(test|build|start|dev)\b/i,
+  /\bpnpm\s+(test|build|start|dev)\b/i,
+  /\bbun\s+(test|build|run|start)\b/i,
+
+  // Build requests
+  /\b(build|compile)\s+(the\s+)?(project|app|code|application)\b/i,
+  /\b(npm|yarn|pnpm)\s+(run\s+)?build\b/i,
+
+  // Verify/check requests
+  /\b(verify|check|validate)\s+(if\s+)?(this|the|it|my)\s+(works?|code|compiles?)\b/i,
+  /\bdoes\s+(this|it)\s+(work|compile|run)\b/i,
+  /\bwill\s+(this|it)\s+(work|compile|run)\b/i,
+
+  // Install & run
+  /\b(install|setup)\s+(and\s+)?(run|test|build)\b/i,
+  /\bnpm\s+install\s+(&&|and)\s+(npm\s+)?(run\s+)?(test|build|start)\b/i,
+
+  // Debug execution
+  /\b(debug|troubleshoot)\s+(by\s+)?(running|executing|testing)\b/i,
+  /\brun\s+(this\s+)?(to\s+)?(see|check|verify|debug)\b/i,
+
+  // Sandbox/VM explicit
+  /\b(in\s+)?(the\s+)?(sandbox|vm|virtual\s+machine)\b/i,
+  /\bexecute\s+in\s+(isolation|sandbox)\b/i,
+];
+
+/**
+ * Check if a message is requesting code execution
+ */
+export function hasCodeExecutionIntent(text: string): { isExecution: boolean; matchedPattern?: string } {
+  const normalizedText = text.trim();
+
+  for (const pattern of CODE_EXECUTION_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      return {
+        isExecution: true,
+        matchedPattern: pattern.source
+      };
+    }
+  }
+
+  return { isExecution: false };
+}
+
+/**
  * GitHub/Developer Intent Detection Patterns
  * ===========================================
  *
