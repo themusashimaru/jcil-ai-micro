@@ -21,6 +21,7 @@ import AutoTestDemo from './components/AutoTestDemo';
 import DatabaseDemo from './components/DatabaseDemo';
 import ApiBuilderDemo from './components/ApiBuilderDemo';
 import ImageGenDemo from './components/ImageGenDemo';
+import WebsiteBuilderDemo from './components/WebsiteBuilderDemo';
 
 export default function HomePage() {
   return (
@@ -106,11 +107,11 @@ export default function HomePage() {
             {/* Key Features Pills */}
             <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
               {[
+                { icon: '🌐', label: 'AI Website Builder' },
                 { icon: '🚀', label: 'Project Scaffolding' },
                 { icon: '👁️', label: 'Live Code Preview' },
                 { icon: '☁️', label: 'One-Click Deploy' },
                 { icon: '🤖', label: 'Multi-Agent System' },
-                { icon: '🧠', label: 'Persistent Memory' },
                 { icon: '📦', label: 'GitHub Integration' },
               ].map((feature, i) => (
                 <div
@@ -167,23 +168,23 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center justify-center gap-8 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-green-400">✓</span>
-              <span className="text-slate-300">Full Project Generation</span>
+              <span className="text-slate-300">22+ Website Templates</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-green-400">✓</span>
-              <span className="text-slate-300">Live Code Preview</span>
+              <span className="text-slate-300">One-Click Vercel Deploy</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-green-400">✓</span>
-              <span className="text-slate-300">Auto-Push to GitHub</span>
+              <span className="text-slate-300">Supabase Integration</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-green-400">✓</span>
-              <span className="text-slate-300">Self-Correcting Execution</span>
+              <span className="text-slate-300">AI Logo Generation</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-green-400">✓</span>
-              <span className="text-slate-300">Cross-Session Memory</span>
+              <span className="text-slate-300">Full GitHub Workflow</span>
             </div>
           </div>
         </div>
@@ -731,6 +732,27 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* AI Website Builder Demo - NEW */}
+      <section className="relative bg-gradient-to-b from-black via-orange-900/10 to-black py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <WebsiteBuilderDemo />
+
+          <div className="text-center mt-10">
+            <Link
+              href="/signup"
+              className="inline-block rounded-xl bg-gradient-to-r from-orange-600 to-red-600 px-8 py-4 text-lg font-semibold text-white hover:shadow-xl hover:shadow-orange-500/25 transition-all duration-300 hover:-translate-y-0.5"
+            >
+              Build Your Website Free
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Faith Demo - Chat */}
       <section className="relative bg-gradient-to-b from-black to-slate-900 py-16 sm:py-24 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -845,18 +867,18 @@ export default function HomePage() {
 
           <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
             {[
+              { icon: '🌐', title: 'Website Builder', desc: '22+ templates, AI-generated sites' },
               { icon: '🚀', title: 'Project Builder', desc: 'Full app generation + GitHub push' },
               { icon: '👁️', title: 'Live Preview', desc: 'See generated code render instantly' },
               { icon: '☁️', title: 'One-Click Deploy', desc: 'Vercel & Netlify integration' },
               { icon: '🤖', title: 'Multi-Agent', desc: '5 specialized agents working together' },
               { icon: '🧪', title: 'Auto-Testing', desc: 'AI-generated tests with coverage' },
-              { icon: '🗄️', title: 'Database Designer', desc: 'Supabase schema generation' },
+              { icon: '🗄️', title: 'Database Designer', desc: 'Supabase schema auto-generation' },
               { icon: '🔌', title: 'API Builder', desc: 'REST APIs with Zod validation' },
-              { icon: '🎨', title: 'Image Generation', desc: 'AI-powered image creation' },
+              { icon: '🎨', title: 'Image & Logo Gen', desc: 'AI-powered brand asset creation' },
               { icon: '💻', title: 'Code Execution', desc: 'Run Python with auto-fix on errors' },
               { icon: '📦', title: 'GitHub Workflow', desc: 'Branches, PRs, diffs, push' },
               { icon: '🧠', title: 'Persistent Memory', desc: 'Remembers you across sessions' },
-              { icon: '📖', title: 'Bible Study', desc: 'Scripture exploration & study' },
             ].map((tool, index) => (
               <div
                 key={index}
