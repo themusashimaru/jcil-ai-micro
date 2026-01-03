@@ -49,7 +49,7 @@ import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
-import { decideRoute, logRouteDecision } from '@/lib/routing/decideRoute';
+import { decideRoute, logRouteDecision, RouteTarget } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel, getVideoModel } from '@/lib/provider/settings';
 import {
@@ -1468,7 +1468,16 @@ export async function POST(request: NextRequest) {
     let taskPlanText: string | null = null;
     let taskPlanResult: Awaited<ReturnType<typeof analyzeRequest>> | null = null;
 
-    if (isTaskPlanningEnabled() && lastUserContent) {
+    // FORGE & MUSASHI: Skip task planning for direct routes (website, video, image)
+    // These have their own specialized handlers that are more powerful
+    const skipTaskPlanningForRoutes: RouteTarget[] = ['website', 'video', 'image'];
+    const shouldSkipTaskPlanning = skipTaskPlanningForRoutes.includes(routeDecision.target);
+
+    if (shouldSkipTaskPlanning) {
+      console.log(`[Chat API] FORGE & MUSASHI: Skipping task planner for direct route: ${routeDecision.target}`);
+    }
+
+    if (isTaskPlanningEnabled() && lastUserContent && !shouldSkipTaskPlanning) {
       try {
         // Get recent context for better classification
         const recentContext = messages
