@@ -90,7 +90,8 @@ import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
 import { isConnectorsEnabled } from '@/lib/connectors';
-import { detectCategory, extractBusinessInfo, getTemplateByCategory, applyBusinessInfo, saveGeneratedSite } from '@/lib/templates/templateService';
+// FORGE & MUSASHI: Pure AI mode - only using category detection for context, not templates
+import { detectCategory, extractBusinessInfo } from '@/lib/templates/templateService';
 import {
   githubFunctionDeclarations,
   executeGitHubTool,
@@ -1763,7 +1764,7 @@ export async function POST(request: NextRequest) {
 
     // Check if we should route to website/landing page generation
     if (routeDecision.target === 'website') {
-      console.log('[Chat API] Routing to ENHANCED website generation with Template RAG + AI images');
+      console.log('[Chat API] FORGE & MUSASHI: Pure AI Website Generation - Maximum Power Mode');
 
       try {
         // Get models from admin settings
@@ -1771,23 +1772,19 @@ export async function POST(request: NextRequest) {
         const imageModel = await getGeminiImageModel();
         console.log('[Chat API] Using Gemini model:', geminiModel, 'Image model:', imageModel);
 
-        // FORGE & MUSASHI: Template RAG System
-        // Step 1: Detect the business category from user's prompt
+        // FORGE & MUSASHI: Pure AI - No templates, maximum flexibility
+        // Step 1: Detect business type for context (not for template matching)
         const detectedCategory = detectCategory(lastUserContent);
-        console.log('[Chat API] Detected category:', detectedCategory);
+        console.log('[Chat API] Detected business type:', detectedCategory);
 
-        // Step 2: Extract business info using our intelligent extraction
+        // Step 2: Extract any business info from the prompt
         const extractedInfo = extractBusinessInfo(lastUserContent);
 
-        // Step 3: Try to get a matching template from RAG
-        const template = await getTemplateByCategory(detectedCategory);
-        const usingTemplate = !!template;
-        console.log('[Chat API] Template found:', usingTemplate, template?.name || 'N/A');
-
-        // Fallback business name extraction if our extraction didn't find one
+        // Smart business name extraction
         const businessNameMatch = lastUserContent.match(/(?:for|called|named|business)\s+["\']?([^"'\n,]+)["\']?/i) ||
-                                  lastUserContent.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:detailing|salon|gym|restaurant|agency|shop|store|service|studio|clinic|dental|law|firm)/i);
+                                  lastUserContent.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:detailing|salon|gym|restaurant|agency|shop|store|service|studio|clinic|dental|law|firm|ai|tech|startup)/i);
         const businessName = extractedInfo.name || (businessNameMatch ? businessNameMatch[1].trim() : 'Your Business');
+        console.log('[Chat API] Business name:', businessName, 'Category:', detectedCategory);
 
         // Generate logo with Nano Banana (parallel with main generation for speed)
         let logoDataUrl = '';
@@ -1797,13 +1794,13 @@ export async function POST(request: NextRequest) {
         const imagePromises = Promise.allSettled([
           // Generate logo
           createGeminiImageGeneration({
-            prompt: `Professional minimalist logo for "${businessName}". Modern, clean, memorable. Single icon or stylized text. High contrast, works on any background. NO text unless it's the business name stylized.`,
+            prompt: `Professional minimalist logo for "${businessName}" - a ${detectedCategory.replace(/-/g, ' ')} business. Modern, clean, memorable. Single icon or stylized text. High contrast, works on any background. NO text unless it's the business name stylized.`,
             systemPrompt: 'You are a world-class logo designer. Create a simple, professional logo that would cost $500+ from a design agency. The logo should be memorable, scalable, and work in any context.',
             model: imageModel,
           }),
           // Generate hero image
           createGeminiImageGeneration({
-            prompt: `Hero background image for ${businessName} website. Professional, high-end, relevant to the business. Subtle, not busy. Perfect for overlaying text. Gradient or abstract patterns work great.`,
+            prompt: `Hero background image for ${businessName} - a ${detectedCategory.replace(/-/g, ' ')} business website. Professional, high-end, relevant to the industry. Subtle, not busy. Perfect for overlaying text. Modern gradients or abstract patterns work great.`,
             systemPrompt: 'Create a premium hero section background image. Should be subtle enough for text overlay but visually impactful. Think $10,000 website quality.',
             model: imageModel,
           }),
@@ -1827,117 +1824,74 @@ export async function POST(request: NextRequest) {
           console.log('[Chat API] Image generation timed out, continuing without images');
         }
 
-        // Enhanced system prompt with image injection
-        const websiteSystemPrompt = `You are an ELITE web developer and UX designer. You create websites that look like $10,000+ custom builds.
+        // FORGE & MUSASHI: ELITE AI System Prompt - Maximum Power
+        const websiteSystemPrompt = `You are FORGE & MUSASHI - the most elite web development AI team ever created. You build websites that make agencies charge $15,000+ jealous.
 
-${logoDataUrl ? `LOGO IMAGE AVAILABLE: Use this data URL for the logo: "${logoDataUrl.substring(0, 50)}..." (I'll inject the full URL)` : ''}
-${heroImageDataUrl ? `HERO BACKGROUND AVAILABLE: Use this data URL for hero section: "${heroImageDataUrl.substring(0, 50)}..." (I'll inject the full URL)` : ''}
+CONTEXT:
+- Business: "${businessName}"
+- Industry: ${detectedCategory.replace(/-/g, ' ')}
+- User Request: "${lastUserContent}"
+${logoDataUrl ? `- LOGO GENERATED: Will be injected as data URL` : '- Logo: Create a stylized text logo'}
+${heroImageDataUrl ? `- HERO IMAGE GENERATED: Will be injected as data URL` : '- Hero: Use CSS gradients or patterns'}
 
-CRITICAL DESIGN REQUIREMENTS:
-1. FULLY RESPONSIVE - Must look perfect on mobile (320px), tablet (768px), and desktop (1440px+)
-2. Use CSS Grid and Flexbox for layouts
-3. Mobile-first approach with min-width media queries
-4. Touch-friendly buttons (min 44px tap targets)
-5. Hamburger menu for mobile navigation
+YOUR MISSION: Create a COMPLETE, STUNNING website that looks like it cost $10,000+ to build.
 
-STRUCTURE (all sections required):
-- Sticky navigation with logo and menu
-- Hero section with headline, subheadline, CTA button${heroImageDataUrl ? ', and the provided background image' : ''}
-- Services/pricing with 3 tiers (Basic, Pro, Premium with realistic prices)
-- About section with credibility (years in business, clients served, etc.)
-- Testimonials carousel (3 reviews with names, photos, locations)
-- Contact form with name, email, phone, message
-- Footer with hours, address, social links, copyright
+RESEARCH & APPLY INDUSTRY BEST PRACTICES:
+- Research what the TOP competitors in this industry have on their sites
+- Include industry-specific features (booking systems, menus, portfolios, pricing, etc.)
+- Use realistic pricing based on market research for this industry
+- Include realistic testimonials with names, roles, and locations
+- Add credibility markers (years in business, clients served, awards)
+
+REQUIRED SECTIONS (customize based on industry):
+1. NAVIGATION - Sticky header with logo, menu items, CTA button. Mobile hamburger menu.
+2. HERO - Powerful headline, subheadline, primary + secondary CTA${heroImageDataUrl ? ', with the provided background image' : ''}
+3. FEATURES/SERVICES - What they offer, with icons and descriptions
+4. PRICING - 3 tiers (Basic, Pro, Premium) with realistic market prices
+5. ABOUT - Company story, team, mission, credibility stats
+6. TESTIMONIALS - 3 real-sounding reviews with photos (use placeholder URLs)
+7. FAQ - 5-6 common questions for this industry
+8. CONTACT - Form + contact info + business hours + map placeholder
+9. FOOTER - Links, social icons, newsletter signup, copyright
+
+TECHNICAL REQUIREMENTS:
+- FULLY RESPONSIVE: Perfect on mobile (320px), tablet (768px), desktop (1440px+)
+- Mobile-first CSS with min-width media queries
+- CSS Grid + Flexbox for layouts
+- Touch-friendly (44px minimum tap targets)
+- Hamburger menu for mobile with smooth animation
+- Smooth scroll behavior
+- Intersection Observer for scroll animations
+- CSS custom properties for theming
+- Google Fonts (Inter or Poppins)
+- All CSS in <style>, all JS in <script>
+- Semantic HTML5 elements
+- Form validation (HTML5 + basic JS)
 
 VISUAL DESIGN:
-- Modern glassmorphism effects (backdrop-blur, subtle gradients)
-- CSS custom properties for easy theming
-- Smooth scroll behavior
-- Subtle animations on scroll (fade-in, slide-up)
-- Professional color palette matching the industry
-- Inter or Poppins font from Google Fonts
-${logoDataUrl ? '- Display the provided logo in the header (max-height: 60px)' : '- Use stylized text logo with the business name'}
+- Modern glassmorphism effects (backdrop-blur on cards/nav)
+- Subtle gradients and shadows
+- Micro-animations on hover/scroll
+- Professional color palette for ${detectedCategory.replace(/-/g, ' ')} industry
+- Consistent spacing using 8px grid system
+- Beautiful typography hierarchy
 
-TECHNICAL:
-- Output ONLY raw HTML (no \`\`\` markdown blocks)
-- All CSS in <style> tag, all JS in <script> tag
-- Include Google Fonts link
-- Form action can be "#" or a placeholder
-- Images should use object-fit: cover
-- Use semantic HTML5 elements
+OUTPUT: Raw HTML only. No markdown code blocks. Complete <!DOCTYPE html> document.`;
 
-OUTPUT THE COMPLETE HTML FILE NOW:`;
+        // PURE AI GENERATION - No templates, maximum flexibility
+        console.log('[Chat API] FORGE & MUSASHI: Generating with pure AI power...');
 
-        let generatedCode = '';
+        const websiteResult = await createGeminiCompletion({
+          messages: [
+            { role: 'user', content: lastUserContent }
+          ],
+          tool: 'code' as ToolType,
+          systemPrompt: websiteSystemPrompt,
+          userId: rateLimitIdentifier,
+          model: geminiModel,
+        });
 
-        // FORGE & MUSASHI: Validate template HTML before using
-        // Templates must have real HTML content, not just placeholder comments
-        const isValidTemplateHtml = (html: string | undefined): boolean => {
-          if (!html || html.length < 200) return false;
-          // Check for placeholder markers that indicate template wasn't filled
-          if (html.includes('<!-- FULL HTML') || html.includes('<!-- PASTE FULL HTML')) return false;
-          // Must contain basic HTML structure
-          return html.includes('<!DOCTYPE') || (html.includes('<html') && html.includes('<body'));
-        };
-
-        const templateHasValidHtml = template && isValidTemplateHtml(template.html_template);
-
-        // FORGE & MUSASHI: Use Template RAG only if we have valid HTML
-        if (usingTemplate && template && templateHasValidHtml) {
-          console.log('[Chat API] Using Template RAG - Applying template:', template.name);
-
-          // Prepare business info object
-          const businessInfo = {
-            name: businessName,
-            tagline: extractedInfo.description || `Your trusted ${detectedCategory.replace(/-/g, ' ')} partner`,
-            description: lastUserContent.includes('description')
-              ? lastUserContent
-              : `Welcome to ${businessName}. We provide exceptional ${detectedCategory.replace(/-/g, ' ')} services with a focus on quality and customer satisfaction.`,
-            phone: extractedInfo.phone || '(555) 123-4567',
-            email: extractedInfo.email || `info@${businessName.toLowerCase().replace(/\s+/g, '')}.com`,
-            address: '123 Main Street, Your City, ST 12345',
-          };
-
-          // Apply business info and inject images
-          generatedCode = applyBusinessInfo(
-            template,
-            businessInfo,
-            {
-              logo: logoDataUrl || undefined,
-              hero: heroImageDataUrl || undefined,
-            }
-          );
-
-          // Save generated site for tracking
-          await saveGeneratedSite(
-            rateLimitIdentifier,
-            template.id,
-            businessName,
-            detectedCategory,
-            generatedCode
-          ).catch(err => console.error('[Chat API] Failed to save generated site:', err));
-
-          console.log('[Chat API] Template applied successfully');
-        } else {
-          // Fallback to AI generation if no template found or template has invalid/placeholder HTML
-          if (template && !templateHasValidHtml) {
-            console.log('[Chat API] Template found but has placeholder HTML, using AI generation instead:', template.name);
-          } else {
-            console.log('[Chat API] No template found, using AI generation');
-          }
-
-          const websiteResult = await createGeminiCompletion({
-            messages: [
-              { role: 'user', content: lastUserContent }
-            ],
-            tool: 'code' as ToolType,
-            systemPrompt: websiteSystemPrompt,
-            userId: rateLimitIdentifier,
-            model: geminiModel,
-          });
-
-          generatedCode = websiteResult.text || '';
-        }
+        let generatedCode = websiteResult.text || '';
 
         // Clean the code
         generatedCode = generatedCode.trim();
