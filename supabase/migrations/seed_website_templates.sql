@@ -3,6 +3,9 @@
 -- 22 Flexible Categories to CRUSH Manus
 -- FORGE & MUSASHI - The Bash Brothers
 -- ============================================
+-- PROGRESS: Templates 1-9 COMPLETE (in Supabase)
+-- REMAINING: Templates 10-22 (to be added)
+-- ============================================
 
 -- TEMPLATE 1: HERO LANDING
 -- Works for: Product launches, promos, waitlists, app reveals, any single-page promo
@@ -29,7 +32,6 @@ INSERT INTO website_templates (
     <title>{{business_name}} - {{tagline}}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        /* FORGE FLEX SYSTEM */
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
         body {
@@ -235,6 +237,7 @@ INSERT INTO website_templates (
 
 -- TEMPLATE 2: ECOMMERCE FULL
 -- Works for: ANY online store - fashion, electronics, food, home goods, etc.
+-- STATUS: IN SUPABASE (full HTML stored there)
 INSERT INTO website_templates (
     name, slug, description, category, style, layout,
     color_scheme, features, sections, tags,
@@ -250,8 +253,178 @@ INSERT INTO website_templates (
     ARRAY['products', 'categories', 'cart', 'search', 'responsive', 'filters'],
     ARRAY['header', 'hero', 'categories', 'products', 'features', 'newsletter', 'footer'],
     ARRAY['ecommerce', 'shop', 'store', 'products', 'retail', 'buy', 'cart'],
-    '<!-- ECOMMERCE FULL TEMPLATE - See full HTML in Supabase -->',
+    '<!-- FULL HTML IN SUPABASE - Template 2: E-commerce Full -->',
     'Works for ANY online store. AI fills: business_name, products, categories, prices.'
 ) ON CONFLICT (slug) DO NOTHING;
 
--- MORE TEMPLATES WILL BE ADDED BELOW AS WE BUILD THEM
+-- TEMPLATE 3: SAAS PRODUCT
+-- Works for: Software products, apps, platforms, tools, dashboards
+-- STATUS: IN SUPABASE (full HTML stored there)
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'SaaS Launch',
+    'saas-launch-product',
+    'Modern SaaS product page with features, pricing tiers, testimonials, and signup flow',
+    'saas-product',
+    'modern',
+    'hero-focused',
+    '{"primary": "#3B82F6", "secondary": "#10B981", "accent": "#8B5CF6", "background": "#FFFFFF", "text": "#1E293B"}',
+    ARRAY['hero', 'features', 'pricing', 'testimonials', 'cta', 'responsive'],
+    ARRAY['header', 'hero', 'features', 'pricing', 'testimonials', 'cta', 'footer'],
+    ARRAY['saas', 'software', 'app', 'platform', 'startup', 'product', 'pricing'],
+    '<!-- FULL HTML IN SUPABASE - Template 3: SaaS Product -->',
+    'For ANY software/app product. AI fills: business_name, features, pricing tiers, testimonials.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- TEMPLATE 4: LOCAL BUSINESS
+-- Works for: Restaurants, salons, gyms, auto shops, dental, any local service
+-- STATUS: IN SUPABASE (full HTML stored there)
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Local Pro',
+    'local-pro-business',
+    'Professional local business template with services, hours, location map, and contact form',
+    'local-business',
+    'professional',
+    'multi-section',
+    '{"primary": "#1E40AF", "secondary": "#F59E0B", "accent": "#10B981", "background": "#FFFFFF", "text": "#1F2937"}',
+    ARRAY['services', 'hours', 'map', 'contact', 'testimonials', 'responsive'],
+    ARRAY['header', 'hero', 'services', 'about', 'hours', 'testimonials', 'contact', 'footer'],
+    ARRAY['local', 'business', 'restaurant', 'salon', 'gym', 'service', 'location'],
+    '<!-- FULL HTML IN SUPABASE - Template 4: Local Business -->',
+    'For ANY local business. AI fills: business_name, services, hours, location, contact info.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- TEMPLATE 5: PORTFOLIO CREATIVE
+-- Works for: Artists, designers, photographers, creatives, agencies
+-- STATUS: IN SUPABASE (full HTML stored there)
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Creative Folio',
+    'creative-folio-portfolio',
+    'Stunning creative portfolio with project showcase, about section, and contact',
+    'portfolio-creative',
+    'creative',
+    'grid-based',
+    '{"primary": "#000000", "secondary": "#FFFFFF", "accent": "#FF3366", "background": "#0A0A0A", "text": "#FFFFFF"}',
+    ARRAY['portfolio', 'gallery', 'projects', 'about', 'contact', 'responsive'],
+    ARRAY['header', 'hero', 'portfolio', 'about', 'services', 'contact', 'footer'],
+    ARRAY['portfolio', 'creative', 'designer', 'artist', 'photographer', 'agency'],
+    '<!-- FULL HTML IN SUPABASE - Template 5: Portfolio Creative -->',
+    'For ANY creative professional. AI fills: name, projects, skills, about, contact.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- TEMPLATE 6: AGENCY
+-- Works for: Marketing agencies, dev shops, consulting firms, creative studios
+-- STATUS: IN SUPABASE (full HTML stored there)
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Agency Pro',
+    'agency-pro-studio',
+    'Professional agency template with services, case studies, team, and contact',
+    'agency',
+    'professional',
+    'multi-section',
+    '{"primary": "#0F172A", "secondary": "#3B82F6", "accent": "#F59E0B", "background": "#FFFFFF", "text": "#1E293B"}',
+    ARRAY['services', 'case-studies', 'team', 'clients', 'contact', 'responsive'],
+    ARRAY['header', 'hero', 'services', 'work', 'about', 'team', 'contact', 'footer'],
+    ARRAY['agency', 'studio', 'marketing', 'consulting', 'development', 'creative'],
+    '<!-- FULL HTML IN SUPABASE - Template 6: Agency -->',
+    'For ANY agency/studio. AI fills: agency_name, services, case studies, team members.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- TEMPLATE 7: PROFESSIONAL SERVICES
+-- Works for: Lawyers, accountants, consultants, coaches, therapists
+-- STATUS: IN SUPABASE (full HTML stored there)
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Professional Edge',
+    'professional-edge-services',
+    'Elegant professional services template with expertise, testimonials, and booking',
+    'professional-services',
+    'elegant',
+    'multi-section',
+    '{"primary": "#1E3A5F", "secondary": "#C5A572", "accent": "#2E7D32", "background": "#FAFAFA", "text": "#1A1A1A"}',
+    ARRAY['services', 'expertise', 'testimonials', 'booking', 'credentials', 'responsive'],
+    ARRAY['header', 'hero', 'services', 'about', 'credentials', 'testimonials', 'booking', 'footer'],
+    ARRAY['professional', 'lawyer', 'accountant', 'consultant', 'coach', 'therapist'],
+    '<!-- FULL HTML IN SUPABASE - Template 7: Professional Services -->',
+    'For ANY professional. AI fills: name, services, credentials, testimonials, booking info.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- TEMPLATE 8: ECOMMERCE MINIMAL
+-- Works for: Boutique shops, artisan products, small catalogs, curated collections
+-- STATUS: IN SUPABASE (full HTML stored there)
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Minimal Shop',
+    'minimal-shop-ecommerce',
+    'Clean, minimal e-commerce template for boutique and curated product collections',
+    'ecommerce-minimal',
+    'minimal',
+    'grid-based',
+    '{"primary": "#1A1A1A", "secondary": "#F5F5F5", "accent": "#000000", "background": "#FFFFFF", "text": "#1A1A1A"}',
+    ARRAY['products', 'cart', 'minimal-design', 'responsive'],
+    ARRAY['header', 'hero', 'products', 'about', 'footer'],
+    ARRAY['shop', 'boutique', 'minimal', 'artisan', 'curated', 'clean'],
+    '<!-- FULL HTML IN SUPABASE - Template 8: E-commerce Minimal -->',
+    'Clean minimal shop for boutiques, artisans, curated collections. AI fills: business_name, products, prices, about story.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- TEMPLATE 9: AI/TECH
+-- Works for: AI startups, tech companies, SaaS, developer tools, APIs, ML platforms
+-- STATUS: IN SUPABASE (full HTML stored there)
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Neural Tech',
+    'neural-tech-ai',
+    'Futuristic AI/tech template with animated gradients, code aesthetics, and modern tech feel',
+    'ai-tech',
+    'modern',
+    'hero-focused',
+    '{"primary": "#00D4FF", "secondary": "#7C3AED", "accent": "#10B981", "background": "#030712", "text": "#F9FAFB"}',
+    ARRAY['hero', 'features', 'code-display', 'pricing', 'responsive'],
+    ARRAY['header', 'hero', 'features', 'how-it-works', 'pricing', 'cta', 'footer'],
+    ARRAY['ai', 'tech', 'startup', 'api', 'developer', 'ml', 'saas', 'futuristic'],
+    '<!-- FULL HTML IN SUPABASE - Template 9: AI/Tech -->',
+    'Futuristic AI/tech template for startups, APIs, ML platforms. AI fills: business_name, features, code examples, pricing.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATES 10-22: TO BE ADDED
+-- ============================================
+-- 10. restaurant-food: Restaurants, cafes, bakeries, food trucks
+-- 11. health-wellness: Gyms, yoga studios, spas, wellness centers
+-- 12. portfolio-minimal: Minimal developer/designer portfolios
+-- 13. blog-magazine: Blogs, news sites, online magazines
+-- 14. personal-brand: Influencers, speakers, thought leaders
+-- 15. event-conference: Events, conferences, meetups, webinars
+-- 16. wedding-celebration: Weddings, parties, celebrations
+-- 17. real-estate: Property listings, real estate agents
+-- 18. education-course: Online courses, tutorials, education
+-- 19. nonprofit-charity: Nonprofits, charities, causes
+-- 20. coming-soon: Launch pages, waitlists, teasers
+-- 21. app-download: Mobile app landing pages
+-- 22. membership-community: Membership sites, communities
+-- ============================================
