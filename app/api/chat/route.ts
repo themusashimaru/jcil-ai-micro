@@ -2046,7 +2046,10 @@ ${generatedCode}
             content: 'Sorry, I encountered an error generating the website. Please try again.',
             model: fallbackModel,
           }),
-          { status: 500 }
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
         );
       }
     }
@@ -2065,7 +2068,10 @@ ${generatedCode}
             content: 'To review GitHub repositories, please sign in first. Then connect your GitHub account in Settings > Connectors.',
             model: 'system',
           }),
-          { status: 401 }
+          {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          }
         );
       }
 
@@ -2092,7 +2098,10 @@ Once connected, I can:
 - 📝 Create branches and pull requests`,
             model: 'system',
           }),
-          { status: 200 }
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
         );
       }
 
@@ -2364,7 +2373,10 @@ How to prevent this in the future`;
             content: `I encountered an error while trying to review the repository: ${error instanceof Error ? error.message : 'Unknown error'}. Please make sure your GitHub is connected and try again.`,
             model: fallbackModel,
           }),
-          { status: 500 }
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
         );
       }
     }
