@@ -51,7 +51,7 @@ import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuid
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
-import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel } from '@/lib/provider/settings';
+import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel, getVideoModel } from '@/lib/provider/settings';
 import {
   createAnthropicCompletion,
   createAnthropicStreamingCompletion,
@@ -1571,13 +1571,17 @@ export async function POST(request: NextRequest) {
     // VIDEO GENERATION (Admin only for now)
     // ========================================
     if (routeDecision.target === 'video') {
+      // Get video model from admin settings
+      const videoModel = await getVideoModel();
+
       // Admin only for testing phase
       if (!isAdmin) {
+        const fallbackModel = await getModelForTier('basic', activeProvider);
         return new Response(
           JSON.stringify({
             type: 'text',
             content: '**Video Generation Coming Soon**\n\nVideo generation with Sora is currently in testing and available to administrators only.\n\nIn the meantime, I can help you with:\n- Describing video concepts in detail\n- Writing video scripts or storyboards\n- Creating images with DALL-E\n- General questions and assistance\n\nIs there something else I can help you with?',
-            model: activeProvider === 'anthropic' ? 'claude-sonnet-4-5-20250929' : 'gpt-5-mini',
+            model: fallbackModel,
           }),
           {
             status: 200,
@@ -1649,7 +1653,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify({
             type: 'text',
             content: `**Video Generation Error**\n\n${validationError}\n\nPlease modify your prompt and try again.`,
-            model: 'sora-2-pro',
+            model: videoModel,
           }),
           {
             status: 200,
@@ -1661,10 +1665,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Start video generation job
+      // Start video generation job (cast to VideoModel type)
       const result = await createVideoJob({
         prompt,
-        model: 'sora-2-pro', // Pro model with audio support
+        model: videoModel as 'sora-2' | 'sora-2-pro', // Model from admin settings
         size: '1280x720',
         seconds: singleVideoSeconds,
         audio: true,
@@ -1676,7 +1680,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify({
             type: 'text',
             content: `**Video Generation Failed**\n\n${result.error}\n\n${result.retryable ? 'Please try again in a moment.' : 'Please modify your prompt and try again.'}`,
-            model: 'sora-2-pro',
+            model: videoModel,
           }),
           {
             status: result.retryable ? 503 : 400,
@@ -1758,58 +1762,99 @@ export async function POST(request: NextRequest) {
 
     // Check if we should route to website/landing page generation
     if (routeDecision.target === 'website') {
-      console.log('[Chat API] Routing to website generation with Gemini');
-
-      // Enhanced system prompt for high-quality landing page generation
-      const websiteSystemPrompt = `You are an elite web developer and UX designer specializing in high-converting landing pages.
-
-BEFORE GENERATING CODE, you must:
-1. Research typical pricing for this type of business in the mentioned location (or assume a major US city)
-2. Research common services/packages this business type offers
-3. Consider the target customer demographics and what appeals to them
-4. Plan compelling copy that addresses customer pain points
-
-GENERATE A COMPLETE, PRODUCTION-READY LANDING PAGE:
-
-STRUCTURE REQUIREMENTS:
-- Hero section with compelling headline, subheadline, and clear CTA
-- Services/packages section with realistic pricing (research-based)
-- About section with credibility builders
-- Testimonials section (3 realistic reviews with names and locations)
-- Contact/booking section with form
-- Footer with business hours, location, social links
-
-DESIGN REQUIREMENTS:
-- Modern, premium aesthetic with gradients and glassmorphism effects
-- Professional color scheme matching the industry (e.g., dark/gold for luxury, clean/fresh for wellness)
-- Smooth animations and micro-interactions
-- Mobile-first responsive design
-- Professional typography with Google Fonts
-- High contrast for accessibility
-
-TECHNICAL REQUIREMENTS:
-- Output ONLY raw HTML - no markdown code blocks, no explanations
-- All CSS in <style> tag (use CSS custom properties for theming)
-- Minimal JavaScript for interactions in <script> tag
-- Include Google Fonts via CDN link
-- Use semantic HTML5 elements
-- Render perfectly in an iframe
-
-CONTENT REQUIREMENTS:
-- Realistic pricing based on industry standards
-- Compelling, benefit-focused copy (not generic)
-- Clear value propositions
-- Strong calls-to-action
-- Professional placeholder phone/email/address
-
-Make it look like a $5,000 custom website, not a template.`;
+      console.log('[Chat API] Routing to ENHANCED website generation with AI images');
 
       try {
-        // Get model from admin settings
+        // Get models from admin settings
         const geminiModel = await getModelForTier('pro', 'gemini');
-        console.log('[Chat API] Using Gemini model from settings:', geminiModel);
+        const imageModel = await getGeminiImageModel();
+        console.log('[Chat API] Using Gemini model:', geminiModel, 'Image model:', imageModel);
 
-        // Use Gemini for high-quality website generation with grounding
+        // Extract business info from the prompt
+        const businessNameMatch = lastUserContent.match(/(?:for|called|named|business)\s+["\']?([^"'\n,]+)["\']?/i) ||
+                                  lastUserContent.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:detailing|salon|gym|restaurant|agency|shop|store|service|studio|clinic|dental|law|firm)/i);
+        const businessName = businessNameMatch ? businessNameMatch[1].trim() : 'Your Business';
+
+        // Generate logo with Nano Banana (parallel with main generation for speed)
+        let logoDataUrl = '';
+        let heroImageDataUrl = '';
+
+        // Try to generate images in parallel (don't block if it fails)
+        const imagePromises = Promise.allSettled([
+          // Generate logo
+          createGeminiImageGeneration({
+            prompt: `Professional minimalist logo for "${businessName}". Modern, clean, memorable. Single icon or stylized text. High contrast, works on any background. NO text unless it's the business name stylized.`,
+            systemPrompt: 'You are a world-class logo designer. Create a simple, professional logo that would cost $500+ from a design agency. The logo should be memorable, scalable, and work in any context.',
+            model: imageModel,
+          }),
+          // Generate hero image
+          createGeminiImageGeneration({
+            prompt: `Hero background image for ${businessName} website. Professional, high-end, relevant to the business. Subtle, not busy. Perfect for overlaying text. Gradient or abstract patterns work great.`,
+            systemPrompt: 'Create a premium hero section background image. Should be subtle enough for text overlay but visually impactful. Think $10,000 website quality.',
+            model: imageModel,
+          }),
+        ]);
+
+        // Wait for images (with timeout to not block too long)
+        const imageTimeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 15000));
+        const imageResults = await Promise.race([imagePromises, imageTimeout]);
+
+        if (imageResults !== 'timeout') {
+          const [logoResult, heroResult] = imageResults;
+          if (logoResult.status === 'fulfilled') {
+            logoDataUrl = `data:${logoResult.value.mimeType};base64,${logoResult.value.imageData}`;
+            console.log('[Chat API] Logo generated successfully');
+          }
+          if (heroResult.status === 'fulfilled') {
+            heroImageDataUrl = `data:${heroResult.value.mimeType};base64,${heroResult.value.imageData}`;
+            console.log('[Chat API] Hero image generated successfully');
+          }
+        } else {
+          console.log('[Chat API] Image generation timed out, continuing without images');
+        }
+
+        // Enhanced system prompt with image injection
+        const websiteSystemPrompt = `You are an ELITE web developer and UX designer. You create websites that look like $10,000+ custom builds.
+
+${logoDataUrl ? `LOGO IMAGE AVAILABLE: Use this data URL for the logo: "${logoDataUrl.substring(0, 50)}..." (I'll inject the full URL)` : ''}
+${heroImageDataUrl ? `HERO BACKGROUND AVAILABLE: Use this data URL for hero section: "${heroImageDataUrl.substring(0, 50)}..." (I'll inject the full URL)` : ''}
+
+CRITICAL DESIGN REQUIREMENTS:
+1. FULLY RESPONSIVE - Must look perfect on mobile (320px), tablet (768px), and desktop (1440px+)
+2. Use CSS Grid and Flexbox for layouts
+3. Mobile-first approach with min-width media queries
+4. Touch-friendly buttons (min 44px tap targets)
+5. Hamburger menu for mobile navigation
+
+STRUCTURE (all sections required):
+- Sticky navigation with logo and menu
+- Hero section with headline, subheadline, CTA button${heroImageDataUrl ? ', and the provided background image' : ''}
+- Services/pricing with 3 tiers (Basic, Pro, Premium with realistic prices)
+- About section with credibility (years in business, clients served, etc.)
+- Testimonials carousel (3 reviews with names, photos, locations)
+- Contact form with name, email, phone, message
+- Footer with hours, address, social links, copyright
+
+VISUAL DESIGN:
+- Modern glassmorphism effects (backdrop-blur, subtle gradients)
+- CSS custom properties for easy theming
+- Smooth scroll behavior
+- Subtle animations on scroll (fade-in, slide-up)
+- Professional color palette matching the industry
+- Inter or Poppins font from Google Fonts
+${logoDataUrl ? '- Display the provided logo in the header (max-height: 60px)' : '- Use stylized text logo with the business name'}
+
+TECHNICAL:
+- Output ONLY raw HTML (no \`\`\` markdown blocks)
+- All CSS in <style> tag, all JS in <script> tag
+- Include Google Fonts link
+- Form action can be "#" or a placeholder
+- Images should use object-fit: cover
+- Use semantic HTML5 elements
+
+OUTPUT THE COMPLETE HTML FILE NOW:`;
+
+        // Generate the website HTML
         const websiteResult = await createGeminiCompletion({
           messages: [
             { role: 'user', content: lastUserContent }
@@ -1817,38 +1862,69 @@ Make it look like a $5,000 custom website, not a template.`;
           tool: 'code' as ToolType,
           systemPrompt: websiteSystemPrompt,
           userId: rateLimitIdentifier,
-          model: geminiModel, // Use model from admin settings
+          model: geminiModel,
         });
 
-        const generatedCode = websiteResult.text || '';
+        let generatedCode = websiteResult.text || '';
 
-        // Clean the code - remove markdown code blocks if present
-        let cleanCode = generatedCode.trim();
-        if (cleanCode.startsWith('```html')) {
-          cleanCode = cleanCode.slice(7);
-        }
-        if (cleanCode.startsWith('```')) {
-          cleanCode = cleanCode.slice(3);
-        }
-        if (cleanCode.endsWith('```')) {
-          cleanCode = cleanCode.slice(0, -3);
-        }
-        cleanCode = cleanCode.trim();
+        // Clean the code
+        generatedCode = generatedCode.trim();
+        if (generatedCode.startsWith('```html')) generatedCode = generatedCode.slice(7);
+        if (generatedCode.startsWith('```')) generatedCode = generatedCode.slice(3);
+        if (generatedCode.endsWith('```')) generatedCode = generatedCode.slice(0, -3);
+        generatedCode = generatedCode.trim();
 
-        // Extract title from the HTML
-        const titleMatch = cleanCode.match(/<title>([^<]+)<\/title>/i);
-        const title = titleMatch ? titleMatch[1] : 'Landing Page';
+        // Inject the actual image data URLs if the model used placeholders
+        if (logoDataUrl) {
+          // Replace any placeholder logo references
+          generatedCode = generatedCode.replace(
+            /src=["'](?:logo\.png|placeholder|#logo|LOGO_URL|data:image[^"']*\.\.\.)[^"']*["']/gi,
+            `src="${logoDataUrl}"`
+          );
+          // Also add logo if there's an img tag in the header/nav without a proper src
+          if (!generatedCode.includes(logoDataUrl)) {
+            generatedCode = generatedCode.replace(
+              /(<(?:header|nav)[^>]*>)/i,
+              `$1\n<img src="${logoDataUrl}" alt="${businessName} Logo" style="max-height: 60px; width: auto;">`
+            );
+          }
+        }
+
+        if (heroImageDataUrl) {
+          // Inject hero background if not already present
+          if (!generatedCode.includes(heroImageDataUrl)) {
+            generatedCode = generatedCode.replace(
+              /\.hero\s*\{([^}]*)\}/i,
+              `.hero { $1 background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${heroImageDataUrl}'); background-size: cover; background-position: center; }`
+            );
+          }
+        }
+
+        // Extract title
+        const titleMatch = generatedCode.match(/<title>([^<]+)<\/title>/i);
+        const title = titleMatch ? titleMatch[1] : businessName + ' - Landing Page';
+
+        // Build response content
+        const features = [
+          logoDataUrl ? '🎨 AI-generated custom logo' : null,
+          heroImageDataUrl ? '🖼️ AI-generated hero background' : null,
+          '📱 Fully responsive (mobile, tablet, desktop)',
+          '💰 Industry-researched pricing',
+          '⭐ Realistic testimonials',
+          '📝 Contact form ready',
+          '🎯 Conversion-optimized design',
+        ].filter(Boolean);
 
         return new Response(
           JSON.stringify({
             type: 'code_preview',
-            content: `**${title}**\n\nI've generated a premium landing page with:\n- Industry-standard pricing\n- Compelling copy and testimonials\n- Modern responsive design\n- Professional contact section\n\nClick "Open Preview" to see it live!\n\n*Tip: Ask me to adjust colors, pricing, services, or add new sections!*`,
+            content: `**${title}**\n\nI've created a premium website with:\n${features.map(f => `- ${f}`).join('\n')}\n\nClick **"Open Preview"** to see it live!\n\n*Actions: Ask me to "push this to GitHub" or "deploy to Vercel" when ready!*`,
             model: geminiModel,
             codePreview: {
-              code: cleanCode,
+              code: generatedCode,
               language: 'html',
               title: title,
-              description: `Generated from: ${lastUserContent.slice(0, 100)}${lastUserContent.length > 100 ? '...' : ''}`,
+              description: `Generated with AI images for: ${lastUserContent.slice(0, 80)}${lastUserContent.length > 80 ? '...' : ''}`,
             },
           }),
           {
@@ -1858,6 +1934,7 @@ Make it look like a $5,000 custom website, not a template.`;
               'X-Route-Target': 'website',
               'X-Route-Reason': routeDecision.reason,
               'X-Model-Used': geminiModel,
+              'X-Images-Generated': `logo:${!!logoDataUrl},hero:${!!heroImageDataUrl}`,
             },
           }
         );
