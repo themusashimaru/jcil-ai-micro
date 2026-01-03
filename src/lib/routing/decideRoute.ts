@@ -158,6 +158,67 @@ const WEBSITE_INTENT_PATTERNS = [
 ];
 
 /**
+ * Website modification intent detection patterns
+ * Matches requests to modify an existing website that's in the session
+ */
+const WEBSITE_MODIFICATION_PATTERNS = [
+  // Direct modification requests
+  /\b(change|modify|update|edit|adjust|fix|tweak|alter)\b.*\b(website|page|site|section|color|font|text|image|layout|header|footer|nav|hero|pricing|about|contact|testimonials?)\b/i,
+
+  // Size/style adjustments
+  /\b(make|can you make)\b.*\b(it|the|this|that)\b.*\b(bigger|smaller|darker|lighter|different|bold|italic|larger|wider|narrower)\b/i,
+
+  // Remove/delete requests
+  /\b(remove|delete|get rid of|hide|take out)\b.*\b(section|element|button|image|text|feature|banner|popup)\b/i,
+
+  // Add/include requests
+  /\b(add|include|insert|put in|incorporate)\b.*\b(section|button|image|text|feature|form|link|social)\b/i,
+
+  // Move/reposition requests
+  /\b(move|reposition|relocate|swap|rearrange)\b.*\b(section|element|button|component)\b/i,
+
+  // "The website needs/should" patterns
+  /\b(the|that|this)\s+(website|page|site)\b.*\b(needs?|should|could|has to|must)\b/i,
+
+  // Preference/dislike patterns
+  /\bi\s*(don'?t|do not)\s*like\b.*\b(color|font|layout|design|style|look)\b/i,
+  /\b(instead|rather|prefer)\b.*\b(color|font|style|design|layout)\b/i,
+
+  // Simple edit commands
+  /\bchange\s+the\s+(color|font|text|title|heading|button|background|image|logo)/i,
+  /\bmake\s+it\s+(look|appear|feel|seem)\b/i,
+  /\bupdate\s+the\s+(text|content|copy|wording|title|heading)/i,
+
+  // Color-specific changes
+  /\b(use|try|switch to|change to)\b.*\b(blue|red|green|purple|orange|yellow|pink|black|white|gray|grey|color)\b/i,
+
+  // Specific section edits
+  /\b(edit|modify|change|update)\s+(the\s+)?(hero|header|footer|about|pricing|contact|testimonial|faq|service)\s+(section)?/i,
+
+  // GitHub/Deploy actions (these are modifications to the workflow, not new websites)
+  /\b(push|deploy|publish)\s+(this|the|it)\s+(to|on)\s+(github|vercel|netlify)/i,
+  /\b(save|commit)\s+(this|the)\s+(to|on)\s+github/i,
+];
+
+/**
+ * Check if a message is requesting modification to an existing website
+ */
+export function hasWebsiteModificationIntent(text: string): { isModification: boolean; matchedPattern?: string } {
+  const normalizedText = text.trim();
+
+  for (const pattern of WEBSITE_MODIFICATION_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      return {
+        isModification: true,
+        matchedPattern: pattern.source
+      };
+    }
+  }
+
+  return { isModification: false };
+}
+
+/**
  * GitHub/Developer Intent Detection Patterns
  * ===========================================
  *
