@@ -51,7 +51,7 @@ import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuid
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
-import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel } from '@/lib/provider/settings';
+import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel, getVideoModel } from '@/lib/provider/settings';
 import {
   createAnthropicCompletion,
   createAnthropicStreamingCompletion,
@@ -1571,13 +1571,17 @@ export async function POST(request: NextRequest) {
     // VIDEO GENERATION (Admin only for now)
     // ========================================
     if (routeDecision.target === 'video') {
+      // Get video model from admin settings
+      const videoModel = await getVideoModel();
+
       // Admin only for testing phase
       if (!isAdmin) {
+        const fallbackModel = await getModelForTier('basic', activeProvider);
         return new Response(
           JSON.stringify({
             type: 'text',
             content: '**Video Generation Coming Soon**\n\nVideo generation with Sora is currently in testing and available to administrators only.\n\nIn the meantime, I can help you with:\n- Describing video concepts in detail\n- Writing video scripts or storyboards\n- Creating images with DALL-E\n- General questions and assistance\n\nIs there something else I can help you with?',
-            model: activeProvider === 'anthropic' ? 'claude-sonnet-4-5-20250929' : 'gpt-5-mini',
+            model: fallbackModel,
           }),
           {
             status: 200,
@@ -1649,7 +1653,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify({
             type: 'text',
             content: `**Video Generation Error**\n\n${validationError}\n\nPlease modify your prompt and try again.`,
-            model: 'sora-2-pro',
+            model: videoModel,
           }),
           {
             status: 200,
@@ -1661,10 +1665,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Start video generation job
+      // Start video generation job (cast to VideoModel type)
       const result = await createVideoJob({
         prompt,
-        model: 'sora-2-pro', // Pro model with audio support
+        model: videoModel as 'sora-2' | 'sora-2-pro', // Model from admin settings
         size: '1280x720',
         seconds: singleVideoSeconds,
         audio: true,
@@ -1676,7 +1680,7 @@ export async function POST(request: NextRequest) {
           JSON.stringify({
             type: 'text',
             content: `**Video Generation Failed**\n\n${result.error}\n\n${result.retryable ? 'Please try again in a moment.' : 'Please modify your prompt and try again.'}`,
-            model: 'sora-2-pro',
+            model: videoModel,
           }),
           {
             status: result.retryable ? 503 : 400,

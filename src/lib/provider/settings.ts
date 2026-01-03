@@ -209,10 +209,49 @@ export async function getPerplexityModel(): Promise<string> {
 }
 
 /**
- * Get the Code Command model
+ * Get the Code Command model from database
+ * Falls back to claude-opus if not configured
  */
 export async function getCodeCommandModel(): Promise<string> {
-  return 'claude-sonnet-4-5-20250929';
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return 'claude-opus-4-5-20251101';
+  }
+
+  try {
+    const { data } = await supabase
+      .from('provider_settings')
+      .select('code_command_model')
+      .single();
+
+    return data?.code_command_model || 'claude-opus-4-5-20251101';
+  } catch {
+    return 'claude-opus-4-5-20251101';
+  }
+}
+
+/**
+ * Get the Video model (Sora) from database
+ * Falls back to sora-2-pro if not configured
+ */
+export async function getVideoModel(): Promise<string> {
+  const supabase = getSupabaseAdmin();
+
+  if (!supabase) {
+    return 'sora-2-pro';
+  }
+
+  try {
+    const { data } = await supabase
+      .from('provider_settings')
+      .select('video_model')
+      .single();
+
+    return data?.video_model || 'sora-2-pro';
+  } catch {
+    return 'sora-2-pro';
+  }
 }
 
 /**
