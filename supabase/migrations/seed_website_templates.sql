@@ -233,4 +233,25 @@ INSERT INTO website_templates (
     'Flexible hero landing for ANY product launch. AI fills: business_name, tagline, headline, features, CTAs.'
 ) ON CONFLICT (slug) DO NOTHING;
 
+-- TEMPLATE 2: ECOMMERCE FULL
+-- Works for: ANY online store - fashion, electronics, food, home goods, etc.
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'StoreFront Pro',
+    'storefront-pro-ecommerce',
+    'Full-featured e-commerce template with product grid, categories, cart preview, and checkout CTA',
+    'ecommerce-full',
+    'modern',
+    'grid-based',
+    '{"primary": "#18181B", "secondary": "#F4F4F5", "accent": "#EAB308", "background": "#FFFFFF", "text": "#18181B"}',
+    ARRAY['products', 'categories', 'cart', 'search', 'responsive', 'filters'],
+    ARRAY['header', 'hero', 'categories', 'products', 'features', 'newsletter', 'footer'],
+    ARRAY['ecommerce', 'shop', 'store', 'products', 'retail', 'buy', 'cart'],
+    '<!-- ECOMMERCE FULL TEMPLATE - See full HTML in Supabase -->',
+    'Works for ANY online store. AI fills: business_name, products, categories, prices.'
+) ON CONFLICT (slug) DO NOTHING;
+
 -- MORE TEMPLATES WILL BE ADDED BELOW AS WE BUILD THEM
