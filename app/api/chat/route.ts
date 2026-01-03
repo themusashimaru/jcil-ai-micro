@@ -90,6 +90,7 @@ import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
 import { isConnectorsEnabled } from '@/lib/connectors';
+import { detectCategory, extractBusinessInfo, getTemplateByCategory, applyBusinessInfo, saveGeneratedSite } from '@/lib/templates/templateService';
 import {
   githubFunctionDeclarations,
   executeGitHubTool,
@@ -1762,7 +1763,7 @@ export async function POST(request: NextRequest) {
 
     // Check if we should route to website/landing page generation
     if (routeDecision.target === 'website') {
-      console.log('[Chat API] Routing to ENHANCED website generation with AI images');
+      console.log('[Chat API] Routing to ENHANCED website generation with Template RAG + AI images');
 
       try {
         // Get models from admin settings
@@ -1770,10 +1771,23 @@ export async function POST(request: NextRequest) {
         const imageModel = await getGeminiImageModel();
         console.log('[Chat API] Using Gemini model:', geminiModel, 'Image model:', imageModel);
 
-        // Extract business info from the prompt
+        // FORGE & MUSASHI: Template RAG System
+        // Step 1: Detect the business category from user's prompt
+        const detectedCategory = detectCategory(lastUserContent);
+        console.log('[Chat API] Detected category:', detectedCategory);
+
+        // Step 2: Extract business info using our intelligent extraction
+        const extractedInfo = extractBusinessInfo(lastUserContent);
+
+        // Step 3: Try to get a matching template from RAG
+        const template = await getTemplateByCategory(detectedCategory);
+        const usingTemplate = !!template;
+        console.log('[Chat API] Template found:', usingTemplate, template?.name || 'N/A');
+
+        // Fallback business name extraction if our extraction didn't find one
         const businessNameMatch = lastUserContent.match(/(?:for|called|named|business)\s+["\']?([^"'\n,]+)["\']?/i) ||
                                   lastUserContent.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:detailing|salon|gym|restaurant|agency|shop|store|service|studio|clinic|dental|law|firm)/i);
-        const businessName = businessNameMatch ? businessNameMatch[1].trim() : 'Your Business';
+        const businessName = extractedInfo.name || (businessNameMatch ? businessNameMatch[1].trim() : 'Your Business');
 
         // Generate logo with Nano Banana (parallel with main generation for speed)
         let logoDataUrl = '';
@@ -1854,18 +1868,60 @@ TECHNICAL:
 
 OUTPUT THE COMPLETE HTML FILE NOW:`;
 
-        // Generate the website HTML
-        const websiteResult = await createGeminiCompletion({
-          messages: [
-            { role: 'user', content: lastUserContent }
-          ],
-          tool: 'code' as ToolType,
-          systemPrompt: websiteSystemPrompt,
-          userId: rateLimitIdentifier,
-          model: geminiModel,
-        });
+        let generatedCode = '';
 
-        let generatedCode = websiteResult.text || '';
+        // FORGE & MUSASHI: Use Template RAG if we have a matching template
+        if (usingTemplate && template) {
+          console.log('[Chat API] Using Template RAG - Applying template:', template.name);
+
+          // Prepare business info object
+          const businessInfo = {
+            name: businessName,
+            tagline: extractedInfo.description || `Your trusted ${detectedCategory.replace(/-/g, ' ')} partner`,
+            description: lastUserContent.includes('description')
+              ? lastUserContent
+              : `Welcome to ${businessName}. We provide exceptional ${detectedCategory.replace(/-/g, ' ')} services with a focus on quality and customer satisfaction.`,
+            phone: extractedInfo.phone || '(555) 123-4567',
+            email: extractedInfo.email || `info@${businessName.toLowerCase().replace(/\s+/g, '')}.com`,
+            address: '123 Main Street, Your City, ST 12345',
+          };
+
+          // Apply business info and inject images
+          generatedCode = applyBusinessInfo(
+            template,
+            businessInfo,
+            {
+              logo: logoDataUrl || undefined,
+              hero: heroImageDataUrl || undefined,
+            }
+          );
+
+          // Save generated site for tracking
+          await saveGeneratedSite(
+            rateLimitIdentifier,
+            template.id,
+            businessName,
+            detectedCategory,
+            generatedCode
+          ).catch(err => console.error('[Chat API] Failed to save generated site:', err));
+
+          console.log('[Chat API] Template applied successfully');
+        } else {
+          // Fallback to AI generation if no template found
+          console.log('[Chat API] No template found, using AI generation');
+
+          const websiteResult = await createGeminiCompletion({
+            messages: [
+              { role: 'user', content: lastUserContent }
+            ],
+            tool: 'code' as ToolType,
+            systemPrompt: websiteSystemPrompt,
+            userId: rateLimitIdentifier,
+            model: geminiModel,
+          });
+
+          generatedCode = websiteResult.text || '';
+        }
 
         // Clean the code
         generatedCode = generatedCode.trim();
