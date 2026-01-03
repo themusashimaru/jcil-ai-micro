@@ -21,6 +21,9 @@ interface CodeBlockWithActionsProps {
   onPush?: (code: string, language: string) => Promise<void>;
   showTestButton?: boolean;
   showPushButton?: boolean;
+  // External state management (for when parent needs to persist state across re-renders)
+  externalTesting?: boolean;
+  externalTestResult?: { success: boolean; output: string };
 }
 
 // Languages that can be tested in Sandbox
@@ -38,13 +41,19 @@ export function CodeBlockWithActions({
   onPush,
   showTestButton = true,
   showPushButton = true,
+  externalTesting,
+  externalTestResult,
 }: CodeBlockWithActionsProps) {
   const [copied, setCopied] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{
+  const [internalTesting, setInternalTesting] = useState(false);
+  const [internalTestResult, setInternalTestResult] = useState<{
     success: boolean;
     output: string;
   } | null>(null);
+
+  // Use external state if provided, otherwise use internal state
+  const testing = externalTesting ?? internalTesting;
+  const testResult = externalTestResult ?? internalTestResult;
 
   const canTest = TESTABLE_LANGUAGES.includes(language.toLowerCase());
   const displayLanguage = getDisplayLanguage(language);
@@ -56,26 +65,38 @@ export function CodeBlockWithActions({
   };
 
   const handleTest = async () => {
-    console.log('[CodeBlock] handleTest called', { hasOnTest: !!onTest, language, codeLength: code.length });
+    console.log('[CodeBlock] handleTest called', { hasOnTest: !!onTest, language, codeLength: code.length, hasExternalState: externalTesting !== undefined });
     if (!onTest) {
       console.log('[CodeBlock] No onTest function provided!');
       return;
     }
-    setTesting(true);
-    setTestResult(null);
+
+    // Only manage internal state if external state is not provided
+    const useInternalState = externalTesting === undefined;
+    if (useInternalState) {
+      setInternalTesting(true);
+      setInternalTestResult(null);
+    }
+
     try {
       console.log('[CodeBlock] Calling onTest...');
       const result = await onTest(code, language);
       console.log('[CodeBlock] onTest result:', result);
-      setTestResult(result);
+      if (useInternalState) {
+        setInternalTestResult(result);
+      }
     } catch (error) {
       console.error('[CodeBlock] onTest error:', error);
-      setTestResult({
-        success: false,
-        output: error instanceof Error ? error.message : 'Test failed',
-      });
+      if (useInternalState) {
+        setInternalTestResult({
+          success: false,
+          output: error instanceof Error ? error.message : 'Test failed',
+        });
+      }
     } finally {
-      setTesting(false);
+      if (useInternalState) {
+        setInternalTesting(false);
+      }
     }
   };
 

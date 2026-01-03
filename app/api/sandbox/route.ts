@@ -14,6 +14,7 @@ import {
   buildAndTest,
   getSandboxConfig,
   isSandboxConfigured,
+  getMissingSandboxConfig,
 } from '@/lib/connectors/vercel-sandbox';
 
 // Rate limits per subscription tier (executions per month)
@@ -27,15 +28,25 @@ const RATE_LIMITS: Record<string, number> = {
 
 export async function POST(req: NextRequest) {
   try {
-    // Check if sandbox is configured
-    if (!isSandboxConfigured()) {
+    // Get OIDC token from Vercel (available in request headers for serverless functions)
+    const oidcToken = req.headers.get('x-vercel-oidc-token');
+
+    // Check if sandbox is configured (OIDC from header OR access token from env)
+    if (!isSandboxConfigured(oidcToken)) {
+      const missing = getMissingSandboxConfig();
       return NextResponse.json(
-        { error: 'Sandbox not configured' },
+        {
+          error: 'Sandbox not configured',
+          missing,
+          hint: missing.includes('VERCEL_TEAM_ID')
+            ? 'Find your Team ID at: Vercel Dashboard → Settings → General. Even personal Pro accounts have a Team ID.'
+            : undefined
+        },
         { status: 503 }
       );
     }
 
-    const sandboxConfig = getSandboxConfig();
+    const sandboxConfig = getSandboxConfig(oidcToken);
     if (!sandboxConfig) {
       return NextResponse.json(
         { error: 'Invalid sandbox configuration' },
@@ -170,14 +181,21 @@ export async function POST(req: NextRequest) {
 /**
  * GET - Check sandbox status and usage
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const configured = isSandboxConfigured();
+    // Get OIDC token from Vercel (available in request headers for serverless functions)
+    const oidcToken = req.headers.get('x-vercel-oidc-token');
+    const configured = isSandboxConfigured(oidcToken);
 
     if (!configured) {
+      const missing = getMissingSandboxConfig(oidcToken);
       return NextResponse.json({
         available: false,
         reason: 'Sandbox not configured',
+        missing,
+        hint: missing.includes('VERCEL_TEAM_ID')
+          ? 'Find your Team ID at: Vercel Dashboard → Settings → General. Even personal Pro accounts have a Team ID.'
+          : undefined
       });
     }
 

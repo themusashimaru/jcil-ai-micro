@@ -14,6 +14,7 @@
 
 'use client';
 
+import { useState, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { CodeBlockWithActions } from './CodeBlockWithActions';
@@ -395,11 +396,19 @@ export function MarkdownRenderer({
   // Get code execution context (optional - gracefully handle if not in provider)
   const codeExecution = useCodeExecutionOptional();
 
+  // Store test results by code hash to persist across re-renders
+  const [testResults, setTestResults] = useState<Map<string, { success: boolean; output: string; testing: boolean }>>(new Map());
+
   // Pre-process content:
   // 1. Filter out internal markers (checkpoint state, etc.)
   // 2. Convert plain URLs to clickable markdown links
   const filteredContent = filterInternalMarkers(content);
   const processedContent = autoLinkifyUrls(filteredContent);
+
+  // Generate a stable hash for code content
+  const getCodeHash = useCallback((code: string) => {
+    return code.slice(0, 100) + '_' + code.length;
+  }, []);
 
   // Create components with code action handlers
   const componentsWithActions: Components = {
@@ -425,22 +434,55 @@ export function MarkdownRenderer({
       // Block code - use CodeBlockWithActions when enabled
       console.log('[MarkdownRenderer] Code block render:', { enableCodeActions, hasCodeExecution: !!codeExecution, language });
       if (enableCodeActions && codeExecution) {
-        console.log('[MarkdownRenderer] Rendering CodeBlockWithActions with onTest');
+        const codeHash = getCodeHash(codeContent);
+        const testState = testResults.get(codeHash);
+        console.log('[MarkdownRenderer] Rendering CodeBlockWithActions:', { codeHash, testState });
+
         return (
           <CodeBlockWithActions
+            key={codeHash}
             code={codeContent}
             language={language}
             showTestButton={true}
             showPushButton={codeExecution.githubConnected}
+            // Pass test state from parent
+            externalTesting={testState?.testing}
+            externalTestResult={testState && !testState.testing ? { success: testState.success, output: testState.output } : undefined}
             onTest={async (code, lang) => {
-              console.log('[MarkdownRenderer] onTest called with:', { lang, codeLength: code.length });
-              const result = await codeExecution.testCode(code, lang);
-              console.log('[MarkdownRenderer] testCode result:', result);
-              const output = result.outputs.map(o => o.stdout || o.stderr).join('\n') || result.error || '';
-              if (onTestResult) {
-                onTestResult({ success: result.success, output });
+              console.log('[MarkdownRenderer] onTest called:', { lang, codeLength: code.length, codeHash });
+
+              // Set testing state
+              setTestResults(prev => {
+                const next = new Map(prev);
+                next.set(codeHash, { success: false, output: '', testing: true });
+                return next;
+              });
+
+              try {
+                const result = await codeExecution.testCode(code, lang);
+                console.log('[MarkdownRenderer] testCode result:', result);
+                const output = result.outputs.map(o => o.stdout || o.stderr).join('\n') || result.error || '';
+
+                // Store result
+                setTestResults(prev => {
+                  const next = new Map(prev);
+                  next.set(codeHash, { success: result.success, output, testing: false });
+                  return next;
+                });
+
+                if (onTestResult) {
+                  onTestResult({ success: result.success, output });
+                }
+                return { success: result.success, output };
+              } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : 'Test failed';
+                setTestResults(prev => {
+                  const next = new Map(prev);
+                  next.set(codeHash, { success: false, output: errorMsg, testing: false });
+                  return next;
+                });
+                return { success: false, output: errorMsg };
               }
-              return { success: result.success, output };
             }}
             onPush={async (code, lang) => {
               // Determine filename from language

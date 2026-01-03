@@ -41,6 +41,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CodeExecutionProvider, useCodeExecution } from '@/contexts/CodeExecutionContext';
 import { RepoSelector } from '@/components/chat/RepoSelector';
+import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 import type { Chat, Message, Attachment } from './types';
 
 // Re-export types for convenience
@@ -921,7 +922,7 @@ export function ChatClient() {
     }
   };
 
-  const handleSendMessage = async (content: string, attachments: Attachment[], searchMode?: SearchMode) => {
+  const handleSendMessage = async (content: string, attachments: Attachment[], searchMode?: SearchMode, selectedRepo?: SelectedRepoInfo | null) => {
     if (!content.trim() && attachments.length === 0) return;
 
     // Check for slash commands
@@ -1194,6 +1195,8 @@ export function ChatClient() {
           // No tool parameter - let users manually select tools via buttons
           // Pass search mode for Anthropic (search/factcheck triggers Perplexity)
           searchMode: searchMode || 'none',
+          // Pass selected GitHub repo for code review operations
+          selectedRepo: selectedRepo || undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -1250,6 +1253,32 @@ export function ChatClient() {
 
           // Save the image message to database
           await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'image', data.url);
+        } else if (data.type === 'code_preview' && data.codePreview) {
+          // Website/landing page code generation response
+          console.log('[ChatClient] Received code preview response:', {
+            title: data.codePreview.title,
+            language: data.codePreview.language,
+          });
+
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: data.content || 'Here is your generated code:',
+            model: data.model || modelUsed,
+            codePreview: {
+              code: data.codePreview.code,
+              language: data.codePreview.language,
+              title: data.codePreview.title,
+              description: data.codePreview.description,
+            },
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          finalContent = assistantMessage.content;
+
+          // Save the code preview message to database
+          await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'text');
         } else if (data.type === 'video_job' && data.video_job) {
           // Video generation job started (admin only)
           console.log('[ChatClient] Received video job response:', {

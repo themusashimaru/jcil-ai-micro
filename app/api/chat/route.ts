@@ -43,15 +43,15 @@
 
 import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from '@/lib/openai/client';
 import { moderateContent } from '@/lib/openai/moderation';
-import { generateImageWithFallback, ImageSize } from '@/lib/openai/images';
+import type { ToolType } from '@/lib/openai/types';
 import { buildSlimSystemPrompt, isFaithTopic, getRelevantCategories } from '@/lib/prompts/slimPrompt';
 import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
-import { decideRoute, logRouteDecision, parseSizeFromText } from '@/lib/routing/decideRoute';
+import { decideRoute, logRouteDecision } from '@/lib/routing/decideRoute';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
-import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel } from '@/lib/provider/settings';
+import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel } from '@/lib/provider/settings';
 import {
   createAnthropicCompletion,
   createAnthropicStreamingCompletion,
@@ -71,6 +71,7 @@ import {
   createGeminiCompletion,
   createGeminiStreamingCompletion,
   createGeminiStructuredCompletion,
+  createGeminiImageGeneration,
   getDocumentSchema,
   getDocumentSchemaDescription,
 } from '@/lib/gemini/client';
@@ -83,10 +84,16 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import crypto from 'crypto';
 import { analyzeRequest, isTaskPlanningEnabled } from '@/lib/taskPlanner';
 import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '@/lib/taskPlanner/executor';
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
+import { isConnectorsEnabled } from '@/lib/connectors';
+import {
+  githubFunctionDeclarations,
+  executeGitHubTool,
+} from '@/lib/gemini/githubTools';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -142,6 +149,71 @@ function truncateMessages(messages: CoreMessage[], maxMessages: number = MAX_CON
 function clampMaxTokens(requestedTokens?: number): number {
   if (!requestedTokens) return DEFAULT_RESPONSE_TOKENS;
   return Math.min(Math.max(requestedTokens, 256), MAX_RESPONSE_TOKENS);
+}
+
+// ========================================
+// GitHub Token Helpers (for Code Review)
+// ========================================
+
+/**
+ * Get encryption key for token decryption
+ */
+function getEncryptionKey(): Buffer {
+  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return crypto.createHash('sha256').update(key).digest();
+}
+
+/**
+ * Decrypt GitHub token stored in database
+ */
+function decryptToken(encryptedData: string): string | null {
+  try {
+    const parts = encryptedData.split(':');
+    if (parts.length !== 3) return null;
+
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+
+    const key = getEncryptionKey();
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get user's GitHub token for code review tasks
+ */
+async function getGitHubTokenForUser(userId: string): Promise<string | null> {
+  if (!isConnectorsEnabled()) return null;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) return null;
+
+  try {
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: connector } = await adminClient
+      .from('connectors')
+      .select('encrypted_token')
+      .eq('user_id', userId)
+      .eq('type', 'github')
+      .single();
+
+    if (!connector?.encrypted_token) return null;
+
+    return decryptToken(connector.encrypted_token);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -870,6 +942,41 @@ interface UserContext {
   purpose?: string;
 }
 
+interface SelectedRepo {
+  owner: string;
+  repo: string;
+  fullName: string;
+  defaultBranch: string;
+}
+
+/**
+ * Build GitHub repo context for system prompt
+ * This tells the AI what repo the user is working with
+ */
+function buildRepoContextPrompt(repo: SelectedRepo | undefined): string {
+  if (!repo) return '';
+
+  return `
+
+---
+
+## ACTIVE GITHUB REPOSITORY
+
+The user has selected **${repo.fullName}** to work with.
+
+- **Repository:** ${repo.repo}
+- **Owner:** ${repo.owner}
+- **Default Branch:** ${repo.defaultBranch}
+
+You have access to this repository. Be proactive:
+- If they ask to "review my code" or "check my project" - analyze the repo and provide actionable feedback
+- Suggest specific improvements with code examples
+- After reviewing, offer to help fix issues or add features
+- If they haven't asked anything yet, you can say: "I see you're working on ${repo.repo}. Would you like me to review the code, find potential bugs, or help with something specific?"
+
+---`;
+}
+
 interface ChatRequestBody {
   messages: CoreMessage[];
   tool?: string;
@@ -879,6 +986,7 @@ interface ChatRequestBody {
   conversationId?: string; // Current conversation ID to exclude from history
   searchMode?: 'none' | 'search' | 'factcheck'; // User-triggered search mode (Anthropic only)
   reasoningMode?: boolean; // User-triggered reasoning mode (DeepSeek only)
+  selectedRepo?: SelectedRepo; // User-selected GitHub repo for code review
 }
 
 // Detect if user is asking about previous conversations
@@ -933,7 +1041,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body: ChatRequestBody = await request.json();
-    const { messages, tool, temperature, max_tokens, userContext, conversationId, searchMode, reasoningMode } = body;
+    const { messages, tool, temperature, max_tokens, userContext, conversationId, searchMode, reasoningMode, selectedRepo } = body;
 
     // Validate messages
     if (!messages || messages.length === 0) {
@@ -1036,6 +1144,12 @@ export async function POST(request: NextRequest) {
       } catch {
         // Default to free tier on error
       }
+    }
+
+    // Get GitHub token for code review tasks (if user is authenticated and has connected GitHub)
+    let githubToken: string | null = null;
+    if (isAuthenticated && isConnectorsEnabled()) {
+      githubToken = await getGitHubTokenForUser(rateLimitIdentifier);
     }
 
     // Admin bypass: skip rate limiting and usage limits for admins
@@ -1291,7 +1405,9 @@ export async function POST(request: NextRequest) {
                 geminiModel,
                 isAuthenticated ? rateLimitIdentifier : undefined,
                 userTier,
-                checkpointState // Pass checkpoint state to resume
+                checkpointState, // Pass checkpoint state to resume
+                githubToken || undefined, // Pass GitHub token for code review
+                selectedRepo // Pass user-selected repo for code review
               );
 
               return new Response(executionStream, {
@@ -1380,7 +1496,10 @@ export async function POST(request: NextRequest) {
               lastUserContent,
               geminiModel,
               isAuthenticated ? rateLimitIdentifier : undefined,
-              userTier
+              userTier,
+              undefined, // No checkpoint state
+              githubToken || undefined, // Pass GitHub token for code review
+              selectedRepo // Pass user-selected repo for code review
             );
 
             return new Response(executionStream, {
@@ -1637,6 +1756,443 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if we should route to website/landing page generation
+    if (routeDecision.target === 'website') {
+      console.log('[Chat API] Routing to website generation with Gemini');
+
+      // Enhanced system prompt for high-quality landing page generation
+      const websiteSystemPrompt = `You are an elite web developer and UX designer specializing in high-converting landing pages.
+
+BEFORE GENERATING CODE, you must:
+1. Research typical pricing for this type of business in the mentioned location (or assume a major US city)
+2. Research common services/packages this business type offers
+3. Consider the target customer demographics and what appeals to them
+4. Plan compelling copy that addresses customer pain points
+
+GENERATE A COMPLETE, PRODUCTION-READY LANDING PAGE:
+
+STRUCTURE REQUIREMENTS:
+- Hero section with compelling headline, subheadline, and clear CTA
+- Services/packages section with realistic pricing (research-based)
+- About section with credibility builders
+- Testimonials section (3 realistic reviews with names and locations)
+- Contact/booking section with form
+- Footer with business hours, location, social links
+
+DESIGN REQUIREMENTS:
+- Modern, premium aesthetic with gradients and glassmorphism effects
+- Professional color scheme matching the industry (e.g., dark/gold for luxury, clean/fresh for wellness)
+- Smooth animations and micro-interactions
+- Mobile-first responsive design
+- Professional typography with Google Fonts
+- High contrast for accessibility
+
+TECHNICAL REQUIREMENTS:
+- Output ONLY raw HTML - no markdown code blocks, no explanations
+- All CSS in <style> tag (use CSS custom properties for theming)
+- Minimal JavaScript for interactions in <script> tag
+- Include Google Fonts via CDN link
+- Use semantic HTML5 elements
+- Render perfectly in an iframe
+
+CONTENT REQUIREMENTS:
+- Realistic pricing based on industry standards
+- Compelling, benefit-focused copy (not generic)
+- Clear value propositions
+- Strong calls-to-action
+- Professional placeholder phone/email/address
+
+Make it look like a $5,000 custom website, not a template.`;
+
+      try {
+        // Get model from admin settings
+        const geminiModel = await getModelForTier('pro', 'gemini');
+        console.log('[Chat API] Using Gemini model from settings:', geminiModel);
+
+        // Use Gemini for high-quality website generation with grounding
+        const websiteResult = await createGeminiCompletion({
+          messages: [
+            { role: 'user', content: lastUserContent }
+          ],
+          tool: 'code' as ToolType,
+          systemPrompt: websiteSystemPrompt,
+          userId: rateLimitIdentifier,
+          model: geminiModel, // Use model from admin settings
+        });
+
+        const generatedCode = websiteResult.text || '';
+
+        // Clean the code - remove markdown code blocks if present
+        let cleanCode = generatedCode.trim();
+        if (cleanCode.startsWith('```html')) {
+          cleanCode = cleanCode.slice(7);
+        }
+        if (cleanCode.startsWith('```')) {
+          cleanCode = cleanCode.slice(3);
+        }
+        if (cleanCode.endsWith('```')) {
+          cleanCode = cleanCode.slice(0, -3);
+        }
+        cleanCode = cleanCode.trim();
+
+        // Extract title from the HTML
+        const titleMatch = cleanCode.match(/<title>([^<]+)<\/title>/i);
+        const title = titleMatch ? titleMatch[1] : 'Landing Page';
+
+        return new Response(
+          JSON.stringify({
+            type: 'code_preview',
+            content: `**${title}**\n\nI've generated a premium landing page with:\n- Industry-standard pricing\n- Compelling copy and testimonials\n- Modern responsive design\n- Professional contact section\n\nClick "Open Preview" to see it live!\n\n*Tip: Ask me to adjust colors, pricing, services, or add new sections!*`,
+            model: geminiModel,
+            codePreview: {
+              code: cleanCode,
+              language: 'html',
+              title: title,
+              description: `Generated from: ${lastUserContent.slice(0, 100)}${lastUserContent.length > 100 ? '...' : ''}`,
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Route-Target': 'website',
+              'X-Route-Reason': routeDecision.reason,
+              'X-Model-Used': geminiModel,
+            },
+          }
+        );
+      } catch (error) {
+        console.error('[Chat API] Website generation error:', error);
+        const fallbackModel = await getModelForTier('pro', 'gemini');
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: 'Sorry, I encountered an error generating the website. Please try again.',
+            model: fallbackModel,
+          }),
+          { status: 500 }
+        );
+      }
+    }
+
+    // ========================================
+    // GITHUB CODE REVIEW (with Tool Calling)
+    // ========================================
+    if (routeDecision.target === 'github') {
+      console.log('[Chat API] Routing to GitHub code review');
+
+      // Check if user is authenticated
+      if (!isAuthenticated || !rateLimitIdentifier) {
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: 'To review GitHub repositories, please sign in first. Then connect your GitHub account in Settings > Connectors.',
+            model: 'system',
+          }),
+          { status: 401 }
+        );
+      }
+
+      // Get user's GitHub token
+      const githubToken = await getGitHubTokenForUser(rateLimitIdentifier);
+
+      if (!githubToken) {
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `**GitHub Not Connected**
+
+To review repositories, you need to connect your GitHub account:
+
+1. Go to **Settings** → **Connectors**
+2. Click **Connect GitHub**
+3. Authorize access to your repositories
+4. Come back and ask me to review your code!
+
+Once connected, I can:
+- 📖 Read and analyze your codebase
+- 🔍 Find bugs and security issues
+- 💡 Suggest improvements
+- 📝 Create branches and pull requests`,
+            model: 'system',
+          }),
+          { status: 200 }
+        );
+      }
+
+      try {
+        // Get model from admin settings
+        const geminiModel = await getModelForTier('pro', 'gemini');
+        console.log('[Chat API] GitHub review using Gemini model:', geminiModel);
+
+        // Comprehensive developer assistant system prompt
+        const codeReviewSystemPrompt = `You are an elite full-stack developer, software architect, and DevOps engineer with 20+ years of experience across every major technology stack. You are THE expert that senior engineers consult when they're stuck.
+
+# YOUR EXPERTISE
+
+## Languages & Runtimes
+- JavaScript/TypeScript (Node.js, Deno, Bun), Python, Rust, Go, Java, Kotlin, Swift, Ruby, PHP, C/C++, C#
+
+## Frontend
+- React, Next.js, Vue, Nuxt, Angular, Svelte, SvelteKit, Astro, Remix, Gatsby, Qwik
+- State: Redux, Zustand, Jotai, Recoil, MobX, Pinia, Vuex
+- Styling: Tailwind, CSS Modules, Styled Components, Emotion, Sass/SCSS
+
+## Backend
+- Express, Fastify, NestJS, Django, Flask, FastAPI, Rails, Laravel, Spring Boot, Gin, Fiber
+- GraphQL: Apollo, Urql, Relay, Pothos, GraphQL Yoga
+
+## Databases
+- PostgreSQL, MySQL, MongoDB, Redis, SQLite, DynamoDB, Cassandra
+- ORMs: Prisma, Drizzle, TypeORM, Sequelize, Mongoose, SQLAlchemy
+
+## DevOps & Infrastructure
+- Docker, Kubernetes, Terraform, Pulumi, AWS, GCP, Azure, Vercel, Netlify, Railway, Fly.io
+- CI/CD: GitHub Actions, GitLab CI, Jenkins, CircleCI, ArgoCD
+
+## Testing
+- Jest, Vitest, Mocha, Cypress, Playwright, Testing Library, Pytest, RSpec
+
+# YOUR CAPABILITIES
+
+## 1. CODE REVIEW & ANALYSIS
+When reviewing code, you:
+- Identify bugs, security vulnerabilities (OWASP Top 10), and performance issues
+- Analyze architecture and suggest improvements
+- Check for code smells, anti-patterns, and technical debt
+- Verify best practices for the specific framework/language
+- Review error handling, edge cases, and type safety
+- Assess test coverage and quality
+- Check dependency health and security
+
+## 2. DEBUGGING & TROUBLESHOOTING
+When debugging, you:
+- Parse error messages and stack traces to identify root causes
+- Understand complex async/promise flows and race conditions
+- Debug memory leaks, performance bottlenecks, and infinite loops
+- Fix build errors (webpack, vite, tsc, babel)
+- Resolve dependency conflicts and version mismatches
+- Debug CI/CD pipeline failures
+- Fix deployment issues across platforms
+
+## 3. CODE GENERATION & IMPLEMENTATION
+When writing code, you:
+- Generate production-ready, type-safe code
+- Follow framework-specific conventions and best practices
+- Include proper error handling and edge case coverage
+- Write clean, maintainable, and well-documented code
+- Create complete implementations, not just snippets
+- Follow SOLID principles and design patterns
+- Consider performance from the start
+
+## 4. TESTING
+When working with tests, you:
+- Write comprehensive unit, integration, and e2e tests
+- Create proper mocks, stubs, and fixtures
+- Ensure edge cases are covered
+- Set up test infrastructure and configuration
+- Fix failing tests with proper understanding
+
+## 5. REFACTORING
+When refactoring, you:
+- Extract reusable functions and components
+- Eliminate code duplication (DRY)
+- Modernize legacy code patterns
+- Improve type safety and error handling
+- Optimize for readability and maintainability
+- Migrate between frameworks/versions safely
+
+## 6. DEVOPS & DEPLOYMENT
+When handling DevOps, you:
+- Write Dockerfiles and docker-compose configurations
+- Create CI/CD pipelines (GitHub Actions, etc.)
+- Configure environment variables and secrets
+- Set up monitoring and logging
+- Optimize build and deployment processes
+
+# YOUR TOOLS
+
+Use these tools strategically to help the user:
+
+- **github_clone_repo**: Fetch repository files for analysis. Use this FIRST when asked to review, analyze, or work with a repository.
+- **github_get_file**: Get specific file content when you need more detail on a particular file.
+- **github_get_repo_info**: Get repository metadata (description, default branch, etc.)
+- **github_list_branches**: List branches to understand the repo structure.
+- **github_create_branch**: Create a new branch before making changes.
+- **github_push_files**: Push code changes to implement fixes or features.
+- **github_create_pr**: Create a pull request after pushing changes.
+
+# YOUR APPROACH
+
+1. **UNDERSTAND FIRST**: Before suggesting solutions, fully understand the codebase, the user's intent, and the context.
+
+2. **BE SPECIFIC**: Always reference specific files, line numbers, and code snippets. Never be vague.
+
+3. **EXPLAIN WHY**: Don't just say what's wrong—explain WHY it's a problem and the consequences.
+
+4. **SHOW, DON'T TELL**: Provide actual code fixes, not just descriptions. Write the corrected code.
+
+5. **PRIORITIZE**: Address critical issues (security, crashes, data loss) before style preferences.
+
+6. **BE ACTIONABLE**: Every piece of feedback should have a clear action the user can take.
+
+7. **CONSIDER CONTEXT**: Understand the project's constraints, team size, and timeline.
+
+8. **BE ENCOURAGING**: Acknowledge what's done well while identifying improvements.
+
+# RESPONSE FORMAT
+
+For code reviews, structure your response as:
+
+## 🎯 Summary
+Brief overview of the codebase and your findings
+
+## 🚨 Critical Issues
+Security vulnerabilities, potential crashes, data loss risks
+
+## ⚠️ Important Improvements
+Bugs, performance issues, architectural concerns
+
+## 💡 Suggestions
+Best practices, code quality, maintainability improvements
+
+## ✅ What's Done Well
+Acknowledge good practices and well-written code
+
+## 📋 Action Items
+Clear, prioritized list of recommended changes
+
+For debugging, structure your response as:
+
+## 🔍 Problem Identified
+What's causing the error
+
+## 🛠️ Solution
+The fix with complete code
+
+## 📝 Explanation
+Why this fix works
+
+## 🔮 Prevention
+How to prevent this in the future`;
+
+        // Import the Gemini SDK for tool calling
+        const { GoogleGenAI } = await import('@google/genai');
+        const genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || '' });
+
+        // Build initial messages with conversation history
+        // Use the original messages array, converting to Gemini format
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const geminiMessages: any[] = messages.map((msg: CoreMessage) => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) }],
+        }));
+
+        // Tool calling loop - keep going until we get a final response
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let currentMessages: any[] = geminiMessages;
+        const maxIterations = 10; // Safety limit
+        let iteration = 0;
+        let finalResponse = '';
+
+        while (iteration < maxIterations) {
+          iteration++;
+          console.log(`[Chat API] GitHub tool loop iteration ${iteration}`);
+
+          // Make the API call with tools
+          const response = await genai.models.generateContent({
+            model: geminiModel,
+            contents: currentMessages,
+            config: {
+              systemInstruction: codeReviewSystemPrompt,
+              tools: [{ functionDeclarations: githubFunctionDeclarations }],
+            },
+          });
+
+          const candidate = response.candidates?.[0];
+          if (!candidate?.content?.parts) {
+            console.error('[Chat API] No valid response from Gemini');
+            break;
+          }
+
+          const parts = candidate.content.parts;
+
+          // Check if there are function calls
+          const functionCalls = parts.filter((p: { functionCall?: unknown }) => p.functionCall);
+
+          if (functionCalls.length === 0) {
+            // No function calls - this is the final text response
+            const textParts = parts.filter((p: { text?: string }) => p.text);
+            finalResponse = textParts.map((p: { text?: string }) => p.text || '').join('\n');
+            break;
+          }
+
+          // Execute each function call
+          const functionResults = [];
+          for (const part of functionCalls) {
+            const fc = part.functionCall as { name: string; args: Record<string, unknown> };
+            console.log(`[Chat API] Executing GitHub tool: ${fc.name}`);
+
+            const result = await executeGitHubTool(fc.name, fc.args || {}, {
+              githubToken,
+            });
+
+            functionResults.push({
+              functionResponse: {
+                name: fc.name,
+                response: result,
+              },
+            });
+          }
+
+          // Add the model's response and function results to the conversation
+          currentMessages = [
+            ...currentMessages,
+            {
+              role: 'model',
+              parts: parts,
+            },
+            {
+              role: 'user',
+              parts: functionResults,
+            },
+          ];
+        }
+
+        if (!finalResponse) {
+          finalResponse = 'I was able to analyze the repository but encountered an issue generating the final response. Please try again.';
+        }
+
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: finalResponse,
+            model: geminiModel,
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Route-Target': 'github',
+              'X-Route-Reason': routeDecision.reason,
+              'X-Model-Used': geminiModel,
+            },
+          }
+        );
+      } catch (error) {
+        console.error('[Chat API] GitHub review error:', error);
+        const fallbackModel = await getModelForTier('pro', 'gemini');
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `I encountered an error while trying to review the repository: ${error instanceof Error ? error.message : 'Unknown error'}. Please make sure your GitHub is connected and try again.`,
+            model: fallbackModel,
+          }),
+          { status: 500 }
+        );
+      }
+    }
+
     // Check if we should route to image generation (only if no uploaded images)
     if (routeDecision.target === 'image' && !messageHasUploadedImages) {
       // Check image-specific monthly limits (warn at 80%, stop at 100%)
@@ -1700,17 +2256,17 @@ export async function POST(request: NextRequest) {
         prompt = prompt.replace(/^🎨\s*Generate image:\s*/i, '').trim();
       }
 
-      // Parse size from user text (supports 256, 512, 1024)
-      const size: ImageSize = parseSizeFromText(prompt);
+      // Get image model from admin settings
+      const imageModel = await getGeminiImageModel();
+      console.log('[Chat API] Using Gemini image model from settings:', imageModel);
 
-      // Log image request with user, model, promptHash, size
+      // Log image request with user, model, promptHash
       const promptHash = prompt.slice(0, 32).replace(/\s+/g, '_');
       console.log('[Chat API] Image generation request:', {
         user_id: rateLimitIdentifier,
         type: 'image',
-        model: 'dall-e-3',
+        model: imageModel,
         promptHash,
-        size,
         reason: routeDecision.reason,
         confidence: routeDecision.confidence,
         imageUsage: {
@@ -1720,33 +2276,38 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Use new fallback-enabled image generation
+      // Use Gemini for image generation
       const startTime = Date.now();
-      const imageResult = await generateImageWithFallback(prompt, size, rateLimitIdentifier);
-      const latencyMs = Date.now() - startTime;
+      try {
+        const geminiImageResult = await createGeminiImageGeneration({
+          prompt,
+          systemPrompt: 'You are a professional image generator. Create high-quality, visually stunning images based on the user prompt. Focus on composition, lighting, and artistic quality.',
+          model: imageModel, // Use model from admin settings
+        });
+        const latencyMs = Date.now() - startTime;
 
-      // Log completion
-      console.log('[Chat API] Image generation complete:', {
-        user_id: rateLimitIdentifier,
-        type: 'image',
-        model: 'dall-e-3',
-        promptHash,
-        size,
-        ok: imageResult.ok,
-        latency_ms: latencyMs,
-      });
+        // Log completion
+        console.log('[Chat API] Gemini image generation complete:', {
+          user_id: rateLimitIdentifier,
+          type: 'image',
+          model: geminiImageResult.model,
+          promptHash,
+          ok: true,
+          latency_ms: latencyMs,
+        });
 
-      if (imageResult.ok) {
+        // Convert base64 to data URL
+        const dataUrl = `data:${geminiImageResult.mimeType};base64,${geminiImageResult.imageData}`;
+
         // Include usage warning if at 80%
         const usageWarning = getImageLimitWarningMessage(imageUsage);
 
         return new Response(
           JSON.stringify({
             type: 'image',
-            url: imageResult.image,
+            url: dataUrl,
             prompt,
-            model: imageResult.model,
-            size: imageResult.size,
+            model: geminiImageResult.model,
             routeReason: routeDecision.reason,
             ...(usageWarning && { usageWarning }),
             usage: {
@@ -1761,20 +2322,31 @@ export async function POST(request: NextRequest) {
               'Content-Type': 'application/json',
               'X-Route-Target': 'image',
               'X-Route-Reason': routeDecision.reason,
-              'X-Model-Used': imageResult.model || 'dall-e-3',
+              'X-Model-Used': geminiImageResult.model,
               'X-Image-Remaining': String(imageUsage.remaining),
             },
           }
         );
-      } else {
+      } catch (imageError) {
+        const latencyMs = Date.now() - startTime;
+        const errorMessage = imageError instanceof Error ? imageError.message : 'Unknown error';
+        console.error('[Chat API] Gemini image generation failed:', {
+          user_id: rateLimitIdentifier,
+          error: errorMessage,
+          latency_ms: latencyMs,
+        });
         // Return text fallback instead of error
         return new Response(
           JSON.stringify({
             type: 'image_fallback',
-            content: imageResult.fallbackText,
-            retryHint: imageResult.retryHint,
-            suggestedPrompts: imageResult.suggestedPrompts,
-            error: imageResult.error,
+            content: `I wasn't able to generate that image. Here's what I can tell you about "${prompt}":\n\nThe image would show ${prompt}. If you'd like, I can try again with a more specific description, or I can help you with something else.`,
+            retryHint: 'Try being more specific about colors, style, or composition.',
+            suggestedPrompts: [
+              `${prompt}, digital art style`,
+              `${prompt}, photorealistic`,
+              `${prompt}, illustration style`,
+            ],
+            error: errorMessage,
             routeReason: routeDecision.reason,
           }),
           {
@@ -1864,6 +2436,12 @@ export async function POST(request: NextRequest) {
           console.error('[Chat API] Learning context fetch failed:', learnError);
           // Don't fail the request if learning fails
         }
+      }
+
+      // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+      if (selectedRepo) {
+        slingshotPrompt += buildRepoContextPrompt(selectedRepo);
+        console.log(`[Chat API] Added GitHub repo context: ${selectedRepo.fullName}`);
       }
 
       const slingshotSystemMessage = {
@@ -2117,6 +2695,12 @@ Please summarize this information from our platform's perspective. Present the f
           } catch (learnError) {
             console.error('[Chat API] Anthropic: Learning context failed:', learnError);
           }
+        }
+
+        // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+        if (selectedRepo) {
+          baseSystemPrompt += buildRepoContextPrompt(selectedRepo);
+          console.log(`[Chat API] Anthropic: Added GitHub repo context: ${selectedRepo.fullName}`);
         }
       }
 
@@ -2482,6 +3066,12 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
             console.error('[Chat API] xAI: Learning context failed:', learnError);
           }
         }
+
+        // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+        if (selectedRepo) {
+          baseSystemPrompt += buildRepoContextPrompt(selectedRepo);
+          console.log(`[Chat API] xAI: Added GitHub repo context: ${selectedRepo.fullName}`);
+        }
       }
 
       const systemPrompt = isAuthenticated
@@ -2831,6 +3421,12 @@ Remember: Use the [GENERATE_PDF:] marker so the document can be downloaded.
             console.error('[Chat API] DeepSeek: Learning context failed:', learnError);
           }
         }
+
+        // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+        if (selectedRepo) {
+          baseSystemPrompt += buildRepoContextPrompt(selectedRepo);
+          console.log(`[Chat API] DeepSeek: Added GitHub repo context: ${selectedRepo.fullName}`);
+        }
       }
 
       const systemPrompt = isAuthenticated
@@ -3162,6 +3758,12 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           } catch (learnError) {
             console.error('[Chat API] Gemini: Learning context failed:', learnError);
           }
+        }
+
+        // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
+        if (selectedRepo) {
+          baseSystemPrompt += buildRepoContextPrompt(selectedRepo);
+          console.log(`[Chat API] Gemini: Added GitHub repo context: ${selectedRepo.fullName}`);
         }
       }
 

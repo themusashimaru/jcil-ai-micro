@@ -8,8 +8,9 @@
  * - Sequential execution (reliable, debuggable)
  * - Real-time progress updates with timing
  * - Result chaining between steps
- * - Retry logic for resilience
+ * - Retry logic with self-correction for resilience
  * - Professional, clean output formatting
+ * - AUTONOMOUS MODE: Runs all steps without checkpoints, self-corrects on errors
  */
 
 import { createGeminiCompletion } from '@/lib/gemini/client';
@@ -47,7 +48,10 @@ const CONFIG = {
   retryDelayMs: 1000,      // Wait 1 second between retries
   maxResultPreview: 300,   // Characters to show in step preview
   maxTokensPerStep: 2048,  // Token limit per step
-  maxTokensSynthesis: 4096 // Token limit for final synthesis
+  maxTokensSynthesis: 4096, // Token limit for final synthesis
+  // Autonomous mode settings
+  adaptiveRetry: true,     // Try different approach on retry
+  selfCorrectOnError: true // Attempt to fix errors automatically
 };
 
 // ============================================================================
@@ -59,10 +63,14 @@ async function executeStepWithRetry(
   context: ExecutionContext,
   model: string,
   userId?: string,
-  userTier?: string
+  userTier?: string,
+  githubToken?: string,
+  selectedRepo?: SelectedRepoContext,
+  autonomousMode?: boolean
 ): Promise<StepResult> {
   const startTime = Date.now();
   let lastError = '';
+  let adaptedQuery = step.description;
 
   // Build context from previous successful steps
   const previousContext = context.completedSteps
@@ -74,6 +82,12 @@ async function executeStepWithRetry(
     if (attempt > 0) {
       console.log(`[TaskExecutor] Retry ${attempt}/${CONFIG.maxRetries} for step ${step.id}`);
       await sleep(CONFIG.retryDelayMs * attempt); // Exponential backoff
+
+      // ADAPTIVE RETRY: Modify the approach based on the error
+      if (CONFIG.adaptiveRetry && lastError) {
+        adaptedQuery = buildAdaptiveQuery(step.description, lastError, attempt);
+        console.log(`[TaskExecutor] Adaptive retry with modified query`);
+      }
     }
 
     try {
@@ -81,7 +95,7 @@ async function executeStepWithRetry(
       const toolResult = await executeForTaskType(
         step.type,
         {
-          query: step.description,
+          query: adaptedQuery,
           context: previousContext || undefined,
           originalRequest: context.originalRequest,
         },
@@ -91,13 +105,16 @@ async function executeStepWithRetry(
           userTier,
           maxTokens: CONFIG.maxTokensPerStep,
           temperature: step.type === 'creative' ? 0.8 : 0.5,
+          githubToken,
+          selectedRepo,
         }
       );
 
       const durationMs = Date.now() - startTime;
 
       if (toolResult.success) {
-        console.log(`[TaskExecutor] Step ${step.id} completed in ${durationMs}ms using tool`);
+        const retryNote = attempt > 0 ? ` (succeeded on retry ${attempt})` : '';
+        console.log(`[TaskExecutor] Step ${step.id} completed in ${durationMs}ms${retryNote}`);
         return {
           taskId: step.id,
           success: true,
@@ -115,7 +132,14 @@ async function executeStepWithRetry(
     }
   }
 
-  // All retries exhausted
+  // All retries exhausted - in autonomous mode, try self-correction
+  if (autonomousMode && CONFIG.selfCorrectOnError) {
+    const correctionResult = await attemptSelfCorrection(step, lastError, context, model, userId);
+    if (correctionResult) {
+      return correctionResult;
+    }
+  }
+
   const durationMs = Date.now() - startTime;
   return {
     taskId: step.id,
@@ -125,6 +149,77 @@ async function executeStepWithRetry(
     durationMs,
     retryCount: CONFIG.maxRetries,
   };
+}
+
+/**
+ * Build an adaptive query based on the previous error
+ */
+function buildAdaptiveQuery(originalQuery: string, error: string, attempt: number): string {
+  // Add context about the error and ask for alternative approach
+  if (attempt === 1) {
+    return `${originalQuery}
+
+Note: A previous attempt failed with this error: "${error}"
+Please try a different approach or work around this issue.`;
+  } else {
+    return `${originalQuery}
+
+Important: Multiple attempts have failed. The last error was: "${error}"
+Please use a simpler, more reliable approach. Focus on what CAN be done.`;
+  }
+}
+
+/**
+ * Attempt self-correction when all retries fail (autonomous mode only)
+ */
+async function attemptSelfCorrection(
+  step: SubTask,
+  error: string,
+  context: ExecutionContext,
+  model: string,
+  userId?: string
+): Promise<StepResult | null> {
+  console.log(`[TaskExecutor] Attempting self-correction for step ${step.id}`);
+
+  try {
+    // Ask the AI to analyze and correct the issue
+    const correctionPrompt = `A task step failed and needs your help to recover.
+
+**Original Task:** ${step.description}
+**Error Encountered:** ${error}
+**Context:** This is step ${step.id} of a larger task: "${context.originalRequest}"
+
+Please:
+1. Analyze why this might have failed
+2. Provide an alternative solution or workaround
+3. If the step cannot be completed, explain what partial progress can be made
+
+Focus on delivering value despite the error.`;
+
+    const messages: CoreMessage[] = [{ role: 'user', content: correctionPrompt }];
+    const result = await createGeminiCompletion({
+      messages,
+      model,
+      userId,
+      maxTokens: CONFIG.maxTokensPerStep,
+      temperature: 0.5,
+    });
+
+    if (result.text && result.text.length > 50) {
+      console.log(`[TaskExecutor] Self-correction succeeded for step ${step.id}`);
+      return {
+        taskId: step.id,
+        success: true,
+        output: `*[Auto-recovered from error]*\n\n${result.text}`,
+        durationMs: 0,
+        retryCount: CONFIG.maxRetries + 1, // Indicates self-correction was used
+      };
+    }
+  } catch (correctionError) {
+    console.error(`[TaskExecutor] Self-correction failed:`, correctionError);
+  }
+
+  return null;
 }
 
 // ============================================================================
@@ -210,15 +305,32 @@ export interface CheckpointState {
   nextStepIndex: number;
 }
 
+export interface SelectedRepoContext {
+  owner: string;
+  repo: string;
+  fullName: string;
+  defaultBranch: string;
+}
+
+export interface ExecutionOptions {
+  autonomousMode?: boolean;  // Run without checkpoints, with self-correction
+  skipCheckpoints?: boolean; // Just skip checkpoints without full autonomous features
+}
+
 export async function executeTaskPlan(
   plan: TaskPlan,
   originalRequest: string,
   model: string,
   userId?: string,
   userTier?: string,
-  resumeFrom?: CheckpointState // Optional: resume from a checkpoint
+  resumeFrom?: CheckpointState, // Optional: resume from a checkpoint
+  githubToken?: string, // For code review tasks
+  selectedRepo?: SelectedRepoContext, // User-selected repo from dropdown
+  options?: ExecutionOptions // Execution options including autonomous mode
 ): Promise<ReadableStream<Uint8Array>> {
   const encoder = new TextEncoder();
+  const autonomousMode = options?.autonomousMode ?? false;
+  const skipCheckpoints = options?.skipCheckpoints ?? autonomousMode;
 
   return new ReadableStream({
     async start(controller) {
@@ -237,7 +349,7 @@ export async function executeTaskPlan(
 
         // Stream the task plan header (only if starting fresh)
         if (!resumeFrom) {
-          const planHeader = formatPlanHeader(plan);
+          const planHeader = formatPlanHeader(plan, autonomousMode);
           controller.enqueue(encoder.encode(planHeader));
         } else {
           // Show resumption message
@@ -251,28 +363,38 @@ export async function executeTaskPlan(
           context.currentStepIndex = step.id;
 
           // Show step starting with progress
-          const stepStartText = formatStepStart(step, i + 1, plan.subtasks.length);
+          const stepStartText = formatStepStart(step, i + 1, plan.subtasks.length, autonomousMode);
           controller.enqueue(encoder.encode(stepStartText));
 
-          // Execute the step with retry
-          const result = await executeStepWithRetry(step, context, model, userId, userTier);
+          // Execute the step with retry (and self-correction in autonomous mode)
+          const result = await executeStepWithRetry(
+            step, context, model, userId, userTier, githubToken, selectedRepo, autonomousMode
+          );
 
           if (result.success) {
             // Show success with timing and preview
-            const stepCompleteText = formatStepComplete(step, result);
+            const wasRecovered = result.retryCount > CONFIG.maxRetries;
+            const stepCompleteText = formatStepComplete(step, result, wasRecovered);
             controller.enqueue(encoder.encode(stepCompleteText));
             context.completedSteps.push(result);
           } else {
             // Show error
-            const stepErrorText = formatStepError(step, result);
+            const stepErrorText = formatStepError(step, result, autonomousMode);
             controller.enqueue(encoder.encode(stepErrorText));
             context.completedSteps.push(result);
+
+            // In autonomous mode, continue despite errors
+            if (autonomousMode) {
+              const continueMsg = `\n*Continuing to next step...*\n\n`;
+              controller.enqueue(encoder.encode(continueMsg));
+            }
           }
 
           // Check for checkpoint AFTER step completes (not on last step)
+          // SKIP checkpoints in autonomous mode - run all the way through
           const isLastStep = i === plan.subtasks.length - 1;
-          if (step.requiresCheckpoint && !isLastStep && result.success) {
-            // Pause at checkpoint
+          if (step.requiresCheckpoint && !isLastStep && result.success && !skipCheckpoints) {
+            // Pause at checkpoint (only in non-autonomous mode)
             const remainingSteps = plan.subtasks.slice(i + 1);
             const checkpointText = formatCheckpoint(step, remainingSteps, context, plan);
             controller.enqueue(encoder.encode(checkpointText));
@@ -290,9 +412,10 @@ export async function executeTaskPlan(
         const finalOutput = await synthesizeResults(context, plan, model, userId, userTier);
         controller.enqueue(encoder.encode(finalOutput));
 
-        // Add completion footer
+        // Add completion footer with proactive suggestions
         const totalDuration = Date.now() - executionStartTime;
-        const footer = formatCompletionFooter(successCount, plan.subtasks.length, totalDuration);
+        const taskTypes = plan.subtasks.map(s => s.type);
+        const footer = formatCompletionFooter(successCount, plan.subtasks.length, totalDuration, taskTypes);
         controller.enqueue(encoder.encode(footer));
 
         controller.close();
@@ -312,7 +435,7 @@ export async function executeTaskPlan(
 // Formatting Helpers - Clean, Professional Output
 // ============================================================================
 
-function formatPlanHeader(plan: TaskPlan): string {
+function formatPlanHeader(plan: TaskPlan, autonomousMode?: boolean): string {
   const toolEmojis: Record<string, string> = {
     googleSearch: '🔍',
     codeExecution: '⚙️',
@@ -323,10 +446,15 @@ function formatPlanHeader(plan: TaskPlan): string {
     generation: '📝',
     creative: '✨',
     calculation: '🔢',
+    gitWorkflow: '🔧',
   };
 
+  const modeIndicator = autonomousMode
+    ? '## 🤖 Autonomous Mode - Working...\n\n*Running all steps automatically with self-correction.*\n\n'
+    : '';
+
   const lines = [
-    '## 📋 Task Plan',
+    modeIndicator + '## 📋 Task Plan',
     '',
     `> ${plan.summary}`,
     '',
@@ -347,14 +475,19 @@ function formatPlanHeader(plan: TaskPlan): string {
   return lines.join('\n');
 }
 
-function formatStepStart(step: SubTask, current: number, total: number): string {
+function formatStepStart(step: SubTask, current: number, total: number, autonomousMode?: boolean): string {
   const progressBar = createProgressBar(current - 1, total);
-  return `${progressBar} **Step ${current}/${total}:** ${step.description}\n\n`;
+  const modeHint = autonomousMode ? ' 🤖' : '';
+  return `${progressBar} **Step ${current}/${total}:**${modeHint} ${step.description}\n\n`;
 }
 
-function formatStepComplete(_step: SubTask, result: StepResult): string {
+function formatStepComplete(_step: SubTask, result: StepResult, wasRecovered?: boolean): string {
   const duration = formatDuration(result.durationMs);
-  const retryNote = result.retryCount > 0 ? ` *(${result.retryCount} retry)*` : '';
+  const retryNote = result.retryCount > 0
+    ? wasRecovered
+      ? ' *(auto-recovered)*'
+      : ` *(${result.retryCount} retry)*`
+    : '';
 
   // Smart preview - find a good break point
   let preview = result.output;
@@ -370,9 +503,12 @@ function formatStepComplete(_step: SubTask, result: StepResult): string {
   return `✅ **Complete** (${duration}${retryNote})\n> ${preview.replace(/\n/g, '\n> ')}\n\n`;
 }
 
-function formatStepError(_step: SubTask, result: StepResult): string {
+function formatStepError(_step: SubTask, result: StepResult, autonomousMode?: boolean): string {
   const duration = formatDuration(result.durationMs);
-  return `⚠️ **Issue encountered** (${duration}, ${result.retryCount + 1} attempts)\n> ${result.error}\n> *Continuing with available information...*\n\n`;
+  const continueNote = autonomousMode
+    ? '*Auto-recovering and continuing...*'
+    : '*Continuing with available information...*';
+  return `⚠️ **Issue encountered** (${duration}, ${result.retryCount + 1} attempts)\n> ${result.error}\n> ${continueNote}\n\n`;
 }
 
 function formatCheckpoint(
@@ -424,9 +560,90 @@ function formatSynthesisStart(successCount: number, totalCount: number): string 
   }
 }
 
-function formatCompletionFooter(successCount: number, totalCount: number, durationMs: number): string {
+function formatCompletionFooter(successCount: number, totalCount: number, durationMs: number, taskTypes?: string[]): string {
   const duration = formatDuration(durationMs);
-  return `\n\n---\n*✓ Task completed in ${duration} (${successCount}/${totalCount} steps successful)*`;
+  let footer = `\n\n---\n*✓ Task completed in ${duration} (${successCount}/${totalCount} steps successful)*`;
+
+  // Add proactive suggestions based on task types
+  if (successCount === totalCount && taskTypes && taskTypes.length > 0) {
+    const suggestions = getProactiveSuggestions(taskTypes);
+    if (suggestions.length > 0) {
+      footer += '\n\n**What else can I help with?**\n';
+      suggestions.forEach(s => {
+        footer += `- ${s}\n`;
+      });
+    }
+  }
+
+  return footer;
+}
+
+/**
+ * Get proactive suggestions based on completed task types
+ */
+function getProactiveSuggestions(taskTypes: string[]): string[] {
+  const suggestions: string[] = [];
+  const seen = new Set<string>();
+
+  for (const type of taskTypes) {
+    let typeSuggestions: string[] = [];
+
+    switch (type) {
+      case 'research':
+      case 'deep-research':
+        typeSuggestions = [
+          'Create a summary document or presentation',
+          'Dive deeper into a specific area',
+          'Compare this with alternative approaches',
+        ];
+        break;
+      case 'analysis':
+        typeSuggestions = [
+          'Generate a report with visualizations',
+          'Explore related data or trends',
+          'Create an action plan based on findings',
+        ];
+        break;
+      case 'generation':
+        typeSuggestions = [
+          'Refine or adjust the content',
+          'Create additional versions for different audiences',
+          'Export to a different format',
+        ];
+        break;
+      case 'code-review':
+        typeSuggestions = [
+          'Fix the issues I identified',
+          'Add tests for the code',
+          'Refactor for better performance',
+          'Create a PR with the improvements',
+        ];
+        break;
+      case 'creative':
+        typeSuggestions = [
+          'Explore alternative creative directions',
+          'Expand on a specific element',
+          'Create variations of this concept',
+        ];
+        break;
+      default:
+        typeSuggestions = [
+          'Refine or adjust this output',
+          'Create a related document',
+        ];
+    }
+
+    // Add unique suggestions
+    for (const s of typeSuggestions) {
+      if (!seen.has(s)) {
+        seen.add(s);
+        suggestions.push(s);
+      }
+    }
+  }
+
+  // Limit to top 3 suggestions
+  return suggestions.slice(0, 3);
 }
 
 function formatFatalError(errorMessage: string): string {
