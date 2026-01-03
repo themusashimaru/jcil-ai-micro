@@ -3,9 +3,15 @@
 -- 22 Flexible Categories to CRUSH Manus
 -- FORGE & MUSASHI - The Bash Brothers
 -- ============================================
+-- TEMPLATES 1-9: COMPLETE (in Supabase)
+-- TEMPLATES 10-22: READY TO PASTE
+-- ============================================
 
+-- ============================================
 -- TEMPLATE 1: HERO LANDING
 -- Works for: Product launches, promos, waitlists, app reveals, any single-page promo
+-- STATUS: COMPLETE IN SUPABASE
+-- ============================================
 INSERT INTO website_templates (
     name, slug, description, category, style, layout,
     color_scheme, features, sections, tags,
@@ -21,220 +27,15 @@ INSERT INTO website_templates (
     ARRAY['hero', 'features', 'social-proof', 'cta', 'responsive'],
     ARRAY['hero', 'features', 'testimonials', 'cta', 'footer'],
     ARRAY['landing', 'launch', 'product', 'waitlist', 'promo', 'startup', 'hero'],
-    '<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{business_name}} - {{tagline}}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        /* FORGE FLEX SYSTEM */
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
-        body {
-            font-family: ''Inter'', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-            color: #F8FAFC;
-            line-height: 1.6;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
-        h1, h2, h3, h4, p, a, span, li { overflow-wrap: break-word; word-wrap: break-word; }
-        img, video, iframe { max-width: 100%; height: auto; display: block; }
-        input, textarea, button { font-family: inherit; font-size: 16px; }
-
-        .bg-gradient {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background:
-                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 60%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
-            z-index: -1;
-        }
-
-        nav {
-            position: fixed; top: 0; left: 0; right: 0;
-            padding: 1.5rem 2rem;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 100;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .logo {
-            font-weight: 800; font-size: 1.5rem;
-            background: linear-gradient(135deg, #6366F1, #EC4899);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        nav a { color: #94A3B8; text-decoration: none; margin-left: 2rem; font-weight: 500; transition: color 0.3s; }
-        nav a:hover { color: #F8FAFC; }
-
-        .hero {
-            min-height: 100vh;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            text-align: center;
-            padding: 8rem 2rem 4rem;
-            max-width: 1000px; margin: 0 auto;
-        }
-        .badge {
-            display: inline-flex; align-items: center; gap: 0.5rem;
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            padding: 0.5rem 1rem; border-radius: 100px;
-            font-size: 0.875rem; color: #A5B4FC; margin-bottom: 2rem;
-        }
-        .badge::before { content: "✨"; }
-        .hero h1 {
-            font-size: clamp(2.5rem, 7vw, 5rem); font-weight: 900; line-height: 1.1; margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, #F8FAFC 0%, #94A3B8 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .hero .highlight {
-            background: linear-gradient(135deg, #6366F1, #EC4899);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .hero p { font-size: 1.25rem; color: #94A3B8; max-width: 600px; margin-bottom: 2.5rem; }
-
-        .cta-group { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
-        .btn {
-            display: inline-flex; align-items: center; gap: 0.5rem;
-            padding: 1rem 2rem; border-radius: 12px; font-weight: 600;
-            text-decoration: none; transition: all 0.3s ease; cursor: pointer; border: none;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white;
-            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
-        }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99, 102, 241, 0.5); }
-        .btn-secondary {
-            background: rgba(255,255,255,0.05); color: #F8FAFC;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
-
-        .social-proof { margin-top: 4rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-        .avatars { display: flex; }
-        .avatars .avatar {
-            width: 40px; height: 40px; border-radius: 50%; border: 2px solid #0F172A; margin-left: -10px;
-            background: linear-gradient(135deg, #6366F1, #EC4899);
-            display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600;
-        }
-        .avatars .avatar:first-child { margin-left: 0; }
-        .social-proof p { font-size: 0.875rem; color: #64748B; margin: 0; }
-        .social-proof strong { color: #F8FAFC; }
-
-        .features { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
-        .features-header { text-align: center; margin-bottom: 4rem; }
-        .features-header h2 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; }
-        .features-header p { color: #94A3B8; max-width: 600px; margin: 0 auto; }
-        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-        .feature-card {
-            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 20px; padding: 2rem; transition: all 0.3s ease;
-        }
-        .feature-card:hover {
-            background: rgba(255,255,255,0.05); border-color: rgba(99, 102, 241, 0.3);
-            transform: translateY(-4px);
-        }
-        .feature-icon {
-            width: 56px; height: 56px;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.2));
-            border-radius: 16px; display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; margin-bottom: 1.5rem;
-        }
-        .feature-card h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; }
-        .feature-card p { color: #94A3B8; font-size: 0.95rem; }
-
-        .cta-section { padding: 6rem 2rem; text-align: center; }
-        .cta-box {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.1));
-            border: 1px solid rgba(99, 102, 241, 0.2);
-            border-radius: 24px; padding: 4rem 2rem; max-width: 800px; margin: 0 auto;
-        }
-        .cta-box h2 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; }
-        .cta-box p { color: #94A3B8; margin-bottom: 2rem; font-size: 1.125rem; }
-
-        .email-form { display: flex; gap: 1rem; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
-        .email-form input {
-            flex: 1; min-width: 250px; padding: 1rem 1.5rem; border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #F8FAFC;
-        }
-        .email-form input::placeholder { color: #64748B; }
-        .email-form input:focus { outline: none; border-color: #6366F1; }
-
-        footer {
-            padding: 3rem 2rem; text-align: center;
-            border-top: 1px solid rgba(255,255,255,0.05); color: #64748B;
-        }
-        footer a { color: #94A3B8; text-decoration: none; }
-        footer a:hover { color: #F8FAFC; }
-
-        @media (max-width: 768px) {
-            nav { padding: 1rem; flex-direction: column; gap: 1rem; }
-            .hero { padding: 6rem 1.5rem 3rem; }
-            .hero h1 { font-size: 2.25rem; }
-            .features, .cta-section { padding: 4rem 1.5rem; }
-        }
-    </style>
-</head>
-<body>
-    <div class="bg-gradient"></div>
-    <nav>
-        <span class="logo">{{business_name}}</span>
-        <div>
-            <a href="#features">Features</a>
-            <a href="#cta" class="btn btn-primary" style="padding: 0.5rem 1.5rem; margin-left: 1rem;">Get Started</a>
-        </div>
-    </nav>
-    <section class="hero">
-        <div class="badge">{{badge_text}}</div>
-        <h1>{{headline}} <span class="highlight">{{headline_highlight}}</span></h1>
-        <p>{{description}}</p>
-        <div class="cta-group">
-            <a href="#cta" class="btn btn-primary">{{cta_primary}} →</a>
-            <a href="#features" class="btn btn-secondary">{{cta_secondary}}</a>
-        </div>
-        <div class="social-proof">
-            <div class="avatars">
-                <div class="avatar">JD</div><div class="avatar">MK</div><div class="avatar">AS</div><div class="avatar">RW</div><div class="avatar">+</div>
-            </div>
-            <p><strong>{{social_proof_number}}</strong> {{social_proof_text}}</p>
-        </div>
-    </section>
-    <section id="features" class="features">
-        <div class="features-header">
-            <h2>{{features_headline}}</h2>
-            <p>{{features_subheadline}}</p>
-        </div>
-        <div class="features-grid">
-            <div class="feature-card"><div class="feature-icon">⚡</div><h3>{{feature_1_title}}</h3><p>{{feature_1_description}}</p></div>
-            <div class="feature-card"><div class="feature-icon">🎯</div><h3>{{feature_2_title}}</h3><p>{{feature_2_description}}</p></div>
-            <div class="feature-card"><div class="feature-icon">🚀</div><h3>{{feature_3_title}}</h3><p>{{feature_3_description}}</p></div>
-        </div>
-    </section>
-    <section id="cta" class="cta-section">
-        <div class="cta-box">
-            <h2>{{cta_headline}}</h2>
-            <p>{{cta_description}}</p>
-            <form class="email-form" action="#" method="POST">
-                <input type="email" placeholder="Enter your email" required>
-                <button type="submit" class="btn btn-primary">{{cta_button}}</button>
-            </form>
-        </div>
-    </section>
-    <footer>
-        <p>&copy; 2024 {{business_name}}. All rights reserved.</p>
-        <p style="margin-top: 0.5rem;"><a href="mailto:{{email}}">{{email}}</a></p>
-    </footer>
-</body>
-</html>',
+    '<!-- FULL HTML IN SUPABASE -->',
     'Flexible hero landing for ANY product launch. AI fills: business_name, tagline, headline, features, CTAs.'
 ) ON CONFLICT (slug) DO NOTHING;
 
+-- ============================================
 -- TEMPLATE 2: ECOMMERCE FULL
 -- Works for: ANY online store - fashion, electronics, food, home goods, etc.
+-- STATUS: COMPLETE IN SUPABASE
+-- ============================================
 INSERT INTO website_templates (
     name, slug, description, category, style, layout,
     color_scheme, features, sections, tags,
@@ -250,8 +51,491 @@ INSERT INTO website_templates (
     ARRAY['products', 'categories', 'cart', 'search', 'responsive', 'filters'],
     ARRAY['header', 'hero', 'categories', 'products', 'features', 'newsletter', 'footer'],
     ARRAY['ecommerce', 'shop', 'store', 'products', 'retail', 'buy', 'cart'],
-    '<!-- ECOMMERCE FULL TEMPLATE - See full HTML in Supabase -->',
+    '<!-- FULL HTML IN SUPABASE -->',
     'Works for ANY online store. AI fills: business_name, products, categories, prices.'
 ) ON CONFLICT (slug) DO NOTHING;
 
--- MORE TEMPLATES WILL BE ADDED BELOW AS WE BUILD THEM
+-- ============================================
+-- TEMPLATE 3: SAAS PRODUCT
+-- Works for: Software products, apps, platforms, tools, dashboards
+-- STATUS: COMPLETE IN SUPABASE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'SaaS Launch',
+    'saas-launch-product',
+    'Modern SaaS product page with features, pricing tiers, testimonials, and signup flow',
+    'saas-product',
+    'modern',
+    'hero-focused',
+    '{"primary": "#3B82F6", "secondary": "#10B981", "accent": "#8B5CF6", "background": "#FFFFFF", "text": "#1E293B"}',
+    ARRAY['hero', 'features', 'pricing', 'testimonials', 'cta', 'responsive'],
+    ARRAY['header', 'hero', 'features', 'pricing', 'testimonials', 'cta', 'footer'],
+    ARRAY['saas', 'software', 'app', 'platform', 'startup', 'product', 'pricing'],
+    '<!-- FULL HTML IN SUPABASE -->',
+    'For ANY software/app product. AI fills: business_name, features, pricing tiers, testimonials.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 4: LOCAL BUSINESS
+-- Works for: Restaurants, salons, gyms, auto shops, dental, any local service
+-- STATUS: COMPLETE IN SUPABASE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Local Pro',
+    'local-pro-business',
+    'Professional local business template with services, hours, location map, and contact form',
+    'local-business',
+    'professional',
+    'multi-section',
+    '{"primary": "#1E40AF", "secondary": "#F59E0B", "accent": "#10B981", "background": "#FFFFFF", "text": "#1F2937"}',
+    ARRAY['services', 'hours', 'map', 'contact', 'testimonials', 'responsive'],
+    ARRAY['header', 'hero', 'services', 'about', 'hours', 'testimonials', 'contact', 'footer'],
+    ARRAY['local', 'business', 'restaurant', 'salon', 'gym', 'service', 'location'],
+    '<!-- FULL HTML IN SUPABASE -->',
+    'For ANY local business. AI fills: business_name, services, hours, location, contact info.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 5: PORTFOLIO CREATIVE
+-- Works for: Artists, designers, photographers, creatives, agencies
+-- STATUS: COMPLETE IN SUPABASE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Creative Folio',
+    'creative-folio-portfolio',
+    'Stunning creative portfolio with project showcase, about section, and contact',
+    'portfolio-creative',
+    'creative',
+    'grid-based',
+    '{"primary": "#000000", "secondary": "#FFFFFF", "accent": "#FF3366", "background": "#0A0A0A", "text": "#FFFFFF"}',
+    ARRAY['portfolio', 'gallery', 'projects', 'about', 'contact', 'responsive'],
+    ARRAY['header', 'hero', 'portfolio', 'about', 'services', 'contact', 'footer'],
+    ARRAY['portfolio', 'creative', 'designer', 'artist', 'photographer', 'agency'],
+    '<!-- FULL HTML IN SUPABASE -->',
+    'For ANY creative professional. AI fills: name, projects, skills, about, contact.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 6: AGENCY
+-- Works for: Marketing agencies, dev shops, consulting firms, creative studios
+-- STATUS: COMPLETE IN SUPABASE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Agency Pro',
+    'agency-pro-studio',
+    'Professional agency template with services, case studies, team, and contact',
+    'agency',
+    'professional',
+    'multi-section',
+    '{"primary": "#0F172A", "secondary": "#3B82F6", "accent": "#F59E0B", "background": "#FFFFFF", "text": "#1E293B"}',
+    ARRAY['services', 'case-studies', 'team', 'clients', 'contact', 'responsive'],
+    ARRAY['header', 'hero', 'services', 'work', 'about', 'team', 'contact', 'footer'],
+    ARRAY['agency', 'studio', 'marketing', 'consulting', 'development', 'creative'],
+    '<!-- FULL HTML IN SUPABASE -->',
+    'For ANY agency/studio. AI fills: agency_name, services, case studies, team members.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 7: PROFESSIONAL SERVICES
+-- Works for: Lawyers, accountants, consultants, coaches, therapists
+-- STATUS: COMPLETE IN SUPABASE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Professional Edge',
+    'professional-edge-services',
+    'Elegant professional services template with expertise, testimonials, and booking',
+    'professional-services',
+    'elegant',
+    'multi-section',
+    '{"primary": "#1E3A5F", "secondary": "#C5A572", "accent": "#2E7D32", "background": "#FAFAFA", "text": "#1A1A1A"}',
+    ARRAY['services', 'expertise', 'testimonials', 'booking', 'credentials', 'responsive'],
+    ARRAY['header', 'hero', 'services', 'about', 'credentials', 'testimonials', 'booking', 'footer'],
+    ARRAY['professional', 'lawyer', 'accountant', 'consultant', 'coach', 'therapist'],
+    '<!-- FULL HTML IN SUPABASE -->',
+    'For ANY professional. AI fills: name, services, credentials, testimonials, booking info.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 8: ECOMMERCE MINIMAL
+-- Works for: Boutique shops, artisan products, small catalogs, curated collections
+-- STATUS: COMPLETE IN SUPABASE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Minimal Shop',
+    'minimal-shop-ecommerce',
+    'Clean, minimal e-commerce template for boutique and curated product collections',
+    'ecommerce-minimal',
+    'minimal',
+    'grid-based',
+    '{"primary": "#1A1A1A", "secondary": "#F5F5F5", "accent": "#000000", "background": "#FFFFFF", "text": "#1A1A1A"}',
+    ARRAY['products', 'cart', 'minimal-design', 'responsive'],
+    ARRAY['header', 'hero', 'products', 'about', 'footer'],
+    ARRAY['shop', 'boutique', 'minimal', 'artisan', 'curated', 'clean'],
+    '<!-- FULL HTML IN SUPABASE -->',
+    'Clean minimal shop for boutiques, artisans, curated collections. AI fills: business_name, products, prices, about story.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 9: AI/TECH
+-- Works for: AI startups, tech companies, SaaS, developer tools, APIs, ML platforms
+-- STATUS: COMPLETE IN SUPABASE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Neural Tech',
+    'neural-tech-ai',
+    'Futuristic AI/tech template with animated gradients, code aesthetics, and modern tech feel',
+    'ai-tech',
+    'modern',
+    'hero-focused',
+    '{"primary": "#00D4FF", "secondary": "#7C3AED", "accent": "#10B981", "background": "#030712", "text": "#F9FAFB"}',
+    ARRAY['hero', 'features', 'code-display', 'pricing', 'responsive'],
+    ARRAY['header', 'hero', 'features', 'how-it-works', 'pricing', 'cta', 'footer'],
+    ARRAY['ai', 'tech', 'startup', 'api', 'developer', 'ml', 'saas', 'futuristic'],
+    '<!-- FULL HTML IN SUPABASE -->',
+    'Futuristic AI/tech template for startups, APIs, ML platforms. AI fills: business_name, features, code examples, pricing.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 10: RESTAURANT/FOOD
+-- Works for: Restaurants, cafes, bakeries, food trucks, bars, catering, pizzerias
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Flavor House',
+    'flavor-house-restaurant',
+    'Appetizing restaurant template with menu, reservations, gallery, and location',
+    'restaurant-food',
+    'warm',
+    'multi-section',
+    '{"primary": "#B91C1C", "secondary": "#FEF3C7", "accent": "#166534", "background": "#FFFBEB", "text": "#1C1917"}',
+    ARRAY['menu', 'reservations', 'gallery', 'hours', 'location', 'responsive'],
+    ARRAY['header', 'hero', 'about', 'menu', 'gallery', 'reservations', 'location', 'footer'],
+    ARRAY['restaurant', 'cafe', 'bakery', 'food', 'dining', 'menu', 'reservations'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY food business. AI fills: restaurant_name, menu items, prices, hours, location, reservation info.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 11: HEALTH/WELLNESS
+-- Works for: Gyms, yoga studios, spas, wellness centers, fitness trainers, meditation
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Vitality Hub',
+    'vitality-hub-wellness',
+    'Energizing health and wellness template with classes, trainers, membership, and booking',
+    'health-wellness',
+    'fresh',
+    'multi-section',
+    '{"primary": "#059669", "secondary": "#ECFDF5", "accent": "#7C3AED", "background": "#FFFFFF", "text": "#1F2937"}',
+    ARRAY['classes', 'trainers', 'membership', 'booking', 'testimonials', 'responsive'],
+    ARRAY['header', 'hero', 'about', 'classes', 'trainers', 'membership', 'testimonials', 'booking', 'footer'],
+    ARRAY['gym', 'fitness', 'yoga', 'spa', 'wellness', 'health', 'trainer'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY wellness business. AI fills: business_name, classes, trainers, membership tiers, booking.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 12: PORTFOLIO MINIMAL
+-- Works for: Developers, designers, writers, minimal personal portfolios
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Clean Folio',
+    'clean-folio-minimal',
+    'Ultra-minimal portfolio with clean typography, project list, and simple contact',
+    'portfolio-minimal',
+    'minimal',
+    'single-column',
+    '{"primary": "#171717", "secondary": "#FAFAFA", "accent": "#3B82F6", "background": "#FFFFFF", "text": "#171717"}',
+    ARRAY['projects', 'about', 'contact', 'minimal', 'responsive'],
+    ARRAY['header', 'hero', 'projects', 'about', 'contact', 'footer'],
+    ARRAY['portfolio', 'developer', 'designer', 'minimal', 'clean', 'simple'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'Ultra-minimal portfolio. AI fills: name, title, projects, skills, contact, social links.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 13: BLOG/MAGAZINE
+-- Works for: Blogs, news sites, online magazines, content creators, publications
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Ink Press',
+    'ink-press-blog',
+    'Editorial blog/magazine template with featured posts, categories, and newsletter',
+    'blog-magazine',
+    'editorial',
+    'grid-based',
+    '{"primary": "#0F172A", "secondary": "#F1F5F9", "accent": "#DC2626", "background": "#FFFFFF", "text": "#1E293B"}',
+    ARRAY['posts', 'categories', 'featured', 'newsletter', 'search', 'responsive'],
+    ARRAY['header', 'featured', 'posts', 'categories', 'newsletter', 'footer'],
+    ARRAY['blog', 'magazine', 'news', 'publication', 'content', 'articles'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY blog/publication. AI fills: site_name, featured posts, categories, newsletter CTA.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 14: PERSONAL BRAND
+-- Works for: Influencers, speakers, thought leaders, authors, coaches
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Personal Pro',
+    'personal-pro-brand',
+    'Bold personal brand template with bio, offerings, media features, and booking',
+    'personal-brand',
+    'bold',
+    'hero-focused',
+    '{"primary": "#7C3AED", "secondary": "#FDE68A", "accent": "#EC4899", "background": "#0F0F0F", "text": "#FFFFFF"}',
+    ARRAY['bio', 'offerings', 'media', 'testimonials', 'booking', 'responsive'],
+    ARRAY['header', 'hero', 'about', 'offerings', 'media', 'testimonials', 'booking', 'footer'],
+    ARRAY['personal', 'influencer', 'speaker', 'author', 'coach', 'brand'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY personal brand. AI fills: name, bio, offerings, media features, testimonials, booking.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 15: EVENT/CONFERENCE
+-- Works for: Conferences, meetups, webinars, workshops, summits, festivals
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Summit Stage',
+    'summit-stage-event',
+    'Dynamic event template with schedule, speakers, tickets, and sponsors',
+    'event-conference',
+    'dynamic',
+    'multi-section',
+    '{"primary": "#4F46E5", "secondary": "#FCD34D", "accent": "#10B981", "background": "#030712", "text": "#F9FAFB"}',
+    ARRAY['schedule', 'speakers', 'tickets', 'sponsors', 'venue', 'responsive'],
+    ARRAY['header', 'hero', 'about', 'speakers', 'schedule', 'tickets', 'sponsors', 'venue', 'footer'],
+    ARRAY['event', 'conference', 'summit', 'meetup', 'webinar', 'workshop'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY event. AI fills: event_name, date, speakers, schedule, ticket tiers, sponsors, venue.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 16: WEDDING/CELEBRATION
+-- Works for: Weddings, engagements, anniversaries, birthdays, celebrations
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Forever Yours',
+    'forever-yours-wedding',
+    'Elegant wedding/celebration template with story, details, RSVP, and gallery',
+    'wedding-celebration',
+    'elegant',
+    'single-column',
+    '{"primary": "#BE185D", "secondary": "#FDF2F8", "accent": "#A16207", "background": "#FFFBEB", "text": "#1C1917"}',
+    ARRAY['story', 'details', 'rsvp', 'gallery', 'registry', 'responsive'],
+    ARRAY['header', 'hero', 'story', 'details', 'gallery', 'rsvp', 'registry', 'footer'],
+    ARRAY['wedding', 'celebration', 'engagement', 'party', 'anniversary', 'event'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY celebration. AI fills: couple_names, date, venue, story, event details, RSVP, registry.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 17: REAL ESTATE
+-- Works for: Property listings, real estate agents, brokers, property management
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Prime Property',
+    'prime-property-realestate',
+    'Professional real estate template with listings, agent bio, and contact',
+    'real-estate',
+    'professional',
+    'grid-based',
+    '{"primary": "#1E3A5F", "secondary": "#F0FDF4", "accent": "#B45309", "background": "#FFFFFF", "text": "#1F2937"}',
+    ARRAY['listings', 'search', 'agent-bio', 'testimonials', 'contact', 'responsive'],
+    ARRAY['header', 'hero', 'featured-listings', 'search', 'about', 'testimonials', 'contact', 'footer'],
+    ARRAY['realestate', 'property', 'listings', 'agent', 'broker', 'homes'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY real estate. AI fills: agent_name, listings, property details, testimonials, contact.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 18: EDUCATION/COURSE
+-- Works for: Online courses, tutorials, coaching, e-learning, bootcamps
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Learn Pro',
+    'learn-pro-education',
+    'Engaging education template with curriculum, instructor, pricing, and enrollment',
+    'education-course',
+    'friendly',
+    'multi-section',
+    '{"primary": "#2563EB", "secondary": "#FEF3C7", "accent": "#16A34A", "background": "#FFFFFF", "text": "#1E293B"}',
+    ARRAY['curriculum', 'instructor', 'pricing', 'testimonials', 'enrollment', 'responsive'],
+    ARRAY['header', 'hero', 'benefits', 'curriculum', 'instructor', 'pricing', 'testimonials', 'faq', 'footer'],
+    ARRAY['education', 'course', 'learning', 'tutorial', 'bootcamp', 'coaching'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY course/education. AI fills: course_name, curriculum, instructor, pricing, testimonials.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 19: NONPROFIT/CHARITY
+-- Works for: Nonprofits, charities, causes, foundations, NGOs, social impact
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Impact Heart',
+    'impact-heart-nonprofit',
+    'Inspiring nonprofit template with mission, impact stats, programs, and donations',
+    'nonprofit-charity',
+    'inspiring',
+    'multi-section',
+    '{"primary": "#0891B2", "secondary": "#ECFEFF", "accent": "#EA580C", "background": "#FFFFFF", "text": "#1E293B"}',
+    ARRAY['mission', 'impact', 'programs', 'donate', 'volunteer', 'responsive'],
+    ARRAY['header', 'hero', 'mission', 'impact', 'programs', 'stories', 'donate', 'volunteer', 'footer'],
+    ARRAY['nonprofit', 'charity', 'cause', 'foundation', 'ngo', 'donate'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY nonprofit. AI fills: org_name, mission, impact stats, programs, donation tiers.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 20: COMING SOON
+-- Works for: Product launches, waitlists, pre-launch, teasers, countdowns
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Launch Hype',
+    'launch-hype-coming',
+    'High-impact coming soon page with countdown, email capture, and social links',
+    'coming-soon',
+    'dramatic',
+    'hero-focused',
+    '{"primary": "#F59E0B", "secondary": "#1E1B4B", "accent": "#EC4899", "background": "#0F0F0F", "text": "#FFFFFF"}',
+    ARRAY['countdown', 'email-capture', 'social', 'teaser', 'responsive'],
+    ARRAY['hero', 'countdown', 'email', 'social', 'footer'],
+    ARRAY['coming-soon', 'launch', 'waitlist', 'teaser', 'countdown', 'pre-launch'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY launch. AI fills: product_name, launch_date, teaser text, email capture, social links.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 21: APP DOWNLOAD
+-- Works for: Mobile apps, iOS/Android apps, app landing pages
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'App Showcase',
+    'app-showcase-download',
+    'Sleek app landing page with features, screenshots, reviews, and download buttons',
+    'app-download',
+    'sleek',
+    'hero-focused',
+    '{"primary": "#6366F1", "secondary": "#F0F9FF", "accent": "#10B981", "background": "#FFFFFF", "text": "#1E293B"}',
+    ARRAY['features', 'screenshots', 'reviews', 'download-buttons', 'responsive'],
+    ARRAY['header', 'hero', 'features', 'screenshots', 'reviews', 'download', 'footer'],
+    ARRAY['app', 'mobile', 'ios', 'android', 'download', 'showcase'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY app. AI fills: app_name, features, screenshots, reviews, app store links.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- TEMPLATE 22: MEMBERSHIP/COMMUNITY
+-- Works for: Membership sites, communities, clubs, subscriptions, fan clubs
+-- STATUS: READY TO PASTE
+-- ============================================
+INSERT INTO website_templates (
+    name, slug, description, category, style, layout,
+    color_scheme, features, sections, tags,
+    html_template, customization_hints
+) VALUES (
+    'Inner Circle',
+    'inner-circle-membership',
+    'Exclusive membership template with tiers, benefits, community highlights, and signup',
+    'membership-community',
+    'exclusive',
+    'multi-section',
+    '{"primary": "#7C3AED", "secondary": "#FDF4FF", "accent": "#F59E0B", "background": "#0F0F0F", "text": "#FFFFFF"}',
+    ARRAY['tiers', 'benefits', 'community', 'testimonials', 'signup', 'responsive'],
+    ARRAY['header', 'hero', 'benefits', 'tiers', 'community', 'testimonials', 'faq', 'signup', 'footer'],
+    ARRAY['membership', 'community', 'subscription', 'club', 'exclusive', 'members'],
+    '<!-- PASTE FULL HTML HERE -->',
+    'For ANY membership. AI fills: community_name, membership tiers, benefits, testimonials.'
+) ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- FORGE MEGA TEMPLATE SYSTEM v2.0 - COMPLETE
+-- 22 Flexible Categories Ready
+-- ============================================
