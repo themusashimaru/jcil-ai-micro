@@ -28,9 +28,18 @@ INSERT INTO website_templates (
     <title>{{business_name}} - Fine Dining Experience</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: ''Lato'', sans-serif; background: #FEFAE0; color: #283618; }
+        /* FORGE FLEX SYSTEM - Dynamic content handling */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+        body { font-family: ''Lato'', sans-serif; background: #FEFAE0; color: #283618; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
         h1, h2, h3 { font-family: ''Playfair Display'', serif; }
+
+        /* Overflow & text handling */
+        h1, h2, h3, h4, p, span, a, li { overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; hyphens: auto; }
+        img, video, iframe { max-width: 100%; height: auto; display: block; }
+        input, textarea, select, button { max-width: 100%; font-size: 16px; }
+        .btn, button { max-width: 100%; white-space: normal; text-align: center; }
+        section, article, div { min-height: 0; overflow: visible; max-width: 100vw; }
 
         /* Hero Section */
         .hero {
@@ -226,8 +235,17 @@ INSERT INTO website_templates (
     <title>{{business_name}} - {{tagline}}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: ''Inter'', sans-serif; background: #0F172A; color: #F8FAFC; line-height: 1.6; }
+        /* FORGE FLEX SYSTEM - Dynamic content handling */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+        body { font-family: ''Inter'', sans-serif; background: #0F172A; color: #F8FAFC; line-height: 1.6; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+
+        /* Overflow & text handling */
+        h1, h2, h3, h4, p, span, a, li { overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; hyphens: auto; }
+        img, video, iframe { max-width: 100%; height: auto; display: block; }
+        input, textarea, select, button { max-width: 100%; font-size: 16px; }
+        .btn, button { max-width: 100%; white-space: normal; text-align: center; }
+        section, article, div { min-height: 0; overflow: visible; max-width: 100vw; }
 
         /* Gradient Text */
         .gradient-text {
@@ -537,9 +555,18 @@ INSERT INTO website_templates (
     <title>{{business_name}} - Premium Auto Detailing</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: ''Inter'', sans-serif; background: #111827; color: #F9FAFB; }
+        /* FORGE FLEX SYSTEM - Dynamic content handling */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+        body { font-family: ''Inter'', sans-serif; background: #111827; color: #F9FAFB; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
         h1, h2, h3 { font-family: ''Bebas Neue'', sans-serif; letter-spacing: 2px; }
+
+        /* Overflow & text handling */
+        h1, h2, h3, h4, p, span, a, li { overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; hyphens: auto; }
+        img, video, iframe { max-width: 100%; height: auto; display: block; }
+        input, textarea, select, button { max-width: 100%; font-size: 16px; }
+        .btn, button { max-width: 100%; white-space: normal; text-align: center; }
+        section, article, div { min-height: 0; overflow: visible; max-width: 100vw; }
 
         nav {
             position: fixed;
@@ -719,9 +746,18 @@ INSERT INTO website_templates (
     <title>{{business_name}} - Developer Portfolio</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: ''Inter'', sans-serif; background: #0A0A0A; color: #FAFAFA; }
+        /* FORGE FLEX SYSTEM - Dynamic content handling */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+        body { font-family: ''Inter'', sans-serif; background: #0A0A0A; color: #FAFAFA; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
         code, .mono { font-family: ''JetBrains Mono'', monospace; }
+
+        /* Overflow & text handling */
+        h1, h2, h3, h4, p, span, a, li { overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; hyphens: auto; }
+        img, video, iframe { max-width: 100%; height: auto; display: block; }
+        input, textarea, select, button { max-width: 100%; font-size: 16px; }
+        .btn, button { max-width: 100%; white-space: normal; text-align: center; }
+        section, article, div { min-height: 0; overflow: visible; max-width: 100vw; }
 
         .gradient-text {
             background: linear-gradient(135deg, #10B981, #3B82F6);
