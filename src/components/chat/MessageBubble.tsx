@@ -16,7 +16,7 @@
 
 'use client';
 
-import { useState, useCallback, lazy, Suspense } from 'react';
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -40,6 +40,12 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
   const [copied, setCopied] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [inlineExpanded, setInlineExpanded] = useState(true); // Auto-expand inline preview
+  const [previewLoaded, setPreviewLoaded] = useState(false); // Track iframe load state
+
+  // Reset preview loaded state when code changes
+  useEffect(() => {
+    setPreviewLoaded(false);
+  }, [code]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -103,13 +109,15 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
               onClick={openPreview}
               style={{ minHeight: '300px' }}
             >
-              {/* Loading state background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <span className="text-xs text-gray-400">Loading preview...</span>
+              {/* Loading state background - only show before iframe loads */}
+              {!previewLoaded && (
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center z-0">
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    <span className="text-xs text-gray-400">Loading preview...</span>
+                  </div>
                 </div>
-              </div>
+              )}
               {/* Inline iframe preview */}
               <iframe
                 srcDoc={code}
@@ -117,6 +125,7 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
                 title={`${title || 'Preview'} - Inline`}
                 sandbox="allow-scripts allow-same-origin"
                 style={{ backgroundColor: 'white' }}
+                onLoad={() => setPreviewLoaded(true)}
               />
               {/* Hover overlay */}
               <div className="absolute inset-0 z-20 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
