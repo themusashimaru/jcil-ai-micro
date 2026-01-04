@@ -2028,10 +2028,12 @@ export function isWebsiteDiscoveryResponse(text: string): {
   // Check for "fill in the blanks" / "make it up" patterns
   // These indicate the user wants AI to generate all the details
   const autoGeneratePatterns = [
-    /\b(make\s*up|make\s*it\s*up|you\s*(decide|choose|pick)|fill\s*in|create\s*everything)\b/i,
+    /\b(make\s*(?:it|them|everything|all|stuff)?\s*up|you\s*(decide|choose|pick)|fill\s*in|create\s*everything)\b/i,
     /\b(anything|whatever|surprise\s*me|dealer'?s?\s*choice)\b/i,
-    /\b(generate|come\s*up\s*with|invent|fabricate)\s*(all|everything|the\s*details?)\b/i,
-    /\b(don'?t\s*care|up\s*to\s*you|your\s*choice)\b/i,
+    /\b(generate|come\s*up\s*with|invent|fabricate)\s*(all|everything|the\s*details?|it)?\b/i,
+    /\b(don'?t\s*care|up\s*to\s*you|your\s*choice|you\s*pick|random)\b/i,
+    /\b(just\s*make|just\s*create|just\s*generate)\s*(it|them|something|one)?\s*(up)?\b/i,
+    /\b(all\s*up|them\s*all\s*up|everything\s*up)\b/i,
   ];
 
   const isAutoGenerate = autoGeneratePatterns.some(p => p.test(lowerText));
