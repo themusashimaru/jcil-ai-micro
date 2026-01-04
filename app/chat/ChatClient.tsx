@@ -21,7 +21,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 // Voice Chat imports - Hidden until feature is production-ready
 // import { useCallback } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
@@ -125,6 +125,8 @@ export function ChatClient() {
   const [isStreaming, setIsStreaming] = useState(false);
   // Waiting for background reply (shown when user returns to tab and answer is pending)
   const [isWaitingForReply, setIsWaitingForReply] = useState(false);
+  // Intelligent status message during generation
+  const [statusMessage, setStatusMessage] = useState<string>('');
   // Start with sidebar collapsed on mobile, open on desktop
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -155,6 +157,104 @@ export function ChatClient() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // Track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
+
+  // Generate intelligent status messages based on user input
+  const getIntelligentStatus = useCallback((userMessage: string): string[] => {
+    const msg = userMessage.toLowerCase();
+
+    // Website generation
+    if (msg.match(/website|landing\s*page|web\s*page|site\s+for/i)) {
+      const businessMatch = userMessage.match(/(?:for|called|named)\s+["']?([^"'\n,]+)/i);
+      const business = businessMatch ? businessMatch[1].trim() : 'your business';
+      const industry = msg.match(/photography|photo/i) ? 'photography'
+        : msg.match(/restaurant|food|cafe/i) ? 'restaurant'
+        : msg.match(/fitness|gym|training/i) ? 'fitness'
+        : msg.match(/salon|beauty|spa/i) ? 'beauty'
+        : msg.match(/dental|dentist/i) ? 'dental'
+        : msg.match(/law|attorney|legal/i) ? 'legal'
+        : 'business';
+      return [
+        `Analyzing your ${industry} business needs...`,
+        `Researching ${industry} industry trends...`,
+        `Generating custom logo for ${business}...`,
+        `Creating hero images...`,
+        `Building responsive layouts...`,
+        `Adding contact forms and CTAs...`,
+        `Optimizing for conversions...`,
+        `Polishing the final design...`
+      ];
+    }
+
+    // Image generation
+    if (msg.match(/generate|create|make|draw|design/i) && msg.match(/image|picture|photo|illustration|art/i)) {
+      return [
+        'Interpreting your creative vision...',
+        'Selecting artistic style...',
+        'Composing the scene...',
+        'Rendering high-resolution image...',
+        'Adding final details...'
+      ];
+    }
+
+    // Code/programming
+    if (msg.match(/code|function|script|program|build|implement|create.*component/i)) {
+      return [
+        'Analyzing requirements...',
+        'Designing architecture...',
+        'Writing clean code...',
+        'Adding error handling...',
+        'Testing functionality...'
+      ];
+    }
+
+    // Document/file analysis
+    if (msg.match(/document|pdf|file|analyze|read|summarize/i)) {
+      return [
+        'Reading document contents...',
+        'Extracting key information...',
+        'Analyzing structure...',
+        'Generating insights...'
+      ];
+    }
+
+    // Research/search
+    if (msg.match(/search|find|look\s*up|research|what\s+is|how\s+to/i)) {
+      return [
+        'Searching for information...',
+        'Analyzing sources...',
+        'Compiling results...',
+        'Preparing response...'
+      ];
+    }
+
+    // Default
+    return [
+      'Processing your request...',
+      'Thinking...',
+      'Generating response...'
+    ];
+  }, []);
+
+  // Cycle through status messages during generation
+  const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startStatusCycle = useCallback((userMessage: string) => {
+    const statuses = getIntelligentStatus(userMessage);
+    let index = 0;
+    setStatusMessage(statuses[0]);
+
+    statusIntervalRef.current = setInterval(() => {
+      index = (index + 1) % statuses.length;
+      setStatusMessage(statuses[index]);
+    }, 2500); // Change every 2.5 seconds
+  }, [getIntelligentStatus]);
+
+  const stopStatusCycle = useCallback(() => {
+    if (statusIntervalRef.current) {
+      clearInterval(statusIntervalRef.current);
+      statusIntervalRef.current = null;
+    }
+    setStatusMessage('');
+  }, []);
 
   /* Voice Chat - Hidden until feature is production-ready
   // Track current streaming assistant message ID for voice
@@ -853,6 +953,7 @@ export function ChatClient() {
       abortControllerRef.current = null;
     }
     setIsStreaming(false);
+    stopStatusCycle(); // Stop intelligent status messages
   };
 
   /**
@@ -1021,6 +1122,7 @@ export function ChatClient() {
 
     setMessages([...messages, userMessage]);
     setIsStreaming(true);
+    startStatusCycle(content); // Start intelligent status messages
 
     // Detect if this is a document generation request for UI feedback
     const detectedDocType = detectDocumentTypeFromMessage(content);
@@ -1891,6 +1993,7 @@ export function ChatClient() {
       }
 
       setIsStreaming(false);
+      stopStatusCycle(); // Stop intelligent status messages
       setPendingDocumentType(null); // Clear document type indicator
       // Clear the abort controller after successful completion
       abortControllerRef.current = null;
@@ -2040,6 +2143,7 @@ export function ChatClient() {
 
       setMessages((prev) => [...prev, errorMessage]);
       setIsStreaming(false);
+      stopStatusCycle(); // Stop intelligent status messages on error
       setPendingDocumentType(null);
       // Clean up abort controller to prevent memory leaks
       abortControllerRef.current = null;
@@ -2179,15 +2283,15 @@ export function ChatClient() {
                 onReply={(message) => setReplyingTo(message)}
                 enableCodeActions
               />
-              {/* Reply incoming indicator - shown when waiting for background response */}
-              {isWaitingForReply && (
-                <div className="flex items-center gap-2 px-4 py-3 bg-blue-500/10 border-t border-blue-500/20">
+              {/* Intelligent status indicator - shown during generation */}
+              {(isStreaming || isWaitingForReply) && statusMessage && (
+                <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border-t border-violet-500/20">
                   <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-2 h-2 bg-violet-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                   </div>
-                  <span className="text-sm text-blue-400">Reply incoming...</span>
+                  <span className="text-sm text-violet-300 font-medium animate-pulse">{statusMessage}</span>
                 </div>
               )}
               {/* Live To-Do List - extracted from AI responses */}
