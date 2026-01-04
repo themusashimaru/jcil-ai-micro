@@ -42,6 +42,13 @@ export interface WebsiteAssets {
   teamAvatars: string[];   // Team member photos/avatars
 }
 
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  section?: string; // Which section was being discussed
+}
+
 export interface WebsiteSession {
   id: string;
   userId: string;
@@ -56,6 +63,10 @@ export interface WebsiteSession {
   status: 'generating' | 'ready' | 'iterating' | 'deployed';
   githubRepo?: string;
   vercelUrl?: string;
+  // Stored business model for smart editing
+  businessModel?: BusinessModel;
+  // Conversation history for context-aware edits
+  conversationHistory?: ConversationMessage[];
 }
 
 export interface WebsiteIteration {
@@ -193,6 +204,13 @@ export async function createWebsiteSession(
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     status: 'generating',
+    conversationHistory: [
+      {
+        role: 'user',
+        content: context.userPrompt,
+        timestamp: new Date().toISOString(),
+      },
+    ],
   };
 
   try {
@@ -208,6 +226,7 @@ export async function createWebsiteSession(
       status: session.status,
       created_at: session.createdAt,
       updated_at: session.updatedAt,
+      conversation_history: session.conversationHistory,
     });
   } catch {
     console.log('[WebsitePipeline] Session table may not exist, using in-memory session');
@@ -238,6 +257,8 @@ export async function updateWebsiteSession(session: WebsiteSession): Promise<voi
       vercel_url: session.vercelUrl,
       created_at: session.createdAt,
       updated_at: session.updatedAt,
+      business_model: session.businessModel,
+      conversation_history: session.conversationHistory,
     });
   } catch {
     console.log('[WebsitePipeline] Could not persist session update');
@@ -259,6 +280,8 @@ function mapSessionFromDb(data: Record<string, unknown>): WebsiteSession {
     status: data.status as WebsiteSession['status'],
     githubRepo: data.github_repo as string | undefined,
     vercelUrl: data.vercel_url as string | undefined,
+    businessModel: data.business_model as BusinessModel | undefined,
+    conversationHistory: data.conversation_history as ConversationMessage[] | undefined,
   };
 }
 
@@ -1129,6 +1152,7 @@ OUTPUT: Raw HTML only. No markdown. No code blocks. Complete document.`;
         if (svc.duration) section += `  Duration: ${svc.duration}\n`;
         section += `  Features: ${svc.features.join(', ')}\n`;
         if (svc.icon) section += `  Icon suggestion: ${svc.icon}\n`;
+        if (svc.image) section += `  Image URL: ${svc.image}\n`;
       });
     }
 
@@ -1300,7 +1324,7 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
     .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
     .service-card { background: #f8fafc; border-radius: 16px; padding: 2rem; text-align: center; transition: transform 0.3s, box-shadow 0.3s; }
     .service-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-    .service-card .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .service-card .icon { margin-bottom: 1rem; display: flex; justify-content: center; }
     .service-card h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
     .service-card p { color: #666; }
 
@@ -1392,17 +1416,29 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
       <h2>Our Services</h2>
       <div class="services-grid">
         <div class="service-card">
-          <div class="icon">⚡</div>
+          <div class="icon">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:48px;height:48px;color:#8b5cf6;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
           <h3>Premium Service</h3>
           <p>Experience top-tier ${industry} solutions tailored to your unique needs.</p>
         </div>
         <div class="service-card">
-          <div class="icon">🎯</div>
+          <div class="icon">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:48px;height:48px;color:#8b5cf6;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
           <h3>Expert Consultation</h3>
           <p>Get personalized advice from our team of industry experts.</p>
         </div>
         <div class="service-card">
-          <div class="icon">🚀</div>
+          <div class="icon">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:48px;height:48px;color:#8b5cf6;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+          </div>
           <h3>Fast Delivery</h3>
           <p>We pride ourselves on quick turnaround without compromising quality.</p>
         </div>
@@ -1422,7 +1458,7 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
       <div class="about-image">
         ${assets.sectionImages.about
           ? `<img src="${assets.sectionImages.about}" alt="About ${businessName}">`
-          : `<div style="height: 300px; background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">📸</div>`}
+          : `<img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&h=400&fit=crop" alt="Our team at work" style="width:100%;height:auto;border-radius:16px;">`}
       </div>
     </div>
   </section>
@@ -1644,12 +1680,13 @@ function injectMissingAssets(
 export async function applyWebsiteModification(
   session: WebsiteSession,
   userFeedback: string,
-  geminiModel: string
+  geminiModel: string,
+  conversationContext: string = '' // Previous conversation for context
 ): Promise<{ success: boolean; html: string; changesDescription: string }> {
   console.log('[WebsitePipeline] Applying website modification...');
 
   const systemPrompt = `You are an expert web developer tasked with modifying an existing website based on user feedback.
-
+${conversationContext}
 CURRENT WEBSITE HTML:
 \`\`\`html
 ${session.currentHtml.substring(0, 30000)}
@@ -1660,16 +1697,18 @@ USER MODIFICATION REQUEST:
 
 YOUR TASK:
 1. Understand what the user wants to change
-2. Make ONLY the requested changes
-3. Keep everything else exactly the same
-4. Maintain all existing styling and functionality
-5. Return the COMPLETE modified HTML
+2. Consider any previous conversation context for better understanding
+3. Make ONLY the requested changes
+4. Keep everything else exactly the same
+5. Maintain all existing styling and functionality
+6. Return the COMPLETE modified HTML
 
 IMPORTANT:
 - Do NOT remove or break existing features
 - Keep all existing assets and images
 - Preserve the overall structure
 - Only modify what was specifically requested
+- If user references something from the conversation history, incorporate that context
 
 OUTPUT: Complete HTML document with modifications applied. No markdown. No code blocks.`;
 
@@ -1738,6 +1777,180 @@ export function isWebsiteModificationRequest(text: string): boolean {
   ];
 
   return modificationPatterns.some(pattern => pattern.test(text));
+}
+
+/**
+ * Detect which section the user wants to edit
+ * Returns the section type for smart business model updates
+ */
+export function detectEditSection(text: string): 'pricing' | 'services' | 'testimonials' | 'faqs' | 'about' | 'contact' | 'general' {
+  const lowerText = text.toLowerCase();
+
+  // Pricing section detection
+  if (/\b(pric(e|ing|es)|cost|rate|tier|package|plan|fee|\$\d+|dollar|per\s*(hour|session|month))\b/i.test(lowerText)) {
+    return 'pricing';
+  }
+
+  // Services section detection
+  if (/\b(service|offering|feature|what\s*(we|you)\s*offer|product)\b/i.test(lowerText)) {
+    return 'services';
+  }
+
+  // Testimonials section detection
+  if (/\b(testimonial|review|quote|customer\s*say|feedback|rating)\b/i.test(lowerText)) {
+    return 'testimonials';
+  }
+
+  // FAQ section detection
+  if (/\b(faq|question|answer|q\s*&\s*a)\b/i.test(lowerText)) {
+    return 'faqs';
+  }
+
+  // About section detection
+  if (/\b(about|story|mission|team|who\s*we\s*are|company|history)\b/i.test(lowerText)) {
+    return 'about';
+  }
+
+  // Contact section detection
+  if (/\b(contact|email|phone|address|location|hours|reach\s*us)\b/i.test(lowerText)) {
+    return 'contact';
+  }
+
+  return 'general';
+}
+
+/**
+ * Build conversation context string from history
+ * This gives the AI awareness of previous edits and discussions
+ */
+function buildConversationContext(history: ConversationMessage[] | undefined): string {
+  if (!history || history.length <= 1) return '';
+
+  // Take last 5 messages for context (excluding the current one)
+  const recentMessages = history.slice(-6, -1);
+  if (recentMessages.length === 0) return '';
+
+  let context = '\n📝 PREVIOUS CONVERSATION (for context):\n';
+  context += '-'.repeat(40) + '\n';
+
+  for (const msg of recentMessages) {
+    const role = msg.role === 'user' ? '👤 User' : '🤖 Assistant';
+    const sectionNote = msg.section ? ` [${msg.section}]` : '';
+    context += `${role}${sectionNote}: ${msg.content.substring(0, 150)}${msg.content.length > 150 ? '...' : ''}\n`;
+  }
+
+  context += '-'.repeat(40) + '\n';
+  context += 'Consider the above context when making changes.\n';
+
+  return context;
+}
+
+/**
+ * Smart section-level website modification
+ * Uses business model for intelligent updates when possible
+ * Now with conversation context awareness!
+ */
+export async function applySmartModification(
+  session: WebsiteSession,
+  userFeedback: string,
+  geminiModel: string
+): Promise<{ success: boolean; html: string; changesDescription: string; updatedSection?: string }> {
+  console.log('[WebsitePipeline] Applying smart modification...');
+
+  const section = detectEditSection(userFeedback);
+  console.log(`[WebsitePipeline] Detected section for edit: ${section}`);
+
+  // Add user message to conversation history
+  if (!session.conversationHistory) {
+    session.conversationHistory = [];
+  }
+  session.conversationHistory.push({
+    role: 'user',
+    content: userFeedback,
+    timestamp: new Date().toISOString(),
+    section,
+  });
+
+  // Build context from previous conversation
+  const conversationContext = buildConversationContext(session.conversationHistory);
+  console.log(`[WebsitePipeline] Conversation history length: ${session.conversationHistory.length}`);
+
+  // If we have a business model and it's a content section, update the model first
+  if (session.businessModel && section !== 'general') {
+    console.log('[WebsitePipeline] Using business model for smart update');
+
+    try {
+      const { updateBusinessModelSection } = await import('./businessModelGenerator');
+      const updatedModel = await updateBusinessModelSection(
+        session.businessModel,
+        section,
+        userFeedback,
+        geminiModel,
+        conversationContext // Pass conversation context
+      );
+
+      session.businessModel = updatedModel;
+      console.log(`[WebsitePipeline] Business model ${section} section updated`);
+
+      // Now regenerate HTML with updated model
+      const context: GenerationContext = {
+        businessName: session.businessName,
+        industry: session.industry,
+        userPrompt: session.originalPrompt,
+        businessModel: updatedModel,
+      };
+
+      const html = await generateWebsiteHtml(context, session.assets, geminiModel);
+
+      // Create iteration record
+      const iteration: WebsiteIteration = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        userFeedback,
+        changesDescription: `Smart update to ${section}: ${userFeedback.substring(0, 80)}...`,
+        previousHtml: session.currentHtml,
+      };
+
+      session.iterations.push(iteration);
+      session.currentHtml = html;
+      session.status = 'ready';
+
+      // Add assistant response to conversation history
+      const changesDescription = `Updated ${section} section with your changes`;
+      session.conversationHistory.push({
+        role: 'assistant',
+        content: changesDescription,
+        timestamp: new Date().toISOString(),
+        section,
+      });
+
+      await updateWebsiteSession(session);
+
+      return {
+        success: true,
+        html,
+        changesDescription,
+        updatedSection: section,
+      };
+    } catch (err) {
+      console.error('[WebsitePipeline] Smart modification failed, falling back:', err);
+      // Fall through to regular modification
+    }
+  }
+
+  // Fallback to full HTML modification for general changes or if no business model
+  const result = await applyWebsiteModification(session, userFeedback, geminiModel, conversationContext);
+
+  // Add assistant response to conversation history
+  session.conversationHistory.push({
+    role: 'assistant',
+    content: result.changesDescription,
+    timestamp: new Date().toISOString(),
+    section,
+  });
+  await updateWebsiteSession(session);
+
+  return result;
 }
 
 // ============================================================================
@@ -1851,6 +2064,11 @@ export async function generateCompleteWebsite(
     // Create new session with updated context
     session = await createWebsiteSession(userId, context);
     console.log(`[WebsitePipeline] Created session: ${session.id}`);
+
+    // Store business model in session for later editing
+    if (context.businessModel) {
+      session.businessModel = context.businessModel;
+    }
 
     // STEP 3: Generate assets with research context
     console.log('[WebsitePipeline] Generating assets with industry context...');
