@@ -49,7 +49,7 @@ import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
-import { decideRoute, logRouteDecision, hasWebsiteIntent, hasCodeExecutionIntent, RouteTarget } from '@/lib/routing/decideRoute';
+import { decideRoute, logRouteDecision, hasWebsiteIntent, hasCodeExecutionIntent, isWebsiteDiscoveryResponse, RouteTarget } from '@/lib/routing/decideRoute';
 import { executeCode, extractCodeBlocks, shouldTestCode } from '@/lib/agents/codeExecutor';
 import { isSandboxConfigured } from '@/lib/connectors/vercel-sandbox';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
@@ -1587,9 +1587,18 @@ export async function POST(request: NextRequest) {
     // Only route to image generation if there are NO uploaded files
     // (uploaded files = user wants analysis, not generation)
     // Files always route to gpt-5-mini for better analysis
-    const routeDecision = hasFileUploads
+    let routeDecision = hasFileUploads
       ? { target: 'mini' as const, reason: messageHasUploadedImages ? 'image-analysis' as const : 'file-analysis' as const, confidence: 1.0 }
       : decideRoute(lastUserContent, tool);
+
+    // Check for website discovery response - user providing business details after discovery questions
+    // This catches follow-ups like "Business name, email, $250/hour"
+    const discoveryCheck = isWebsiteDiscoveryResponse(lastUserContent);
+    if (discoveryCheck.isDiscoveryResponse && routeDecision.target !== 'website') {
+      console.log('[Chat API] Detected website discovery response - overriding route to website');
+      console.log('[Chat API] Discovery extracted:', discoveryCheck.extractedInfo);
+      routeDecision = { target: 'website', reason: 'website-intent', confidence: 0.9, matchedPattern: 'discovery-response' };
+    }
 
     // Log the routing decision for telemetry
     logRouteDecision(rateLimitIdentifier, routeDecision, lastUserContent);

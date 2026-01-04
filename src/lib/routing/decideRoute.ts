@@ -2006,6 +2006,58 @@ export function hasWebsiteIntent(text: string): {
 }
 
 /**
+ * Detect if a message looks like a response to website discovery questions
+ * This catches follow-ups like "Business name is X, email is Y, pricing is Z"
+ */
+export function isWebsiteDiscoveryResponse(text: string): {
+  isDiscoveryResponse: boolean;
+  extractedInfo: {
+    businessName?: string;
+    email?: string;
+    hasPricing?: boolean;
+    hasStyle?: boolean;
+  };
+} {
+  const normalizedText = text.trim();
+
+  // Extract potential business name (quoted or capitalized words)
+  const quotedName = normalizedText.match(/["']([^"']+)["']/);
+  const capitalizedName = normalizedText.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/);
+  const namedPattern = normalizedText.match(/(?:name\s*(?:is|:)\s*)([^,.\n]+)/i);
+  const businessName = quotedName?.[1] || namedPattern?.[1] || capitalizedName?.[1];
+
+  // Extract email
+  const emailMatch = normalizedText.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  const hasEmail = !!emailMatch;
+
+  // Check for pricing info (dollar amounts or "per hour", "per session", etc.)
+  const hasPricing = /\$\d+|\d+\s*(?:dollars?|per\s*hour|per\s*session|per\s*event|\/hr|\/hour)/i.test(normalizedText);
+
+  // Check for style preferences
+  const hasStyle = /\b(modern|minimal|bold|elegant|clean|professional|luxury|sleek|vibrant|colorful|dark|light|simple|fancy|classic|contemporary)\b/i.test(normalizedText);
+
+  // Calculate confidence - if we have 2+ pieces of business info, likely a discovery response
+  let infoCount = 0;
+  if (businessName && businessName.length > 2) infoCount++;
+  if (hasEmail) infoCount++;
+  if (hasPricing) infoCount++;
+  if (hasStyle) infoCount++;
+
+  // Require at least 2 pieces of info to be confident it's a discovery response
+  const isDiscoveryResponse = infoCount >= 2;
+
+  return {
+    isDiscoveryResponse,
+    extractedInfo: {
+      businessName: businessName?.trim(),
+      email: emailMatch?.[1],
+      hasPricing,
+      hasStyle,
+    }
+  };
+}
+
+/**
  * GENERAL CHAT PATTERNS - These should NEVER route to GitHub/code tools
  * These are conversational patterns that users use for general chat
  */
