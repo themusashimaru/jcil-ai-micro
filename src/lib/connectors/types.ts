@@ -6,7 +6,7 @@
  * Start with GitHub, expand to Vercel, Supabase, etc.
  */
 
-export type ConnectorType = 'github' | 'vercel' | 'supabase';
+export type ConnectorType = 'github' | 'vercel' | 'supabase' | 'resend';
 
 export type ConnectorStatus = 'disconnected' | 'connected' | 'expired' | 'error';
 
@@ -68,6 +68,12 @@ export const CONNECTOR_CONFIGS: Record<ConnectorType, ConnectorConfig> = {
     displayName: 'Supabase',
     icon: '⚡',
     description: 'Manage databases and storage (coming soon)',
+  },
+  resend: {
+    type: 'resend',
+    displayName: 'Resend',
+    icon: '📧',
+    description: 'Send transactional emails (magic links, password reset)',
   },
 };
 

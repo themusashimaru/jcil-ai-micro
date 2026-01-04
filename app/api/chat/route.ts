@@ -43,13 +43,13 @@
 
 import { createChatCompletion, shouldUseWebSearch, getLastUserMessageText } from '@/lib/openai/client';
 import { moderateContent } from '@/lib/openai/moderation';
-// ToolType removed - now using website pipeline directly
+import type { ToolType } from '@/lib/openai/types';
 import { buildSlimSystemPrompt, isFaithTopic, getRelevantCategories } from '@/lib/prompts/slimPrompt';
 import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
-import { decideRoute, logRouteDecision, RouteTarget, hasCodeExecutionIntent } from '@/lib/routing/decideRoute';
+import { decideRoute, logRouteDecision, hasWebsiteIntent, hasCodeExecutionIntent, RouteTarget } from '@/lib/routing/decideRoute';
 import { executeCode, extractCodeBlocks, shouldTestCode } from '@/lib/agents/codeExecutor';
 import { isSandboxConfigured } from '@/lib/connectors/vercel-sandbox';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
@@ -94,6 +94,16 @@ import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } fro
 import { isConnectorsEnabled } from '@/lib/connectors';
 // FORGE & MUSASHI: Pure AI mode - only using category detection for context, not templates
 import { detectCategory, extractBusinessInfo } from '@/lib/templates/templateService';
+import {
+  generateLoginPage,
+  generateSignupPage,
+  generateAuthCallbackPage,
+  generateDashboardPage,
+  generateMagicLinkPage,
+  generateForgotPasswordPage,
+  hasMagicLinkIntent,
+  AuthConfig,
+} from '@/lib/templates/authTemplates';
 import {
   githubFunctionDeclarations,
   executeGitHubTool,
@@ -1793,7 +1803,15 @@ export async function POST(request: NextRequest) {
     // Complete website generation with all assets
     // ========================================
     if (routeDecision.target === 'website') {
-      console.log('[Chat API] FORGE & MUSASHI: Website Pipeline - Maximum Power Mode');
+      // FORGE & MUSASHI: Enhanced website detection with multi-page, cloning, and auth support
+      const websiteIntent = hasWebsiteIntent(lastUserContent);
+      const isMultiPage = websiteIntent.isMultiPage;
+      const isCloning = websiteIntent.isCloning;
+      const cloneUrl = websiteIntent.cloneUrl;
+      const hasAuth = websiteIntent.hasAuth;
+
+      console.log('[Chat API] Routing to ENHANCED website generation with Template RAG + AI images');
+      console.log('[Chat API] Multi-page:', isMultiPage, 'Cloning:', isCloning, 'Auth:', hasAuth, 'URL:', cloneUrl || 'N/A');
 
       try {
         // Get models from admin settings
@@ -1983,6 +2001,259 @@ export async function POST(request: NextRequest) {
           assetSummary.push(`${result.assets.teamAvatars.length} team photos`);
         }
 
+        // Get the generated code from result
+        let generatedCode = result.html;
+        const logoDataUrl = result.assets.logo || null;
+        const heroImageDataUrl = result.assets.heroBackground || null;
+
+        // Clean the code
+        generatedCode = generatedCode.trim();
+        if (generatedCode.startsWith('```html')) generatedCode = generatedCode.slice(7);
+        if (generatedCode.startsWith('```')) generatedCode = generatedCode.slice(3);
+        if (generatedCode.endsWith('```')) generatedCode = generatedCode.slice(0, -3);
+        generatedCode = generatedCode.trim();
+
+        // Inject the actual image data URLs if the model used placeholders
+        if (logoDataUrl) {
+          // Replace any placeholder logo references
+          generatedCode = generatedCode.replace(
+            /src=["'](?:logo\.png|placeholder|#logo|LOGO_URL|data:image[^"']*\.\.\.)[^"']*["']/gi,
+            `src="${logoDataUrl}"`
+          );
+          // Also add logo if there's an img tag in the header/nav without a proper src
+          if (!generatedCode.includes(logoDataUrl)) {
+            generatedCode = generatedCode.replace(
+              /(<(?:header|nav)[^>]*>)/i,
+              `$1\n<img src="${logoDataUrl}" alt="${businessName} Logo" style="max-height: 60px; width: auto;">`
+            );
+          }
+        }
+
+        if (heroImageDataUrl) {
+          // Inject hero background if not already present
+          if (!generatedCode.includes(heroImageDataUrl)) {
+            generatedCode = generatedCode.replace(
+              /\.hero\s*\{([^}]*)\}/i,
+              `.hero { $1 background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${heroImageDataUrl}'); background-size: cover; background-position: center; }`
+            );
+          }
+        }
+
+        // Extract title
+        const titleMatch = generatedCode.match(/<title>([^<]+)<\/title>/i);
+        const title = titleMatch ? titleMatch[1] : businessName + ' - Landing Page';
+
+        // ================================================
+        // FORGE MULTI-PAGE WEBSITE GENERATION
+        // Auth requests automatically upgrade to multi-page (login, signup, dashboard pages)
+        // ================================================
+        if (isMultiPage || hasAuth) {
+          console.log('[Chat API] Generating MULTI-PAGE website', hasAuth ? '(Auth requested - auto-upgraded)' : '');
+
+          // Generate additional pages based on the business type
+          const additionalPages = ['about', 'services', 'contact'];
+          const pageIcons: Record<string, string> = {
+            home: '🏠',
+            about: '👥',
+            services: '⚡',
+            contact: '📧',
+            pricing: '💰',
+            portfolio: '🎨',
+            blog: '📝',
+            faq: '❓',
+          };
+
+          // Multi-page system prompt
+          const multiPageSystemPrompt = `You are an ELITE web developer generating a specific page for a multi-page website.
+
+EXISTING SITE INFO:
+- Business: ${businessName}
+- Category: ${detectedCategory}
+- Logo URL: ${logoDataUrl ? '[PROVIDED]' : 'Use text logo'}
+- Color scheme: Match the home page styling
+
+CRITICAL REQUIREMENTS:
+1. MAINTAIN CONSISTENCY with the home page design
+2. Same navigation structure (Home, About, Services, Contact)
+3. Same color palette and fonts
+4. Same header/footer styling
+5. Mobile-first responsive design
+
+OUTPUT:
+- Return ONLY raw HTML (no markdown code blocks)
+- Include all CSS in <style> tag
+- Include same navigation as home page
+- Include same footer as home page`;
+
+          // Generate the additional pages in parallel
+          const pagePromises = additionalPages.map(async (pageName) => {
+            const pagePrompt = `Generate the ${pageName.toUpperCase()} page for ${businessName}.
+
+For ${pageName} page:
+${pageName === 'about' ? '- Company history, mission, values\n- Team section with placeholder photos\n- Why choose us section' : ''}
+${pageName === 'services' ? '- List all services with descriptions\n- Pricing tiers if applicable\n- Call-to-action buttons' : ''}
+${pageName === 'contact' ? '- Contact form (name, email, phone, message)\n- Business address and hours\n- Map placeholder\n- Social media links' : ''}
+
+Use the same design language as the home page.`;
+
+            try {
+              const pageResult = await createGeminiCompletion({
+                messages: [{ role: 'user', content: pagePrompt }],
+                tool: 'code' as ToolType,
+                systemPrompt: multiPageSystemPrompt,
+                userId: rateLimitIdentifier,
+                model: geminiModel,
+              });
+
+              let pageCode = pageResult.text || '';
+              // Clean the code
+              pageCode = pageCode.trim();
+              if (pageCode.startsWith('```html')) pageCode = pageCode.slice(7);
+              if (pageCode.startsWith('```')) pageCode = pageCode.slice(3);
+              if (pageCode.endsWith('```')) pageCode = pageCode.slice(0, -3);
+              pageCode = pageCode.trim();
+
+              // Inject logo if available
+              if (logoDataUrl && !pageCode.includes(logoDataUrl)) {
+                pageCode = pageCode.replace(
+                  /(<(?:header|nav)[^>]*>)/i,
+                  `$1\n<img src="${logoDataUrl}" alt="${businessName} Logo" style="max-height: 60px; width: auto;">`
+                );
+              }
+
+              return {
+                name: pageName.charAt(0).toUpperCase() + pageName.slice(1),
+                slug: pageName,
+                code: pageCode,
+                icon: pageIcons[pageName] || '📄',
+              };
+            } catch (err) {
+              console.error(`[Chat API] Failed to generate ${pageName} page:`, err);
+              return null;
+            }
+          });
+
+          // Wait for all pages with timeout
+          const pageTimeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 45000));
+          const pageResultsOrTimeout = await Promise.race([Promise.all(pagePromises), pageTimeout]);
+
+          // Build pages array
+          const pages = [
+            {
+              name: 'Home',
+              slug: 'index',
+              code: generatedCode,
+              icon: '🏠',
+            },
+          ];
+
+          if (pageResultsOrTimeout !== 'timeout') {
+            const validPages = (pageResultsOrTimeout as Array<{ name: string; slug: string; code: string; icon: string } | null>).filter(Boolean);
+            pages.push(...validPages as Array<{ name: string; slug: string; code: string; icon: string }>);
+          }
+
+          // ================================================
+          // ONE-CLICK AUTH SYSTEM - Add auth pages if requested
+          // ================================================
+          if (hasAuth) {
+            // Detect if user specifically wants magic link authentication
+            const wantsMagicLink = hasMagicLinkIntent(lastUserContent);
+
+            console.log('[Chat API] Adding ONE-CLICK AUTH pages to multi-page website');
+            console.log('[Chat API] Magic link requested:', wantsMagicLink);
+
+            // Extract primary color from generated code for consistent styling
+            const colorMatch = generatedCode.match(/(?:background|color):\s*#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/);
+            const extractedColor = colorMatch ? `#${colorMatch[1]}` : '#8b5cf6';
+
+            const authConfig: AuthConfig = {
+              businessName: businessName,
+              primaryColor: extractedColor,
+              secondaryColor: '#06b6d4',
+              features: {
+                emailPassword: true,
+                googleOAuth: true,
+                githubOAuth: true,
+                magicLink: wantsMagicLink, // Enable if user requested
+                passkey: false,
+              },
+            };
+
+            // Generate auth pages
+            const loginPage = generateLoginPage(authConfig);
+            const signupPage = generateSignupPage(authConfig);
+            const authCallbackPage = generateAuthCallbackPage(authConfig);
+            const dashboardPage = generateDashboardPage(authConfig);
+            const forgotPasswordPage = generateForgotPasswordPage(authConfig);
+
+            // Add auth pages to the website
+            pages.push(
+              { name: 'Login', slug: 'login', code: loginPage, icon: '🔐' },
+              { name: 'Sign Up', slug: 'signup', code: signupPage, icon: '✨' },
+              { name: 'Dashboard', slug: 'dashboard', code: dashboardPage, icon: '📊' },
+              { name: 'Forgot Password', slug: 'forgot-password', code: forgotPasswordPage, icon: '🔑' },
+              { name: 'Auth Callback', slug: 'auth-callback', code: authCallbackPage, icon: '🔄' }
+            );
+
+            // Add magic link page if requested
+            if (wantsMagicLink) {
+              const magicLinkPage = generateMagicLinkPage(authConfig);
+              pages.push(
+                { name: 'Magic Link', slug: 'magic-link', code: magicLinkPage, icon: '✨' }
+              );
+              console.log('[Chat API] Magic Link page added');
+            }
+
+            console.log('[Chat API] Auth pages added: Login, Sign Up, Dashboard, Forgot Password, Auth Callback' + (wantsMagicLink ? ', Magic Link' : ''));
+          }
+
+          // Check if magic link was added (for feature display)
+          const hasMagicLinkPage = pages.some(p => p.slug === 'magic-link');
+
+          console.log('[Chat API] Multi-page generation complete:', pages.length, 'pages');
+
+          // Build response for multi-page website
+          const multiPageFeatures = [
+            `📄 ${pages.length} pages (${pages.map(p => p.name).join(', ')})`,
+            logoDataUrl ? '🎨 AI-generated custom logo' : null,
+            heroImageDataUrl ? '🖼️ AI-generated hero background' : null,
+            hasAuth && hasMagicLinkPage ? '🔐 Supabase Auth + Magic Link (Passwordless)' : null,
+            hasAuth && !hasMagicLinkPage ? '🔐 Supabase Auth (Login, Sign Up, Dashboard)' : null,
+            '📱 Fully responsive design',
+            '🔗 Inter-page navigation',
+            '🎯 Conversion-optimized',
+          ].filter(Boolean);
+
+          return new Response(
+            JSON.stringify({
+              type: 'multi_page_website',
+              content: `**${title}**\n\nI've created a ${pages.length}-page professional website with:\n${multiPageFeatures.map(f => `- ${f}`).join('\n')}\n\nClick **"Open Preview"** to explore all pages!\n\n*Actions: Download as ZIP, push to GitHub, or deploy to Vercel!*`,
+              model: geminiModel,
+              multiPageWebsite: {
+                pages,
+                title,
+                description: `${pages.length}-page website for ${businessName}`,
+                businessName,
+                category: detectedCategory,
+              },
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Route-Target': 'website',
+                'X-Route-Reason': 'multi-page-website',
+                'X-Model-Used': geminiModel,
+                'X-Pages-Generated': pages.length.toString(),
+              },
+            }
+          );
+        }
+
+        // ================================================
+        // SINGLE PAGE WEBSITE (Original Flow)
+        // ================================================
+        // Build response content
         const features = [
           ...assetSummary.map(a => `🎨 ${a}`),
           '📱 Fully responsive design',

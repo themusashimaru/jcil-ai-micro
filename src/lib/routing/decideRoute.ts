@@ -11,6 +11,9 @@
  * - nano: gpt-5-nano for basic chat (default, cost-optimized)
  */
 
+// Import auth detection from auth templates
+import { hasAuthIntent } from '@/lib/templates/authTemplates';
+
 export type RouteTarget = 'video' | 'image' | 'website' | 'github' | 'mini' | 'nano';
 
 export type RouteReason =
@@ -155,6 +158,201 @@ const WEBSITE_INTENT_PATTERNS = [
   // Business landing pages (common requests)
   /\b(auto\s*detailing|car\s*wash|cleaning|plumbing|restaurant|salon|gym|fitness|dental|law\s*firm|agency|barbershop|landscaping|hvac|roofing|photography|wedding|bakery|florist|spa)\b.*\b(landing\s*page|website|page|site)\b/i,
   /\b(landing\s*page|website|page|site)\b.*\b(auto\s*detailing|car\s*wash|cleaning|plumbing|restaurant|salon|gym|fitness|dental|law\s*firm|agency|barbershop|landscaping|hvac|roofing|photography|wedding|bakery|florist|spa)\b/i,
+];
+
+/**
+ * MULTI-PAGE WEBSITE PATTERNS - ULTRA INTELLIGENT DETECTION
+ * 100+ patterns for detecting multi-page website requests
+ */
+const MULTI_PAGE_WEBSITE_PATTERNS = [
+  // ============================================
+  // EXPLICIT MULTI-PAGE REQUESTS (20+ patterns)
+  // ============================================
+  /\b(multi-?page|multiple\s+pages?|full\s+website|complete\s+website|entire\s+website)\b/i,
+  /\b(\d+)\s*(-|\s)?\s*(page|pages)\s+(website|site)\b/i,
+  /\b(website|site)\s+with\s+(\d+|multiple|several|many|few|some)\s+(pages?)\b/i,
+  /\b(build|create|make|design|generate)\s+(me\s+)?(a\s+)?(\d+)\s*(page|pages)\b/i,
+  /\b(two|three|four|five|six|seven|eight|nine|ten)\s*(page|pages?)\s+(website|site)\b/i,
+  /\b(2|3|4|5|6|7|8|9|10)\s*-?\s*(page|pages?)\s+(website|site)\b/i,
+  /\bwebsite\s+with\s+(all|every)\s+(the\s+)?(pages?|sections?)\b/i,
+  /\b(not\s+just|more\s+than)\s+(a\s+)?(single|one|landing)\s+page\b/i,
+  /\bfull[\s-]?(scale|blown|featured)\s+(website|site)\b/i,
+  /\bentire\s+(web\s+)?presence\b/i,
+
+  // ============================================
+  // SPECIFIC PAGE MENTIONS (40+ patterns)
+  // ============================================
+  // Individual page types
+  /\b(home|about|services|contact|pricing|team|portfolio|blog|faq|testimonials|gallery|careers|support|help)\s+(page|section)\b/i,
+  /\b(pages?)\s+(like|including|such\s+as|:)\s*(home|about|contact|services|pricing|team|portfolio)\b/i,
+  /\binclude\s+(a\s+)?(home|about|contact|services|pricing|team|portfolio|blog)\s+page\b/i,
+  /\bwith\s+(a\s+)?(separate|dedicated|individual)\s+(home|about|contact|services)\s+page\b/i,
+
+  // Page combinations
+  /\b(home|about)\s+(and|&|,)\s+(contact|services|pricing)\b/i,
+  /\b(contact|services)\s+(and|&|,)\s+(about|pricing|portfolio)\b/i,
+  /\b(all|each)\s+page\s+(should|needs|must|will)\b/i,
+  /\bevery\s+page\s+(has|with|should|needs)\b/i,
+
+  // About page patterns
+  /\b(about\s+us|who\s+we\s+are|our\s+story|our\s+team|meet\s+the\s+team)\s+(page|section)\b/i,
+  /\bpage\s+(for|about|describing)\s+(the\s+)?(company|team|founder|owner)\b/i,
+
+  // Services/Products page patterns
+  /\b(services?|products?|offerings?|solutions?|what\s+we\s+(do|offer))\s+(page|section)\b/i,
+  /\bpage\s+(listing|showing|displaying)\s+(all\s+)?(services?|products?)\b/i,
+
+  // Contact page patterns
+  /\b(contact\s+us|get\s+in\s+touch|reach\s+us|contact\s+form)\s+(page|section)\b/i,
+  /\bpage\s+(with|for|containing)\s+(a\s+)?(contact\s+form|inquiry\s+form|email\s+form)\b/i,
+
+  // Pricing page patterns
+  /\b(pricing|prices?|rates?|cost|plans?|packages?)\s+(page|section|table)\b/i,
+  /\bpage\s+(with|showing|displaying)\s+(pricing|prices?|rates?)\b/i,
+
+  // Portfolio/Gallery patterns
+  /\b(portfolio|gallery|showcase|work|projects?|case\s+stud(y|ies))\s+(page|section)\b/i,
+  /\bpage\s+(showing|displaying)\s+(our\s+)?(work|portfolio|projects?)\b/i,
+
+  // Blog patterns
+  /\b(blog|news|articles?|updates?|posts?)\s+(page|section)\b/i,
+  /\bpage\s+(for|with)\s+(blog|news|articles?)\b/i,
+
+  // FAQ patterns
+  /\b(faq|faqs?|frequently\s+asked\s+questions?|q\s*&\s*a)\s+(page|section)\b/i,
+  /\bpage\s+(for|with)\s+(faq|questions?|answers?)\b/i,
+
+  // Testimonials patterns
+  /\b(testimonials?|reviews?|feedback|what\s+clients?\s+say)\s+(page|section)\b/i,
+  /\bpage\s+(with|for|showing)\s+(testimonials?|reviews?|client\s+feedback)\b/i,
+
+  // Careers patterns
+  /\b(careers?|jobs?|hiring|join\s+(us|our\s+team)|work\s+with\s+us)\s+(page|section)\b/i,
+
+  // ============================================
+  // NAVIGATION & STRUCTURE (25+ patterns)
+  // ============================================
+  /\b(with|include|add|needs?|want)\s+(a\s+)?(navigation|nav|menu|navbar|header|footer)\b/i,
+  /\b(navigation|nav|menu)\s+(between|to|for|linking)\s+(pages?|sections?)\b/i,
+  /\b(header|footer)\s+(with|containing|that\s+has)\s+(links?|navigation|menu)\b/i,
+  /\b(links?|navigation)\s+(between|connecting)\s+(all\s+)?(pages?)\b/i,
+  /\bsite\s+(structure|architecture|layout|map|navigation)\b/i,
+  /\bpage\s+(links?|navigation|routing)\b/i,
+  /\b(consistent|shared|common)\s+(header|footer|navigation|nav)\b/i,
+  /\b(header|footer|nav)\s+(on\s+)?(every|each|all)\s+pages?\b/i,
+  /\b(menu|nav)\s+(bar|links?|items?)\s+(for|with|linking)\s+(all\s+)?pages?\b/i,
+  /\b(site-?wide|global)\s+(header|footer|navigation|menu)\b/i,
+  /\b(breadcrumbs?|sidebar|submenu|dropdown\s+menu)\b/i,
+  /\b(page|site)\s+(hierarchy|tree|map|structure)\b/i,
+
+  // ============================================
+  // FULL WEBSITE DESCRIPTIONS (30+ patterns)
+  // ============================================
+  /\b(complete|full|professional|business|corporate|modern|sleek)\s+(website|site|web\s*presence)\b/i,
+  /\b(all\s+the\s+pages|main\s+pages|essential\s+pages|standard\s+pages)\b/i,
+  /\b(professional|business)\s+(looking|quality)\s+(website|site)\b/i,
+  /\b(website|site)\s+(like|similar\s+to)\s+(what|those)\s+(businesses?|companies?)\s+(have|use)\b/i,
+  /\b(real|legit|legitimate|proper|actual)\s+(business\s+)?(website|site)\b/i,
+  /\b(website|site)\s+(that|which)\s+(looks?|feels?)\s+(professional|real|legitimate)\b/i,
+  /\b(everything|all)\s+(a\s+)?(business|company)\s+(needs|requires|would\s+need)\b/i,
+  /\b(website|site)\s+(for\s+)?(my|our|the)\s+(business|company|startup|agency|firm|practice)\b/i,
+  /\bwant\s+(a|the)\s+(whole|entire|complete|full)\s+(website|site)\b/i,
+  /\bneed\s+(a|the)\s+(whole|entire|complete|full)\s+(website|site)\b/i,
+  /\b(e-?commerce|online\s+store|shop|marketplace)\s+(website|site)\b/i,
+  /\b(portfolio|agency|corporate|startup)\s+(website|site)\b/i,
+  /\b(website|site)\s+for\s+(selling|showcasing|displaying|promoting)\b/i,
+
+  // ============================================
+  // IMPLICIT MULTI-PAGE SIGNALS (15+ patterns)
+  // ============================================
+  /\band\s+(also|then)\s+(a|an)\s+(about|contact|services?|pricing)\s+page\b/i,
+  /\bplus\s+(a|an)\s+(about|contact|services?|pricing)\s+page\b/i,
+  /\balong\s+with\s+(a|an)\s+(about|contact|services?)\b/i,
+  /\bdifferent\s+pages?\s+for\s+(different|various|each)\b/i,
+  /\b(separate|individual|dedicated)\s+pages?\s+for\b/i,
+  /\bbreak\s+(it\s+)?(up|down)\s+into\s+(multiple|different|separate)\s+pages?\b/i,
+  /\bsplit\s+(across|into|between)\s+(multiple|different|several)\s+pages?\b/i,
+  /\beach\s+(service|product|offering)\s+(on\s+)?(its|their)\s+own\s+page\b/i,
+  /\b(internal|inter-?page)\s+links?\b/i,
+  /\bpage\s+(for|to)\s+(each|every)\b/i,
+];
+
+/**
+ * SITE CLONING PATTERNS - ULTRA INTELLIGENT DETECTION
+ * 80+ patterns for detecting site cloning/recreation requests
+ */
+const SITE_CLONING_PATTERNS = [
+  // ============================================
+  // EXPLICIT CLONE REQUESTS (25+ patterns)
+  // ============================================
+  /\b(clone|copy|recreate|replicate|remake|duplicate)\b.*\b(this|that|the)\s*(website|site|page|design|layout|style)\b/i,
+  /\b(clone|copy|recreate|replicate)\s+(the\s+)?(website|site|page)\s+(at|from|of)\b/i,
+  /\b(website|site|page)\s+(clone|copy)\b/i,
+  /\bclone\s+https?:\/\//i,
+  /\bhttps?:\/\/[^\s]+\b.*\b(clone|copy|recreate|replicate)\b/i,
+  /\b(clone|copy)\s+(this|that|the)\s+for\s+me\b/i,
+  /\b(make|create|build)\s+(me\s+)?(a\s+)?(clone|copy|replica)\s+(of|from)\b/i,
+  /\bexact\s+(copy|clone|replica)\s+(of|from)\b/i,
+  /\b(pixel-?perfect|exact|identical)\s+(copy|clone|recreation)\b/i,
+
+  // ============================================
+  // SIMILAR/LIKE REQUESTS (30+ patterns)
+  // ============================================
+  /\b(website|site|page)\b.*\b(like|similar\s+to)\b.*\bhttps?:\/\//i,
+  /\b(make|build|create)\b.*\b(something|one|it)\s*(like|similar)\b.*\b(this|that)\b/i,
+  /\b(like|similar\s+to|based\s+on|inspired\s+by)\b.*\bhttps?:\/\//i,
+  /\bhttps?:\/\/[^\s]+\b.*\b(like\s+this|similar|as\s+reference|for\s+inspiration)\b/i,
+  /\b(same|similar)\s+(style|design|layout|look|feel|vibe)\s+(as|to|like)\b/i,
+  /\b(style|design|layout)\s+(like|similar\s+to|based\s+on)\b/i,
+  /\blooks?\s+(like|similar\s+to)\s+(this|that|the)\s*(website|site|page)?\b/i,
+  /\b(website|site)\s+that\s+looks?\s+(like|similar\s+to)\b/i,
+  /\bwant\s+(something|one|it)\s+(like|similar\s+to)\b/i,
+  /\bneed\s+(something|one|it)\s+(like|similar\s+to)\b/i,
+  /\b(give\s+me|show\s+me)\s+(something|one)\s+(like|similar)\b/i,
+  /\b(model|pattern)\s+(it|this)\s+(after|on|from)\b/i,
+  /\buse\s+(this|that)\s+(as|for)\s+(a\s+)?(reference|template|inspiration|guide)\b/i,
+
+  // ============================================
+  // REDESIGN/REBUILD REQUESTS (20+ patterns)
+  // ============================================
+  /\b(redesign|rebuild|redo|remake|revamp|refresh)\s+(this|that|the|my|our)\s*(website|site|page)?\b/i,
+  /\b(new\s+version|updated\s+version|modern\s+version)\s+(of|for)\b/i,
+  /\b(modernize|update|improve)\s+(this|that|the|my|our)\s*(website|site|page|design)\b/i,
+  /\b(website|site|page)\s+(needs?|could\s+use)\s+(a\s+)?(redesign|update|refresh|makeover)\b/i,
+  /\b(make\s+over|overhaul|transform)\s+(this|that|the|my)\s*(website|site|page)?\b/i,
+  /\b(fresh|new|modern|updated)\s+(take|spin|look)\s+(on|for)\b/i,
+  /\b(reimagine|reinvent)\s+(this|that|the)\s*(website|site|page|design)\b/i,
+
+  // ============================================
+  // URL REFERENCE PATTERNS (15+ patterns)
+  // ============================================
+  /\bcheck\s+(out|this)\s+https?:\/\//i,
+  /\blook\s+at\s+https?:\/\//i,
+  /\bhere'?s?\s+(the|a)\s+(link|url|site|website)\s*:?\s*https?:\/\//i,
+  /\bhttps?:\/\/[^\s]+\s+-\s+(make|create|build|do)\s+(something|one)?\s*(like|similar)\b/i,
+  /\b(this|that)\s+is\s+(what|how)\s+(I|we)\s+want\s*(it)?\s*(to\s+look)?\s*:?\s*https?:\/\//i,
+  /\bhere'?s?\s+(my|an?)\s+(example|inspiration|reference)\s*:?\s*https?:\/\//i,
+  /\b(reference|example|inspiration)\s*:?\s*https?:\/\//i,
+  /\bfollowing\s+(this|the)\s+(design|style|layout)\s*:?\s*https?:\/\//i,
+
+  // ============================================
+  // COMPETITIVE/COMPARISON PATTERNS (10+ patterns)
+  // ============================================
+  /\bcompetitor('?s)?\s+(website|site)\b/i,
+  /\b(like|similar\s+to)\s+(my|our)\s+competitor\b/i,
+  /\b(better|improved)\s+version\s+of\s+(this|that)\s+(website|site|page)\b/i,
+  /\bbeat\s+(this|that)\s+(website|site|design)\b/i,
+  /\boutdo\s+(this|that)\s+(website|site)\b/i,
+  /\b(their|this|that)\s+(website|site)\s+(but|except)\s+(better|improved|modernized)\b/i,
+
+  // ============================================
+  // ANALYSIS/EXTRACTION PATTERNS (10+ patterns)
+  // ============================================
+  /\b(extract|pull|get|grab)\s+(the\s+)?(design|layout|style|colors?|fonts?)\s+(from|of)\b/i,
+  /\b(what|how)\s+(is|does)\s+(this|that)\s+(website|site|page)\s+(use|using|built|made)\b/i,
+  /\b(analyze|analyse|study|examine)\s+(this|that)\s+(website|site|page|design)\b/i,
+  /\b(break\s+down|deconstruct)\s+(this|that)\s+(website|site|design)\b/i,
+  /\b(learn|understand)\s+(from|how)\s+(this|that)\s+(website|site|design)\b/i,
 ];
 
 /**
@@ -1735,41 +1933,186 @@ export function hasImageIntent(text: string): { isImage: boolean; matchedPattern
 
 /**
  * Check if a message indicates website/landing page generation intent
+ * Enhanced to detect multi-page, cloning, and auth requests
  */
-export function hasWebsiteIntent(text: string): { isWebsite: boolean; matchedPattern?: string } {
+export function hasWebsiteIntent(text: string): {
+  isWebsite: boolean;
+  isMultiPage: boolean;
+  isCloning: boolean;
+  hasAuth: boolean;
+  matchedPattern?: string;
+  cloneUrl?: string;
+} {
   const normalizedText = text.trim();
 
   // Check if this is a document request - documents should not be websites
   if (isDocumentRequest(normalizedText)) {
-    return { isWebsite: false };
+    return { isWebsite: false, isMultiPage: false, isCloning: false, hasAuth: false };
   }
 
-  // Check for website generation patterns
+  // Check for auth intent (user wants login/signup pages)
+  const wantsAuth = hasAuthIntent(normalizedText);
+
+  // Check for site cloning patterns first
+  for (const pattern of SITE_CLONING_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      // Extract URL if present
+      const urlMatch = normalizedText.match(/https?:\/\/[^\s]+/);
+      return {
+        isWebsite: true,
+        isMultiPage: false,
+        isCloning: true,
+        hasAuth: wantsAuth,
+        matchedPattern: pattern.source,
+        cloneUrl: urlMatch ? urlMatch[0] : undefined
+      };
+    }
+  }
+
+  // Check for multi-page patterns
+  let isMultiPage = false;
+  for (const pattern of MULTI_PAGE_WEBSITE_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      isMultiPage = true;
+      break;
+    }
+  }
+
+  // Check for standard website generation patterns
   for (const pattern of WEBSITE_INTENT_PATTERNS) {
     if (pattern.test(normalizedText)) {
       return {
         isWebsite: true,
+        isMultiPage,
+        isCloning: false,
+        hasAuth: wantsAuth,
         matchedPattern: pattern.source
       };
     }
   }
 
-  return { isWebsite: false };
+  // Also check multi-page patterns as website intent
+  if (isMultiPage) {
+    return {
+      isWebsite: true,
+      isMultiPage: true,
+      isCloning: false,
+      hasAuth: wantsAuth,
+      matchedPattern: 'multi-page-intent'
+    };
+  }
+
+  return { isWebsite: false, isMultiPage: false, isCloning: false, hasAuth: false };
 }
 
 /**
+ * GENERAL CHAT PATTERNS - These should NEVER route to GitHub/code tools
+ * These are conversational patterns that users use for general chat
+ */
+const GENERAL_CHAT_PATTERNS = [
+  // Greetings and casual conversation
+  /^(hi|hello|hey|howdy|greetings|good\s*(morning|afternoon|evening)|what'?s\s*up|sup)\b/i,
+  /^(how\s*are\s*you|how'?s\s*it\s*going|how\s*do\s*you\s*do)\b/i,
+  /^(thanks?|thank\s*you|thx|ty|appreciate\s*it)\b/i,
+  /^(bye|goodbye|see\s*you|later|cya|ttyl)\b/i,
+
+  // General questions (not code-related)
+  /^(what\s*is|what\s*are|who\s*is|who\s*are|where\s*is|when\s*is|why\s*is|how\s*does)\s+(?!.*\b(code|function|api|bug|error|git|repo|deploy|build)\b)/i,
+  /\b(tell\s*me\s*about|explain|describe|what\s*does\s*.+\s*mean)\b(?!.*\b(code|function|class|method|api|error|bug)\b)/i,
+
+  // Casual chat topics (not development)
+  /\b(weather|news|sports|music|movies?|tv\s*shows?|books?|food|recipe|travel|vacation|holiday)\b/i,
+  /\b(joke|funny|humor|laugh|entertainment|game|play|fun)\b/i,
+  /\b(health|exercise|fitness|workout|diet|nutrition|wellness)\b/i,
+  /\b(relationship|family|friends?|kids?|children|parents?|pets?)\b/i,
+
+  // Help with general topics (not code)
+  /\b(help\s*me\s*(understand|learn|with)|can\s*you\s*help\s*me)\b(?!.*\b(code|debug|fix|build|deploy|api|function|error|bug|git|repo)\b)/i,
+
+  // Simple questions without code context
+  /^(can\s*you|could\s*you|would\s*you|will\s*you)\s+(?!.*(code|fix|debug|build|deploy|create.*app|review.*repo))/i,
+
+  // Philosophical/casual discussion
+  /\b(opinion|think\s*about|your\s*thoughts|what\s*do\s*you\s*think)\b(?!.*\b(code|architecture|implementation|design\s*pattern)\b)/i,
+
+  // Short messages that are clearly casual (< 15 chars without tech keywords)
+  /^.{1,15}$/,  // Very short messages - let them be general chat
+
+  // Explicit general chat intent
+  /\b(just\s*chatting|general\s*question|quick\s*question|curious\s*about|wondering\s*about)\b/i,
+  /\b(not\s*about\s*code|not\s*technical|non-?technical|off-?topic)\b/i,
+];
+
+/**
+ * HIGH-CONFIDENCE GITHUB PATTERNS - These should ALWAYS route to GitHub
+ * More specific than the broad patterns, requires explicit GitHub/code context
+ */
+const HIGH_CONFIDENCE_GITHUB_PATTERNS = [
+  // Explicit GitHub URLs
+  /https?:\/\/github\.com\/[^/\s]+\/[^/\s]+/i,
+  /github\.com\/[^/\s]+\/[^/\s]+/i,
+
+  // Explicit git commands
+  /\b(git\s+(clone|pull|push|commit|merge|rebase|checkout|branch|stash|log|diff|status|init|remote|fetch))\b/i,
+
+  // Explicit code file references
+  /\.(js|jsx|ts|tsx|py|java|cpp|go|rs|rb|php|cs|swift|kt|scala|vue|svelte)\b/i,
+
+  // Explicit programming keywords with action verbs
+  /\b(fix|debug|refactor)\s+(the|this|my)?\s*(bug|error|issue|function|code|class|method|api|endpoint)\b/i,
+  /\b(review|analyze)\s+(this|my|the)?\s*(code|pr|pull\s*request|repo|repository)\b/i,
+
+  // Explicit development tool mentions
+  /\b(npm|yarn|pip|cargo|maven|gradle|docker|kubernetes|webpack|vite|next\.?js|react|vue|angular|svelte)\b.*\b(install|build|run|deploy|config|error|issue|help)\b/i,
+
+  // Explicit error messages
+  /\b(error|exception|traceback|stack\s*trace|crash|failed|undefined|null\s*pointer|segfault)\b.*\b(in|at|from|when|while)\b/i,
+
+  // Explicit "push to github" or "deploy"
+  /\b(push|deploy|publish)\s+(to|on)\s+(github|vercel|netlify|heroku|aws|azure|gcp)\b/i,
+
+  // Explicit create repository/branch
+  /\b(create|make|new)\s+(a\s+)?(repo|repository|branch|pr|pull\s*request)\b/i,
+];
+
+/**
  * Check if a message indicates GitHub/code review intent
+ * IMPROVED: Now checks for general chat exclusions first
  */
 export function hasGitHubIntent(text: string): { isGitHub: boolean; matchedPattern?: string } {
   const normalizedText = text.trim();
 
-  // Check for GitHub patterns
-  for (const pattern of GITHUB_INTENT_PATTERNS) {
+  // STEP 1: Check if this is clearly general chat - if so, NEVER route to GitHub
+  for (const pattern of GENERAL_CHAT_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      // This is general chat, do NOT route to GitHub
+      return { isGitHub: false };
+    }
+  }
+
+  // STEP 2: Check high-confidence patterns first (these are very specific)
+  for (const pattern of HIGH_CONFIDENCE_GITHUB_PATTERNS) {
     if (pattern.test(normalizedText)) {
       return {
         isGitHub: true,
         matchedPattern: pattern.source
       };
+    }
+  }
+
+  // STEP 3: Only use broad patterns if message is long enough and contains multiple tech keywords
+  const techKeywords = ['code', 'function', 'class', 'api', 'error', 'bug', 'git', 'repo', 'build', 'deploy', 'test', 'database', 'server', 'client', 'frontend', 'backend'];
+  const matchedKeywords = techKeywords.filter(kw => normalizedText.toLowerCase().includes(kw));
+
+  // Require at least 2 tech keywords for broad patterns to trigger
+  if (matchedKeywords.length >= 2) {
+    for (const pattern of GITHUB_INTENT_PATTERNS) {
+      if (pattern.test(normalizedText)) {
+        return {
+          isGitHub: true,
+          matchedPattern: pattern.source
+        };
+      }
     }
   }
 

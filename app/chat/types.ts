@@ -76,6 +76,42 @@ export interface CodePreview {
   description?: string;
 }
 
+/**
+ * MULTI-PAGE WEBSITE SYSTEM
+ * Supports full website generation with multiple pages
+ */
+export interface WebsitePage {
+  name: string;           // e.g., "Home", "About", "Services"
+  slug: string;           // e.g., "index", "about", "services"
+  code: string;           // Full HTML for this page
+  icon?: string;          // Optional emoji icon
+}
+
+export interface MultiPageWebsite {
+  pages: WebsitePage[];
+  sharedStyles?: string;  // Optional shared CSS
+  sharedScripts?: string; // Optional shared JS
+  title: string;
+  description?: string;
+  businessName?: string;
+  category?: string;
+}
+
+/**
+ * SITE CLONING SYSTEM
+ * Clone and customize existing websites
+ */
+export interface ClonedSite {
+  originalUrl: string;
+  analyzedStructure: {
+    sections: string[];
+    colorScheme: string[];
+    fonts: string[];
+    layout: string;
+  };
+  generatedCode: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -92,6 +128,8 @@ export interface Message {
   searchProvider?: string; // Search provider used (e.g., 'perplexity')
   files?: GeneratedFile[]; // Generated documents (Excel, PowerPoint, Word, PDF)
   codePreview?: CodePreview; // For live code previews (landing pages, websites)
+  multiPageWebsite?: MultiPageWebsite; // For multi-page website generation
+  clonedSite?: ClonedSite; // For cloned/recreated websites
   model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
   timestamp: Date;
   isStreaming?: boolean;
