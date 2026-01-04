@@ -56,6 +56,8 @@ export interface WebsiteSession {
   status: 'generating' | 'ready' | 'iterating' | 'deployed';
   githubRepo?: string;
   vercelUrl?: string;
+  // Stored business model for smart editing
+  businessModel?: BusinessModel;
 }
 
 export interface WebsiteIteration {
@@ -1740,6 +1742,116 @@ export function isWebsiteModificationRequest(text: string): boolean {
   return modificationPatterns.some(pattern => pattern.test(text));
 }
 
+/**
+ * Detect which section the user wants to edit
+ * Returns the section type for smart business model updates
+ */
+export function detectEditSection(text: string): 'pricing' | 'services' | 'testimonials' | 'faqs' | 'about' | 'contact' | 'general' {
+  const lowerText = text.toLowerCase();
+
+  // Pricing section detection
+  if (/\b(pric(e|ing|es)|cost|rate|tier|package|plan|fee|\$\d+|dollar|per\s*(hour|session|month))\b/i.test(lowerText)) {
+    return 'pricing';
+  }
+
+  // Services section detection
+  if (/\b(service|offering|feature|what\s*(we|you)\s*offer|product)\b/i.test(lowerText)) {
+    return 'services';
+  }
+
+  // Testimonials section detection
+  if (/\b(testimonial|review|quote|customer\s*say|feedback|rating)\b/i.test(lowerText)) {
+    return 'testimonials';
+  }
+
+  // FAQ section detection
+  if (/\b(faq|question|answer|q\s*&\s*a)\b/i.test(lowerText)) {
+    return 'faqs';
+  }
+
+  // About section detection
+  if (/\b(about|story|mission|team|who\s*we\s*are|company|history)\b/i.test(lowerText)) {
+    return 'about';
+  }
+
+  // Contact section detection
+  if (/\b(contact|email|phone|address|location|hours|reach\s*us)\b/i.test(lowerText)) {
+    return 'contact';
+  }
+
+  return 'general';
+}
+
+/**
+ * Smart section-level website modification
+ * Uses business model for intelligent updates when possible
+ */
+export async function applySmartModification(
+  session: WebsiteSession,
+  userFeedback: string,
+  geminiModel: string
+): Promise<{ success: boolean; html: string; changesDescription: string; updatedSection?: string }> {
+  console.log('[WebsitePipeline] Applying smart modification...');
+
+  const section = detectEditSection(userFeedback);
+  console.log(`[WebsitePipeline] Detected section for edit: ${section}`);
+
+  // If we have a business model and it's a content section, update the model first
+  if (session.businessModel && section !== 'general') {
+    console.log('[WebsitePipeline] Using business model for smart update');
+
+    try {
+      const { updateBusinessModelSection } = await import('./businessModelGenerator');
+      const updatedModel = await updateBusinessModelSection(
+        session.businessModel,
+        section,
+        userFeedback,
+        geminiModel
+      );
+
+      session.businessModel = updatedModel;
+      console.log(`[WebsitePipeline] Business model ${section} section updated`);
+
+      // Now regenerate HTML with updated model
+      const context: GenerationContext = {
+        businessName: session.businessName,
+        industry: session.industry,
+        userPrompt: session.originalPrompt,
+        businessModel: updatedModel,
+      };
+
+      const html = await generateWebsiteHtml(context, session.assets, geminiModel);
+
+      // Create iteration record
+      const iteration: WebsiteIteration = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        userFeedback,
+        changesDescription: `Smart update to ${section}: ${userFeedback.substring(0, 80)}...`,
+        previousHtml: session.currentHtml,
+      };
+
+      session.iterations.push(iteration);
+      session.currentHtml = html;
+      session.status = 'ready';
+      await updateWebsiteSession(session);
+
+      return {
+        success: true,
+        html,
+        changesDescription: `Updated ${section} section with your changes`,
+        updatedSection: section,
+      };
+    } catch (err) {
+      console.error('[WebsitePipeline] Smart modification failed, falling back:', err);
+      // Fall through to regular modification
+    }
+  }
+
+  // Fallback to full HTML modification for general changes or if no business model
+  return applyWebsiteModification(session, userFeedback, geminiModel);
+}
+
 // ============================================================================
 // Main Pipeline Entry Point
 // ============================================================================
@@ -1851,6 +1963,11 @@ export async function generateCompleteWebsite(
     // Create new session with updated context
     session = await createWebsiteSession(userId, context);
     console.log(`[WebsitePipeline] Created session: ${session.id}`);
+
+    // Store business model in session for later editing
+    if (context.businessModel) {
+      session.businessModel = context.businessModel;
+    }
 
     // STEP 3: Generate assets with research context
     console.log('[WebsitePipeline] Generating assets with industry context...');

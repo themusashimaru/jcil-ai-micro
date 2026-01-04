@@ -105,7 +105,7 @@ import {
 import {
   generateCompleteWebsite,
   getActiveWebsiteSession,
-  applyWebsiteModification,
+  applySmartModification,
   pushWebsiteToGitHub,
   deployWebsiteToVercel,
   isGitHubPushRequest,
@@ -1919,22 +1919,26 @@ export async function POST(request: NextRequest) {
           existingSession = await getActiveWebsiteSession(rateLimitIdentifier);
         }
 
-        // Handle website modifications
+        // Handle website modifications with SMART section-level editing
         if (modificationCheck.isModification && existingSession) {
-          console.log('[Chat API] FORGE & MUSASHI: Processing website modification...');
+          console.log('[Chat API] FORGE & MUSASHI: Processing smart website modification...');
           console.log('[Chat API] Matched pattern:', modificationCheck.matchedPattern);
 
-          const modResult = await applyWebsiteModification(
+          const modResult = await applySmartModification(
             existingSession,
             lastUserContent,
             geminiModel
           );
 
           if (modResult.success) {
+            const sectionNote = modResult.updatedSection
+              ? `\n\n✨ *Smart update: Modified the **${modResult.updatedSection}** section using your business model.*`
+              : '';
+
             return new Response(
               JSON.stringify({
                 type: 'code_preview',
-                content: `**Website Updated!**\n\n${modResult.changesDescription}\n\nClick **"Open Preview"** to see the changes!\n\n*Want more changes? Just tell me what to adjust. When you're happy, say "push to GitHub" or "deploy to Vercel"!*`,
+                content: `**Website Updated!**\n\n${modResult.changesDescription}${sectionNote}\n\nClick **"Open Preview"** to see the changes!\n\n*Want more changes? Just tell me what to adjust. When you're happy, say "push to GitHub" or "deploy to Vercel"!*`,
                 model: geminiModel,
                 codePreview: {
                   code: modResult.html,
