@@ -17,6 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createGeminiCompletion, createGeminiImageGeneration } from '@/lib/gemini/client';
 import type { ToolType } from '@/lib/openai/types';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
+import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 
 // ============================================================================
 // Types
@@ -64,6 +65,32 @@ export interface WebsiteIteration {
   previousHtml?: string;
 }
 
+// Research context from Perplexity web search
+export interface IndustryResearch {
+  industryOverview: string;
+  typicalServices: string[];
+  pricingInsights: string;
+  locationContext?: string;
+  competitorInfo?: string;
+  designTrends: string;
+  colorRecommendations: string[];
+  keyMessages: string[];
+  sources: string[];
+}
+
+// Extracted business information using AI
+export interface ExtractedBusinessInfo {
+  businessName: string;
+  industry: string;
+  services: string[];
+  location?: string;
+  pricing?: string;
+  email?: string;
+  phone?: string;
+  stylePreference?: string;
+  targetAudience?: string;
+}
+
 export interface GenerationContext {
   businessName: string;
   industry: string;
@@ -79,6 +106,10 @@ export interface GenerationContext {
     hasContent?: boolean;
     documentNames: string[];
   };
+  // Research context from web search
+  industryResearch?: IndustryResearch;
+  // Extended business info from AI extraction
+  extractedInfo?: ExtractedBusinessInfo;
 }
 
 export interface GenerationResult {
@@ -300,6 +331,178 @@ async function fetchUserBrandContext(
 }
 
 // ============================================================================
+// AI-Powered Business Info Extraction
+// ============================================================================
+
+/**
+ * Extract business information using AI semantic understanding
+ * Much better than regex - handles natural language input
+ */
+export async function extractBusinessInfoWithAI(
+  userPrompt: string,
+  conversationContext?: string
+): Promise<ExtractedBusinessInfo> {
+  console.log('[WebsitePipeline] Extracting business info with AI...');
+
+  const extractionPrompt = `You are extracting business information from a user's message.
+Parse the following message and extract structured business details.
+
+USER MESSAGE:
+${userPrompt}
+
+${conversationContext ? `CONVERSATION CONTEXT:\n${conversationContext}\n` : ''}
+
+Extract the following as JSON (use null for any field not mentioned):
+{
+  "businessName": "The actual business name (proper noun, not 'my business' or descriptions)",
+  "industry": "The industry/type (e.g., 'tutoring', 'photography', 'dental', 'restaurant')",
+  "services": ["List of specific services mentioned"],
+  "location": "City, state, or area if mentioned",
+  "pricing": "Any pricing mentioned (e.g., '$50/hour')",
+  "email": "Email address if provided",
+  "phone": "Phone number if provided",
+  "stylePreference": "Design style preference (modern, elegant, bold, etc.)",
+  "targetAudience": "Target audience if mentioned (e.g., 'high school students', 'families')"
+}
+
+IMPORTANT RULES:
+1. For businessName: Extract ONLY the actual name. "My business name is Grand Master Tutoring and we tutor students" → "Grand Master Tutoring"
+2. Don't include descriptions like "and we do X" in the name
+3. For services: Be specific - "SAT prep, college prep, high school tutoring"
+4. Return valid JSON only, no markdown formatting`;
+
+  try {
+    const result = await createGeminiCompletion({
+      messages: [{ role: 'user', content: extractionPrompt }],
+      model: 'gemini-2.0-flash-exp',
+      temperature: 0,
+      maxTokens: 1000,
+    });
+
+    const text = result?.text || '';
+    // Extract JSON from response (may be wrapped in markdown code blocks)
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log('[WebsitePipeline] Extracted business info:', parsed);
+      return {
+        businessName: parsed.businessName || 'Business',
+        industry: parsed.industry || 'business',
+        services: parsed.services || [],
+        location: parsed.location || undefined,
+        pricing: parsed.pricing || undefined,
+        email: parsed.email || undefined,
+        phone: parsed.phone || undefined,
+        stylePreference: parsed.stylePreference || undefined,
+        targetAudience: parsed.targetAudience || undefined,
+      };
+    }
+  } catch (err) {
+    console.error('[WebsitePipeline] AI extraction failed:', err);
+  }
+
+  // Fallback to basic extraction
+  return {
+    businessName: 'Business',
+    industry: 'business',
+    services: [],
+  };
+}
+
+// ============================================================================
+// Industry Research with Perplexity
+// ============================================================================
+
+/**
+ * Research industry context using Perplexity web search
+ * Gathers competitive info, pricing, design trends, and key messaging
+ */
+export async function researchIndustryContext(
+  _businessName: string, // Not used in search query, but kept for future competitive analysis
+  industry: string,
+  location?: string,
+  services?: string[]
+): Promise<IndustryResearch | null> {
+  console.log('[WebsitePipeline] Researching industry context...');
+
+  if (!isPerplexityConfigured()) {
+    console.log('[WebsitePipeline] Perplexity not configured, skipping research');
+    return null;
+  }
+
+  try {
+    const servicesList = services?.length ? services.join(', ') : industry;
+    const locationQuery = location ? ` in ${location}` : '';
+
+    // Build a comprehensive research query
+    const researchQuery = `Research for a ${industry} business${locationQuery}:
+1. What are typical services and pricing for ${servicesList}${locationQuery}?
+2. What are the key selling points and value propositions for ${industry} businesses?
+3. What design styles and colors work best for ${industry} websites?
+4. What should a ${industry} website homepage include?
+5. ${location ? `What are popular ${industry} businesses in ${location}?` : ''}
+
+Focus on actionable information for creating a professional website.`;
+
+    const searchResult = await perplexitySearch({
+      query: researchQuery,
+      model: 'sonar',
+      systemPrompt: `You are a business research assistant helping gather information for website creation.
+Provide specific, actionable insights about the ${industry} industry.
+Focus on: pricing ranges, typical services, design recommendations, key messaging, and competitive landscape.
+Be concise but comprehensive.`,
+    });
+
+    // Parse the research into structured format
+    const parsePrompt = `Parse this industry research into structured JSON:
+
+RESEARCH:
+${searchResult.answer}
+
+Return JSON:
+{
+  "industryOverview": "Brief overview of the ${industry} industry",
+  "typicalServices": ["List of common services"],
+  "pricingInsights": "Typical pricing ranges",
+  "locationContext": "Local market insights if available",
+  "designTrends": "Website design recommendations for this industry",
+  "colorRecommendations": ["3-4 color suggestions with hex codes"],
+  "keyMessages": ["3-5 key marketing messages/value propositions"]
+}`;
+
+    const parseResult = await createGeminiCompletion({
+      messages: [{ role: 'user', content: parsePrompt }],
+      model: 'gemini-2.0-flash-exp',
+      temperature: 0,
+      maxTokens: 1500,
+    });
+
+    const parseText = parseResult?.text || '';
+    const jsonMatch = parseText.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log('[WebsitePipeline] Research parsed successfully');
+      return {
+        industryOverview: parsed.industryOverview || '',
+        typicalServices: parsed.typicalServices || [],
+        pricingInsights: parsed.pricingInsights || '',
+        locationContext: parsed.locationContext || undefined,
+        competitorInfo: parsed.competitorInfo || undefined,
+        designTrends: parsed.designTrends || '',
+        colorRecommendations: parsed.colorRecommendations || [],
+        keyMessages: parsed.keyMessages || [],
+        sources: searchResult.sources?.map(s => s.url) || [],
+      };
+    }
+  } catch (err) {
+    console.error('[WebsitePipeline] Industry research failed:', err);
+  }
+
+  return null;
+}
+
+// ============================================================================
 // Asset Generation
 // ============================================================================
 
@@ -313,14 +516,122 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Pr
   ]);
 }
 
+// Industry-specific design guidelines
+const INDUSTRY_DESIGN_GUIDES: Record<string, {
+  symbols: string[];
+  colors: string[];
+  heroTheme: string;
+  logoStyle: string;
+}> = {
+  tutoring: {
+    symbols: ['graduation cap', 'book', 'lightbulb', 'pencil', 'brain'],
+    colors: ['#1E3A8A (navy blue)', '#10B981 (emerald)', '#F59E0B (amber)', '#6366F1 (indigo)'],
+    heroTheme: 'Academic success, bright futures, focused learning environment',
+    logoStyle: 'Professional yet approachable, conveys expertise and trust',
+  },
+  education: {
+    symbols: ['graduation cap', 'open book', 'apple', 'lightbulb'],
+    colors: ['#1E40AF (royal blue)', '#059669 (green)', '#DC2626 (red accent)', '#F8FAFC (white)'],
+    heroTheme: 'Knowledge, growth, academic achievement',
+    logoStyle: 'Academic, trustworthy, inspiring',
+  },
+  photography: {
+    symbols: ['camera lens', 'aperture', 'shutter', 'light burst'],
+    colors: ['#1F2937 (charcoal)', '#D4AF37 (gold)', '#FFFFFF (white)', '#374151 (gray)'],
+    heroTheme: 'Artistic, creative, capturing moments',
+    logoStyle: 'Elegant, artistic, premium feel',
+  },
+  dental: {
+    symbols: ['tooth', 'smile', 'dental mirror', 'shield'],
+    colors: ['#0EA5E9 (dental blue)', '#22C55E (fresh green)', '#FFFFFF (white)', '#E0F2FE (light blue)'],
+    heroTheme: 'Clean, trustworthy, modern healthcare, bright smiles',
+    logoStyle: 'Professional, clean, medical yet friendly',
+  },
+  restaurant: {
+    symbols: ['fork and knife', 'chef hat', 'plate', 'flame'],
+    colors: ['#DC2626 (appetizing red)', '#F59E0B (warm gold)', '#1F2937 (elegant dark)', '#FEF3C7 (cream)'],
+    heroTheme: 'Delicious food, warm atmosphere, culinary excellence',
+    logoStyle: 'Appetizing, warm, inviting',
+  },
+  salon: {
+    symbols: ['scissors', 'hair strand', 'mirror', 'brush'],
+    colors: ['#EC4899 (pink)', '#A855F7 (purple)', '#1F2937 (black)', '#FDF2F8 (blush)'],
+    heroTheme: 'Beauty, elegance, self-care, transformation',
+    logoStyle: 'Elegant, trendy, luxury',
+  },
+  fitness: {
+    symbols: ['dumbbell', 'running figure', 'heart rate', 'flame'],
+    colors: ['#EF4444 (energetic red)', '#1F2937 (power black)', '#F97316 (orange)', '#FFFFFF (white)'],
+    heroTheme: 'Energy, strength, transformation, motivation',
+    logoStyle: 'Bold, dynamic, powerful',
+  },
+  legal: {
+    symbols: ['scales of justice', 'gavel', 'pillar', 'shield'],
+    colors: ['#1E3A8A (navy)', '#B45309 (gold/bronze)', '#1F2937 (charcoal)', '#F8FAFC (white)'],
+    heroTheme: 'Trust, authority, justice, professionalism',
+    logoStyle: 'Authoritative, trustworthy, classic',
+  },
+  realestate: {
+    symbols: ['house', 'key', 'building', 'roof'],
+    colors: ['#1E40AF (trust blue)', '#059669 (growth green)', '#B45309 (warm gold)', '#FFFFFF (white)'],
+    heroTheme: 'Dream homes, new beginnings, community, investment',
+    logoStyle: 'Professional, trustworthy, aspirational',
+  },
+  default: {
+    symbols: ['abstract geometric shape', 'professional icon'],
+    colors: ['#3B82F6 (blue)', '#1F2937 (charcoal)', '#10B981 (green)', '#F8FAFC (white)'],
+    heroTheme: 'Professional, modern, trustworthy',
+    logoStyle: 'Clean, modern, professional',
+  },
+};
+
+/**
+ * Build design context from research and extracted info
+ */
+function buildDesignContext(
+  industry: string,
+  research?: IndustryResearch | null,
+  extractedInfo?: ExtractedBusinessInfo
+): {
+  colors: string[];
+  symbols: string[];
+  heroTheme: string;
+  logoStyle: string;
+  services: string[];
+  location?: string;
+  stylePreference?: string;
+} {
+  // Get industry-specific defaults
+  const industryLower = industry.toLowerCase();
+  const guide = INDUSTRY_DESIGN_GUIDES[industryLower] || INDUSTRY_DESIGN_GUIDES.default;
+
+  // Merge with research recommendations
+  const colors = research?.colorRecommendations?.length
+    ? research.colorRecommendations
+    : guide.colors;
+
+  return {
+    colors,
+    symbols: guide.symbols,
+    heroTheme: research?.designTrends || guide.heroTheme,
+    logoStyle: guide.logoStyle,
+    services: extractedInfo?.services || research?.typicalServices || [],
+    location: extractedInfo?.location,
+    stylePreference: extractedInfo?.stylePreference,
+  };
+}
+
 /**
  * Generate essential website assets with strict timeouts
  * OPTIMIZED: Only generates logo + hero to stay under Vercel's 120s limit
+ * Now includes research context for better, more relevant images
  */
 export async function generateWebsiteAssets(
   businessName: string,
   industry: string,
-  imageModel: string
+  imageModel: string,
+  research?: IndustryResearch | null,
+  extractedInfo?: ExtractedBusinessInfo
 ): Promise<WebsiteAssets> {
   console.log('[WebsitePipeline] Generating essential website assets (fast mode)...');
 
@@ -328,6 +639,9 @@ export async function generateWebsiteAssets(
     sectionImages: {},
     teamAvatars: [],
   };
+
+  // Build design context from research
+  const designContext = buildDesignContext(industry, research, extractedInfo);
 
   // FAST MODE: Only generate logo and hero in parallel with 30s timeout each
   // This keeps total asset generation under 35 seconds
@@ -339,13 +653,13 @@ export async function generateWebsiteAssets(
   const essentialAssets = await Promise.allSettled([
     // Logo is most important - it brands the site
     withTimeout(
-      generateLogo(businessName, industry, imageModel),
+      generateLogo(businessName, industry, imageModel, designContext),
       ASSET_TIMEOUT,
       null
     ),
     // Hero background adds visual impact
     withTimeout(
-      generateHeroBackground(businessName, industry, imageModel),
+      generateHeroBackground(businessName, industry, imageModel, designContext),
       ASSET_TIMEOUT,
       null
     ),
@@ -383,19 +697,42 @@ export async function generateWebsiteAssets(
 async function generateLogo(
   businessName: string,
   industry: string,
-  model: string
+  model: string,
+  designContext?: {
+    colors: string[];
+    symbols: string[];
+    logoStyle: string;
+    stylePreference?: string;
+  }
 ): Promise<string | null> {
+  // Build industry-aware prompt
+  const symbolHints = designContext?.symbols?.slice(0, 3).join(', ') || 'professional icon';
+  const colorHints = designContext?.colors?.slice(0, 2).join(' or ') || 'professional colors';
+  const styleHint = designContext?.stylePreference || designContext?.logoStyle || 'modern and professional';
+
+  const prompt = `Professional logo design for "${businessName}" - a ${industry} business.
+
+DESIGN DIRECTION:
+- Style: ${styleHint}
+- Icon inspiration: ${symbolHints} (choose ONE that best represents the business)
+- Color palette: Use ${colorHints}
+
+REQUIREMENTS:
+- Clean, modern design that works at any size
+- Works on BOTH dark and light backgrounds
+- Include the business name "${businessName}" in stylized typography
+- ${industry}-appropriate imagery or iconography
+- Premium quality ($1000+ agency design)
+- NO clipart or generic icons - unique and memorable
+
+Create a logo that immediately communicates: "This is a trusted ${industry} business."`;
+
   try {
     const result = await createGeminiImageGeneration({
-      prompt: `Professional logo for "${businessName}" - a ${industry} business.
-        Requirements:
-        - Modern, clean design
-        - Works on both light and dark backgrounds
-        - Memorable and unique
-        - Professional quality that would cost $500+ from a design agency
-        - Include business name in stylized text OR pure icon
-        - Appropriate style for ${industry} industry`,
-      systemPrompt: 'You are a world-class logo designer. Create a logo that communicates professionalism and trust.',
+      prompt,
+      systemPrompt: `You are an elite logo designer who creates $5000+ logos for Fortune 500 companies.
+Your logos are clean, memorable, and perfectly capture the essence of each brand.
+For ${industry} businesses, you understand what builds trust and attracts customers.`,
       model,
     });
     return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
@@ -408,19 +745,54 @@ async function generateLogo(
 async function generateHeroBackground(
   businessName: string,
   industry: string,
-  model: string
+  model: string,
+  designContext?: {
+    colors: string[];
+    heroTheme: string;
+    services: string[];
+    location?: string;
+    stylePreference?: string;
+  }
 ): Promise<string | null> {
+  // Build contextual prompt
+  const themeHint = designContext?.heroTheme || 'professional and trustworthy';
+  const colorHints = designContext?.colors?.slice(0, 2).join(' and ') || 'professional blue tones';
+  const servicesHint = designContext?.services?.length
+    ? `Services: ${designContext.services.slice(0, 3).join(', ')}`
+    : '';
+  const locationHint = designContext?.location ? `Location: ${designContext.location}` : '';
+
+  const prompt = `Hero section background image for "${businessName}" - a ${industry} business website.
+
+VISUAL THEME: ${themeHint}
+${servicesHint}
+${locationHint}
+
+COLOR DIRECTION:
+- Primary colors: ${colorHints}
+- Create a cohesive color palette that matches the brand
+
+COMPOSITION REQUIREMENTS:
+- Wide panoramic aspect ratio (16:9)
+- Subtle enough for WHITE TEXT OVERLAY (very important!)
+- Left side should be slightly darker for text placement
+- NOT too busy - elegant negative space
+- High-end, premium feel ($10,000+ website quality)
+- ${industry}-appropriate imagery
+
+TECHNICAL:
+- High resolution, sharp details
+- Subtle gradient or vignette to help text readability
+- NO text or watermarks in the image
+- Professional stock photo quality or better`;
+
   try {
     const result = await createGeminiImageGeneration({
-      prompt: `Hero section background for "${businessName}" website - ${industry} industry.
-        Requirements:
-        - Subtle and elegant, not busy
-        - Perfect for overlaying white or light text
-        - Modern gradients, abstract patterns, or relevant imagery
-        - High-end, premium feel
-        - Works well darkened for text overlay
-        - Wide aspect ratio suitable for hero sections`,
-      systemPrompt: 'Create a premium hero background. Think $10,000+ website quality. Subtle enough for text overlay.',
+      prompt,
+      systemPrompt: `You create stunning hero backgrounds for premium websites.
+Your images are the quality of $50,000 brand photoshoots.
+For ${industry}: convey ${themeHint}.
+CRITICAL: The image must work with white text overlay - ensure proper contrast.`,
       model,
     });
     return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
@@ -436,6 +808,7 @@ async function generateHeroBackground(
 
 /**
  * Generate the complete website HTML with all assets integrated
+ * Enhanced with industry research for richer, more relevant content
  */
 export async function generateWebsiteHtml(
   context: GenerationContext,
@@ -460,6 +833,12 @@ Documents found: ${context.userBrandContext.documentNames.join(', ')}
 `
     : '';
 
+  // Build industry research context section
+  const researchSection = buildResearchSection(context);
+
+  // Build extracted info section
+  const extractedInfoSection = buildExtractedInfoSection(context);
+
   const systemPrompt = `You are FORGE & MUSASHI - the most elite web development AI team ever created.
 You build websites that make $15,000+ agencies jealous.
 
@@ -467,11 +846,13 @@ BUSINESS CONTEXT:
 - Business Name: "${context.businessName}"
 - Industry: ${context.industry}
 - User Request: "${context.userPrompt}"
+${extractedInfoSection}
+${researchSection}
 ${brandContextSection}
 AVAILABLE ASSETS (already generated, use these exact URLs):
 ${assetContext}
 
-YOUR MISSION: Create a COMPLETE, STUNNING, PRODUCTION-READY website.
+YOUR MISSION: Create a COMPLETE, STUNNING, PRODUCTION-READY website that is SPECIFIC to this business.
 
 CRITICAL RULES:
 1. Use the EXACT asset URLs provided above - they are valid data URLs
@@ -481,17 +862,25 @@ CRITICAL RULES:
 5. Make it FULLY RESPONSIVE (mobile-first)
 6. Add smooth animations and transitions
 7. Make it look like a $10,000+ website
+8. USE THE RESEARCH DATA - make content specific to this industry and location
 
-REQUIRED SECTIONS:
+REQUIRED SECTIONS (customize based on industry research):
 1. HEADER/NAV - Sticky, with logo (use provided), menu, CTA button, hamburger for mobile
-2. HERO - Powerful headline, subheadline, CTAs, use hero background if provided
-3. FEATURES/SERVICES - 3-6 items with icons, descriptions
-4. PRICING - 3 tiers with realistic prices for ${context.industry}
-5. ABOUT - Company story, stats, team photos (use provided avatars)
-6. TESTIMONIALS - 3 realistic reviews with photos
-7. FAQ - 5-6 common questions for ${context.industry}
-8. CONTACT - Form, contact info, hours, map placeholder
+2. HERO - Powerful headline using KEY MESSAGES from research, subheadline, CTAs, hero background
+3. SERVICES - Use SPECIFIC services from research/extracted info (not generic placeholders)
+4. PRICING - Use pricing insights from research OR user-provided rates
+5. ABOUT - Company story, location if provided, target audience
+6. TESTIMONIALS - 3 realistic reviews SPECIFIC to ${context.industry} services
+7. FAQ - 5-6 REAL questions that ${context.industry} customers ask
+8. CONTACT - Form, contact info (use provided email/phone), location, hours
 9. FOOTER - Links, social icons, newsletter, copyright
+
+CONTENT SPECIFICITY RULES:
+- NEVER use generic placeholder text like "Lorem ipsum" or "Service 1"
+- Use the ACTUAL services mentioned (e.g., "SAT Prep", "College Counseling", not "Service A")
+- Include the ACTUAL location in content (e.g., "Serving Hicksville, Long Island")
+- Use REAL pricing if provided (e.g., "$50/hour tutoring sessions")
+- Reference the TARGET AUDIENCE (e.g., "helping high school students succeed")
 
 TECHNICAL REQUIREMENTS:
 - Mobile-first CSS with min-width media queries
@@ -507,10 +896,10 @@ TECHNICAL REQUIREMENTS:
 VISUAL DESIGN:
 - LIGHT/WHITE base background (body background: #ffffff or very light gray)
 - Dark text on light backgrounds for readability
+- Use the COLOR RECOMMENDATIONS from research if available
 - Modern glassmorphism (backdrop-blur on nav/cards)
 - Subtle gradients and shadows
 - Micro-animations on hover
-- Professional color palette for ${context.industry}
 - Consistent 8px spacing grid
 - Beautiful typography hierarchy
 
@@ -521,6 +910,70 @@ CRITICAL COLOR RULES:
 - Hero can be darker with light text, rest of page should be light
 
 OUTPUT: Raw HTML only. No markdown. No code blocks. Complete document.`;
+
+  // Helper function to build research section
+  function buildResearchSection(ctx: GenerationContext): string {
+    if (!ctx.industryResearch) return '';
+
+    const r = ctx.industryResearch;
+    let section = '\n📊 INDUSTRY RESEARCH (USE THIS DATA):\n';
+
+    if (r.industryOverview) {
+      section += `Industry Overview: ${r.industryOverview}\n`;
+    }
+    if (r.typicalServices?.length) {
+      section += `Typical Services: ${r.typicalServices.join(', ')}\n`;
+    }
+    if (r.pricingInsights) {
+      section += `Pricing Insights: ${r.pricingInsights}\n`;
+    }
+    if (r.locationContext) {
+      section += `Local Market: ${r.locationContext}\n`;
+    }
+    if (r.designTrends) {
+      section += `Design Trends: ${r.designTrends}\n`;
+    }
+    if (r.colorRecommendations?.length) {
+      section += `Recommended Colors: ${r.colorRecommendations.join(', ')}\n`;
+    }
+    if (r.keyMessages?.length) {
+      section += `Key Marketing Messages:\n${r.keyMessages.map(m => `  - ${m}`).join('\n')}\n`;
+    }
+
+    return section;
+  }
+
+  // Helper function to build extracted info section
+  function buildExtractedInfoSection(ctx: GenerationContext): string {
+    if (!ctx.extractedInfo) return '';
+
+    const e = ctx.extractedInfo;
+    let section = '\n🏢 BUSINESS DETAILS (EXTRACTED):\n';
+
+    if (e.services?.length) {
+      section += `Services Offered: ${e.services.join(', ')}\n`;
+    }
+    if (e.location) {
+      section += `Location: ${e.location}\n`;
+    }
+    if (e.pricing) {
+      section += `Pricing: ${e.pricing}\n`;
+    }
+    if (e.email) {
+      section += `Email: ${e.email}\n`;
+    }
+    if (e.phone) {
+      section += `Phone: ${e.phone}\n`;
+    }
+    if (e.targetAudience) {
+      section += `Target Audience: ${e.targetAudience}\n`;
+    }
+    if (e.stylePreference) {
+      section += `Style Preference: ${e.stylePreference}\n`;
+    }
+
+    return section;
+  }
 
   const result = await createGeminiCompletion({
     messages: [{ role: 'user', content: context.userPrompt }],
@@ -1029,6 +1482,7 @@ export function isWebsiteModificationRequest(text: string): boolean {
 
 /**
  * Generate a complete website with all assets
+ * Enhanced with AI extraction and industry research
  */
 export async function generateCompleteWebsite(
   userId: string,
@@ -1062,29 +1516,63 @@ export async function generateCompleteWebsite(
       };
     }
 
-    // Fetch user's brand documents for context
-    console.log('[WebsitePipeline] Searching user documents for brand context...');
-    const brandContext = await fetchUserBrandContext(userId, context.businessName, context.industry);
+    // STEP 1: Extract business info with AI for better parsing
+    console.log('[WebsitePipeline] Extracting business info with AI...');
+    const extractedInfo = await extractBusinessInfoWithAI(context.userPrompt);
+    context.extractedInfo = extractedInfo;
+
+    // Update context with better extracted values
+    if (extractedInfo.businessName && extractedInfo.businessName !== 'Business') {
+      console.log(`[WebsitePipeline] AI extracted business name: "${extractedInfo.businessName}"`);
+      context.businessName = extractedInfo.businessName;
+    }
+    if (extractedInfo.industry && extractedInfo.industry !== 'business') {
+      context.industry = extractedInfo.industry;
+    }
+
+    // STEP 2: Research industry context with Perplexity (runs in parallel with brand fetch)
+    console.log('[WebsitePipeline] Starting industry research...');
+    const [research, brandContext] = await Promise.all([
+      researchIndustryContext(
+        context.businessName,
+        context.industry,
+        extractedInfo.location,
+        extractedInfo.services
+      ),
+      fetchUserBrandContext(userId, context.businessName, context.industry),
+    ]);
+
+    // Store research in context
+    if (research) {
+      context.industryResearch = research;
+      console.log('[WebsitePipeline] Industry research completed');
+      console.log(`[WebsitePipeline] - Services found: ${research.typicalServices?.length || 0}`);
+      console.log(`[WebsitePipeline] - Color recommendations: ${research.colorRecommendations?.length || 0}`);
+    }
+
+    // Store brand context
     if (brandContext.content) {
       context.userBrandContext = brandContext;
       console.log(`[WebsitePipeline] Found brand context from ${brandContext.documentNames.length} documents`);
     }
 
-    // Create new session
+    // Create new session with updated context
     session = await createWebsiteSession(userId, context);
     console.log(`[WebsitePipeline] Created session: ${session.id}`);
 
-    // Generate all assets in parallel
-    console.log('[WebsitePipeline] Generating assets...');
+    // STEP 3: Generate assets with research context
+    console.log('[WebsitePipeline] Generating assets with industry context...');
     const assets = await generateWebsiteAssets(
       context.businessName,
       context.industry,
-      imageModel
+      imageModel,
+      research,
+      extractedInfo
     );
     session.assets = assets;
 
-    // Generate the complete HTML
-    console.log('[WebsitePipeline] Generating HTML...');
+    // STEP 4: Generate the complete HTML with full context
+    console.log('[WebsitePipeline] Generating HTML with research context...');
     const html = await generateWebsiteHtml(context, assets, geminiModel);
     session.currentHtml = html;
     session.status = 'ready';
