@@ -12,7 +12,7 @@
  */
 
 // Import auth detection from auth templates
-import { hasAuthIntent, AUTH_INTENT_PATTERNS } from '@/lib/templates/authTemplates';
+import { hasAuthIntent } from '@/lib/templates/authTemplates';
 
 export type RouteTarget = 'video' | 'image' | 'website' | 'github' | 'mini' | 'nano';
 
