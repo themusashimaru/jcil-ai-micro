@@ -699,6 +699,44 @@ function isSpreadsheetConfirmation(content: string, previousMessages: CoreMessag
     return true;
   }
 
+  // Get recent assistant messages for context
+  const recentAssistantMessages = previousMessages
+    .slice(-4)
+    .filter((m: CoreMessage) => m.role === 'assistant')
+    .map((m: CoreMessage) => typeof m.content === 'string' ? m.content : '')
+    .join(' ')
+    .toLowerCase();
+
+  // Check if we're in a spreadsheet qualification context (AI asked questions about spreadsheet)
+  const isInSpreadsheetQualificationContext =
+    /\b(what.*categories|what.*track|time period|weekly.*monthly|monthly.*yearly|budget.*actual|specific.*calculations?)\b/i.test(recentAssistantMessages) &&
+    /\b(spreadsheet|excel|budget|finance|tracker)\b/i.test(recentAssistantMessages);
+
+  // FORGE & MUSASHI: If user provides financial DATA after qualification questions,
+  // that's an implicit confirmation to generate the spreadsheet
+  if (isInSpreadsheetQualificationContext) {
+    // Check if user is providing financial categories/data
+    const financialCategories = content.match(/\b(income|salary|earnings|rent|mortgage|groceries|insurance|utilities|savings|expenses?|car|school|tuition|entertainment|subscriptions?|bills?|loan|credit|gas|electric|water|phone|internet|food|dining|clothing|medical|health|childcare|kids?|fun|discretionary)\b/gi);
+
+    // If user mentions 2+ financial categories, they're providing data = implicit confirmation
+    if (financialCategories && financialCategories.length >= 2) {
+      console.log('[isSpreadsheetConfirmation] User provided financial categories after qualification:', financialCategories);
+      return true;
+    }
+
+    // If user provides dollar amounts, that's also data
+    if (/\$\d+/.test(content)) {
+      console.log('[isSpreadsheetConfirmation] User provided dollar amounts after qualification');
+      return true;
+    }
+
+    // If user provides percentage or "per hour/month" etc
+    if (/\b\d+\s*(%|percent|per\s*(hour|month|week|year))\b/i.test(content)) {
+      console.log('[isSpreadsheetConfirmation] User provided rate/percentage after qualification');
+      return true;
+    }
+  }
+
   // FIXED: Confirmation patterns must be more specific - "ok" alone is NOT enough
   // User must explicitly confirm spreadsheet generation with context-aware phrases
   const isStrongConfirmation = /\b(yes\s*(please|,?\s*(generate|create|make)\s*(it|the\s*spreadsheet)?)?|generate\s*(it|the\s*spreadsheet)|create\s*(it|the\s*spreadsheet)|make\s*(it|the\s*spreadsheet)|go\s*ahead\s*(and\s*(generate|create|make))?|that'?s?\s*perfect,?\s*(generate|create)|looks?\s*good,?\s*(generate|create))\b/.test(lowerContent);
@@ -1518,6 +1556,36 @@ export async function POST(request: NextRequest) {
     if (earlyDiscoveryCheck.isDiscoveryResponse && isInWebsiteContext) {
       console.log('[Chat API] FORGE & MUSASHI: Detected website discovery response - skipping task planner');
       console.log('[Chat API] Discovery extracted:', earlyDiscoveryCheck.extractedInfo);
+      shouldSkipTaskPlanning = true;
+    }
+
+    // CRITICAL: Check for spreadsheet discovery response BEFORE task planning
+    // This catches when user provides spreadsheet details after we asked qualifying questions
+    const isInSpreadsheetContext = /\b(spreadsheet|excel|xlsx)\b.*\b(categories|track|columns?|time\s*period|calculations?|data)\b/i.test(recentAssistantMessages) ||
+      /\b(What specific categories|What do you want to track|time period|weekly|monthly|yearly)\b.*\b(spreadsheet|excel|budget|finance)\b/i.test(recentAssistantMessages) ||
+      /\bcreate\s*(a|an|the)?\s*(home\s*)?(finance|budget|expense|income)\s*(spreadsheet|tracker|excel)\b/i.test(recentAssistantMessages) ||
+      /\bqualifying questions\b.*\b(spreadsheet|excel)\b/i.test(recentAssistantMessages) ||
+      /\bwhat.*categories.*track\b/i.test(recentAssistantMessages) ||
+      /\bmonthly view or.*yearly\b/i.test(recentAssistantMessages) ||
+      /\bBudget vs\.? Actual\b/i.test(recentAssistantMessages);
+
+    // Check if user is providing financial/spreadsheet data (categories, dollar amounts, etc.)
+    const lowerUserContent = lastUserContent.toLowerCase();
+    const isProvidingSpreadsheetData = (
+      // Mentions income, expenses, or specific categories
+      (/\b(income|salary|earnings|rent|groceries|insurance|utilities|savings|expenses?)\b/i.test(lastUserContent) &&
+       /\b(my|the|for|pay|have|need)\b/i.test(lowerUserContent)) ||
+      // Lists multiple financial items
+      (lastUserContent.match(/\b(rent|groceries|insurance|utilities|car|school|savings|entertainment|subscriptions?)\b/gi)?.length || 0) >= 2 ||
+      // Dollar amounts
+      /\$\d+/.test(lastUserContent) ||
+      // Budget-related keywords with action context
+      (/\b(track|tracking|budget|finance|expenses?)\b/i.test(lastUserContent) && /\b(want|need|have|keep)\b/i.test(lowerUserContent))
+    );
+
+    if (isInSpreadsheetContext && isProvidingSpreadsheetData) {
+      console.log('[Chat API] FORGE & MUSASHI: Detected spreadsheet discovery response - skipping task planner');
+      console.log('[Chat API] User is providing spreadsheet details after qualifying questions');
       shouldSkipTaskPlanning = true;
     }
 
