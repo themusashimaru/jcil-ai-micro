@@ -719,7 +719,9 @@ function applySectionUpdate(model: BusinessModel, section: string, data: unknown
   return updated;
 }
 
-export default {
+const businessModelGeneratorExports = {
   generateBusinessModel,
   updateBusinessModelSection,
 };
+
+export default businessModelGeneratorExports;

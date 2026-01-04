@@ -959,7 +959,7 @@ STYLE: Modern, professional, trustworthy`;
       model,
     });
     return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
-  } catch (err) {
+  } catch (_err) {
     console.log('[WebsitePipeline] Service image generation failed for:', serviceName);
     return null;
   }
@@ -1025,7 +1025,7 @@ IMPORTANT: Photorealistic, not illustrated. High-end corporate headshot style.`;
       model,
     });
     return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
-  } catch (err) {
+  } catch (_err) {
     console.log('[WebsitePipeline] Team avatar generation failed');
     return null;
   }
@@ -1062,7 +1062,7 @@ MOOD: Authentic, professional, human`;
       model,
     });
     return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
-  } catch (err) {
+  } catch (_err) {
     console.log('[WebsitePipeline] About image generation failed');
     return null;
   }
@@ -1947,11 +1947,11 @@ async function generatePage(
   config: { slug: string; title: string; type: 'home' | 'about' | 'services' | 'pricing' | 'contact' },
   context: GenerationContext,
   businessModel: BusinessModel,
-  assets: WebsiteAssets,
+  _assets: WebsiteAssets,
   sharedNav: string,
   sharedFooter: string,
   sharedStyles: string,
-  geminiModel: string
+  _geminiModel: string
 ): Promise<WebsitePage> {
   console.log(`[WebsitePipeline] Generating ${config.type} page...`);
 
@@ -2299,7 +2299,7 @@ function buildHomePage(context: GenerationContext, businessModel: BusinessModel,
 /**
  * Build about page content
  */
-function buildAboutPage(businessModel: BusinessModel, assets: WebsiteAssets): string {
+function buildAboutPage(businessModel: BusinessModel, _assets: WebsiteAssets): string {
   return `
     <section class="about-hero">
       <div class="container">
@@ -2355,7 +2355,7 @@ function buildAboutPage(businessModel: BusinessModel, assets: WebsiteAssets): st
 /**
  * Build services page content
  */
-function buildServicesPage(businessModel: BusinessModel, assets: WebsiteAssets): string {
+function buildServicesPage(businessModel: BusinessModel, _assets: WebsiteAssets): string {
   return `
     <section class="about-hero">
       <div class="container">
@@ -3452,13 +3452,6 @@ export async function deployWebsiteToNetlify(
 
       // Add SEO files if we have business model
       if (session.businessModel) {
-        const context: GenerationContext = {
-          businessName: session.businessName,
-          industry: session.industry,
-          userPrompt: session.originalPrompt,
-          businessModel: session.businessModel,
-        };
-
         // Generate sitemap with placeholder URL (will be updated after deploy)
         files['sitemap.xml'] = generateSitemap(session.pages, `https://${siteName}.netlify.app`);
         files['robots.txt'] = generateRobotsTxt(`https://${siteName}.netlify.app`);
