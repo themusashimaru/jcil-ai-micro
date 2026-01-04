@@ -39,6 +39,7 @@ export interface ServicePackage {
   duration?: string;      // e.g., "8 weeks", "10 hours"
   features: string[];     // What's included
   icon?: string;          // Suggested icon name (heroicons)
+  image?: string;         // Service image URL (Unsplash)
 }
 
 export interface Testimonial {
@@ -254,7 +255,7 @@ Be specific, realistic, and persuasive. Never use generic placeholders.`,
       elevatorPitch: parsed.elevatorPitch || '',
       uniqueValueProposition: parsed.uniqueValueProposition || '',
       pricingTiers: parsed.pricingTiers || [],
-      services: parsed.services || [],
+      services: addImagesToServices(parsed.services || [], input.industry),
       testimonials: addAvatarsToTestimonials(parsed.testimonials || []),
       stats: parsed.stats,
       faqs: parsed.faqs || [],
@@ -426,6 +427,86 @@ function addAvatarsToTestimonials(testimonials: Testimonial[]): Testimonial[] {
 }
 
 /**
+ * Add Unsplash images to services based on industry and service keywords
+ */
+function addImagesToServices(services: ServicePackage[], industry: string): ServicePackage[] {
+  // Industry-specific image mappings
+  const industryImages: Record<string, string[]> = {
+    tutoring: [
+      'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&h=300&fit=crop',
+    ],
+    education: [
+      'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop',
+    ],
+    driving: [
+      'https://images.unsplash.com/photo-1449965408869-ebd3fee56a58?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop',
+    ],
+    restaurant: [
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=300&fit=crop',
+    ],
+    fitness: [
+      'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?w=400&h=300&fit=crop',
+    ],
+    photography: [
+      'https://images.unsplash.com/photo-1471341971476-ae15ff5dd4ea?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1554080353-a576cf803bda?w=400&h=300&fit=crop',
+    ],
+    dental: [
+      'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1598256989800-fe5f95da9787?w=400&h=300&fit=crop',
+    ],
+    consulting: [
+      'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=400&h=300&fit=crop',
+    ],
+  };
+
+  // Default professional images
+  const defaultImages = [
+    'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=400&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1552581234-26160f608093?w=400&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=400&h=300&fit=crop',
+    'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&h=300&fit=crop',
+  ];
+
+  // Find matching industry images
+  const lowerIndustry = industry.toLowerCase();
+  let images = defaultImages;
+  for (const [key, urls] of Object.entries(industryImages)) {
+    if (lowerIndustry.includes(key)) {
+      images = urls;
+      break;
+    }
+  }
+
+  return services.map((svc, i) => ({
+    ...svc,
+    image: images[i % images.length],
+  }));
+}
+
+/**
  * Create a fallback business model when generation fails
  */
 function createFallbackBusinessModel(input: BusinessModelInput): BusinessModel {
@@ -463,7 +544,7 @@ function createFallbackBusinessModel(input: BusinessModelInput): BusinessModel {
         ctaText: 'Go Premium',
       },
     ],
-    services: [
+    services: addImagesToServices([
       {
         name: 'Consultation',
         description: 'Initial assessment and personalized recommendations.',
@@ -482,7 +563,7 @@ function createFallbackBusinessModel(input: BusinessModelInput): BusinessModel {
         features: ['Full service', 'Priority handling', 'Extended support'],
         icon: 'rocket-launch',
       },
-    ],
+    ], input.industry),
     testimonials: addAvatarsToTestimonials([
       {
         name: 'Sarah M.',

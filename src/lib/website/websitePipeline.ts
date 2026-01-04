@@ -1131,6 +1131,7 @@ OUTPUT: Raw HTML only. No markdown. No code blocks. Complete document.`;
         if (svc.duration) section += `  Duration: ${svc.duration}\n`;
         section += `  Features: ${svc.features.join(', ')}\n`;
         if (svc.icon) section += `  Icon suggestion: ${svc.icon}\n`;
+        if (svc.image) section += `  Image URL: ${svc.image}\n`;
       });
     }
 
