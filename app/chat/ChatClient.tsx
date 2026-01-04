@@ -1563,58 +1563,155 @@ export function ChatClient() {
           setMessages((prev) => [...prev, assistantMessage]);
         }
       } else {
-        // Streaming response - read chunks and update progressively
-        // AI SDK v5 uses simple text streaming (not data stream format)
-        console.log('[ChatClient] Processing streaming response (text stream)');
+        // Check if this is an SSE stream (website generation uses SSE for progress)
+        const isSSE = contentType.includes('text/event-stream');
 
-        // Create initial empty assistant message
-        const assistantMessage: Message = {
-          id: assistantMessageId,
-          role: 'assistant',
-          content: '',
-          model: modelUsed,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+        if (isSSE) {
+          // SSE streaming for website generation
+          console.log('[ChatClient] Processing SSE stream (website generation)');
 
-        // Read the stream
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
+          // Create initial assistant message with progress indicator
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: '🚀 Generating your website...',
+            model: modelUsed,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
 
-        if (reader) {
-          let accumulatedContent = '';
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
 
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
+          if (reader) {
+            let buffer = '';
 
-              // Simple text streaming - just decode and append
-              const chunk = decoder.decode(value, { stream: true });
-              accumulatedContent += chunk;
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-              // Update the message with accumulated content
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessageId
-                    ? { ...msg, content: accumulatedContent }
-                    : msg
-                )
-              );
+                buffer += decoder.decode(value, { stream: true });
+
+                // Parse SSE events
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+                for (const line of lines) {
+                  if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    if (data === '[DONE]') continue;
+
+                    try {
+                      const event = JSON.parse(data);
+
+                      if (event.type === 'progress') {
+                        // Update message with progress
+                        console.log('[ChatClient] Website progress:', event.message);
+                        setMessages((prev) =>
+                          prev.map((msg) =>
+                            msg.id === assistantMessageId
+                              ? { ...msg, content: event.message }
+                              : msg
+                          )
+                        );
+                      } else if (event.type === 'code_preview' && event.codePreview) {
+                        // Final website response
+                        console.log('[ChatClient] Website generated:', event.codePreview.title);
+                        setMessages((prev) =>
+                          prev.map((msg) =>
+                            msg.id === assistantMessageId
+                              ? {
+                                  ...msg,
+                                  content: event.content || 'Here is your website:',
+                                  codePreview: {
+                                    code: event.codePreview.code,
+                                    language: event.codePreview.language,
+                                    title: event.codePreview.title,
+                                    description: event.codePreview.description,
+                                  },
+                                }
+                              : msg
+                          )
+                        );
+                        finalContent = event.content;
+
+                        // Save to database
+                        await saveMessageToDatabase(newChatId, 'assistant', event.content || 'Generated website', 'text');
+                      } else if (event.type === 'error') {
+                        console.error('[ChatClient] Website generation error:', event.message);
+                        setMessages((prev) =>
+                          prev.map((msg) =>
+                            msg.id === assistantMessageId
+                              ? { ...msg, content: `❌ Error: ${event.message}` }
+                              : msg
+                          )
+                        );
+                      }
+                    } catch (parseError) {
+                      // Not valid JSON, might be partial data
+                      console.log('[ChatClient] SSE parse error:', parseError);
+                    }
+                  }
+                }
+              }
+            } finally {
+              reader.releaseLock();
             }
-          } catch (readerError) {
-            // Stream was interrupted (user navigated away, network issue, etc.)
-            console.log('[ChatClient] Stream interrupted:', readerError instanceof Error ? readerError.message : 'unknown');
-            // If we have some content, use it instead of showing an error
-            if (accumulatedContent.length > 0) {
-              console.log('[ChatClient] Using partial content, length:', accumulatedContent.length);
-              finalContent = accumulatedContent;
-            } else {
-              // Re-throw to trigger the outer error handler
-              throw readerError;
+          }
+        } else {
+          // Regular text streaming response
+          console.log('[ChatClient] Processing streaming response (text stream)');
+
+          // Create initial empty assistant message
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: '',
+            model: modelUsed,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+
+          // Read the stream
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+
+          if (reader) {
+            let accumulatedContent = '';
+
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                // Simple text streaming - just decode and append
+                const chunk = decoder.decode(value, { stream: true });
+                accumulatedContent += chunk;
+
+                // Update the message with accumulated content
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: accumulatedContent }
+                      : msg
+                  )
+                );
+              }
+            } catch (readerError) {
+              // Stream was interrupted (user navigated away, network issue, etc.)
+              console.log('[ChatClient] Stream interrupted:', readerError instanceof Error ? readerError.message : 'unknown');
+              // If we have some content, use it instead of showing an error
+              if (accumulatedContent.length > 0) {
+                console.log('[ChatClient] Using partial content, length:', accumulatedContent.length);
+                finalContent = accumulatedContent;
+              } else {
+                // Re-throw to trigger the outer error handler
+                throw readerError;
+              }
+            } finally {
+              reader.releaseLock();
             }
-          } finally {
-            reader.releaseLock();
           }
 
           if (!finalContent) {

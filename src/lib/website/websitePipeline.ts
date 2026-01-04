@@ -304,74 +304,86 @@ async function fetchUserBrandContext(
 // ============================================================================
 
 /**
- * Generate all website assets in parallel
+ * Helper to add timeout to a promise
+ */
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
+  ]);
+}
+
+/**
+ * Generate essential website assets with strict timeouts
+ * OPTIMIZED: Only generates logo + hero to stay under Vercel's 120s limit
  */
 export async function generateWebsiteAssets(
   businessName: string,
   industry: string,
   imageModel: string
 ): Promise<WebsiteAssets> {
-  console.log('[WebsitePipeline] Generating comprehensive website assets...');
+  console.log('[WebsitePipeline] Generating essential website assets (fast mode)...');
 
   const assets: WebsiteAssets = {
     sectionImages: {},
     teamAvatars: [],
   };
 
-  // Generate assets in parallel batches for speed
-  const batch1 = await Promise.allSettled([
-    // Favicon generation
-    generateFavicon(businessName, industry, imageModel, 32),
-    // Main logo
-    generateLogo(businessName, industry, imageModel),
-    // Hero background
-    generateHeroBackground(businessName, industry, imageModel),
+  // FAST MODE: Only generate logo and hero in parallel with 30s timeout each
+  // This keeps total asset generation under 35 seconds
+  const ASSET_TIMEOUT = 30000; // 30 seconds max per asset
+
+  console.log('[WebsitePipeline] Starting logo + hero generation (30s timeout each)...');
+  const startTime = Date.now();
+
+  const essentialAssets = await Promise.allSettled([
+    // Logo is most important - it brands the site
+    withTimeout(
+      generateLogo(businessName, industry, imageModel),
+      ASSET_TIMEOUT,
+      null
+    ),
+    // Hero background adds visual impact
+    withTimeout(
+      generateHeroBackground(businessName, industry, imageModel),
+      ASSET_TIMEOUT,
+      null
+    ),
   ]);
 
-  // Process batch 1 results
-  if (batch1[0].status === 'fulfilled' && batch1[0].value) {
-    assets.favicon32 = batch1[0].value;
-    assets.favicon16 = batch1[0].value; // Same image, browser will resize
-    assets.faviconApple = batch1[0].value;
-    console.log('[WebsitePipeline] ✓ Favicon generated');
+  const assetTime = Date.now() - startTime;
+  console.log(`[WebsitePipeline] Asset generation completed in ${assetTime}ms`);
+
+  // Process results
+  if (essentialAssets[0].status === 'fulfilled' && essentialAssets[0].value) {
+    assets.logo = essentialAssets[0].value;
+    // Use logo as favicon too (simple approach)
+    assets.favicon32 = essentialAssets[0].value;
+    assets.favicon16 = essentialAssets[0].value;
+    assets.faviconApple = essentialAssets[0].value;
+    console.log('[WebsitePipeline] ✓ Logo generated (also used as favicon)');
+  } else {
+    console.log('[WebsitePipeline] ✗ Logo generation failed or timed out');
   }
 
-  if (batch1[1].status === 'fulfilled' && batch1[1].value) {
-    assets.logo = batch1[1].value;
-    console.log('[WebsitePipeline] ✓ Logo generated');
-  }
-
-  if (batch1[2].status === 'fulfilled' && batch1[2].value) {
-    assets.heroBackground = batch1[2].value;
+  if (essentialAssets[1].status === 'fulfilled' && essentialAssets[1].value) {
+    assets.heroBackground = essentialAssets[1].value;
     console.log('[WebsitePipeline] ✓ Hero background generated');
+  } else {
+    console.log('[WebsitePipeline] ✗ Hero background generation failed or timed out');
   }
 
-  // Generate section images (batch 2)
-  const batch2 = await Promise.allSettled([
-    generateSectionImage(businessName, industry, 'about', imageModel),
-    generateSectionImage(businessName, industry, 'services', imageModel),
-    generateTeamAvatars(industry, imageModel, 3),
-  ]);
-
-  if (batch2[0].status === 'fulfilled' && batch2[0].value) {
-    assets.sectionImages.about = batch2[0].value;
-    console.log('[WebsitePipeline] ✓ About section image generated');
-  }
-
-  if (batch2[1].status === 'fulfilled' && batch2[1].value) {
-    assets.sectionImages.services = batch2[1].value;
-    console.log('[WebsitePipeline] ✓ Services section image generated');
-  }
-
-  if (batch2[2].status === 'fulfilled' && batch2[2].value) {
-    assets.teamAvatars = batch2[2].value;
-    console.log('[WebsitePipeline] ✓ Team avatars generated');
-  }
+  // SKIP section images and team avatars to stay fast
+  // These can be added later via "enhance website" command
+  console.log('[WebsitePipeline] Skipping secondary assets for speed (can enhance later)');
 
   return assets;
 }
 
-async function generateFavicon(
+// NOTE: These asset generators are temporarily unused for speed optimization
+// They can be re-enabled via an "enhance website" feature later
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _generateFavicon(
   businessName: string,
   industry: string,
   model: string,
@@ -447,7 +459,8 @@ async function generateHeroBackground(
   }
 }
 
-async function generateSectionImage(
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _generateSectionImage(
   businessName: string,
   industry: string,
   section: string,
@@ -477,7 +490,8 @@ async function generateSectionImage(
   }
 }
 
-async function generateTeamAvatars(
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _generateTeamAvatars(
   industry: string,
   model: string,
   count: number = 3
