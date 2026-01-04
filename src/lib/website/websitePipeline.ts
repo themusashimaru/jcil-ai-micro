@@ -927,6 +927,208 @@ CRITICAL: The image must work with white text overlay - ensure proper contrast.`
   }
 }
 
+/**
+ * Generate a custom service image with Nano Banana
+ * For premium websites that want fully custom imagery
+ */
+async function generateServiceImage(
+  serviceName: string,
+  serviceDescription: string,
+  industry: string,
+  model: string
+): Promise<string | null> {
+  const prompt = `Professional service image for "${serviceName}" in the ${industry} industry.
+
+SERVICE DESCRIPTION: ${serviceDescription}
+
+REQUIREMENTS:
+- Clean, modern composition
+- Represents the service visually
+- Warm, inviting color palette
+- Professional quality (not stock photo generic)
+- NO text, logos, or watermarks
+- 4:3 aspect ratio
+- Premium, high-end feel
+
+STYLE: Modern, professional, trustworthy`;
+
+  try {
+    const result = await createGeminiImageGeneration({
+      prompt,
+      systemPrompt: `Create premium service imagery for ${industry} businesses. The image should visually represent the service without being cliché.`,
+      model,
+    });
+    return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
+  } catch (err) {
+    console.log('[WebsitePipeline] Service image generation failed for:', serviceName);
+    return null;
+  }
+}
+
+/**
+ * Generate custom images for all services (parallel)
+ * This is the PREMIUM option - fully AI-generated imagery
+ */
+export async function generateCustomServiceImages(
+  services: { name: string; description: string }[],
+  industry: string,
+  imageModel: string
+): Promise<Record<string, string>> {
+  console.log(`[WebsitePipeline] Generating ${services.length} custom service images with Nano Banana...`);
+
+  const results = await Promise.all(
+    services.slice(0, 6).map(async (service) => {
+      const image = await generateServiceImage(service.name, service.description, industry, imageModel);
+      return { name: service.name, image };
+    })
+  );
+
+  const imageMap: Record<string, string> = {};
+  results.forEach(({ name, image }) => {
+    if (image) {
+      imageMap[name] = image;
+    }
+  });
+
+  console.log(`[WebsitePipeline] Generated ${Object.keys(imageMap).length} custom service images`);
+  return imageMap;
+}
+
+/**
+ * Generate team member avatars with Nano Banana
+ * Creates diverse, professional-looking team photos
+ */
+async function generateTeamAvatar(
+  memberDescription: string,
+  industry: string,
+  model: string
+): Promise<string | null> {
+  const prompt = `Professional headshot portrait for a ${industry} business team member.
+
+PERSON: ${memberDescription}
+
+REQUIREMENTS:
+- Clean, professional headshot style
+- Neutral background (light gray or soft gradient)
+- Friendly, approachable expression
+- Business casual or professional attire
+- Good lighting, sharp focus
+- Square composition (1:1 aspect ratio)
+- Studio quality portrait
+
+IMPORTANT: Photorealistic, not illustrated. High-end corporate headshot style.`;
+
+  try {
+    const result = await createGeminiImageGeneration({
+      prompt,
+      systemPrompt: `Create photorealistic professional headshots. The person should look trustworthy, competent, and approachable. Match the ${industry} industry vibe.`,
+      model,
+    });
+    return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
+  } catch (err) {
+    console.log('[WebsitePipeline] Team avatar generation failed');
+    return null;
+  }
+}
+
+/**
+ * Generate about section image with Nano Banana
+ */
+async function generateAboutImage(
+  businessName: string,
+  industry: string,
+  storyContext: string,
+  model: string
+): Promise<string | null> {
+  const prompt = `About section image for "${businessName}" - a ${industry} business.
+
+CONTEXT: ${storyContext.substring(0, 200)}
+
+REQUIREMENTS:
+- Shows team collaboration or workspace
+- Warm, welcoming atmosphere
+- Professional but not corporate-cold
+- Represents the company culture
+- Wide aspect ratio (16:9)
+- High-end photography quality
+- NO text or logos
+
+MOOD: Authentic, professional, human`;
+
+  try {
+    const result = await createGeminiImageGeneration({
+      prompt,
+      systemPrompt: `Create authentic about section imagery that shows the human side of a ${industry} business. Avoid stock photo clichés.`,
+      model,
+    });
+    return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
+  } catch (err) {
+    console.log('[WebsitePipeline] About image generation failed');
+    return null;
+  }
+}
+
+/**
+ * Generate all premium custom images for a website
+ * This replaces stock photos with AI-generated imagery
+ */
+export async function generatePremiumWebsiteImages(
+  context: GenerationContext,
+  imageModel: string
+): Promise<{
+  hero?: string;
+  about?: string;
+  services: Record<string, string>;
+  teamAvatars: string[];
+}> {
+  console.log('[WebsitePipeline] Generating PREMIUM custom images with Nano Banana...');
+
+  const businessModel = context.businessModel;
+  if (!businessModel) {
+    return { services: {}, teamAvatars: [] };
+  }
+
+  // Generate all images in parallel for speed
+  const [heroImage, aboutImage, serviceImages] = await Promise.all([
+    generateHeroBackground(context.businessName, context.industry, imageModel, {
+      colors: ['#8b5cf6', '#06b6d4'],
+      heroTheme: businessModel.tagline,
+      services: businessModel.services.map(s => s.name).slice(0, 3),
+    }),
+    generateAboutImage(
+      context.businessName,
+      context.industry,
+      businessModel.aboutContent.story,
+      imageModel
+    ),
+    generateCustomServiceImages(
+      businessModel.services.map(s => ({ name: s.name, description: s.description })),
+      context.industry,
+      imageModel
+    ),
+  ]);
+
+  // Generate team avatars if we have team descriptions
+  const teamAvatars: string[] = [];
+  if (businessModel.aboutContent.teamDescription) {
+    const avatar = await generateTeamAvatar(
+      'Professional team member, friendly and competent',
+      context.industry,
+      imageModel
+    );
+    if (avatar) teamAvatars.push(avatar);
+  }
+
+  console.log('[WebsitePipeline] Premium image generation complete');
+
+  return {
+    hero: heroImage || undefined,
+    about: aboutImage || undefined,
+    services: serviceImages,
+    teamAvatars,
+  };
+}
+
 // ============================================================================
 // Website HTML Generation
 // ============================================================================
