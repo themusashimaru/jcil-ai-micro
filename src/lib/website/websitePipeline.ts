@@ -522,66 +522,91 @@ const INDUSTRY_DESIGN_GUIDES: Record<string, {
   colors: string[];
   heroTheme: string;
   logoStyle: string;
+  fallbackHero: string; // Unsplash URL for when image generation fails
 }> = {
+  'driving school': {
+    symbols: ['steering wheel', 'car', 'road', 'traffic light', 'license'],
+    colors: ['#1E40AF (trust blue)', '#10B981 (safety green)', '#F59E0B (caution yellow)', '#FFFFFF (white)'],
+    heroTheme: 'Safe driving, confidence on the road, professional instruction, freedom',
+    logoStyle: 'Professional, trustworthy, modern with automotive elements',
+    fallbackHero: 'https://images.unsplash.com/photo-1449965408869-ebd3fee56a58?w=1920&q=80',
+  },
+  driving: {
+    symbols: ['steering wheel', 'car', 'road', 'traffic light', 'license'],
+    colors: ['#1E40AF (trust blue)', '#10B981 (safety green)', '#F59E0B (caution yellow)', '#FFFFFF (white)'],
+    heroTheme: 'Safe driving, confidence on the road, professional instruction, freedom',
+    logoStyle: 'Professional, trustworthy, modern with automotive elements',
+    fallbackHero: 'https://images.unsplash.com/photo-1449965408869-ebd3fee56a58?w=1920&q=80',
+  },
   tutoring: {
     symbols: ['graduation cap', 'book', 'lightbulb', 'pencil', 'brain'],
     colors: ['#1E3A8A (navy blue)', '#10B981 (emerald)', '#F59E0B (amber)', '#6366F1 (indigo)'],
     heroTheme: 'Academic success, bright futures, focused learning environment',
     logoStyle: 'Professional yet approachable, conveys expertise and trust',
+    fallbackHero: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80',
   },
   education: {
     symbols: ['graduation cap', 'open book', 'apple', 'lightbulb'],
     colors: ['#1E40AF (royal blue)', '#059669 (green)', '#DC2626 (red accent)', '#F8FAFC (white)'],
     heroTheme: 'Knowledge, growth, academic achievement',
     logoStyle: 'Academic, trustworthy, inspiring',
+    fallbackHero: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&q=80',
   },
   photography: {
     symbols: ['camera lens', 'aperture', 'shutter', 'light burst'],
     colors: ['#1F2937 (charcoal)', '#D4AF37 (gold)', '#FFFFFF (white)', '#374151 (gray)'],
     heroTheme: 'Artistic, creative, capturing moments',
     logoStyle: 'Elegant, artistic, premium feel',
+    fallbackHero: 'https://images.unsplash.com/photo-1471341971476-ae15ff5dd4ea?w=1920&q=80',
   },
   dental: {
     symbols: ['tooth', 'smile', 'dental mirror', 'shield'],
     colors: ['#0EA5E9 (dental blue)', '#22C55E (fresh green)', '#FFFFFF (white)', '#E0F2FE (light blue)'],
     heroTheme: 'Clean, trustworthy, modern healthcare, bright smiles',
     logoStyle: 'Professional, clean, medical yet friendly',
+    fallbackHero: 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=1920&q=80',
   },
   restaurant: {
     symbols: ['fork and knife', 'chef hat', 'plate', 'flame'],
     colors: ['#DC2626 (appetizing red)', '#F59E0B (warm gold)', '#1F2937 (elegant dark)', '#FEF3C7 (cream)'],
     heroTheme: 'Delicious food, warm atmosphere, culinary excellence',
     logoStyle: 'Appetizing, warm, inviting',
+    fallbackHero: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80',
   },
   salon: {
     symbols: ['scissors', 'hair strand', 'mirror', 'brush'],
     colors: ['#EC4899 (pink)', '#A855F7 (purple)', '#1F2937 (black)', '#FDF2F8 (blush)'],
     heroTheme: 'Beauty, elegance, self-care, transformation',
     logoStyle: 'Elegant, trendy, luxury',
+    fallbackHero: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=80',
   },
   fitness: {
     symbols: ['dumbbell', 'running figure', 'heart rate', 'flame'],
     colors: ['#EF4444 (energetic red)', '#1F2937 (power black)', '#F97316 (orange)', '#FFFFFF (white)'],
     heroTheme: 'Energy, strength, transformation, motivation',
     logoStyle: 'Bold, dynamic, powerful',
+    fallbackHero: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=80',
   },
   legal: {
     symbols: ['scales of justice', 'gavel', 'pillar', 'shield'],
     colors: ['#1E3A8A (navy)', '#B45309 (gold/bronze)', '#1F2937 (charcoal)', '#F8FAFC (white)'],
     heroTheme: 'Trust, authority, justice, professionalism',
     logoStyle: 'Authoritative, trustworthy, classic',
+    fallbackHero: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1920&q=80',
   },
   realestate: {
     symbols: ['house', 'key', 'building', 'roof'],
     colors: ['#1E40AF (trust blue)', '#059669 (growth green)', '#B45309 (warm gold)', '#FFFFFF (white)'],
     heroTheme: 'Dream homes, new beginnings, community, investment',
     logoStyle: 'Professional, trustworthy, aspirational',
+    fallbackHero: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1920&q=80',
   },
   default: {
     symbols: ['abstract geometric shape', 'professional icon'],
     colors: ['#3B82F6 (blue)', '#1F2937 (charcoal)', '#10B981 (green)', '#F8FAFC (white)'],
     heroTheme: 'Professional, modern, trustworthy',
     logoStyle: 'Clean, modern, professional',
+    fallbackHero: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920&q=80',
   },
 };
 
@@ -600,10 +625,14 @@ function buildDesignContext(
   services: string[];
   location?: string;
   stylePreference?: string;
+  fallbackHero: string;
 } {
-  // Get industry-specific defaults
+  // Get industry-specific defaults - try multiple variations
   const industryLower = industry.toLowerCase();
-  const guide = INDUSTRY_DESIGN_GUIDES[industryLower] || INDUSTRY_DESIGN_GUIDES.default;
+  const guide = INDUSTRY_DESIGN_GUIDES[industryLower]
+    || INDUSTRY_DESIGN_GUIDES[industryLower.replace(' school', '')]
+    || INDUSTRY_DESIGN_GUIDES[industryLower.split(' ')[0]]
+    || INDUSTRY_DESIGN_GUIDES.default;
 
   // Merge with research recommendations
   const colors = research?.colorRecommendations?.length
@@ -618,6 +647,7 @@ function buildDesignContext(
     services: extractedInfo?.services || research?.typicalServices || [],
     location: extractedInfo?.location,
     stylePreference: extractedInfo?.stylePreference,
+    fallbackHero: guide.fallbackHero,
   };
 }
 
@@ -677,14 +707,23 @@ export async function generateWebsiteAssets(
     assets.faviconApple = essentialAssets[0].value;
     console.log('[WebsitePipeline] ✓ Logo generated (also used as favicon)');
   } else {
-    console.log('[WebsitePipeline] ✗ Logo generation failed or timed out');
+    // FALLBACK: Generate an SVG text logo when image generation fails
+    console.log('[WebsitePipeline] ✗ Logo generation failed, using SVG text fallback');
+    const primaryColor = designContext.colors[0]?.match(/#[A-Fa-f0-9]{6}/)?.[0] || '#1E40AF';
+    const svgLogo = generateSVGTextLogo(businessName, primaryColor);
+    assets.logo = svgLogo;
+    assets.favicon32 = svgLogo;
+    assets.favicon16 = svgLogo;
+    assets.faviconApple = svgLogo;
   }
 
   if (essentialAssets[1].status === 'fulfilled' && essentialAssets[1].value) {
     assets.heroBackground = essentialAssets[1].value;
     console.log('[WebsitePipeline] ✓ Hero background generated');
   } else {
-    console.log('[WebsitePipeline] ✗ Hero background generation failed or timed out');
+    // FALLBACK: Use high-quality Unsplash image for the industry
+    console.log('[WebsitePipeline] ✗ Hero generation failed, using Unsplash fallback');
+    assets.heroBackground = designContext.fallbackHero;
   }
 
   // SKIP section images and team avatars to stay fast
@@ -692,6 +731,45 @@ export async function generateWebsiteAssets(
   console.log('[WebsitePipeline] Skipping secondary assets for speed (can enhance later)');
 
   return assets;
+}
+
+/**
+ * Generate an SVG text-based logo when image generation fails
+ * Creates a professional-looking logo with the business initials
+ */
+function generateSVGTextLogo(businessName: string, primaryColor: string): string {
+  // Get initials (first letter of each word, max 2)
+  const words = businessName.split(/\s+/).filter(w => w.length > 0);
+  const initials = words.slice(0, 2).map(w => w[0].toUpperCase()).join('');
+
+  // Create SVG logo
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:${primaryColor};stop-opacity:1" />
+      <stop offset="100%" style="stop-color:${adjustColor(primaryColor, -30)};stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="56" height="56" rx="12" fill="url(#grad)"/>
+  <text x="30" y="42" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">${initials}</text>
+  <text x="70" y="38" font-family="Arial, sans-serif" font-size="18" font-weight="600" fill="${primaryColor}">${businessName}</text>
+</svg>`;
+
+  // Convert to base64 data URL
+  const base64 = Buffer.from(svg).toString('base64');
+  return `data:image/svg+xml;base64,${base64}`;
+}
+
+/**
+ * Adjust color brightness (positive = lighter, negative = darker)
+ */
+function adjustColor(hex: string, percent: number): string {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amt));
+  const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
+  return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
 }
 
 async function generateLogo(
@@ -908,6 +986,39 @@ CRITICAL COLOR RULES:
 - Sections can have colored backgrounds, but ensure contrast
 - NO fully dark/black pages - users need to see content
 - Hero can be darker with light text, rest of page should be light
+
+🚨 ABSOLUTELY FORBIDDEN - DO NOT DO THESE:
+- NEVER use emoji as image placeholders (no 📷, 🖼️, 👤, etc.)
+- NEVER use empty divs where images should go
+- NEVER use "Coming Soon" or "Image Here" placeholders
+- NEVER leave any section incomplete or stubbed out
+- NEVER use non-functional buttons or links (all must work)
+
+FOR IMAGES:
+- Use the provided asset URLs (logo, hero background)
+- For any additional images, use professional Unsplash URLs:
+  - Team photos: https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop (vary the photo ID)
+  - Service images: Use relevant Unsplash URLs for the industry
+- For icons, use inline SVG icons (heroicons style) - NOT emoji
+- Example inline SVG: <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">...</svg>
+
+INTERACTIVITY REQUIREMENTS (ALL MUST WORK):
+- Navigation links must smooth-scroll to sections with scroll-behavior: smooth
+- Mobile hamburger menu MUST toggle open/close with JavaScript
+- All buttons must have hover effects (transform, shadow, color change)
+- Form must have client-side validation and show success message
+- Cards should have hover lift effect (translateY + shadow)
+- Add scroll-triggered fade-in animations using IntersectionObserver
+
+MOBILE MENU JAVASCRIPT (INCLUDE THIS):
+\`\`\`
+const menuBtn = document.querySelector('.menu-toggle');
+const nav = document.querySelector('.nav-menu');
+menuBtn?.addEventListener('click', () => {
+  nav?.classList.toggle('active');
+  menuBtn?.classList.toggle('active');
+});
+\`\`\`
 
 OUTPUT: Raw HTML only. No markdown. No code blocks. Complete document.`;
 
