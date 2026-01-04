@@ -611,13 +611,246 @@ OUTPUT: Raw HTML only. No markdown. No code blocks. Complete document.`;
 
   let html = result.text || '';
 
+  // CRITICAL: Log raw response for debugging
+  console.log('[WebsitePipeline] Raw Gemini response length:', html.length);
+  console.log('[WebsitePipeline] Response starts with:', html.substring(0, 200));
+
+  // Validate that we got actual HTML content
+  const hasHtmlContent = html.includes('<body') || html.includes('<div') || html.includes('<section') || html.includes('<header');
+  const hasDoctype = html.includes('<!DOCTYPE') || html.includes('<html');
+
+  if (!html || html.length < 500 || (!hasHtmlContent && !hasDoctype)) {
+    console.error('[WebsitePipeline] ⚠️ INVALID RESPONSE FROM GEMINI - generating fallback');
+    console.error('[WebsitePipeline] Response preview:', html.substring(0, 500));
+
+    // Generate a fallback website
+    html = generateFallbackWebsite(context.businessName, context.industry, assets);
+  }
+
   // Clean up the HTML
   html = cleanGeneratedHtml(html);
+
+  // Validate again after cleaning
+  if (!validateHtmlHasContent(html)) {
+    console.error('[WebsitePipeline] ⚠️ HTML still empty after cleaning - using fallback');
+    html = generateFallbackWebsite(context.businessName, context.industry, assets);
+  }
 
   // Inject any missing assets
   html = injectMissingAssets(html, assets, context.businessName);
 
+  console.log('[WebsitePipeline] Final HTML length:', html.length);
+  console.log('[WebsitePipeline] HTML body check:', html.includes('<body') ? 'OK' : 'MISSING');
+
   return html;
+}
+
+/**
+ * Validate that HTML has actual body content
+ */
+function validateHtmlHasContent(html: string): boolean {
+  // Check for body tag with content
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (!bodyMatch) return false;
+
+  const bodyContent = bodyMatch[1].trim();
+  // Body should have at least 100 chars of actual content
+  return bodyContent.length > 100;
+}
+
+/**
+ * Generate a fallback website when AI fails
+ */
+function generateFallbackWebsite(businessName: string, industry: string, assets: WebsiteAssets): string {
+  console.log('[WebsitePipeline] Generating fallback website for:', businessName);
+
+  const logoImg = assets.logo ? `<img src="${assets.logo}" alt="${businessName}" style="max-height: 60px; width: auto;">` : `<h1 style="margin: 0; font-size: 1.5rem; font-weight: bold;">${businessName}</h1>`;
+  const heroStyle = assets.heroBackground
+    ? `background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${assets.heroBackground}'); background-size: cover; background-position: center;`
+    : 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${businessName} - ${industry}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  ${assets.favicon32 ? `<link rel="icon" type="image/png" href="${assets.favicon32}">` : ''}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #1a1a1a; background-color: #ffffff; }
+
+    /* Navigation */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.1); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    nav a { color: inherit; text-decoration: none; }
+    nav ul { display: flex; gap: 2rem; list-style: none; }
+    nav ul li a { color: #555; font-weight: 500; transition: color 0.3s; }
+    nav ul li a:hover { color: #8b5cf6; }
+    .cta-btn { background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3); }
+
+    /* Hero */
+    .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; padding: 2rem; ${heroStyle} }
+    .hero h1 { font-size: 3.5rem; font-weight: 700; margin-bottom: 1rem; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+    .hero p { font-size: 1.25rem; max-width: 600px; margin-bottom: 2rem; opacity: 0.9; }
+    .hero-buttons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    .hero-buttons .cta-btn { font-size: 1.1rem; padding: 1rem 2rem; }
+    .secondary-btn { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 2px solid white; }
+
+    /* Sections */
+    section { padding: 5rem 2rem; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h2 { font-size: 2.5rem; font-weight: 700; text-align: center; margin-bottom: 3rem; }
+
+    /* Services */
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+    .service-card { background: #f8fafc; border-radius: 16px; padding: 2rem; text-align: center; transition: transform 0.3s, box-shadow 0.3s; }
+    .service-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+    .service-card .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .service-card h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .service-card p { color: #666; }
+
+    /* About */
+    .about { background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); }
+    .about-content { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .about-text h2 { text-align: left; }
+    .about-text p { color: #555; margin-bottom: 1rem; }
+    .about-image { border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.15); }
+    .about-image img { width: 100%; height: auto; }
+
+    /* Contact */
+    .contact { background: #1a1a2e; color: white; }
+    .contact h2 { color: white; }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+    .contact-form { background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 16px; }
+    .contact-form input, .contact-form textarea { width: 100%; padding: 1rem; margin-bottom: 1rem; border: none; border-radius: 8px; background: rgba(255,255,255,0.9); font-family: inherit; }
+    .contact-form textarea { min-height: 150px; resize: vertical; }
+    .contact-form button { width: 100%; }
+    .contact-info h3 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+    .contact-info p { color: rgba(255,255,255,0.8); margin-bottom: 1rem; }
+
+    /* Footer */
+    footer { background: #0f0f1a; color: rgba(255,255,255,0.6); padding: 3rem 2rem; text-align: center; }
+    footer p { margin-bottom: 1rem; }
+    footer a { color: #8b5cf6; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.5rem; }
+      nav ul { display: none; }
+      .about-content, .contact-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    ${logoImg}
+    <ul>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <a href="#contact" class="cta-btn">Get Started</a>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <h1>Welcome to ${businessName}</h1>
+    <p>Your trusted partner in ${industry}. We deliver excellence, innovation, and results that exceed expectations.</p>
+    <div class="hero-buttons">
+      <a href="#contact" class="cta-btn">Get a Free Quote</a>
+      <a href="#services" class="cta-btn secondary-btn">Our Services</a>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section id="services">
+    <div class="container">
+      <h2>Our Services</h2>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="icon">⚡</div>
+          <h3>Premium Service</h3>
+          <p>Experience top-tier ${industry} solutions tailored to your unique needs.</p>
+        </div>
+        <div class="service-card">
+          <div class="icon">🎯</div>
+          <h3>Expert Consultation</h3>
+          <p>Get personalized advice from our team of industry experts.</p>
+        </div>
+        <div class="service-card">
+          <div class="icon">🚀</div>
+          <h3>Fast Delivery</h3>
+          <p>We pride ourselves on quick turnaround without compromising quality.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section id="about" class="about">
+    <div class="container about-content">
+      <div class="about-text">
+        <h2>About ${businessName}</h2>
+        <p>We are a dedicated team of ${industry} professionals committed to delivering exceptional results for our clients.</p>
+        <p>With years of experience and a passion for excellence, we've helped countless customers achieve their goals.</p>
+        <p>Our mission is to provide the highest quality service while building lasting relationships with our clients.</p>
+      </div>
+      <div class="about-image">
+        ${assets.sectionImages.about
+          ? `<img src="${assets.sectionImages.about}" alt="About ${businessName}">`
+          : `<div style="height: 300px; background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">📸</div>`}
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section id="contact" class="contact">
+    <div class="container contact-grid">
+      <div class="contact-form">
+        <h3 style="color: white; margin-bottom: 1.5rem;">Send Us a Message</h3>
+        <form onsubmit="event.preventDefault(); alert('Thank you! We\\'ll be in touch soon.');">
+          <input type="text" name="name" placeholder="Your Name" required>
+          <input type="email" name="email" placeholder="Your Email" required>
+          <input type="tel" name="phone" placeholder="Your Phone">
+          <textarea name="message" placeholder="How can we help you?" required></textarea>
+          <button type="submit" class="cta-btn" style="border: none; cursor: pointer; font-size: 1rem;">Send Message</button>
+        </form>
+      </div>
+      <div class="contact-info">
+        <h3>Get in Touch</h3>
+        <p>📍 Contact us for location details</p>
+        <p>📞 Call us for immediate assistance</p>
+        <p>✉️ Email us anytime</p>
+        <p>🕐 We're here to help!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; ${new Date().getFullYear()} ${businessName}. All rights reserved.</p>
+      <p>Built with ❤️ by FORGE & MUSASHI</p>
+    </div>
+  </footer>
+
+  <script>
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>`;
 }
 
 function buildAssetContext(assets: WebsiteAssets): string {
