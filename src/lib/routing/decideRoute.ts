@@ -356,6 +356,125 @@ const SITE_CLONING_PATTERNS = [
 ];
 
 /**
+ * Website modification intent detection patterns
+ * Matches requests to modify an existing website that's in the session
+ */
+const WEBSITE_MODIFICATION_PATTERNS = [
+  // Direct modification requests
+  /\b(change|modify|update|edit|adjust|fix|tweak|alter)\b.*\b(website|page|site|section|color|font|text|image|layout|header|footer|nav|hero|pricing|about|contact|testimonials?)\b/i,
+
+  // Size/style adjustments
+  /\b(make|can you make)\b.*\b(it|the|this|that)\b.*\b(bigger|smaller|darker|lighter|different|bold|italic|larger|wider|narrower)\b/i,
+
+  // Remove/delete requests
+  /\b(remove|delete|get rid of|hide|take out)\b.*\b(section|element|button|image|text|feature|banner|popup)\b/i,
+
+  // Add/include requests
+  /\b(add|include|insert|put in|incorporate)\b.*\b(section|button|image|text|feature|form|link|social)\b/i,
+
+  // Move/reposition requests
+  /\b(move|reposition|relocate|swap|rearrange)\b.*\b(section|element|button|component)\b/i,
+
+  // "The website needs/should" patterns
+  /\b(the|that|this)\s+(website|page|site)\b.*\b(needs?|should|could|has to|must)\b/i,
+
+  // Preference/dislike patterns
+  /\bi\s*(don'?t|do not)\s*like\b.*\b(color|font|layout|design|style|look)\b/i,
+  /\b(instead|rather|prefer)\b.*\b(color|font|style|design|layout)\b/i,
+
+  // Simple edit commands
+  /\bchange\s+the\s+(color|font|text|title|heading|button|background|image|logo)/i,
+  /\bmake\s+it\s+(look|appear|feel|seem)\b/i,
+  /\bupdate\s+the\s+(text|content|copy|wording|title|heading)/i,
+
+  // Color-specific changes
+  /\b(use|try|switch to|change to)\b.*\b(blue|red|green|purple|orange|yellow|pink|black|white|gray|grey|color)\b/i,
+
+  // Specific section edits
+  /\b(edit|modify|change|update)\s+(the\s+)?(hero|header|footer|about|pricing|contact|testimonial|faq|service)\s+(section)?/i,
+
+  // GitHub/Deploy actions (these are modifications to the workflow, not new websites)
+  /\b(push|deploy|publish)\s+(this|the|it)\s+(to|on)\s+(github|vercel|netlify)/i,
+  /\b(save|commit)\s+(this|the)\s+(to|on)\s+github/i,
+];
+
+/**
+ * Check if a message is requesting modification to an existing website
+ */
+export function hasWebsiteModificationIntent(text: string): { isModification: boolean; matchedPattern?: string } {
+  const normalizedText = text.trim();
+
+  for (const pattern of WEBSITE_MODIFICATION_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      return {
+        isModification: true,
+        matchedPattern: pattern.source
+      };
+    }
+  }
+
+  return { isModification: false };
+}
+
+/**
+ * Code Execution Intent Detection Patterns
+ * Matches requests to run, test, execute, or build code
+ */
+const CODE_EXECUTION_PATTERNS = [
+  // Run/Execute requests
+  /\b(run|execute|test|try)\s+(this|the|my|that)\s+(code|script|function|program|file)\b/i,
+  /\b(run|execute)\s+(it|this)\b/i,
+  /\bcan\s+you\s+(run|test|execute|try)\s+(this|the|my|it)\b/i,
+  /\b(let'?s|let\s+me|i\s+want\s+to)\s+(run|test|execute|try)\s+(it|this|the)\b/i,
+
+  // Test requests
+  /\b(run|execute)\s+(the\s+)?(tests?|unit\s+tests?|integration\s+tests?|e2e)\b/i,
+  /\bnpm\s+(run\s+)?(test|build|start|dev)\b/i,
+  /\byarn\s+(test|build|start|dev)\b/i,
+  /\bpnpm\s+(test|build|start|dev)\b/i,
+  /\bbun\s+(test|build|run|start)\b/i,
+
+  // Build requests
+  /\b(build|compile)\s+(the\s+)?(project|app|code|application)\b/i,
+  /\b(npm|yarn|pnpm)\s+(run\s+)?build\b/i,
+
+  // Verify/check requests
+  /\b(verify|check|validate)\s+(if\s+)?(this|the|it|my)\s+(works?|code|compiles?)\b/i,
+  /\bdoes\s+(this|it)\s+(work|compile|run)\b/i,
+  /\bwill\s+(this|it)\s+(work|compile|run)\b/i,
+
+  // Install & run
+  /\b(install|setup)\s+(and\s+)?(run|test|build)\b/i,
+  /\bnpm\s+install\s+(&&|and)\s+(npm\s+)?(run\s+)?(test|build|start)\b/i,
+
+  // Debug execution
+  /\b(debug|troubleshoot)\s+(by\s+)?(running|executing|testing)\b/i,
+  /\brun\s+(this\s+)?(to\s+)?(see|check|verify|debug)\b/i,
+
+  // Sandbox/VM explicit
+  /\b(in\s+)?(the\s+)?(sandbox|vm|virtual\s+machine)\b/i,
+  /\bexecute\s+in\s+(isolation|sandbox)\b/i,
+];
+
+/**
+ * Check if a message is requesting code execution
+ */
+export function hasCodeExecutionIntent(text: string): { isExecution: boolean; matchedPattern?: string } {
+  const normalizedText = text.trim();
+
+  for (const pattern of CODE_EXECUTION_PATTERNS) {
+    if (pattern.test(normalizedText)) {
+      return {
+        isExecution: true,
+        matchedPattern: pattern.source
+      };
+    }
+  }
+
+  return { isExecution: false };
+}
+
+/**
  * GitHub/Developer Intent Detection Patterns
  * ===========================================
  *

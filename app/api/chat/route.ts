@@ -49,7 +49,9 @@ import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getSystemPromptForTool, getAnthropicSearchOverride, getGeminiSearchGuidance } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
-import { decideRoute, logRouteDecision, hasWebsiteIntent } from '@/lib/routing/decideRoute';
+import { decideRoute, logRouteDecision, hasWebsiteIntent, hasCodeExecutionIntent, RouteTarget } from '@/lib/routing/decideRoute';
+import { executeCode, extractCodeBlocks, shouldTestCode } from '@/lib/agents/codeExecutor';
+import { isSandboxConfigured } from '@/lib/connectors/vercel-sandbox';
 import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider, getModelForTier, getDeepSeekReasoningModel, getGeminiImageModel, getVideoModel } from '@/lib/provider/settings';
 import {
@@ -90,7 +92,8 @@ import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
 import { isConnectorsEnabled } from '@/lib/connectors';
-import { detectCategory, extractBusinessInfo, getTemplateByCategory, applyBusinessInfo, saveGeneratedSite } from '@/lib/templates/templateService';
+// FORGE & MUSASHI: Pure AI mode - only using category detection for context, not templates
+import { detectCategory, extractBusinessInfo } from '@/lib/templates/templateService';
 import {
   generateLoginPage,
   generateSignupPage,
@@ -105,6 +108,19 @@ import {
   githubFunctionDeclarations,
   executeGitHubTool,
 } from '@/lib/gemini/githubTools';
+// FORGE & MUSASHI: Website Pipeline - comprehensive website generation with all assets
+import {
+  generateCompleteWebsite,
+  getActiveWebsiteSession,
+  applyWebsiteModification,
+  pushWebsiteToGitHub,
+  deployWebsiteToVercel,
+  isGitHubPushRequest,
+  isVercelDeployRequest,
+  GenerationContext,
+  WebsiteSession,
+} from '@/lib/website/websitePipeline';
+import { hasWebsiteModificationIntent } from '@/lib/routing/decideRoute';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -1477,7 +1493,18 @@ export async function POST(request: NextRequest) {
     let taskPlanText: string | null = null;
     let taskPlanResult: Awaited<ReturnType<typeof analyzeRequest>> | null = null;
 
-    if (isTaskPlanningEnabled() && lastUserContent) {
+    // FORGE & MUSASHI: Skip task planning for direct routes (website, video, image)
+    // These have their own specialized handlers that are more powerful
+    // Do early route check (without file uploads) to determine if we should skip
+    const skipTaskPlanningForRoutes: RouteTarget[] = ['website', 'video', 'image'];
+    const earlyRouteCheck = decideRoute(lastUserContent, tool);
+    const shouldSkipTaskPlanning = skipTaskPlanningForRoutes.includes(earlyRouteCheck.target);
+
+    if (shouldSkipTaskPlanning) {
+      console.log(`[Chat API] FORGE & MUSASHI: Skipping task planner for direct route: ${earlyRouteCheck.target}`);
+    }
+
+    if (isTaskPlanningEnabled() && lastUserContent && !shouldSkipTaskPlanning) {
       try {
         // Get recent context for better classification
         const recentContext = messages
@@ -1771,7 +1798,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if we should route to website/landing page generation
+    // ========================================
+    // FORGE & MUSASHI: WEBSITE GENERATION PIPELINE
+    // Complete website generation with all assets
+    // ========================================
     if (routeDecision.target === 'website') {
       // FORGE & MUSASHI: Enhanced website detection with multi-page, cloning, and auth support
       const websiteIntent = hasWebsiteIntent(lastUserContent);
@@ -1789,157 +1819,192 @@ export async function POST(request: NextRequest) {
         const imageModel = await getGeminiImageModel();
         console.log('[Chat API] Using Gemini model:', geminiModel, 'Image model:', imageModel);
 
-        // FORGE & MUSASHI: Template RAG System
-        // Step 1: Detect the business category from user's prompt
-        const detectedCategory = detectCategory(lastUserContent);
-        console.log('[Chat API] Detected category:', detectedCategory);
+        // Check if this is a modification request to an existing website
+        const modificationCheck = hasWebsiteModificationIntent(lastUserContent);
+        let existingSession: WebsiteSession | null = null;
 
-        // Step 2: Extract business info using our intelligent extraction
-        const extractedInfo = extractBusinessInfo(lastUserContent);
-
-        // Step 3: Try to get a matching template from RAG
-        const template = await getTemplateByCategory(detectedCategory);
-        const usingTemplate = !!template;
-        console.log('[Chat API] Template found:', usingTemplate, template?.name || 'N/A');
-
-        // Fallback business name extraction if our extraction didn't find one
-        const businessNameMatch = lastUserContent.match(/(?:for|called|named|business)\s+["\']?([^"'\n,]+)["\']?/i) ||
-                                  lastUserContent.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:detailing|salon|gym|restaurant|agency|shop|store|service|studio|clinic|dental|law|firm)/i);
-        const businessName = extractedInfo.name || (businessNameMatch ? businessNameMatch[1].trim() : 'Your Business');
-
-        // Generate logo with Nano Banana (parallel with main generation for speed)
-        let logoDataUrl = '';
-        let heroImageDataUrl = '';
-
-        // Try to generate images in parallel (don't block if it fails)
-        const imagePromises = Promise.allSettled([
-          // Generate logo
-          createGeminiImageGeneration({
-            prompt: `Professional minimalist logo for "${businessName}". Modern, clean, memorable. Single icon or stylized text. High contrast, works on any background. NO text unless it's the business name stylized.`,
-            systemPrompt: 'You are a world-class logo designer. Create a simple, professional logo that would cost $500+ from a design agency. The logo should be memorable, scalable, and work in any context.',
-            model: imageModel,
-          }),
-          // Generate hero image
-          createGeminiImageGeneration({
-            prompt: `Hero background image for ${businessName} website. Professional, high-end, relevant to the business. Subtle, not busy. Perfect for overlaying text. Gradient or abstract patterns work great.`,
-            systemPrompt: 'Create a premium hero section background image. Should be subtle enough for text overlay but visually impactful. Think $10,000 website quality.',
-            model: imageModel,
-          }),
-        ]);
-
-        // Wait for images (with timeout to not block too long)
-        const imageTimeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 15000));
-        const imageResults = await Promise.race([imagePromises, imageTimeout]);
-
-        if (imageResults !== 'timeout') {
-          const [logoResult, heroResult] = imageResults;
-          if (logoResult.status === 'fulfilled') {
-            logoDataUrl = `data:${logoResult.value.mimeType};base64,${logoResult.value.imageData}`;
-            console.log('[Chat API] Logo generated successfully');
-          }
-          if (heroResult.status === 'fulfilled') {
-            heroImageDataUrl = `data:${heroResult.value.mimeType};base64,${heroResult.value.imageData}`;
-            console.log('[Chat API] Hero image generated successfully');
-          }
-        } else {
-          console.log('[Chat API] Image generation timed out, continuing without images');
+        if (rateLimitIdentifier) {
+          existingSession = await getActiveWebsiteSession(rateLimitIdentifier);
         }
 
-        // Enhanced system prompt with image injection
-        const websiteSystemPrompt = `You are an ELITE web developer and UX designer. You create websites that look like $10,000+ custom builds.
+        // Handle website modifications
+        if (modificationCheck.isModification && existingSession) {
+          console.log('[Chat API] FORGE & MUSASHI: Processing website modification...');
+          console.log('[Chat API] Matched pattern:', modificationCheck.matchedPattern);
 
-${logoDataUrl ? `LOGO IMAGE AVAILABLE: Use this data URL for the logo: "${logoDataUrl.substring(0, 50)}..." (I'll inject the full URL)` : ''}
-${heroImageDataUrl ? `HERO BACKGROUND AVAILABLE: Use this data URL for hero section: "${heroImageDataUrl.substring(0, 50)}..." (I'll inject the full URL)` : ''}
-
-CRITICAL DESIGN REQUIREMENTS:
-1. FULLY RESPONSIVE - Must look perfect on mobile (320px), tablet (768px), and desktop (1440px+)
-2. Use CSS Grid and Flexbox for layouts
-3. Mobile-first approach with min-width media queries
-4. Touch-friendly buttons (min 44px tap targets)
-5. Hamburger menu for mobile navigation
-
-STRUCTURE (all sections required):
-- Sticky navigation with logo and menu
-- Hero section with headline, subheadline, CTA button${heroImageDataUrl ? ', and the provided background image' : ''}
-- Services/pricing with 3 tiers (Basic, Pro, Premium with realistic prices)
-- About section with credibility (years in business, clients served, etc.)
-- Testimonials carousel (3 reviews with names, photos, locations)
-- Contact form with name, email, phone, message
-- Footer with hours, address, social links, copyright
-
-VISUAL DESIGN:
-- Modern glassmorphism effects (backdrop-blur, subtle gradients)
-- CSS custom properties for easy theming
-- Smooth scroll behavior
-- Subtle animations on scroll (fade-in, slide-up)
-- Professional color palette matching the industry
-- Inter or Poppins font from Google Fonts
-${logoDataUrl ? '- Display the provided logo in the header (max-height: 60px)' : '- Use stylized text logo with the business name'}
-
-TECHNICAL:
-- Output ONLY raw HTML (no \`\`\` markdown blocks)
-- All CSS in <style> tag, all JS in <script> tag
-- Include Google Fonts link
-- Form action can be "#" or a placeholder
-- Images should use object-fit: cover
-- Use semantic HTML5 elements
-
-OUTPUT THE COMPLETE HTML FILE NOW:`;
-
-        let generatedCode = '';
-
-        // FORGE & MUSASHI: Use Template RAG if we have a matching template
-        if (usingTemplate && template) {
-          console.log('[Chat API] Using Template RAG - Applying template:', template.name);
-
-          // Prepare business info object
-          const businessInfo = {
-            name: businessName,
-            tagline: extractedInfo.description || `Your trusted ${detectedCategory.replace(/-/g, ' ')} partner`,
-            description: lastUserContent.includes('description')
-              ? lastUserContent
-              : `Welcome to ${businessName}. We provide exceptional ${detectedCategory.replace(/-/g, ' ')} services with a focus on quality and customer satisfaction.`,
-            phone: extractedInfo.phone || '(555) 123-4567',
-            email: extractedInfo.email || `info@${businessName.toLowerCase().replace(/\s+/g, '')}.com`,
-            address: '123 Main Street, Your City, ST 12345',
-          };
-
-          // Apply business info and inject images
-          generatedCode = applyBusinessInfo(
-            template,
-            businessInfo,
-            {
-              logo: logoDataUrl || undefined,
-              hero: heroImageDataUrl || undefined,
-            }
+          const modResult = await applyWebsiteModification(
+            existingSession,
+            lastUserContent,
+            geminiModel
           );
 
-          // Save generated site for tracking
-          await saveGeneratedSite(
-            rateLimitIdentifier,
-            template.id,
-            businessName,
-            detectedCategory,
-            generatedCode
-          ).catch(err => console.error('[Chat API] Failed to save generated site:', err));
-
-          console.log('[Chat API] Template applied successfully');
-        } else {
-          // Fallback to AI generation if no template found
-          console.log('[Chat API] No template found, using AI generation');
-
-          const websiteResult = await createGeminiCompletion({
-            messages: [
-              { role: 'user', content: lastUserContent }
-            ],
-            tool: 'code' as ToolType,
-            systemPrompt: websiteSystemPrompt,
-            userId: rateLimitIdentifier,
-            model: geminiModel,
-          });
-
-          generatedCode = websiteResult.text || '';
+          if (modResult.success) {
+            return new Response(
+              JSON.stringify({
+                type: 'code_preview',
+                content: `**Website Updated!**\n\n${modResult.changesDescription}\n\nClick **"Open Preview"** to see the changes!\n\n*Want more changes? Just tell me what to adjust. When you're happy, say "push to GitHub" or "deploy to Vercel"!*`,
+                model: geminiModel,
+                codePreview: {
+                  code: modResult.html,
+                  language: 'html',
+                  title: existingSession.businessName,
+                  description: `Modified: ${lastUserContent.slice(0, 80)}...`,
+                },
+              }),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Route-Target': 'website-modification',
+                  'X-Session-Id': existingSession.id,
+                },
+              }
+            );
+          }
         }
+
+        // Handle GitHub push requests
+        if (existingSession && isGitHubPushRequest(lastUserContent)) {
+          console.log('[Chat API] FORGE & MUSASHI: Processing GitHub push request...');
+
+          // Get GitHub token for the user
+          const githubToken = await getGitHubTokenForUser(rateLimitIdentifier || '');
+
+          if (!githubToken) {
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: `**GitHub Not Connected**\n\nTo push your website to GitHub, you need to connect your GitHub account:\n\n1. Go to **Settings** → **Connectors**\n2. Click **Connect GitHub**\n3. Authorize access\n4. Come back and say "push to GitHub" again!\n\nYour website is saved and ready to push once connected.`,
+                model: geminiModel,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              }
+            );
+          }
+
+          const pushResult = await pushWebsiteToGitHub(existingSession, githubToken);
+
+          if (pushResult.success) {
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: `**Website Pushed to GitHub!** 🚀\n\nYour website is now live on GitHub:\n\n📁 **Repository**: [${pushResult.repoUrl}](${pushResult.repoUrl})\n\n*What's next?*\n- Say "deploy to Vercel" to go live\n- Enable GitHub Pages for free hosting\n- Clone the repo to make local changes`,
+                model: geminiModel,
+              }),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Route-Target': 'website-github-push',
+                  'X-Repo-Url': pushResult.repoUrl || '',
+                },
+              }
+            );
+          } else {
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: `**GitHub Push Failed**\n\nSorry, I couldn't push to GitHub: ${pushResult.error}\n\nPlease try again or check your GitHub connection in Settings.`,
+                model: geminiModel,
+              }),
+              {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+              }
+            );
+          }
+        }
+
+        // Handle Vercel deployment requests
+        if (existingSession && isVercelDeployRequest(lastUserContent)) {
+          console.log('[Chat API] FORGE & MUSASHI: Processing Vercel deployment request...');
+
+          const deployResult = await deployWebsiteToVercel(existingSession);
+
+          if (deployResult.success) {
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: `**Website Deployed to Vercel!** 🎉\n\nYour website is now LIVE:\n\n🌐 **Live URL**: [${deployResult.deploymentUrl}](${deployResult.deploymentUrl})\n\n*Your site is now accessible to the world!*\n\n**What's next?**\n- Share your URL with others\n- Connect a custom domain in Vercel dashboard\n- Say "push to GitHub" to save the source code`,
+                model: geminiModel,
+              }),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Route-Target': 'website-vercel-deploy',
+                  'X-Deployment-Url': deployResult.deploymentUrl || '',
+                },
+              }
+            );
+          } else {
+            return new Response(
+              JSON.stringify({
+                type: 'text',
+                content: `**Vercel Deployment Failed**\n\nSorry, I couldn't deploy to Vercel: ${deployResult.error}\n\nYou can still:\n- Preview your website using the "Open Preview" button\n- Push to GitHub and deploy from there\n- Download the HTML and host it anywhere`,
+                model: geminiModel,
+              }),
+              {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+              }
+            );
+          }
+        }
+
+        // New website generation
+        console.log('[Chat API] FORGE & MUSASHI: Generating new website with full asset pipeline...');
+
+        // Extract business info
+        const detectedCategory = detectCategory(lastUserContent);
+        const extractedInfo = extractBusinessInfo(lastUserContent);
+
+        // Smart business name extraction
+        const businessNameMatch = lastUserContent.match(/(?:for|called|named|business)\s+["\']?([^"'\n,]+)["\']?/i) ||
+                                  lastUserContent.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:detailing|salon|gym|restaurant|agency|shop|store|service|studio|clinic|dental|law|firm|ai|tech|startup)/i);
+        const businessName = extractedInfo.name || (businessNameMatch ? businessNameMatch[1].trim() : 'Your Business');
+
+        console.log('[Chat API] Business:', businessName, 'Industry:', detectedCategory);
+
+        // Build generation context
+        const context: GenerationContext = {
+          businessName,
+          industry: detectedCategory.replace(/-/g, ' '),
+          userPrompt: lastUserContent,
+          existingSession: existingSession || undefined,
+          isModification: false,
+        };
+
+        // Generate the complete website with all assets
+        const result = await generateCompleteWebsite(
+          rateLimitIdentifier || 'anonymous',
+          context,
+          geminiModel,
+          imageModel
+        );
+
+        if (!result.success) {
+          throw new Error(result.error || 'Website generation failed');
+        }
+
+        // Build response with asset summary
+        const assetSummary = [];
+        if (result.assets.favicon32) assetSummary.push('Custom favicon');
+        if (result.assets.logo) assetSummary.push('AI-generated logo');
+        if (result.assets.heroBackground) assetSummary.push('Hero background image');
+        if (Object.values(result.assets.sectionImages).some(Boolean)) {
+          assetSummary.push('Section images');
+        }
+        if (result.assets.teamAvatars.length > 0) {
+          assetSummary.push(`${result.assets.teamAvatars.length} team photos`);
+        }
+
+        // Get the generated code from result
+        let generatedCode = result.html;
+        const logoDataUrl = result.assets.logo || null;
+        const heroImageDataUrl = result.assets.heroBackground || null;
 
         // Clean the code
         generatedCode = generatedCode.trim();
@@ -2190,26 +2255,27 @@ Use the same design language as the home page.`;
         // ================================================
         // Build response content
         const features = [
-          logoDataUrl ? '🎨 AI-generated custom logo' : null,
-          heroImageDataUrl ? '🖼️ AI-generated hero background' : null,
-          '📱 Fully responsive (mobile, tablet, desktop)',
+          ...assetSummary.map(a => `🎨 ${a}`),
+          '📱 Fully responsive design',
           '💰 Industry-researched pricing',
           '⭐ Realistic testimonials',
-          '📝 Contact form ready',
-          '🎯 Conversion-optimized design',
-        ].filter(Boolean);
+          '📝 Working contact form',
+          '🎯 Conversion-optimized layout',
+          '✨ Micro-animations & effects',
+        ];
 
         return new Response(
           JSON.stringify({
             type: 'code_preview',
-            content: `**${title}**\n\nI've created a premium website with:\n${features.map(f => `- ${f}`).join('\n')}\n\nClick **"Open Preview"** to see it live!\n\n*Actions: Ask me to "push this to GitHub" or "deploy to Vercel" when ready!*`,
+            content: `**${result.title}**\n\nI've created a premium $10,000+ quality website with:\n${features.map(f => `- ${f}`).join('\n')}\n\nClick **"Open Preview"** to see it live!\n\n*What's next?*\n- Ask me to change colors, fonts, sections, or content\n- Say "push to GitHub" to save your code\n- Say "deploy to Vercel" to go live!`,
             model: geminiModel,
             codePreview: {
-              code: generatedCode,
+              code: result.html,
               language: 'html',
-              title: title,
-              description: `Generated with AI images for: ${lastUserContent.slice(0, 80)}${lastUserContent.length > 80 ? '...' : ''}`,
+              title: result.title,
+              description: result.description,
             },
+            sessionId: result.sessionId,
           }),
           {
             status: 200,
@@ -2218,7 +2284,8 @@ Use the same design language as the home page.`;
               'X-Route-Target': 'website',
               'X-Route-Reason': routeDecision.reason,
               'X-Model-Used': geminiModel,
-              'X-Images-Generated': `logo:${!!logoDataUrl},hero:${!!heroImageDataUrl}`,
+              'X-Session-Id': result.sessionId,
+              'X-Assets-Generated': assetSummary.join(','),
             },
           }
         );
@@ -2228,10 +2295,138 @@ Use the same design language as the home page.`;
         return new Response(
           JSON.stringify({
             type: 'text',
-            content: 'Sorry, I encountered an error generating the website. Please try again.',
+            content: `**Website Generation Error**\n\nSorry, I encountered an issue: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease try again with a clear description like:\n- "Create a website for [Business Name] - a [type of business]"\n- "Build a landing page for my AI startup called TechVision"`,
             model: fallbackModel,
           }),
-          { status: 500 }
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
+    // ========================================
+    // CODE EXECUTION (VM Sandbox)
+    // ========================================
+    // Check for code execution requests - run tests, build, execute code
+    const executionCheck = hasCodeExecutionIntent(lastUserContent);
+    if (executionCheck.isExecution) {
+      console.log('[Chat API] Code execution intent detected:', executionCheck.matchedPattern);
+
+      // Get OIDC token from request headers (Vercel provides this)
+      const oidcToken = request.headers.get('x-vercel-oidc-token');
+
+      // Check if sandbox is available
+      if (!isSandboxConfigured(oidcToken)) {
+        console.log('[Chat API] Sandbox not configured, providing guidance');
+        // Still handle the request but inform about sandbox status
+        const geminiModel = await getModelForTier('pro', 'gemini');
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `**Code Execution**\n\nI can see you want to run code! The sandbox VM is being configured.\n\nIn the meantime, here's what I can help with:\n- Review your code for errors\n- Suggest fixes\n- Explain what the code does\n\nWould you like me to analyze the code instead?`,
+            model: geminiModel,
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // Look for code in recent messages
+      const recentMessages = messages.slice(-5);
+      let codeToExecute: { language: string; code: string } | null = null;
+
+      for (const msg of recentMessages.reverse()) {
+        if (msg.role === 'assistant' && typeof msg.content === 'string') {
+          const blocks = extractCodeBlocks(msg.content);
+          // Find first executable code block
+          const executableBlock = blocks.find(b =>
+            ['javascript', 'typescript', 'python', 'js', 'ts', 'py'].includes(b.language.toLowerCase())
+          );
+          if (executableBlock) {
+            codeToExecute = {
+              language: executableBlock.language.toLowerCase().replace('js', 'javascript').replace('ts', 'typescript').replace('py', 'python'),
+              code: executableBlock.code,
+            };
+            break;
+          }
+        }
+      }
+
+      if (!codeToExecute) {
+        // Check user's message for code
+        const userBlocks = extractCodeBlocks(lastUserContent);
+        const executableUserBlock = userBlocks.find(b =>
+          ['javascript', 'typescript', 'python', 'js', 'ts', 'py'].includes(b.language.toLowerCase())
+        );
+        if (executableUserBlock) {
+          codeToExecute = {
+            language: executableUserBlock.language.toLowerCase().replace('js', 'javascript').replace('ts', 'typescript').replace('py', 'python'),
+            code: executableUserBlock.code,
+          };
+        }
+      }
+
+      if (codeToExecute && shouldTestCode(codeToExecute.code, codeToExecute.language)) {
+        console.log(`[Chat API] Executing ${codeToExecute.language} code in sandbox...`);
+
+        try {
+          const result = await executeCode({
+            type: 'snippet',
+            language: codeToExecute.language as 'javascript' | 'typescript' | 'python',
+            code: codeToExecute.code,
+          });
+
+          const geminiModel = await getModelForTier('pro', 'gemini');
+          const statusEmoji = result.success ? '✅' : '❌';
+          const statusText = result.success ? 'Success' : 'Failed';
+
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: `**Code Execution ${statusEmoji} ${statusText}**\n\n\`\`\`\n${result.output}\n\`\`\`\n${result.errors.length > 0 ? `\n**Errors:**\n${result.errors.join('\n')}\n` : ''}${result.suggestion ? `\n**Suggestion:** ${result.suggestion}` : ''}\n\n*Executed in ${result.executionTime}ms*`,
+              model: geminiModel,
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Execution-Time': String(result.executionTime),
+                'X-Execution-Success': String(result.success),
+              },
+            }
+          );
+        } catch (error) {
+          console.error('[Chat API] Code execution error:', error);
+          const geminiModel = await getModelForTier('pro', 'gemini');
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: `**Code Execution Error**\n\n${error instanceof Error ? error.message : 'Unknown error occurred'}\n\nPlease try again or paste the code you'd like me to run.`,
+              model: geminiModel,
+            }),
+            {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        }
+      } else {
+        // No executable code found
+        const geminiModel = await getModelForTier('pro', 'gemini');
+        return new Response(
+          JSON.stringify({
+            type: 'text',
+            content: `**Ready to Execute**\n\nI'm ready to run your code! Please share the code you'd like me to execute.\n\nSupported languages:\n- JavaScript / TypeScript\n- Python\n\nJust paste your code in a code block:\n\`\`\`javascript\nconsole.log('Hello World!');\n\`\`\``,
+            model: geminiModel,
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
         );
       }
     }
@@ -2250,7 +2445,10 @@ Use the same design language as the home page.`;
             content: 'To review GitHub repositories, please sign in first. Then connect your GitHub account in Settings > Connectors.',
             model: 'system',
           }),
-          { status: 401 }
+          {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          }
         );
       }
 
@@ -2277,7 +2475,10 @@ Once connected, I can:
 - 📝 Create branches and pull requests`,
             model: 'system',
           }),
-          { status: 200 }
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
         );
       }
 
@@ -2549,7 +2750,10 @@ How to prevent this in the future`;
             content: `I encountered an error while trying to review the repository: ${error instanceof Error ? error.message : 'Unknown error'}. Please make sure your GitHub is connected and try again.`,
             model: fallbackModel,
           }),
-          { status: 500 }
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
         );
       }
     }

@@ -39,6 +39,7 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
   const [showCode, setShowCode] = useState(false);
   const [copied, setCopied] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [inlineExpanded, setInlineExpanded] = useState(true); // Auto-expand inline preview
 
   const handleCopy = useCallback(async () => {
     try {
@@ -58,8 +59,11 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
     setPreviewOpen(false);
   }, []);
 
+  // Check if this is HTML code (for inline preview)
+  const isHtml = language.toLowerCase() === 'html' || code.includes('<!DOCTYPE html>') || code.includes('<html');
+
   return (
-    <div className="mb-3 rounded-xl border border-white/10 bg-white/5 overflow-hidden max-w-xl">
+    <div className="mb-3 rounded-xl border border-white/10 bg-white/5 overflow-hidden max-w-2xl">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border-b border-white/10">
         <div className="flex items-center gap-2">
@@ -72,23 +76,63 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-300 uppercase">
+          <span className="text-xs px-2 py-0.5 rounded bg-gradient-to-r from-violet-500/20 to-cyan-500/20 text-cyan-300 uppercase font-medium">
             {language}
           </span>
         </div>
       </div>
 
+      {/* Inline Mini Preview - Auto-expanded for HTML */}
+      {isHtml && (
+        <div className="border-b border-white/10">
+          <button
+            onClick={() => setInlineExpanded(!inlineExpanded)}
+            className="w-full flex items-center justify-between px-4 py-2 text-xs text-gray-400 hover:text-white transition-colors bg-black/20"
+          >
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              Live Preview
+            </span>
+            <svg className={`w-4 h-4 transition-transform ${inlineExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {inlineExpanded && (
+            <div
+              className="relative bg-white cursor-pointer group"
+              onClick={openPreview}
+            >
+              {/* Inline iframe preview */}
+              <iframe
+                srcDoc={code}
+                className="w-full h-[300px] pointer-events-none"
+                title={`${title || 'Preview'} - Inline`}
+                sandbox="allow-scripts allow-same-origin"
+              />
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur rounded-lg text-white text-sm font-medium">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                  Click to expand
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Action Buttons */}
-      <div className="flex items-center gap-2 px-4 py-3">
+      <div className="flex items-center gap-2 px-4 py-3 flex-wrap">
         <button
           onClick={openPreview}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-500 text-white text-sm font-medium hover:from-violet-600 hover:to-cyan-600 transition-all shadow-lg shadow-violet-500/25"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
           </svg>
-          Open Preview
+          Full Screen
         </button>
 
         <button
@@ -107,7 +151,7 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
-              Copy Code
+              Copy
             </>
           )}
         </button>
@@ -116,10 +160,10 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
           onClick={() => setShowCode(!showCode)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-all"
         >
-          <svg className={`w-4 h-4 transition-transform ${showCode ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
-          {showCode ? 'Hide Code' : 'View Code'}
+          {showCode ? 'Hide Code' : 'Code'}
         </button>
       </div>
 
@@ -132,7 +176,7 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
         </div>
       )}
 
-      {/* Preview Modal */}
+      {/* Full Screen Preview Modal */}
       {previewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="relative w-[95vw] h-[90vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10">
