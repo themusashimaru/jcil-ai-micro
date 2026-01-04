@@ -2216,7 +2216,7 @@ function buildSharedStyles(): string {
 /**
  * Build home page content
  */
-function buildHomePage(context: GenerationContext, businessModel: BusinessModel, assets: WebsiteAssets): string {
+function buildHomePage(_context: GenerationContext, businessModel: BusinessModel, assets: WebsiteAssets): string {
   const heroStyle = assets.heroBackground
     ? `background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${assets.heroBackground}'); background-size: cover; background-position: center;`
     : '';
