@@ -1496,7 +1496,30 @@ export async function POST(request: NextRequest) {
     // Do early route check (without file uploads) to determine if we should skip
     const skipTaskPlanningForRoutes: RouteTarget[] = ['website', 'video', 'image'];
     const earlyRouteCheck = decideRoute(lastUserContent, tool);
-    const shouldSkipTaskPlanning = skipTaskPlanningForRoutes.includes(earlyRouteCheck.target);
+    let shouldSkipTaskPlanning = skipTaskPlanningForRoutes.includes(earlyRouteCheck.target);
+
+    // CRITICAL: Also check for website discovery response BEFORE task planning
+    // This catches when user provides business details after we asked for them
+    const earlyDiscoveryCheck = isWebsiteDiscoveryResponse(lastUserContent);
+
+    // Check if we're in a "website building" conversation context
+    // Look at recent assistant messages for website/landing page mentions
+    const recentAssistantMessages = messages
+      .slice(-6)
+      .filter((m: CoreMessage) => m.role === 'assistant')
+      .map((m: CoreMessage) => typeof m.content === 'string' ? m.content : '')
+      .join(' ');
+
+    const isInWebsiteContext = /\b(build|create|generate|making)\s*(you\s*)?(a\s*)?(landing\s*page|website|web\s*page|business\s*site)\b/i.test(recentAssistantMessages) ||
+      /\b(business\s*name|contact\s*email|pricing|style\s*preferences?)\b.*\b(website|landing\s*page|site)\b/i.test(recentAssistantMessages) ||
+      /\bI'?d\s*love\s*to\s*build\s*you\b/i.test(recentAssistantMessages) ||
+      /\bTo\s*make\s*it\s*perfect,?\s*I\s*need\b/i.test(recentAssistantMessages);
+
+    if (earlyDiscoveryCheck.isDiscoveryResponse && isInWebsiteContext) {
+      console.log('[Chat API] FORGE & MUSASHI: Detected website discovery response - skipping task planner');
+      console.log('[Chat API] Discovery extracted:', earlyDiscoveryCheck.extractedInfo);
+      shouldSkipTaskPlanning = true;
+    }
 
     if (shouldSkipTaskPlanning) {
       console.log(`[Chat API] FORGE & MUSASHI: Skipping task planner for direct route: ${earlyRouteCheck.target}`);
@@ -1591,11 +1614,21 @@ export async function POST(request: NextRequest) {
 
     // Check for website discovery response - user providing business details after discovery questions
     // This catches follow-ups like "Business name, email, $250/hour"
-    const discoveryCheck = isWebsiteDiscoveryResponse(lastUserContent);
-    if (discoveryCheck.isDiscoveryResponse && routeDecision.target !== 'website') {
-      console.log('[Chat API] Detected website discovery response - overriding route to website');
-      console.log('[Chat API] Discovery extracted:', discoveryCheck.extractedInfo);
-      routeDecision = { target: 'website', reason: 'website-intent', confidence: 0.9, matchedPattern: 'discovery-response' };
+    // Reuse the early discovery check from above (earlyDiscoveryCheck) and context check (isInWebsiteContext)
+    if (earlyDiscoveryCheck.isDiscoveryResponse && routeDecision.target !== 'website') {
+      // Only override if we're in a website context OR if discovery has strong signals
+      const hasStrongDiscoverySignals = (
+        (earlyDiscoveryCheck.extractedInfo.businessName && earlyDiscoveryCheck.extractedInfo.email) ||
+        (earlyDiscoveryCheck.extractedInfo.businessName && earlyDiscoveryCheck.extractedInfo.location) ||
+        earlyDiscoveryCheck.extractedInfo.isAutoGenerate
+      );
+
+      if (isInWebsiteContext || hasStrongDiscoverySignals) {
+        console.log('[Chat API] Detected website discovery response - overriding route to website');
+        console.log('[Chat API] Discovery extracted:', earlyDiscoveryCheck.extractedInfo);
+        console.log('[Chat API] In website context:', isInWebsiteContext, 'Strong signals:', hasStrongDiscoverySignals);
+        routeDecision = { target: 'website', reason: 'website-intent', confidence: 0.95, matchedPattern: 'discovery-response' };
+      }
     }
 
     // Log the routing decision for telemetry
