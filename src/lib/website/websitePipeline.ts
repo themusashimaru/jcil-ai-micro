@@ -1276,9 +1276,10 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
     /* Navigation */
     nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.1); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
     nav a { color: inherit; text-decoration: none; }
-    nav ul { display: flex; gap: 2rem; list-style: none; }
-    nav ul li a { color: #555; font-weight: 500; transition: color 0.3s; }
-    nav ul li a:hover { color: #8b5cf6; }
+    .nav-menu { display: flex; gap: 2rem; list-style: none; }
+    .nav-menu li a { color: #555; font-weight: 500; transition: color 0.3s; }
+    .nav-menu li a:hover { color: #8b5cf6; }
+    .desktop-cta { display: block; }
     .cta-btn { background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; }
     .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3); }
 
@@ -1327,10 +1328,33 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
     footer p { margin-bottom: 1rem; }
     footer a { color: #8b5cf6; }
 
+    /* Mobile Menu */
+    .menu-toggle { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 10px; z-index: 101; }
+    .menu-toggle span { display: block; width: 25px; height: 3px; background: #333; border-radius: 3px; transition: all 0.3s ease; }
+    .menu-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+    .menu-toggle.active span:nth-child(2) { opacity: 0; }
+    .menu-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -6px); }
+
     /* Responsive */
     @media (max-width: 768px) {
       .hero h1 { font-size: 2.5rem; }
-      nav ul { display: none; }
+      .menu-toggle { display: flex; }
+      .desktop-cta { display: none; }
+      .nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background: white;
+        padding: 1rem;
+        gap: 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      }
+      .nav-menu.active { display: flex; }
+      .nav-menu li { padding: 0.75rem 0; border-bottom: 1px solid #eee; }
+      .nav-menu li:last-child { border-bottom: none; }
       .about-content, .contact-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -1339,12 +1363,17 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
   <!-- Navigation -->
   <nav>
     ${logoImg}
-    <ul>
+    <button class="menu-toggle" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <ul class="nav-menu">
       <li><a href="#services">Services</a></li>
       <li><a href="#about">About</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
-    <a href="#contact" class="cta-btn">Get Started</a>
+    <a href="#contact" class="cta-btn desktop-cta">Get Started</a>
   </nav>
 
   <!-- Hero Section -->
@@ -1430,6 +1459,23 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
   </footer>
 
   <script>
+    // Mobile menu toggle
+    const menuToggle = document.querySelector('.menu-toggle');
+    const navMenu = document.querySelector('.nav-menu');
+
+    menuToggle?.addEventListener('click', () => {
+      menuToggle.classList.toggle('active');
+      navMenu?.classList.toggle('active');
+    });
+
+    // Close menu when clicking a link
+    navMenu?.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        menuToggle?.classList.remove('active');
+        navMenu?.classList.remove('active');
+      });
+    });
+
     // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function (e) {
