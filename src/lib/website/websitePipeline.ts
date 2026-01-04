@@ -18,6 +18,7 @@ import { createGeminiCompletion, createGeminiImageGeneration } from '@/lib/gemin
 import type { ToolType } from '@/lib/openai/types';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
+import { generateBusinessModel, BusinessModel } from './businessModelGenerator';
 
 // ============================================================================
 // Types
@@ -110,6 +111,8 @@ export interface GenerationContext {
   industryResearch?: IndustryResearch;
   // Extended business info from AI extraction
   extractedInfo?: ExtractedBusinessInfo;
+  // Generated business model with structured pricing, services, testimonials
+  businessModel?: BusinessModel;
 }
 
 export interface GenerationResult {
@@ -917,6 +920,9 @@ Documents found: ${context.userBrandContext.documentNames.join(', ')}
   // Build extracted info section
   const extractedInfoSection = buildExtractedInfoSection(context);
 
+  // Build business model section - THE SECRET SAUCE with structured data
+  const businessModelSection = buildBusinessModelSection(context);
+
   const systemPrompt = `You are FORGE & MUSASHI - the most elite web development AI team ever created.
 You build websites that make $15,000+ agencies jealous.
 
@@ -927,6 +933,7 @@ BUSINESS CONTEXT:
 ${extractedInfoSection}
 ${researchSection}
 ${brandContextSection}
+${businessModelSection}
 AVAILABLE ASSETS (already generated, use these exact URLs):
 ${assetContext}
 
@@ -1086,6 +1093,106 @@ OUTPUT: Raw HTML only. No markdown. No code blocks. Complete document.`;
     return section;
   }
 
+  // Helper function to build business model section - THE SECRET SAUCE
+  function buildBusinessModelSection(ctx: GenerationContext): string {
+    if (!ctx.businessModel) return '';
+
+    const bm = ctx.businessModel;
+    let section = '\n💎 GENERATED BUSINESS MODEL (USE THIS EXACT DATA):\n';
+    section += '=' .repeat(60) + '\n';
+
+    // Tagline and pitch
+    section += `\nTAGLINE: "${bm.tagline}"\n`;
+    section += `ELEVATOR PITCH: ${bm.elevatorPitch}\n`;
+    section += `UNIQUE VALUE: ${bm.uniqueValueProposition}\n`;
+
+    // Pricing tiers - CRITICAL: Use these exact tiers
+    if (bm.pricingTiers.length > 0) {
+      section += `\n💰 PRICING TIERS (CREATE PRICING SECTION WITH THESE EXACT TIERS):\n`;
+      bm.pricingTiers.forEach((tier, i) => {
+        section += `\nTier ${i + 1}: ${tier.name}${tier.highlighted ? ' ⭐ FEATURED' : ''}\n`;
+        section += `  Price: ${tier.price}${tier.period ? ` ${tier.period}` : ''}\n`;
+        section += `  Description: ${tier.description}\n`;
+        section += `  Features:\n`;
+        tier.features.forEach(f => section += `    ✓ ${f}\n`);
+        section += `  Button: "${tier.ctaText}"\n`;
+      });
+    }
+
+    // Services
+    if (bm.services.length > 0) {
+      section += `\n🛠️ SERVICES (CREATE SERVICES SECTION WITH THESE):\n`;
+      bm.services.forEach((svc, i) => {
+        section += `\nService ${i + 1}: ${svc.name}\n`;
+        section += `  Description: ${svc.description}\n`;
+        if (svc.price) section += `  Price: ${svc.price}\n`;
+        if (svc.duration) section += `  Duration: ${svc.duration}\n`;
+        section += `  Features: ${svc.features.join(', ')}\n`;
+        if (svc.icon) section += `  Icon suggestion: ${svc.icon}\n`;
+      });
+    }
+
+    // Testimonials
+    if (bm.testimonials.length > 0) {
+      section += `\n⭐ TESTIMONIALS (USE THESE EXACT TESTIMONIALS):\n`;
+      bm.testimonials.forEach((t, i) => {
+        section += `\nTestimonial ${i + 1}:\n`;
+        section += `  Name: ${t.name}\n`;
+        section += `  Role: ${t.role}\n`;
+        if (t.location) section += `  Location: ${t.location}\n`;
+        section += `  Quote: "${t.quote}"\n`;
+        section += `  Rating: ${'⭐'.repeat(t.rating)}\n`;
+        if (t.avatar) section += `  Avatar URL: ${t.avatar}\n`;
+      });
+    }
+
+    // Stats
+    if (bm.stats && bm.stats.length > 0) {
+      section += `\n📊 STATS (DISPLAY THESE IN STATS SECTION):\n`;
+      bm.stats.forEach(s => section += `  ${s.value} - ${s.label}\n`);
+    }
+
+    // FAQs
+    if (bm.faqs.length > 0) {
+      section += `\n❓ FAQs (CREATE FAQ SECTION WITH THESE EXACT Q&As):\n`;
+      bm.faqs.forEach((faq, i) => {
+        section += `\nQ${i + 1}: ${faq.question}\n`;
+        section += `A: ${faq.answer}\n`;
+      });
+    }
+
+    // About content
+    section += `\n📖 ABOUT CONTENT:\n`;
+    section += `Story: ${bm.aboutContent.story}\n`;
+    if (bm.aboutContent.values.length > 0) {
+      section += `Values: ${bm.aboutContent.values.join(', ')}\n`;
+    }
+    if (bm.aboutContent.teamDescription) {
+      section += `Team: ${bm.aboutContent.teamDescription}\n`;
+    }
+
+    // Contact info
+    section += `\n📞 CONTACT INFO:\n`;
+    if (bm.contactInfo.email) section += `  Email: ${bm.contactInfo.email}\n`;
+    if (bm.contactInfo.phone) section += `  Phone: ${bm.contactInfo.phone}\n`;
+    if (bm.contactInfo.address) section += `  Address: ${bm.contactInfo.address}\n`;
+    if (bm.contactInfo.hours) {
+      section += `  Hours:\n`;
+      bm.contactInfo.hours.forEach(h => section += `    ${h.days}: ${h.hours}\n`);
+    }
+
+    // SEO
+    section += `\n🔍 SEO:\n`;
+    section += `  Title: ${bm.seoTitle}\n`;
+    section += `  Description: ${bm.seoDescription}\n`;
+    section += `  Keywords: ${bm.keywords.join(', ')}\n`;
+
+    section += '\n' + '='.repeat(60) + '\n';
+    section += 'CRITICAL: Use the EXACT data above. Do NOT make up different prices, services, or testimonials.\n';
+
+    return section;
+  }
+
   const result = await createGeminiCompletion({
     messages: [{ role: 'user', content: context.userPrompt }],
     tool: 'code' as ToolType,
@@ -1169,9 +1276,10 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
     /* Navigation */
     nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.1); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
     nav a { color: inherit; text-decoration: none; }
-    nav ul { display: flex; gap: 2rem; list-style: none; }
-    nav ul li a { color: #555; font-weight: 500; transition: color 0.3s; }
-    nav ul li a:hover { color: #8b5cf6; }
+    .nav-menu { display: flex; gap: 2rem; list-style: none; }
+    .nav-menu li a { color: #555; font-weight: 500; transition: color 0.3s; }
+    .nav-menu li a:hover { color: #8b5cf6; }
+    .desktop-cta { display: block; }
     .cta-btn { background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); color: white; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; transition: transform 0.2s, box-shadow 0.2s; }
     .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3); }
 
@@ -1220,10 +1328,33 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
     footer p { margin-bottom: 1rem; }
     footer a { color: #8b5cf6; }
 
+    /* Mobile Menu */
+    .menu-toggle { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 10px; z-index: 101; }
+    .menu-toggle span { display: block; width: 25px; height: 3px; background: #333; border-radius: 3px; transition: all 0.3s ease; }
+    .menu-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+    .menu-toggle.active span:nth-child(2) { opacity: 0; }
+    .menu-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -6px); }
+
     /* Responsive */
     @media (max-width: 768px) {
       .hero h1 { font-size: 2.5rem; }
-      nav ul { display: none; }
+      .menu-toggle { display: flex; }
+      .desktop-cta { display: none; }
+      .nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background: white;
+        padding: 1rem;
+        gap: 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      }
+      .nav-menu.active { display: flex; }
+      .nav-menu li { padding: 0.75rem 0; border-bottom: 1px solid #eee; }
+      .nav-menu li:last-child { border-bottom: none; }
       .about-content, .contact-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -1232,12 +1363,17 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
   <!-- Navigation -->
   <nav>
     ${logoImg}
-    <ul>
+    <button class="menu-toggle" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <ul class="nav-menu">
       <li><a href="#services">Services</a></li>
       <li><a href="#about">About</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
-    <a href="#contact" class="cta-btn">Get Started</a>
+    <a href="#contact" class="cta-btn desktop-cta">Get Started</a>
   </nav>
 
   <!-- Hero Section -->
@@ -1323,6 +1459,23 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
   </footer>
 
   <script>
+    // Mobile menu toggle
+    const menuToggle = document.querySelector('.menu-toggle');
+    const navMenu = document.querySelector('.nav-menu');
+
+    menuToggle?.addEventListener('click', () => {
+      menuToggle.classList.toggle('active');
+      navMenu?.classList.toggle('active');
+    });
+
+    // Close menu when clicking a link
+    navMenu?.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        menuToggle?.classList.remove('active');
+        navMenu?.classList.remove('active');
+      });
+    });
+
     // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function (e) {
@@ -1665,6 +1818,34 @@ export async function generateCompleteWebsite(
     if (brandContext.content) {
       context.userBrandContext = brandContext;
       console.log(`[WebsitePipeline] Found brand context from ${brandContext.documentNames.length} documents`);
+    }
+
+    // STEP 2.5: Generate Business Model (THE SECRET SAUCE)
+    // This creates structured pricing, services, testimonials, FAQs using research
+    console.log('[WebsitePipeline] Generating business model with competitive intelligence...');
+    try {
+      const businessModel = await generateBusinessModel({
+        businessName: context.businessName,
+        industry: context.industry,
+        location: extractedInfo.location,
+        services: extractedInfo.services,
+        pricing: extractedInfo.pricing,
+        email: extractedInfo.email,
+        phone: extractedInfo.phone,
+        targetAudience: extractedInfo.targetAudience,
+        stylePreference: extractedInfo.stylePreference,
+        additionalContext: context.userPrompt,
+      }, geminiModel);
+
+      context.businessModel = businessModel;
+      console.log('[WebsitePipeline] Business model generated:');
+      console.log(`[WebsitePipeline] - Pricing tiers: ${businessModel.pricingTiers.length}`);
+      console.log(`[WebsitePipeline] - Services: ${businessModel.services.length}`);
+      console.log(`[WebsitePipeline] - Testimonials: ${businessModel.testimonials.length}`);
+      console.log(`[WebsitePipeline] - FAQs: ${businessModel.faqs.length}`);
+    } catch (bmError) {
+      console.error('[WebsitePipeline] Business model generation failed (non-fatal):', bmError);
+      // Continue without business model - will fall back to generic content
     }
 
     // Create new session with updated context
