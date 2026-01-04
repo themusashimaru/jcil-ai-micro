@@ -584,12 +584,20 @@ TECHNICAL REQUIREMENTS:
 - Form validation (HTML5 + JS)
 
 VISUAL DESIGN:
+- LIGHT/WHITE base background (body background: #ffffff or very light gray)
+- Dark text on light backgrounds for readability
 - Modern glassmorphism (backdrop-blur on nav/cards)
 - Subtle gradients and shadows
 - Micro-animations on hover
 - Professional color palette for ${context.industry}
 - Consistent 8px spacing grid
 - Beautiful typography hierarchy
+
+CRITICAL COLOR RULES:
+- body { background-color: #ffffff; color: #1a1a1a; }
+- Sections can have colored backgrounds, but ensure contrast
+- NO fully dark/black pages - users need to see content
+- Hero can be darker with light text, rest of page should be light
 
 OUTPUT: Raw HTML only. No markdown. No code blocks. Complete document.`;
 
@@ -663,6 +671,30 @@ function cleanGeneratedHtml(html: string): string {
 ${html}
 </body>
 </html>`;
+  }
+
+  // CRITICAL: Force visible background - inject base styles if not present
+  // This ensures the website is always visible, not black
+  const forceVisibleStyles = `
+    <style id="force-visible-styles">
+      html, body {
+        background-color: #ffffff !important;
+        min-height: 100vh;
+      }
+      body:empty::before {
+        content: 'Loading website...';
+        display: block;
+        padding: 20px;
+        color: #666;
+      }
+    </style>
+  `;
+
+  // Inject force-visible styles right after <head> or at start of document
+  if (html.includes('<head>') && !html.includes('force-visible-styles')) {
+    html = html.replace('<head>', '<head>' + forceVisibleStyles);
+  } else if (!html.includes('force-visible-styles')) {
+    html = forceVisibleStyles + html;
   }
 
   return html;
