@@ -1601,18 +1601,25 @@ export async function POST(request: NextRequest) {
         const stream = new ReadableStream({
           async start(controller) {
             try {
-              // Send initial progress message
-              controller.enqueue(encoder.encode(`data: {"type":"progress","message":"🚀 Starting website generation for ${businessName}..."}\n\n`));
+              // Progress callback to stream updates during generation
+              // This keeps the connection alive and prevents Vercel timeout
+              const onProgress = (message: string, step?: number, totalSteps?: number) => {
+                const progressData = {
+                  type: 'progress',
+                  message,
+                  step: step || undefined,
+                  totalSteps: totalSteps || undefined,
+                };
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(progressData)}\n\n`));
+              };
 
-              // Generate the complete website with all assets
-              // The generateCompleteWebsite function has internal timeouts
-              controller.enqueue(encoder.encode(`data: {"type":"progress","message":"🎨 Generating logo and hero image..."}\n\n`));
-
+              // Generate the complete website with progress streaming
               const result = await generateCompleteWebsite(
                 rateLimitIdentifier || 'anonymous',
                 context,
                 geminiModel,
-                imageModel
+                imageModel,
+                onProgress
               );
 
               if (!result.success) {
@@ -1620,8 +1627,6 @@ export async function POST(request: NextRequest) {
                 controller.close();
                 return;
               }
-
-              controller.enqueue(encoder.encode(`data: {"type":"progress","message":"📝 Building HTML structure..."}\n\n`));
 
               // Build response with asset summary
               const assetSummary: string[] = [];
