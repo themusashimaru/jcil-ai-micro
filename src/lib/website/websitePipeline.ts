@@ -1947,7 +1947,7 @@ async function generatePage(
   config: { slug: string; title: string; type: 'home' | 'about' | 'services' | 'pricing' | 'contact' },
   context: GenerationContext,
   businessModel: BusinessModel,
-  _assets: WebsiteAssets,
+  assets: WebsiteAssets,
   sharedNav: string,
   sharedFooter: string,
   sharedStyles: string,
