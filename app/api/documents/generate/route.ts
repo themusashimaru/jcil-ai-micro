@@ -16,6 +16,8 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import QRCode from 'qrcode';
+import { generateSpreadsheetXlsx } from '@/lib/documents/spreadsheetGenerator';
+import type { SpreadsheetDocument } from '@/lib/documents/types';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -23,7 +25,7 @@ export const maxDuration = 30;
 interface DocumentRequest {
   content: string;
   title?: string;
-  format?: 'pdf' | 'word' | 'both';
+  format?: 'pdf' | 'word' | 'both' | 'xlsx';
 }
 
 // Invoice data structure
@@ -2089,6 +2091,114 @@ function cleanMarkdown(text: string): { text: string; bold: boolean; italic: boo
   return { text: normalizedText, bold, italic };
 }
 
+/**
+ * Parse markdown content (especially tables) into SpreadsheetDocument format
+ */
+function parseMarkdownToSpreadsheet(content: string, title: string): SpreadsheetDocument {
+  const sheets: SpreadsheetDocument['sheets'] = [];
+  const lines = content.split('\n');
+
+  let currentSheet: SpreadsheetDocument['sheets'][0] | null = null;
+  let currentSheetName = title || 'Sheet1';
+  let inTable = false;
+  let isFirstTableRow = true;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    // Detect sheet name from headers (## or ###)
+    if (trimmedLine.startsWith('##')) {
+      // Save current sheet if exists
+      if (currentSheet && currentSheet.rows.length > 0) {
+        sheets.push(currentSheet);
+      }
+      currentSheetName = trimmedLine.replace(/^#+\s*/, '').trim();
+      currentSheet = null;
+      inTable = false;
+      isFirstTableRow = true;
+      continue;
+    }
+
+    // Detect markdown table row
+    if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
+      // Skip separator rows (| :--- | :--- |)
+      if (/^\|[\s:-]+\|$/.test(trimmedLine) || /^\|(\s*:?-+:?\s*\|)+$/.test(trimmedLine)) {
+        continue;
+      }
+
+      // Initialize new sheet if needed
+      if (!currentSheet) {
+        currentSheet = {
+          name: currentSheetName,
+          rows: [],
+          freezeRow: 1, // Freeze header row
+        };
+        isFirstTableRow = true;
+      }
+
+      inTable = true;
+
+      // Parse table row
+      const cells = trimmedLine
+        .slice(1, -1) // Remove leading and trailing |
+        .split('|')
+        .map(cell => {
+          const value = cell.trim();
+          // Detect if it looks like a number
+          const numValue = parseFloat(value.replace(/[$,]/g, ''));
+          const isCurrency = /^\$[\d,.]+$/.test(value);
+          const isPercent = /^\d+(\.\d+)?%$/.test(value);
+
+          return {
+            value: isNaN(numValue) ? value : (isCurrency || isPercent ? value : numValue),
+            currency: isCurrency,
+            percent: isPercent,
+            alignment: isNaN(numValue) ? 'left' as const : 'right' as const,
+          };
+        });
+
+      currentSheet.rows.push({
+        isHeader: isFirstTableRow,
+        cells,
+      });
+
+      isFirstTableRow = false;
+    } else if (inTable && trimmedLine === '') {
+      // End of table, save sheet
+      if (currentSheet && currentSheet.rows.length > 0) {
+        sheets.push(currentSheet);
+        currentSheet = null;
+      }
+      inTable = false;
+      isFirstTableRow = true;
+    }
+  }
+
+  // Save last sheet if exists
+  if (currentSheet && currentSheet.rows.length > 0) {
+    sheets.push(currentSheet);
+  }
+
+  // If no tables found, create a simple single-cell sheet with the content
+  if (sheets.length === 0) {
+    sheets.push({
+      name: title || 'Sheet1',
+      rows: [
+        {
+          isHeader: false,
+          cells: [{ value: content.slice(0, 1000) }], // Truncate long content
+        },
+      ],
+    });
+  }
+
+  return {
+    type: 'spreadsheet',
+    title,
+    sheets,
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: DocumentRequest = await request.json();
@@ -2106,6 +2216,96 @@ export async function POST(request: NextRequest) {
 
     // Get Supabase client for storage
     const supabase = getSupabaseAdmin();
+
+    // === XLSX: Excel spreadsheet generation ===
+    if (body.format === 'xlsx') {
+      console.log('[Documents API] Generating Excel spreadsheet:', title);
+
+      try {
+        // Parse markdown tables into spreadsheet format
+        const spreadsheetData = parseMarkdownToSpreadsheet(content, title);
+        const xlsxBuffer = await generateSpreadsheetXlsx(spreadsheetData);
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const sanitizedTitle = title.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_').slice(0, 50);
+        const filename = `${sanitizedTitle}_${timestamp}.xlsx`;
+
+        // If supabase not available, return data URL directly
+        if (!supabase) {
+          const base64 = xlsxBuffer.toString('base64');
+          const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
+          return NextResponse.json({
+            success: true,
+            dataUrl,
+            filename,
+            format: 'xlsx',
+            title,
+            storage: 'dataurl',
+          });
+        }
+
+        // Upload to Supabase Storage
+        const storagePath = userId ? `documents/${userId}/${filename}` : `documents/anonymous/${filename}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('generated-documents')
+          .upload(storagePath, xlsxBuffer, {
+            contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error('[Documents API] Excel upload error:', uploadError);
+          // Fallback to data URL
+          const base64 = xlsxBuffer.toString('base64');
+          const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
+          return NextResponse.json({
+            success: true,
+            dataUrl,
+            filename,
+            format: 'xlsx',
+            title,
+            storage: 'dataurl',
+          });
+        }
+
+        // Get signed URL
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from('generated-documents')
+          .createSignedUrl(storagePath, 3600);
+
+        if (signedError || !signedData?.signedUrl) {
+          console.error('[Documents API] Excel signed URL error:', signedError);
+          const base64 = xlsxBuffer.toString('base64');
+          const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
+          return NextResponse.json({
+            success: true,
+            dataUrl,
+            filename,
+            format: 'xlsx',
+            title,
+            storage: 'dataurl',
+          });
+        }
+
+        console.log('[Documents API] Excel generated and uploaded successfully');
+        return NextResponse.json({
+          success: true,
+          downloadUrl: signedData.signedUrl,
+          filename,
+          format: 'xlsx',
+          title,
+          storage: 'supabase',
+        });
+      } catch (xlsxError) {
+        console.error('[Documents API] Excel generation error:', xlsxError);
+        return NextResponse.json(
+          { error: 'Failed to generate Excel file', details: xlsxError instanceof Error ? xlsxError.message : 'Unknown error' },
+          { status: 500 }
+        );
+      }
+    }
 
     // Detect document type for special formatting
     const lowerTitle = title.toLowerCase();
