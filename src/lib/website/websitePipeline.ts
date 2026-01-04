@@ -147,6 +147,9 @@ export interface GenerationContext {
   businessModel?: BusinessModel;
 }
 
+// Progress callback for streaming updates during generation
+export type ProgressCallback = (message: string, step?: number, totalSteps?: number) => void;
+
 export interface GenerationResult {
   success: boolean;
   html: string;
@@ -2971,10 +2974,21 @@ export async function generateCompleteWebsite(
   userId: string,
   context: GenerationContext,
   geminiModel: string,
-  imageModel: string
+  imageModel: string,
+  onProgress?: ProgressCallback
 ): Promise<GenerationResult> {
   console.log('[WebsitePipeline] Starting complete website generation...');
   console.log(`[WebsitePipeline] Business: ${context.businessName}, Industry: ${context.industry}`);
+
+  // Helper to report progress (prevents timeout by streaming updates)
+  const reportProgress = (message: string, step?: number, totalSteps?: number) => {
+    console.log(`[WebsitePipeline] Progress: ${message}`);
+    if (onProgress) {
+      onProgress(message, step, totalSteps);
+    }
+  };
+
+  reportProgress(`🚀 Starting website generation for ${context.businessName}...`, 1, 6);
 
   try {
     // Check for existing session (for modifications)
@@ -3000,7 +3014,7 @@ export async function generateCompleteWebsite(
     }
 
     // STEP 1: Extract business info with AI for better parsing
-    console.log('[WebsitePipeline] Extracting business info with AI...');
+    reportProgress('🔍 Analyzing your business details...', 2, 6);
     const extractedInfo = await extractBusinessInfoWithAI(context.userPrompt);
     context.extractedInfo = extractedInfo;
 
@@ -3014,7 +3028,7 @@ export async function generateCompleteWebsite(
     }
 
     // STEP 2: Research industry context with Perplexity (runs in parallel with brand fetch)
-    console.log('[WebsitePipeline] Starting industry research...');
+    reportProgress('📊 Researching your industry and competitors...', 3, 6);
     const [research, brandContext] = await Promise.all([
       researchIndustryContext(
         context.businessName,
@@ -3041,7 +3055,7 @@ export async function generateCompleteWebsite(
 
     // STEP 2.5: Generate Business Model (THE SECRET SAUCE)
     // This creates structured pricing, services, testimonials, FAQs using research
-    console.log('[WebsitePipeline] Generating business model with competitive intelligence...');
+    reportProgress('💡 Creating your business model with competitive pricing...', 4, 6);
     try {
       const businessModel = await generateBusinessModel({
         businessName: context.businessName,
@@ -3077,7 +3091,7 @@ export async function generateCompleteWebsite(
     }
 
     // STEP 3: Generate assets with research context
-    console.log('[WebsitePipeline] Generating assets with industry context...');
+    reportProgress('🎨 Generating logo, images, and visual assets...', 5, 6);
     const assets = await generateWebsiteAssets(
       context.businessName,
       context.industry,
@@ -3088,7 +3102,7 @@ export async function generateCompleteWebsite(
     session.assets = assets;
 
     // STEP 4: Generate the complete HTML with full context
-    console.log('[WebsitePipeline] Generating HTML with research context...');
+    reportProgress('📝 Building your complete website...', 6, 6);
     const html = await generateWebsiteHtml(context, assets, geminiModel);
     session.currentHtml = html;
     session.status = 'ready';
