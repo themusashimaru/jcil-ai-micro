@@ -3185,15 +3185,205 @@ export async function deployWebsiteToVercel(
   }
 }
 
+// ============================================================================
+// Netlify Deployment
+// ============================================================================
+
+export interface NetlifyDeployResult {
+  success: boolean;
+  deploymentUrl?: string;
+  siteId?: string;
+  error?: string;
+}
+
 /**
- * Check if a message is requesting any deployment action (GitHub or Vercel)
+ * Check if a message is requesting Netlify deployment
  */
-export function isDeploymentRequest(text: string): { isDeployment: boolean; target?: 'github' | 'vercel' } {
+export function isNetlifyDeployRequest(text: string): boolean {
+  const patterns = [
+    /\b(deploy|launch|publish|go\s+live)\b.*\b(to|on)\s+netlify\b/i,
+    /\bnetlify\b.*\b(deploy|launch|publish)\b/i,
+    /\bdeploy\s+(this|the|it|my)\s+(to\s+)?netlify\b/i,
+    /\bgo\s+live\s+(on|with)\s+netlify\b/i,
+    /\bhost\s+(this|it)\s+(on\s+)?netlify\b/i,
+  ];
+  return patterns.some(p => p.test(text));
+}
+
+/**
+ * Deploy a website to Netlify
+ * Uses Netlify's API for direct file deployment
+ */
+export async function deployWebsiteToNetlify(
+  session: WebsiteSession,
+  netlifyToken?: string
+): Promise<NetlifyDeployResult> {
+  console.log('[WebsitePipeline] Deploying website to Netlify...');
+
+  const token = netlifyToken || process.env.NETLIFY_TOKEN;
+  if (!token) {
+    return {
+      success: false,
+      error: 'Netlify deployment not configured. Please add NETLIFY_TOKEN to environment or connect your Netlify account.',
+    };
+  }
+
+  try {
+    // Generate site name
+    const siteName = session.businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 50);
+
+    // Prepare files for deployment
+    const files: Record<string, string> = {
+      'index.html': session.currentHtml,
+    };
+
+    // Add multi-page files if available
+    if (session.pages && session.pages.length > 0) {
+      session.pages.forEach(page => {
+        const filename = page.slug === 'index' ? 'index.html' : `${page.slug}.html`;
+        files[filename] = page.html;
+      });
+
+      // Add SEO files if we have business model
+      if (session.businessModel) {
+        const context: GenerationContext = {
+          businessName: session.businessName,
+          industry: session.industry,
+          userPrompt: session.originalPrompt,
+          businessModel: session.businessModel,
+        };
+
+        // Generate sitemap with placeholder URL (will be updated after deploy)
+        files['sitemap.xml'] = generateSitemap(session.pages, `https://${siteName}.netlify.app`);
+        files['robots.txt'] = generateRobotsTxt(`https://${siteName}.netlify.app`);
+      }
+    }
+
+    // Create a new site or get existing
+    const siteResponse = await fetch('https://api.netlify.com/api/v1/sites', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: siteName,
+      }),
+    });
+
+    let siteId: string;
+    if (siteResponse.ok) {
+      const siteData = await siteResponse.json();
+      siteId = siteData.id;
+    } else if (siteResponse.status === 422) {
+      // Site name already taken, try with random suffix
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const retryResponse = await fetch('https://api.netlify.com/api/v1/sites', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: `${siteName}-${randomSuffix}`,
+        }),
+      });
+
+      if (!retryResponse.ok) {
+        throw new Error('Failed to create Netlify site');
+      }
+      const retryData = await retryResponse.json();
+      siteId = retryData.id;
+    } else {
+      throw new Error('Failed to create Netlify site');
+    }
+
+    // Calculate SHA1 hashes for each file
+    const crypto = await import('crypto');
+    const fileHashes: Record<string, string> = {};
+
+    for (const [filename, content] of Object.entries(files)) {
+      const hash = crypto.createHash('sha1').update(content).digest('hex');
+      fileHashes[`/${filename}`] = hash;
+    }
+
+    // Create deploy with file hashes
+    const deployResponse = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        files: fileHashes,
+      }),
+    });
+
+    if (!deployResponse.ok) {
+      throw new Error('Failed to create Netlify deployment');
+    }
+
+    const deployData = await deployResponse.json();
+    const deployId = deployData.id;
+    const requiredFiles = deployData.required || Object.keys(fileHashes);
+
+    // Upload required files
+    for (const filePath of requiredFiles) {
+      const filename = filePath.replace(/^\//, '');
+      const content = files[filename];
+
+      if (content) {
+        await fetch(`https://api.netlify.com/api/v1/deploys/${deployId}/files${filePath}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/octet-stream',
+          },
+          body: content,
+        });
+      }
+    }
+
+    // Get final deploy URL
+    const deploymentUrl = deployData.ssl_url || `https://${deployData.subdomain}.netlify.app`;
+
+    // Update session
+    session.vercelUrl = deploymentUrl; // Reuse field for now
+    session.status = 'deployed';
+    await updateWebsiteSession(session);
+
+    console.log(`[WebsitePipeline] Successfully deployed to Netlify: ${deploymentUrl}`);
+
+    return {
+      success: true,
+      deploymentUrl,
+      siteId,
+    };
+  } catch (err) {
+    console.error('[WebsitePipeline] Netlify deployment failed:', err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Netlify deployment failed',
+    };
+  }
+}
+
+/**
+ * Check if a message is requesting any deployment action (GitHub, Vercel, or Netlify)
+ */
+export function isDeploymentRequest(text: string): { isDeployment: boolean; target?: 'github' | 'vercel' | 'netlify' } {
   if (isGitHubPushRequest(text)) {
     return { isDeployment: true, target: 'github' };
   }
   if (isVercelDeployRequest(text)) {
     return { isDeployment: true, target: 'vercel' };
+  }
+  if (isNetlifyDeployRequest(text)) {
+    return { isDeployment: true, target: 'netlify' };
   }
   return { isDeployment: false };
 }
