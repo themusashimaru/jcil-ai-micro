@@ -2008,6 +2008,7 @@ export function hasWebsiteIntent(text: string): {
 /**
  * Detect if a message looks like a response to website discovery questions
  * This catches follow-ups like "Business name is X, email is Y, pricing is Z"
+ * OR "make up everything for me" / "you decide" type responses
  */
 export function isWebsiteDiscoveryResponse(text: string): {
   isDiscoveryResponse: boolean;
@@ -2016,9 +2017,38 @@ export function isWebsiteDiscoveryResponse(text: string): {
     email?: string;
     hasPricing?: boolean;
     hasStyle?: boolean;
+    isAutoGenerate?: boolean;
+    location?: string;
   };
 } {
   const normalizedText = text.trim();
+  const lowerText = normalizedText.toLowerCase();
+
+  // Check for "fill in the blanks" / "make it up" patterns
+  // These indicate the user wants AI to generate all the details
+  const autoGeneratePatterns = [
+    /\b(make\s*up|make\s*it\s*up|you\s*(decide|choose|pick)|fill\s*in|create\s*everything)\b/i,
+    /\b(anything|whatever|surprise\s*me|dealer'?s?\s*choice)\b/i,
+    /\b(generate|come\s*up\s*with|invent|fabricate)\s*(all|everything|the\s*details?)\b/i,
+    /\b(don'?t\s*care|up\s*to\s*you|your\s*choice)\b/i,
+  ];
+
+  const isAutoGenerate = autoGeneratePatterns.some(p => p.test(lowerText));
+
+  // Extract location if mentioned (e.g., "located in malvern ny")
+  const locationMatch = normalizedText.match(/(?:located?\s*(?:in|at)|in\s+|based\s*(?:in|out\s*of))\s+([A-Za-z\s,]+?)(?:\s*[,.]|$)/i);
+  const location = locationMatch?.[1]?.trim();
+
+  // If auto-generate pattern detected, this IS a discovery response
+  if (isAutoGenerate) {
+    return {
+      isDiscoveryResponse: true,
+      extractedInfo: {
+        isAutoGenerate: true,
+        location,
+      }
+    };
+  }
 
   // Extract potential business name (quoted or capitalized words)
   const quotedName = normalizedText.match(/["']([^"']+)["']/);
@@ -2042,6 +2072,7 @@ export function isWebsiteDiscoveryResponse(text: string): {
   if (hasEmail) infoCount++;
   if (hasPricing) infoCount++;
   if (hasStyle) infoCount++;
+  if (location && location.length > 2) infoCount++; // Location counts as info too
 
   // Require at least 2 pieces of info to be confident it's a discovery response
   const isDiscoveryResponse = infoCount >= 2;
@@ -2053,6 +2084,8 @@ export function isWebsiteDiscoveryResponse(text: string): {
       email: emailMatch?.[1],
       hasPricing,
       hasStyle,
+      isAutoGenerate: false,
+      location,
     }
   };
 }
