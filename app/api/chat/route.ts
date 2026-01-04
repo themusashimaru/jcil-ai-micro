@@ -690,10 +690,7 @@ INVOICE TIPS:
  * after AI has asked qualifying questions
  */
 function isSpreadsheetConfirmation(content: string, previousMessages: CoreMessage[]): boolean {
-  const lowerContent = content.toLowerCase();
-
-  // Confirmation patterns - short affirmative responses
-  const isConfirmation = /\b(yes|yep|yeah|sure|ok|okay|please|go\s*ahead|looks?\s*good|perfect|great|that'?s?\s*(good|great|perfect|it)|generate\s*it|create\s*it|make\s*it|do\s*it)\b/.test(lowerContent);
+  const lowerContent = content.toLowerCase().trim();
 
   // Check if there's explicit spreadsheet generation request
   const hasExplicitGenerate = /\b(generate|create|make|download)\s*(the|my|a)?\s*(spreadsheet|excel|file|xlsx)\b/.test(lowerContent);
@@ -702,19 +699,27 @@ function isSpreadsheetConfirmation(content: string, previousMessages: CoreMessag
     return true;
   }
 
-  if (!isConfirmation) {
+  // FIXED: Confirmation patterns must be more specific - "ok" alone is NOT enough
+  // User must explicitly confirm spreadsheet generation with context-aware phrases
+  const isStrongConfirmation = /\b(yes\s*(please|,?\s*(generate|create|make)\s*(it|the\s*spreadsheet)?)?|generate\s*(it|the\s*spreadsheet)|create\s*(it|the\s*spreadsheet)|make\s*(it|the\s*spreadsheet)|go\s*ahead\s*(and\s*(generate|create|make))?|that'?s?\s*perfect,?\s*(generate|create)|looks?\s*good,?\s*(generate|create))\b/.test(lowerContent);
+
+  // Weak confirmations like "ok" require explicit spreadsheet mention in the SAME message
+  const isWeakConfirmation = /^(ok|okay|sure|yes|yep|yeah)\.?$/i.test(lowerContent);
+  const mentionsSpreadsheet = /spreadsheet|excel|xlsx/i.test(lowerContent);
+
+  if (!isStrongConfirmation && !(isWeakConfirmation && mentionsSpreadsheet)) {
     return false;
   }
 
-  // Check if previous assistant message was asking about spreadsheet details
+  // Additional context check: Previous assistant message must be SPECIFICALLY about generating a spreadsheet
   const lastAssistantMessage = [...previousMessages].reverse().find(m => m.role === 'assistant');
   if (lastAssistantMessage && typeof lastAssistantMessage.content === 'string') {
     const assistantContent = lastAssistantMessage.content.toLowerCase();
-    // Check if assistant was discussing spreadsheet and asking questions
-    const wasDiscussingSpreadsheet = /\b(spreadsheet|excel|budget|categories|columns|rows|worksheet)\b/.test(assistantContent);
-    const wasAskingQuestions = /\?|would you like|what.*include|which.*categories|how.*organize/.test(assistantContent);
+    // Must be asking to GENERATE/CREATE the spreadsheet, not just mentioning it
+    const wasAskingToGenerate = /\b(generate|create|ready to (generate|create)|shall i (generate|create)|would you like me to (generate|create)|i('ll| will) (generate|create))\b.*\b(spreadsheet|excel)\b/i.test(assistantContent) ||
+                                /\b(spreadsheet|excel)\b.*\b(generate|create|ready|shall i|would you like)\b/i.test(assistantContent);
 
-    if (wasDiscussingSpreadsheet && wasAskingQuestions) {
+    if (wasAskingToGenerate && isStrongConfirmation) {
       return true;
     }
   }
@@ -1780,25 +1785,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If Anthropic is active and user wants image generation, return unavailable message
-    // EXCEPTION: Admins can use DALL-E 3 for testing
-    if (activeProvider === 'anthropic' && routeDecision.target === 'image' && !messageHasUploadedImages && !isAdmin) {
-      return new Response(
-        JSON.stringify({
-          type: 'text',
-          content: '**Image Generation Not Available**\n\nOur app\'s core focus is on delivering faith-based intelligence and general AI assistance, not multimedia generation. We do not currently have native image generation capabilities.\n\nHowever, I can help you with:\n- Describing images or visual concepts in detail\n- Writing creative descriptions or prompts\n- Answering questions and providing guidance\n- Research and information gathering\n\nIs there something else I can help you with today?',
-          model: 'claude-sonnet-4-5-20250929',
-        }),
-        {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Provider': 'anthropic',
-            'X-Image-Unavailable': 'true',
-          },
-        }
-      );
-    }
+    // NOTE: Image generation uses Gemini regardless of text provider
+    // The old Anthropic block has been removed - image requests should fall through
+    // to the Gemini image generation handler below (around line 2626)
 
     // ========================================
     // FORGE & MUSASHI: WEBSITE GENERATION PIPELINE
