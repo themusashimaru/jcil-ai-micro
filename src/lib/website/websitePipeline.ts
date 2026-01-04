@@ -18,6 +18,7 @@ import { createGeminiCompletion, createGeminiImageGeneration } from '@/lib/gemin
 import type { ToolType } from '@/lib/openai/types';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
+import { generateBusinessModel, BusinessModel } from './businessModelGenerator';
 
 // ============================================================================
 // Types
@@ -110,6 +111,8 @@ export interface GenerationContext {
   industryResearch?: IndustryResearch;
   // Extended business info from AI extraction
   extractedInfo?: ExtractedBusinessInfo;
+  // Generated business model with structured pricing, services, testimonials
+  businessModel?: BusinessModel;
 }
 
 export interface GenerationResult {
@@ -917,6 +920,9 @@ Documents found: ${context.userBrandContext.documentNames.join(', ')}
   // Build extracted info section
   const extractedInfoSection = buildExtractedInfoSection(context);
 
+  // Build business model section - THE SECRET SAUCE with structured data
+  const businessModelSection = buildBusinessModelSection(context);
+
   const systemPrompt = `You are FORGE & MUSASHI - the most elite web development AI team ever created.
 You build websites that make $15,000+ agencies jealous.
 
@@ -927,6 +933,7 @@ BUSINESS CONTEXT:
 ${extractedInfoSection}
 ${researchSection}
 ${brandContextSection}
+${businessModelSection}
 AVAILABLE ASSETS (already generated, use these exact URLs):
 ${assetContext}
 
@@ -1082,6 +1089,106 @@ OUTPUT: Raw HTML only. No markdown. No code blocks. Complete document.`;
     if (e.stylePreference) {
       section += `Style Preference: ${e.stylePreference}\n`;
     }
+
+    return section;
+  }
+
+  // Helper function to build business model section - THE SECRET SAUCE
+  function buildBusinessModelSection(ctx: GenerationContext): string {
+    if (!ctx.businessModel) return '';
+
+    const bm = ctx.businessModel;
+    let section = '\n💎 GENERATED BUSINESS MODEL (USE THIS EXACT DATA):\n';
+    section += '=' .repeat(60) + '\n';
+
+    // Tagline and pitch
+    section += `\nTAGLINE: "${bm.tagline}"\n`;
+    section += `ELEVATOR PITCH: ${bm.elevatorPitch}\n`;
+    section += `UNIQUE VALUE: ${bm.uniqueValueProposition}\n`;
+
+    // Pricing tiers - CRITICAL: Use these exact tiers
+    if (bm.pricingTiers.length > 0) {
+      section += `\n💰 PRICING TIERS (CREATE PRICING SECTION WITH THESE EXACT TIERS):\n`;
+      bm.pricingTiers.forEach((tier, i) => {
+        section += `\nTier ${i + 1}: ${tier.name}${tier.highlighted ? ' ⭐ FEATURED' : ''}\n`;
+        section += `  Price: ${tier.price}${tier.period ? ` ${tier.period}` : ''}\n`;
+        section += `  Description: ${tier.description}\n`;
+        section += `  Features:\n`;
+        tier.features.forEach(f => section += `    ✓ ${f}\n`);
+        section += `  Button: "${tier.ctaText}"\n`;
+      });
+    }
+
+    // Services
+    if (bm.services.length > 0) {
+      section += `\n🛠️ SERVICES (CREATE SERVICES SECTION WITH THESE):\n`;
+      bm.services.forEach((svc, i) => {
+        section += `\nService ${i + 1}: ${svc.name}\n`;
+        section += `  Description: ${svc.description}\n`;
+        if (svc.price) section += `  Price: ${svc.price}\n`;
+        if (svc.duration) section += `  Duration: ${svc.duration}\n`;
+        section += `  Features: ${svc.features.join(', ')}\n`;
+        if (svc.icon) section += `  Icon suggestion: ${svc.icon}\n`;
+      });
+    }
+
+    // Testimonials
+    if (bm.testimonials.length > 0) {
+      section += `\n⭐ TESTIMONIALS (USE THESE EXACT TESTIMONIALS):\n`;
+      bm.testimonials.forEach((t, i) => {
+        section += `\nTestimonial ${i + 1}:\n`;
+        section += `  Name: ${t.name}\n`;
+        section += `  Role: ${t.role}\n`;
+        if (t.location) section += `  Location: ${t.location}\n`;
+        section += `  Quote: "${t.quote}"\n`;
+        section += `  Rating: ${'⭐'.repeat(t.rating)}\n`;
+        if (t.avatar) section += `  Avatar URL: ${t.avatar}\n`;
+      });
+    }
+
+    // Stats
+    if (bm.stats && bm.stats.length > 0) {
+      section += `\n📊 STATS (DISPLAY THESE IN STATS SECTION):\n`;
+      bm.stats.forEach(s => section += `  ${s.value} - ${s.label}\n`);
+    }
+
+    // FAQs
+    if (bm.faqs.length > 0) {
+      section += `\n❓ FAQs (CREATE FAQ SECTION WITH THESE EXACT Q&As):\n`;
+      bm.faqs.forEach((faq, i) => {
+        section += `\nQ${i + 1}: ${faq.question}\n`;
+        section += `A: ${faq.answer}\n`;
+      });
+    }
+
+    // About content
+    section += `\n📖 ABOUT CONTENT:\n`;
+    section += `Story: ${bm.aboutContent.story}\n`;
+    if (bm.aboutContent.values.length > 0) {
+      section += `Values: ${bm.aboutContent.values.join(', ')}\n`;
+    }
+    if (bm.aboutContent.teamDescription) {
+      section += `Team: ${bm.aboutContent.teamDescription}\n`;
+    }
+
+    // Contact info
+    section += `\n📞 CONTACT INFO:\n`;
+    if (bm.contactInfo.email) section += `  Email: ${bm.contactInfo.email}\n`;
+    if (bm.contactInfo.phone) section += `  Phone: ${bm.contactInfo.phone}\n`;
+    if (bm.contactInfo.address) section += `  Address: ${bm.contactInfo.address}\n`;
+    if (bm.contactInfo.hours) {
+      section += `  Hours:\n`;
+      bm.contactInfo.hours.forEach(h => section += `    ${h.days}: ${h.hours}\n`);
+    }
+
+    // SEO
+    section += `\n🔍 SEO:\n`;
+    section += `  Title: ${bm.seoTitle}\n`;
+    section += `  Description: ${bm.seoDescription}\n`;
+    section += `  Keywords: ${bm.keywords.join(', ')}\n`;
+
+    section += '\n' + '='.repeat(60) + '\n';
+    section += 'CRITICAL: Use the EXACT data above. Do NOT make up different prices, services, or testimonials.\n';
 
     return section;
   }
@@ -1665,6 +1772,34 @@ export async function generateCompleteWebsite(
     if (brandContext.content) {
       context.userBrandContext = brandContext;
       console.log(`[WebsitePipeline] Found brand context from ${brandContext.documentNames.length} documents`);
+    }
+
+    // STEP 2.5: Generate Business Model (THE SECRET SAUCE)
+    // This creates structured pricing, services, testimonials, FAQs using research
+    console.log('[WebsitePipeline] Generating business model with competitive intelligence...');
+    try {
+      const businessModel = await generateBusinessModel({
+        businessName: context.businessName,
+        industry: context.industry,
+        location: extractedInfo.location,
+        services: extractedInfo.services,
+        pricing: extractedInfo.pricing,
+        email: extractedInfo.email,
+        phone: extractedInfo.phone,
+        targetAudience: extractedInfo.targetAudience,
+        stylePreference: extractedInfo.stylePreference,
+        additionalContext: context.userPrompt,
+      }, geminiModel);
+
+      context.businessModel = businessModel;
+      console.log('[WebsitePipeline] Business model generated:');
+      console.log(`[WebsitePipeline] - Pricing tiers: ${businessModel.pricingTiers.length}`);
+      console.log(`[WebsitePipeline] - Services: ${businessModel.services.length}`);
+      console.log(`[WebsitePipeline] - Testimonials: ${businessModel.testimonials.length}`);
+      console.log(`[WebsitePipeline] - FAQs: ${businessModel.faqs.length}`);
+    } catch (bmError) {
+      console.error('[WebsitePipeline] Business model generation failed (non-fatal):', bmError);
+      // Continue without business model - will fall back to generic content
     }
 
     // Create new session with updated context
