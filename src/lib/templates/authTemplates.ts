@@ -997,6 +997,604 @@ export function generateDashboardPage(config: AuthConfig): string {
 }
 
 /**
+ * Generate a magic link login page HTML
+ * Passwordless authentication via email magic link
+ */
+export function generateMagicLinkPage(config: AuthConfig): string {
+  const {
+    businessName,
+    primaryColor = '#8b5cf6',
+    secondaryColor = '#06b6d4',
+    logoUrl,
+  } = config;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Magic Link Login - ${businessName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .magic-link-container {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .logo-text {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor});
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .magic-icon {
+      font-size: 48px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: white;
+      font-size: 24px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #94a3b8;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    input[type="email"] {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+    input:focus {
+      outline: none;
+      border-color: ${primaryColor};
+      box-shadow: 0 0 0 3px ${primaryColor}33;
+    }
+    input::placeholder {
+      color: #64748b;
+    }
+    .btn-magic {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor});
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-magic:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px ${primaryColor}40;
+    }
+    .btn-magic:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-magic .sparkle {
+      animation: sparkle 1.5s ease-in-out infinite;
+    }
+    @keyframes sparkle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.2); }
+    }
+    .success-state {
+      display: none;
+      text-align: center;
+    }
+    .success-state.show {
+      display: block;
+    }
+    .success-state .check-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    .success-state h2 {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+    .success-state p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .form-state {
+      display: block;
+    }
+    .form-state.hide {
+      display: none;
+    }
+    .login-link {
+      text-align: center;
+      margin-top: 25px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    .login-link a {
+      color: ${primaryColor};
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .features {
+      display: flex;
+      gap: 16px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .feature {
+      flex: 1;
+      text-align: center;
+    }
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .feature-text {
+      color: #94a3b8;
+      font-size: 12px;
+    }
+    @media (max-width: 480px) {
+      .magic-link-container {
+        padding: 30px 20px;
+      }
+      .features {
+        flex-direction: column;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="magic-link-container">
+    <div class="logo">
+      ${logoUrl ? `<img src="${logoUrl}" alt="${businessName}" style="height: 60px;">` : `<div class="logo-text">${businessName}</div>`}
+    </div>
+
+    <div id="form-state" class="form-state">
+      <div class="magic-icon">✨</div>
+      <h1>Passwordless Login</h1>
+      <p class="subtitle">Enter your email and we'll send you a magic link to sign in instantly. No password needed!</p>
+
+      <div id="error-message" class="error-message"></div>
+
+      <form id="magic-link-form">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <button type="submit" class="btn-magic" id="magic-btn">
+          <span class="sparkle">✨</span>
+          Send Magic Link
+        </button>
+      </form>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">🔒</div>
+          <div class="feature-text">Secure</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-text">Instant</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🚫</div>
+          <div class="feature-text">No Password</div>
+        </div>
+      </div>
+
+      <p class="login-link">
+        Prefer password? <a href="login.html">Sign in with password</a>
+      </p>
+    </div>
+
+    <div id="success-state" class="success-state">
+      <div class="check-icon">📧</div>
+      <h2>Check Your Email!</h2>
+      <p>We've sent a magic link to <strong id="sent-email"></strong>. Click the link in your email to sign in.</p>
+      <p style="margin-top: 16px; color: #64748b; font-size: 13px;">Didn't receive it? Check your spam folder or <a href="#" id="resend-link" style="color: ${primaryColor};">resend the link</a></p>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Supabase - Replace with your credentials
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('magic-link-form');
+    const magicBtn = document.getElementById('magic-btn');
+    const errorMessage = document.getElementById('error-message');
+    const formState = document.getElementById('form-state');
+    const successState = document.getElementById('success-state');
+    const sentEmail = document.getElementById('sent-email');
+    const resendLink = document.getElementById('resend-link');
+    let lastEmail = '';
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+    }
+
+    function showSuccess(email) {
+      lastEmail = email;
+      sentEmail.textContent = email;
+      formState.classList.add('hide');
+      successState.classList.add('show');
+    }
+
+    async function sendMagicLink(email) {
+      magicBtn.disabled = true;
+      magicBtn.innerHTML = '<span class="sparkle">✨</span> Sending...';
+      errorMessage.style.display = 'none';
+
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: window.location.origin + '/auth-callback.html'
+          }
+        });
+
+        if (error) throw error;
+        showSuccess(email);
+      } catch (error) {
+        showError(error.message || 'Failed to send magic link. Please try again.');
+        magicBtn.disabled = false;
+        magicBtn.innerHTML = '<span class="sparkle">✨</span> Send Magic Link';
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      await sendMagicLink(email);
+    });
+
+    resendLink.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (lastEmail) {
+        formState.classList.remove('hide');
+        successState.classList.remove('show');
+        document.getElementById('email').value = lastEmail;
+        await sendMagicLink(lastEmail);
+      }
+    });
+
+    // Check if already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        window.location.href = '/dashboard.html';
+      }
+    });
+  </script>
+</body>
+</html>`;
+}
+
+/**
+ * Generate a forgot password page HTML
+ */
+export function generateForgotPasswordPage(config: AuthConfig): string {
+  const {
+    businessName,
+    primaryColor = '#8b5cf6',
+    secondaryColor = '#06b6d4',
+    logoUrl,
+  } = config;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Password - ${businessName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .reset-container {
+      width: 100%;
+      max-width: 420px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .logo-text {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor});
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .icon {
+      font-size: 48px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: white;
+      font-size: 24px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #94a3b8;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    input[type="email"] {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+    input:focus {
+      outline: none;
+      border-color: ${primaryColor};
+      box-shadow: 0 0 0 3px ${primaryColor}33;
+    }
+    input::placeholder {
+      color: #64748b;
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor});
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px ${primaryColor}40;
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .back-link {
+      text-align: center;
+      margin-top: 25px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    .back-link a {
+      color: ${primaryColor};
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .success-state {
+      display: none;
+      text-align: center;
+    }
+    .success-state.show {
+      display: block;
+    }
+    .success-state .check-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    .success-state h2 {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+    .success-state p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .form-state {
+      display: block;
+    }
+    .form-state.hide {
+      display: none;
+    }
+    @media (max-width: 480px) {
+      .reset-container {
+        padding: 30px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="reset-container">
+    <div class="logo">
+      ${logoUrl ? `<img src="${logoUrl}" alt="${businessName}" style="height: 60px;">` : `<div class="logo-text">${businessName}</div>`}
+    </div>
+
+    <div id="form-state" class="form-state">
+      <div class="icon">🔑</div>
+      <h1>Reset Password</h1>
+      <p class="subtitle">Enter your email address and we'll send you a link to reset your password.</p>
+
+      <div id="error-message" class="error-message"></div>
+
+      <form id="reset-form">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        </div>
+        <button type="submit" class="btn-primary" id="reset-btn">Send Reset Link</button>
+      </form>
+
+      <p class="back-link">
+        Remember your password? <a href="login.html">Sign in</a>
+      </p>
+    </div>
+
+    <div id="success-state" class="success-state">
+      <div class="check-icon">📧</div>
+      <h2>Check Your Email!</h2>
+      <p>We've sent a password reset link to <strong id="sent-email"></strong>.</p>
+      <p style="margin-top: 16px;"><a href="login.html" style="color: ${primaryColor};">Back to login</a></p>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('reset-form');
+    const resetBtn = document.getElementById('reset-btn');
+    const errorMessage = document.getElementById('error-message');
+    const formState = document.getElementById('form-state');
+    const successState = document.getElementById('success-state');
+    const sentEmail = document.getElementById('sent-email');
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+    }
+
+    function showSuccess(email) {
+      sentEmail.textContent = email;
+      formState.classList.add('hide');
+      successState.classList.add('show');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      resetBtn.disabled = true;
+      resetBtn.textContent = 'Sending...';
+      errorMessage.style.display = 'none';
+
+      const email = document.getElementById('email').value;
+
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/reset-password.html'
+        });
+
+        if (error) throw error;
+        showSuccess(email);
+      } catch (error) {
+        showError(error.message || 'Failed to send reset link. Please try again.');
+        resetBtn.disabled = false;
+        resetBtn.textContent = 'Send Reset Link';
+      }
+    });
+  </script>
+</body>
+</html>`;
+}
+
+/**
  * AUTH INTENT DETECTION PATTERNS
  */
 export const AUTH_INTENT_PATTERNS = [
@@ -1037,13 +1635,36 @@ export function hasAuthIntent(text: string): boolean {
 }
 
 /**
+ * Check if user specifically wants magic link authentication
+ */
+export function hasMagicLinkIntent(text: string): boolean {
+  const magicLinkPatterns = [
+    /\bmagic\s*link/i,
+    /\bpasswordless/i,
+    /\bemail\s*(only|link)\s*(login|auth)/i,
+    /\bno\s*password/i,
+    /\blink\s*(based|only)\s*(login|auth)/i,
+    /\bsign\s*in\s*with\s*(email\s*)?link/i,
+  ];
+  return magicLinkPatterns.some(pattern => pattern.test(text));
+}
+
+/**
  * Get all auth pages as an object for multi-page generation
  */
 export function generateAuthPages(config: AuthConfig): Record<string, string> {
-  return {
+  const pages: Record<string, string> = {
     'login.html': generateLoginPage(config),
     'signup.html': generateSignupPage(config),
     'auth-callback.html': generateAuthCallbackPage(config),
     'dashboard.html': generateDashboardPage(config),
+    'forgot-password.html': generateForgotPasswordPage(config),
   };
+
+  // Add magic link page if enabled in config
+  if (config.features?.magicLink) {
+    pages['magic-link.html'] = generateMagicLinkPage(config);
+  }
+
+  return pages;
 }

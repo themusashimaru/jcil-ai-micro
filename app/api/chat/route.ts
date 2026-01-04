@@ -96,6 +96,9 @@ import {
   generateSignupPage,
   generateAuthCallbackPage,
   generateDashboardPage,
+  generateMagicLinkPage,
+  generateForgotPasswordPage,
+  hasMagicLinkIntent,
   AuthConfig,
 } from '@/lib/templates/authTemplates';
 import {
@@ -2088,7 +2091,11 @@ Use the same design language as the home page.`;
           // ONE-CLICK AUTH SYSTEM - Add auth pages if requested
           // ================================================
           if (hasAuth) {
+            // Detect if user specifically wants magic link authentication
+            const wantsMagicLink = hasMagicLinkIntent(lastUserContent);
+
             console.log('[Chat API] Adding ONE-CLICK AUTH pages to multi-page website');
+            console.log('[Chat API] Magic link requested:', wantsMagicLink);
 
             // Extract primary color from generated code for consistent styling
             const colorMatch = generatedCode.match(/(?:background|color):\s*#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/);
@@ -2102,7 +2109,7 @@ Use the same design language as the home page.`;
                 emailPassword: true,
                 googleOAuth: true,
                 githubOAuth: true,
-                magicLink: false,
+                magicLink: wantsMagicLink, // Enable if user requested
                 passkey: false,
               },
             };
@@ -2112,17 +2119,31 @@ Use the same design language as the home page.`;
             const signupPage = generateSignupPage(authConfig);
             const authCallbackPage = generateAuthCallbackPage(authConfig);
             const dashboardPage = generateDashboardPage(authConfig);
+            const forgotPasswordPage = generateForgotPasswordPage(authConfig);
 
             // Add auth pages to the website
             pages.push(
               { name: 'Login', slug: 'login', code: loginPage, icon: '🔐' },
               { name: 'Sign Up', slug: 'signup', code: signupPage, icon: '✨' },
               { name: 'Dashboard', slug: 'dashboard', code: dashboardPage, icon: '📊' },
+              { name: 'Forgot Password', slug: 'forgot-password', code: forgotPasswordPage, icon: '🔑' },
               { name: 'Auth Callback', slug: 'auth-callback', code: authCallbackPage, icon: '🔄' }
             );
 
-            console.log('[Chat API] Auth pages added: Login, Sign Up, Dashboard, Auth Callback');
+            // Add magic link page if requested
+            if (wantsMagicLink) {
+              const magicLinkPage = generateMagicLinkPage(authConfig);
+              pages.push(
+                { name: 'Magic Link', slug: 'magic-link', code: magicLinkPage, icon: '✨' }
+              );
+              console.log('[Chat API] Magic Link page added');
+            }
+
+            console.log('[Chat API] Auth pages added: Login, Sign Up, Dashboard, Forgot Password, Auth Callback' + (wantsMagicLink ? ', Magic Link' : ''));
           }
+
+          // Check if magic link was added (for feature display)
+          const hasMagicLinkPage = pages.some(p => p.slug === 'magic-link');
 
           console.log('[Chat API] Multi-page generation complete:', pages.length, 'pages');
 
@@ -2131,7 +2152,8 @@ Use the same design language as the home page.`;
             `📄 ${pages.length} pages (${pages.map(p => p.name).join(', ')})`,
             logoDataUrl ? '🎨 AI-generated custom logo' : null,
             heroImageDataUrl ? '🖼️ AI-generated hero background' : null,
-            hasAuth ? '🔐 Supabase Auth (Login, Sign Up, Dashboard)' : null,
+            hasAuth && hasMagicLinkPage ? '🔐 Supabase Auth + Magic Link (Passwordless)' : null,
+            hasAuth && !hasMagicLinkPage ? '🔐 Supabase Auth (Login, Sign Up, Dashboard)' : null,
             '📱 Fully responsive design',
             '🔗 Inter-page navigation',
             '🎯 Conversion-optimized',
