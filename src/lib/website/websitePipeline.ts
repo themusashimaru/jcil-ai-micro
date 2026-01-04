@@ -959,7 +959,7 @@ STYLE: Modern, professional, trustworthy`;
       model,
     });
     return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
-  } catch (_err) {
+  } catch {
     console.log('[WebsitePipeline] Service image generation failed for:', serviceName);
     return null;
   }
@@ -1025,7 +1025,7 @@ IMPORTANT: Photorealistic, not illustrated. High-end corporate headshot style.`;
       model,
     });
     return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
-  } catch (_err) {
+  } catch {
     console.log('[WebsitePipeline] Team avatar generation failed');
     return null;
   }
@@ -1062,7 +1062,7 @@ MOOD: Authentic, professional, human`;
       model,
     });
     return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
-  } catch (_err) {
+  } catch {
     console.log('[WebsitePipeline] About image generation failed');
     return null;
   }
