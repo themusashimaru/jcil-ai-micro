@@ -211,7 +211,7 @@ async function researchCustomerQuestions(
  */
 export async function generateBusinessModel(
   input: BusinessModelInput,
-  geminiModel: string = 'gemini-2.0-flash-exp'
+  geminiModel: string = 'gemini-3-pro-preview'
 ): Promise<BusinessModel> {
   console.log('[BusinessModel] Generating business model for:', input.businessName);
 
@@ -647,7 +647,7 @@ export async function updateBusinessModelSection(
   currentModel: BusinessModel,
   section: 'pricing' | 'services' | 'testimonials' | 'faqs' | 'about' | 'contact',
   updateRequest: string,
-  geminiModel: string = 'gemini-2.0-flash-exp',
+  geminiModel: string = 'gemini-3-pro-preview',
   conversationContext: string = '' // Previous conversation for context
 ): Promise<BusinessModel> {
   console.log('[BusinessModel] Updating section:', section, 'Request:', updateRequest);
