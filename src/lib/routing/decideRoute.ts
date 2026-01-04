@@ -2103,8 +2103,9 @@ const GENERAL_CHAT_PATTERNS = [
   /^(bye|goodbye|see\s*you|later|cya|ttyl)\b/i,
 
   // General questions (not code-related)
-  /^(what\s*is|what\s*are|who\s*is|who\s*are|where\s*is|when\s*is|why\s*is|how\s*does)\s+(?!.*\b(code|function|api|bug|error|git|repo|deploy|build)\b)/i,
-  /\b(tell\s*me\s*about|explain|describe|what\s*does\s*.+\s*mean)\b(?!.*\b(code|function|class|method|api|error|bug)\b)/i,
+  // IMPORTANT: Exclude GitHub operations to avoid misrouting
+  /^(what\s*is|what\s*are|who\s*is|who\s*are|where\s*is|when\s*is|why\s*is|how\s*does)\s+(?!.*\b(code|function|api|bug|error|git|repo|deploy|build|clone|fork|push|pull|commit|merge)\b)/i,
+  /\b(tell\s*me\s*about|explain|describe|what\s*does\s*.+\s*mean)\b(?!.*\b(code|function|class|method|api|error|bug|git|repo|clone|fork)\b)/i,
 
   // Casual chat topics (not development)
   /\b(weather|news|sports|music|movies?|tv\s*shows?|books?|food|recipe|travel|vacation|holiday)\b/i,
@@ -2113,16 +2114,20 @@ const GENERAL_CHAT_PATTERNS = [
   /\b(relationship|family|friends?|kids?|children|parents?|pets?)\b/i,
 
   // Help with general topics (not code)
-  /\b(help\s*me\s*(understand|learn|with)|can\s*you\s*help\s*me)\b(?!.*\b(code|debug|fix|build|deploy|api|function|error|bug|git|repo)\b)/i,
+  // IMPORTANT: Exclude GitHub/code operations to avoid misrouting
+  /\b(help\s*me\s*(understand|learn|with)|can\s*you\s*help\s*me)\b(?!.*\b(code|debug|fix|build|deploy|api|function|error|bug|git|repo|clone|fork|push|pull|commit|merge|review)\b)/i,
 
   // Simple questions without code context
-  /^(can\s*you|could\s*you|would\s*you|will\s*you)\s+(?!.*(code|fix|debug|build|deploy|create.*app|review.*repo))/i,
+  // IMPORTANT: Exclude GitHub operations to avoid misrouting "can you clone my repo"
+  /^(can\s*you|could\s*you|would\s*you|will\s*you)\s+(?!.*(code|fix|debug|build|deploy|create.*app|review.*repo|clone|fork|push|pull|commit|merge|branch|pr|pull\s*request))/i,
 
   // Philosophical/casual discussion
-  /\b(opinion|think\s*about|your\s*thoughts|what\s*do\s*you\s*think)\b(?!.*\b(code|architecture|implementation|design\s*pattern)\b)/i,
+  // IMPORTANT: Exclude code review and pull request discussions
+  /\b(opinion|think\s*about|your\s*thoughts|what\s*do\s*you\s*think)\b(?!.*\b(code|architecture|implementation|design\s*pattern|code-?review|pull\s*request|pr|commit|merge)\b)/i,
 
-  // Short messages that are clearly casual (< 15 chars without tech keywords)
-  /^.{1,15}$/,  // Very short messages - let them be general chat
+  // Short messages that are clearly casual - ONLY if they don't contain tech keywords
+  // IMPORTANT: Don't block short GitHub commands like "clone repo", "fork this"
+  /^(?!.*\b(clone|fork|push|pull|commit|merge|code|git|repo|debug|fix|build|deploy)\b).{1,15}$/i,
 
   // Explicit general chat intent
   /\b(just\s*chatting|general\s*question|quick\s*question|curious\s*about|wondering\s*about)\b/i,
@@ -2140,6 +2145,9 @@ const HIGH_CONFIDENCE_GITHUB_PATTERNS = [
 
   // Explicit git commands
   /\b(git\s+(clone|pull|push|commit|merge|rebase|checkout|branch|stash|log|diff|status|init|remote|fetch))\b/i,
+
+  // Standalone clone/fork with repo context (common shorthand)
+  /\b(clone|fork)\s+(this|my|the|that)?\s*(repo|repository|project|codebase)?\b/i,
 
   // Explicit code file references
   /\.(js|jsx|ts|tsx|py|java|cpp|go|rs|rb|php|cs|swift|kt|scala|vue|svelte)\b/i,
