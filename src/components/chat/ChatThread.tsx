@@ -72,9 +72,10 @@ interface ChatThreadProps {
   documentType?: 'pdf' | 'docx' | 'xlsx' | 'pptx' | null;
   onReply?: (message: Message) => void;
   enableCodeActions?: boolean;
+  lastUserMessage?: string; // For intelligent status messages
 }
 
-export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, documentType, onReply, enableCodeActions }: ChatThreadProps) {
+export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, documentType, onReply, enableCodeActions, lastUserMessage }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -299,8 +300,8 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, docu
           );
         })}
 
-        {/* Professional typing indicator */}
-        {isStreaming && <TypingIndicator documentType={documentType} />}
+        {/* Intelligent typing indicator with contextual messages */}
+        {isStreaming && <TypingIndicator documentType={documentType} userMessage={lastUserMessage} />}
 
         <div ref={messagesEndRef} />
       </div>
