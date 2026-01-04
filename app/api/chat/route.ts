@@ -4342,30 +4342,61 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
       }
 
       // ========================================
-      // IMAGE/SLIDE GENERATION - TEMPORARILY DISABLED
+      // IMAGE GENERATION - RE-ROUTE TO GEMINI IMAGE GENERATOR
       // ========================================
-      // Return a friendly message explaining our focus areas
+      // If image request somehow got here instead of being routed earlier,
+      // route it to image generation now instead of blocking it
       const imageGenRequest = detectImageGenerationRequest(lastUserContent);
-      if (imageGenRequest) {
-        console.log(`[Chat API] Image generation requested but disabled: ${imageGenRequest}`);
+      if (imageGenRequest && imageGenRequest !== 'slide') {
+        console.log(`[Chat API] Image request detected in fallback, routing to Gemini image generation`);
 
-        const friendlyMessage = imageGenRequest === 'slide'
-          ? `I appreciate your interest in creating slides! While I'm not currently set up for slide or presentation generation, I excel at helping with:\n\n• **Writing & Content** - Articles, emails, reports, and creative writing\n• **Programming & Code** - Development, debugging, and code review\n• **Data & Analysis** - Research, data interpretation, and summaries\n• **Documents** - Resumes, spreadsheets, invoices, and formatted documents\n\nWould you like help with any of these? I'd be happy to assist with the content for your presentation in text form!`
-          : `I appreciate your interest in image creation! While I'm not currently set up for image generation, I excel at helping with:\n\n• **Writing & Content** - Articles, emails, reports, and creative writing\n• **Programming & Code** - Development, debugging, and code review\n• **Data & Analysis** - Research, data interpretation, and summaries\n• **Documents** - Resumes, spreadsheets, invoices, and formatted documents\n\nWould you like help with any of these instead?`;
+        // Get the image model and generate
+        const imageModel = await getGeminiImageModel();
+        try {
+          const geminiImageResult = await createGeminiImageGeneration({
+            prompt: lastUserContent,
+            systemPrompt: 'You are a professional image generator. Create high-quality, visually stunning images based on the user prompt. Focus on composition, lighting, and artistic quality.',
+            model: imageModel,
+          });
 
+          if (geminiImageResult?.imageData) {
+            const imageUrl = `data:${geminiImageResult.mimeType};base64,${geminiImageResult.imageData}`;
+            return new Response(
+              JSON.stringify({
+                type: 'image',
+                content: `Here's your generated image:`,
+                imageUrl,
+                model: geminiImageResult.model,
+                provider: 'gemini',
+              }),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Model-Used': geminiImageResult.model,
+                  'X-Provider': 'gemini',
+                  'X-Image-Generated': 'true',
+                },
+              }
+            );
+          }
+        } catch (imgError) {
+          console.error('[Chat API] Fallback image generation failed:', imgError);
+          // Fall through to text response
+        }
+      }
+
+      // Slide generation is not supported
+      if (imageGenRequest === 'slide') {
         return new Response(
           JSON.stringify({
-            content: friendlyMessage,
+            content: `I appreciate your interest in creating slides! While slide generation is coming soon, I can help you with:\n\n• Writing presentation content and outlines\n• Creating individual images for your slides\n• Document generation (PDF, Word, Excel)\n\nWould you like help with any of these?`,
             model: geminiModel,
             provider: 'gemini',
           }),
           {
             status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Model-Used': geminiModel,
-              'X-Provider': 'gemini',
-            },
+            headers: { 'Content-Type': 'application/json' },
           }
         );
       }
