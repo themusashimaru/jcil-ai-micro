@@ -297,22 +297,51 @@ export function detectCategory(input: string): TemplateCategory {
 
 /**
  * Extract business information from user prompt
+ * STRICT: Only extract actual business names, not descriptions like "my photography business"
  */
 export function extractBusinessInfo(prompt: string): Partial<BusinessInfo> {
   const info: Partial<BusinessInfo> = {};
 
-  // Try to extract business name (often in quotes or after "for/called/named")
+  // Common words that indicate a description, NOT a business name
+  const descriptionWords = ['my', 'a', 'an', 'the', 'our', 'their', 'your', 'some'];
+  const businessTypes = ['business', 'company', 'shop', 'store', 'service', 'services', 'agency', 'firm', 'practice'];
+
+  // Try to extract business name - STRICT patterns only
   const namePatterns = [
+    // Quoted names are most reliable - "Lens & Light Studios"
     /"([^"]+)"/,
     /'([^']+)'/,
-    /(?:for|called|named)\s+([A-Z][A-Za-z0-9\s&']+?)(?:\s+(?:website|landing|page|site)|[,.]|$)/i,
-    /([A-Z][A-Za-z0-9\s&']+?)\s+(?:website|landing\s*page|site)/i,
+    // Explicit naming - "called Acme Corp" or "named Smith Photography"
+    /(?:called|named)\s+([A-Z][A-Za-z0-9\s&'.-]+?)(?:\s*[,.]|\s+(?:website|landing|page|site|is|which)|$)/i,
+    // "for [ProperName] Studio/Photography" - but NOT "for my X business"
+    /for\s+([A-Z][A-Za-z0-9&'.-]+(?:\s+[A-Z][A-Za-z0-9&'.-]+)*)\s+(?:studio|photography|salon|gym|restaurant|cafe|clinic|dental|law|firm|agency|shop|store)/i,
+    // "Business Name: X" or "Name: X" patterns
+    /(?:business\s+name|company\s+name|name)[:\s]+([A-Z][A-Za-z0-9\s&'.-]+?)(?:\s*[,.]|$)/i,
   ];
 
   for (const pattern of namePatterns) {
     const match = prompt.match(pattern);
     if (match && match[1]) {
-      info.name = match[1].trim();
+      const potentialName = match[1].trim();
+
+      // Reject if it starts with common description words
+      const firstWord = potentialName.split(/\s+/)[0].toLowerCase();
+      if (descriptionWords.includes(firstWord)) {
+        continue; // Skip this match, try next pattern
+      }
+
+      // Reject if it ends with generic business type words (indicates description)
+      const lastWord = potentialName.split(/\s+/).pop()?.toLowerCase() || '';
+      if (businessTypes.includes(lastWord) && potentialName.split(/\s+/).length <= 2) {
+        // "photography business" = description, but "Smith Photography Services" = valid name
+        continue;
+      }
+
+      // Reject very short names or common words
+      if (potentialName.length < 3) continue;
+      if (['website', 'site', 'page', 'landing'].includes(potentialName.toLowerCase())) continue;
+
+      info.name = potentialName;
       break;
     }
   }
