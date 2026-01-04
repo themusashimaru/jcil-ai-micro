@@ -16,10 +16,13 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, lazy, Suspense } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
+
+// Lazy load MultiPagePreview for better performance
+const MultiPagePreview = lazy(() => import('./MultiPagePreview'));
 
 /**
  * Code Preview Block Component
@@ -433,6 +436,32 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
             title={message.codePreview.title}
             description={message.codePreview.description}
           />
+        )}
+
+        {/* Multi-Page Website Preview */}
+        {message.multiPageWebsite && (
+          <Suspense fallback={
+            <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-4 animate-pulse">
+              <div className="h-4 bg-white/10 rounded w-1/3 mb-2"></div>
+              <div className="h-8 bg-white/10 rounded w-full"></div>
+            </div>
+          }>
+            <MultiPagePreview
+              website={message.multiPageWebsite}
+              onPushToGitHub={() => {
+                // Trigger GitHub push via chat
+                window.dispatchEvent(new CustomEvent('forge-action', {
+                  detail: { action: 'push-to-github', website: message.multiPageWebsite }
+                }));
+              }}
+              onDeploy={() => {
+                // Trigger Vercel deploy via chat
+                window.dispatchEvent(new CustomEvent('forge-action', {
+                  detail: { action: 'deploy-vercel', website: message.multiPageWebsite }
+                }));
+              }}
+            />
+          </Suspense>
         )}
 
         {/* Generated Video */}

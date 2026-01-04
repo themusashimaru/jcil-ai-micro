@@ -1279,6 +1279,33 @@ export function ChatClient() {
 
           // Save the code preview message to database
           await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'text');
+        } else if (data.type === 'multi_page_website' && data.multiPageWebsite) {
+          // FORGE: Multi-page website generation response
+          console.log('[ChatClient] Received multi-page website response:', {
+            title: data.multiPageWebsite.title,
+            pageCount: data.multiPageWebsite.pages?.length || 0,
+          });
+
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: data.content || 'Here is your multi-page website:',
+            model: data.model || modelUsed,
+            multiPageWebsite: {
+              pages: data.multiPageWebsite.pages,
+              title: data.multiPageWebsite.title,
+              description: data.multiPageWebsite.description,
+              businessName: data.multiPageWebsite.businessName,
+              category: data.multiPageWebsite.category,
+            },
+            timestamp: new Date(),
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          finalContent = assistantMessage.content;
+
+          // Save the multi-page website message to database
+          await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'text');
         } else if (data.type === 'video_job' && data.video_job) {
           // Video generation job started (admin only)
           console.log('[ChatClient] Received video job response:', {
