@@ -42,6 +42,13 @@ export interface WebsiteAssets {
   teamAvatars: string[];   // Team member photos/avatars
 }
 
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  section?: string; // Which section was being discussed
+}
+
 export interface WebsiteSession {
   id: string;
   userId: string;
@@ -58,6 +65,8 @@ export interface WebsiteSession {
   vercelUrl?: string;
   // Stored business model for smart editing
   businessModel?: BusinessModel;
+  // Conversation history for context-aware edits
+  conversationHistory?: ConversationMessage[];
 }
 
 export interface WebsiteIteration {
@@ -195,6 +204,13 @@ export async function createWebsiteSession(
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     status: 'generating',
+    conversationHistory: [
+      {
+        role: 'user',
+        content: context.userPrompt,
+        timestamp: new Date().toISOString(),
+      },
+    ],
   };
 
   try {
@@ -210,6 +226,7 @@ export async function createWebsiteSession(
       status: session.status,
       created_at: session.createdAt,
       updated_at: session.updatedAt,
+      conversation_history: session.conversationHistory,
     });
   } catch {
     console.log('[WebsitePipeline] Session table may not exist, using in-memory session');
@@ -240,6 +257,8 @@ export async function updateWebsiteSession(session: WebsiteSession): Promise<voi
       vercel_url: session.vercelUrl,
       created_at: session.createdAt,
       updated_at: session.updatedAt,
+      business_model: session.businessModel,
+      conversation_history: session.conversationHistory,
     });
   } catch {
     console.log('[WebsitePipeline] Could not persist session update');
@@ -261,6 +280,8 @@ function mapSessionFromDb(data: Record<string, unknown>): WebsiteSession {
     status: data.status as WebsiteSession['status'],
     githubRepo: data.github_repo as string | undefined,
     vercelUrl: data.vercel_url as string | undefined,
+    businessModel: data.business_model as BusinessModel | undefined,
+    conversationHistory: data.conversation_history as ConversationMessage[] | undefined,
   };
 }
 
@@ -1659,12 +1680,13 @@ function injectMissingAssets(
 export async function applyWebsiteModification(
   session: WebsiteSession,
   userFeedback: string,
-  geminiModel: string
+  geminiModel: string,
+  conversationContext: string = '' // Previous conversation for context
 ): Promise<{ success: boolean; html: string; changesDescription: string }> {
   console.log('[WebsitePipeline] Applying website modification...');
 
   const systemPrompt = `You are an expert web developer tasked with modifying an existing website based on user feedback.
-
+${conversationContext}
 CURRENT WEBSITE HTML:
 \`\`\`html
 ${session.currentHtml.substring(0, 30000)}
@@ -1675,16 +1697,18 @@ USER MODIFICATION REQUEST:
 
 YOUR TASK:
 1. Understand what the user wants to change
-2. Make ONLY the requested changes
-3. Keep everything else exactly the same
-4. Maintain all existing styling and functionality
-5. Return the COMPLETE modified HTML
+2. Consider any previous conversation context for better understanding
+3. Make ONLY the requested changes
+4. Keep everything else exactly the same
+5. Maintain all existing styling and functionality
+6. Return the COMPLETE modified HTML
 
 IMPORTANT:
 - Do NOT remove or break existing features
 - Keep all existing assets and images
 - Preserve the overall structure
 - Only modify what was specifically requested
+- If user references something from the conversation history, incorporate that context
 
 OUTPUT: Complete HTML document with modifications applied. No markdown. No code blocks.`;
 
@@ -1796,8 +1820,35 @@ export function detectEditSection(text: string): 'pricing' | 'services' | 'testi
 }
 
 /**
+ * Build conversation context string from history
+ * This gives the AI awareness of previous edits and discussions
+ */
+function buildConversationContext(history: ConversationMessage[] | undefined): string {
+  if (!history || history.length <= 1) return '';
+
+  // Take last 5 messages for context (excluding the current one)
+  const recentMessages = history.slice(-6, -1);
+  if (recentMessages.length === 0) return '';
+
+  let context = '\n📝 PREVIOUS CONVERSATION (for context):\n';
+  context += '-'.repeat(40) + '\n';
+
+  for (const msg of recentMessages) {
+    const role = msg.role === 'user' ? '👤 User' : '🤖 Assistant';
+    const sectionNote = msg.section ? ` [${msg.section}]` : '';
+    context += `${role}${sectionNote}: ${msg.content.substring(0, 150)}${msg.content.length > 150 ? '...' : ''}\n`;
+  }
+
+  context += '-'.repeat(40) + '\n';
+  context += 'Consider the above context when making changes.\n';
+
+  return context;
+}
+
+/**
  * Smart section-level website modification
  * Uses business model for intelligent updates when possible
+ * Now with conversation context awareness!
  */
 export async function applySmartModification(
   session: WebsiteSession,
@@ -1809,6 +1860,21 @@ export async function applySmartModification(
   const section = detectEditSection(userFeedback);
   console.log(`[WebsitePipeline] Detected section for edit: ${section}`);
 
+  // Add user message to conversation history
+  if (!session.conversationHistory) {
+    session.conversationHistory = [];
+  }
+  session.conversationHistory.push({
+    role: 'user',
+    content: userFeedback,
+    timestamp: new Date().toISOString(),
+    section,
+  });
+
+  // Build context from previous conversation
+  const conversationContext = buildConversationContext(session.conversationHistory);
+  console.log(`[WebsitePipeline] Conversation history length: ${session.conversationHistory.length}`);
+
   // If we have a business model and it's a content section, update the model first
   if (session.businessModel && section !== 'general') {
     console.log('[WebsitePipeline] Using business model for smart update');
@@ -1819,7 +1885,8 @@ export async function applySmartModification(
         session.businessModel,
         section,
         userFeedback,
-        geminiModel
+        geminiModel,
+        conversationContext // Pass conversation context
       );
 
       session.businessModel = updatedModel;
@@ -1847,12 +1914,22 @@ export async function applySmartModification(
       session.iterations.push(iteration);
       session.currentHtml = html;
       session.status = 'ready';
+
+      // Add assistant response to conversation history
+      const changesDescription = `Updated ${section} section with your changes`;
+      session.conversationHistory.push({
+        role: 'assistant',
+        content: changesDescription,
+        timestamp: new Date().toISOString(),
+        section,
+      });
+
       await updateWebsiteSession(session);
 
       return {
         success: true,
         html,
-        changesDescription: `Updated ${section} section with your changes`,
+        changesDescription,
         updatedSection: section,
       };
     } catch (err) {
@@ -1862,7 +1939,18 @@ export async function applySmartModification(
   }
 
   // Fallback to full HTML modification for general changes or if no business model
-  return applyWebsiteModification(session, userFeedback, geminiModel);
+  const result = await applyWebsiteModification(session, userFeedback, geminiModel, conversationContext);
+
+  // Add assistant response to conversation history
+  session.conversationHistory.push({
+    role: 'assistant',
+    content: result.changesDescription,
+    timestamp: new Date().toISOString(),
+    section,
+  });
+  await updateWebsiteSession(session);
+
+  return result;
 }
 
 // ============================================================================

@@ -641,25 +641,38 @@ function createFallbackBusinessModel(input: BusinessModelInput): BusinessModel {
 /**
  * Update a specific section of the business model
  * Used for conversational editing like "change pricing to $100/hour"
+ * Now with conversation context for smarter, context-aware updates!
  */
 export async function updateBusinessModelSection(
   currentModel: BusinessModel,
   section: 'pricing' | 'services' | 'testimonials' | 'faqs' | 'about' | 'contact',
   updateRequest: string,
-  geminiModel: string = 'gemini-2.0-flash-exp'
+  geminiModel: string = 'gemini-2.0-flash-exp',
+  conversationContext: string = '' // Previous conversation for context
 ): Promise<BusinessModel> {
   console.log('[BusinessModel] Updating section:', section, 'Request:', updateRequest);
+  if (conversationContext) {
+    console.log('[BusinessModel] Using conversation context for smarter update');
+  }
 
   const sectionData = getSectionData(currentModel, section);
 
-  const prompt = `Given this current ${section} data:
+  const prompt = `You are helping update a business website's ${section} section.
+${conversationContext}
+CURRENT ${section.toUpperCase()} DATA:
 ${JSON.stringify(sectionData, null, 2)}
 
-Apply this change: "${updateRequest}"
+USER REQUEST: "${updateRequest}"
 
-Return the updated ${section} data in the same JSON format.
-Only modify what's requested, keep everything else the same.
-Return ONLY valid JSON, no explanation.`;
+Instructions:
+1. Apply the user's requested change to the ${section} data
+2. Consider the conversation context above for better understanding
+3. If the user references something from a previous message, incorporate that context
+4. Only modify what's needed, keep everything else the same
+5. Maintain consistent style and formatting
+
+Return ONLY the updated ${section} data in the same JSON format.
+No explanation, just valid JSON.`;
 
   const result = await createGeminiCompletion({
     messages: [{ role: 'user', content: prompt }],
