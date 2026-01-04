@@ -917,7 +917,7 @@ export function generateDashboardPage(config: AuthConfig): string {
 
   <div id="app" style="display: none;">
     <header class="header">
-      <div class="logo">${businessName}</div>
+      <div class="logo">${logoUrl ? `<img src="${logoUrl}" alt="${businessName}" style="height: 32px;">` : businessName}</div>
       <div class="user-menu">
         <span id="user-email" class="user-email"></span>
         <button id="logout-btn" class="btn-logout">Sign Out</button>
