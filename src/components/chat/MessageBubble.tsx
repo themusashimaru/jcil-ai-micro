@@ -99,18 +99,27 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
           </button>
           {inlineExpanded && (
             <div
-              className="relative bg-white cursor-pointer group"
+              className="relative cursor-pointer group overflow-hidden"
               onClick={openPreview}
+              style={{ minHeight: '300px' }}
             >
+              {/* Loading state background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <span className="text-xs text-gray-400">Loading preview...</span>
+                </div>
+              </div>
               {/* Inline iframe preview */}
               <iframe
                 srcDoc={code}
-                className="w-full h-[300px] pointer-events-none"
+                className="relative w-full h-[300px] pointer-events-none z-10"
                 title={`${title || 'Preview'} - Inline`}
                 sandbox="allow-scripts allow-same-origin"
+                style={{ backgroundColor: 'white' }}
               />
               {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <div className="absolute inset-0 z-20 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                 <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur rounded-lg text-white text-sm font-medium">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />

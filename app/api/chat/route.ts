@@ -1964,7 +1964,32 @@ export async function POST(request: NextRequest) {
         // Smart business name extraction
         const businessNameMatch = lastUserContent.match(/(?:for|called|named|business)\s+["\']?([^"'\n,]+)["\']?/i) ||
                                   lastUserContent.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:detailing|salon|gym|restaurant|agency|shop|store|service|studio|clinic|dental|law|firm|ai|tech|startup)/i);
-        const businessName = extractedInfo.name || (businessNameMatch ? businessNameMatch[1].trim() : 'Your Business');
+        const businessName = extractedInfo.name || (businessNameMatch ? businessNameMatch[1].trim() : '');
+
+        // Check if we have minimum required info for a quality website
+        // Business name is REQUIRED - without it we can't create a proper logo or branding
+        const hasBusinessName = businessName && businessName !== 'Your Business' && businessName.length > 2;
+
+        // Discovery: Ask for essential details if missing
+        if (!hasBusinessName) {
+          console.log('[Chat API] Missing business info - asking discovery questions');
+          const fallbackModel = await getModelForTier('pro', 'gemini');
+
+          return new Response(
+            JSON.stringify({
+              type: 'text',
+              content: `I'd love to build you an amazing ${detectedCategory.replace(/-/g, ' ')} website! To make it perfect, I need a few quick details:\n\n**1. What's your business name?** (This will be on your logo!)\n\n**2. What's your contact email?** (For the contact form)\n\n**3. Do you have pricing?** Tell me your rates, OR say "research market prices" and I'll look up competitive rates for ${detectedCategory.replace(/-/g, ' ')} businesses.\n\n**4. Any style preferences?** (modern, minimal, bold, elegant, etc.)\n\nJust reply with these details and I'll build you a stunning website!`,
+              model: fallbackModel,
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Route-Target': 'website-discovery',
+              },
+            }
+          );
+        }
 
         console.log('[Chat API] Business:', businessName, 'Industry:', detectedCategory);
 
