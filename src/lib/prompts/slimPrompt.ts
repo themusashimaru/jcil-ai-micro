@@ -151,20 +151,26 @@ Your job is to be genuinely helpful. Not preachy. Not religious unless the topic
 
 ### TASK APPROACH:
 
-**1. For Complex Requests - Break It Down:**
-- If a task has multiple parts, outline the steps first
-- Show a simple checklist so the user knows what's happening
-- Work through each step methodically
-- Report progress as you go
+**1. For Complex Requests:**
+- Just do the work. Don't create task lists or checklists unless the user explicitly asks for one.
+- For multi-part requests, acknowledge briefly and deliver each part.
+- NO checklists, NO numbered "here's my plan" lists, NO progress reports.
+- Users want RESULTS, not a breakdown of your process.
 
 **Example:**
 User: "Create a resume and cover letter for a marketing role"
+You: "Here's your professional resume:
+[resume content]
+
+And here's your tailored cover letter:
+[cover letter content]"
+
+**WRONG - Don't do this:**
 You: "I'll help you create both! Here's my plan:
 1. Create your professional resume
 2. Draft a tailored cover letter
-3. Ensure consistent formatting
-
-Starting with the resume..."
+- [ ] Step one
+- [ ] Step two"
 
 **2. Suggest Next Steps:**
 After completing a task, proactively suggest what the user might want next:
@@ -305,43 +311,38 @@ export function buildSlimSystemPrompt(options?: {
 export function isFaithTopic(message: string): boolean {
   const lowerMessage = message.toLowerCase();
 
-  // Direct faith keywords
+  // Direct faith keywords - STRICT: Only trigger on explicitly religious queries
+  // REMOVED overly broad terms: 'soul', 'spirit', 'grace', 'lord', 'faith', 'moral', 'ethical', 'should i'
+  // These were triggering on normal conversations like "the spirit of the project" or "should i use React"
   const faithKeywords = [
-    // Core religious terms
-    'god', 'jesus', 'christ', 'lord', 'holy spirit', 'bible', 'scripture',
-    'church', 'faith', 'pray', 'prayer', 'worship', 'salvation', 'saved',
-    'heaven', 'hell', 'sin', 'repent', 'forgive', 'eternal', 'soul', 'spirit',
-    'gospel', 'christian', 'christianity', 'believer',
+    // Core religious terms - must be explicitly religious context
+    'jesus christ', 'holy spirit', 'bible verse', 'scripture says',
+    'the bible', 'in the bible', 'biblical', 'pray for', 'prayer request',
+    'worship god', 'salvation through', 'saved by grace',
+    'heaven and hell', 'sin against', 'repentance', 'forgiveness of sins',
+    'the gospel', 'christian faith', 'christianity teaches',
 
-    // Theological topics
-    'trinity', 'baptism', 'communion', 'resurrection', 'crucifixion',
-    'atonement', 'grace', 'mercy', 'redemption', 'sanctification',
-    'justification', 'predestination', 'election', 'rapture', 'tribulation',
+    // Theological topics - specific enough to not false-positive
+    'holy trinity', 'water baptism', 'communion service', 'resurrection of christ',
+    'the crucifixion', 'blood atonement', 'god\'s mercy', 'redemption through',
+    'sanctification process', 'justification by faith', 'predestination doctrine',
+    'the rapture', 'great tribulation',
 
-    // Moral/ethical questions
-    'is it wrong', 'is it sin', 'moral', 'ethical', 'right or wrong',
-    'should i', 'what does the bible say', 'what does scripture say',
-    'biblical view', 'christian view', 'god\'s will', 'god\'s plan',
-
-    // Life struggles that warrant pastoral care
-    'suicide', 'suicidal', 'want to die', 'end my life', 'kill myself',
-    'depression', 'depressed', 'hopeless', 'no hope', 'give up',
-    'divorce', 'affair', 'cheating', 'unfaithful', 'adultery',
-    'addiction', 'addicted', 'porn', 'pornography', 'gambling',
-    'abuse', 'abused', 'trauma', 'grief', 'grieving', 'lost someone',
+    // Explicit Bible/faith questions
+    'what does the bible say', 'what does scripture say',
+    'biblical view on', 'christian view on', 'god\'s will',
 
     // Cults and false teachings
-    'mormon', 'lds', 'jehovah\'s witness', 'watchtower', 'scientology',
-    'new age', 'manifesting', 'universe', 'karma', 'reincarnation',
-    'is the bible true', 'prove god exists', 'atheist', 'atheism',
+    'mormon church', 'lds church', 'jehovah\'s witness', 'watchtower society',
+    'scientology', 'new age spirituality', 'is the bible true',
+    'prove god exists', 'atheist argument', 'atheism vs',
 
-    // Apologetics triggers
-    'why does god', 'how can god', 'problem of evil', 'suffering',
-    'contradictions in the bible', 'bible contradictions',
+    // Apologetics triggers - specific phrases
+    'why does god allow', 'how can god exist', 'problem of evil',
+    'bible contradictions',
 
-    // Political/cultural issues with moral dimension
-    'abortion', 'homosexuality', 'gay marriage', 'transgender', 'lgbtq',
-    'gender identity', 'euthanasia', 'assisted suicide',
+    // Crisis that warrants pastoral care - keep these for safety
+    'suicidal thoughts', 'want to kill myself', 'end my life',
   ];
 
   // Check for any keyword match
@@ -356,69 +357,64 @@ export function isFaithTopic(message: string): boolean {
 
 /**
  * Get relevant knowledge base categories based on message content
+ * STRICT: Only trigger on clearly religious queries, not general topics
  */
 export function getRelevantCategories(message: string): string[] {
   const lowerMessage = message.toLowerCase();
   const categories: string[] = [];
 
-  // Apologetics - defending the faith
+  // Apologetics - defending the faith (specific phrases only)
   if (
-    lowerMessage.includes('prove') ||
-    lowerMessage.includes('evidence') ||
-    lowerMessage.includes('why does god') ||
+    lowerMessage.includes('prove god exists') ||
+    lowerMessage.includes('evidence for god') ||
+    lowerMessage.includes('why does god allow') ||
     lowerMessage.includes('problem of evil') ||
-    lowerMessage.includes('contradictions') ||
-    lowerMessage.includes('atheist') ||
-    lowerMessage.includes('how can god')
+    lowerMessage.includes('bible contradictions') ||
+    lowerMessage.includes('atheist argument') ||
+    lowerMessage.includes('how can god exist')
   ) {
     categories.push('apologetics');
   }
 
-  // Pastoral care - life struggles
+  // Pastoral care - crisis only (not general terms)
   if (
-    lowerMessage.includes('suicide') ||
     lowerMessage.includes('suicidal') ||
-    lowerMessage.includes('depression') ||
-    lowerMessage.includes('hopeless') ||
-    lowerMessage.includes('grief') ||
-    lowerMessage.includes('divorce') ||
-    lowerMessage.includes('addiction') ||
-    lowerMessage.includes('abuse') ||
-    lowerMessage.includes('trauma')
+    lowerMessage.includes('want to kill myself') ||
+    lowerMessage.includes('end my life') ||
+    lowerMessage.includes('feel hopeless about life')
   ) {
     categories.push('pastoral');
   }
 
-  // Cults and false teachings
+  // Cults and false teachings (specific denominations only)
   if (
-    lowerMessage.includes('mormon') ||
-    lowerMessage.includes('jehovah') ||
-    lowerMessage.includes('watchtower') ||
-    lowerMessage.includes('scientology') ||
-    lowerMessage.includes('new age') ||
-    lowerMessage.includes('cult')
+    lowerMessage.includes('mormon church') ||
+    lowerMessage.includes('lds church') ||
+    lowerMessage.includes('jehovah\'s witness') ||
+    lowerMessage.includes('watchtower society') ||
+    lowerMessage.includes('scientology church') ||
+    lowerMessage.includes('new age spirituality')
   ) {
     categories.push('cults');
   }
 
-  // Gospel presentation
+  // Gospel presentation (explicit salvation questions)
   if (
     lowerMessage.includes('how to be saved') ||
     lowerMessage.includes('accept jesus') ||
     lowerMessage.includes('become a christian') ||
-    lowerMessage.includes('born again') ||
-    lowerMessage.includes('what must i do')
+    lowerMessage.includes('born again christian') ||
+    lowerMessage.includes('what must i do to be saved')
   ) {
     categories.push('gospel');
   }
 
-  // Worldview / doctrine
+  // Worldview / doctrine (explicit Bible questions only)
   if (
     lowerMessage.includes('what does the bible say') ||
-    lowerMessage.includes('biblical view') ||
-    lowerMessage.includes('christian view') ||
-    lowerMessage.includes('is it wrong') ||
-    lowerMessage.includes('is it sin')
+    lowerMessage.includes('biblical view on') ||
+    lowerMessage.includes('christian view on') ||
+    lowerMessage.includes('is it a sin to')
   ) {
     categories.push('worldview');
   }
