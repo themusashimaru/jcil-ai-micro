@@ -1961,9 +1961,20 @@ export async function POST(request: NextRequest) {
         const detectedCategory = detectCategory(lastUserContent);
         const extractedInfo = extractBusinessInfo(lastUserContent);
 
-        // Smart business name extraction
-        const businessNameMatch = lastUserContent.match(/(?:for|called|named|business)\s+["\']?([^"'\n,]+)["\']?/i) ||
-                                  lastUserContent.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:detailing|salon|gym|restaurant|agency|shop|store|service|studio|clinic|dental|law|firm|ai|tech|startup)/i);
+        // Smart business name extraction - STRICT: only match actual business names, not descriptions
+        // "for my photography business" = NO NAME (describing type)
+        // "for Lens & Light Studios" = NAME (actual business name)
+        // "called Smith Photography" = NAME (actual business name)
+        const businessNameMatch =
+          // Match "called/named X" - explicit naming
+          lastUserContent.match(/(?:called|named)\s+["\']?([A-Z][^"'\n,]{2,30})["\']?/i) ||
+          // Match "for [Name] Studio/Photography/etc" - but NOT "for my [type] business"
+          lastUserContent.match(/for\s+(?!my\s|a\s|an\s|the\s)([A-Z][a-zA-Z&'\s]{2,25})\s+(?:studio|photography|salon|gym|restaurant|agency|shop|store|clinic|dental|law|firm)/i) ||
+          // Match quoted names
+          lastUserContent.match(/["\']([^"']{3,30})["\']/) ||
+          // Match "Business Name: X" or "Name: X"
+          lastUserContent.match(/(?:business\s+name|name)[:\s]+([A-Z][^,\n]{2,30})/i);
+
         const businessName = extractedInfo.name || (businessNameMatch ? businessNameMatch[1].trim() : '');
 
         // Check if we have minimum required info for a quality website
