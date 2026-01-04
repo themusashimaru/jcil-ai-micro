@@ -95,7 +95,8 @@ const DOCUMENT_PATTERNS = [
   /\b(write|draft|compose|type|prepare)\s+(me\s+)?(a|an|the)\b/i,
 
   // "Create a [document type] for/about/to"
-  /\bcreate\s+(a|an)\s+\w+\s+(for|about|to|regarding)\b/i,
+  // IMPORTANT: Exclude image-related words to avoid blocking image generation
+  /\bcreate\s+(a|an)\s+(?!image|picture|pic|photo|graphic|illustration|art|artwork|logo|poster|banner|avatar|portrait|icon|thumbnail)\w+\s+(for|about|to|regarding)\b/i,
 ];
 
 /**
