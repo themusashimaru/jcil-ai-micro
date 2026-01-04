@@ -311,6 +311,10 @@ export function extractBusinessInfo(prompt: string): Partial<BusinessInfo> {
     // Quoted names are most reliable - "Lens & Light Studios"
     /"([^"]+)"/,
     /'([^']+)'/,
+    // Discovery response: Name at start followed by comma and email (e.g., "Murphys photography, email@...")
+    /^([A-Z][A-Za-z0-9\s&'.-]+?)\s*,\s*[a-zA-Z0-9._%+-]+@/i,
+    // Discovery response: "Name is X" or "business is X" at start
+    /^(?:name|business|company)(?:\s+name)?(?:\s*is|\s*:)\s*([A-Z][A-Za-z0-9\s&'.-]+?)(?:\s*[,.]|$)/i,
     // Explicit naming - "called Acme Corp" or "named Smith Photography"
     /(?:called|named)\s+([A-Z][A-Za-z0-9\s&'.-]+?)(?:\s*[,.]|\s+(?:website|landing|page|site|is|which)|$)/i,
     // "for [ProperName] Studio/Photography" - but NOT "for my X business"
