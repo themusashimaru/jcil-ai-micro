@@ -1302,7 +1302,7 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
     .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
     .service-card { background: #f8fafc; border-radius: 16px; padding: 2rem; text-align: center; transition: transform 0.3s, box-shadow 0.3s; }
     .service-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-    .service-card .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .service-card .icon { margin-bottom: 1rem; display: flex; justify-content: center; }
     .service-card h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
     .service-card p { color: #666; }
 
@@ -1394,17 +1394,29 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
       <h2>Our Services</h2>
       <div class="services-grid">
         <div class="service-card">
-          <div class="icon">⚡</div>
+          <div class="icon">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:48px;height:48px;color:#8b5cf6;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
           <h3>Premium Service</h3>
           <p>Experience top-tier ${industry} solutions tailored to your unique needs.</p>
         </div>
         <div class="service-card">
-          <div class="icon">🎯</div>
+          <div class="icon">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:48px;height:48px;color:#8b5cf6;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
           <h3>Expert Consultation</h3>
           <p>Get personalized advice from our team of industry experts.</p>
         </div>
         <div class="service-card">
-          <div class="icon">🚀</div>
+          <div class="icon">
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:48px;height:48px;color:#8b5cf6;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+          </div>
           <h3>Fast Delivery</h3>
           <p>We pride ourselves on quick turnaround without compromising quality.</p>
         </div>
@@ -1424,7 +1436,7 @@ function generateFallbackWebsite(businessName: string, industry: string, assets:
       <div class="about-image">
         ${assets.sectionImages.about
           ? `<img src="${assets.sectionImages.about}" alt="About ${businessName}">`
-          : `<div style="height: 300px; background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;">📸</div>`}
+          : `<img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&h=400&fit=crop" alt="Our team at work" style="width:100%;height:auto;border-radius:16px;">`}
       </div>
     </div>
   </section>
