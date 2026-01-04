@@ -600,6 +600,41 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+// ============================================================================
+// IN-MEMORY FALLBACK RATE LIMITER (for when database is unavailable)
+// This provides security even when Supabase is down
+// ============================================================================
+const memoryRateLimits = new Map<string, { count: number; resetAt: number }>();
+const MEMORY_RATE_LIMIT = 10; // Very conservative limit when DB is down
+const MEMORY_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+function checkMemoryRateLimit(identifier: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const entry = memoryRateLimits.get(identifier);
+
+  // Clean up expired entries periodically (every 100th check)
+  if (Math.random() < 0.01) {
+    for (const [key, value] of memoryRateLimits.entries()) {
+      if (value.resetAt < now) {
+        memoryRateLimits.delete(key);
+      }
+    }
+  }
+
+  if (!entry || entry.resetAt < now) {
+    // New window
+    memoryRateLimits.set(identifier, { count: 1, resetAt: now + MEMORY_WINDOW_MS });
+    return { allowed: true, remaining: MEMORY_RATE_LIMIT - 1 };
+  }
+
+  if (entry.count >= MEMORY_RATE_LIMIT) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  entry.count++;
+  return { allowed: true, remaining: MEMORY_RATE_LIMIT - entry.count };
+}
+
 async function checkChatRateLimit(
   identifier: string,
   isAuthenticated: boolean
@@ -624,9 +659,10 @@ async function checkChatRateLimit(
       .gte('created_at', oneHourAgo);
 
     if (error) {
-      console.error('[Chat API] Rate limit check error:', error);
-      // Allow request on error (fail open for availability)
-      return { allowed: true, remaining: -1, resetIn: 0 };
+      console.error('[Chat API] Rate limit DB error, using memory fallback:', error);
+      // FAIL-CLOSED: Use in-memory rate limiting when database is unavailable
+      const memoryCheck = checkMemoryRateLimit(identifier);
+      return { allowed: memoryCheck.allowed, remaining: memoryCheck.remaining, resetIn: memoryCheck.allowed ? 0 : 3600 };
     }
 
     const currentCount = count || 0;
@@ -659,9 +695,10 @@ async function checkChatRateLimit(
 
     return { allowed: true, remaining, resetIn: 0 };
   } catch (error) {
-    console.error('[Chat API] Rate limit error:', error);
-    // Allow request on error
-    return { allowed: true, remaining: -1, resetIn: 0 };
+    console.error('[Chat API] Rate limit exception, using memory fallback:', error);
+    // FAIL-CLOSED: Use in-memory rate limiting when any error occurs
+    const memoryCheck = checkMemoryRateLimit(identifier);
+    return { allowed: memoryCheck.allowed, remaining: memoryCheck.remaining, resetIn: memoryCheck.allowed ? 0 : 3600 };
   }
 }
 
