@@ -2231,6 +2231,20 @@ export async function POST(request: NextRequest) {
         const sanitizedTitle = title.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_').slice(0, 50);
         const filename = `${sanitizedTitle}_${timestamp}.xlsx`;
 
+        // If supabase not available, return data URL directly
+        if (!supabase) {
+          const base64 = xlsxBuffer.toString('base64');
+          const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
+          return NextResponse.json({
+            success: true,
+            dataUrl,
+            filename,
+            format: 'xlsx',
+            title,
+            storage: 'dataurl',
+          });
+        }
+
         // Upload to Supabase Storage
         const storagePath = userId ? `documents/${userId}/${filename}` : `documents/anonymous/${filename}`;
 
