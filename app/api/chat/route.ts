@@ -4461,12 +4461,12 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
           });
 
           if (geminiImageResult?.imageData) {
-            const imageUrl = `data:${geminiImageResult.mimeType};base64,${geminiImageResult.imageData}`;
+            const dataUrl = `data:${geminiImageResult.mimeType};base64,${geminiImageResult.imageData}`;
             return new Response(
               JSON.stringify({
                 type: 'image',
-                content: `Here's your generated image:`,
-                imageUrl,
+                url: dataUrl,  // Use 'url' to match main image handler format
+                prompt: lastUserContent,
                 model: geminiImageResult.model,
                 provider: 'gemini',
               }),
