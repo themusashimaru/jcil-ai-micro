@@ -1927,6 +1927,127 @@ export function ChatClient() {
       }
       }
 
+      // Check for [GENERATE_XLSX: ...] marker in the response
+      // This allows the AI to create downloadable Excel spreadsheets
+      const xlsxMarkerMatch = finalContent.match(/\[GENERATE_XLSX:\s*(.+?)\]/s);
+      if (xlsxMarkerMatch) {
+        const xlsxTitle = xlsxMarkerMatch[1].trim();
+        console.log('[ChatClient] Detected GENERATE_XLSX marker, title:', xlsxTitle);
+
+        // Extract the content after the marker (the markdown table content)
+        const markerStartIndex = finalContent.indexOf('[GENERATE_XLSX:');
+        const markerEnd = finalContent.indexOf(']', markerStartIndex) + 1;
+        const xlsxContent = markerEnd > 0 ? finalContent.slice(markerEnd).trim() : '';
+
+        // Get any text BEFORE the marker (intro text)
+        const textBeforeMarker = markerStartIndex > 0 ? finalContent.slice(0, markerStartIndex).trim() : '';
+
+        // Validate content before proceeding
+        if (!xlsxTitle || !xlsxContent || xlsxContent.length < 10) {
+          console.warn('[ChatClient] XLSX marker found but content is empty or too short');
+          const cleanedContent = textBeforeMarker || 'I tried to generate a spreadsheet but encountered an issue. Please try again with more content.';
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: cleanedContent }
+                : msg
+            )
+          );
+        } else {
+          // Show generating status
+          const cleanedContent = textBeforeMarker
+            ? `${textBeforeMarker}\n\n📊 **Generating Excel: ${xlsxTitle}...**`
+            : `📊 **Generating Excel: ${xlsxTitle}...**`;
+
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: cleanedContent }
+                : msg
+            )
+          );
+          finalContent = cleanedContent;
+
+          // Trigger Excel generation
+          try {
+            const xlsxResponse = await fetch('/api/documents/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content: xlsxContent,
+                title: xlsxTitle,
+                format: 'xlsx',
+              }),
+            });
+
+            if (xlsxResponse.ok) {
+              const xlsxData = await xlsxResponse.json();
+              const downloadUrl = xlsxData.downloadUrl || xlsxData.dataUrl;
+              const isSupabaseUrl = !!xlsxData.downloadUrl;
+
+              if (downloadUrl) {
+                console.log('[ChatClient] Excel generated successfully, storage:', xlsxData.storage);
+
+                if (isSupabaseUrl) {
+                  // Supabase Storage: Show clickable download link
+                  let messageContent = textBeforeMarker
+                    ? `${textBeforeMarker}\n\n`
+                    : '';
+                  messageContent += `✅ **Your Excel spreadsheet is ready!**\n\n`;
+                  messageContent += `📊 **[Download ${xlsxTitle}.xlsx](${downloadUrl})**`;
+                  messageContent += `\n\n*Link expires in 1 hour. If you need it later, just ask me to generate again.*`;
+
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? { ...msg, content: messageContent }
+                        : msg
+                    )
+                  );
+                } else {
+                  // Data URL fallback: Trigger auto-download
+                  const link = document.createElement('a');
+                  link.href = downloadUrl;
+                  link.download = xlsxData.filename || `${xlsxTitle}.xlsx`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+
+                  const successContent = textBeforeMarker
+                    ? `${textBeforeMarker}\n\n✅ **Excel Downloaded!** Check your downloads folder for "${xlsxTitle}.xlsx"`
+                    : `✅ **Excel Downloaded!** Check your downloads folder for "${xlsxTitle}.xlsx"`;
+
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? { ...msg, content: successContent }
+                        : msg
+                    )
+                  );
+                }
+              } else {
+                console.error('[ChatClient] Excel response missing download URL');
+              }
+            } else {
+              console.error('[ChatClient] Excel generation failed:', await xlsxResponse.text());
+            }
+          } catch (xlsxError) {
+            console.error('[ChatClient] Error during Excel generation:', xlsxError);
+            const errorContent = textBeforeMarker
+              ? `${textBeforeMarker}\n\n⚠️ Sorry, there was an error generating your spreadsheet. Please try again.`
+              : `⚠️ Sorry, there was an error generating your spreadsheet. Please try again.`;
+
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: errorContent }
+                  : msg
+              )
+            );
+          }
+        }
+      }
+
       // Check for [GENERATE_QR: ...] marker in the response
       // This allows the AI to create functional QR codes
       const qrMarkerMatch = finalContent.match(/\[GENERATE_QR:\s*(.+?)\]/s);
