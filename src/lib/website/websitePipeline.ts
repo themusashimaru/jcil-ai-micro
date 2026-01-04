@@ -380,35 +380,6 @@ export async function generateWebsiteAssets(
   return assets;
 }
 
-// NOTE: These asset generators are temporarily unused for speed optimization
-// They can be re-enabled via an "enhance website" feature later
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function _generateFavicon(
-  businessName: string,
-  industry: string,
-  model: string,
-  size: number = 32
-): Promise<string | null> {
-  try {
-    const result = await createGeminiImageGeneration({
-      prompt: `Simple, iconic favicon for "${businessName}" - a ${industry} business.
-        Requirements:
-        - Single recognizable symbol or letter
-        - Very simple design that works at ${size}x${size} pixels
-        - Bold, clear shapes
-        - High contrast
-        - NO text (except maybe one letter)
-        - Professional, modern style`,
-      systemPrompt: 'Create a simple favicon icon. Must be recognizable at tiny sizes. Think Twitter bird, Apple apple, or a single letter logo.',
-      model,
-    });
-    return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
-  } catch (err) {
-    console.log('[WebsitePipeline] Favicon generation failed:', err);
-    return null;
-  }
-}
-
 async function generateLogo(
   businessName: string,
   industry: string,
@@ -457,70 +428,6 @@ async function generateHeroBackground(
     console.log('[WebsitePipeline] Hero background generation failed:', err);
     return null;
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function _generateSectionImage(
-  businessName: string,
-  industry: string,
-  section: string,
-  model: string
-): Promise<string | null> {
-  const sectionPrompts: Record<string, string> = {
-    about: `Professional image for "About Us" section of ${businessName} - ${industry}.
-      Show teamwork, professional environment, or company culture. Warm and inviting.`,
-    services: `Image showcasing ${industry} services for ${businessName}.
-      Professional, action-oriented, showing the value provided.`,
-    testimonials: `Background for testimonials section - subtle, professional pattern or
-      soft imagery that makes customer quotes stand out.`,
-    contact: `Professional background for contact section. Subtle, inviting,
-      conveys accessibility and professionalism.`,
-  };
-
-  try {
-    const result = await createGeminiImageGeneration({
-      prompt: sectionPrompts[section] || `Professional image for ${section} section`,
-      systemPrompt: 'Create high-quality website imagery that looks premium and professional.',
-      model,
-    });
-    return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
-  } catch (err) {
-    console.log(`[WebsitePipeline] Section image (${section}) generation failed:`, err);
-    return null;
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function _generateTeamAvatars(
-  industry: string,
-  model: string,
-  count: number = 3
-): Promise<string[]> {
-  const roles = ['CEO/Founder', 'Lead Specialist', 'Client Success Manager'];
-  const avatars: string[] = [];
-
-  for (let i = 0; i < count; i++) {
-    try {
-      const result = await createGeminiImageGeneration({
-        prompt: `Professional headshot/avatar for a ${roles[i]} in the ${industry} industry.
-          Requirements:
-          - Friendly, approachable expression
-          - Professional attire appropriate for ${industry}
-          - Clean background (solid or subtle gradient)
-          - High-quality portrait style
-          - Diverse representation`,
-        systemPrompt: 'Create a professional corporate headshot that would appear on a company website.',
-        model,
-      });
-      if (result) {
-        avatars.push(`data:${result.mimeType};base64,${result.imageData}`);
-      }
-    } catch (err) {
-      console.log(`[WebsitePipeline] Team avatar ${i} generation failed:`, err);
-    }
-  }
-
-  return avatars;
 }
 
 // ============================================================================

@@ -1712,11 +1712,12 @@ export function ChatClient() {
             } finally {
               reader.releaseLock();
             }
-          }
 
-          if (!finalContent) {
-            console.log('[ChatClient] Stream finished, total length:', accumulatedContent.length);
-            finalContent = accumulatedContent;
+            // Set final content from accumulated stream
+            if (!finalContent && accumulatedContent) {
+              console.log('[ChatClient] Stream finished, total length:', accumulatedContent.length);
+              finalContent = accumulatedContent;
+            }
           }
         }
       }
