@@ -11,6 +11,9 @@
  * - nano: gpt-5-nano for basic chat (default, cost-optimized)
  */
 
+// Import auth detection from auth templates
+import { hasAuthIntent, AUTH_INTENT_PATTERNS } from '@/lib/templates/authTemplates';
+
 export type RouteTarget = 'video' | 'image' | 'website' | 'github' | 'mini' | 'nano';
 
 export type RouteReason =
@@ -1811,12 +1814,13 @@ export function hasImageIntent(text: string): { isImage: boolean; matchedPattern
 
 /**
  * Check if a message indicates website/landing page generation intent
- * Enhanced to detect multi-page and cloning requests
+ * Enhanced to detect multi-page, cloning, and auth requests
  */
 export function hasWebsiteIntent(text: string): {
   isWebsite: boolean;
   isMultiPage: boolean;
   isCloning: boolean;
+  hasAuth: boolean;
   matchedPattern?: string;
   cloneUrl?: string;
 } {
@@ -1824,8 +1828,11 @@ export function hasWebsiteIntent(text: string): {
 
   // Check if this is a document request - documents should not be websites
   if (isDocumentRequest(normalizedText)) {
-    return { isWebsite: false, isMultiPage: false, isCloning: false };
+    return { isWebsite: false, isMultiPage: false, isCloning: false, hasAuth: false };
   }
+
+  // Check for auth intent (user wants login/signup pages)
+  const wantsAuth = hasAuthIntent(normalizedText);
 
   // Check for site cloning patterns first
   for (const pattern of SITE_CLONING_PATTERNS) {
@@ -1836,6 +1843,7 @@ export function hasWebsiteIntent(text: string): {
         isWebsite: true,
         isMultiPage: false,
         isCloning: true,
+        hasAuth: wantsAuth,
         matchedPattern: pattern.source,
         cloneUrl: urlMatch ? urlMatch[0] : undefined
       };
@@ -1858,6 +1866,7 @@ export function hasWebsiteIntent(text: string): {
         isWebsite: true,
         isMultiPage,
         isCloning: false,
+        hasAuth: wantsAuth,
         matchedPattern: pattern.source
       };
     }
@@ -1869,11 +1878,12 @@ export function hasWebsiteIntent(text: string): {
       isWebsite: true,
       isMultiPage: true,
       isCloning: false,
+      hasAuth: wantsAuth,
       matchedPattern: 'multi-page-intent'
     };
   }
 
-  return { isWebsite: false, isMultiPage: false, isCloning: false };
+  return { isWebsite: false, isMultiPage: false, isCloning: false, hasAuth: false };
 }
 
 /**

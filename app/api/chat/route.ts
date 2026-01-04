@@ -92,6 +92,13 @@ import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } fro
 import { isConnectorsEnabled } from '@/lib/connectors';
 import { detectCategory, extractBusinessInfo, getTemplateByCategory, applyBusinessInfo, saveGeneratedSite } from '@/lib/templates/templateService';
 import {
+  generateLoginPage,
+  generateSignupPage,
+  generateAuthCallbackPage,
+  generateDashboardPage,
+  AuthConfig,
+} from '@/lib/templates/authTemplates';
+import {
   githubFunctionDeclarations,
   executeGitHubTool,
 } from '@/lib/gemini/githubTools';
@@ -1763,14 +1770,15 @@ export async function POST(request: NextRequest) {
 
     // Check if we should route to website/landing page generation
     if (routeDecision.target === 'website') {
-      // FORGE & MUSASHI: Enhanced website detection with multi-page and cloning support
+      // FORGE & MUSASHI: Enhanced website detection with multi-page, cloning, and auth support
       const websiteIntent = hasWebsiteIntent(lastUserContent);
       const isMultiPage = websiteIntent.isMultiPage;
       const isCloning = websiteIntent.isCloning;
       const cloneUrl = websiteIntent.cloneUrl;
+      const hasAuth = websiteIntent.hasAuth;
 
       console.log('[Chat API] Routing to ENHANCED website generation with Template RAG + AI images');
-      console.log('[Chat API] Multi-page:', isMultiPage, 'Cloning:', isCloning, 'URL:', cloneUrl || 'N/A');
+      console.log('[Chat API] Multi-page:', isMultiPage, 'Cloning:', isCloning, 'Auth:', hasAuth, 'URL:', cloneUrl || 'N/A');
 
       try {
         // Get models from admin settings
@@ -1969,9 +1977,10 @@ OUTPUT THE COMPLETE HTML FILE NOW:`;
 
         // ================================================
         // FORGE MULTI-PAGE WEBSITE GENERATION
+        // Auth requests automatically upgrade to multi-page (login, signup, dashboard pages)
         // ================================================
-        if (isMultiPage) {
-          console.log('[Chat API] Generating MULTI-PAGE website');
+        if (isMultiPage || hasAuth) {
+          console.log('[Chat API] Generating MULTI-PAGE website', hasAuth ? '(Auth requested - auto-upgraded)' : '');
 
           // Generate additional pages based on the business type
           const additionalPages = ['about', 'services', 'contact'];
@@ -2075,6 +2084,46 @@ Use the same design language as the home page.`;
             pages.push(...validPages as Array<{ name: string; slug: string; code: string; icon: string }>);
           }
 
+          // ================================================
+          // ONE-CLICK AUTH SYSTEM - Add auth pages if requested
+          // ================================================
+          if (hasAuth) {
+            console.log('[Chat API] Adding ONE-CLICK AUTH pages to multi-page website');
+
+            // Extract primary color from generated code for consistent styling
+            const colorMatch = generatedCode.match(/(?:background|color):\s*#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/);
+            const extractedColor = colorMatch ? `#${colorMatch[1]}` : '#8b5cf6';
+
+            const authConfig: AuthConfig = {
+              businessName: businessName,
+              primaryColor: extractedColor,
+              secondaryColor: '#06b6d4',
+              features: {
+                emailPassword: true,
+                googleOAuth: true,
+                githubOAuth: true,
+                magicLink: false,
+                passkey: false,
+              },
+            };
+
+            // Generate auth pages
+            const loginPage = generateLoginPage(authConfig);
+            const signupPage = generateSignupPage(authConfig);
+            const authCallbackPage = generateAuthCallbackPage(authConfig);
+            const dashboardPage = generateDashboardPage(authConfig);
+
+            // Add auth pages to the website
+            pages.push(
+              { name: 'Login', slug: 'login', code: loginPage, icon: '🔐' },
+              { name: 'Sign Up', slug: 'signup', code: signupPage, icon: '✨' },
+              { name: 'Dashboard', slug: 'dashboard', code: dashboardPage, icon: '📊' },
+              { name: 'Auth Callback', slug: 'auth-callback', code: authCallbackPage, icon: '🔄' }
+            );
+
+            console.log('[Chat API] Auth pages added: Login, Sign Up, Dashboard, Auth Callback');
+          }
+
           console.log('[Chat API] Multi-page generation complete:', pages.length, 'pages');
 
           // Build response for multi-page website
@@ -2082,6 +2131,7 @@ Use the same design language as the home page.`;
             `📄 ${pages.length} pages (${pages.map(p => p.name).join(', ')})`,
             logoDataUrl ? '🎨 AI-generated custom logo' : null,
             heroImageDataUrl ? '🖼️ AI-generated hero background' : null,
+            hasAuth ? '🔐 Supabase Auth (Login, Sign Up, Dashboard)' : null,
             '📱 Fully responsive design',
             '🔗 Inter-page navigation',
             '🎯 Conversion-optimized',
