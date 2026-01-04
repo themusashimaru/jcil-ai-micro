@@ -42,6 +42,26 @@ export interface WebsiteAssets {
   teamAvatars: string[];   // Team member photos/avatars
 }
 
+// Multi-page website support
+export interface WebsitePage {
+  slug: string;           // URL slug: 'index', 'about', 'services', 'pricing', 'contact'
+  title: string;          // Page title
+  html: string;           // Complete HTML for this page
+  description?: string;   // Meta description
+}
+
+export interface MultiPageWebsite {
+  pages: WebsitePage[];
+  sharedAssets: WebsiteAssets;
+  navigation: NavigationItem[];
+}
+
+export interface NavigationItem {
+  label: string;
+  href: string;
+  isActive?: boolean;
+}
+
 export interface ConversationMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -55,7 +75,8 @@ export interface WebsiteSession {
   businessName: string;
   industry: string;
   originalPrompt: string;
-  currentHtml: string;
+  currentHtml: string;           // Main page (index.html) for backwards compatibility
+  pages?: WebsitePage[];         // All pages for multi-page sites
   assets: WebsiteAssets;
   iterations: WebsiteIteration[];
   createdAt: string;
@@ -906,6 +927,208 @@ CRITICAL: The image must work with white text overlay - ensure proper contrast.`
   }
 }
 
+/**
+ * Generate a custom service image with Nano Banana
+ * For premium websites that want fully custom imagery
+ */
+async function generateServiceImage(
+  serviceName: string,
+  serviceDescription: string,
+  industry: string,
+  model: string
+): Promise<string | null> {
+  const prompt = `Professional service image for "${serviceName}" in the ${industry} industry.
+
+SERVICE DESCRIPTION: ${serviceDescription}
+
+REQUIREMENTS:
+- Clean, modern composition
+- Represents the service visually
+- Warm, inviting color palette
+- Professional quality (not stock photo generic)
+- NO text, logos, or watermarks
+- 4:3 aspect ratio
+- Premium, high-end feel
+
+STYLE: Modern, professional, trustworthy`;
+
+  try {
+    const result = await createGeminiImageGeneration({
+      prompt,
+      systemPrompt: `Create premium service imagery for ${industry} businesses. The image should visually represent the service without being cliché.`,
+      model,
+    });
+    return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
+  } catch {
+    console.log('[WebsitePipeline] Service image generation failed for:', serviceName);
+    return null;
+  }
+}
+
+/**
+ * Generate custom images for all services (parallel)
+ * This is the PREMIUM option - fully AI-generated imagery
+ */
+export async function generateCustomServiceImages(
+  services: { name: string; description: string }[],
+  industry: string,
+  imageModel: string
+): Promise<Record<string, string>> {
+  console.log(`[WebsitePipeline] Generating ${services.length} custom service images with Nano Banana...`);
+
+  const results = await Promise.all(
+    services.slice(0, 6).map(async (service) => {
+      const image = await generateServiceImage(service.name, service.description, industry, imageModel);
+      return { name: service.name, image };
+    })
+  );
+
+  const imageMap: Record<string, string> = {};
+  results.forEach(({ name, image }) => {
+    if (image) {
+      imageMap[name] = image;
+    }
+  });
+
+  console.log(`[WebsitePipeline] Generated ${Object.keys(imageMap).length} custom service images`);
+  return imageMap;
+}
+
+/**
+ * Generate team member avatars with Nano Banana
+ * Creates diverse, professional-looking team photos
+ */
+async function generateTeamAvatar(
+  memberDescription: string,
+  industry: string,
+  model: string
+): Promise<string | null> {
+  const prompt = `Professional headshot portrait for a ${industry} business team member.
+
+PERSON: ${memberDescription}
+
+REQUIREMENTS:
+- Clean, professional headshot style
+- Neutral background (light gray or soft gradient)
+- Friendly, approachable expression
+- Business casual or professional attire
+- Good lighting, sharp focus
+- Square composition (1:1 aspect ratio)
+- Studio quality portrait
+
+IMPORTANT: Photorealistic, not illustrated. High-end corporate headshot style.`;
+
+  try {
+    const result = await createGeminiImageGeneration({
+      prompt,
+      systemPrompt: `Create photorealistic professional headshots. The person should look trustworthy, competent, and approachable. Match the ${industry} industry vibe.`,
+      model,
+    });
+    return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
+  } catch {
+    console.log('[WebsitePipeline] Team avatar generation failed');
+    return null;
+  }
+}
+
+/**
+ * Generate about section image with Nano Banana
+ */
+async function generateAboutImage(
+  businessName: string,
+  industry: string,
+  storyContext: string,
+  model: string
+): Promise<string | null> {
+  const prompt = `About section image for "${businessName}" - a ${industry} business.
+
+CONTEXT: ${storyContext.substring(0, 200)}
+
+REQUIREMENTS:
+- Shows team collaboration or workspace
+- Warm, welcoming atmosphere
+- Professional but not corporate-cold
+- Represents the company culture
+- Wide aspect ratio (16:9)
+- High-end photography quality
+- NO text or logos
+
+MOOD: Authentic, professional, human`;
+
+  try {
+    const result = await createGeminiImageGeneration({
+      prompt,
+      systemPrompt: `Create authentic about section imagery that shows the human side of a ${industry} business. Avoid stock photo clichés.`,
+      model,
+    });
+    return result ? `data:${result.mimeType};base64,${result.imageData}` : null;
+  } catch {
+    console.log('[WebsitePipeline] About image generation failed');
+    return null;
+  }
+}
+
+/**
+ * Generate all premium custom images for a website
+ * This replaces stock photos with AI-generated imagery
+ */
+export async function generatePremiumWebsiteImages(
+  context: GenerationContext,
+  imageModel: string
+): Promise<{
+  hero?: string;
+  about?: string;
+  services: Record<string, string>;
+  teamAvatars: string[];
+}> {
+  console.log('[WebsitePipeline] Generating PREMIUM custom images with Nano Banana...');
+
+  const businessModel = context.businessModel;
+  if (!businessModel) {
+    return { services: {}, teamAvatars: [] };
+  }
+
+  // Generate all images in parallel for speed
+  const [heroImage, aboutImage, serviceImages] = await Promise.all([
+    generateHeroBackground(context.businessName, context.industry, imageModel, {
+      colors: ['#8b5cf6', '#06b6d4'],
+      heroTheme: businessModel.tagline,
+      services: businessModel.services.map(s => s.name).slice(0, 3),
+    }),
+    generateAboutImage(
+      context.businessName,
+      context.industry,
+      businessModel.aboutContent.story,
+      imageModel
+    ),
+    generateCustomServiceImages(
+      businessModel.services.map(s => ({ name: s.name, description: s.description })),
+      context.industry,
+      imageModel
+    ),
+  ]);
+
+  // Generate team avatars if we have team descriptions
+  const teamAvatars: string[] = [];
+  if (businessModel.aboutContent.teamDescription) {
+    const avatar = await generateTeamAvatar(
+      'Professional team member, friendly and competent',
+      context.industry,
+      imageModel
+    );
+    if (avatar) teamAvatars.push(avatar);
+  }
+
+  console.log('[WebsitePipeline] Premium image generation complete');
+
+  return {
+    hero: heroImage || undefined,
+    about: aboutImage || undefined,
+    services: serviceImages,
+    teamAvatars,
+  };
+}
+
 // ============================================================================
 // Website HTML Generation
 // ============================================================================
@@ -1671,6 +1894,789 @@ function injectMissingAssets(
 }
 
 // ============================================================================
+// Multi-Page Generation - THE MANUS KILLER
+// ============================================================================
+
+/**
+ * Generate a complete multi-page website
+ * Creates: index, about, services, pricing, contact pages
+ */
+export async function generateMultiPageWebsite(
+  context: GenerationContext,
+  assets: WebsiteAssets,
+  geminiModel: string
+): Promise<WebsitePage[]> {
+  console.log('[WebsitePipeline] Generating multi-page website...');
+
+  const businessModel = context.businessModel;
+  if (!businessModel) {
+    console.log('[WebsitePipeline] No business model - generating single page only');
+    const html = await generateWebsiteHtml(context, assets, geminiModel);
+    return [{ slug: 'index', title: context.businessName, html }];
+  }
+
+  // Define all pages to generate
+  const pageConfigs = [
+    { slug: 'index', title: context.businessName, type: 'home' as const },
+    { slug: 'about', title: `About | ${context.businessName}`, type: 'about' as const },
+    { slug: 'services', title: `Services | ${context.businessName}`, type: 'services' as const },
+    { slug: 'pricing', title: `Pricing | ${context.businessName}`, type: 'pricing' as const },
+    { slug: 'contact', title: `Contact | ${context.businessName}`, type: 'contact' as const },
+  ];
+
+  // Build shared components
+  const sharedNav = buildSharedNavigation(context.businessName, assets.logo);
+  const sharedFooter = buildSharedFooter(context.businessName, businessModel);
+  const sharedStyles = buildSharedStyles();
+
+  // Generate pages in parallel for speed
+  const pages = await Promise.all(
+    pageConfigs.map(config =>
+      generatePage(config, context, businessModel, assets, sharedNav, sharedFooter, sharedStyles, geminiModel)
+    )
+  );
+
+  console.log(`[WebsitePipeline] Generated ${pages.length} pages`);
+  return pages;
+}
+
+/**
+ * Generate a single page
+ */
+async function generatePage(
+  config: { slug: string; title: string; type: 'home' | 'about' | 'services' | 'pricing' | 'contact' },
+  context: GenerationContext,
+  businessModel: BusinessModel,
+  assets: WebsiteAssets,
+  sharedNav: string,
+  sharedFooter: string,
+  sharedStyles: string,
+  _geminiModel: string
+): Promise<WebsitePage> {
+  console.log(`[WebsitePipeline] Generating ${config.type} page...`);
+
+  let pageContent = '';
+  let description = businessModel.seoDescription;
+
+  switch (config.type) {
+    case 'home':
+      pageContent = buildHomePage(context, businessModel, assets);
+      break;
+    case 'about':
+      pageContent = buildAboutPage(businessModel, assets);
+      description = `Learn about ${context.businessName} - ${businessModel.aboutContent.story.substring(0, 100)}...`;
+      break;
+    case 'services':
+      pageContent = buildServicesPage(businessModel, assets);
+      description = `Explore our ${businessModel.services.length} professional services at ${context.businessName}`;
+      break;
+    case 'pricing':
+      pageContent = buildPricingPage(businessModel);
+      description = `Transparent pricing for ${context.businessName} - packages starting at ${businessModel.pricingTiers[0]?.price || '$49'}`;
+      break;
+    case 'contact':
+      pageContent = buildContactPage(businessModel, context);
+      description = `Contact ${context.businessName} - ${businessModel.contactInfo.email || 'Get in touch today'}`;
+      break;
+  }
+
+  // Assemble complete HTML
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${config.title}</title>
+  <meta name="description" content="${description}">
+  <meta name="keywords" content="${businessModel.keywords.join(', ')}">
+  <link rel="canonical" href="/${config.slug === 'index' ? '' : config.slug + '.html'}">
+  ${assets.favicon32 ? `<link rel="icon" type="image/png" sizes="32x32" href="${assets.favicon32}">` : ''}
+  ${assets.faviconApple ? `<link rel="apple-touch-icon" href="${assets.faviconApple}">` : ''}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  ${sharedStyles}
+</head>
+<body>
+  ${sharedNav.replace(`href="${config.slug}.html"`, `href="${config.slug}.html" class="active"`)}
+  <main>
+    ${pageContent}
+  </main>
+  ${sharedFooter}
+  <script>
+    // Mobile menu toggle
+    const menuToggle = document.querySelector('.menu-toggle');
+    const navMenu = document.querySelector('.nav-menu');
+    menuToggle?.addEventListener('click', () => {
+      menuToggle.classList.toggle('active');
+      navMenu?.classList.toggle('active');
+    });
+  </script>
+</body>
+</html>`;
+
+  return {
+    slug: config.slug,
+    title: config.title,
+    html,
+    description,
+  };
+}
+
+/**
+ * Build shared navigation component
+ */
+function buildSharedNavigation(businessName: string, logo?: string): string {
+  const logoHtml = logo
+    ? `<img src="${logo}" alt="${businessName}" style="max-height: 50px; width: auto;">`
+    : `<span style="font-size: 1.25rem; font-weight: 700;">${businessName}</span>`;
+
+  return `
+  <nav class="site-nav">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">${logoHtml}</a>
+      <button class="menu-toggle" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="services.html">Services</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="contact.html" class="nav-cta">Contact Us</a></li>
+      </ul>
+    </div>
+  </nav>`;
+}
+
+/**
+ * Build shared footer component
+ */
+function buildSharedFooter(businessName: string, businessModel: BusinessModel): string {
+  const currentYear = new Date().getFullYear();
+  const contact = businessModel.contactInfo;
+
+  return `
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>${businessName}</h3>
+          <p>${businessModel.tagline}</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="services.html">Services</a></li>
+            <li><a href="pricing.html">Pricing</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-contact">
+          <h4>Contact</h4>
+          ${contact.email ? `<p>📧 ${contact.email}</p>` : ''}
+          ${contact.phone ? `<p>📞 ${contact.phone}</p>` : ''}
+          ${contact.address ? `<p>📍 ${contact.address}</p>` : ''}
+        </div>
+        <div class="footer-hours">
+          <h4>Hours</h4>
+          ${contact.hours?.map(h => `<p>${h.days}: ${h.hours}</p>`).join('') || '<p>Contact us for availability</p>'}
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; ${currentYear} ${businessName}. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>`;
+}
+
+/**
+ * Build shared CSS styles
+ */
+function buildSharedStyles(): string {
+  return `<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; line-height: 1.6; color: #1a1a1a; background: #fff; }
+
+    /* Navigation */
+    .site-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.1); }
+    .nav-container { max-width: 1200px; margin: 0 auto; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .nav-logo { text-decoration: none; color: inherit; }
+    .nav-menu { display: flex; gap: 2rem; list-style: none; align-items: center; }
+    .nav-menu a { color: #555; text-decoration: none; font-weight: 500; transition: color 0.3s; }
+    .nav-menu a:hover, .nav-menu a.active { color: #8b5cf6; }
+    .nav-cta { background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white !important; padding: 0.75rem 1.5rem; border-radius: 8px; }
+    .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139,92,246,0.3); }
+
+    /* Menu Toggle */
+    .menu-toggle { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 10px; }
+    .menu-toggle span { display: block; width: 25px; height: 3px; background: #333; border-radius: 3px; transition: all 0.3s; }
+    .menu-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+    .menu-toggle.active span:nth-child(2) { opacity: 0; }
+    .menu-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -6px); }
+
+    /* Main content spacing */
+    main { padding-top: 80px; }
+
+    /* Sections */
+    section { padding: 5rem 2rem; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 3rem; font-weight: 700; margin-bottom: 1rem; }
+    h2 { font-size: 2.5rem; font-weight: 700; text-align: center; margin-bottom: 3rem; }
+    h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; }
+
+    /* Hero Section */
+    .hero { min-height: 80vh; display: flex; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; }
+    .hero .container { max-width: 800px; }
+    .hero p { font-size: 1.25rem; opacity: 0.9; margin-bottom: 2rem; }
+    .hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn { display: inline-block; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.3s; }
+    .btn-primary { background: white; color: #764ba2; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .btn-secondary { background: transparent; color: white; border: 2px solid white; }
+
+    /* Cards */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+    .card { background: #f8fafc; border-radius: 16px; padding: 2rem; transition: transform 0.3s, box-shadow 0.3s; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+
+    /* Pricing */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; align-items: start; }
+    .pricing-card { background: white; border: 2px solid #e5e7eb; border-radius: 16px; padding: 2rem; text-align: center; }
+    .pricing-card.featured { border-color: #8b5cf6; transform: scale(1.05); box-shadow: 0 20px 40px rgba(139,92,246,0.2); }
+    .pricing-card .price { font-size: 3rem; font-weight: 700; color: #8b5cf6; }
+    .pricing-card .period { color: #666; }
+    .pricing-card ul { list-style: none; margin: 2rem 0; text-align: left; }
+    .pricing-card li { padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6; }
+    .pricing-card li::before { content: "✓"; color: #10b981; margin-right: 0.5rem; }
+
+    /* Footer */
+    .site-footer { background: #1a1a2e; color: white; padding: 4rem 2rem 2rem; }
+    .footer-container { max-width: 1200px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-bottom: 3rem; }
+    .footer-brand h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .footer-brand p { color: rgba(255,255,255,0.7); }
+    .site-footer h4 { margin-bottom: 1rem; color: #8b5cf6; }
+    .site-footer ul { list-style: none; }
+    .site-footer li { margin-bottom: 0.5rem; }
+    .site-footer a { color: rgba(255,255,255,0.7); text-decoration: none; transition: color 0.3s; }
+    .site-footer a:hover { color: white; }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 2rem; text-align: center; color: rgba(255,255,255,0.5); }
+
+    /* Service Cards with Images */
+    .service-card { overflow: hidden; }
+    .service-card img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem; }
+
+    /* Testimonials */
+    .testimonial-card { text-align: center; }
+    .testimonial-card img { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 1rem; object-fit: cover; }
+    .testimonial-card .quote { font-style: italic; color: #555; margin-bottom: 1rem; }
+    .testimonial-card .rating { color: #fbbf24; font-size: 1.25rem; }
+
+    /* Contact Form */
+    .contact-form { max-width: 600px; margin: 0 auto; }
+    .contact-form input, .contact-form textarea { width: 100%; padding: 1rem; margin-bottom: 1rem; border: 2px solid #e5e7eb; border-radius: 8px; font-family: inherit; font-size: 1rem; transition: border-color 0.3s; }
+    .contact-form input:focus, .contact-form textarea:focus { outline: none; border-color: #8b5cf6; }
+    .contact-form textarea { min-height: 150px; resize: vertical; }
+    .contact-form button { width: 100%; background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white; border: none; padding: 1rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; }
+    .contact-form button:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139,92,246,0.3); }
+
+    /* FAQ */
+    .faq-item { border-bottom: 1px solid #e5e7eb; padding: 1.5rem 0; }
+    .faq-question { font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .faq-answer { color: #555; }
+
+    /* About Page */
+    .about-hero { background: linear-gradient(135deg, #f8fafc, #e2e8f0); padding: 6rem 2rem; text-align: center; }
+    .values-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+    .value-item { background: white; padding: 1.5rem; border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2rem; text-align: center; padding: 3rem 0; }
+    .stat-item .value { font-size: 3rem; font-weight: 700; color: #8b5cf6; }
+    .stat-item .label { color: #666; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      h1 { font-size: 2rem; }
+      h2 { font-size: 1.75rem; }
+      .menu-toggle { display: flex; }
+      .nav-menu { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; background: white; padding: 1rem; gap: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+      .nav-menu.active { display: flex; }
+      .nav-menu li { padding: 0.75rem 0; border-bottom: 1px solid #eee; }
+      .nav-menu li:last-child { border-bottom: none; }
+      .hero { min-height: 60vh; padding: 4rem 1rem; }
+      .pricing-card.featured { transform: none; }
+    }
+  </style>`;
+}
+
+/**
+ * Build home page content
+ */
+function buildHomePage(_context: GenerationContext, businessModel: BusinessModel, assets: WebsiteAssets): string {
+  const heroStyle = assets.heroBackground
+    ? `background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${assets.heroBackground}'); background-size: cover; background-position: center;`
+    : '';
+
+  return `
+    <!-- Hero -->
+    <section class="hero" ${heroStyle ? `style="${heroStyle}"` : ''}>
+      <div class="container">
+        <h1>${businessModel.tagline}</h1>
+        <p>${businessModel.elevatorPitch}</p>
+        <div class="hero-buttons">
+          <a href="contact.html" class="btn btn-primary">Get Started</a>
+          <a href="services.html" class="btn btn-secondary">Our Services</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    ${businessModel.stats ? `
+    <section style="background: #f8fafc;">
+      <div class="container">
+        <div class="stats-grid">
+          ${businessModel.stats.map(s => `
+            <div class="stat-item">
+              <div class="value">${s.value}</div>
+              <div class="label">${s.label}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>` : ''}
+
+    <!-- Services Preview -->
+    <section>
+      <div class="container">
+        <h2>Our Services</h2>
+        <div class="card-grid">
+          ${businessModel.services.slice(0, 3).map(svc => `
+            <div class="card service-card">
+              ${svc.image ? `<img src="${svc.image}" alt="${svc.name}">` : ''}
+              <h3>${svc.name}</h3>
+              <p>${svc.description}</p>
+            </div>
+          `).join('')}
+        </div>
+        <div style="text-align: center; margin-top: 2rem;">
+          <a href="services.html" class="btn btn-primary" style="background: #8b5cf6; color: white;">View All Services</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section style="background: #f8fafc;">
+      <div class="container">
+        <h2>What Our Clients Say</h2>
+        <div class="card-grid">
+          ${businessModel.testimonials.slice(0, 3).map(t => `
+            <div class="card testimonial-card">
+              ${t.avatar ? `<img src="${t.avatar}" alt="${t.name}">` : ''}
+              <p class="quote">"${t.quote}"</p>
+              <div class="rating">${'★'.repeat(t.rating)}</div>
+              <strong>${t.name}</strong>
+              <p style="color: #666; font-size: 0.9rem;">${t.role}${t.location ? `, ${t.location}` : ''}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="hero" style="min-height: 40vh;">
+      <div class="container">
+        <h2 style="color: white; margin-bottom: 1rem;">Ready to Get Started?</h2>
+        <p>Contact us today for a free consultation.</p>
+        <a href="contact.html" class="btn btn-primary">Contact Us</a>
+      </div>
+    </section>`;
+}
+
+/**
+ * Build about page content
+ */
+function buildAboutPage(businessModel: BusinessModel, _assets: WebsiteAssets): string {
+  return `
+    <section class="about-hero">
+      <div class="container">
+        <h1>About Us</h1>
+        <p style="max-width: 600px; margin: 0 auto; color: #555;">${businessModel.uniqueValueProposition}</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container" style="max-width: 800px;">
+        <h2>Our Story</h2>
+        <p style="font-size: 1.1rem; color: #555; line-height: 1.8;">${businessModel.aboutContent.story}</p>
+      </div>
+    </section>
+
+    ${businessModel.aboutContent.values.length > 0 ? `
+    <section style="background: #f8fafc;">
+      <div class="container">
+        <h2>Our Values</h2>
+        <div class="values-grid">
+          ${businessModel.aboutContent.values.map(v => `
+            <div class="value-item">
+              <h3>${v}</h3>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>` : ''}
+
+    ${businessModel.aboutContent.teamDescription ? `
+    <section>
+      <div class="container" style="max-width: 800px; text-align: center;">
+        <h2>Our Team</h2>
+        <p style="font-size: 1.1rem; color: #555;">${businessModel.aboutContent.teamDescription}</p>
+      </div>
+    </section>` : ''}
+
+    ${businessModel.stats ? `
+    <section style="background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: white;">
+      <div class="container">
+        <div class="stats-grid">
+          ${businessModel.stats.map(s => `
+            <div class="stat-item">
+              <div class="value" style="color: white;">${s.value}</div>
+              <div class="label" style="color: rgba(255,255,255,0.8);">${s.label}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>` : ''}`;
+}
+
+/**
+ * Build services page content
+ */
+function buildServicesPage(businessModel: BusinessModel, _assets: WebsiteAssets): string {
+  return `
+    <section class="about-hero">
+      <div class="container">
+        <h1>Our Services</h1>
+        <p style="max-width: 600px; margin: 0 auto; color: #555;">Professional solutions tailored to your needs</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="card-grid">
+          ${businessModel.services.map(svc => `
+            <div class="card service-card">
+              ${svc.image ? `<img src="${svc.image}" alt="${svc.name}">` : ''}
+              <h3>${svc.name}</h3>
+              <p>${svc.description}</p>
+              ${svc.price ? `<p style="font-weight: 600; color: #8b5cf6; margin-top: 1rem;">${svc.price}</p>` : ''}
+              ${svc.duration ? `<p style="color: #666; font-size: 0.9rem;">Duration: ${svc.duration}</p>` : ''}
+              <ul style="list-style: none; margin-top: 1rem;">
+                ${svc.features.map(f => `<li style="padding: 0.25rem 0;">✓ ${f}</li>`).join('')}
+              </ul>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+
+    <section style="background: #f8fafc;">
+      <div class="container" style="text-align: center;">
+        <h2>Ready to Get Started?</h2>
+        <p style="margin-bottom: 2rem; color: #555;">View our pricing or contact us for a custom quote.</p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <a href="pricing.html" class="btn btn-primary" style="background: #8b5cf6; color: white;">View Pricing</a>
+          <a href="contact.html" class="btn btn-secondary" style="border-color: #8b5cf6; color: #8b5cf6;">Contact Us</a>
+        </div>
+      </div>
+    </section>`;
+}
+
+/**
+ * Build pricing page content
+ */
+function buildPricingPage(businessModel: BusinessModel): string {
+  return `
+    <section class="about-hero">
+      <div class="container">
+        <h1>Pricing</h1>
+        <p style="max-width: 600px; margin: 0 auto; color: #555;">Transparent pricing with no hidden fees</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="pricing-grid">
+          ${businessModel.pricingTiers.map(tier => `
+            <div class="pricing-card ${tier.highlighted ? 'featured' : ''}">
+              ${tier.highlighted ? '<div style="background: #8b5cf6; color: white; padding: 0.5rem; margin: -2rem -2rem 2rem; border-radius: 14px 14px 0 0; font-weight: 600;">Most Popular</div>' : ''}
+              <h3>${tier.name}</h3>
+              <div class="price">${tier.price}</div>
+              <div class="period">${tier.period || ''}</div>
+              <p style="color: #666; margin: 1rem 0;">${tier.description}</p>
+              <ul>
+                ${tier.features.map(f => `<li>${f}</li>`).join('')}
+              </ul>
+              <a href="contact.html" class="btn btn-primary" style="display: block; margin-top: 2rem; background: ${tier.highlighted ? '#8b5cf6' : '#e5e7eb'}; color: ${tier.highlighted ? 'white' : '#333'};">${tier.ctaText}</a>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section style="background: #f8fafc;">
+      <div class="container" style="max-width: 800px;">
+        <h2>Frequently Asked Questions</h2>
+        ${businessModel.faqs.slice(0, 5).map(faq => `
+          <div class="faq-item">
+            <div class="faq-question">${faq.question}</div>
+            <div class="faq-answer">${faq.answer}</div>
+          </div>
+        `).join('')}
+      </div>
+    </section>`;
+}
+
+/**
+ * Build contact page content
+ */
+function buildContactPage(businessModel: BusinessModel, context: GenerationContext): string {
+  const contact = businessModel.contactInfo;
+
+  return `
+    <section class="about-hero">
+      <div class="container">
+        <h1>Contact Us</h1>
+        <p style="max-width: 600px; margin: 0 auto; color: #555;">We'd love to hear from you. Get in touch today!</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start;">
+          <div class="contact-form">
+            <h3>Send Us a Message</h3>
+            <form onsubmit="event.preventDefault(); alert('Thank you! We\\'ll be in touch soon.');">
+              <input type="text" name="name" placeholder="Your Name" required>
+              <input type="email" name="email" placeholder="Your Email" required>
+              <input type="tel" name="phone" placeholder="Your Phone (optional)">
+              <textarea name="message" placeholder="How can we help you?" required></textarea>
+              <button type="submit">Send Message</button>
+            </form>
+          </div>
+          <div>
+            <h3>Get In Touch</h3>
+            <div style="margin-top: 2rem;">
+              ${contact.email ? `<p style="margin-bottom: 1rem;"><strong>📧 Email:</strong><br>${contact.email}</p>` : ''}
+              ${contact.phone ? `<p style="margin-bottom: 1rem;"><strong>📞 Phone:</strong><br>${contact.phone}</p>` : ''}
+              ${contact.address ? `<p style="margin-bottom: 1rem;"><strong>📍 Address:</strong><br>${contact.address}</p>` : ''}
+            </div>
+            ${contact.hours && contact.hours.length > 0 ? `
+            <div style="margin-top: 2rem;">
+              <h4>Business Hours</h4>
+              ${contact.hours.map(h => `<p>${h.days}: ${h.hours}</p>`).join('')}
+            </div>` : ''}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Map placeholder -->
+    <section style="background: #f8fafc; text-align: center;">
+      <div class="container">
+        <h2>Find Us</h2>
+        <div style="background: #e5e7eb; height: 300px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #666;">
+          <p>Map integration coming soon<br>📍 ${contact.address || context.businessName}</p>
+        </div>
+      </div>
+    </section>`;
+}
+
+// ============================================================================
+// SEO Schema Markup - Rich Snippets for Google
+// ============================================================================
+
+/**
+ * Generate JSON-LD structured data for SEO
+ * Includes LocalBusiness, Service, FAQ, and Organization schemas
+ */
+export function generateSeoSchemaMarkup(
+  businessModel: BusinessModel,
+  context: GenerationContext,
+  siteUrl: string = ''
+): string {
+  const schemas: object[] = [];
+
+  // LocalBusiness schema
+  const localBusiness = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: context.businessName,
+    description: businessModel.elevatorPitch,
+    url: siteUrl || undefined,
+    telephone: businessModel.contactInfo.phone || undefined,
+    email: businessModel.contactInfo.email || undefined,
+    address: businessModel.contactInfo.address ? {
+      '@type': 'PostalAddress',
+      streetAddress: businessModel.contactInfo.address,
+    } : undefined,
+    openingHours: businessModel.contactInfo.hours?.map(h => `${h.days} ${h.hours}`) || undefined,
+    priceRange: getPriceRange(businessModel.pricingTiers),
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: calculateAverageRating(businessModel.testimonials),
+      reviewCount: businessModel.testimonials.length,
+    },
+  };
+  schemas.push(localBusiness);
+
+  // Service schemas for each service
+  businessModel.services.forEach(service => {
+    schemas.push({
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: service.name,
+      description: service.description,
+      provider: {
+        '@type': 'LocalBusiness',
+        name: context.businessName,
+      },
+      offers: service.price ? {
+        '@type': 'Offer',
+        price: extractPrice(service.price),
+        priceCurrency: 'USD',
+      } : undefined,
+    });
+  });
+
+  // FAQ schema
+  if (businessModel.faqs.length > 0) {
+    schemas.push({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: businessModel.faqs.map(faq => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    });
+  }
+
+  // Review schemas
+  businessModel.testimonials.forEach(t => {
+    schemas.push({
+      '@context': 'https://schema.org',
+      '@type': 'Review',
+      reviewBody: t.quote,
+      author: {
+        '@type': 'Person',
+        name: t.name,
+      },
+      reviewRating: {
+        '@type': 'Rating',
+        ratingValue: t.rating,
+        bestRating: 5,
+      },
+      itemReviewed: {
+        '@type': 'LocalBusiness',
+        name: context.businessName,
+      },
+    });
+  });
+
+  // Generate script tags
+  return schemas.map(schema =>
+    `<script type="application/ld+json">${JSON.stringify(schema, null, 0)}</script>`
+  ).join('\n  ');
+}
+
+function getPriceRange(tiers: BusinessModel['pricingTiers']): string {
+  if (!tiers.length) return '$$';
+  const prices = tiers.map(t => extractPrice(t.price)).filter(p => p > 0);
+  if (!prices.length) return '$$';
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  if (avg < 50) return '$';
+  if (avg < 150) return '$$';
+  if (avg < 300) return '$$$';
+  return '$$$$';
+}
+
+function extractPrice(priceStr: string): number {
+  const match = priceStr.match(/\$?([\d,]+)/);
+  return match ? parseFloat(match[1].replace(',', '')) : 0;
+}
+
+function calculateAverageRating(testimonials: BusinessModel['testimonials']): number {
+  if (!testimonials.length) return 5;
+  return testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length;
+}
+
+// ============================================================================
+// Sitemap & Robots.txt Generation
+// ============================================================================
+
+/**
+ * Generate sitemap.xml for SEO
+ */
+export function generateSitemap(
+  pages: WebsitePage[],
+  siteUrl: string,
+  lastModified: string = new Date().toISOString().split('T')[0]
+): string {
+  const urls = pages.map(page => {
+    const loc = page.slug === 'index'
+      ? siteUrl
+      : `${siteUrl}/${page.slug}.html`;
+    const priority = page.slug === 'index' ? '1.0' : '0.8';
+
+    return `  <url>
+    <loc>${loc}</loc>
+    <lastmod>${lastModified}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join('\n')}
+</urlset>`;
+}
+
+/**
+ * Generate robots.txt
+ */
+export function generateRobotsTxt(siteUrl: string): string {
+  return `User-agent: *
+Allow: /
+
+Sitemap: ${siteUrl}/sitemap.xml`;
+}
+
+/**
+ * Generate all SEO files for a website
+ */
+export function generateSeoFiles(
+  pages: WebsitePage[],
+  businessModel: BusinessModel,
+  context: GenerationContext,
+  siteUrl: string
+): { sitemap: string; robots: string; schemaMarkup: string } {
+  return {
+    sitemap: generateSitemap(pages, siteUrl),
+    robots: generateRobotsTxt(siteUrl),
+    schemaMarkup: generateSeoSchemaMarkup(businessModel, context, siteUrl),
+  };
+}
+
+// ============================================================================
 // Iteration Handling
 // ============================================================================
 
@@ -2381,15 +3387,198 @@ export async function deployWebsiteToVercel(
   }
 }
 
+// ============================================================================
+// Netlify Deployment
+// ============================================================================
+
+export interface NetlifyDeployResult {
+  success: boolean;
+  deploymentUrl?: string;
+  siteId?: string;
+  error?: string;
+}
+
 /**
- * Check if a message is requesting any deployment action (GitHub or Vercel)
+ * Check if a message is requesting Netlify deployment
  */
-export function isDeploymentRequest(text: string): { isDeployment: boolean; target?: 'github' | 'vercel' } {
+export function isNetlifyDeployRequest(text: string): boolean {
+  const patterns = [
+    /\b(deploy|launch|publish|go\s+live)\b.*\b(to|on)\s+netlify\b/i,
+    /\bnetlify\b.*\b(deploy|launch|publish)\b/i,
+    /\bdeploy\s+(this|the|it|my)\s+(to\s+)?netlify\b/i,
+    /\bgo\s+live\s+(on|with)\s+netlify\b/i,
+    /\bhost\s+(this|it)\s+(on\s+)?netlify\b/i,
+  ];
+  return patterns.some(p => p.test(text));
+}
+
+/**
+ * Deploy a website to Netlify
+ * Uses Netlify's API for direct file deployment
+ */
+export async function deployWebsiteToNetlify(
+  session: WebsiteSession,
+  netlifyToken?: string
+): Promise<NetlifyDeployResult> {
+  console.log('[WebsitePipeline] Deploying website to Netlify...');
+
+  const token = netlifyToken || process.env.NETLIFY_TOKEN;
+  if (!token) {
+    return {
+      success: false,
+      error: 'Netlify deployment not configured. Please add NETLIFY_TOKEN to environment or connect your Netlify account.',
+    };
+  }
+
+  try {
+    // Generate site name
+    const siteName = session.businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 50);
+
+    // Prepare files for deployment
+    const files: Record<string, string> = {
+      'index.html': session.currentHtml,
+    };
+
+    // Add multi-page files if available
+    if (session.pages && session.pages.length > 0) {
+      session.pages.forEach(page => {
+        const filename = page.slug === 'index' ? 'index.html' : `${page.slug}.html`;
+        files[filename] = page.html;
+      });
+
+      // Add SEO files if we have business model
+      if (session.businessModel) {
+        // Generate sitemap with placeholder URL (will be updated after deploy)
+        files['sitemap.xml'] = generateSitemap(session.pages, `https://${siteName}.netlify.app`);
+        files['robots.txt'] = generateRobotsTxt(`https://${siteName}.netlify.app`);
+      }
+    }
+
+    // Create a new site or get existing
+    const siteResponse = await fetch('https://api.netlify.com/api/v1/sites', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: siteName,
+      }),
+    });
+
+    let siteId: string;
+    if (siteResponse.ok) {
+      const siteData = await siteResponse.json();
+      siteId = siteData.id;
+    } else if (siteResponse.status === 422) {
+      // Site name already taken, try with random suffix
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const retryResponse = await fetch('https://api.netlify.com/api/v1/sites', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: `${siteName}-${randomSuffix}`,
+        }),
+      });
+
+      if (!retryResponse.ok) {
+        throw new Error('Failed to create Netlify site');
+      }
+      const retryData = await retryResponse.json();
+      siteId = retryData.id;
+    } else {
+      throw new Error('Failed to create Netlify site');
+    }
+
+    // Calculate SHA1 hashes for each file
+    const crypto = await import('crypto');
+    const fileHashes: Record<string, string> = {};
+
+    for (const [filename, content] of Object.entries(files)) {
+      const hash = crypto.createHash('sha1').update(content).digest('hex');
+      fileHashes[`/${filename}`] = hash;
+    }
+
+    // Create deploy with file hashes
+    const deployResponse = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        files: fileHashes,
+      }),
+    });
+
+    if (!deployResponse.ok) {
+      throw new Error('Failed to create Netlify deployment');
+    }
+
+    const deployData = await deployResponse.json();
+    const deployId = deployData.id;
+    const requiredFiles = deployData.required || Object.keys(fileHashes);
+
+    // Upload required files
+    for (const filePath of requiredFiles) {
+      const filename = filePath.replace(/^\//, '');
+      const content = files[filename];
+
+      if (content) {
+        await fetch(`https://api.netlify.com/api/v1/deploys/${deployId}/files${filePath}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/octet-stream',
+          },
+          body: content,
+        });
+      }
+    }
+
+    // Get final deploy URL
+    const deploymentUrl = deployData.ssl_url || `https://${deployData.subdomain}.netlify.app`;
+
+    // Update session
+    session.vercelUrl = deploymentUrl; // Reuse field for now
+    session.status = 'deployed';
+    await updateWebsiteSession(session);
+
+    console.log(`[WebsitePipeline] Successfully deployed to Netlify: ${deploymentUrl}`);
+
+    return {
+      success: true,
+      deploymentUrl,
+      siteId,
+    };
+  } catch (err) {
+    console.error('[WebsitePipeline] Netlify deployment failed:', err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Netlify deployment failed',
+    };
+  }
+}
+
+/**
+ * Check if a message is requesting any deployment action (GitHub, Vercel, or Netlify)
+ */
+export function isDeploymentRequest(text: string): { isDeployment: boolean; target?: 'github' | 'vercel' | 'netlify' } {
   if (isGitHubPushRequest(text)) {
     return { isDeployment: true, target: 'github' };
   }
   if (isVercelDeployRequest(text)) {
     return { isDeployment: true, target: 'vercel' };
+  }
+  if (isNetlifyDeployRequest(text)) {
+    return { isDeployment: true, target: 'netlify' };
   }
   return { isDeployment: false };
 }
