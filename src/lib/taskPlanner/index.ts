@@ -221,7 +221,7 @@ export async function analyzeRequest(
       schema: TASK_CLASSIFICATION_SCHEMA,
       temperature: 0.3, // Low temperature for consistent classification
       maxTokens: 1024,
-      model: 'gemini-2.0-flash', // Use fast model for classification
+      model: 'gemini-3-pro-preview', // PHASE 1 - locked to Google
     });
 
     console.log('[TaskPlanner] Classification result:', {

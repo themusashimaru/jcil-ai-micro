@@ -421,7 +421,7 @@ IMPORTANT RULES:
   try {
     const result = await createGeminiCompletion({
       messages: [{ role: 'user', content: extractionPrompt }],
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3-pro-preview',
       temperature: 0,
       maxTokens: 1000,
     });
@@ -519,7 +519,7 @@ Return JSON:
 
     const parseResult = await createGeminiCompletion({
       messages: [{ role: 'user', content: parsePrompt }],
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3-pro-preview',
       temperature: 0,
       maxTokens: 1500,
     });

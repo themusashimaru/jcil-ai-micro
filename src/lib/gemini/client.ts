@@ -23,8 +23,8 @@ import { CoreMessage } from 'ai';
 import { getSystemPromptForTool } from '../openai/tools';
 import type { ToolType } from '../openai/types';
 
-// Default model: Gemini 2.0 Flash (fast, cost-effective, supports grounding)
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+// Default model: Gemini 3 Pro Preview (PHASE 1 - locked to Google)
+const DEFAULT_MODEL = 'gemini-3-pro-preview';
 
 // ========================================
 // DUAL-POOL API KEY SYSTEM (DYNAMIC)
@@ -1005,9 +1005,9 @@ Specify payment terms.`,
 // ========================================
 
 /**
- * Default image generation model - Gemini native image generation
+ * Default image generation model - Nano Banana (PHASE 1 - locked to Google)
  */
-const DEFAULT_IMAGE_MODEL = 'gemini-2.0-flash-exp-image-generation';
+const DEFAULT_IMAGE_MODEL = 'gemini-3-pro-image-preview';
 
 /**
  * Create an image using Gemini's native image generation (Nano Banana)

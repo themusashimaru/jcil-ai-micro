@@ -9,11 +9,17 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+// =============================================================================
+// PHASE 1: GOOGLE-ONLY MODE
+// All providers are locked to Gemini. Other providers kept for backwards compat
+// but are never used. This simplifies the codebase significantly.
+// =============================================================================
+
 export type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek' | 'gemini';
 
 export interface ProviderConfig {
   model: string;
-  reasoningModel?: string; // DeepSeek only
+  reasoningModel?: string; // Legacy - not used
   imageModel?: string; // Gemini only - Nano Banana image generation
 }
 
@@ -28,25 +34,27 @@ export interface ProviderSettings {
   };
 }
 
-// Default settings (used when database is not available or no settings exist)
+// LOCKED TO GOOGLE - These are the ONLY models used
+const GOOGLE_MODELS = {
+  text: 'gemini-3-pro-preview',        // All text/chat/code
+  image: 'gemini-3-pro-image-preview', // Nano Banana for images
+} as const;
+
+// Default settings - ALWAYS uses Gemini regardless of database
 const DEFAULT_SETTINGS: ProviderSettings = {
-  activeProvider: 'openai',
+  activeProvider: 'gemini', // LOCKED
   providerConfig: {
-    openai: { model: 'gpt-5-mini' },
-    anthropic: { model: 'claude-sonnet-4-5-20250929' },
-    xai: { model: 'grok-3-mini' },
-    deepseek: { model: 'deepseek-chat', reasoningModel: 'deepseek-reasoner' },
-    gemini: { model: 'gemini-2.0-flash', imageModel: 'gemini-2.0-flash-exp-image-generation' },
+    openai: { model: GOOGLE_MODELS.text },      // Redirects to Gemini
+    anthropic: { model: GOOGLE_MODELS.text },   // Redirects to Gemini
+    xai: { model: GOOGLE_MODELS.text },         // Redirects to Gemini
+    deepseek: { model: GOOGLE_MODELS.text },    // Redirects to Gemini
+    gemini: { model: GOOGLE_MODELS.text, imageModel: GOOGLE_MODELS.image },
   },
 };
 
-// Simple cache to avoid repeated database calls
-let cachedSettings: ProviderSettings | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL_MS = 30000; // 30 seconds cache
-
 /**
  * Get Supabase admin client for reading settings
+ * PHASE 1: Only used for Perplexity model lookup
  */
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -61,94 +69,44 @@ function getSupabaseAdmin() {
 
 /**
  * Get current provider settings
- * Returns cached settings if still valid, otherwise fetches from database
+ * PHASE 1: Always returns Google-locked settings - ignores database
  */
 export async function getProviderSettings(): Promise<ProviderSettings> {
-  // Check cache first
-  if (cachedSettings && Date.now() - cacheTimestamp < CACHE_TTL_MS) {
-    return cachedSettings;
-  }
-
-  const supabase = getSupabaseAdmin();
-
-  if (!supabase) {
-    console.log('[Provider] No Supabase admin client, using defaults');
-    return DEFAULT_SETTINGS;
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('provider_settings')
-      .select('*')
-      .single();
-
-    if (error) {
-      if (error.code !== 'PGRST116') { // Not "no rows found"
-        console.error('[Provider] Error fetching settings:', error);
-      }
-      return DEFAULT_SETTINGS;
-    }
-
-    // Parse and validate settings
-    const activeProvider: Provider =
-      data.active_provider === 'anthropic' ? 'anthropic' :
-      data.active_provider === 'xai' ? 'xai' :
-      data.active_provider === 'deepseek' ? 'deepseek' :
-      data.active_provider === 'gemini' ? 'gemini' : 'openai';
-
-    const settings: ProviderSettings = {
-      activeProvider,
-      providerConfig: {
-        openai: data.provider_config?.openai || DEFAULT_SETTINGS.providerConfig.openai,
-        anthropic: data.provider_config?.anthropic || DEFAULT_SETTINGS.providerConfig.anthropic,
-        xai: data.provider_config?.xai || DEFAULT_SETTINGS.providerConfig.xai,
-        deepseek: data.provider_config?.deepseek || DEFAULT_SETTINGS.providerConfig.deepseek,
-        gemini: data.provider_config?.gemini || DEFAULT_SETTINGS.providerConfig.gemini,
-      },
-    };
-
-    // Update cache
-    cachedSettings = settings;
-    cacheTimestamp = Date.now();
-
-    return settings;
-  } catch (error) {
-    console.error('[Provider] Unexpected error:', error);
-    return DEFAULT_SETTINGS;
-  }
+  // PHASE 1: Always return Google-locked settings
+  // Database settings are IGNORED - everything goes through Gemini
+  return DEFAULT_SETTINGS;
 }
 
 /**
  * Clear the settings cache (call after updating settings)
+ * PHASE 1: No-op since we don't cache anymore
  */
 export function clearProviderSettingsCache(): void {
-  cachedSettings = null;
-  cacheTimestamp = 0;
+  // No-op in PHASE 1 - settings are hardcoded to Google
 }
 
 /**
  * Get the active provider
+ * PHASE 1: Always returns 'gemini' - locked to Google
  */
 export async function getActiveProvider(): Promise<Provider> {
-  const settings = await getProviderSettings();
-  return settings.activeProvider;
+  return 'gemini'; // LOCKED TO GOOGLE
 }
 
 /**
  * Get the model for the active provider
+ * PHASE 1: Always returns Gemini model - locked to Google
  */
 export async function getActiveModel(): Promise<string> {
-  const settings = await getProviderSettings();
-  return settings.providerConfig[settings.activeProvider].model;
+  return GOOGLE_MODELS.text; // LOCKED TO GOOGLE
 }
 
 /**
- * Get the reasoning model for DeepSeek
- * Returns the reasoning model if available, falls back to 'deepseek-reasoner'
+ * Get the reasoning model
+ * PHASE 1: Returns Gemini - no DeepSeek reasoning
  */
 export async function getDeepSeekReasoningModel(): Promise<string> {
-  const settings = await getProviderSettings();
-  return settings.providerConfig.deepseek.reasoningModel || 'deepseek-reasoner';
+  return GOOGLE_MODELS.text; // LOCKED TO GOOGLE - use Gemini for reasoning too
 }
 
 /**
@@ -175,15 +133,10 @@ export function isProviderConfigured(provider: Provider): boolean {
 
 /**
  * Get the model for a user tier
- * Premium users get the best model, free users get a lighter model
+ * PHASE 1: All tiers use Gemini - locked to Google
  */
-export async function getModelForTier(_tier: string, provider?: Provider): Promise<string> {
-  const settings = await getProviderSettings();
-  const activeProvider = provider || settings.activeProvider;
-
-  // For now, all tiers use the same model from settings
-  // This can be expanded to use different models per tier
-  return settings.providerConfig[activeProvider].model;
+export async function getModelForTier(_tier: string, _provider?: Provider): Promise<string> {
+  return GOOGLE_MODELS.text; // LOCKED TO GOOGLE - all tiers use same model
 }
 
 /**
@@ -209,26 +162,11 @@ export async function getPerplexityModel(): Promise<string> {
 }
 
 /**
- * Get the Code Command model from database
- * Falls back to claude-opus if not configured
+ * Get the Code Command model
+ * PHASE 1: Returns Gemini - locked to Google
  */
 export async function getCodeCommandModel(): Promise<string> {
-  const supabase = getSupabaseAdmin();
-
-  if (!supabase) {
-    return 'claude-opus-4-5-20251101';
-  }
-
-  try {
-    const { data } = await supabase
-      .from('provider_settings')
-      .select('code_command_model')
-      .single();
-
-    return data?.code_command_model || 'claude-opus-4-5-20251101';
-  } catch {
-    return 'claude-opus-4-5-20251101';
-  }
+  return GOOGLE_MODELS.text; // LOCKED TO GOOGLE
 }
 
 /**
@@ -256,9 +194,8 @@ export async function getVideoModel(): Promise<string> {
 
 /**
  * Get the Gemini image model (Nano Banana)
- * Returns the image model if available, falls back to default
+ * PHASE 1: Always returns the locked image model
  */
 export async function getGeminiImageModel(): Promise<string> {
-  const settings = await getProviderSettings();
-  return settings.providerConfig.gemini.imageModel || 'gemini-2.0-flash-exp-image-generation';
+  return GOOGLE_MODELS.image; // LOCKED TO GOOGLE - Nano Banana
 }
