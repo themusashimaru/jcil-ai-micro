@@ -164,7 +164,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // MESSAGING
   // ========================================
 
-  const [_abortController, _setAbortController] = useState<AbortController | null>(null);
+  // TODO: Add abort controller for canceling streams
+  // const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!currentSessionId || isStreaming) return;
