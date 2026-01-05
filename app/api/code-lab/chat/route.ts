@@ -32,6 +32,53 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
+// ========================================
+// AUTO-SUMMARIZATION CONFIG
+// ========================================
+const SUMMARY_THRESHOLD = 15; // Summarize when message count exceeds this
+const RECENT_MESSAGES_AFTER_SUMMARY = 5; // Keep this many recent messages after summary
+
+/**
+ * Generate a summary of conversation history
+ * Called when message count exceeds threshold
+ */
+async function generateConversationSummary(
+  messages: Array<{ role: string; content: string }>,
+): Promise<string> {
+  const conversationText = messages
+    .map(m => `${m.role.toUpperCase()}: ${m.content}`)
+    .join('\n\n');
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514', // Use Sonnet for efficient summarization
+    max_tokens: 1024,
+    system: `You are summarizing a developer conversation for context continuation.
+Create a concise technical summary that captures:
+1. Main topics and goals discussed
+2. Key decisions made
+3. Code/technical context established
+4. Current state of any projects
+5. Open questions or next steps
+
+Format as bullet points. Be specific about file names, technologies, and code patterns mentioned.
+Keep it under 500 words but include all important technical details.`,
+    messages: [
+      {
+        role: 'user',
+        content: `Summarize this conversation for context continuation:\n\n${conversationText}`,
+      },
+    ],
+  });
+
+  let summary = '';
+  for (const block of response.content) {
+    if (block.type === 'text') {
+      summary += block.text;
+    }
+  }
+  return summary;
+}
+
 // Search detection - improved patterns for developer queries
 function shouldUseSearch(message: string): boolean {
   const searchPatterns = [
@@ -107,13 +154,99 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', sessionId);
 
-    // Get conversation history
-    const { data: history } = await (supabase
+    // Get conversation history with auto-summarization
+    const { data: allMessages } = await (supabase
       .from('code_lab_messages') as AnySupabase)
-      .select('role, content')
+      .select('id, role, content, type')
       .eq('session_id', sessionId)
-      .order('created_at', { ascending: true })
-      .limit(20);
+      .order('created_at', { ascending: true });
+
+    // Check for existing summary
+    const existingSummary = (allMessages || []).find(
+      (m: { type: string }) => m.type === 'summary'
+    );
+
+    // Build effective history for context
+    let history: Array<{ role: string; content: string }> = [];
+    const messageCount = currentSession?.message_count || 0;
+
+    if (messageCount > SUMMARY_THRESHOLD && !existingSummary) {
+      // Need to generate a summary
+      console.log(`[CodeLab] Auto-summarizing ${messageCount} messages...`);
+
+      const messagesToSummarize = (allMessages || [])
+        .filter((m: { type: string }) => m.type !== 'summary')
+        .slice(0, -RECENT_MESSAGES_AFTER_SUMMARY);
+
+      if (messagesToSummarize.length > 0) {
+        try {
+          const summary = await generateConversationSummary(
+            messagesToSummarize.map((m: { role: string; content: string }) => ({
+              role: m.role,
+              content: m.content,
+            }))
+          );
+
+          // Save summary to database
+          await (supabase.from('code_lab_messages') as AnySupabase).insert({
+            id: generateId(),
+            session_id: sessionId,
+            role: 'system',
+            content: summary,
+            created_at: new Date().toISOString(),
+            type: 'summary',
+          });
+
+          // Update session has_summary flag
+          await (supabase.from('code_lab_sessions') as AnySupabase)
+            .update({ has_summary: true, last_summary_at: new Date().toISOString() })
+            .eq('id', sessionId);
+
+          // Use summary + recent messages
+          history = [
+            { role: 'system', content: `[Previous conversation summary]\n${summary}` },
+            ...(allMessages || [])
+              .filter((m: { type: string }) => m.type !== 'summary')
+              .slice(-RECENT_MESSAGES_AFTER_SUMMARY)
+              .map((m: { role: string; content: string }) => ({
+                role: m.role,
+                content: m.content,
+              })),
+          ];
+        } catch (err) {
+          console.error('[CodeLab] Summary generation failed:', err);
+          // Fall back to recent messages only
+          history = (allMessages || [])
+            .slice(-20)
+            .map((m: { role: string; content: string }) => ({
+              role: m.role,
+              content: m.content,
+            }));
+        }
+      }
+    } else if (existingSummary) {
+      // Use existing summary + messages after it
+      const summaryIndex = (allMessages || []).findIndex(
+        (m: { id: string }) => m.id === existingSummary.id
+      );
+      history = [
+        { role: 'system', content: `[Previous conversation summary]\n${existingSummary.content}` },
+        ...(allMessages || [])
+          .slice(summaryIndex + 1)
+          .map((m: { role: string; content: string }) => ({
+            role: m.role,
+            content: m.content,
+          })),
+      ];
+    } else {
+      // No summarization needed, use all messages
+      history = (allMessages || [])
+        .slice(-20)
+        .map((m: { role: string; content: string }) => ({
+          role: m.role,
+          content: m.content,
+        }));
+    }
 
     // Detect intent
     const useCodeAgent = checkCodeAgentIntent(content);
