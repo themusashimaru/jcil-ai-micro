@@ -14,6 +14,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { executeCodeAgent, shouldUseCodeAgent as checkCodeAgentIntent } from '@/agents/code/integration';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
+import { orchestrateStream, shouldUseMultiAgent, getSuggestedAgents } from '@/lib/multi-agent';
+import { searchCodebase, hasCodebaseIndex } from '@/lib/codebase-rag';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
@@ -300,6 +302,7 @@ export async function POST(request: NextRequest) {
     // Detect intent (forceSearch from button overrides auto-detection)
     const useCodeAgent = checkCodeAgentIntent(enhancedContent);
     const useSearch = forceSearch || shouldUseSearch(enhancedContent);
+    const useMultiAgent = shouldUseMultiAgent(enhancedContent);
 
     // ========================================
     // CODE AGENT V2 - Full Project Generation
@@ -374,6 +377,68 @@ export async function POST(request: NextRequest) {
           } catch (error) {
             console.error('[CodeLab Chat] Code Agent error:', error);
             controller.enqueue(encoder.encode('\n\nI encountered an error during code generation. Please try again.'));
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
+    // ========================================
+    // MULTI-AGENT MODE - Specialized Agents
+    // ========================================
+    if (useMultiAgent) {
+      const suggestedAgents = getSuggestedAgents(enhancedContent);
+      console.log('[CodeLab] Multi-Agent mode activated. Agents:', suggestedAgents);
+
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            let fullContent = '';
+
+            // Stream the orchestrated response
+            const agentStream = orchestrateStream(enhancedContent, {
+              userId: user.id,
+              sessionId,
+              repo: repo ? {
+                owner: repo.owner,
+                name: repo.name,
+                branch: repo.branch || 'main',
+                fullName: repo.fullName,
+              } : undefined,
+              previousMessages: (history || []).map((m: { role: string; content: string }) => ({
+                role: m.role,
+                content: m.content,
+              })),
+            });
+
+            for await (const chunk of agentStream) {
+              fullContent += chunk;
+              controller.enqueue(encoder.encode(chunk));
+            }
+
+            // Save assistant message
+            await (supabase.from('code_lab_messages') as AnySupabase).insert({
+              id: generateId(),
+              session_id: sessionId,
+              role: 'assistant',
+              content: fullContent,
+              created_at: new Date().toISOString(),
+              type: 'multi-agent',
+            });
+
+            controller.close();
+          } catch (error) {
+            console.error('[CodeLab Chat] Multi-Agent error:', error);
+            controller.enqueue(encoder.encode('\n\nI encountered an error with the multi-agent system. Please try again.'));
             controller.close();
           }
         },
@@ -493,6 +558,33 @@ Be honest about knowledge cutoff limitations when relevant.`,
     }
 
     // ========================================
+    // CODEBASE RAG - Retrieve relevant code context
+    // ========================================
+    let codebaseContext = '';
+    if (repo) {
+      try {
+        const indexStatus = await hasCodebaseIndex(user.id, repo.owner, repo.name);
+        if (indexStatus.indexed) {
+          console.log(`[CodeLab] Searching codebase RAG for ${repo.fullName}...`);
+          const { contextString } = await searchCodebase(
+            user.id,
+            repo.owner,
+            repo.name,
+            enhancedContent,
+            { matchCount: 6, matchThreshold: 0.35 }
+          );
+          codebaseContext = contextString;
+          if (codebaseContext) {
+            console.log(`[CodeLab] RAG found relevant code context`);
+          }
+        }
+      } catch (ragError) {
+        console.error('[CodeLab] RAG search error:', ragError);
+        // Continue without RAG context
+      }
+    }
+
+    // ========================================
     // REGULAR CHAT - Claude Opus 4.5
     // ========================================
     const messages: Anthropic.MessageParam[] = (history || []).map((m: { role: string; content: string }) => ({
@@ -560,6 +652,13 @@ Style Guidelines:
       systemPrompt += `
 
 The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'main'})`;
+    }
+
+    // Add codebase RAG context if available
+    if (codebaseContext) {
+      systemPrompt += `
+
+${codebaseContext}`;
     }
 
     // Stream the response
