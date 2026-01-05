@@ -35,14 +35,16 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import MembershipSection from '@/app/components/MembershipSection';
 import UsageMetricsSection from '@/app/components/UsageMetricsSection';
 import AccountSection from '@/app/components/AccountSection';
 import SupportSection from '@/app/components/SupportSection';
+import ConnectorsSection from '@/app/components/ConnectorsSection';
 
-type TabId = 'membership' | 'usage' | 'account' | 'support' | 'preferences' | 'privacy';
+type TabId = 'membership' | 'usage' | 'account' | 'support' | 'preferences' | 'privacy' | 'connectors';
 
 interface Tab {
   id: TabId;
@@ -54,14 +56,25 @@ const TABS: Tab[] = [
   { id: 'membership', label: 'Membership', icon: '💳' },
   { id: 'usage', label: 'Usage & Metrics', icon: '📊' },
   { id: 'account', label: 'Account', icon: '👤' },
+  { id: 'connectors', label: 'Connectors', icon: '🔗' },
   { id: 'support', label: 'Support', icon: '💬' },
   { id: 'preferences', label: 'Preferences', icon: '⚙️' },
   { id: 'privacy', label: 'Data & Privacy', icon: '🔒' },
 ];
 
-export default function SettingsPage() {
+// Wrapper component to handle suspense for useSearchParams
+function SettingsContent() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabId>('membership');
   const [exporting, setExporting] = useState(false);
+
+  // Handle tab from URL query param (e.g., /settings?tab=connectors)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && TABS.some(t => t.id === tabParam)) {
+      setActiveTab(tabParam as TabId);
+    }
+  }, [searchParams]);
 
   const handleExportData = async () => {
     try {
@@ -165,6 +178,10 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {activeTab === 'connectors' && (
+            <ConnectorsSection />
+          )}
+
           {activeTab === 'support' && (
             <SupportSection />
           )}
@@ -211,5 +228,21 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary for useSearchParams
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen p-4 md:p-8 flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p style={{ color: 'var(--text-secondary)' }}>Loading settings...</p>
+        </div>
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   );
 }
