@@ -106,18 +106,30 @@ function SettingsContent() {
   return (
     <div className="min-h-screen p-4 md:p-8" style={{ backgroundColor: 'var(--background)' }}>
       <div className="mx-auto max-w-6xl">
-        {/* Header with Back to Chat button */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Settings</h1>
-          <Link
-            href="/chat"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Chat
-          </Link>
+        {/* Header with navigation buttons */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>Settings</h1>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/code-lab"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 border rounded-lg font-medium transition-colors text-sm sm:text-base"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Code Lab
+            </Link>
+            <Link
+              href="/chat"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Chat
+            </Link>
+          </div>
         </div>
 
         {/* Tabs Navigation */}

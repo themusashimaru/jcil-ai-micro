@@ -174,6 +174,10 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   ) => {
     if (!currentSessionId || isStreaming) return;
 
+    // Capture session info at the start (before any async operations)
+    const sessionAtStart = sessions.find(s => s.id === currentSessionId);
+    const isFirstMessage = sessionAtStart?.title === 'New Session' || sessionAtStart?.messageCount === 0;
+
     // Convert attachments to base64 for API
     let attachmentData: Array<{ name: string; type: string; data: string }> | undefined;
     if (attachments && attachments.length > 0) {
@@ -288,8 +292,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         );
 
         // Generate title if this is the first message exchange (title is still default)
-        const session = sessions.find(s => s.id === currentSessionId);
-        if (session && (session.title === 'New Session' || session.messageCount === 0)) {
+        if (isFirstMessage) {
           try {
             const titleResponse = await fetch('/api/chat/generate-title', {
               method: 'POST',
