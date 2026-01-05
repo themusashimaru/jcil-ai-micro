@@ -44,6 +44,32 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
   private allResults: SearchResult[] = [];
   private allEvaluations: EvaluatedResults[] = [];
   private executedQueries: Set<string> = new Set();
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+
+  /**
+   * Start heartbeat to prevent Vercel timeout
+   */
+  private startHeartbeat(onStream: AgentStreamCallback, phase: string): void {
+    this.stopHeartbeat();
+    let tick = 0;
+    this.heartbeatInterval = setInterval(() => {
+      tick++;
+      this.emit(onStream, 'searching', `Still working... (${tick * 10}s)`, {
+        phase,
+        details: { heartbeat: true },
+      });
+    }, 10000); // Every 10 seconds
+  }
+
+  /**
+   * Stop heartbeat
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
 
   /**
    * Main execution method
@@ -121,9 +147,15 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
           progress: progressBase,
         });
 
+        // Start heartbeat to prevent Vercel timeout during long searches
+        this.startHeartbeat(onStream, `Iteration ${iteration}`);
+
         // Execute searches in parallel (Google and Perplexity)
         const results = await this.executeQueries(pendingQueries, onStream, progressBase);
         this.allResults.push(...results);
+
+        // Stop heartbeat after searches complete
+        this.stopHeartbeat();
 
         // Mark queries as executed
         pendingQueries.forEach(q => this.executedQueries.add(q.query));
@@ -228,6 +260,9 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
         progress: 85,
       });
 
+      // Start heartbeat for synthesis (can take 30+ seconds)
+      this.startHeartbeat(onStream, 'Synthesis');
+
       const output = await synthesizer.synthesize(
         this.allResults,
         intent,
@@ -238,6 +273,9 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
           executionTime: this.getExecutionTime(),
         }
       );
+
+      // Stop heartbeat
+      this.stopHeartbeat();
 
       this.emit(onStream, 'complete', 'Research complete!', {
         phase: 'Complete',
@@ -257,6 +295,9 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
 
       return this.success(output, output.metadata.confidenceScore);
     } catch (error) {
+      // Clean up heartbeat on error
+      this.stopHeartbeat();
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       this.emit(onStream, 'error', `Research failed: ${errorMessage}`, {
