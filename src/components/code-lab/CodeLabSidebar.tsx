@@ -60,8 +60,9 @@ export function CodeLabSidebar({
   const editInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch GitHub repos when selector opens
-  const fetchRepos = useCallback(async () => {
-    if (repos.length > 0) return; // Already loaded
+  // Always refetch if not connected (user might have just connected via Settings)
+  const fetchRepos = useCallback(async (forceRefresh = false) => {
+    if (repos.length > 0 && githubConnected && !forceRefresh) return; // Use cache only if connected
 
     setLoadingRepos(true);
     try {
@@ -73,13 +74,14 @@ export function CodeLabSidebar({
       } else if (response.status === 401 || response.status === 400) {
         // 401 = not authenticated, 400 = GitHub not connected
         setGithubConnected(false);
+        setRepos([]); // Clear stale repos
       }
     } catch (error) {
       console.error('[CodeLabSidebar] Error fetching repos:', error);
     } finally {
       setLoadingRepos(false);
     }
-  }, [repos.length]);
+  }, [repos.length, githubConnected]);
 
   useEffect(() => {
     if (showRepoSelector) {

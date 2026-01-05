@@ -14,9 +14,38 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { executeCodeAgent, shouldUseCodeAgent as checkCodeAgentIntent } from '@/agents/code/integration';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
+import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
+
+// Get encryption key (32 bytes for AES-256) - same as connectors API
+function getEncryptionKey(): Buffer {
+  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return crypto.createHash('sha256').update(key).digest();
+}
+
+// Decrypt token - same as connectors API
+function decryptToken(encryptedData: string): string {
+  try {
+    const parts = encryptedData.split(':');
+    if (parts.length !== 3) {
+      throw new Error('Invalid encrypted format');
+    }
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+    const key = getEncryptionKey();
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch {
+    return '';
+  }
+}
 
 // Generate UUID without external dependency
 function generateId(): string {
@@ -276,13 +305,23 @@ export async function POST(request: NextRequest) {
     // CODE AGENT V2 - Full Project Generation
     // ========================================
     if (useCodeAgent) {
-      // Get GitHub token if connected
-      const { data: githubConnection } = await (supabase
-        .from('user_connectors') as AnySupabase)
-        .select('access_token')
-        .eq('user_id', user.id)
-        .eq('provider', 'github')
+      // Get GitHub token from users table (stored via PAT in Settings > Connectors)
+      const adminClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      );
+
+      const { data: userData } = await adminClient
+        .from('users')
+        .select('github_token')
+        .eq('id', user.id)
         .single();
+
+      let githubToken: string | undefined;
+      if (userData?.github_token) {
+        githubToken = decryptToken(userData.github_token);
+      }
 
       // Execute Code Agent with streaming
       const codeAgentStream = await executeCodeAgent(content, {
@@ -292,7 +331,7 @@ export async function POST(request: NextRequest) {
           role: m.role,
           content: m.content,
         })),
-        githubToken: githubConnection?.access_token,
+        githubToken,
         selectedRepo: repo ? {
           owner: repo.owner,
           repo: repo.name,
