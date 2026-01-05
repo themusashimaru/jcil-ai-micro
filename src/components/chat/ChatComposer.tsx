@@ -22,8 +22,10 @@ import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, DragEvent } fr
 import { createPortal } from 'react-dom';
 import type { Attachment, Message } from '@/app/chat/types';
 import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
-import { ConnectorsButton } from './ConnectorsButton';
-import { RepoDropdown } from './RepoDropdown';
+// ConnectorsButton and RepoDropdown removed from main chat
+// These developer tools are now in Code Lab only
+// import { ConnectorsButton } from './ConnectorsButton';
+// import { RepoDropdown } from './RepoDropdown';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 
 // Search mode types for Anthropic provider
@@ -561,11 +563,7 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
                 </svg>
               </button>
 
-              {/* Connectors button (GitHub, Vercel, etc.) */}
-              <ConnectorsButton disabled={isStreaming || disabled} />
-
-              {/* Repository selector (shows when GitHub connected) */}
-              <RepoDropdown disabled={isStreaming || disabled} />
+              {/* Connectors and RepoDropdown moved to Code Lab */}
 
               {/* Search and Fact Check buttons (Anthropic only) */}
               {showSearchButtons && (
