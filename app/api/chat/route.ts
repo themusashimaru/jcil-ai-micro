@@ -83,6 +83,7 @@ import { analyzeRequest, isTaskPlanningEnabled } from '@/lib/taskPlanner';
 import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '@/lib/taskPlanner/executor';
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
+import { shouldUseResearchAgent, executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { isConnectorsEnabled } from '@/lib/connectors';
 // FORGE & MUSASHI: Pure AI mode - only using category detection for context, not templates
 import { detectCategory, extractBusinessInfo } from '@/lib/templates/templateService';
@@ -1160,6 +1161,34 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+    }
+
+    // ========================================
+    // RESEARCH AGENT (Dynamic Multi-Source Intelligence)
+    // ========================================
+    // For competitor analysis, market research, and deep business intelligence
+    // Uses dynamic query generation, parallel execution, and self-evaluation
+    if (isResearchAgentEnabled() && lastUserContent && shouldUseResearchAgent(lastUserContent)) {
+      console.log('[Chat API] Using Research Agent for deep research request');
+
+      const researchStream = await executeResearchAgent(lastUserContent, {
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        conversationId: conversationId || undefined,
+        depth: 'standard',
+        previousMessages: messages.slice(-5).map(m => ({
+          role: String(m.role),
+          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        })),
+      });
+
+      return new Response(researchStream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'X-Provider': 'gemini',
+          'X-Agent': 'research',
+        },
+      });
     }
 
     // ========================================

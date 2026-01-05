@@ -1,0 +1,356 @@
+/**
+ * RESEARCH AGENT
+ *
+ * The main orchestrator for the dynamic research system.
+ * Coordinates: Intent → Strategy → Execution → Evaluation → Synthesis
+ *
+ * This is what makes JCIL different from Manus:
+ * - Dynamic query generation (not fixed pipelines)
+ * - Self-evaluating loops (continues until satisfied)
+ * - Parallel execution (Google + Perplexity simultaneously)
+ * - Streaming progress (never times out)
+ */
+
+import { BaseAgent } from '../core/BaseAgent';
+import {
+  AgentContext,
+  AgentResult,
+  AgentStreamCallback,
+  ResearchStrategy,
+  SearchResult,
+  EvaluatedResults,
+  ResearchOutput,
+  GeneratedQuery,
+} from '../core/types';
+
+import { intentAnalyzer } from './brain/IntentAnalyzer';
+import { strategyGenerator } from './brain/StrategyGenerator';
+import { resultEvaluator } from './brain/ResultEvaluator';
+import { synthesizer } from './brain/Synthesizer';
+import { googleExecutor } from './executors/GoogleExecutor';
+import { perplexityExecutor } from './executors/PerplexityExecutor';
+
+export interface ResearchInput {
+  query: string;
+  depth?: 'quick' | 'standard' | 'deep';
+}
+
+export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
+  name = 'ResearchAgent';
+  description = 'Dynamic multi-source research with self-evaluation and adaptive querying';
+  version = '1.0.0';
+
+  // Store all results across iterations
+  private allResults: SearchResult[] = [];
+  private allEvaluations: EvaluatedResults[] = [];
+  private executedQueries: Set<string> = new Set();
+
+  /**
+   * Main execution method
+   */
+  async execute(
+    input: ResearchInput,
+    context: AgentContext,
+    onStream: AgentStreamCallback
+  ): Promise<AgentResult<ResearchOutput>> {
+    this.startExecution();
+    this.allResults = [];
+    this.allEvaluations = [];
+    this.executedQueries.clear();
+
+    try {
+      // ========================================
+      // PHASE 1: Understand Intent
+      // ========================================
+      this.emit(onStream, 'thinking', 'Analyzing your research request...', {
+        phase: 'Intent Analysis',
+        progress: 5,
+      });
+
+      const intent = await intentAnalyzer.analyze(input.query, context);
+
+      // Override depth if specified in input
+      if (input.depth) {
+        intent.requiredDepth = input.depth;
+      }
+
+      this.emit(onStream, 'thinking', `Understood: "${intent.refinedQuery}"`, {
+        phase: 'Intent Analysis',
+        progress: 10,
+        details: {
+          topics: intent.topics,
+          depth: intent.requiredDepth,
+          expectedOutputs: intent.expectedOutputs,
+        },
+      });
+
+      // ========================================
+      // PHASE 2: Generate Strategy
+      // ========================================
+      this.emit(onStream, 'thinking', 'Creating research strategy...', {
+        phase: 'Strategy Generation',
+        progress: 15,
+      });
+
+      const strategy = await strategyGenerator.generate(intent);
+
+      this.emit(onStream, 'thinking', `Strategy: ${strategy.phases.length} phases, ${this.countTotalQueries(strategy)} queries`, {
+        phase: 'Strategy Generation',
+        progress: 20,
+        details: {
+          phases: strategy.phases.map(p => p.name),
+          maxIterations: strategy.maxIterations,
+        },
+      });
+
+      // ========================================
+      // PHASE 3: Execute & Evaluate Loop
+      // ========================================
+      let iteration = 0;
+      let shouldContinue = true;
+      let pendingQueries: GeneratedQuery[] = this.getAllQueries(strategy);
+
+      while (shouldContinue && iteration < strategy.maxIterations) {
+        iteration++;
+        this.incrementIteration();
+
+        const progressBase = 20 + (iteration * 20);
+
+        this.emit(onStream, 'searching', `Iteration ${iteration}: Executing ${pendingQueries.length} searches...`, {
+          phase: `Iteration ${iteration}`,
+          progress: progressBase,
+        });
+
+        // Execute searches in parallel (Google and Perplexity)
+        const results = await this.executeQueries(pendingQueries, onStream, progressBase);
+        this.allResults.push(...results);
+
+        // Mark queries as executed
+        pendingQueries.forEach(q => this.executedQueries.add(q.query));
+
+        this.emit(onStream, 'evaluating', `Evaluating ${results.length} results...`, {
+          phase: `Iteration ${iteration}`,
+          progress: progressBase + 10,
+        });
+
+        // Evaluate results
+        const evaluation = await resultEvaluator.evaluate(
+          this.allResults,
+          intent,
+          iteration,
+          strategy.maxIterations
+        );
+        this.allEvaluations.push(evaluation);
+
+        this.emit(onStream, 'evaluating', `Coverage: ${(evaluation.coverage.score * 100).toFixed(0)}% | Quality: ${(evaluation.quality.score * 100).toFixed(0)}%`, {
+          phase: `Iteration ${iteration}`,
+          progress: progressBase + 15,
+          details: {
+            coverage: evaluation.coverage,
+            quality: evaluation.quality,
+            recommendation: evaluation.recommendation.action,
+          },
+        });
+
+        // Decide next action
+        switch (evaluation.recommendation.action) {
+          case 'synthesize':
+            shouldContinue = false;
+            this.emit(onStream, 'thinking', 'Sufficient data collected. Moving to synthesis...', {
+              phase: 'Decision',
+              progress: progressBase + 18,
+            });
+            break;
+
+          case 'continue':
+            if (evaluation.recommendation.suggestedQueries && evaluation.recommendation.suggestedQueries.length > 0) {
+              // Filter out already-executed queries
+              pendingQueries = evaluation.recommendation.suggestedQueries.filter(
+                q => !this.executedQueries.has(q.query)
+              );
+
+              if (pendingQueries.length === 0) {
+                shouldContinue = false;
+                this.emit(onStream, 'thinking', 'No new queries to try. Moving to synthesis...', {
+                  phase: 'Decision',
+                  progress: progressBase + 18,
+                });
+              } else {
+                this.emit(onStream, 'pivoting', `Found gaps. Adding ${pendingQueries.length} new queries...`, {
+                  phase: 'Decision',
+                  progress: progressBase + 18,
+                  details: { gaps: evaluation.quality.gaps },
+                });
+              }
+            } else {
+              // Generate gap-filling queries
+              const gapQueries = await strategyGenerator.generateGapFillingQueries(
+                evaluation.quality.gaps,
+                intent,
+                Array.from(this.executedQueries)
+              );
+              pendingQueries = gapQueries;
+
+              if (pendingQueries.length === 0) {
+                shouldContinue = false;
+              }
+            }
+            break;
+
+          case 'pivot':
+            // Major strategy change - regenerate
+            this.emit(onStream, 'pivoting', 'Results off-target. Adjusting strategy...', {
+              phase: 'Decision',
+              progress: progressBase + 18,
+            });
+
+            const newStrategy = await strategyGenerator.generate({
+              ...intent,
+              refinedQuery: intent.refinedQuery + ' ' + evaluation.quality.gaps.join(' '),
+            });
+
+            pendingQueries = this.getAllQueries(newStrategy).filter(
+              q => !this.executedQueries.has(q.query)
+            );
+
+            if (pendingQueries.length === 0) {
+              shouldContinue = false;
+            }
+            break;
+        }
+      }
+
+      // ========================================
+      // PHASE 4: Synthesize Results
+      // ========================================
+      this.emit(onStream, 'synthesizing', 'Creating comprehensive research report...', {
+        phase: 'Synthesis',
+        progress: 85,
+      });
+
+      const output = await synthesizer.synthesize(
+        this.allResults,
+        intent,
+        this.allEvaluations,
+        {
+          totalQueries: this.executedQueries.size,
+          iterations: iteration,
+          executionTime: this.getExecutionTime(),
+        }
+      );
+
+      this.emit(onStream, 'complete', 'Research complete!', {
+        phase: 'Complete',
+        progress: 100,
+        details: {
+          findings: output.keyFindings.length,
+          sources: output.sources.length,
+          confidence: output.metadata.confidenceScore,
+        },
+      });
+
+      // Track sources used
+      this.trackSource('google');
+      if (perplexityExecutor.isAvailable()) {
+        this.trackSource('perplexity');
+      }
+
+      return this.success(output, output.metadata.confidenceScore);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      this.emit(onStream, 'error', `Research failed: ${errorMessage}`, {
+        phase: 'Error',
+        progress: 0,
+      });
+
+      return this.failure(errorMessage);
+    }
+  }
+
+  /**
+   * Check if this agent can handle the input
+   */
+  canHandle(input: unknown): boolean {
+    if (typeof input !== 'object' || input === null) return false;
+    const obj = input as Record<string, unknown>;
+    return typeof obj.query === 'string' && obj.query.length > 0;
+  }
+
+  /**
+   * Execute queries in parallel across sources
+   */
+  private async executeQueries(
+    queries: GeneratedQuery[],
+    onStream: AgentStreamCallback,
+    progressBase: number
+  ): Promise<SearchResult[]> {
+    const googleQueries = queries.filter(q => q.source === 'google');
+    const perplexityQueries = queries.filter(q => q.source === 'perplexity');
+
+    // Execute in parallel
+    const [googleResults, perplexityResults] = await Promise.all([
+      googleQueries.length > 0
+        ? this.executeWithProgress(googleQueries, 'google', onStream, progressBase)
+        : Promise.resolve([]),
+      perplexityQueries.length > 0 && perplexityExecutor.isAvailable()
+        ? this.executeWithProgress(perplexityQueries, 'perplexity', onStream, progressBase)
+        : Promise.resolve([]),
+    ]);
+
+    return [...googleResults, ...perplexityResults];
+  }
+
+  /**
+   * Execute queries for a specific source with progress updates
+   */
+  private async executeWithProgress(
+    queries: GeneratedQuery[],
+    source: 'google' | 'perplexity',
+    onStream: AgentStreamCallback,
+    _progressBase: number
+  ): Promise<SearchResult[]> {
+    const results: SearchResult[] = [];
+
+    for (const query of queries) {
+      this.emit(onStream, 'searching', `[${source.toUpperCase()}] ${query.query.substring(0, 50)}...`, {
+        phase: 'Searching',
+        details: { source, purpose: query.purpose },
+      });
+
+      const result = source === 'google'
+        ? await googleExecutor.execute(query)
+        : await perplexityExecutor.execute(query);
+
+      results.push(result);
+    }
+
+    return results;
+  }
+
+  /**
+   * Get all queries from a strategy
+   */
+  private getAllQueries(strategy: ResearchStrategy): GeneratedQuery[] {
+    return strategy.phases
+      .filter(p => !p.isConditional) // Only non-conditional phases initially
+      .flatMap(p => p.queries);
+  }
+
+  /**
+   * Count total queries in a strategy
+   */
+  private countTotalQueries(strategy: ResearchStrategy): number {
+    return strategy.phases.reduce((acc, p) => acc + p.queries.length, 0);
+  }
+
+  /**
+   * Format output as markdown for display
+   */
+  formatOutput(output: ResearchOutput): string {
+    return synthesizer.formatAsMarkdown(output);
+  }
+}
+
+// Export singleton instance
+export const researchAgent = new ResearchAgent();
