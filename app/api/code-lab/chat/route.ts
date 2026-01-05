@@ -122,10 +122,30 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { sessionId, content, repo } = body;
+    const { sessionId, content, repo, attachments, forceSearch } = body;
 
-    if (!sessionId || !content) {
+    if (!sessionId || (!content && (!attachments || attachments.length === 0))) {
       return new Response('Missing sessionId or content', { status: 400 });
+    }
+
+    // Process attachments for Claude vision
+    interface AttachmentData {
+      name: string;
+      type: string;
+      data: string;
+    }
+    const imageAttachments = (attachments as AttachmentData[] || []).filter(
+      (a: AttachmentData) => a.type.startsWith('image/')
+    );
+    const documentAttachments = (attachments as AttachmentData[] || []).filter(
+      (a: AttachmentData) => !a.type.startsWith('image/')
+    );
+
+    // Build content with document info
+    let enhancedContent = content || '';
+    if (documentAttachments.length > 0) {
+      enhancedContent += '\n\n[Attached documents: ' +
+        documentAttachments.map((d: AttachmentData) => d.name).join(', ') + ']';
     }
 
     // Save user message
@@ -248,9 +268,9 @@ export async function POST(request: NextRequest) {
         }));
     }
 
-    // Detect intent
-    const useCodeAgent = checkCodeAgentIntent(content);
-    const useSearch = shouldUseSearch(content);
+    // Detect intent (forceSearch from button overrides auto-detection)
+    const useCodeAgent = checkCodeAgentIntent(enhancedContent);
+    const useSearch = forceSearch || shouldUseSearch(enhancedContent);
 
     // ========================================
     // CODE AGENT V2 - Full Project Generation
@@ -441,6 +461,39 @@ Be honest about knowledge cutoff limitations when relevant.`,
       content: m.content,
     }));
 
+    // Build the current user message content (with vision support)
+    type MessageContent = Anthropic.TextBlockParam | Anthropic.ImageBlockParam;
+    const userContent: MessageContent[] = [];
+
+    // Add text content
+    if (enhancedContent) {
+      userContent.push({ type: 'text', text: enhancedContent });
+    }
+
+    // Add images for vision (Claude can process images)
+    for (const img of imageAttachments) {
+      // Extract base64 data (remove "data:image/...;base64," prefix)
+      const base64Data = img.data.split(',')[1] || img.data;
+      const mediaType = img.type as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
+      userContent.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: mediaType,
+          data: base64Data,
+        },
+      });
+    }
+
+    // Add the user message with all content
+    if (userContent.length > 0) {
+      messages.push({
+        role: 'user',
+        content: userContent,
+      });
+    }
+
     // Build system prompt
     let systemPrompt = `You are Claude, a highly capable AI assistant in Code Lab - a professional developer workspace.
 
@@ -450,10 +503,13 @@ You help developers with:
 - Searching documentation
 - Explaining concepts
 - Code review and best practices
+- Analyzing screenshots and images (you have vision capabilities)
 
 Keep your responses clear, professional, and focused.
 Use markdown for formatting. Use code blocks with language tags.
 When showing terminal commands, use \`\`\`bash blocks.
+
+${imageAttachments.length > 0 ? `The user has attached ${imageAttachments.length} image(s). Analyze them carefully and provide helpful feedback.` : ''}
 
 Style Guidelines:
 - Be concise but thorough

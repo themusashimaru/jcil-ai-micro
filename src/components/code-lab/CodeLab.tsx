@@ -18,7 +18,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CodeLabSidebar } from './CodeLabSidebar';
 import { CodeLabThread } from './CodeLabThread';
-import { CodeLabComposer } from './CodeLabComposer';
+import { CodeLabComposer, CodeLabAttachment } from './CodeLabComposer';
 import type { CodeLabSession, CodeLabMessage } from './types';
 
 interface CodeLabProps {
@@ -167,15 +167,43 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // TODO: Add abort controller for canceling streams
   // const [abortController, setAbortController] = useState<AbortController | null>(null);
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (
+    content: string,
+    attachments?: CodeLabAttachment[],
+    forceSearch?: boolean
+  ) => {
     if (!currentSessionId || isStreaming) return;
+
+    // Convert attachments to base64 for API
+    let attachmentData: Array<{ name: string; type: string; data: string }> | undefined;
+    if (attachments && attachments.length > 0) {
+      attachmentData = await Promise.all(
+        attachments.map(async (att) => {
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(att.file);
+          });
+          return {
+            name: att.file.name,
+            type: att.file.type,
+            data: base64,
+          };
+        })
+      );
+    }
+
+    // Create display content for user message
+    const displayContent = attachments && attachments.length > 0
+      ? `${content}\n\n[Attached: ${attachments.map(a => a.file.name).join(', ')}]`
+      : content;
 
     // Create user message
     const userMessage: CodeLabMessage = {
       id: `temp-${Date.now()}`,
       sessionId: currentSessionId,
       role: 'user',
-      content,
+      content: displayContent,
       createdAt: new Date(),
     };
 
@@ -204,6 +232,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           sessionId: currentSessionId,
           content,
           repo: currentSession?.repo,
+          attachments: attachmentData,
+          forceSearch,
         }),
       });
 
