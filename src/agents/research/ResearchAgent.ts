@@ -54,11 +54,11 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
     let tick = 0;
     this.heartbeatInterval = setInterval(() => {
       tick++;
-      this.emit(onStream, 'searching', `Still working... (${tick * 10}s)`, {
+      this.emit(onStream, 'searching', `Still working... (${tick * 5}s)`, {
         phase,
         details: { heartbeat: true },
       });
-    }, 10000); // Every 10 seconds
+    }, 5000); // Every 5 seconds for Vercel
   }
 
   /**
@@ -343,7 +343,24 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
   }
 
   /**
+   * Timeout wrapper for individual searches
+   */
+  private async withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    fallback: T
+  ): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((resolve) => {
+        setTimeout(() => resolve(fallback), timeoutMs);
+      }),
+    ]);
+  }
+
+  /**
    * Execute queries for a specific source with progress updates
+   * Runs searches IN PARALLEL with individual timeouts
    */
   private async executeWithProgress(
     queries: GeneratedQuery[],
@@ -351,20 +368,36 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
     onStream: AgentStreamCallback,
     _progressBase: number
   ): Promise<SearchResult[]> {
-    const results: SearchResult[] = [];
-
-    for (const query of queries) {
+    // Log each query as we start
+    queries.forEach(query => {
       this.emit(onStream, 'searching', `[${source.toUpperCase()}] ${query.query.substring(0, 50)}...`, {
         phase: 'Searching',
         details: { source, purpose: query.purpose },
       });
+    });
 
-      const result = source === 'google'
-        ? await googleExecutor.execute(query)
-        : await perplexityExecutor.execute(query);
+    // Execute ALL searches in parallel with 20-second timeout each
+    const SEARCH_TIMEOUT = 20000; // 20 seconds max per search
 
-      results.push(result);
-    }
+    const searchPromises = queries.map(async (query) => {
+      const fallbackResult: SearchResult = {
+        id: `timeout-${source}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        query: query.query,
+        source,
+        content: `Search timed out for: ${query.query}`,
+        relevanceScore: 0.1,
+        timestamp: Date.now(),
+      };
+
+      const searchFn = source === 'google'
+        ? googleExecutor.execute(query)
+        : perplexityExecutor.execute(query);
+
+      return this.withTimeout(searchFn, SEARCH_TIMEOUT, fallbackResult);
+    });
+
+    // Wait for all searches to complete (with their timeouts)
+    const results = await Promise.all(searchPromises);
 
     return results;
   }
