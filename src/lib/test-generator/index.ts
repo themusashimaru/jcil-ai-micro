@@ -494,7 +494,7 @@ RSPEC GUIDE:
    */
   async generateEdgeCaseTests(
     code: string,
-    filePath: string,
+    _filePath: string,
     framework: TestFramework
   ): Promise<GeneratedTest[]> {
     try {
@@ -544,7 +544,7 @@ Return JSON array of edge case tests.`,
    */
   async generatePerformanceTests(
     code: string,
-    filePath: string,
+    _filePath: string,
     framework: TestFramework
   ): Promise<GeneratedTest[]> {
     try {

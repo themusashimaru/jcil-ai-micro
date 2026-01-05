@@ -14,8 +14,6 @@
  * - Multi-environment support (dev, staging, prod)
  */
 
-import Anthropic from '@anthropic-ai/sdk';
-
 // ============================================
 // TYPES
 // ============================================
@@ -97,12 +95,6 @@ export interface AdditionalFile {
 // ============================================
 
 export class CICDGenerator {
-  private anthropic: Anthropic;
-
-  constructor() {
-    this.anthropic = new Anthropic();
-  }
-
   /**
    * Analyze a project and generate appropriate CI/CD configuration
    */
@@ -285,11 +277,17 @@ export class CICDGenerator {
     analysis: ProjectAnalysis,
     environments: string[]
   ): CICDConfig {
-    const installCmd = {
+    const installCommands: Record<string, string> = {
       npm: 'npm ci',
       yarn: 'yarn install --frozen-lockfile',
       pnpm: 'pnpm install --frozen-lockfile',
-    }[analysis.packageManager] || 'npm ci';
+      pip: 'pip install -r requirements.txt',
+      cargo: 'cargo build',
+      go: 'go mod download',
+      maven: 'mvn install',
+      gradle: './gradlew build',
+    };
+    const installCmd = installCommands[analysis.packageManager] || 'npm ci';
 
     const buildCmd = analysis.scripts.build ? `${analysis.packageManager} run build` : '';
     const testCmd = analysis.scripts.test ? `${analysis.packageManager} run test` : '';

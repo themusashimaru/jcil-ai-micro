@@ -96,7 +96,6 @@ const COMMAND_PATTERNS = {
 export class VoiceCodingEngine {
   private anthropic: Anthropic;
   private commandHistory: VoiceCommand[] = [];
-  private isListening = false;
 
   constructor() {
     this.anthropic = new Anthropic();
