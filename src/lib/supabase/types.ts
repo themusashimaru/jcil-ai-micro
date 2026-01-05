@@ -260,6 +260,76 @@ export interface Database {
           updated_at?: string
         }
       }
+      code_lab_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          repo: Json | null
+          message_count: number
+          has_summary: boolean
+          summary: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string
+          repo?: Json | null
+          message_count?: number
+          has_summary?: boolean
+          summary?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          repo?: Json | null
+          message_count?: number
+          has_summary?: boolean
+          summary?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      code_lab_messages: {
+        Row: {
+          id: string
+          session_id: string
+          role: 'user' | 'assistant'
+          content: string
+          type: 'chat' | 'code' | 'search' | null
+          code_output: Json | null
+          search_output: Json | null
+          summary_output: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          role: 'user' | 'assistant'
+          content: string
+          type?: 'chat' | 'code' | 'search' | null
+          code_output?: Json | null
+          search_output?: Json | null
+          summary_output?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          role?: 'user' | 'assistant'
+          content?: string
+          type?: 'chat' | 'code' | 'search' | null
+          code_output?: Json | null
+          search_output?: Json | null
+          summary_output?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       admin_users_summary: {
