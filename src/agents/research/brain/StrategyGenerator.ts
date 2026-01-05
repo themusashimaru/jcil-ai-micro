@@ -57,7 +57,7 @@ Create a research strategy as a JSON object:
       "dependsOn": null | "phase_id"
     }
   ],
-  "maxIterations": 3,
+  "maxIterations": 2,
   "stopConditions": [
     { "type": "coverage_threshold", "threshold": 0.85 },
     { "type": "max_iterations" },

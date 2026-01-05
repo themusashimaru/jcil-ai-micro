@@ -40,6 +40,10 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
   description = 'Dynamic multi-source research with self-evaluation and adaptive querying';
   version = '1.0.0';
 
+  // Time budget: Leave 30s for synthesis, so search phase max = 50s
+  private readonly MAX_SEARCH_TIME_MS = 50000;
+  private executionStartTime: number = 0;
+
   // Store all results across iterations
   private allResults: SearchResult[] = [];
   private allEvaluations: EvaluatedResults[] = [];
@@ -72,6 +76,14 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
   }
 
   /**
+   * Check if we're running out of time and should force synthesis
+   */
+  private isTimeToSynthesize(): boolean {
+    const elapsed = Date.now() - this.executionStartTime;
+    return elapsed >= this.MAX_SEARCH_TIME_MS;
+  }
+
+  /**
    * Main execution method
    */
   async execute(
@@ -80,6 +92,7 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
     onStream: AgentStreamCallback
   ): Promise<AgentResult<ResearchOutput>> {
     this.startExecution();
+    this.executionStartTime = Date.now();
     this.allResults = [];
     this.allEvaluations = [];
     this.executedQueries.clear();
@@ -136,7 +149,7 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
       let shouldContinue = true;
       let pendingQueries: GeneratedQuery[] = this.getAllQueries(strategy);
 
-      while (shouldContinue && iteration < strategy.maxIterations) {
+      while (shouldContinue && iteration < strategy.maxIterations && !this.isTimeToSynthesize()) {
         iteration++;
         this.incrementIteration();
 
@@ -156,6 +169,15 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
 
         // Stop heartbeat after searches complete
         this.stopHeartbeat();
+
+        // Check time budget - force synthesis if running low
+        if (this.isTimeToSynthesize()) {
+          this.emit(onStream, 'thinking', 'Time budget reached. Moving to synthesis with current results...', {
+            phase: 'Time Check',
+            progress: 80,
+          });
+          break;
+        }
 
         // Mark queries as executed
         pendingQueries.forEach(q => this.executedQueries.add(q.query));
