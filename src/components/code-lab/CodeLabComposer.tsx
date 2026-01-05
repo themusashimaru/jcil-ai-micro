@@ -85,8 +85,12 @@ export function CodeLabComposer({
         />
 
         <div className="composer-actions">
-          {/* File attach button (future) */}
-          <button className="composer-btn attach" disabled>
+          {/* File attach button - coming soon */}
+          <button
+            className="composer-btn attach"
+            disabled={disabled || isStreaming}
+            title="Attach files (coming soon)"
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
             </svg>
@@ -96,7 +100,7 @@ export function CodeLabComposer({
           <button
             className="composer-btn search"
             title="Search docs"
-            disabled={disabled}
+            disabled={disabled || isStreaming}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -258,6 +262,24 @@ export function CodeLabComposer({
         @media (max-width: 640px) {
           .composer-hint {
             display: none;
+          }
+
+          .code-lab-composer {
+            padding: 0.75rem 1rem 1rem;
+          }
+
+          .composer-container {
+            padding: 0.625rem 0.75rem;
+            gap: 0.5rem;
+          }
+
+          .composer-input {
+            font-size: 16px; /* Prevents zoom on iOS */
+          }
+
+          .composer-btn svg {
+            width: 18px;
+            height: 18px;
           }
         }
       `}</style>

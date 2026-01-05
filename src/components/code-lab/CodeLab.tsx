@@ -266,6 +266,14 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
   return (
     <div className="code-lab">
+      {/* Mobile backdrop when sidebar open */}
+      {!sidebarCollapsed && (
+        <div
+          className="mobile-backdrop"
+          onClick={() => setSidebarCollapsed(true)}
+        />
+      )}
+
       {/* Sidebar - Sessions & Repo */}
       <CodeLabSidebar
         sessions={sessions}
@@ -282,6 +290,18 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
       {/* Main Content Area */}
       <main className="code-lab-main">
+        {/* Mobile header with menu button */}
+        <div className="mobile-header">
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setSidebarCollapsed(false)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
+          <span className="mobile-title">{currentSession?.title || 'Code Lab'}</span>
+        </div>
         {currentSessionId ? (
           <>
             {/* Thread - Messages */}
@@ -339,6 +359,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           background: #ffffff;
           color: #1a1f36;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          position: relative;
         }
 
         .code-lab-main {
@@ -349,16 +370,81 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           background: #fafbfc;
         }
 
+        /* Mobile backdrop */
+        .mobile-backdrop {
+          display: none;
+        }
+
+        /* Mobile header - hidden on desktop */
+        .mobile-header {
+          display: none;
+        }
+
+        /* Mobile: sidebar as overlay drawer */
+        @media (max-width: 768px) {
+          .code-lab {
+            flex-direction: column;
+          }
+
+          .code-lab-main {
+            width: 100%;
+            height: 100vh;
+          }
+
+          .mobile-backdrop {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 40;
+          }
+
+          .mobile-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+          }
+
+          .mobile-menu-btn {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: #374151;
+            border-radius: 6px;
+          }
+
+          .mobile-menu-btn:hover {
+            background: #f3f4f6;
+          }
+
+          .mobile-menu-btn svg {
+            width: 24px;
+            height: 24px;
+          }
+
+          .mobile-title {
+            font-weight: 600;
+            color: #1a1f36;
+            flex: 1;
+          }
+        }
+
         .code-lab-empty {
           flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: 1rem;
         }
 
         .code-lab-empty-content {
           text-align: center;
-          padding: 3rem;
+          padding: 2rem;
+          max-width: 400px;
         }
 
         .code-lab-empty-icon {
@@ -414,6 +500,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           gap: 0.75rem;
           font-size: 0.875rem;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          z-index: 1000;
         }
 
         .code-lab-error button {

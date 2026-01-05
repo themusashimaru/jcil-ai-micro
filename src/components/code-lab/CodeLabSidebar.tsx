@@ -797,6 +797,26 @@ export function CodeLabSidebar({
           color: #9ca3af;
           text-align: center;
         }
+
+        /* Mobile: sidebar as slide-over drawer */
+        @media (max-width: 768px) {
+          .code-lab-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 50;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+          }
+
+          .code-lab-sidebar.collapsed {
+            transform: translateX(-100%);
+            width: 280px;
+            min-width: 280px;
+          }
+        }
       `}</style>
     </aside>
   );
