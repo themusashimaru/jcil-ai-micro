@@ -12,6 +12,7 @@ export type { CodeAgentInput } from './CodeAgent';
 
 // Brain components
 export { codeIntentAnalyzer, CodeIntentAnalyzer } from './brain/IntentAnalyzer';
+export type { ClarificationResult, ClarifyingQuestion } from './brain/IntentAnalyzer';
 export { projectPlanner, ProjectPlanner } from './brain/ProjectPlanner';
 export { codeGenerator, CodeGenerator } from './brain/CodeGenerator';
 export { errorAnalyzer, ErrorAnalyzer } from './brain/ErrorAnalyzer';
@@ -25,6 +26,8 @@ export type { GitHubPushResult } from './executors/GitHubExecutor';
 export {
   executeCodeAgent,
   shouldUseCodeAgent,
+  isCodeReviewRequest,
+  generateNoRepoSelectedResponse,
   generateCodeFiles,
   isCodeAgentEnabled,
 } from './integration';

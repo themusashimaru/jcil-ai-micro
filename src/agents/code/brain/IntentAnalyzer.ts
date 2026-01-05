@@ -8,11 +8,37 @@
  * - Project complexity
  * - Hidden requirements
  *
- * This is where we think critically like Claude Code.
+ * PROACTIVE SENIOR ENGINEER BEHAVIOR:
+ * - Asks clarifying questions when request is ambiguous
+ * - Foresees potential issues and advises preemptively
+ * - Suggests improvements and best practices
+ * - Thinks critically like Claude Code
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { CodeIntent, ProjectType, TechnologyStack, AgentContext } from '../../core/types';
+
+/**
+ * Result of clarification check
+ */
+export interface ClarificationResult {
+  needsClarification: boolean;
+  clarityScore: number;  // 0-100, below 60 needs clarification
+  questions: ClarifyingQuestion[];
+  assumptions: string[];
+  potentialIssues: string[];
+  suggestions: string[];
+}
+
+/**
+ * A clarifying question with context
+ */
+export interface ClarifyingQuestion {
+  question: string;
+  reason: string;
+  options?: string[];  // Suggested answers
+  priority: 'critical' | 'important' | 'nice-to-have';
+}
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -21,6 +47,120 @@ const anthropic = new Anthropic({
 export class CodeIntentAnalyzer {
   // Opus 4.5 for maximum understanding - crush Manus
   private model = 'claude-opus-4-5-20251101';
+
+  /**
+   * PROACTIVE CHECK: Determine if request needs clarification
+   * A senior engineer would ask questions before diving in
+   */
+  async checkClarification(
+    request: string,
+    context: AgentContext
+  ): Promise<ClarificationResult> {
+    const conversationContext = context.previousMessages
+      ?.slice(-5)
+      .map(m => `${m.role}: ${m.content}`)
+      .join('\n') || '';
+
+    const prompt = `You are a senior software engineer receiving a project request. Before building anything, assess if you need more information.
+
+USER REQUEST:
+"${request}"
+
+${conversationContext ? `CONVERSATION CONTEXT:\n${conversationContext}\n` : ''}
+
+Evaluate this request as a senior engineer would. Consider:
+1. Is it SPECIFIC enough to build correctly on the first try?
+2. Are there MULTIPLE VALID approaches that need decision?
+3. Could missing details lead to WASTED WORK?
+4. Are there RISKS or issues the user might not have considered?
+
+Respond with a JSON object:
+{
+  "clarityScore": number (0-100, where 100 is crystal clear),
+  "needsClarification": boolean (true if score < 60 OR critical questions exist),
+  "questions": [
+    {
+      "question": "The clarifying question to ask",
+      "reason": "Why this matters for the project",
+      "options": ["Option 1", "Option 2", "Option 3"] (optional suggested answers),
+      "priority": "critical" | "important" | "nice-to-have"
+    }
+  ],
+  "assumptions": ["What we'll assume if they don't clarify"],
+  "potentialIssues": ["Things that could go wrong if we proceed without clarity"],
+  "suggestions": ["Proactive advice a senior engineer would give"]
+}
+
+WHEN TO ASK QUESTIONS (be a proactive senior engineer):
+- Authentication: "Will this need user login?" (don't assume)
+- Data persistence: "Should data persist? Database or file?"
+- Scale: "Expected users/load? This affects architecture"
+- Deployment: "Where will this run? Local, Vercel, AWS?"
+- Error handling: "How should errors be reported to users?"
+- Testing: "What level of test coverage do you need?"
+
+WHEN TO PROCEED WITHOUT QUESTIONS:
+- Simple scripts with clear purpose
+- Request explicitly states all requirements
+- User says "just build it" or similar
+- Request is already highly detailed
+
+BE HELPFUL, NOT ANNOYING:
+- Only ask 1-3 critical questions max
+- Don't ask if the answer is obvious from context
+- Offer defaults: "I'll use X unless you prefer Y?"
+
+OUTPUT ONLY THE JSON OBJECT.`;
+
+    try {
+      const response = await anthropic.messages.create({
+        model: this.model,
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }],
+      });
+
+      const text = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return this.createDefaultClarificationResult();
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      return {
+        needsClarification: Boolean(parsed.needsClarification),
+        clarityScore: Number(parsed.clarityScore) || 50,
+        questions: (parsed.questions || []).map((q: Record<string, unknown>) => ({
+          question: String(q.question || ''),
+          reason: String(q.reason || ''),
+          options: Array.isArray(q.options) ? q.options.map(String) : undefined,
+          priority: ['critical', 'important', 'nice-to-have'].includes(String(q.priority))
+            ? (q.priority as ClarifyingQuestion['priority'])
+            : 'important',
+        })),
+        assumptions: (parsed.assumptions || []).map(String),
+        potentialIssues: (parsed.potentialIssues || []).map(String),
+        suggestions: (parsed.suggestions || []).map(String),
+      };
+    } catch (error) {
+      console.error('[CodeIntentAnalyzer] Error checking clarification:', error);
+      return this.createDefaultClarificationResult();
+    }
+  }
+
+  /**
+   * Create default result when clarification check fails
+   */
+  private createDefaultClarificationResult(): ClarificationResult {
+    return {
+      needsClarification: false,
+      clarityScore: 70,
+      questions: [],
+      assumptions: ['Proceeding with reasonable defaults'],
+      potentialIssues: [],
+      suggestions: [],
+    };
+  }
 
   /**
    * Analyze user request to understand exactly what they want to build
