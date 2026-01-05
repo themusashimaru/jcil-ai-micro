@@ -21,7 +21,7 @@ const gemini = new GoogleGenAI({
 });
 
 export class StrategyGenerator {
-  private model = 'gemini-2.0-flash';
+  private model = 'gemini-3-pro-preview';
 
   /**
    * Generate a dynamic research strategy based on intent

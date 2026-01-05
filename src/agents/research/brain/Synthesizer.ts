@@ -23,7 +23,7 @@ const gemini = new GoogleGenAI({
 });
 
 export class Synthesizer {
-  private model = 'gemini-2.0-flash';
+  private model = 'gemini-3-pro-preview';
 
   /**
    * Synthesize all research into a structured output

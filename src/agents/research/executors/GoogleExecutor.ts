@@ -13,7 +13,7 @@ const gemini = new GoogleGenAI({
 });
 
 export class GoogleExecutor {
-  private model = 'gemini-2.0-flash';
+  private model = 'gemini-3-pro-preview';
 
   /**
    * Execute a search query using Google Grounded Search
