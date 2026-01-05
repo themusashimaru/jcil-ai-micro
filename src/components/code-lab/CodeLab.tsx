@@ -15,7 +15,7 @@
  * - Terminal-style code output
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CodeLabSidebar } from './CodeLabSidebar';
 import { CodeLabThread } from './CodeLabThread';
 import { CodeLabComposer, CodeLabAttachment } from './CodeLabComposer';
@@ -37,6 +37,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // AbortController for canceling streams
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Current session helper
   const currentSession = sessions.find(s => s.id === currentSessionId);
@@ -125,6 +128,79 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     }
   };
 
+  // Export session as markdown
+  const exportSession = async (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    // Get messages for this session
+    let exportMessages = messages;
+    if (sessionId !== currentSessionId) {
+      try {
+        const response = await fetch(`/api/code-lab/sessions/${sessionId}/messages`);
+        if (response.ok) {
+          const data = await response.json();
+          exportMessages = data.messages || [];
+        }
+      } catch (err) {
+        console.error('[CodeLab] Error fetching messages for export:', err);
+        return;
+      }
+    }
+
+    // Generate markdown
+    const lines: string[] = [
+      `# ${session.title}`,
+      '',
+      `**Created:** ${new Date(session.createdAt).toLocaleString()}`,
+      `**Updated:** ${new Date(session.updatedAt).toLocaleString()}`,
+      `**Messages:** ${session.messageCount}`,
+    ];
+
+    if (session.repo) {
+      lines.push(`**Repository:** ${session.repo.fullName} (${session.repo.branch})`);
+    }
+
+    if (session.codeChanges) {
+      lines.push('');
+      lines.push('## Code Changes');
+      lines.push(`- Lines added: **+${session.codeChanges.linesAdded}**`);
+      lines.push(`- Lines removed: **-${session.codeChanges.linesRemoved}**`);
+      lines.push(`- Files changed: **${session.codeChanges.filesChanged}**`);
+    }
+
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+    lines.push('## Conversation');
+    lines.push('');
+
+    exportMessages.forEach(msg => {
+      if (msg.role === 'user') {
+        lines.push(`### User`);
+      } else if (msg.role === 'assistant') {
+        lines.push(`### Assistant`);
+      } else {
+        lines.push(`### System`);
+      }
+      lines.push('');
+      lines.push(msg.content);
+      lines.push('');
+    });
+
+    // Download file
+    const markdown = lines.join('\n');
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${session.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
   const renameSession = async (sessionId: string, title: string) => {
     try {
       await fetch(`/api/code-lab/sessions/${sessionId}`, {
@@ -163,9 +239,6 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // ========================================
   // MESSAGING
   // ========================================
-
-  // TODO: Add abort controller for canceling streams
-  // const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   const sendMessage = useCallback(async (
     content: string,
@@ -228,6 +301,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
     setMessages(prev => [...prev, assistantMessage]);
 
+    // Create AbortController for this request
+    abortControllerRef.current = new AbortController();
+
     try {
       const response = await fetch('/api/code-lab/chat', {
         method: 'POST',
@@ -239,6 +315,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           attachments: attachmentData,
           forceSearch,
         }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -327,20 +404,80 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
       }
     } catch (err) {
-      console.error('[CodeLab] Error sending message:', err);
-      setError('Failed to send message');
-
-      // Remove the failed assistant message
-      setMessages(prev => prev.filter(m => m.id !== assistantId));
+      // Don't show error for user-initiated cancellations
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('[CodeLab] Stream cancelled by user');
+        // Mark the partial message as complete (not streaming)
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === assistantId
+              ? { ...m, isStreaming: false, content: m.content + '\n\n*[Cancelled]*' }
+              : m
+          )
+        );
+      } else {
+        console.error('[CodeLab] Error sending message:', err);
+        setError('Failed to send message');
+        // Remove the failed assistant message
+        setMessages(prev => prev.filter(m => m.id !== assistantId));
+      }
     } finally {
+      abortControllerRef.current = null;
       setIsStreaming(false);
     }
   }, [currentSessionId, currentSession?.repo, isStreaming, sessions]);
 
   const cancelStream = useCallback(() => {
-    // TODO: Implement abort controller
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     setIsStreaming(false);
   }, []);
+
+  // ========================================
+  // KEYBOARD SHORTCUTS
+  // ========================================
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdKey = isMac ? e.metaKey : e.ctrlKey;
+
+      // Cmd/Ctrl+N - New session
+      if (cmdKey && e.key === 'n') {
+        e.preventDefault();
+        createSession();
+      }
+
+      // Escape - Cancel streaming or close sidebar on mobile
+      if (e.key === 'Escape') {
+        if (isStreaming) {
+          cancelStream();
+        } else if (!sidebarCollapsed && window.innerWidth <= 768) {
+          setSidebarCollapsed(true);
+        }
+      }
+
+      // Cmd/Ctrl+B - Toggle sidebar
+      if (cmdKey && e.key === 'b') {
+        e.preventDefault();
+        setSidebarCollapsed(prev => !prev);
+      }
+
+      // Cmd/Ctrl+/ - Focus input (composer)
+      if (cmdKey && e.key === '/') {
+        e.preventDefault();
+        const composer = document.querySelector('.composer-input') as HTMLTextAreaElement;
+        if (composer) {
+          composer.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isStreaming, cancelStream, sidebarCollapsed, createSession]);
 
   // ========================================
   // RENDER
@@ -367,7 +504,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         onDeleteSession={deleteSession}
         onRenameSession={renameSession}
         onSetRepo={setSessionRepo}
+        onExportSession={exportSession}
         currentRepo={currentSession?.repo}
+        currentCodeChanges={currentSession?.codeChanges}
       />
 
       {/* Main Content Area */}

@@ -142,8 +142,11 @@ export function CodeLabComposer({
   }, [content, attachments, isStreaming, disabled, onSend, searchMode]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Send on Enter (without shift)
-    if (e.key === 'Enter' && !e.shiftKey) {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const cmdKey = isMac ? e.metaKey : e.ctrlKey;
+
+    // Send on Enter (without shift) or Cmd/Ctrl+Enter
+    if ((e.key === 'Enter' && !e.shiftKey) || (cmdKey && e.key === 'Enter')) {
       e.preventDefault();
       handleSubmit();
     }
@@ -151,6 +154,12 @@ export function CodeLabComposer({
     // Cancel on Escape
     if (e.key === 'Escape' && isStreaming) {
       onCancel();
+    }
+
+    // Toggle search mode with Cmd/Ctrl+K
+    if (cmdKey && e.key === 'k') {
+      e.preventDefault();
+      setSearchMode(prev => !prev);
     }
   };
 
@@ -293,7 +302,9 @@ export function CodeLabComposer({
         <span className="separator">·</span>
         <span>Shift+Enter for new line</span>
         <span className="separator">·</span>
-        <span>Drop files to attach</span>
+        <span>⌘K search</span>
+        <span className="separator">·</span>
+        <span>⌘N new</span>
       </div>
 
       <style jsx>{`
