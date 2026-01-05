@@ -84,6 +84,7 @@ import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
 import { shouldUseResearchAgent, executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
+import { shouldUseCodeAgent, executeCodeAgent, isCodeAgentEnabled } from '@/agents/code';
 import { isConnectorsEnabled } from '@/lib/connectors';
 // FORGE & MUSASHI: Pure AI mode - only using category detection for context, not templates
 import { detectCategory, extractBusinessInfo } from '@/lib/templates/templateService';
@@ -1187,6 +1188,40 @@ export async function POST(request: NextRequest) {
           'Transfer-Encoding': 'chunked',
           'X-Provider': 'gemini',
           'X-Agent': 'research',
+        },
+      });
+    }
+
+    // ========================================
+    // CODE AGENT (Autonomous Code Generation)
+    // ========================================
+    // For building apps, APIs, scripts, and pushing to GitHub
+    // Uses Claude Opus 4.5 for maximum code quality
+    // Self-corrects errors, tests in sandbox, pushes when ready
+    if (isCodeAgentEnabled() && lastUserContent && shouldUseCodeAgent(lastUserContent)) {
+      console.log('[Chat API] Using Code Agent for code generation request');
+
+      // Get OIDC token for sandbox (Vercel serverless)
+      const oidcToken = request.headers.get('x-vercel-oidc-token') || undefined;
+
+      const codeStream = await executeCodeAgent(lastUserContent, {
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        conversationId: conversationId || undefined,
+        previousMessages: messages.slice(-5).map(m => ({
+          role: String(m.role),
+          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        })),
+        pushToGitHub: /push.*github|github.*push|deploy|publish/i.test(lastUserContent),
+        githubToken: githubToken || undefined,  // Already fetched above
+        oidcToken,
+      });
+
+      return new Response(codeStream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'X-Provider': 'anthropic',
+          'X-Agent': 'code',
         },
       });
     }
