@@ -27,7 +27,6 @@ import { useState, useEffect, useRef } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer, SearchMode } from '@/components/chat/ChatComposer';
-import { CodeCommandInterface } from '@/components/code-command';
 // Voice Button - Hidden until feature is production-ready
 // import VoiceButton from './VoiceButton';
 // REMOVED: Notification system - users have built-in phone notifications
@@ -140,8 +139,6 @@ export function ChatClient() {
   // REMOVED: selectedTool state - all tools now handled naturally in chat
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
-  // Code Command mode (admin only)
-  const [showCodeCommand, setShowCodeCommand] = useState(false);
   // Document generation type (for progress indicator)
   const [pendingDocumentType, setPendingDocumentType] = useState<'pdf' | 'docx' | 'xlsx' | 'pptx' | null>(null);
   // Chat continuation - track when generating summary
@@ -2376,20 +2373,11 @@ export function ChatClient() {
           onDeleteChat={handleDeleteChat}
           onPinChat={handlePinChat}
           onMoveToFolder={handleMoveToFolder}
-          onOpenCodeCommand={() => setShowCodeCommand(true)}
         />
 
         {/* Chat thread area */}
         <main className="flex flex-1 flex-col overflow-hidden relative">
-          {showCodeCommand ? (
-            // Code Command Interface (Admin only - terminal-style coding assistant)
-            <CodeCommandInterface
-              onClose={() => setShowCodeCommand(false)}
-            />
-          ) : (
-            // Regular Chat Interface
-            <>
-              <ChatThread
+          <ChatThread
                 messages={messages}
                 isStreaming={isStreaming}
                 currentChatId={currentChatId}
@@ -2430,8 +2418,6 @@ export function ChatClient() {
                 onAssistantText={upsertAssistantStreaming}
               />
               */}
-            </>
-          )}
         </main>
       </div>
 
