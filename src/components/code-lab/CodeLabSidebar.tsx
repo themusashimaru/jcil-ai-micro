@@ -65,12 +65,13 @@ export function CodeLabSidebar({
 
     setLoadingRepos(true);
     try {
-      const response = await fetch('/api/connectors/github/repos');
+      const response = await fetch('/api/connectors?action=github-repos');
       if (response.ok) {
         const data = await response.json();
         setRepos(data.repos || []);
         setGithubConnected(true);
-      } else if (response.status === 401) {
+      } else if (response.status === 401 || response.status === 400) {
+        // 401 = not authenticated, 400 = GitHub not connected
         setGithubConnected(false);
       }
     } catch (error) {
