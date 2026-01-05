@@ -84,7 +84,8 @@ import { executeTaskPlan, isSequentialExecutionEnabled, CheckpointState } from '
 import { getLearnedContext, extractAndLearn, isLearningEnabled } from '@/lib/learning/userLearning';
 import { orchestrateAgents, shouldUseOrchestration, isOrchestrationEnabled } from '@/lib/agents/orchestrator';
 import { shouldUseResearchAgent, executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
-import { shouldUseCodeAgent, executeCodeAgent, isCodeAgentEnabled, isCodeReviewRequest, generateNoRepoSelectedResponse } from '@/agents/code';
+// Code Agent removed from main chat - now isolated to Code Lab only
+// import { shouldUseCodeAgent, executeCodeAgent, isCodeAgentEnabled, isCodeReviewRequest, generateNoRepoSelectedResponse } from '@/agents/code';
 import { isConnectorsEnabled } from '@/lib/connectors';
 // FORGE & MUSASHI: Pure AI mode - only using category detection for context, not templates
 import { detectCategory, extractBusinessInfo } from '@/lib/templates/templateService';
@@ -1193,63 +1194,11 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // CODE AGENT (Autonomous Code Generation)
+    // CODE AGENT - REMOVED FROM MAIN CHAT
     // ========================================
-    // For building apps, APIs, scripts, and pushing to GitHub
-    // Uses Claude Opus 4.5 for maximum code quality
-    // Self-corrects errors, tests in sandbox, pushes when ready
-
-    // First: Handle code REVIEW requests (need selected repo)
-    if (isCodeAgentEnabled() && lastUserContent && isCodeReviewRequest(lastUserContent)) {
-      // Check if repo is selected
-      if (!selectedRepo) {
-        console.log('[Chat API] Code review requested but no repo selected');
-        const noRepoResponse = generateNoRepoSelectedResponse();
-        return new Response(noRepoResponse, {
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'X-Provider': 'system',
-            'X-Agent': 'code',
-          },
-        });
-      }
-      // If repo IS selected, fall through to normal GitHub tools flow below
-      console.log('[Chat API] Code review with selected repo - using GitHub tools flow');
-    }
-
-    // Second: Handle code GENERATION requests (build new projects)
-    if (isCodeAgentEnabled() && lastUserContent && shouldUseCodeAgent(lastUserContent)) {
-      console.log('[Chat API] Using Code Agent for code generation request');
-
-      // Get OIDC token for sandbox (Vercel serverless)
-      const oidcToken = request.headers.get('x-vercel-oidc-token') || undefined;
-
-      const codeStream = await executeCodeAgent(lastUserContent, {
-        userId: isAuthenticated ? rateLimitIdentifier : undefined,
-        conversationId: conversationId || undefined,
-        previousMessages: messages.slice(-5).map(m => ({
-          role: String(m.role),
-          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-        })),
-        pushToGitHub: /push.*github|github.*push|deploy|publish/i.test(lastUserContent),
-        githubToken: githubToken || undefined,  // Already fetched above
-        oidcToken,
-        selectedRepo: selectedRepo ? {
-          owner: selectedRepo.owner,
-          repo: selectedRepo.repo,
-          fullName: selectedRepo.fullName,
-        } : undefined,
-      });
-
-      return new Response(codeStream, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Transfer-Encoding': 'chunked',
-          'X-Provider': 'anthropic',
-          'X-Agent': 'code',
-        },
-      });
-    }
+    // Code Agent is now isolated to Code Lab only for cleaner routing
+    // Users should use Code Lab (/code-lab) for code generation tasks
+    // This prevents conflicts with other features in main chat
 
     // ========================================
     // MULTI-AGENT ORCHESTRATION

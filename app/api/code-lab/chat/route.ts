@@ -12,6 +12,8 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { executeCodeAgent, shouldUseCodeAgent as checkCodeAgentIntent } from '@/agents/code/integration';
+import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
@@ -30,24 +32,82 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-// Code generation detection
-function shouldUseCodeAgent(message: string): boolean {
-  const codePatterns = [
-    /\b(build|create|make|develop|code|implement|write|generate)\b.*\b(app|api|website|script|tool|bot|server|cli|function|class|component|project)/i,
-    /\b(add|implement)\b.*\b(feature|functionality|endpoint)/i,
-    /\b(scaffold|bootstrap)\b.*\b(project|app)/i,
-    /\bpush.*(to|github)/i,
-  ];
-  return codePatterns.some(p => p.test(message));
+// ========================================
+// AUTO-SUMMARIZATION CONFIG
+// ========================================
+const SUMMARY_THRESHOLD = 15; // Summarize when message count exceeds this
+const RECENT_MESSAGES_AFTER_SUMMARY = 5; // Keep this many recent messages after summary
+
+/**
+ * Generate a summary of conversation history
+ * Called when message count exceeds threshold
+ */
+async function generateConversationSummary(
+  messages: Array<{ role: string; content: string }>,
+): Promise<string> {
+  const conversationText = messages
+    .map(m => `${m.role.toUpperCase()}: ${m.content}`)
+    .join('\n\n');
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514', // Use Sonnet for efficient summarization
+    max_tokens: 1024,
+    system: `You are summarizing a developer conversation for context continuation.
+Create a concise technical summary that captures:
+1. Main topics and goals discussed
+2. Key decisions made
+3. Code/technical context established
+4. Current state of any projects
+5. Open questions or next steps
+
+Format as bullet points. Be specific about file names, technologies, and code patterns mentioned.
+Keep it under 500 words but include all important technical details.`,
+    messages: [
+      {
+        role: 'user',
+        content: `Summarize this conversation for context continuation:\n\n${conversationText}`,
+      },
+    ],
+  });
+
+  let summary = '';
+  for (const block of response.content) {
+    if (block.type === 'text') {
+      summary += block.text;
+    }
+  }
+  return summary;
 }
 
-// Search detection
+// Search detection - improved patterns for developer queries
 function shouldUseSearch(message: string): boolean {
   const searchPatterns = [
-    /\b(search|look up|find|google|lookup)\b.*\b(docs?|documentation|how to|guide|tutorial)/i,
-    /\bwhat is\b.*\b(latest|current|new)\b/i,
-    /\bhow do (i|you|we)\b/i,
-    /\bsearch for\b/i,
+    // Explicit search requests
+    /\b(search|look up|find|google|lookup|research)\b.*\b(docs?|documentation|how to|guide|tutorial|info|information)/i,
+    /\bsearch (for|the|web|online)\b/i,
+
+    // Current/latest information needs
+    /\bwhat is\b.*\b(latest|current|new|newest|recent)\b/i,
+    /\b(latest|current|newest|recent)\b.*\b(version|release|update|news)/i,
+
+    // Technical documentation queries
+    /\bhow (do|can|to|does)\b.*\b(i|you|we|one)\b/i,
+    /\bwhat('s| is) the (best|recommended|standard|official)\b/i,
+
+    // Package/library information
+    /\b(npm|yarn|pip|cargo|composer)\b.*\b(package|library|module)\b/i,
+    /\b(install|setup|configure)\b.*\b(guide|instructions|docs)\b/i,
+
+    // API/framework questions
+    /\b(api|sdk|framework|library)\b.*\b(documentation|reference|examples?)\b/i,
+
+    // Comparison/evaluation
+    /\b(compare|vs|versus|difference between|which is better)\b/i,
+    /\b(pros and cons|advantages|disadvantages)\b/i,
+
+    // Troubleshooting
+    /\b(error|issue|problem|bug)\b.*\b(fix|solve|resolve|solution)\b/i,
+    /\bwhy (does|is|am|do)\b.*\b(not working|failing|broken|error)/i,
   ];
   return searchPatterns.some(p => p.test(message));
 }
@@ -94,22 +154,292 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', sessionId);
 
-    // Get conversation history
-    const { data: history } = await (supabase
+    // Get conversation history with auto-summarization
+    const { data: allMessages } = await (supabase
       .from('code_lab_messages') as AnySupabase)
-      .select('role, content')
+      .select('id, role, content, type')
       .eq('session_id', sessionId)
-      .order('created_at', { ascending: true })
-      .limit(20);
+      .order('created_at', { ascending: true });
 
+    // Check for existing summary
+    const existingSummary = (allMessages || []).find(
+      (m: { type: string }) => m.type === 'summary'
+    );
+
+    // Build effective history for context
+    let history: Array<{ role: string; content: string }> = [];
+    const messageCount = currentSession?.message_count || 0;
+
+    if (messageCount > SUMMARY_THRESHOLD && !existingSummary) {
+      // Need to generate a summary
+      console.log(`[CodeLab] Auto-summarizing ${messageCount} messages...`);
+
+      const messagesToSummarize = (allMessages || [])
+        .filter((m: { type: string }) => m.type !== 'summary')
+        .slice(0, -RECENT_MESSAGES_AFTER_SUMMARY);
+
+      if (messagesToSummarize.length > 0) {
+        try {
+          const summary = await generateConversationSummary(
+            messagesToSummarize.map((m: { role: string; content: string }) => ({
+              role: m.role,
+              content: m.content,
+            }))
+          );
+
+          // Save summary to database
+          await (supabase.from('code_lab_messages') as AnySupabase).insert({
+            id: generateId(),
+            session_id: sessionId,
+            role: 'system',
+            content: summary,
+            created_at: new Date().toISOString(),
+            type: 'summary',
+          });
+
+          // Update session has_summary flag
+          await (supabase.from('code_lab_sessions') as AnySupabase)
+            .update({ has_summary: true, last_summary_at: new Date().toISOString() })
+            .eq('id', sessionId);
+
+          // Use summary + recent messages
+          history = [
+            { role: 'system', content: `[Previous conversation summary]\n${summary}` },
+            ...(allMessages || [])
+              .filter((m: { type: string }) => m.type !== 'summary')
+              .slice(-RECENT_MESSAGES_AFTER_SUMMARY)
+              .map((m: { role: string; content: string }) => ({
+                role: m.role,
+                content: m.content,
+              })),
+          ];
+        } catch (err) {
+          console.error('[CodeLab] Summary generation failed:', err);
+          // Fall back to recent messages only
+          history = (allMessages || [])
+            .slice(-20)
+            .map((m: { role: string; content: string }) => ({
+              role: m.role,
+              content: m.content,
+            }));
+        }
+      }
+    } else if (existingSummary) {
+      // Use existing summary + messages after it
+      const summaryIndex = (allMessages || []).findIndex(
+        (m: { id: string }) => m.id === existingSummary.id
+      );
+      history = [
+        { role: 'system', content: `[Previous conversation summary]\n${existingSummary.content}` },
+        ...(allMessages || [])
+          .slice(summaryIndex + 1)
+          .map((m: { role: string; content: string }) => ({
+            role: m.role,
+            content: m.content,
+          })),
+      ];
+    } else {
+      // No summarization needed, use all messages
+      history = (allMessages || [])
+        .slice(-20)
+        .map((m: { role: string; content: string }) => ({
+          role: m.role,
+          content: m.content,
+        }));
+    }
+
+    // Detect intent
+    const useCodeAgent = checkCodeAgentIntent(content);
+    const useSearch = shouldUseSearch(content);
+
+    // ========================================
+    // CODE AGENT V2 - Full Project Generation
+    // ========================================
+    if (useCodeAgent) {
+      // Get GitHub token if connected
+      const { data: githubConnection } = await (supabase
+        .from('user_connectors') as AnySupabase)
+        .select('access_token')
+        .eq('user_id', user.id)
+        .eq('provider', 'github')
+        .single();
+
+      // Execute Code Agent with streaming
+      const codeAgentStream = await executeCodeAgent(content, {
+        userId: user.id,
+        conversationId: sessionId,
+        previousMessages: (history || []).map((m: { role: string; content: string }) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        githubToken: githubConnection?.access_token,
+        selectedRepo: repo ? {
+          owner: repo.owner,
+          repo: repo.name,
+          fullName: repo.fullName,
+        } : undefined,
+        skipClarification: content.toLowerCase().includes('just build') ||
+                          content.toLowerCase().includes('proceed') ||
+                          content.toLowerCase().includes('go ahead'),
+      });
+
+      // Collect the stream and save to database
+      const reader = codeAgentStream.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              const text = decoder.decode(value);
+              fullContent += text;
+              controller.enqueue(encoder.encode(text));
+            }
+
+            // Save assistant message
+            await (supabase.from('code_lab_messages') as AnySupabase).insert({
+              id: generateId(),
+              session_id: sessionId,
+              role: 'assistant',
+              content: fullContent,
+              created_at: new Date().toISOString(),
+              type: 'code',
+            });
+
+            controller.close();
+          } catch (error) {
+            console.error('[CodeLab Chat] Code Agent error:', error);
+            controller.enqueue(encoder.encode('\n\nI encountered an error during code generation. Please try again.'));
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
+    // ========================================
+    // PERPLEXITY SEARCH - Real-time Web Search
+    // ========================================
+    if (useSearch && isPerplexityConfigured()) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            // Show search indicator
+            controller.enqueue(encoder.encode('`🔍 Searching the web...`\n\n'));
+
+            // Perform Perplexity search
+            const searchResult = await perplexitySearch({
+              query: content,
+              systemPrompt: `You are a developer-focused search assistant. Provide accurate, technical information.
+Format your response with:
+1. Direct answer to the question
+2. Code examples if relevant (with language tags)
+3. Best practices or tips
+Keep it professional and focused on development.`,
+            });
+
+            // Format the search result
+            let fullContent = '';
+            fullContent += searchResult.answer;
+
+            // Add sources
+            if (searchResult.sources && searchResult.sources.length > 0) {
+              fullContent += '\n\n---\n\n**Sources:**\n';
+              searchResult.sources.slice(0, 5).forEach((source, i) => {
+                fullContent += `${i + 1}. [${source.title || 'Source'}](${source.url})\n`;
+              });
+            }
+
+            // Stream the response
+            controller.enqueue(encoder.encode(fullContent));
+
+            // Save assistant message
+            await (supabase.from('code_lab_messages') as AnySupabase).insert({
+              id: generateId(),
+              session_id: sessionId,
+              role: 'assistant',
+              content: fullContent,
+              created_at: new Date().toISOString(),
+              type: 'search',
+              search_output: JSON.stringify({
+                query: content,
+                sources: searchResult.sources,
+                model: searchResult.model,
+              }),
+            });
+
+            controller.close();
+          } catch (error) {
+            console.error('[CodeLab Chat] Perplexity search error:', error);
+            // Fall back to Claude if Perplexity fails
+            controller.enqueue(encoder.encode('`Search unavailable, using knowledge base...`\n\n'));
+
+            try {
+              const fallbackResponse = await anthropic.messages.create({
+                model: 'claude-opus-4-5-20251101',
+                max_tokens: 4096,
+                system: `You are Claude in Code Lab. The user asked a search question but web search failed.
+Provide the best answer you can from your training knowledge.
+Be honest about knowledge cutoff limitations when relevant.`,
+                messages: [{ role: 'user', content }],
+              });
+
+              let fallbackContent = '';
+              for (const block of fallbackResponse.content) {
+                if (block.type === 'text') {
+                  fallbackContent += block.text;
+                  controller.enqueue(encoder.encode(block.text));
+                }
+              }
+
+              // Save fallback response
+              await (supabase.from('code_lab_messages') as AnySupabase).insert({
+                id: generateId(),
+                session_id: sessionId,
+                role: 'assistant',
+                content: fallbackContent,
+                created_at: new Date().toISOString(),
+                type: 'search',
+              });
+            } catch (fallbackError) {
+              console.error('[CodeLab Chat] Fallback error:', fallbackError);
+              controller.enqueue(encoder.encode('\n\nI encountered an error. Please try again.'));
+            }
+
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
+    // ========================================
+    // REGULAR CHAT - Claude Opus 4.5
+    // ========================================
     const messages: Anthropic.MessageParam[] = (history || []).map((m: { role: string; content: string }) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     }));
-
-    // Detect intent
-    const useCodeAgent = shouldUseCodeAgent(content);
-    const useSearch = shouldUseSearch(content);
 
     // Build system prompt
     let systemPrompt = `You are Claude, a highly capable AI assistant in Code Lab - a professional developer workspace.
@@ -123,29 +453,18 @@ You help developers with:
 
 Keep your responses clear, professional, and focused.
 Use markdown for formatting. Use code blocks with language tags.
-When showing terminal commands, use \`\`\`bash blocks.`;
+When showing terminal commands, use \`\`\`bash blocks.
+
+Style Guidelines:
+- Be concise but thorough
+- Use proper code formatting
+- Provide working, tested code
+- Explain your reasoning briefly`;
 
     if (repo) {
       systemPrompt += `
 
-The user is working in repository: ${repo.fullName} (branch: ${repo.branch})`;
-    }
-
-    if (useCodeAgent) {
-      systemPrompt += `
-
-The user wants to BUILD something. Provide a detailed, working implementation.
-Structure your response with:
-1. Brief explanation of the approach
-2. Full code with all necessary files
-3. Instructions to run/deploy`;
-    }
-
-    if (useSearch) {
-      systemPrompt += `
-
-The user wants to SEARCH for information. Provide accurate, up-to-date information.
-Include relevant code examples when helpful.`;
+The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'main'})`;
     }
 
     // Stream the response
@@ -180,7 +499,7 @@ Include relevant code examples when helpful.`;
             role: 'assistant',
             content: fullContent,
             created_at: new Date().toISOString(),
-            type: useCodeAgent ? 'code' : useSearch ? 'search' : 'chat',
+            type: useSearch ? 'search' : 'chat',
           });
 
           controller.close();
