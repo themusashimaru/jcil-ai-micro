@@ -4,15 +4,14 @@
  * The second stage of the Research Brain.
  * Creates a dynamic, adaptive research strategy based on intent.
  *
- * Unlike Manus which uses fixed pipelines, this generates
- * a custom strategy for EVERY query.
+ * Uses Perplexity exclusively for faster, more reliable results.
+ * Dynamically generates 1-10 queries based on complexity.
  */
 
 import { GoogleGenAI } from '@google/genai';
 import {
   ResearchIntent,
   ResearchStrategy,
-  ResearchPhase,
   GeneratedQuery,
 } from '../../core/types';
 
@@ -27,7 +26,7 @@ export class StrategyGenerator {
    * Generate a dynamic research strategy based on intent
    */
   async generate(intent: ResearchIntent): Promise<ResearchStrategy> {
-    const prompt = `You are an expert research strategist. Based on a user's research intent, create an optimal multi-phase research strategy.
+    const prompt = `You are an expert research strategist. Based on a user's research intent, create an optimal research strategy using Perplexity AI search.
 
 RESEARCH INTENT:
 - Original Query: "${intent.originalQuery}"
@@ -39,51 +38,38 @@ RESEARCH INTENT:
 
 Create a research strategy as a JSON object:
 {
-  "phases": [
+  "queries": [
     {
-      "name": "Phase name",
-      "type": "broad_scan" | "deep_dive" | "gap_fill" | "validation",
-      "queries": [
-        {
-          "query": "Exact search query to use",
-          "purpose": "Why this query helps",
-          "expectedInfo": ["what we expect to find"],
-          "source": "google" | "perplexity",
-          "priority": 1-10
-        }
-      ],
-      "sources": ["google", "perplexity"],
-      "isConditional": false | true,
-      "dependsOn": null | "phase_id"
+      "query": "Exact search query to use",
+      "purpose": "Why this query helps",
+      "expectedInfo": ["what we expect to find"],
+      "priority": 1-10
     }
   ],
-  "maxIterations": 2,
-  "stopConditions": [
-    { "type": "coverage_threshold", "threshold": 0.85 },
-    { "type": "max_iterations" },
-    { "type": "no_new_info" }
-  ]
+  "maxIterations": 1
 }
 
 STRATEGY RULES:
-1. Phase 1 should ALWAYS be a "broad_scan" to get initial coverage
-2. Use "google" for current facts, news, recent data
-3. Use "perplexity" for deep analysis, comparisons, synthesized insights
-4. Create 2-4 phases depending on requiredDepth:
-   - quick: 1-2 phases, 2-4 queries total
-   - standard: 2-3 phases, 4-8 queries total
-   - deep: 3-4 phases, 6-12 queries total
-5. Later phases should be conditional (isConditional: true) - only run if gaps found
-6. Queries should be specific and actionable, not vague
-7. Each query should have a clear purpose
-8. Prioritize queries (10 = most important)
-9. Don't duplicate information across queries
+1. Generate between 1-10 queries based on complexity:
+   - Simple questions: 1-3 queries
+   - Standard research: 3-5 queries
+   - Complex analysis: 5-8 queries
+   - Deep dive research: 8-10 queries
+2. Required depth mapping:
+   - quick: 1-3 queries, focus on direct answers
+   - standard: 3-6 queries, cover multiple angles
+   - deep: 6-10 queries, comprehensive coverage
+3. Each query should target a DIFFERENT aspect of the topic
+4. Queries should be specific and actionable, not vague
+5. Prioritize queries (10 = most critical, 1 = nice to have)
+6. Don't duplicate information across queries
 
 QUERY OPTIMIZATION:
 - Include location if relevant: "${intent.contextClues.location || 'not specified'}"
 - Include year for recent data: "2024" or "2025"
 - Include industry context: "${intent.contextClues.industry || 'not specified'}"
-- Be specific: "tutoring business pricing models" not "business pricing"
+- Be specific: "tutoring business pricing models Boston" not "business pricing"
+- Perplexity excels at: comparisons, lists, analysis, summaries, competitive intelligence
 
 OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
 
@@ -103,12 +89,21 @@ OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
 
       const parsed = JSON.parse(jsonMatch[0]);
 
-      // Build the strategy with IDs
+      // Build the strategy - single phase with all queries
+      const queries = this.buildQueries(parsed.queries || []);
+
       const strategy: ResearchStrategy = {
         id: `strategy_${Date.now()}`,
-        phases: this.buildPhases(parsed.phases || []),
-        maxIterations: parsed.maxIterations || 3,
-        stopConditions: parsed.stopConditions || [
+        phases: [{
+          id: 'phase_1',
+          name: 'Perplexity Research',
+          type: 'broad_scan',
+          queries,
+          sources: ['perplexity'],
+          isConditional: false,
+        }],
+        maxIterations: 1, // Single iteration with Perplexity
+        stopConditions: [
           { type: 'coverage_threshold', threshold: 0.85 },
           { type: 'max_iterations' },
         ],
@@ -116,8 +111,8 @@ OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
       };
 
       // Validate strategy
-      if (strategy.phases.length === 0) {
-        throw new Error('No phases generated');
+      if (queries.length === 0) {
+        throw new Error('No queries generated');
       }
 
       return strategy;
@@ -128,27 +123,9 @@ OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
   }
 
   /**
-   * Build phases with proper IDs and query structure
+   * Build queries - all use Perplexity
    */
-  private buildPhases(rawPhases: unknown[]): ResearchPhase[] {
-    return rawPhases.map((phase: unknown, index: number) => {
-      const p = phase as Record<string, unknown>;
-      return {
-        id: `phase_${index + 1}`,
-        name: String(p.name || `Phase ${index + 1}`),
-        type: this.validatePhaseType(p.type),
-        queries: this.buildQueries(p.queries as unknown[] || [], p.sources as string[] || ['google']),
-        sources: (p.sources as ('google' | 'perplexity')[]) || ['google'],
-        isConditional: Boolean(p.isConditional),
-        dependsOn: p.dependsOn ? String(p.dependsOn) : undefined,
-      };
-    });
-  }
-
-  /**
-   * Build queries with proper IDs
-   */
-  private buildQueries(rawQueries: unknown[], defaultSources: string[]): GeneratedQuery[] {
+  private buildQueries(rawQueries: unknown[]): GeneratedQuery[] {
     return rawQueries.map((query: unknown, index: number) => {
       const q = query as Record<string, unknown>;
       return {
@@ -156,42 +133,22 @@ OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
         query: String(q.query || ''),
         purpose: String(q.purpose || 'General research'),
         expectedInfo: (q.expectedInfo as string[]) || [],
-        source: this.validateSource(q.source) || (defaultSources[0] as 'google' | 'perplexity') || 'google',
+        source: 'perplexity' as const, // Always Perplexity
         priority: Number(q.priority) || 5,
       };
     }).filter(q => q.query.length > 0);
   }
 
   /**
-   * Validate phase type
-   */
-  private validatePhaseType(type: unknown): ResearchPhase['type'] {
-    const validTypes = ['broad_scan', 'deep_dive', 'gap_fill', 'validation'];
-    return validTypes.includes(String(type))
-      ? (type as ResearchPhase['type'])
-      : 'broad_scan';
-  }
-
-  /**
-   * Validate source
-   */
-  private validateSource(source: unknown): 'google' | 'perplexity' | null {
-    if (source === 'google' || source === 'perplexity') {
-      return source;
-    }
-    return null;
-  }
-
-  /**
    * Create a fallback strategy if generation fails
    */
   private createFallbackStrategy(intent: ResearchIntent): ResearchStrategy {
-    const queries: GeneratedQuery[] = intent.topics.slice(0, 3).map((topic, i) => ({
+    const queries: GeneratedQuery[] = intent.topics.slice(0, 5).map((topic, i) => ({
       id: `query_fallback_${i}`,
       query: `${topic} ${intent.contextClues.industry || ''} ${intent.contextClues.location || ''} 2024`.trim(),
       purpose: `Research ${topic}`,
       expectedInfo: [`Information about ${topic}`],
-      source: i % 2 === 0 ? 'google' as const : 'perplexity' as const,
+      source: 'perplexity' as const,
       priority: 10 - i,
     }));
 
@@ -200,14 +157,14 @@ OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
       phases: [
         {
           id: 'phase_1',
-          name: 'Initial Research',
+          name: 'Perplexity Research',
           type: 'broad_scan',
           queries,
-          sources: ['google', 'perplexity'],
+          sources: ['perplexity'],
           isConditional: false,
         },
       ],
-      maxIterations: 2,
+      maxIterations: 1,
       stopConditions: [
         { type: 'coverage_threshold', threshold: 0.7 },
         { type: 'max_iterations' },
@@ -226,7 +183,7 @@ OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
   ): Promise<GeneratedQuery[]> {
     if (gaps.length === 0) return [];
 
-    const prompt = `You are a research strategist. We conducted research but found gaps. Generate specific queries to fill these gaps.
+    const prompt = `You are a research strategist. We conducted research but found gaps. Generate specific Perplexity queries to fill these gaps.
 
 ORIGINAL INTENT: "${intent.refinedQuery}"
 TOPICS: ${intent.topics.join(', ')}
@@ -244,7 +201,6 @@ Generate 1-3 NEW queries to fill these gaps. Output as JSON array:
     "query": "specific search query",
     "purpose": "what gap this fills",
     "expectedInfo": ["what we expect to find"],
-    "source": "google" | "perplexity",
     "priority": 1-10
   }
 ]
@@ -263,7 +219,7 @@ OUTPUT ONLY THE JSON ARRAY.`;
       if (!jsonMatch) return [];
 
       const parsed = JSON.parse(jsonMatch[0]) as unknown[];
-      return this.buildQueries(parsed, ['google']);
+      return this.buildQueries(parsed);
     } catch (error) {
       console.error('[StrategyGenerator] Error generating gap queries:', error);
       return [];

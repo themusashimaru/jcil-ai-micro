@@ -85,10 +85,11 @@ export async function executeResearchAgent(
           depth: options.depth,
         };
 
-        // Stream header
-        controller.enqueue(encoder.encode(`## 🔬 Research Agent\n\n`));
-        controller.enqueue(encoder.encode(`> ${query.substring(0, 100)}${query.length > 100 ? '...' : ''}\n\n`));
+        // Stream professional header
+        controller.enqueue(encoder.encode(`# 🔬 JCIL Research Intelligence\n\n`));
+        controller.enqueue(encoder.encode(`**Query:** ${query.substring(0, 150)}${query.length > 150 ? '...' : ''}\n\n`));
         controller.enqueue(encoder.encode(`---\n\n`));
+        controller.enqueue(encoder.encode(`### Analysis Pipeline\n\n`));
 
         // Execute with streaming progress
         const result = await researchAgent.execute(
@@ -121,23 +122,35 @@ export async function executeResearchAgent(
 }
 
 /**
- * Format a progress event for streaming output
+ * Format a progress event for streaming output - Professional styling
  */
 function formatProgressEvent(event: AgentStreamEvent): string {
-  const typeIcons: Record<string, string> = {
-    thinking: '🧠',
-    searching: '🔍',
-    evaluating: '📊',
-    pivoting: '🔄',
-    synthesizing: '✨',
-    complete: '✅',
-    error: '❌',
+  const typeConfig: Record<string, { icon: string; prefix: string }> = {
+    thinking: { icon: '◉', prefix: 'ANALYZING' },
+    searching: { icon: '◎', prefix: 'SEARCHING' },
+    evaluating: { icon: '◈', prefix: 'EVALUATING' },
+    pivoting: { icon: '◇', prefix: 'ADAPTING' },
+    synthesizing: { icon: '◆', prefix: 'SYNTHESIZING' },
+    complete: { icon: '●', prefix: 'COMPLETE' },
+    error: { icon: '✕', prefix: 'ERROR' },
   };
 
-  const icon = typeIcons[event.type] || '•';
-  const progress = event.progress !== undefined ? ` (${event.progress}%)` : '';
+  const config = typeConfig[event.type] || { icon: '○', prefix: 'PROCESSING' };
 
-  return `${icon} ${event.message}${progress}\n`;
+  // Skip heartbeat messages from cluttering the output
+  const details = event.details as Record<string, unknown> | undefined;
+  if (details?.heartbeat) {
+    return ''; // Don't show "Still working..." messages
+  }
+
+  // Format progress bar if available
+  let progressBar = '';
+  if (event.progress !== undefined && event.progress > 0) {
+    const filled = Math.round(event.progress / 10);
+    progressBar = ` [${'\u2588'.repeat(filled)}${'\u2591'.repeat(10 - filled)}]`;
+  }
+
+  return `${config.icon} **${config.prefix}**${progressBar} ${event.message}\n`;
 }
 
 /**

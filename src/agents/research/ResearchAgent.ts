@@ -5,9 +5,9 @@
  * Coordinates: Intent → Strategy → Execution → Evaluation → Synthesis
  *
  * This is what makes JCIL different from Manus:
- * - Dynamic query generation (not fixed pipelines)
- * - Self-evaluating loops (continues until satisfied)
- * - Parallel execution (Google + Perplexity simultaneously)
+ * - Dynamic query generation (1-10 queries based on complexity)
+ * - Perplexity-powered search (fast, reliable, synthesized)
+ * - Single iteration, parallel execution
  * - Streaming progress (never times out)
  */
 
@@ -27,7 +27,6 @@ import { intentAnalyzer } from './brain/IntentAnalyzer';
 import { strategyGenerator } from './brain/StrategyGenerator';
 import { resultEvaluator } from './brain/ResultEvaluator';
 import { synthesizer } from './brain/Synthesizer';
-import { googleExecutor } from './executors/GoogleExecutor';
 import { perplexityExecutor } from './executors/PerplexityExecutor';
 
 export interface ResearchInput {
@@ -309,11 +308,8 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
         },
       });
 
-      // Track sources used
-      this.trackSource('google');
-      if (perplexityExecutor.isAvailable()) {
-        this.trackSource('perplexity');
-      }
+      // Track source used
+      this.trackSource('perplexity');
 
       return this.success(output, output.metadata.confidenceScore);
     } catch (error) {
@@ -341,27 +337,23 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
   }
 
   /**
-   * Execute queries in parallel across sources
+   * Execute all queries via Perplexity in parallel
    */
   private async executeQueries(
     queries: GeneratedQuery[],
     onStream: AgentStreamCallback,
     progressBase: number
   ): Promise<SearchResult[]> {
-    const googleQueries = queries.filter(q => q.source === 'google');
-    const perplexityQueries = queries.filter(q => q.source === 'perplexity');
+    // All queries go to Perplexity now - faster and more reliable
+    if (!perplexityExecutor.isAvailable()) {
+      this.emit(onStream, 'error', 'Perplexity API not configured', {
+        phase: 'Error',
+        progress: 0,
+      });
+      return [];
+    }
 
-    // Execute in parallel
-    const [googleResults, perplexityResults] = await Promise.all([
-      googleQueries.length > 0
-        ? this.executeWithProgress(googleQueries, 'google', onStream, progressBase)
-        : Promise.resolve([]),
-      perplexityQueries.length > 0 && perplexityExecutor.isAvailable()
-        ? this.executeWithProgress(perplexityQueries, 'perplexity', onStream, progressBase)
-        : Promise.resolve([]),
-    ]);
-
-    return [...googleResults, ...perplexityResults];
+    return this.executeWithProgress(queries, 'perplexity', onStream, progressBase);
   }
 
   /**
@@ -381,20 +373,20 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
   }
 
   /**
-   * Execute queries for a specific source with progress updates
-   * Runs searches IN PARALLEL with individual timeouts
+   * Execute queries via Perplexity with progress updates
+   * Runs ALL searches IN PARALLEL with individual timeouts
    */
   private async executeWithProgress(
     queries: GeneratedQuery[],
-    source: 'google' | 'perplexity',
+    _source: 'google' | 'perplexity',
     onStream: AgentStreamCallback,
     _progressBase: number
   ): Promise<SearchResult[]> {
     // Log each query as we start
     queries.forEach(query => {
-      this.emit(onStream, 'searching', `[${source.toUpperCase()}] ${query.query.substring(0, 50)}...`, {
+      this.emit(onStream, 'searching', `Querying: "${query.query.substring(0, 60)}..."`, {
         phase: 'Searching',
-        details: { source, purpose: query.purpose },
+        details: { source: 'perplexity', purpose: query.purpose },
       });
     });
 
@@ -403,19 +395,19 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
 
     const searchPromises = queries.map(async (query) => {
       const fallbackResult: SearchResult = {
-        id: `timeout-${source}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `timeout-perplexity-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         query: query.query,
-        source,
+        source: 'perplexity',
         content: `Search timed out for: ${query.query}`,
         relevanceScore: 0.1,
         timestamp: Date.now(),
       };
 
-      const searchFn = source === 'google'
-        ? googleExecutor.execute(query)
-        : perplexityExecutor.execute(query);
-
-      return this.withTimeout(searchFn, SEARCH_TIMEOUT, fallbackResult);
+      return this.withTimeout(
+        perplexityExecutor.execute(query),
+        SEARCH_TIMEOUT,
+        fallbackResult
+      );
     });
 
     // Wait for all searches to complete (with their timeouts)

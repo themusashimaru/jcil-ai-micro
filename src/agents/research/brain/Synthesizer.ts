@@ -291,74 +291,108 @@ OUTPUT ONLY THE JSON OBJECT.`;
   }
 
   /**
-   * Format output as markdown for display
+   * Format output as professional markdown report
    */
   formatAsMarkdown(output: ResearchOutput): string {
     let md = '';
 
-    // Executive Summary
-    md += `## Executive Summary\n\n${output.executiveSummary}\n\n`;
+    // Confidence indicator
+    const confidenceLevel = output.metadata.confidenceScore >= 0.8 ? 'HIGH' :
+      output.metadata.confidenceScore >= 0.6 ? 'MODERATE' : 'LIMITED';
+    const confidenceBar = this.renderConfidenceBar(output.metadata.confidenceScore);
 
-    // Key Findings
-    md += `## Key Findings\n\n`;
-    output.keyFindings.forEach((f, i) => {
-      const confidenceIcon = f.confidence === 'high' ? '✅' : f.confidence === 'medium' ? '⚠️' : '❓';
-      md += `${i + 1}. ${confidenceIcon} **${f.finding}**\n`;
+    md += `### Intelligence Confidence: ${confidenceLevel}\n`;
+    md += `${confidenceBar}\n\n`;
+
+    // Executive Summary with professional styling
+    md += `---\n\n`;
+    md += `## Executive Summary\n\n`;
+    md += `${output.executiveSummary}\n\n`;
+
+    // Key Findings with enhanced styling
+    md += `---\n\n`;
+    md += `## Key Intelligence Findings\n\n`;
+    output.keyFindings.forEach(f => {
+      const badge = f.confidence === 'high' ? '`HIGH CONFIDENCE`' :
+        f.confidence === 'medium' ? '`MODERATE`' : '`UNVERIFIED`';
+      md += `**${badge}** ${f.finding}\n`;
       if (f.sources.length > 0) {
-        md += `   _Sources: ${f.sources.join(', ')}_\n`;
+        md += `> *Sources: ${f.sources.join(', ')}*\n`;
       }
       md += '\n';
     });
 
-    // Detailed Sections
-    output.detailedSections.forEach(section => {
-      md += `## ${section.title}\n\n${section.content}\n\n`;
-      if (section.findings.length > 0) {
-        md += `**Section Findings:**\n`;
-        section.findings.forEach(f => {
-          md += `- ${f.finding}\n`;
-        });
-        md += '\n';
-      }
-    });
+    // Detailed Sections with better organization
+    if (output.detailedSections.length > 0) {
+      md += `---\n\n`;
+      md += `## Detailed Analysis\n\n`;
+      output.detailedSections.forEach(section => {
+        md += `### ${section.title}\n\n`;
+        md += `${section.content}\n\n`;
+        if (section.findings.length > 0) {
+          md += `**Key Points:**\n\n`;
+          section.findings.forEach(f => {
+            md += `• ${f.finding}\n`;
+          });
+          md += '\n';
+        }
+      });
+    }
 
-    // Gaps
+    // Research Gaps - styled as data quality notice
     if (output.gaps.length > 0) {
-      md += `## Research Gaps\n\n`;
-      md += `_The following information could not be found or verified:_\n\n`;
+      md += `---\n\n`;
+      md += `## Data Gaps & Limitations\n\n`;
+      md += `> ⚠️ The following information could not be verified through open sources:\n\n`;
       output.gaps.forEach(gap => {
-        md += `- ${gap}\n`;
+        md += `• ${gap}\n`;
       });
       md += '\n';
     }
 
-    // Suggestions
+    // Actionable Next Steps
     if (output.suggestions.length > 0) {
-      md += `## Next Steps\n\n`;
+      md += `---\n\n`;
+      md += `## Recommended Actions\n\n`;
       output.suggestions.forEach((s, i) => {
-        md += `${i + 1}. ${s}\n`;
+        md += `**${i + 1}.** ${s}\n\n`;
       });
-      md += '\n';
     }
 
-    // Sources
-    md += `## Sources\n\n`;
-    output.sources.forEach((s, i) => {
+    // Sources with clean formatting
+    md += `---\n\n`;
+    md += `## Intelligence Sources\n\n`;
+    output.sources.slice(0, 10).forEach(s => {
+      const sourceType = s.source === 'perplexity' ? '`PERPLEXITY`' : '`GOOGLE`';
       if (s.url) {
-        md += `${i + 1}. [${s.title}](${s.url}) _(${s.source})_\n`;
+        md += `• ${sourceType} [${s.title}](${s.url})\n`;
       } else {
-        md += `${i + 1}. ${s.title} _(${s.source})_\n`;
+        md += `• ${sourceType} ${s.title}\n`;
       }
     });
+    if (output.sources.length > 10) {
+      md += `\n*+ ${output.sources.length - 10} additional sources*\n`;
+    }
 
-    // Metadata
-    md += `\n---\n`;
-    md += `_Research completed in ${(output.metadata.executionTime / 1000).toFixed(1)}s | `;
-    md += `${output.metadata.totalQueries} queries | `;
-    md += `${output.metadata.iterations} iterations | `;
-    md += `Confidence: ${(output.metadata.confidenceScore * 100).toFixed(0)}%_\n`;
+    // Professional footer
+    md += `\n---\n\n`;
+    md += `**Research Metadata**\n`;
+    md += `• Execution Time: ${(output.metadata.executionTime / 1000).toFixed(1)}s\n`;
+    md += `• Queries Executed: ${output.metadata.totalQueries}\n`;
+    md += `• Search Iterations: ${output.metadata.iterations}\n`;
+    md += `• Confidence Score: ${(output.metadata.confidenceScore * 100).toFixed(0)}%\n`;
 
     return md;
+  }
+
+  /**
+   * Render a visual confidence bar
+   */
+  private renderConfidenceBar(score: number): string {
+    const percentage = Math.round(score * 100);
+    const filled = Math.round(score * 20);
+    const empty = 20 - filled;
+    return `\`[${'█'.repeat(filled)}${'░'.repeat(empty)}]\` ${percentage}%`;
   }
 }
 
