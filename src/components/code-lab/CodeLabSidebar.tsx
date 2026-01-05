@@ -12,6 +12,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { CodeLabSession } from './types';
+import { CodeLabFileBrowser } from './CodeLabFileBrowser';
 
 interface GitHubRepo {
   id: number;
@@ -34,7 +35,9 @@ interface CodeLabSidebarProps {
   onDeleteSession: (sessionId: string) => Promise<void>;
   onRenameSession: (sessionId: string, title: string) => Promise<void>;
   onSetRepo: (sessionId: string, repo: CodeLabSession['repo']) => Promise<void>;
+  onExportSession?: (sessionId: string) => Promise<void>;
   currentRepo?: CodeLabSession['repo'];
+  currentCodeChanges?: CodeLabSession['codeChanges'];
 }
 
 export function CodeLabSidebar({
@@ -47,7 +50,9 @@ export function CodeLabSidebar({
   onDeleteSession,
   onRenameSession,
   onSetRepo,
+  onExportSession,
   currentRepo,
+  currentCodeChanges,
 }: CodeLabSidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -189,10 +194,50 @@ export function CodeLabSidebar({
             </button>
           </div>
 
+          {/* Code Changes Panel */}
+          {currentSessionId && currentCodeChanges && (currentCodeChanges.linesAdded > 0 || currentCodeChanges.linesRemoved > 0) && (
+            <div className="sidebar-changes">
+              <div className="changes-label">Session Changes</div>
+              <div className="changes-stats">
+                <div className="change-stat added">
+                  <span className="change-icon">+</span>
+                  <span className="change-value">{currentCodeChanges.linesAdded}</span>
+                  <span className="change-text">lines added</span>
+                </div>
+                <div className="change-stat removed">
+                  <span className="change-icon">-</span>
+                  <span className="change-value">{currentCodeChanges.linesRemoved}</span>
+                  <span className="change-text">lines removed</span>
+                </div>
+                {currentCodeChanges.filesChanged > 0 && (
+                  <div className="change-stat files">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    <span className="change-value">{currentCodeChanges.filesChanged}</span>
+                    <span className="change-text">files changed</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Current Repo */}
           {currentSessionId && (
             <div className="sidebar-repo">
-              <div className="repo-label">Repository</div>
+              <div className="repo-label-row">
+                <span className="repo-label">Repository</span>
+                <button
+                  className="repo-refresh-btn"
+                  onClick={() => fetchRepos(true)}
+                  disabled={loadingRepos}
+                  title="Refresh repositories"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={loadingRepos ? 'spinning' : ''}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                </button>
+              </div>
               <button
                 className="repo-selector"
                 onClick={() => setShowRepoSelector(!showRepoSelector)}
@@ -277,6 +322,19 @@ export function CodeLabSidebar({
             </div>
           )}
 
+          {/* File Browser (when repo selected) */}
+          {currentSessionId && currentRepo && (
+            <div className="sidebar-file-browser">
+              <CodeLabFileBrowser
+                repo={{
+                  owner: currentRepo.owner,
+                  name: currentRepo.name,
+                  branch: currentRepo.branch,
+                }}
+              />
+            </div>
+          )}
+
           {/* Sessions List */}
           <div className="sidebar-sessions">
             <div className="sessions-label">Sessions</div>
@@ -333,6 +391,19 @@ export function CodeLabSidebar({
                               </svg>
                               Rename
                             </button>
+                            {onExportSession && (
+                              <button
+                                onClick={() => {
+                                  setMenuOpenId(null);
+                                  onExportSession(session.id);
+                                }}
+                              >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                                Export
+                              </button>
+                            )}
                             <button
                               className="danger"
                               onClick={() => {
@@ -451,8 +522,80 @@ export function CodeLabSidebar({
           height: 18px;
         }
 
+        .sidebar-changes {
+          padding: 0 1rem 1rem;
+        }
+
+        .changes-label {
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 0.5rem;
+        }
+
+        .changes-stats {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          padding: 0.75rem;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+        }
+
+        .change-stat {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          font-size: 0.75rem;
+        }
+
+        .change-stat svg {
+          width: 14px;
+          height: 14px;
+        }
+
+        .change-icon {
+          font-weight: 700;
+          width: 1rem;
+          text-align: center;
+        }
+
+        .change-value {
+          font-weight: 600;
+        }
+
+        .change-text {
+          color: #6b7280;
+        }
+
+        .change-stat.added {
+          color: #16a34a;
+        }
+
+        .change-stat.removed {
+          color: #dc2626;
+        }
+
+        .change-stat.files {
+          color: #6366f1;
+          flex-basis: 100%;
+          margin-top: 0.25rem;
+          padding-top: 0.5rem;
+          border-top: 1px solid #e5e7eb;
+        }
+
         .sidebar-repo {
           padding: 0 1rem 1rem;
+        }
+
+        .repo-label-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 0.5rem;
         }
 
         .repo-label {
@@ -461,7 +604,43 @@ export function CodeLabSidebar({
           color: #6b7280;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          margin-bottom: 0.5rem;
+        }
+
+        .repo-refresh-btn {
+          background: none;
+          border: none;
+          padding: 0.25rem;
+          cursor: pointer;
+          color: #9ca3af;
+          border-radius: 4px;
+          transition: all 0.2s;
+        }
+
+        .repo-refresh-btn:hover:not(:disabled) {
+          color: #6366f1;
+          background: #eef2ff;
+        }
+
+        .repo-refresh-btn:disabled {
+          cursor: wait;
+        }
+
+        .repo-refresh-btn svg {
+          width: 14px;
+          height: 14px;
+        }
+
+        .repo-refresh-btn svg.spinning {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .repo-selector {
@@ -630,6 +809,13 @@ export function CodeLabSidebar({
           color: #f59e0b;
           width: 14px;
           height: 14px;
+        }
+
+        .sidebar-file-browser {
+          max-height: 200px;
+          overflow-y: auto;
+          border-top: 1px solid #e5e7eb;
+          border-bottom: 1px solid #e5e7eb;
         }
 
         .sidebar-sessions {
@@ -818,6 +1004,36 @@ export function CodeLabSidebar({
             transform: translateX(-100%);
             width: 280px;
             min-width: 280px;
+          }
+
+          .sidebar-changes {
+            padding: 0.5rem 1rem;
+          }
+
+          .changes-stats {
+            padding: 0.5rem;
+            gap: 0.375rem;
+          }
+
+          .change-stat {
+            font-size: 0.6875rem;
+          }
+
+          .sidebar-file-browser {
+            max-height: 150px;
+          }
+
+          .session-menu-btn {
+            opacity: 1;
+          }
+
+          .repo-dropdown {
+            position: fixed;
+            left: 1rem;
+            right: 1rem;
+            top: auto;
+            bottom: 1rem;
+            max-height: 60vh;
           }
         }
       `}</style>

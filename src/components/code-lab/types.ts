@@ -30,6 +30,13 @@ export interface CodeLabSession {
   // Context management
   hasSummary: boolean;
   lastSummaryAt?: Date;
+
+  // Code changes tracking
+  codeChanges?: {
+    linesAdded: number;
+    linesRemoved: number;
+    filesChanged: number;
+  };
 }
 
 export interface CodeLabMessage {
