@@ -174,6 +174,10 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   ) => {
     if (!currentSessionId || isStreaming) return;
 
+    // Capture session info at the start (before any async operations)
+    const sessionAtStart = sessions.find(s => s.id === currentSessionId);
+    const isFirstMessage = sessionAtStart?.title === 'New Session' || sessionAtStart?.messageCount === 0;
+
     // Convert attachments to base64 for API
     let attachmentData: Array<{ name: string; type: string; data: string }> | undefined;
     if (attachments && attachments.length > 0) {
@@ -273,6 +277,54 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
               : m
           )
         );
+
+        // Update session in sidebar (increment message count, update timestamp)
+        setSessions(prev =>
+          prev.map(s =>
+            s.id === currentSessionId
+              ? {
+                  ...s,
+                  messageCount: s.messageCount + 2, // user + assistant
+                  updatedAt: new Date(),
+                }
+              : s
+          )
+        );
+
+        // Generate title if this is the first message exchange (title is still default)
+        if (isFirstMessage) {
+          try {
+            const titleResponse = await fetch('/api/chat/generate-title', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userMessage: content,
+                assistantMessage: fullContent.slice(0, 500),
+              }),
+            });
+
+            if (titleResponse.ok) {
+              const { title } = await titleResponse.json();
+              if (title && title !== 'New Conversation') {
+                // Update local state immediately
+                setSessions(prev =>
+                  prev.map(s =>
+                    s.id === currentSessionId ? { ...s, title } : s
+                  )
+                );
+
+                // Persist to database
+                await fetch(`/api/code-lab/sessions/${currentSessionId}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ title }),
+                });
+              }
+            }
+          } catch (titleErr) {
+            console.error('[CodeLab] Error generating title:', titleErr);
+          }
+        }
       }
     } catch (err) {
       console.error('[CodeLab] Error sending message:', err);
@@ -283,7 +335,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     } finally {
       setIsStreaming(false);
     }
-  }, [currentSessionId, currentSession?.repo, isStreaming]);
+  }, [currentSessionId, currentSession?.repo, isStreaming, sessions]);
 
   const cancelStream = useCallback(() => {
     // TODO: Implement abort controller
