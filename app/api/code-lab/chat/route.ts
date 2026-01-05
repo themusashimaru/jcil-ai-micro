@@ -12,6 +12,7 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { executeCodeAgent, shouldUseCodeAgent as checkCodeAgentIntent } from '@/agents/code/integration';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
@@ -29,17 +30,6 @@ function generateId(): string {
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
-
-// Code generation detection
-function shouldUseCodeAgent(message: string): boolean {
-  const codePatterns = [
-    /\b(build|create|make|develop|code|implement|write|generate)\b.*\b(app|api|website|script|tool|bot|server|cli|function|class|component|project)/i,
-    /\b(add|implement)\b.*\b(feature|functionality|endpoint)/i,
-    /\b(scaffold|bootstrap)\b.*\b(project|app)/i,
-    /\bpush.*(to|github)/i,
-  ];
-  return codePatterns.some(p => p.test(message));
-}
 
 // Search detection
 function shouldUseSearch(message: string): boolean {
@@ -102,14 +92,94 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: true })
       .limit(20);
 
+    // Detect intent
+    const useCodeAgent = checkCodeAgentIntent(content);
+    const useSearch = shouldUseSearch(content);
+
+    // ========================================
+    // CODE AGENT V2 - Full Project Generation
+    // ========================================
+    if (useCodeAgent) {
+      // Get GitHub token if connected
+      const { data: githubConnection } = await (supabase
+        .from('user_connectors') as AnySupabase)
+        .select('access_token')
+        .eq('user_id', user.id)
+        .eq('provider', 'github')
+        .single();
+
+      // Execute Code Agent with streaming
+      const codeAgentStream = await executeCodeAgent(content, {
+        userId: user.id,
+        conversationId: sessionId,
+        previousMessages: (history || []).map((m: { role: string; content: string }) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        githubToken: githubConnection?.access_token,
+        selectedRepo: repo ? {
+          owner: repo.owner,
+          repo: repo.name,
+          fullName: repo.fullName,
+        } : undefined,
+        skipClarification: content.toLowerCase().includes('just build') ||
+                          content.toLowerCase().includes('proceed') ||
+                          content.toLowerCase().includes('go ahead'),
+      });
+
+      // Collect the stream and save to database
+      const reader = codeAgentStream.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              const text = decoder.decode(value);
+              fullContent += text;
+              controller.enqueue(encoder.encode(text));
+            }
+
+            // Save assistant message
+            await (supabase.from('code_lab_messages') as AnySupabase).insert({
+              id: generateId(),
+              session_id: sessionId,
+              role: 'assistant',
+              content: fullContent,
+              created_at: new Date().toISOString(),
+              type: 'code',
+            });
+
+            controller.close();
+          } catch (error) {
+            console.error('[CodeLab Chat] Code Agent error:', error);
+            controller.enqueue(encoder.encode('\n\nI encountered an error during code generation. Please try again.'));
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+
+    // ========================================
+    // REGULAR CHAT - Claude Opus 4.5
+    // ========================================
     const messages: Anthropic.MessageParam[] = (history || []).map((m: { role: string; content: string }) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     }));
-
-    // Detect intent
-    const useCodeAgent = shouldUseCodeAgent(content);
-    const useSearch = shouldUseSearch(content);
 
     // Build system prompt
     let systemPrompt = `You are Claude, a highly capable AI assistant in Code Lab - a professional developer workspace.
@@ -123,29 +193,26 @@ You help developers with:
 
 Keep your responses clear, professional, and focused.
 Use markdown for formatting. Use code blocks with language tags.
-When showing terminal commands, use \`\`\`bash blocks.`;
+When showing terminal commands, use \`\`\`bash blocks.
+
+Style Guidelines:
+- Be concise but thorough
+- Use proper code formatting
+- Provide working, tested code
+- Explain your reasoning briefly`;
 
     if (repo) {
       systemPrompt += `
 
-The user is working in repository: ${repo.fullName} (branch: ${repo.branch})`;
-    }
-
-    if (useCodeAgent) {
-      systemPrompt += `
-
-The user wants to BUILD something. Provide a detailed, working implementation.
-Structure your response with:
-1. Brief explanation of the approach
-2. Full code with all necessary files
-3. Instructions to run/deploy`;
+The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'main'})`;
     }
 
     if (useSearch) {
       systemPrompt += `
 
 The user wants to SEARCH for information. Provide accurate, up-to-date information.
-Include relevant code examples when helpful.`;
+Include relevant code examples when helpful.
+Note: Web search integration coming soon. For now, use your training knowledge.`;
     }
 
     // Stream the response
@@ -180,7 +247,7 @@ Include relevant code examples when helpful.`;
             role: 'assistant',
             content: fullContent,
             created_at: new Date().toISOString(),
-            type: useCodeAgent ? 'code' : useSearch ? 'search' : 'chat',
+            type: useSearch ? 'search' : 'chat',
           });
 
           controller.close();
