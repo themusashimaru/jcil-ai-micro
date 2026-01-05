@@ -16,7 +16,7 @@ const gemini = new GoogleGenAI({
 });
 
 export class IntentAnalyzer {
-  private model = 'gemini-2.5-pro-preview-05-06';
+  private model = 'gemini-3-pro-preview';
 
   /**
    * Analyze a user query and extract true intent
