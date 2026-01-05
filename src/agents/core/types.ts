@@ -264,6 +264,7 @@ export interface ProjectPlan {
     pattern: string;         // MVC, Clean, Modular, etc.
     layers: ArchitectureLayer[];
     rationale: string;       // Why this architecture
+    dataFlow?: string;       // Optional data flow description
   };
   fileTree: PlannedFile[];
   dependencies: {
@@ -319,6 +320,7 @@ export interface GeneratedFile {
   content: string;
   language: string;
   purpose: string;
+  description?: string;
   linesOfCode: number;
   generatedAt: number;
   version: number;
@@ -329,7 +331,7 @@ export interface GeneratedFile {
  */
 export interface SandboxTestResult {
   success: boolean;
-  phase: 'install' | 'build' | 'test' | 'run';
+  phase: 'install' | 'build' | 'test' | 'run' | 'analysis' | 'review';
   outputs: {
     command: string;
     stdout: string;
