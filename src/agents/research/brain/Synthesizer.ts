@@ -359,16 +359,12 @@ OUTPUT ONLY THE JSON OBJECT.`;
       });
     }
 
-    // Sources with clean formatting
+    // Sources with clean formatting (no links - Perplexity doesn't provide valid URLs)
     md += `---\n\n`;
     md += `## Intelligence Sources\n\n`;
     output.sources.slice(0, 10).forEach(s => {
       const sourceType = s.source === 'perplexity' ? '`PERPLEXITY`' : '`GOOGLE`';
-      if (s.url) {
-        md += `• ${sourceType} [${s.title}](${s.url})\n`;
-      } else {
-        md += `• ${sourceType} ${s.title}\n`;
-      }
+      md += `• ${sourceType} ${s.title}\n`;
     });
     if (output.sources.length > 10) {
       md += `\n*+ ${output.sources.length - 10} additional sources*\n`;
