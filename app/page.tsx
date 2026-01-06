@@ -102,15 +102,15 @@ export default function HomePage() {
                   </div>
 
                   <p className="text-slate-300 mb-6 text-sm sm:text-base">
-                    Intelligent AI assistant with web search, image generation, and faith-grounded responses.
+                    Same Claude intelligence, grounded in Biblical truth. Get answers that align with Scripture.
                   </p>
 
                   {/* Capabilities - Horizontal Scroll on Mobile */}
                   <div className="flex gap-2 overflow-x-auto pb-2 mb-6 -mx-2 px-2 scrollbar-hide">
+                    <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Biblical Truth</span>
                     <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Claude Sonnet 4.5</span>
                     <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Perplexity Search</span>
                     <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Image Gen</span>
-                    <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Memory</span>
                   </div>
 
                   <Link
@@ -252,15 +252,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Identity Section - Compact */}
+      {/* Identity Section - Why JCIL.AI */}
       <section className="relative bg-black py-12 sm:py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-              Founded on faith. Open to all.
+              Why not just use Claude?
             </h2>
-            <p className="text-slate-400">
-              We&apos;re engineers who believe in something bigger. We built enterprise AI infrastructure with values we trust.
+            <p className="text-slate-400 mb-4">
+              Because Claude doesn&apos;t know the Word. We do.
+            </p>
+            <p className="text-slate-500 text-sm">
+              JCIL.AI is built on Biblical principles. When you ask about faith, life, or truth — you get answers grounded in Scripture, not moral relativism. Same world-class AI. Different foundation.
             </p>
           </div>
         </div>

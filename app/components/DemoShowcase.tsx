@@ -252,10 +252,10 @@ export default function DemoShowcase() {
               {/* Features */}
               <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
+                  { icon: '📖', label: 'Biblical Truth' },
                   { icon: '🧠', label: 'Claude Sonnet 4.5' },
                   { icon: '🔍', label: 'Perplexity' },
                   { icon: '🎨', label: 'Image Gen' },
-                  { icon: '📖', label: 'Faith-Grounded' },
                 ].map(f => (
                   <div key={f.label} className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
                     <span className="text-xl">{f.icon}</span>
