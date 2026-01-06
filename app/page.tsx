@@ -107,9 +107,8 @@ export default function HomePage() {
 
                   {/* Capabilities - Horizontal Scroll on Mobile */}
                   <div className="flex gap-2 overflow-x-auto pb-2 mb-6 -mx-2 px-2 scrollbar-hide">
-                    <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Claude 3.5 Sonnet</span>
-                    <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">GPT-4</span>
-                    <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Web Search</span>
+                    <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Claude Sonnet 4.5</span>
+                    <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Perplexity Search</span>
                     <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Image Gen</span>
                     <span className="shrink-0 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300">Memory</span>
                   </div>
@@ -145,8 +144,8 @@ export default function HomePage() {
 
                   {/* Capabilities - Horizontal Scroll on Mobile */}
                   <div className="flex gap-2 overflow-x-auto pb-2 mb-6 -mx-2 px-2 scrollbar-hide">
+                    <span className="shrink-0 px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-xs text-fuchsia-300">Claude Opus 4.5</span>
                     <span className="shrink-0 px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-xs text-fuchsia-300">E2B Sandbox</span>
-                    <span className="shrink-0 px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-xs text-fuchsia-300">30+ Tools</span>
                     <span className="shrink-0 px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-xs text-fuchsia-300">MCP Protocol</span>
                     <span className="shrink-0 px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-xs text-fuchsia-300">GitHub</span>
                     <span className="shrink-0 px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-xs text-fuchsia-300">Planning Mode</span>

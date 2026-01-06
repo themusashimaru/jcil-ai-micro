@@ -153,8 +153,8 @@ export default function DemoShowcase() {
               {/* Features */}
               <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { icon: '🔒', label: 'Sandboxed' },
-                  { icon: '🔧', label: '30+ Tools' },
+                  { icon: '🧠', label: 'Claude Opus 4.5' },
+                  { icon: '🔒', label: 'E2B Sandbox' },
                   { icon: '📦', label: 'GitHub' },
                   { icon: '🔌', label: 'MCP' },
                 ].map(f => (
@@ -252,8 +252,8 @@ export default function DemoShowcase() {
               {/* Features */}
               <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { icon: '🧠', label: 'Multi-Model' },
-                  { icon: '🔍', label: 'Web Search' },
+                  { icon: '🧠', label: 'Claude Sonnet 4.5' },
+                  { icon: '🔍', label: 'Perplexity' },
                   { icon: '🎨', label: 'Image Gen' },
                   { icon: '📖', label: 'Faith-Grounded' },
                 ].map(f => (
