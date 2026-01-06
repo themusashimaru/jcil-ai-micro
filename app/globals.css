@@ -96,6 +96,44 @@
   --ocean-glow: rgba(77, 200, 255, 0.5);
 }
 
+/* ========================================
+ * PRO THEME - Professional Developer Mode
+ * Clean, minimal, Code Lab inspired
+ * ======================================== */
+:root.pro-mode {
+  --background: #ffffff;
+  --foreground: #1a1f36;
+  --glass-bg: rgba(249, 250, 251, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: rgba(0, 0, 0, 0.05);
+
+  /* Pro theme colors - Professional indigo accents */
+  --primary: #6366f1; /* Indigo-500 */
+  --primary-hover: rgba(99, 102, 241, 0.1);
+  --primary-glow: rgba(99, 102, 241, 0.3);
+  --text-primary: #1a1f36; /* Dark navy */
+  --text-secondary: #4b5563; /* Gray-600 */
+  --text-muted: #6b7280; /* Gray-500 */
+  --surface: #ffffff;
+  --surface-elevated: #f9fafb; /* Gray-50 */
+  --border: rgba(0, 0, 0, 0.1);
+
+  /* Chat-specific pro mode - Clean, minimal styling */
+  --chat-input-bg: #f8fafc;
+  --chat-user-bubble-bg: transparent;
+  --chat-user-bubble-text: #1a1f36;
+  --chat-ai-bubble-bg: #f9fafb;
+  --chat-ai-bubble-text: #1a1f36;
+  --chat-ai-bubble-border: #e5e7eb;
+  --chat-ai-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --chat-user-bubble-shadow: none;
+
+  /* Pro-specific accents */
+  --pro-code-bg: #f8fafc;
+  --pro-code-border: #e2e8f0;
+  --pro-accent: #6366f1;
+}
+
 @layer base {
   body {
     background-color: var(--background);
@@ -335,6 +373,93 @@
     display: none !important;
     content: none !important;
     visibility: hidden !important;
+  }
+
+  /* ========================================
+   * PRO MODE - Professional, Clean, Code Lab Style
+   * Minimal styling, natural message flow
+   * ======================================== */
+
+  /* Pro mode - User bubble: Transparent (natural flow) */
+  :root.pro-mode .chat-bubble.user-bubble {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: var(--chat-user-bubble-text);
+  }
+
+  :root.pro-mode .chat-bubble.user-bubble::before,
+  :root.pro-mode .chat-bubble.user-bubble::after {
+    display: none !important;
+  }
+
+  :root.pro-mode .chat-bubble.user-bubble:hover {
+    background: transparent !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Pro mode - AI bubble: Clean, minimal container */
+  :root.pro-mode .chat-bubble.ai-bubble {
+    background: var(--chat-ai-bubble-bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid var(--chat-ai-bubble-border);
+    border-radius: 0.75rem;
+    box-shadow: var(--chat-ai-bubble-shadow);
+    color: var(--chat-ai-bubble-text);
+    overflow: hidden;
+  }
+
+  :root.pro-mode .chat-bubble.ai-bubble::before,
+  :root.pro-mode .chat-bubble.ai-bubble::after {
+    display: none !important;
+  }
+
+  /* Pro mode - subtle hover effect */
+  :root.pro-mode .chat-bubble.ai-bubble:hover {
+    transform: none;
+    background: #f3f4f6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Pro mode rounded corners - less rounded for professional look */
+  :root.pro-mode .chat-bubble {
+    border-radius: 0.75rem !important;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* Hide triangle tails in pro mode for clean look */
+  :root.pro-mode .chat-bubble-tail::after {
+    display: none !important;
+    content: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Pro mode code blocks - professional styling */
+  :root.pro-mode pre,
+  :root.pro-mode code {
+    background: var(--pro-code-bg) !important;
+    border: 1px solid var(--pro-code-border) !important;
+    color: #1a1f36 !important;
+  }
+
+  :root.pro-mode pre {
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+
+  /* Pro mode links - indigo accent */
+  :root.pro-mode a {
+    color: var(--pro-accent);
+  }
+
+  :root.pro-mode a:hover {
+    color: #4f46e5;
   }
 
   .chat-bubble-tail {

@@ -14,7 +14,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const { theme, toggleTheme, isLoading } = useTheme();
 
   // Get next theme name for aria-label
-  const nextTheme = theme === 'light' ? 'ocean' : theme === 'ocean' ? 'dark' : 'light';
+  const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'ocean' : theme === 'ocean' ? 'pro' : 'dark';
 
   return (
     <button
@@ -25,7 +25,18 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       aria-label={`Switch to ${nextTheme} mode`}
       title={`Switch to ${nextTheme} mode`}
     >
-      {theme === 'light' ? (
+      {theme === 'dark' ? (
+        // Moon icon - currently dark, will switch to light
+        <svg
+          className="h-4 w-4 md:h-5 md:w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+        >
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+        </svg>
+      ) : theme === 'light' ? (
         // Sun icon - currently light, will switch to ocean
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
@@ -38,7 +49,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
       ) : theme === 'ocean' ? (
-        // Wave icon - currently ocean, will switch to dark
+        // Wave icon - currently ocean, will switch to pro
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -51,7 +62,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <path d="M2 7c2-2 4-3 6-3s4 1 6 3 4 3 6 3 4-1 6-3" />
         </svg>
       ) : (
-        // Moon icon - currently dark, will switch to light
+        // Code/Terminal icon - currently pro, will switch to dark
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -59,7 +70,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           viewBox="0 0 24 24"
           strokeWidth={2}
         >
-          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          <path d="M16 18l6-6-6-6M8 6l-6 6 6 6" />
         </svg>
       )}
     </button>
