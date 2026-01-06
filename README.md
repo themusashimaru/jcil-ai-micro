@@ -1,49 +1,165 @@
-# JCIL.AI - Christian Conservative AI Chat
+# JCIL.AI
 
-Production-ready Next.js PWA with AI chat through a Christian conservative lens, advanced tools, and comprehensive admin panel.
+> **AI-Powered Development Platform** — Chat, Code Lab, Website Builder, and 30+ Tools
+
+[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
+[![E2B](https://img.shields.io/badge/E2B-Sandbox-orange)](https://e2b.dev/)
+[![License](https://img.shields.io/badge/License-Proprietary-red)]()
+
+---
+
+## Overview
+
+JCIL.AI is a comprehensive AI platform featuring **Code Lab** — a Claude Code competitor with sandboxed code execution, 30+ development tools, and ~90% feature parity with Claude Code. The platform also includes AI-powered chat, website building, and specialized tools for research, writing, and creative tasks.
+
+### Key Products
+
+| Product | Description | Status |
+|---------|-------------|--------|
+| **Code Lab** | Full IDE with AI agent, sandboxed execution, GitHub integration | ✅ Live |
+| **AI Chat** | Contextual AI chat with Christian values lens | ✅ Live |
+| **Website Builder** | AI-generated websites from descriptions | ✅ Live |
+| **API Access** | Programmatic access to JCIL.AI capabilities | 🔜 Coming Soon |
+
+---
+
+## 🔬 Code Lab
+
+A Claude Code-like development environment in your browser with isolated E2B sandboxes.
+
+### Features at a Glance
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  CODE LAB - 90% CLAUDE CODE PARITY                              │
+├─────────────────────────────────────────────────────────────────┤
+│  ⚡ Shell Execution    │  📄 File Operations   │  🔍 Code Search │
+│  ✏️ Smart Editing      │  📦 Git Integration   │  🧪 Test Runner │
+│  🏗️ Build System       │  📋 Planning Mode     │  🔌 MCP Servers │
+│  🪝 Hooks System       │  💾 Project Memory    │  ⏳ Background  │
+│  🔐 Isolated Sandbox   │  💿 Persistent State  │  🐙 GitHub PRs  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 30+ Workspace Tools
+
+| Category | Tools |
+|----------|-------|
+| **File Operations** | `read_file`, `write_file`, `edit_file`, `list_directory`, `delete_file`, `move_file`, `copy_file` |
+| **Shell & Execution** | `execute_shell`, `bg_run`, `bg_output`, `bg_kill`, `bg_list` |
+| **Code Intelligence** | `search_files`, `search_code`, `analyze_codebase`, `get_file_info` |
+| **Git & GitHub** | `git_status`, `git_diff`, `git_commit`, `git_log`, `git_branch`, `git_checkout`, `git_push`, `git_pull`, `create_pr`, `list_prs` |
+| **Testing & Build** | `run_tests`, `run_build`, `run_lint` |
+| **Planning Mode** | `enter_plan_mode`, `write_plan`, `exit_plan_mode` |
+| **MCP Servers** | `mcp_list_servers`, `mcp_enable_server`, `mcp_disable_server` |
+| **Hooks** | `hooks_list`, `hooks_enable`, `hooks_disable`, `hooks_create` |
+| **Memory** | `memory_read`, `memory_create`, `memory_update`, `memory_add_section` |
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                         JCIL.AI Platform                          │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│   ┌─────────────┐    ┌──────────────┐    ┌─────────────────────┐ │
+│   │   Next.js   │    │   Anthropic  │    │    E2B Sandbox      │ │
+│   │   Frontend  │───▶│   Claude AI  │───▶│    (Isolated VM)    │ │
+│   │             │    │              │    │                     │ │
+│   └─────────────┘    └──────────────┘    │  ┌───────────────┐  │ │
+│         │                                │  │ /workspace    │  │ │
+│         │            ┌──────────────┐    │  │  ├── .git/    │  │ │
+│         └───────────▶│   Supabase   │    │  │  ├── src/     │  │ │
+│                      │   Database   │    │  │  └── ...      │  │ │
+│                      └──────────────┘    │  └───────────────┘  │ │
+│                                          └─────────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Claude Code Parity Comparison
+
+| Feature | Claude Code | Code Lab |
+|---------|-------------|----------|
+| Shell execution | ✅ | ✅ |
+| File read/write/edit | ✅ | ✅ |
+| Git operations | ✅ | ✅ |
+| GitHub PRs | ✅ | ✅ |
+| Planning mode | ✅ | ✅ |
+| MCP servers | ✅ | ✅ |
+| Hooks system | ✅ | ✅ |
+| Project memory | ✅ | ✅ (CODELAB.md) |
+| Background tasks | ✅ | ✅ |
+| Test runner | ✅ | ✅ |
+| Build system | ✅ | ✅ |
+| Sandboxed execution | Local | ✅ E2B Cloud |
+| Persistent workspaces | Local | ✅ Cloud |
+| Web-based | ❌ | ✅ |
+
+---
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 (App Router), TypeScript, Tailwind CSS
-- **Auth**: Supabase (Google OAuth only)
+### Core
+
+- **Framework**: Next.js 14 (App Router), TypeScript 5, Tailwind CSS
+- **AI**: Anthropic Claude (claude-sonnet-4-20250514), OpenAI (GPT-4o, DALL-E 3, Whisper, TTS)
+- **Sandboxing**: E2B Code Interpreter (isolated cloud VMs)
+- **Auth**: Supabase (Google OAuth)
 - **Database**: Supabase Postgres with RLS
 - **Storage**: Supabase Storage
-- **Caching/Queues**: Upstash Redis / Vercel KV
+- **Caching**: Upstash Redis / Vercel KV
 - **Payments**: Stripe Subscriptions
-- **AI Providers**: OpenAI (gpt-5-mini, GPT-4o, DALL-E 3, Whisper, TTS)
-- **APIs**: Google Maps, Places, Geocoding, Weather
-- **Package Manager**: pnpm
-- **Node Version**: 20.x
 
-## Vercel Quick Start
+### APIs & Integrations
 
-1. **Clone & Install**
-   ```bash
-   git clone https://github.com/themusashimaru/jcil-ai-micro.git
-   cd jcil-ai-micro
-   pnpm install
-   ```
+- GitHub API (OAuth, repos, PRs)
+- Google Maps, Places, Geocoding, Weather
+- Model Context Protocol (MCP) servers
 
-2. **Set Environment Variables** (see checklist below)
+---
 
-3. **Deploy to Vercel**
-   ```bash
-   vercel --prod
-   ```
+## Quick Start
 
-4. **Configure Vercel Environment Variables** via dashboard or CLI
+### Prerequisites
 
-## Environment Variables Checklist
+- Node.js 20.x
+- pnpm 8+
+- Supabase project
+- API keys (Anthropic, E2B, OpenAI, Stripe)
 
-### Required for Build
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/themusashimaru/jcil-ai-micro.git
+cd jcil-ai-micro
+
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your keys
+
+# Run development server
+pnpm dev
+```
+
+### Environment Variables
 
 ```env
-# Supabase
+# Required
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# Redis (Upstash or Vercel KV)
+# AI Providers
+ANTHROPIC_API_KEY=sk-ant-xxx
+OPENAI_API_KEY=sk-xxx
+E2B_API_KEY=e2b_xxx
+
+# Redis
 UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
 UPSTASH_REDIS_REST_TOKEN=your-token
 
@@ -52,171 +168,183 @@ STRIPE_SECRET_KEY=sk_live_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxx
 
-# AI Provider
-OPENAI_API_KEY=sk-xxx
+# GitHub (for Code Lab)
+GITHUB_APP_ID=xxx
+GITHUB_APP_PRIVATE_KEY=xxx
 
-# Google APIs
-GOOGLE_MAPS_API_KEY=xxx
-GOOGLE_PLACES_API_KEY=xxx
-GOOGLE_WEATHER_API_KEY=xxx
+# Token Encryption
+ENCRYPTION_KEY=your-32-byte-hex-key
 
 # Optional
+GOOGLE_MAPS_API_KEY=xxx
 SENTRY_DSN=https://xxx@sentry.io/xxx
-NODE_ENV=production
 ```
 
-### Vercel Environment Setup
+---
 
-1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
-2. Add all variables above
-3. Set variables for: Production, Preview, Development
-4. Redeploy after adding variables
+## Project Structure
+
+```
+jcil-ai-micro/
+├── app/                          # Next.js App Router
+│   ├── page.tsx                  # Landing page
+│   ├── chat/                     # AI Chat interface
+│   ├── code-lab/                 # Code Lab IDE
+│   │   ├── page.tsx              # Main Code Lab
+│   │   └── about/                # Technical breakdown
+│   ├── docs/                     # Documentation
+│   │   ├── page.tsx              # Docs hub
+│   │   └── code-lab/             # Code Lab docs
+│   ├── api-info/                 # API coming soon
+│   ├── tools/                    # Specialized tools
+│   │   ├── email/
+│   │   ├── essay/
+│   │   ├── research/
+│   │   ├── image/
+│   │   └── website-builder/
+│   ├── admin/                    # Admin panel
+│   └── api/                      # API routes
+│       ├── code-lab/             # Code Lab endpoints
+│       │   ├── chat/
+│       │   ├── files/
+│       │   ├── git/
+│       │   └── execute/
+│       ├── chat/
+│       └── auth/
+├── src/
+│   ├── components/               # React components
+│   ├── lib/                      # Core libraries
+│   │   ├── workspace/            # Code Lab core
+│   │   │   ├── chat-integration.ts
+│   │   │   ├── planning.ts
+│   │   │   ├── mcp.ts
+│   │   │   ├── hooks.ts
+│   │   │   ├── memory.ts
+│   │   │   ├── background-tasks.ts
+│   │   │   └── security.ts
+│   │   ├── supabase/
+│   │   ├── redis/
+│   │   └── stripe/
+│   └── prompts/                  # AI prompt templates
+└── public/                       # Static assets
+```
+
+---
+
+## Security
+
+### Implemented
+
+- ✅ Command injection prevention (sanitized shell args, commit messages, file paths)
+- ✅ Session ownership verification for all Code Lab operations
+- ✅ AES-256-GCM token encryption with proper error handling
+- ✅ E2B sandbox isolation (no access to host system)
+- ✅ Supabase RLS for all user-scoped data
+- ✅ Google OAuth only (no password storage)
+- ✅ Rate limiting (Redis-backed)
+- ✅ File upload validation (MIME, size)
+- ✅ CSP, XSS/CSRF protection
+
+### Security Utilities
+
+```typescript
+// /src/lib/workspace/security.ts
+sanitizeShellArg(input)       // Escape shell arguments
+sanitizeCommitMessage(msg)     // Safe git commit messages
+sanitizeFilePath(path)         // Prevent path traversal
+sanitizeGlobPattern(pattern)   // Safe glob patterns
+validateEncryptedTokenFormat() // Token validation
+```
+
+---
+
+## Subscription Tiers
+
+| Tier | Messages/Day | Code Lab | Image/Video | Price |
+|------|-------------|----------|-------------|-------|
+| **Free** | 10 | ❌ | ❌ | $0 |
+| **Basic** | 100 | ✅ | ❌ | $9/mo |
+| **Pro** | 200 | ✅ | 5/day | $29/mo |
+| **Executive** | 1000 | ✅ | 10/day | $99/mo |
+
+---
 
 ## Development
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Run dev server
+# Development server
 pnpm dev
 
-# Type check
+# Type checking
 pnpm typecheck
 
-# Lint
+# Linting
 pnpm lint
 
-# Build
+# Production build
 pnpm build
 
 # Start production server
 pnpm start
 ```
 
-## Project Structure
-
-```
-jcil-ai-micro/
-├── app/                      # Next.js App Router
-│   ├── page.tsx             # Landing page
-│   ├── chat/                # Main chat app
-│   ├── tools/               # Tool-specific contexts
-│   │   ├── email/
-│   │   ├── essay/
-│   │   ├── research/
-│   │   ├── image/
-│   │   └── ...
-│   ├── admin/               # Admin panel
-│   │   ├── dashboard/
-│   │   ├── broadcasts/
-│   │   ├── live/           # eDiscovery
-│   │   ├── users/
-│   │   ├── plans/
-│   │   └── ...
-│   ├── settings/
-│   └── api/                # API routes
-│       ├── auth/
-│       ├── chat/           # SSE streaming
-│       ├── upload/
-│       └── admin/
-├── src/
-│   ├── components/ui/      # Reusable UI components
-│   ├── lib/                # Core libraries
-│   │   ├── supabase/
-│   │   ├── redis/
-│   │   ├── stripe/
-│   │   ├── providers/      # AI provider clients
-│   │   ├── moderation/
-│   │   └── ...
-│   ├── server/             # Server-side logic
-│   ├── prompts/            # AI prompt templates
-│   ├── workers/            # Background jobs
-│   └── styles/             # Theme & styles
-├── public/
-│   ├── manifest.json       # PWA manifest
-│   └── sw.js              # Service worker
-├── docs/                   # Documentation
-└── scripts/               # Utility scripts
-```
-
-## Features (Stubs Implemented)
-
-### User App
-- ✅ Chat interface with sidebar & streaming responses
-- ✅ Glassmorphism UI (black theme)
-- ✅ Tool launchers (Email, Essay, Research, Image, Video, etc.)
-- ⏳ Auto-title & semantic search
-- ⏳ Export (PDF/TXT/JSON)
-- ⏳ Settings (profile enrichment, model prefs)
-- ⏳ Daily devotionals widget
-
-### Admin Panel (Mobile-First)
-- ✅ Dashboard with KPIs & kill switches
-- ✅ Broadcasts (targeted by plan)
-- ✅ Internal/External inbox with AI draft assist
-- ✅ Live chats & eDiscovery
-- ✅ User management
-- ✅ Plan editor
-- ✅ Provider & routing config
-- ✅ CMS pages editor
-- ✅ Branding/white-label
-- ✅ Moderation & safety tools
-
-### Subscription Tiers
-- **Free**: 10 msgs/day
-- **Basic**: 100 msgs/day, no image/video gen
-- **Pro**: 200 msgs/day, 5 image/video per day
-- **Exec**: 1000 msgs/day, 10 image/video per day
-
-## Security
-
-- ✅ Supabase RLS for all user-scoped data
-- ✅ Google OAuth only (no email/password)
-- ✅ Rate limiting (Redis-backed)
-- ✅ File upload validation (MIME, size)
-- ✅ CSP, XSS/CSRF protection
-- ⏳ Image moderation on upload
-- ⏳ Content moderation (pre/post)
-- ⏳ Audit logging for admin actions
-
-## CI/CD
-
-GitHub Actions runs on all pushes:
-- Type checking
-- Linting
-- Build verification
-
-See `.github/workflows/ci.yml`
+---
 
 ## Documentation
 
-- See `docs/ARCHITECTURE.md` for system architecture
-- See `docs/ROUTING.md` for routing patterns
-- See `docs/THEMING.md` for theme customization
-
-## Roadmap
-
-- [ ] Implement business logic for all stubs
-- [ ] Add comprehensive test suite
-- [ ] Set up Sentry for error tracking
-- [ ] Implement real-time notifications
-- [ ] Add analytics & monitoring
-- [ ] Complete PWA offline support
-- [ ] Implement voice input (Whisper)
-- [ ] Build admin analytics dashboard
-
-## Contributing
-
-1. Create feature branch from `main`
-2. Make changes with conventional commits
-3. Open PR with clear description
-4. Ensure CI passes
-
-## License
-
-Proprietary - All rights reserved
+- **[/docs](https://jcil.ai/docs)** — Documentation hub
+- **[/docs/code-lab](https://jcil.ai/docs/code-lab)** — Code Lab comprehensive guide
+- **[/code-lab/about](https://jcil.ai/code-lab/about)** — Technical breakdown
 
 ---
 
-**Current Status**: Full scaffold with stub implementations. Chat UI implemented. Ready for feature development.
+## Roadmap
+
+### Completed
+- [x] Code Lab with 30+ tools
+- [x] Planning mode (EnterPlanMode/ExitPlanMode)
+- [x] MCP server integration
+- [x] Hooks system
+- [x] Project memory (CODELAB.md)
+- [x] Background task management
+- [x] GitHub integration (PRs, commits)
+- [x] Security hardening
+- [x] Documentation pages
+
+### In Progress
+- [ ] API access for developers
+- [ ] Multi-model support (GPT-4, Claude, Gemini)
+- [ ] Team workspaces
+- [ ] Real-time collaboration
+
+### Planned
+- [ ] Mobile app
+- [ ] VS Code extension
+- [ ] Enterprise SSO
+- [ ] On-premise deployment
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Make changes with conventional commits
+4. Open PR with clear description
+5. Ensure CI passes
+
+---
+
+## License
+
+Proprietary - All Rights Reserved
+
+---
+
+<div align="center">
+
+**[Website](https://jcil.ai)** · **[Code Lab](https://jcil.ai/code-lab)** · **[Documentation](https://jcil.ai/docs)** · **[API (Coming Soon)](https://jcil.ai/api-info)**
+
+Built with ❤️ by JCIL.AI
+
+</div>
