@@ -37,10 +37,14 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   const {
     onTranscript,
     onError,
-    silenceTimeout = 3000,
-    maxDuration = 60000,  // 1 minute max
+    silenceTimeout = 4000,  // 4 seconds of silence before auto-stop
+    maxDuration = 120000,   // 2 minutes max
     language,
   } = options;
+
+  // Grace period before silence detection kicks in (let user start speaking)
+  const SILENCE_GRACE_PERIOD = 2000;  // 2 seconds before silence detection activates
+  const AUDIO_THRESHOLD = 5;  // Lower threshold for detecting speech (was 10)
 
   const [state, setState] = useState<VoiceInputState>({
     isRecording: false,
@@ -60,6 +64,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
+  const graceperiodPassedRef = useRef<boolean>(false);
+  const hasDetectedSpeechRef = useRef<boolean>(false);
 
   // Cleanup function
   const cleanup = useCallback(() => {
@@ -82,6 +88,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     analyserRef.current = null;
     mediaRecorderRef.current = null;
     audioChunksRef.current = [];
+    graceperiodPassedRef.current = false;
+    hasDetectedSpeechRef.current = false;
   }, []);
 
   // Monitor audio levels for visual feedback
@@ -96,18 +104,35 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
       analyser.getByteFrequencyData(dataArray);
 
-      // Calculate average level
+      // Calculate average level with more weight on voice frequencies (300Hz-3kHz)
       const average = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
       const normalizedLevel = Math.min(100, Math.round((average / 128) * 100));
 
       setState(prev => ({ ...prev, audioLevel: normalizedLevel }));
 
-      // Reset silence timer if there's audio
-      if (normalizedLevel > 10 && silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = setTimeout(() => {
-          stopRecording();
-        }, silenceTimeout);
+      // Check if grace period has passed
+      const elapsed = Date.now() - startTimeRef.current;
+      if (elapsed >= SILENCE_GRACE_PERIOD && !graceperiodPassedRef.current) {
+        graceperiodPassedRef.current = true;
+      }
+
+      // Detect speech with lower threshold
+      if (normalizedLevel > AUDIO_THRESHOLD) {
+        hasDetectedSpeechRef.current = true;
+
+        // Reset silence timer when speech is detected
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+        }
+      } else if (graceperiodPassedRef.current && hasDetectedSpeechRef.current) {
+        // Only start silence timer after grace period AND after we've detected speech
+        // This prevents premature stopping during pauses
+        if (!silenceTimerRef.current) {
+          silenceTimerRef.current = setTimeout(() => {
+            stopRecording();
+          }, silenceTimeout);
+        }
       }
 
       if (state.isRecording) {
@@ -116,7 +141,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     };
 
     checkLevel();
-  }, [silenceTimeout, state.isRecording]);
+  }, [silenceTimeout, state.isRecording, SILENCE_GRACE_PERIOD, AUDIO_THRESHOLD]);
 
   // Start recording
   const startRecording = useCallback(async () => {
@@ -172,21 +197,23 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
       setState(prev => ({ ...prev, isRecording: true, duration: 0 }));
 
+      // Reset tracking refs for new recording
+      graceperiodPassedRef.current = false;
+      hasDetectedSpeechRef.current = false;
+
       // Start duration timer
       durationTimerRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
         setState(prev => ({ ...prev, duration: elapsed }));
       }, 1000);
 
-      // Start audio level monitoring
+      // Start audio level monitoring (handles silence detection after grace period)
       monitorAudioLevel();
 
-      // Set up silence detection
-      silenceTimerRef.current = setTimeout(() => {
-        stopRecording();
-      }, silenceTimeout);
+      // NOTE: Silence detection is now handled in monitorAudioLevel()
+      // It waits for grace period AND requires speech detection before starting silence timer
 
-      // Set up max duration
+      // Set up max duration safety
       setTimeout(() => {
         if (mediaRecorderRef.current?.state === 'recording') {
           stopRecording();
