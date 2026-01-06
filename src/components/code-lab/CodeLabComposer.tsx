@@ -13,6 +13,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { CodeLabSlashAutocomplete } from './CodeLabSlashAutocomplete';
 
 // Attachment type
 export interface CodeLabAttachment {
@@ -53,6 +54,7 @@ export function CodeLabComposer({
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState<CodeLabAttachment[]>([]);
   const [searchMode, setSearchMode] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -212,6 +214,19 @@ export function CodeLabComposer({
     e.preventDefault();
   }, []);
 
+  // Track content changes for slash autocomplete
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setContent(value);
+    setCursorPosition(e.target.selectionStart || 0);
+  }, []);
+
+  // Handle slash command selection
+  const handleSlashSelect = useCallback((command: string) => {
+    setContent(command);
+    textareaRef.current?.focus();
+  }, []);
+
   return (
     <div
       className="code-lab-composer"
@@ -284,12 +299,21 @@ export function CodeLabComposer({
         <textarea
           ref={textareaRef}
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={handleContentChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled || isStreaming}
           rows={1}
           className="composer-input"
+        />
+
+        {/* Slash command autocomplete */}
+        <CodeLabSlashAutocomplete
+          inputValue={content}
+          cursorPosition={cursorPosition}
+          onSelect={handleSlashSelect}
+          onClose={() => {}}
+          inputElement={textareaRef.current}
         />
 
         <div className="composer-actions">
@@ -380,11 +404,11 @@ export function CodeLabComposer({
       <div className="composer-hint">
         <span>Enter to send</span>
         <span className="separator">·</span>
-        <span>Shift+Enter for new line</span>
+        <span>/ for commands</span>
         <span className="separator">·</span>
-        <span>⌘K search</span>
+        <span>⌘K palette</span>
         <span className="separator">·</span>
-        <span>⌘N new</span>
+        <span>⌘/ shortcuts</span>
       </div>
 
       <style jsx>{`
