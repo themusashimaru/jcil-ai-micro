@@ -13,8 +13,8 @@
  * - Real-time output streaming
  */
 
-// Using stub until E2B is properly configured
-// To enable real E2B: npm install @e2b/code-interpreter && change import
+// Using stub for now - E2B integration requires API refactoring
+// To enable real E2B later, update this code to match E2B's SDK API
 import { Sandbox } from './e2b-stub';
 import { createClient } from '@supabase/supabase-js';
 
