@@ -16,6 +16,8 @@ import { executeCodeAgent, shouldUseCodeAgent as checkCodeAgentIntent } from '@/
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { orchestrateStream, shouldUseMultiAgent, getSuggestedAgents } from '@/lib/multi-agent';
 import { searchCodebase, hasCodebaseIndex } from '@/lib/codebase-rag';
+import { executeWorkspaceAgent, shouldUseWorkspaceAgent } from '@/lib/workspace/chat-integration';
+import { processSlashCommand, isSlashCommand } from '@/lib/workspace/slash-commands';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
@@ -179,6 +181,23 @@ export async function POST(request: NextRequest) {
         documentAttachments.map((d: AttachmentData) => d.name).join(', ') + ']';
     }
 
+    // Process slash commands - convert /fix, /test, etc. to enhanced prompts
+    if (isSlashCommand(enhancedContent)) {
+      const processedPrompt = processSlashCommand(enhancedContent, {
+        userId: user.id,
+        sessionId,
+        repo: repo ? {
+          owner: repo.owner,
+          name: repo.name,
+          branch: repo.branch || 'main',
+        } : undefined,
+      });
+      if (processedPrompt) {
+        console.log(`[CodeLab] Slash command detected: ${content} -> ${processedPrompt.substring(0, 100)}...`);
+        enhancedContent = processedPrompt;
+      }
+    }
+
     // Save user message
     const userMessageId = generateId();
     await (supabase.from('code_lab_messages') as AnySupabase).insert({
@@ -303,6 +322,119 @@ export async function POST(request: NextRequest) {
     const useCodeAgent = checkCodeAgentIntent(enhancedContent);
     const useSearch = forceSearch || shouldUseSearch(enhancedContent);
     const useMultiAgent = shouldUseMultiAgent(enhancedContent);
+    const useWorkspaceAgent = shouldUseWorkspaceAgent(enhancedContent);
+
+    // ========================================
+    // WORKSPACE AGENT - E2B Sandbox Execution (Claude Code-like)
+    // ========================================
+    // Check if user has an active workspace for this session
+    const { data: workspaceData } = await (supabase
+      .from('workspaces') as AnySupabase)
+      .select('id, status')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('last_accessed_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Use workspace agent if: has active workspace AND request is agentic
+    // OR if user explicitly asks for workspace mode with keywords
+    const forceWorkspace = body.useWorkspace === true ||
+      enhancedContent.toLowerCase().includes('/workspace') ||
+      enhancedContent.toLowerCase().includes('/sandbox') ||
+      enhancedContent.toLowerCase().includes('/execute');
+
+    if ((workspaceData?.id && useWorkspaceAgent) || forceWorkspace) {
+      console.log('[CodeLab] Using Workspace Agent (E2B sandbox mode)');
+
+      // Get or create workspace
+      let workspaceId = workspaceData?.id;
+
+      if (!workspaceId) {
+        // Create a new workspace for this user
+        const { data: newWorkspace } = await (supabase
+          .from('workspaces') as AnySupabase)
+          .insert({
+            user_id: user.id,
+            name: 'Code Lab Workspace',
+            type: 'sandbox',
+            status: 'active',
+            config: {
+              nodeVersion: '20',
+              timeout: 300,
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        workspaceId = newWorkspace?.id;
+      }
+
+      if (workspaceId) {
+        // Update last accessed
+        await (supabase.from('workspaces') as AnySupabase)
+          .update({ last_accessed_at: new Date().toISOString() })
+          .eq('id', workspaceId);
+
+        // Execute workspace agent with streaming
+        const workspaceStream = await executeWorkspaceAgent(content, {
+          workspaceId,
+          userId: user.id,
+          sessionId,
+          history: (history || []).map((m: { role: string; content: string }) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        });
+
+        // Collect stream and save to database
+        const reader = workspaceStream.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = '';
+
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          async start(controller) {
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const text = decoder.decode(value);
+                fullContent += text;
+                controller.enqueue(encoder.encode(text));
+              }
+
+              // Save assistant message
+              await (supabase.from('code_lab_messages') as AnySupabase).insert({
+                id: generateId(),
+                session_id: sessionId,
+                role: 'assistant',
+                content: fullContent,
+                created_at: new Date().toISOString(),
+                type: 'workspace',
+              });
+
+              controller.close();
+            } catch (error) {
+              console.error('[CodeLab Chat] Workspace Agent error:', error);
+              controller.enqueue(encoder.encode('\n\n`✕ Error:` I encountered an error during workspace execution. Please try again.'));
+              controller.close();
+            }
+          },
+        });
+
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        });
+      }
+    }
 
     // ========================================
     // CODE AGENT V2 - Full Project Generation
