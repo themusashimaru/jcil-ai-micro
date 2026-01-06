@@ -916,11 +916,11 @@ export async function POST(request: NextRequest) {
       console.log(`[Chat API] Admin bypass for user: ${rateLimitIdentifier}`);
     }
 
-    // Get provider settings (PHASE 2: Always returns Gemini)
+    // Get provider settings (Claude-exclusive mode)
     const providerSettings = await getProviderSettings();
     const activeProvider: Provider = providerSettings.activeProvider;
 
-    // PHASE 2: Moderation handled by Gemini's native safety filters
+    // Moderation handled by Claude's built-in content safety
     // No external moderation call needed
 
     // Check if user is asking about previous conversations
@@ -1092,7 +1092,7 @@ export async function POST(request: NextRequest) {
                   'Content-Type': 'text/plain; charset=utf-8',
                   'Transfer-Encoding': 'chunked',
                   'X-Model-Used': geminiModel,
-                  'X-Provider': 'gemini',
+                  'X-Provider': 'anthropic',
                   'X-Task-Plan': 'resumed',
                 },
               });
@@ -1127,7 +1127,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           'Transfer-Encoding': 'chunked',
-          'X-Provider': 'gemini',
+          'X-Provider': 'anthropic',
           'X-Agent': 'research',
         },
       });
@@ -1163,7 +1163,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'text/plain; charset=utf-8',
           'Transfer-Encoding': 'chunked',
           'X-Model-Used': geminiModel,
-          'X-Provider': 'gemini',
+          'X-Provider': 'anthropic',
           'X-Orchestration': 'multi-agent',
         },
       });
@@ -1283,7 +1283,7 @@ export async function POST(request: NextRequest) {
                 'Content-Type': 'text/plain; charset=utf-8',
                 'Transfer-Encoding': 'chunked',
                 'X-Model-Used': geminiModel,
-                'X-Provider': 'gemini',
+                'X-Provider': 'anthropic',
                 'X-Task-Plan': 'sequential',
               },
             });
@@ -1643,19 +1643,19 @@ What would you like me to help you with?`,
       effectiveTool,
     });
 
-    // PHASE 2: Web search detection moved to Gemini path (uses native Google Search)
+    // Web search handled via Perplexity integration
     // const lastUserText = getLastUserMessageText(messagesWithContext);
     // const willUseWebSearch = shouldUseWebSearch(effectiveTool as any, lastUserText);
 
     // ========================================
-    // PERPLEXITY SEARCH (Provider-agnostic, except Gemini)
+    // PERPLEXITY SEARCH (Real-time web search)
     // ========================================
     // Handle user-triggered search modes (Search and Fact Check buttons)
     // This runs BEFORE the provider check so it works for both OpenAI and Anthropic
     // IMPORTANT: Perplexity gets raw facts, then we post-process through main AI
     // to maintain platform integrity (Christian conservative perspective)
-    // NOTE: Gemini uses native Google Search grounding instead of Perplexity
-    if (searchMode && searchMode !== 'none' && isPerplexityConfigured() && activeProvider !== 'gemini') {
+    // Perplexity provides real-time web search results
+    if (searchMode && searchMode !== 'none' && isPerplexityConfigured()) {
       console.log(`[Chat API] User triggered ${searchMode} mode (provider: ${activeProvider})`);
 
       try {

@@ -5,11 +5,11 @@
  * - Generate descriptive chat titles based on conversation content
  * - Called after first message exchange in a chat
  * - Creates concise, meaningful titles (3-6 words)
+ *
+ * PROVIDER: Claude (Anthropic) - Haiku for fast title generation
  */
 
-import { getProviderSettings } from '@/lib/provider/settings';
-import { createChatCompletion } from '@/lib/openai/client';
-import { createGeminiCompletion } from '@/lib/gemini/client';
+import { createClaudeChat } from '@/lib/anthropic/client';
 import { NextRequest } from 'next/server';
 
 interface GenerateTitleRequest {
@@ -36,12 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the configured provider
-    const providerSettings = await getProviderSettings();
-    const activeProvider = providerSettings.activeProvider;
-
-    // Generate a concise title using AI (respects provider settings)
-    console.log('[API] Calling AI to generate title with provider:', activeProvider);
+    console.log('[API] Calling Claude to generate title');
 
     const systemPrompt = `You are a chat title generator. Based on the user's message and assistant's response, create a short, descriptive title for this conversation.
 
@@ -57,31 +52,17 @@ Rules:
 
     let titleText = '';
     try {
-      // Use the configured provider
-      if (activeProvider === 'gemini') {
-        const geminiResult = await createGeminiCompletion({
-          messages: [
-            { role: 'user', content: userPrompt },
-          ],
-          systemPrompt,
-          enableSearch: false,
-        });
-        titleText = geminiResult.text || '';
-      } else {
-        // Fall back to OpenAI for other providers (openai, anthropic, xai, deepseek)
-        const openaiResult = await createChatCompletion({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          stream: false,
-        });
-        // Handle both string and Promise<string> return types
-        const rawText = openaiResult?.text;
-        titleText = typeof rawText === 'string' ? rawText : await rawText || '';
-      }
+      // Use Claude Haiku for fast title generation
+      const result = await createClaudeChat({
+        messages: [{ role: 'user', content: userPrompt }],
+        systemPrompt,
+        maxTokens: 50, // Titles are short
+        temperature: 0.5,
+        forceModel: 'haiku', // Fast model for quick titles
+      });
+      titleText = result.text || '';
     } catch (aiError) {
-      console.error('[API] AI call failed:', aiError);
+      console.error('[API] Claude call failed:', aiError);
       // Return a generated fallback title based on the user message
       const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
       return new Response(
