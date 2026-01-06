@@ -1,16 +1,14 @@
 /**
- * CHAT API ROUTE - Claude + Google Imagen Edition
+ * CHAT API ROUTE - Claude Exclusive Edition
  *
  * PURPOSE:
  * - Handle chat message requests with streaming responses
  * - Text generation via Claude (Haiku 4.5 / Sonnet 4.5 hybrid routing)
- * - Image generation via Google Imagen (Gemini)
  * - Research via Perplexity + Claude Sonnet synthesis
  *
  * MODEL ROUTING (Claude Hybrid):
  * - Claude Haiku 4.5: Basic chat, greetings, simple Q&A (cost-optimized)
  * - Claude Sonnet 4.5: Research, faith topics, complex reasoning, documents
- * - Google Imagen: Image generation only
  * - Perplexity: Web search (with Claude post-processing)
  *
  * PUBLIC ROUTES:
@@ -24,13 +22,11 @@
  *
  * DEPENDENCIES/ENVS:
  * - ANTHROPIC_API_KEY_1 (required for text)
- * - GOOGLE_GENERATIVE_AI_API_KEY (required for images)
  * - NEXT_PUBLIC_SUPABASE_URL (optional, for auth)
  *
  * FEATURES:
  * - ✅ Streaming responses with SSE
  * - ✅ Claude Haiku/Sonnet hybrid routing (auto-select by complexity)
- * - ✅ Image generation with Google Imagen
  * - ✅ Research agent with Claude Sonnet synthesis
  * - ✅ Faith-grounded responses (Biblical principles)
  * - ✅ Tool-specific system prompts
@@ -47,35 +43,25 @@
  */
 
 // =============================================================================
-// PHASE 2: GOOGLE-ONLY IMPORTS
-// Dead providers removed: OpenAI, Anthropic, DeepSeek, xAI
-// Only using: Gemini (text/images) + Perplexity (research)
+// CLAUDE EXCLUSIVE IMPORTS
+// Using: Claude (text) + Perplexity (research)
 // =============================================================================
 import { buildSlimSystemPrompt, isFaithTopic, getRelevantCategories } from '@/lib/prompts/slimPrompt';
 import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
-import { getSystemPromptForTool, getGeminiSearchGuidance } from '@/lib/openai/tools';
-// PHASE 2: These functions no longer used - Gemini uses native Google Search
-// import { shouldUseWebSearch, getLastUserMessageText } from '@/lib/openai/client';
-import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage, incrementImageUsage, getImageLimitWarningMessage } from '@/lib/limits';
+import { getSystemPromptForTool } from '@/lib/openai/tools';
+import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
 import { decideRoute, logRouteDecision, hasWebsiteIntent, hasCodeExecutionIntent, isWebsiteDiscoveryResponse, RouteTarget } from '@/lib/routing/decideRoute';
 import { executeCode, extractCodeBlocks, shouldTestCode } from '@/lib/agents/codeExecutor';
 import { isSandboxConfigured } from '@/lib/connectors/vercel-sandbox';
-// PHASE 2: Pending requests not currently used, but keeping import for future use
-// import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider, getModelForTier, getGeminiImageModel } from '@/lib/provider/settings';
-import {
-  createGeminiStructuredCompletion,
-  createGeminiImageGeneration,
-  getDocumentSchema,
-  getDocumentSchemaDescription,
-} from '@/lib/gemini/client';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 // Claude hybrid routing for text generation (Haiku for simple, Sonnet for complex)
 import {
   createClaudeStreamingChat,
   createClaudeChat,
   detectDocumentRequest,
+  createClaudeStructuredOutput,
 } from '@/lib/anthropic/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
@@ -550,50 +536,6 @@ function detectNativeDocumentRequest(content: string, previousMessages?: CoreMes
   // General Word document detection
   if (/\b(word\s*document|docx|letter|memo|report)\b/.test(lowerContent) && actionVerbs.test(lowerContent)) {
     return 'document';
-  }
-
-  return null;
-}
-
-/**
- * Detect if user wants image generation (Nano Banana)
- *
- * Triggers on:
- * - Image/picture requests: "create an image of", "generate a picture", "draw me"
- * - Slide/presentation requests: "make a slide", "create a powerpoint", "slide deck"
- *
- * Returns the type of image generation request
- */
-function detectImageGenerationRequest(content: string): 'image' | 'slide' | null {
-  const lowerContent = content.toLowerCase();
-
-  // Image/picture detection - explicit creation requests
-  const imagePatterns = [
-    /\b(create|make|generate|draw|design)\s+(an?\s+)?(image|picture|illustration|artwork|graphic|visual)/i,
-    /\b(image|picture|illustration|artwork|graphic|visual)\s+(of|for|showing|depicting)/i,
-    /\bgive\s+me\s+(an?\s+)?(image|picture)/i,
-    /\bdraw\s+me\b/i,
-    /\bdesign\s+(an?\s+)?(logo|banner|poster|flyer)/i,
-  ];
-
-  for (const pattern of imagePatterns) {
-    if (pattern.test(lowerContent)) {
-      return 'image';
-    }
-  }
-
-  // Slide/presentation detection
-  const slidePatterns = [
-    /\b(create|make|generate|build)\s+(a\s+)?(slide|powerpoint|presentation|deck|ppt)/i,
-    /\b(slide\s*deck|power\s*point|presentation)\b/i,
-    /\bslide\s+(for|about|on|showing)/i,
-    /\bppt\s+(for|about|on)/i,
-  ];
-
-  for (const pattern of slidePatterns) {
-    if (pattern.test(lowerContent)) {
-      return 'slide';
-    }
   }
 
   return null;
@@ -1431,15 +1373,13 @@ export async function POST(request: NextRequest) {
 
     // ========================================
     // VIDEO GENERATION - Coming Soon
-    // PHASE 2: Sora removed, Google Veo coming later
     // ========================================
     if (routeDecision.target === 'video') {
-      const fallbackModel = await getModelForTier('basic', activeProvider);
       return new Response(
         JSON.stringify({
           type: 'text',
-          content: '**Video Generation Coming Soon**\n\nAI video generation is being upgraded and will be available soon with Google Veo.\n\nIn the meantime, I can help you with:\n- Creating stunning AI-generated images with Nano Banana\n- Writing video scripts or storyboards\n- Describing video concepts in detail\n- Building complete websites with AI\n\nIs there something else I can help you with?',
-          model: fallbackModel,
+          content: '**Video Generation Coming Soon**\n\nAI video generation is being developed and will be available in a future update.\n\nIn the meantime, I can help you with:\n- Writing video scripts or storyboards\n- Describing video concepts in detail\n- Building complete websites with AI\n- Creating documents, spreadsheets, and presentations\n\nIs there something else I can help you with?',
+          model: 'claude-sonnet-4-5-20250929',
         }),
         {
           status: 200,
@@ -1450,10 +1390,6 @@ export async function POST(request: NextRequest) {
         }
       );
     }
-
-    // NOTE: Image generation uses Gemini regardless of text provider
-    // The old Anthropic block has been removed - image requests should fall through
-    // to the Gemini image generation handler below (around line 2626)
 
     // ========================================
     // FORGE & MUSASHI: WEBSITE GENERATION PIPELINE
@@ -2281,172 +2217,31 @@ How to prevent this in the future`;
       }
     }
 
-    // Check if we should route to image generation (only if no uploaded images)
+    // Image generation has been removed - provide helpful response
     if (routeDecision.target === 'image' && !messageHasUploadedImages) {
-      // Check image-specific monthly limits (warn at 80%, stop at 100%)
-      // Get user tier if not already fetched (for image route)
-      let imgUserTier = 'free';
-      if (isAuthenticated) {
-        try {
-          const cookieStore = await cookies();
-          const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-              cookies: {
-                getAll() { return cookieStore.getAll(); },
-                setAll(cookiesToSet) {
-                  try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {}
-                },
-              },
-            }
-          );
-          const { data: userData } = await supabase
-            .from('users')
-            .select('subscription_tier')
-            .eq('id', rateLimitIdentifier)
-            .single();
-          imgUserTier = userData?.subscription_tier || 'free';
-        } catch {}
-      }
-      const imageUsage = await incrementImageUsage(
-        rateLimitIdentifier,
-        imgUserTier
+      console.log('[Chat API] Image generation requested but feature is disabled');
+      return new Response(
+        JSON.stringify({
+          type: 'text',
+          content: `I'd love to help you create something visual! While image generation isn't available right now, I can help you with:
+
+- **Detailed descriptions** of what your image could look like
+- **Writing prompts** for other image generation tools
+- **Building complete websites** with professional designs
+- **Creating documents** like PDFs, spreadsheets, or presentations
+
+What would you like me to help you with?`,
+          model: 'claude-sonnet-4-5-20250929',
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Route-Target': 'text',
+            'X-Feature-Disabled': 'image-generation',
+          },
+        }
       );
-
-      if (imageUsage.stop) {
-        console.log('[Chat API] Monthly image limit reached for:', rateLimitIdentifier);
-        return new Response(
-          JSON.stringify({
-            error: 'Monthly image limit reached',
-            message: getImageLimitWarningMessage(imageUsage),
-            usage: { used: imageUsage.used, limit: imageUsage.limit, remaining: 0 },
-          }),
-          {
-            status: 429,
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Image-Limit': String(imageUsage.limit),
-              'X-Image-Remaining': '0',
-            },
-          }
-        );
-      }
-
-      // Extract prompt from last message
-      const lastMessage = messages[messages.length - 1];
-      let prompt = typeof lastMessage.content === 'string'
-        ? lastMessage.content
-        : '';
-
-      // Clean up prompt if it starts with emoji prefix from button
-      if (prompt.startsWith('🎨 Generate image:')) {
-        prompt = prompt.replace(/^🎨\s*Generate image:\s*/i, '').trim();
-      }
-
-      // Get image model from admin settings
-      const imageModel = await getGeminiImageModel();
-      console.log('[Chat API] Using Gemini image model from settings:', imageModel);
-
-      // Log image request with user, model, promptHash
-      const promptHash = prompt.slice(0, 32).replace(/\s+/g, '_');
-      console.log('[Chat API] Image generation request:', {
-        user_id: rateLimitIdentifier,
-        type: 'image',
-        model: imageModel,
-        promptHash,
-        reason: routeDecision.reason,
-        confidence: routeDecision.confidence,
-        imageUsage: {
-          used: imageUsage.used,
-          limit: imageUsage.limit,
-          warn: imageUsage.warn,
-        },
-      });
-
-      // Use Gemini for image generation
-      const startTime = Date.now();
-      try {
-        const geminiImageResult = await createGeminiImageGeneration({
-          prompt,
-          systemPrompt: 'You are a professional image generator. Create high-quality, visually stunning images based on the user prompt. Focus on composition, lighting, and artistic quality.',
-          model: imageModel, // Use model from admin settings
-        });
-        const latencyMs = Date.now() - startTime;
-
-        // Log completion
-        console.log('[Chat API] Gemini image generation complete:', {
-          user_id: rateLimitIdentifier,
-          type: 'image',
-          model: geminiImageResult.model,
-          promptHash,
-          ok: true,
-          latency_ms: latencyMs,
-        });
-
-        // Convert base64 to data URL
-        const dataUrl = `data:${geminiImageResult.mimeType};base64,${geminiImageResult.imageData}`;
-
-        // Include usage warning if at 80%
-        const usageWarning = getImageLimitWarningMessage(imageUsage);
-
-        return new Response(
-          JSON.stringify({
-            type: 'image',
-            url: dataUrl,
-            prompt,
-            model: geminiImageResult.model,
-            routeReason: routeDecision.reason,
-            ...(usageWarning && { usageWarning }),
-            usage: {
-              used: imageUsage.used,
-              limit: imageUsage.limit,
-              remaining: imageUsage.remaining,
-            },
-          }),
-          {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Route-Target': 'image',
-              'X-Route-Reason': routeDecision.reason,
-              'X-Model-Used': geminiImageResult.model,
-              'X-Image-Remaining': String(imageUsage.remaining),
-            },
-          }
-        );
-      } catch (imageError) {
-        const latencyMs = Date.now() - startTime;
-        const errorMessage = imageError instanceof Error ? imageError.message : 'Unknown error';
-        console.error('[Chat API] Gemini image generation failed:', {
-          user_id: rateLimitIdentifier,
-          error: errorMessage,
-          latency_ms: latencyMs,
-        });
-        // Return text fallback instead of error
-        return new Response(
-          JSON.stringify({
-            type: 'image_fallback',
-            content: `I wasn't able to generate that image. Here's what I can tell you about "${prompt}":\n\nThe image would show ${prompt}. If you'd like, I can try again with a more specific description, or I can help you with something else.`,
-            retryHint: 'Try being more specific about colors, style, or composition.',
-            suggestedPrompts: [
-              `${prompt}, digital art style`,
-              `${prompt}, photorealistic`,
-              `${prompt}, illustration style`,
-            ],
-            error: errorMessage,
-            routeReason: routeDecision.reason,
-          }),
-          {
-            status: 200, // 200 because we're providing useful fallback content
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Route-Target': 'image',
-              'X-Route-Reason': routeDecision.reason,
-            },
-          }
-        );
-      }
     }
 
     // Add user context and conversation history as system messages if provided
@@ -2676,23 +2471,13 @@ Please summarize this information from our platform's perspective. Present the f
     }
 
     // ========================================
-    // PHASE 2: DEAD PROVIDERS REMOVED
-    // Anthropic, xAI, DeepSeek blocks removed - all locked to Gemini
+    // MAIN CHAT PATH - Claude Exclusive
     // ========================================
-
-    // ========================================
-    // GEMINI PATH - Google Gemini (PHASE 2: Always active)
-    // ========================================
-    // PHASE 2 NOTE: Dead provider blocks (Anthropic, xAI, DeepSeek) have been removed.
-    // All routes now use Gemini. The block below always executes.
+    // All text generation now uses Claude Haiku/Sonnet hybrid routing
     {
-      // Get tier-specific model (uses provider settings with tier lookup)
-      const geminiModel = await getModelForTier(userTier, 'gemini');
-      console.log('[Chat API] Using Gemini provider with model:', geminiModel, 'for tier:', userTier);
+      console.log('[Chat API] Using Claude provider for user tier:', userTier);
 
-      // Build Gemini system prompt using slim prompt + KB
-      // IMPORTANT: Gemini ignores system messages in messagesWithContext,
-      // so we must pass the full prompt via the systemPrompt parameter
+      // Build system prompt using slim prompt + KB
       let baseSystemPrompt = 'You are a helpful AI assistant.';
 
       if (isAuthenticated) {
@@ -2705,7 +2490,7 @@ Please summarize this information from our platform's perspective. Present the f
         // Check if this is a faith topic that needs additional context
         if (isFaithTopic(lastUserContent)) {
           const categories = getRelevantCategories(lastUserContent);
-          console.log(`[Chat API] Gemini: Faith topic detected, loading KB categories: ${categories.join(', ')}`);
+          console.log(`[Chat API] Claude: Faith topic detected, loading KB categories: ${categories.join(', ')}`);
 
           // Load relevant knowledge base content
           const kbContent = await getKnowledgeBaseContent(categories);
@@ -2715,18 +2500,18 @@ Please summarize this information from our platform's perspective. Present the f
         }
 
         // Search user's uploaded documents for relevant context (RAG)
-        console.log(`[Chat API] Gemini: Starting RAG search for user ${rateLimitIdentifier}`);
+        console.log(`[Chat API] Claude: Starting RAG search for user ${rateLimitIdentifier}`);
         try {
           const { contextString, results } = await searchUserDocuments(rateLimitIdentifier, lastUserContent, {
             matchCount: 5,
             matchThreshold: 0.1,
           });
-          console.log(`[Chat API] Gemini: RAG returned ${results?.length || 0} results`);
+          console.log(`[Chat API] Claude: RAG returned ${results?.length || 0} results`);
           if (contextString) {
             baseSystemPrompt += '\n\n---\n\n' + contextString;
           }
         } catch (docSearchError) {
-          console.error('[Chat API] Gemini: User document search failed:', docSearchError);
+          console.error('[Chat API] Claude: User document search failed:', docSearchError);
         }
 
         // USER LEARNING: Inject learned preferences (lowest priority - style only)
@@ -2735,30 +2520,30 @@ Please summarize this information from our platform's perspective. Present the f
             const learnedContext = await getLearnedContext(rateLimitIdentifier);
             if (learnedContext.promptInjection) {
               baseSystemPrompt += learnedContext.promptInjection;
-              console.log(`[Chat API] Gemini: Injected ${learnedContext.preferences.length} learned preferences`);
+              console.log(`[Chat API] Claude: Injected ${learnedContext.preferences.length} learned preferences`);
             }
           } catch (learnError) {
-            console.error('[Chat API] Gemini: Learning context failed:', learnError);
+            console.error('[Chat API] Claude: Learning context failed:', learnError);
           }
         }
 
         // GITHUB REPO CONTEXT: Add selected repo info for proactive assistance
         if (selectedRepo) {
           baseSystemPrompt += buildRepoContextPrompt(selectedRepo);
-          console.log(`[Chat API] Gemini: Added GitHub repo context: ${selectedRepo.fullName}`);
+          console.log(`[Chat API] Claude: Added GitHub repo context: ${selectedRepo.fullName}`);
         }
       }
 
-      // Use Gemini-specific search guidance (native Google Search, not buttons)
+      // Build final system prompt
       const systemPrompt = isAuthenticated
-        ? `${baseSystemPrompt}\n\n${getGeminiSearchGuidance()}`
+        ? `${baseSystemPrompt}\n\nWhen providing information, cite sources when relevant and indicate when information may need to be verified.`
         : baseSystemPrompt;
 
       // ========================================
       // SPREADSHEET GATHERING (Ask questions first)
       // ========================================
       if (isInitialSpreadsheetRequest(lastUserContent)) {
-        console.log('[Chat API] Gemini: Initial spreadsheet request - asking qualifying questions');
+        console.log('[Chat API] Claude: Initial spreadsheet request - asking qualifying questions');
 
         const spreadsheetGatheringPrompt = `${systemPrompt}
 
@@ -2802,9 +2587,9 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
       // QR CODE PDF GENERATION
       // ========================================
       // Special handling for QR codes - uses {{QR:url:count}} syntax
-      const geminiNativeDocType = detectNativeDocumentRequest(lastUserContent, messagesWithContext);
-      if (geminiNativeDocType === 'qrcode' && isAuthenticated) {
-        console.log('[Chat API] Gemini: QR Code PDF generation');
+      const qrDocType = detectNativeDocumentRequest(lastUserContent, messagesWithContext);
+      if (qrDocType === 'qrcode' && isAuthenticated) {
+        console.log('[Chat API] Claude: QR Code PDF generation');
 
         try {
           // Extract URL/data and count from user message
@@ -2844,7 +2629,7 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
                   headers: {
                     'Content-Type': 'application/json',
                     'X-Model-Used': result.model,
-                    'X-Provider': 'gemini',
+                    'X-Provider': 'claude',
                   },
                 }
               );
@@ -2873,7 +2658,7 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
 
           if (docResponse.ok) {
             const docResult = await docResponse.json();
-            console.log('[Chat API] Gemini: QR Code PDF generated:', docResult.filename);
+            console.log('[Chat API] Claude: QR Code PDF generated:', docResult.filename);
 
             const responseText = qrCount > 1
               ? `I've created a PDF with ${qrCount} QR codes for ${qrUrl}. You can download it below.`
@@ -2883,7 +2668,7 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
               JSON.stringify({
                 type: 'text',
                 content: responseText,
-                model: geminiModel,
+                model: 'claude-haiku-4-5-20250929',
                 documentDownload: {
                   url: docResult.downloadUrl || docResult.dataUrl,
                   filename: docResult.filename,
@@ -2895,8 +2680,8 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
                 status: 200,
                 headers: {
                   'Content-Type': 'application/json',
-                  'X-Model-Used': geminiModel,
-                  'X-Provider': 'gemini',
+                  'X-Model-Used': 'claude-haiku-4-5-20250929',
+                  'X-Provider': 'claude',
                   'X-Document-Type': 'qrcode',
                   'X-Document-Format': 'pdf',
                 },
@@ -2904,100 +2689,52 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
             );
           } else {
             const errorText = await docResponse.text();
-            console.error('[Chat API] Gemini: QR PDF generation error:', errorText);
+            console.error('[Chat API] Claude: QR PDF generation error:', errorText);
           }
         } catch (qrError) {
-          console.error('[Chat API] Gemini: QR Code generation error:', qrError);
+          console.error('[Chat API] Claude: QR Code generation error:', qrError);
         }
         // Fall through to regular chat if QR generation fails
       }
 
       // ========================================
-      // IMAGE GENERATION - RE-ROUTE TO GEMINI IMAGE GENERATOR
-      // ========================================
-      // If image request somehow got here instead of being routed earlier,
-      // route it to image generation now instead of blocking it
-      const imageGenRequest = detectImageGenerationRequest(lastUserContent);
-      if (imageGenRequest && imageGenRequest !== 'slide') {
-        console.log(`[Chat API] Image request detected in fallback, routing to Gemini image generation`);
-
-        // Get the image model and generate
-        const imageModel = await getGeminiImageModel();
-        try {
-          const geminiImageResult = await createGeminiImageGeneration({
-            prompt: lastUserContent,
-            systemPrompt: 'You are a professional image generator. Create high-quality, visually stunning images based on the user prompt. Focus on composition, lighting, and artistic quality.',
-            model: imageModel,
-          });
-
-          if (geminiImageResult?.imageData) {
-            const dataUrl = `data:${geminiImageResult.mimeType};base64,${geminiImageResult.imageData}`;
-            return new Response(
-              JSON.stringify({
-                type: 'image',
-                url: dataUrl,  // Use 'url' to match main image handler format
-                prompt: lastUserContent,
-                model: geminiImageResult.model,
-                provider: 'gemini',
-              }),
-              {
-                status: 200,
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Model-Used': geminiImageResult.model,
-                  'X-Provider': 'gemini',
-                  'X-Image-Generated': 'true',
-                },
-              }
-            );
-          }
-        } catch (imgError) {
-          console.error('[Chat API] Fallback image generation failed:', imgError);
-          // Fall through to text response
-        }
-      }
-
-      // Slide generation is not supported
-      if (imageGenRequest === 'slide') {
-        return new Response(
-          JSON.stringify({
-            content: `I appreciate your interest in creating slides! While slide generation is coming soon, I can help you with:\n\n• Writing presentation content and outlines\n• Creating individual images for your slides\n• Document generation (PDF, Word, Excel)\n\nWould you like help with any of these?`,
-            model: geminiModel,
-            provider: 'gemini',
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      // ========================================
       // NATIVE DOCUMENT GENERATION (Structured Outputs → DOCX/XLSX)
       // ========================================
-      // Uses Gemini's structured outputs feature for guaranteed valid JSON
-      if (geminiNativeDocType && geminiNativeDocType !== 'qrcode' && isAuthenticated) {
-        console.log(`[Chat API] Gemini: Structured document generation: ${geminiNativeDocType}`);
+      // Uses Claude's structured outputs feature for guaranteed valid JSON
+      const nativeDocType = detectNativeDocumentRequest(lastUserContent, messagesWithContext);
+      if (nativeDocType && nativeDocType !== 'qrcode' && isAuthenticated) {
+        console.log(`[Chat API] Claude: Structured document generation: ${nativeDocType}`);
         // Type assertion - we've already excluded 'qrcode' above
-        const structuredDocType = geminiNativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
+        const structuredDocType = nativeDocType as 'resume' | 'spreadsheet' | 'document' | 'invoice';
 
         try {
-          // Get the JSON schema and description for this document type
-          const docSchema = getDocumentSchema(structuredDocType);
-          const schemaDescription = getDocumentSchemaDescription(structuredDocType);
+          // Build schema for structured output
+          const docSchema = {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              content: { type: 'string' },
+              sections: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    heading: { type: 'string' },
+                    content: { type: 'string' },
+                  },
+                },
+              },
+            },
+          };
 
-          // Use Gemini's structured outputs - guarantees valid JSON
-          const result = await createGeminiStructuredCompletion({
+          // Use Claude's structured outputs
+          const result = await createClaudeStructuredOutput({
             messages: messagesWithContext,
-            model: geminiModel,
-            maxTokens: clampedMaxTokens,
-            temperature: 0.5, // Lower for more consistent output
-            systemPrompt,
+            systemPrompt: `${systemPrompt}\n\nGenerate structured content for a ${structuredDocType}. Return valid JSON only.`,
             schema: docSchema,
-            schemaDescription,
           });
 
-          console.log(`[Chat API] Gemini: Structured output received for ${geminiNativeDocType}`);
+          console.log(`[Chat API] Claude: Structured output received for ${nativeDocType}`);
 
           // Call the native document generation API with the structured data
           const docResponse = await fetch(
@@ -3017,7 +2754,7 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
 
           if (docResponse.ok) {
             const docResult = await docResponse.json();
-            console.log(`[Chat API] Gemini: Native document generated: ${docResult.filename}`);
+            console.log(`[Chat API] Claude: Native document generated: ${docResult.filename}`);
 
             // Return response with document download link
             const docTypeNames: Record<string, string> = {
@@ -3026,7 +2763,7 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
               document: 'document',
               invoice: 'invoice',
             };
-            const responseText = `I've created your ${docTypeNames[geminiNativeDocType] || 'document'}. You can download it below.`;
+            const responseText = `I've created your ${docTypeNames[nativeDocType] || 'document'}. You can download it below.`;
 
             return new Response(
               JSON.stringify({
@@ -3045,15 +2782,15 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
                 headers: {
                   'Content-Type': 'application/json',
                   'X-Model-Used': result.model,
-                  'X-Provider': 'gemini',
-                  'X-Document-Type': geminiNativeDocType,
+                  'X-Provider': 'claude',
+                  'X-Document-Type': nativeDocType,
                   'X-Document-Format': docResult.format,
                 },
               }
             );
           } else {
             const errorText = await docResponse.text();
-            console.error('[Chat API] Gemini: Document API error:', errorText);
+            console.error('[Chat API] Claude: Document API error:', errorText);
             // Return error message to user
             return new Response(
               JSON.stringify({
@@ -3066,13 +2803,13 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
                 headers: {
                   'Content-Type': 'application/json',
                   'X-Model-Used': result.model,
-                  'X-Provider': 'gemini',
+                  'X-Provider': 'claude',
                 },
               }
             );
           }
         } catch (structuredError) {
-          console.error('[Chat API] Gemini: Structured output error:', structuredError);
+          console.error('[Chat API] Claude: Structured output error:', structuredError);
           // Fall through to legacy document generation (PDF fallback)
         }
       }
@@ -3081,13 +2818,13 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
       // LEGACY DOCUMENT GENERATION (PDF fallback)
       // ========================================
       // Check if document generation is requested (Excel, PowerPoint, Word, PDF)
-      // For Gemini, we generate PDF versions (same as xAI/OpenAI - no native doc generation)
-      const geminiDocumentType = detectDocumentRequest(lastUserContent);
-      if (geminiDocumentType && isAuthenticated) {
-        console.log(`[Chat API] Gemini: Legacy document request detected: ${geminiDocumentType}`);
+      // Generate PDF versions for document requests
+      const documentType = detectDocumentRequest(lastUserContent);
+      if (documentType && isAuthenticated) {
+        console.log(`[Chat API] Claude: Legacy document request detected: ${documentType}`);
 
         // Get the comprehensive document formatting prompt
-        const documentFormattingInstructions = getDocumentFormattingPrompt(geminiDocumentType);
+        const documentFormattingInstructions = getDocumentFormattingPrompt(documentType);
 
         // For Excel/PPT/Word requests, instruct AI to create content for PDF
         const docTypeNames: Record<string, string> = {
@@ -3096,10 +2833,10 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
           docx: 'document',
           pdf: 'PDF',
         };
-        const docName = docTypeNames[geminiDocumentType] || 'document';
+        const docName = docTypeNames[documentType] || 'document';
 
-        // Add special instruction for Gemini to format content for PDF generation
-        const pdfFormatInstruction = geminiDocumentType !== 'pdf' ? `
+        // Add instruction to format content for PDF generation
+        const pdfFormatInstruction = documentType !== 'pdf' ? `
 IMPORTANT: Since you cannot create native ${docName} files, format your response for PDF output instead:
 - Use clear markdown formatting
 - Use tables (| col1 | col2 |) for spreadsheet-like data
