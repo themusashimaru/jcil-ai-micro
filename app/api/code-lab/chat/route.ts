@@ -16,8 +16,9 @@ import { executeCodeAgent, shouldUseCodeAgent as checkCodeAgentIntent } from '@/
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { orchestrateStream, shouldUseMultiAgent, getSuggestedAgents } from '@/lib/multi-agent';
 import { searchCodebase, hasCodebaseIndex } from '@/lib/codebase-rag';
-import { executeWorkspaceAgent, shouldUseWorkspaceAgent } from '@/lib/workspace/chat-integration';
-import { processSlashCommand, isSlashCommand } from '@/lib/workspace/slash-commands';
+import { executeWorkspaceAgent } from '@/lib/workspace/chat-integration';
+import { processSlashCommand, isSlashCommand, parseSlashCommand } from '@/lib/workspace/slash-commands';
+import { detectCodeLabIntent } from '@/lib/workspace/intent-detector';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
@@ -182,20 +183,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Process slash commands - convert /fix, /test, etc. to enhanced prompts
+    let slashCommandFailed = false;
+    let slashCommandError = '';
     if (isSlashCommand(enhancedContent)) {
-      const processedPrompt = processSlashCommand(enhancedContent, {
-        userId: user.id,
-        sessionId,
-        repo: repo ? {
-          owner: repo.owner,
-          name: repo.name,
-          branch: repo.branch || 'main',
-        } : undefined,
-      });
-      if (processedPrompt) {
-        console.log(`[CodeLab] Slash command detected: ${content} -> ${processedPrompt.substring(0, 100)}...`);
-        enhancedContent = processedPrompt;
+      const parsed = parseSlashCommand(enhancedContent);
+      if (parsed) {
+        const processedPrompt = processSlashCommand(enhancedContent, {
+          userId: user.id,
+          sessionId,
+          repo: repo ? {
+            owner: repo.owner,
+            name: repo.name,
+            branch: repo.branch || 'main',
+          } : undefined,
+        });
+        if (processedPrompt) {
+          console.log(`[CodeLab] Slash command detected: ${content} -> ${processedPrompt.substring(0, 100)}...`);
+          enhancedContent = processedPrompt;
+        }
+      } else {
+        // Unknown slash command - provide helpful feedback
+        const commandName = enhancedContent.split(' ')[0];
+        slashCommandFailed = true;
+        slashCommandError = `Unknown command: ${commandName}. Try /help to see available commands.`;
+        console.log(`[CodeLab] Unknown slash command: ${commandName}`);
       }
+    }
+
+    // Run intelligent intent detection
+    const intentResult = detectCodeLabIntent(enhancedContent);
+    console.log(`[CodeLab] Intent detected: ${intentResult.type} (${intentResult.confidence}% confidence, workspace: ${intentResult.shouldUseWorkspace})`);
+    if (intentResult.signals.length > 0) {
+      console.log(`[CodeLab] Signals: ${intentResult.signals.slice(0, 3).join(', ')}`);
     }
 
     // Save user message
@@ -318,11 +337,43 @@ export async function POST(request: NextRequest) {
         }));
     }
 
+    // Handle slash command failures by returning error response
+    if (slashCommandFailed) {
+      const errorMessageId = generateId();
+      const errorContent = `**${slashCommandError}**\n\nAvailable commands:\n- \`/fix\` - Fix errors in the codebase\n- \`/test\` - Run tests\n- \`/build\` - Run build\n- \`/commit\` - Commit changes\n- \`/push\` - Push to remote\n- \`/review\` - Code review\n- \`/explain\` - Explain code\n- \`/workspace\` - Enable sandbox mode\n- \`/help\` - Show all commands`;
+
+      await (supabase.from('code_lab_messages') as AnySupabase).insert({
+        id: errorMessageId,
+        session_id: sessionId,
+        role: 'assistant',
+        content: errorContent,
+        created_at: new Date().toISOString(),
+      });
+
+      // Return error as stream
+      const encoder = new TextEncoder();
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode(errorContent));
+            controller.close();
+          }
+        }),
+        {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Message-Id': errorMessageId,
+          },
+        }
+      );
+    }
+
     // Detect intent (forceSearch from button overrides auto-detection)
     const useCodeAgent = checkCodeAgentIntent(enhancedContent);
     const useSearch = forceSearch || shouldUseSearch(enhancedContent);
     const useMultiAgent = shouldUseMultiAgent(enhancedContent);
-    const useWorkspaceAgent = shouldUseWorkspaceAgent(enhancedContent);
+    // Use intelligent intent detector result
+    const useWorkspaceAgent = intentResult.shouldUseWorkspace;
 
     // ========================================
     // WORKSPACE AGENT - E2B Sandbox Execution (Claude Code-like)
@@ -337,14 +388,17 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
 
-    // Use workspace agent if: has active workspace AND request is agentic
+    // Use workspace agent if: has active workspace AND request is agentic (high confidence)
     // OR if user explicitly asks for workspace mode with keywords
     const forceWorkspace = body.useWorkspace === true ||
       enhancedContent.toLowerCase().includes('/workspace') ||
       enhancedContent.toLowerCase().includes('/sandbox') ||
       enhancedContent.toLowerCase().includes('/execute');
 
-    if ((workspaceData?.id && useWorkspaceAgent) || forceWorkspace) {
+    // Only use workspace for high-confidence agentic requests
+    const shouldActivateWorkspace = (workspaceData?.id && useWorkspaceAgent && intentResult.confidence >= 50) || forceWorkspace;
+
+    if (shouldActivateWorkspace) {
       console.log('[CodeLab] Using Workspace Agent (E2B sandbox mode)');
 
       // Get or create workspace

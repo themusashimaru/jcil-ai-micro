@@ -88,9 +88,23 @@ export function CodeLabComposer({
     }
   }, [content]);
 
-  // Focus on mount
+  // Focus on mount - only on desktop to avoid annoying keyboard popup on mobile
   useEffect(() => {
-    textareaRef.current?.focus();
+    // Check if device is mobile using various methods
+    const isMobile = typeof window !== 'undefined' && (
+      // Check screen width
+      window.innerWidth < 768 ||
+      // Check for touch capability
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0 ||
+      // Check user agent (fallback)
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    );
+
+    // Only auto-focus on desktop
+    if (!isMobile) {
+      textareaRef.current?.focus();
+    }
   }, []);
 
   // Handle file selection

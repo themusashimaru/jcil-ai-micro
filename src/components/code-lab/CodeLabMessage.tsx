@@ -8,21 +8,52 @@
  * - User messages: Subtle container to distinguish input
  * - Code blocks: Syntax highlighted with copy button
  * - Terminal output: Professional monospace styling
+ * - Agent type indicators: Show which mode is active
+ *
+ * SECURITY: Uses sanitizeHtml to prevent XSS attacks
  */
 
 import { useState, useMemo } from 'react';
 import type { CodeLabMessage as MessageType } from './types';
+import { sanitizeHtml, escapeHtml } from '@/lib/sanitize';
 
 interface CodeLabMessageProps {
   message: MessageType;
   isLast: boolean;
 }
 
+// Agent type configuration
+interface AgentType {
+  name: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+}
+
+const AGENT_TYPES: Record<string, AgentType> = {
+  workspace: { name: 'Workspace Agent', icon: '>', color: '#22c55e', bgColor: '#dcfce7' },
+  standard: { name: 'Claude Opus 4.5', icon: '', color: '#6366f1', bgColor: '#e0e7ff' },
+  code: { name: 'Code Generator', icon: '', color: '#8b5cf6', bgColor: '#ede9fe' },
+};
+
 export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps) {
   const [copiedBlock, setCopiedBlock] = useState<number | null>(null);
 
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
+
+  // Detect agent type from message metadata or content patterns
+  const agentType = useMemo(() => {
+    if (isUser || isSystem) return null;
+    // Check for workspace agent patterns in content
+    if (message.content?.includes('`> ') ||
+        message.content?.includes('`Running ') ||
+        message.content?.includes('execute_shell') ||
+        message.content?.includes('/workspace')) {
+      return AGENT_TYPES.workspace;
+    }
+    return AGENT_TYPES.standard;
+  }, [message.content, isUser, isSystem]);
 
   // Parse content for code blocks
   const parsedContent = useMemo(() => {
@@ -111,6 +142,14 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
   // Assistant message - flows naturally
   return (
     <div className={`message message-assistant ${message.isStreaming ? 'streaming' : ''}`}>
+      {/* Agent Type Indicator */}
+      {agentType && (
+        <div className="agent-indicator" style={{ color: agentType.color, background: agentType.bgColor }}>
+          <span className="agent-icon">{agentType.icon}</span>
+          <span className="agent-name">{agentType.name}</span>
+        </div>
+      )}
+
       {parsedContent.map((block, index) => {
         if (block.type === 'code') {
           return (
@@ -139,7 +178,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
                 </button>
               </div>
               <pre className="code-content">
-                <code>{block.content}</code>
+                <code dangerouslySetInnerHTML={{ __html: highlightCode(escapeHtml(block.content), block.language) }} />
               </pre>
             </div>
           );
@@ -161,9 +200,9 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           );
         }
 
-        // Regular text
+        // Regular text - SANITIZED to prevent XSS
         return (
-          <div key={index} className="text-block" dangerouslySetInnerHTML={{ __html: block.content }} />
+          <div key={index} className="text-block" dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }} />
         );
       })}
 
@@ -359,6 +398,45 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           0%, 50% { opacity: 1; }
           51%, 100% { opacity: 0; }
         }
+
+        /* Agent Type Indicator */
+        .agent-indicator {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          padding: 0.25rem 0.625rem;
+          border-radius: 12px;
+          font-size: 0.6875rem;
+          font-weight: 500;
+          margin-bottom: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.025em;
+        }
+
+        .agent-icon {
+          font-family: 'SF Mono', 'Menlo', monospace;
+          font-weight: 700;
+        }
+
+        .agent-name {
+          opacity: 0.9;
+        }
+
+        /* Syntax Highlighting */
+        .code-content :global(.token-keyword) { color: #c792ea; }
+        .code-content :global(.token-string) { color: #c3e88d; }
+        .code-content :global(.token-number) { color: #f78c6c; }
+        .code-content :global(.token-comment) { color: #676e95; font-style: italic; }
+        .code-content :global(.token-function) { color: #82aaff; }
+        .code-content :global(.token-operator) { color: #89ddff; }
+        .code-content :global(.token-punctuation) { color: #89ddff; }
+        .code-content :global(.token-class) { color: #ffcb6b; }
+        .code-content :global(.token-variable) { color: #f07178; }
+        .code-content :global(.token-type) { color: #ffcb6b; }
+        .code-content :global(.token-property) { color: #80cbc4; }
+        .code-content :global(.token-tag) { color: #f07178; }
+        .code-content :global(.token-attr) { color: #c792ea; }
+        .code-content :global(.token-value) { color: #c3e88d; }
       `}</style>
     </div>
   );
@@ -434,7 +512,7 @@ function formatText(text: string): string {
     // Inline code
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
     // Unordered lists
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
@@ -450,4 +528,70 @@ function formatText(text: string): string {
     .replace(/<p><\/p>/g, '')
     .replace(/<p>(<[hul])/g, '$1')
     .replace(/(<\/[hul][^>]*>)<\/p>/g, '$1');
+}
+
+// ============================================================================
+// SYNTAX HIGHLIGHTING
+// ============================================================================
+
+/**
+ * Simple syntax highlighting without external dependencies
+ * Provides basic highlighting for common languages
+ */
+function highlightCode(code: string, language?: string): string {
+  if (!language) return code;
+
+  const lang = language.toLowerCase();
+
+  // Language-specific keywords
+  const keywordPatterns: Record<string, RegExp> = {
+    typescript: /\b(const|let|var|function|return|if|else|for|while|class|extends|implements|import|export|from|async|await|try|catch|throw|new|typeof|instanceof|interface|type|enum|public|private|protected|static|readonly|as|is|keyof|infer|never|unknown|any|void|null|undefined|true|false)\b/g,
+    javascript: /\b(const|let|var|function|return|if|else|for|while|class|extends|import|export|from|async|await|try|catch|throw|new|typeof|instanceof|true|false|null|undefined)\b/g,
+    python: /\b(def|class|return|if|elif|else|for|while|import|from|as|try|except|finally|raise|with|yield|lambda|pass|break|continue|and|or|not|in|is|True|False|None|self|async|await)\b/g,
+    rust: /\b(fn|let|mut|const|struct|enum|impl|trait|pub|use|mod|match|if|else|for|while|loop|return|break|continue|async|await|self|Self|true|false|None|Some|Ok|Err)\b/g,
+    go: /\b(func|var|const|type|struct|interface|package|import|return|if|else|for|range|switch|case|default|break|continue|go|chan|select|defer|map|make|new|true|false|nil)\b/g,
+    java: /\b(public|private|protected|class|interface|extends|implements|static|final|void|int|long|double|float|boolean|String|return|if|else|for|while|try|catch|throw|new|import|package|true|false|null|this|super)\b/g,
+    css: /\b(color|background|border|margin|padding|display|position|width|height|font|text|flex|grid|align|justify|transform|transition|animation|hover|focus|active)\b/g,
+    html: /\b(div|span|p|a|img|ul|ol|li|h[1-6]|header|footer|nav|section|article|main|form|input|button|table|tr|td|th|head|body|html|script|style|link|meta)\b/g,
+    sql: /\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|AND|OR|NOT|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|DROP|ALTER|INDEX|PRIMARY|KEY|FOREIGN|REFERENCES|ORDER|BY|ASC|DESC|LIMIT|OFFSET|GROUP|HAVING|DISTINCT|COUNT|SUM|AVG|MAX|MIN|NULL|AS)\b/gi,
+    json: /"[^"]+"\s*:/g,
+  };
+
+  // Get patterns for the language or fall back to typescript patterns
+  const langPatterns = keywordPatterns[lang] || keywordPatterns.typescript;
+
+  let result = code;
+
+  // Apply highlighting in order of specificity
+
+  // Comments (single line and multi-line)
+  result = result.replace(/(\/\/[^\n]*)/g, '<span class="token-comment">$1</span>');
+  result = result.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="token-comment">$1</span>');
+  result = result.replace(/(#[^\n]*)/g, '<span class="token-comment">$1</span>');
+
+  // Strings (double and single quoted)
+  result = result.replace(/(&quot;[^&]*&quot;|"[^"]*")/g, '<span class="token-string">$1</span>');
+  result = result.replace(/('(?:[^'\\]|\\.)*')/g, '<span class="token-string">$1</span>');
+  result = result.replace(/(`(?:[^`\\]|\\.)*`)/g, '<span class="token-string">$1</span>');
+
+  // Numbers
+  result = result.replace(/\b(\d+\.?\d*)\b/g, '<span class="token-number">$1</span>');
+
+  // Keywords (apply last to not affect already highlighted content)
+  if (langPatterns) {
+    result = result.replace(langPatterns, '<span class="token-keyword">$&</span>');
+  }
+
+  // Function calls
+  result = result.replace(/\b([a-zA-Z_]\w*)\s*(?=\()/g, '<span class="token-function">$1</span>');
+
+  // Types (capitalized words, common in TS/Java)
+  if (['typescript', 'javascript', 'java', 'rust'].includes(lang)) {
+    result = result.replace(/\b([A-Z][a-zA-Z0-9]*)\b/g, '<span class="token-type">$1</span>');
+  }
+
+  // Operators
+  result = result.replace(/([+\-*/%=<>!&|^~?:])/g, '<span class="token-operator">$1</span>');
+
+  return result;
 }
