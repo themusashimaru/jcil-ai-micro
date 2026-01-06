@@ -39,7 +39,6 @@ function LoginForm() {
         const response = await fetch('/api/design-settings');
         if (response.ok) {
           const settings = await response.json();
-          // Use login_logo, fall back to main_logo
           const logoUrl = settings.login_logo || settings.main_logo;
           if (logoUrl && logoUrl !== '/images/logo.png') {
             setLogo(logoUrl);
@@ -78,7 +77,6 @@ function LoginForm() {
       setError('');
       setGoogleLoading(true);
       await signInWithGoogle();
-      // Redirect happens automatically via OAuth
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in with Google');
       setGoogleLoading(false);
@@ -90,7 +88,6 @@ function LoginForm() {
       setError('');
       setGithubLoading(true);
       await signInWithGitHub();
-      // Redirect happens automatically via OAuth
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in with GitHub');
       setGithubLoading(false);
@@ -98,51 +95,51 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-black p-4">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-100/40 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-slate-100/30 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
       </div>
 
       <div className="w-full max-w-md relative z-10">
         {/* Card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200/50">
+        <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 border border-white/10">
           {/* Logo */}
           <div className="text-center mb-6">
             {isLogoLoading ? (
-              <div className="h-24 mx-auto" />
+              <div className="h-12 mx-auto" />
             ) : logo ? (
-              <img src={logo} alt="JCIL.ai" className="h-24 mx-auto" />
+              <img src={logo} alt="JCIL.ai" className="h-12 mx-auto" />
             ) : (
               <h1 className="text-3xl sm:text-4xl font-bold">
-                <span className="bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">JCIL</span>
-                <span className="text-blue-600">.ai</span>
+                <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">JCIL</span>
+                <span className="text-slate-400">.ai</span>
               </h1>
             )}
           </div>
 
           {/* Header */}
           <div className="text-center mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
-              Welcome Back
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+              Welcome back
             </h2>
-            <p className="text-slate-600">
+            <p className="text-slate-400">
               Sign in to continue
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
 
           {/* Email/Password Form */}
           <form onSubmit={handleEmailSignIn} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
                 Email
               </label>
               <input
@@ -151,14 +148,14 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 disabled={loading}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -168,14 +165,14 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 bg-white border border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 pr-12 bg-black/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   disabled={loading}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -196,7 +193,7 @@ function LoginForm() {
             <div className="text-right">
               <Link
                 href="/forgot-password"
-                className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
               >
                 Forgot password?
               </Link>
@@ -206,7 +203,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-900 to-blue-700 text-white rounded-lg px-4 py-3 font-medium hover:shadow-lg hover:shadow-blue-900/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-white text-black rounded-lg px-4 py-3 font-semibold hover:bg-slate-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
@@ -215,10 +212,10 @@ function LoginForm() {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200"></div>
+              <div className="w-full border-t border-white/10"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-slate-500">or continue with</span>
+              <span className="px-2 bg-slate-900 text-slate-500">or continue with</span>
             </div>
           </div>
 
@@ -228,7 +225,7 @@ function LoginForm() {
             <button
               onClick={handleGoogleSignIn}
               disabled={googleLoading || githubLoading || loading}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 text-slate-700 rounded-lg px-4 py-3 font-medium hover:bg-slate-50 hover:border-slate-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 rounded-lg px-4 py-3 font-medium hover:bg-slate-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -243,7 +240,7 @@ function LoginForm() {
             <button
               onClick={handleGitHubSignIn}
               disabled={githubLoading || googleLoading || loading}
-              className="w-full flex items-center justify-center gap-3 bg-slate-900 border border-slate-900 text-white rounded-lg px-4 py-3 font-medium hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-3 font-medium hover:bg-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
@@ -258,17 +255,17 @@ function LoginForm() {
               <PasskeyLoginButton
                 email={email}
                 onError={(err) => setError(err)}
-                className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
               />
             </div>
           )}
 
           {/* Sign Up Link */}
-          <p className="text-center text-slate-600 text-sm mt-6">
+          <p className="text-center text-slate-400 text-sm mt-6">
             Don&apos;t have an account?{' '}
             <Link
               href="/signup"
-              className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
             >
               Sign up
             </Link>
@@ -279,7 +276,7 @@ function LoginForm() {
         <div className="text-center mt-6">
           <Link
             href="/"
-            className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+            className="text-sm text-slate-500 hover:text-white transition-colors"
           >
             ← Back to home
           </Link>
@@ -292,8 +289,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-slate-600">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-slate-400">Loading...</div>
       </div>
     }>
       <LoginForm />

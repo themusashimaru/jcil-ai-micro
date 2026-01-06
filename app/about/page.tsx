@@ -2,185 +2,183 @@
  * ABOUT US PAGE
  *
  * PURPOSE:
- * - Tell the JCIL.AI story
- * - Build trust and credibility
- * - Explain mission and values
+ * - Tell the JCIL.AI story with confidence
+ * - Dark theme, tier-one presentation
+ * - Faith foundation, open to all
  */
 
 import Link from 'next/link';
+import LandingLogo from '../components/LandingLogo';
+import MobileMenu from '../components/MobileMenu';
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-black text-white">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200">
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-black/80 border-b border-white/10">
         <div className="container mx-auto px-4 py-4">
           <nav className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-slate-900">
-              JCIL.AI
+            <Link href="/">
+              <LandingLogo />
             </Link>
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link href="/login" className="px-3 py-2 text-slate-700 hover:text-slate-900 text-sm sm:text-base font-medium">
+
+            <div className="hidden md:flex items-center space-x-6">
+              <Link href="/#capabilities" className="text-slate-400 hover:text-white font-medium transition">
+                Capabilities
+              </Link>
+              <Link href="/code-lab" className="text-slate-400 hover:text-white font-medium transition">
+                Code Lab
+              </Link>
+              <Link href="/docs" className="text-slate-400 hover:text-white font-medium transition">
+                Docs
+              </Link>
+              <Link href="/#pricing" className="text-slate-400 hover:text-white font-medium transition">
+                Pricing
+              </Link>
+            </div>
+
+            <div className="hidden md:flex items-center space-x-4">
+              <Link href="/login" className="px-4 py-2 text-slate-400 hover:text-white font-medium transition">
                 Log In
               </Link>
               <Link
                 href="/signup"
-                className="rounded-lg bg-blue-900 px-4 py-2 sm:px-6 text-white font-semibold hover:bg-blue-800 text-sm sm:text-base transition"
+                className="rounded-xl bg-white px-6 py-2 text-black font-semibold hover:bg-slate-100 transition-all duration-300"
               >
-                Sign Up
+                Get Started
               </Link>
             </div>
+
+            <MobileMenu />
           </nav>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-24">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="mb-6 text-4xl sm:text-5xl font-bold text-slate-900">About JCIL.AI</h1>
-            <p className="text-xl text-slate-600">
-              Building AI tools that serve people of faith.
+      <section className="relative py-24 sm:py-32 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px]" />
+          <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[100px]" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <div className="mx-auto max-w-3xl text-center">
+            <h1 className="mb-6 text-5xl sm:text-6xl font-bold">
+              <span className="text-white">About</span>{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">JCIL.AI</span>
+            </h1>
+            <p className="text-xl text-slate-400">
+              Enterprise AI infrastructure. Founded on faith, open to all.
             </p>
           </div>
         </div>
       </section>
 
       {/* Our Story */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="mb-6 text-3xl font-bold text-slate-900">Our Story</h2>
-          <div className="space-y-6 text-lg text-slate-600 leading-relaxed">
-            <p>
-              JCIL.AI was founded with a simple observation: the most powerful AI tools in the world
-              are built in Silicon Valley, often reflecting values that do not align with millions
-              of Americans who hold traditional, faith-based beliefs.
-            </p>
-            <p>
-              As artificial intelligence becomes more influential in how we learn, work, and
-              communicate, we saw a growing need for tools that respect and reinforce the values
-              of people of faith rather than challenge them.
-            </p>
-            <p>
-              Our founder, a computer programmer specializing in tool development, deep research,
-              and security systems engineering, set out to build something different: an AI platform
-              built on world-class infrastructure, wrapped in a protective layer designed specifically
-              to serve Christians and people of faith.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Our Mission */}
-      <section className="bg-slate-50 py-12">
+      <section className="py-20 border-t border-white/10">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl">
-            <h2 className="mb-6 text-3xl font-bold text-slate-900">Our Mission</h2>
-            <div className="space-y-6 text-lg text-slate-600 leading-relaxed">
+            <h2 className="mb-8 text-3xl font-bold text-white">The Origin</h2>
+            <div className="space-y-6 text-lg text-slate-400 leading-relaxed">
               <p>
-                We believe that if people of faith do not build their own tools, others will build
-                them for us. And those tools will not share our values.
+                We started with a simple observation: the most powerful AI tools are built by teams
+                that don&apos;t share our values. That&apos;s not a criticism — it&apos;s just reality.
               </p>
               <p>
-                JCIL.AI exists to ensure that Christians and people of faith have access to powerful,
-                modern AI technology that they can trust. Technology that empowers without replacing
-                human thinking. Technology that serves without compromising beliefs.
+                So we built our own. Not a watered-down alternative. Not a &quot;safe&quot; version with
+                fewer features. A full enterprise-grade AI platform with agentic execution, persistent
+                memory, MCP integration, and everything else you&apos;d expect from a tier-one solution.
+              </p>
+              <p className="text-slate-300">
+                The only difference? We built it with intention. With values we trust.
+                And we made it available to everyone.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Our Values */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="mb-8 text-3xl font-bold text-slate-900">Our Values</h2>
-          <div className="space-y-6">
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-              <h3 className="mb-3 text-xl font-semibold text-slate-900">Human Development Matters</h3>
-              <p className="text-slate-600">
-                We will help a pastor outline a sermon, but we believe sermons should be Spirit-led.
-                We will help a student study and identify weaknesses, but we will not write their
-                papers for them. AI should assist human growth, not replace it.
-              </p>
-            </div>
-
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-              <h3 className="mb-3 text-xl font-semibold text-slate-900">Safe for Families</h3>
-              <p className="text-slate-600">
-                Our platform includes enterprise-grade content moderation. No adult content. No profane language.
-                Clear community guidelines. JCIL.AI is a place where families can use AI without
-                worrying about what they might encounter.
-              </p>
-            </div>
-
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-              <h3 className="mb-3 text-xl font-semibold text-slate-900">Privacy as Stewardship</h3>
-              <p className="text-slate-600">
-                We take the stewardship of your data seriously. Your conversations are encrypted
-                and automatically deleted after 6 months. All data is processed on American servers.
-                We do not sell your data or use it for purposes beyond providing you with the service you paid for.
-              </p>
-            </div>
-
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
-              <h3 className="mb-3 text-xl font-semibold text-slate-900">Scripture as Foundation</h3>
-              <p className="text-slate-600">
-                We believe Scripture is the written Word of God. JCIL.AI is designed to be a
-                study aid that helps users explore the Bible, develop Bible studies, and deepen
-                their faith with an assistant that shares their reverence for God&apos;s Word.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Enterprise Security */}
-      <section className="bg-blue-900 py-12 text-white">
+      {/* What We Believe */}
+      <section className="py-20 bg-slate-900/50 border-y border-white/10">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="mb-6 text-3xl font-bold">Enterprise-Grade Security</h2>
-            <p className="text-lg text-blue-200 mb-8">
-              Your trust is our priority. We&apos;ve built JCIL.AI with the same security standards
-              used by Fortune 500 companies.
+          <div className="mx-auto max-w-3xl">
+            <h2 className="mb-8 text-3xl font-bold text-white">What We Believe</h2>
+            <div className="space-y-6">
+              <div className="bg-black/50 rounded-2xl p-6 border border-white/10">
+                <h3 className="mb-3 text-xl font-semibold text-white">AI Should Augment, Not Replace</h3>
+                <p className="text-slate-400">
+                  We build tools that make you more capable, not tools that do your thinking for you.
+                  The human stays in the loop. The human makes the decisions.
+                </p>
+              </div>
+
+              <div className="bg-black/50 rounded-2xl p-6 border border-white/10">
+                <h3 className="mb-3 text-xl font-semibold text-white">Privacy Is Non-Negotiable</h3>
+                <p className="text-slate-400">
+                  Your data is yours. We don&apos;t train on your conversations. We don&apos;t sell your information.
+                  Everything is encrypted, auto-deleted after 6 months, and processed on American servers.
+                </p>
+              </div>
+
+              <div className="bg-black/50 rounded-2xl p-6 border border-white/10">
+                <h3 className="mb-3 text-xl font-semibold text-white">Excellence Without Compromise</h3>
+                <p className="text-slate-400">
+                  Faith-founded doesn&apos;t mean feature-limited. We compete on capability.
+                  Dynamic agents, MCP connectivity, full GitHub workflow, sandboxed execution —
+                  everything you need from enterprise AI.
+                </p>
+              </div>
+
+              <div className="bg-black/50 rounded-2xl p-6 border border-white/10">
+                <h3 className="mb-3 text-xl font-semibold text-white">Open to Everyone</h3>
+                <p className="text-slate-400">
+                  We built this for ourselves, but we made it for everyone. You don&apos;t have to share
+                  our beliefs to use our tools. You just have to want something that works.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Technical Foundation */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="mb-8 text-3xl font-bold text-white text-center">Technical Foundation</h2>
+            <p className="text-center text-slate-400 mb-12 max-w-2xl mx-auto">
+              Built on proven infrastructure. No compromises on capability.
             </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-                <div className="text-2xl mb-2">🇺🇸</div>
-                <h4 className="font-semibold mb-1">American Servers</h4>
-                <p className="text-sm text-blue-200">All data processed exclusively on US soil</p>
-              </div>
-              <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-                <div className="text-2xl mb-2">🔒</div>
-                <h4 className="font-semibold mb-1">AES-256 Encryption</h4>
-                <p className="text-sm text-blue-200">Industry-standard encryption at rest and in transit</p>
-              </div>
-              <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-                <div className="text-2xl mb-2">🛡️</div>
-                <h4 className="font-semibold mb-1">Content Moderation</h4>
-                <p className="text-sm text-blue-200">Multi-layer enterprise moderation system</p>
-              </div>
-              <div className="bg-white/10 rounded-xl p-4 border border-white/20">
-                <div className="text-2xl mb-2">⚡</div>
-                <h4 className="font-semibold mb-1">99.9% Uptime</h4>
-                <p className="text-sm text-blue-200">Reliable service when you need it</p>
-              </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { icon: '🔒', title: 'E2B Sandbox', desc: 'Isolated execution environments' },
+                { icon: '🇺🇸', title: 'US Servers', desc: 'All data on American soil' },
+                { icon: '🔐', title: 'AES-256', desc: 'Enterprise encryption' },
+                { icon: '⚡', title: 'Edge Deploy', desc: 'Global low-latency' },
+              ].map((item, i) => (
+                <div key={i} className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50 text-center">
+                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <h4 className="font-semibold text-white mb-1">{item.title}</h4>
+                  <p className="text-sm text-slate-400">{item.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="bg-slate-50 py-16">
+      <section className="py-20 border-t border-white/10">
         <div className="container mx-auto px-4 text-center">
-          <div className="mx-auto max-w-2xl bg-white rounded-3xl p-8 sm:p-12 shadow-lg border border-slate-200">
-            <h2 className="mb-4 text-3xl font-bold text-slate-900">Join Our Community</h2>
-            <p className="mb-8 text-lg text-slate-600">
-              Experience AI that was built with your values in mind.
+          <div className="mx-auto max-w-2xl">
+            <h2 className="mb-4 text-3xl font-bold text-white">Ready to Build?</h2>
+            <p className="mb-8 text-lg text-slate-400">
+              Enterprise AI that works the way you think.
             </p>
             <Link
               href="/signup"
-              className="inline-block rounded-lg bg-blue-900 px-8 py-4 text-lg font-semibold text-white hover:bg-blue-800 transition"
+              className="inline-block rounded-xl bg-white px-10 py-4 text-lg font-semibold text-black hover:bg-slate-100 transition-all duration-300"
             >
               Get Started
             </Link>
@@ -189,13 +187,18 @@ export default function AboutPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-white py-12">
-        <div className="container mx-auto px-4 text-center text-sm text-slate-400">
-          <p>&copy; {new Date().getFullYear()} JCIL.AI. All rights reserved.</p>
-          <div className="mt-4 space-x-4">
-            <Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-white transition">Terms of Service</Link>
-            <Link href="/" className="hover:text-white transition">Home</Link>
+      <footer className="bg-black py-12 border-t border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-slate-500 text-sm">
+              &copy; {new Date().getFullYear()} JCIL.AI. All rights reserved.
+            </div>
+            <div className="flex gap-6 text-sm">
+              <Link href="/" className="text-slate-500 hover:text-white transition">Home</Link>
+              <Link href="/docs" className="text-slate-500 hover:text-white transition">Docs</Link>
+              <Link href="/privacy" className="text-slate-500 hover:text-white transition">Privacy</Link>
+              <Link href="/terms" className="text-slate-500 hover:text-white transition">Terms</Link>
+            </div>
           </div>
         </div>
       </footer>
