@@ -10,17 +10,16 @@
 import { createClient } from '@supabase/supabase-js';
 
 // =============================================================================
-// PHASE 1: GOOGLE-ONLY MODE
-// All providers are locked to Gemini. Other providers kept for backwards compat
-// but are never used. This simplifies the codebase significantly.
+// CLAUDE-EXCLUSIVE MODE
+// All text generation uses Anthropic Claude (Haiku/Sonnet hybrid routing)
 // =============================================================================
 
 export type Provider = 'openai' | 'anthropic' | 'xai' | 'deepseek' | 'gemini';
 
 export interface ProviderConfig {
   model: string;
-  reasoningModel?: string; // Legacy - not used
-  imageModel?: string; // Gemini only - Nano Banana image generation
+  reasoningModel?: string;
+  imageModel?: string;
 }
 
 export interface ProviderSettings {
@@ -34,27 +33,27 @@ export interface ProviderSettings {
   };
 }
 
-// LOCKED TO GOOGLE - These are the ONLY models used
-const GOOGLE_MODELS = {
-  text: 'gemini-3-pro-preview',        // All text/chat/code
-  image: 'gemini-3-pro-image-preview', // Nano Banana for images
+// Claude models for different use cases
+const CLAUDE_MODELS = {
+  fast: 'claude-haiku-4-20250414',      // Quick responses, simple tasks
+  smart: 'claude-sonnet-4-20250514',    // Complex reasoning, code
 } as const;
 
-// Default settings - ALWAYS uses Gemini regardless of database
+// Default settings - Uses Claude for all text generation
 const DEFAULT_SETTINGS: ProviderSettings = {
-  activeProvider: 'gemini', // LOCKED
+  activeProvider: 'anthropic', // CLAUDE-EXCLUSIVE
   providerConfig: {
-    openai: { model: GOOGLE_MODELS.text },      // Redirects to Gemini
-    anthropic: { model: GOOGLE_MODELS.text },   // Redirects to Gemini
-    xai: { model: GOOGLE_MODELS.text },         // Redirects to Gemini
-    deepseek: { model: GOOGLE_MODELS.text },    // Redirects to Gemini
-    gemini: { model: GOOGLE_MODELS.text, imageModel: GOOGLE_MODELS.image },
+    openai: { model: CLAUDE_MODELS.fast },
+    anthropic: { model: CLAUDE_MODELS.fast },
+    xai: { model: CLAUDE_MODELS.fast },
+    deepseek: { model: CLAUDE_MODELS.fast },
+    gemini: { model: CLAUDE_MODELS.fast },
   },
 };
 
 /**
  * Get Supabase admin client for reading settings
- * PHASE 1: Only used for Perplexity model lookup
+ * Used for Perplexity model lookup
  */
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -69,44 +68,42 @@ function getSupabaseAdmin() {
 
 /**
  * Get current provider settings
- * PHASE 1: Always returns Google-locked settings - ignores database
+ * Always returns Claude/Anthropic settings
  */
 export async function getProviderSettings(): Promise<ProviderSettings> {
-  // PHASE 1: Always return Google-locked settings
-  // Database settings are IGNORED - everything goes through Gemini
   return DEFAULT_SETTINGS;
 }
 
 /**
  * Clear the settings cache (call after updating settings)
- * PHASE 1: No-op since we don't cache anymore
+ * No-op since settings are static
  */
 export function clearProviderSettingsCache(): void {
-  // No-op in PHASE 1 - settings are hardcoded to Google
+  // No-op - settings are hardcoded to Anthropic
 }
 
 /**
  * Get the active provider
- * PHASE 1: Always returns 'gemini' - locked to Google
+ * Always returns 'anthropic' - Claude exclusive
  */
 export async function getActiveProvider(): Promise<Provider> {
-  return 'gemini'; // LOCKED TO GOOGLE
+  return 'anthropic'; // CLAUDE-EXCLUSIVE
 }
 
 /**
  * Get the model for the active provider
- * PHASE 1: Always returns Gemini model - locked to Google
+ * Returns Claude Haiku for quick tasks
  */
 export async function getActiveModel(): Promise<string> {
-  return GOOGLE_MODELS.text; // LOCKED TO GOOGLE
+  return CLAUDE_MODELS.fast; // Claude Haiku
 }
 
 /**
  * Get the reasoning model
- * PHASE 1: Returns Gemini - no DeepSeek reasoning
+ * Returns Claude Sonnet for complex reasoning
  */
 export async function getDeepSeekReasoningModel(): Promise<string> {
-  return GOOGLE_MODELS.text; // LOCKED TO GOOGLE - use Gemini for reasoning too
+  return CLAUDE_MODELS.smart; // Claude Sonnet for reasoning
 }
 
 /**
@@ -133,10 +130,10 @@ export function isProviderConfigured(provider: Provider): boolean {
 
 /**
  * Get the model for a user tier
- * PHASE 1: All tiers use Gemini - locked to Google
+ * All tiers use Claude - Haiku for standard, Sonnet for complex
  */
 export async function getModelForTier(_tier: string, _provider?: Provider): Promise<string> {
-  return GOOGLE_MODELS.text; // LOCKED TO GOOGLE - all tiers use same model
+  return CLAUDE_MODELS.fast; // Claude Haiku for most tasks
 }
 
 /**
@@ -163,10 +160,10 @@ export async function getPerplexityModel(): Promise<string> {
 
 /**
  * Get the Code Command model
- * PHASE 1: Returns Gemini - locked to Google
+ * Returns Claude Sonnet for code tasks
  */
 export async function getCodeCommandModel(): Promise<string> {
-  return GOOGLE_MODELS.text; // LOCKED TO GOOGLE
+  return CLAUDE_MODELS.smart; // Claude Sonnet for code
 }
 
 /**
@@ -193,9 +190,9 @@ export async function getVideoModel(): Promise<string> {
 }
 
 /**
- * Get the Gemini image model (Nano Banana)
- * PHASE 1: Always returns the locked image model
+ * Get the image model
+ * Returns empty string - image generation handled separately
  */
 export async function getGeminiImageModel(): Promise<string> {
-  return GOOGLE_MODELS.image; // LOCKED TO GOOGLE - Nano Banana
+  return ''; // Image generation handled by dedicated image routes
 }

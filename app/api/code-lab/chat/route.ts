@@ -1003,3 +1003,7 @@ ${codebaseContext}`;
     return new Response('Internal server error', { status: 500 });
   }
 }
+
+// Vercel serverless configuration
+export const runtime = 'nodejs';
+export const maxDuration = 300; // 5 minutes for complex code generation
