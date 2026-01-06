@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.code_lab_sessions (
     title TEXT NOT NULL DEFAULT 'New Session',
     message_count INTEGER DEFAULT 0,
     has_summary BOOLEAN DEFAULT false,
+    last_summary_at TIMESTAMP WITH TIME ZONE,
 
     -- Linked GitHub repository
     repo_owner TEXT,

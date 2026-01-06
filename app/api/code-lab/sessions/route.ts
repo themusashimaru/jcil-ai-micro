@@ -50,10 +50,19 @@ export async function GET() {
       title: s.title,
       createdAt: s.created_at,
       updatedAt: s.updated_at,
-      repo: s.repo,
+      // Construct repo object from separate columns
+      repo: s.repo_owner ? {
+        owner: s.repo_owner,
+        name: s.repo_name,
+        branch: s.repo_branch || 'main',
+        fullName: `${s.repo_owner}/${s.repo_name}`,
+      } : null,
       isActive: true,
       messageCount: s.message_count || 0,
       hasSummary: s.has_summary || false,
+      linesAdded: s.lines_added || 0,
+      linesRemoved: s.lines_removed || 0,
+      filesChanged: s.files_changed || 0,
     }));
 
     return NextResponse.json({ sessions: formattedSessions });
@@ -79,13 +88,20 @@ export async function POST(request: NextRequest) {
     const sessionId = generateId();
     const now = new Date().toISOString();
 
+    // Prepare repo fields from repo object
+    const repoFields = repo ? {
+      repo_owner: repo.owner,
+      repo_name: repo.name,
+      repo_branch: repo.branch || 'main',
+    } : {};
+
     const { data: session, error } = await (supabase
       .from('code_lab_sessions') as AnySupabase)
       .insert({
         id: sessionId,
         user_id: user.id,
         title,
-        repo,
+        ...repoFields,
         created_at: now,
         updated_at: now,
         message_count: 0,
@@ -117,7 +133,12 @@ export async function POST(request: NextRequest) {
         title: session.title,
         createdAt: session.created_at,
         updatedAt: session.updated_at,
-        repo: session.repo,
+        repo: session.repo_owner ? {
+          owner: session.repo_owner,
+          name: session.repo_name,
+          branch: session.repo_branch || 'main',
+          fullName: `${session.repo_owner}/${session.repo_name}`,
+        } : null,
         isActive: true,
         messageCount: 0,
         hasSummary: false,
