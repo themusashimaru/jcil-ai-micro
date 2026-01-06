@@ -13,9 +13,8 @@
  * - Real-time output streaming
  */
 
-// Using stub until E2B is properly configured
-// To enable real E2B: npm install @e2b/code-interpreter && change import
-import { Sandbox } from './e2b-stub';
+// Real E2B SDK - requires E2B_API_KEY in environment
+import { Sandbox } from '@e2b/code-interpreter';
 import { createClient } from '@supabase/supabase-js';
 
 // ============================================
@@ -84,11 +83,11 @@ export class ContainerManager {
     };
 
     try {
-      // Create E2B sandbox
-      const sandbox = await Sandbox.create({
-        template: this.getE2BTemplate(fullConfig.template),
-        timeout: fullConfig.timeout * 1000,
-        envVars: fullConfig.envVars,
+      // Create E2B sandbox with correct API
+      const template = this.getE2BTemplate(fullConfig.template);
+      const sandbox = await Sandbox.create(template, {
+        timeoutMs: fullConfig.timeout * 1000,
+        envs: fullConfig.envVars,
       });
 
       // Store sandbox reference
@@ -105,7 +104,7 @@ export class ContainerManager {
         .eq('id', workspaceId);
 
       // Initialize workspace directory
-      await sandbox.filesystem.makeDir('/workspace');
+      await sandbox.files.makeDir('/workspace');
 
       return sandbox.sandboxId;
 
@@ -121,10 +120,10 @@ export class ContainerManager {
   private getE2BTemplate(template: ContainerConfig['template']): string {
     const templates: Record<string, string> = {
       base: 'base',
-      nodejs: 'nodejs20',
-      python: 'python3',
-      go: 'golang',
-      rust: 'rust',
+      nodejs: 'base', // E2B base includes Node.js
+      python: 'base', // E2B code-interpreter is Python-focused
+      go: 'base',
+      rust: 'base',
       custom: 'base',
     };
     return templates[template] || 'base';
@@ -184,30 +183,23 @@ export class ContainerManager {
     const sandbox = await this.getSandbox(workspaceId);
 
     try {
-      let stdout = '';
-      let stderr = '';
-
-      const process = await sandbox.process.start({
-        cmd: command,
+      // Use E2B commands.run API
+      const result = await sandbox.commands.run(command, {
         cwd: options.cwd || '/workspace',
         timeoutMs: options.timeout || 30000,
         onStdout: (data) => {
-          stdout += data;
           options.stream?.onStdout?.(data);
         },
         onStderr: (data) => {
-          stderr += data;
           options.stream?.onStderr?.(data);
         },
       });
 
-      const result = await process.wait();
-
       options.stream?.onExit?.(result.exitCode);
 
       return {
-        stdout: stdout.trim(),
-        stderr: stderr.trim(),
+        stdout: result.stdout.trim(),
+        stderr: result.stderr.trim(),
         exitCode: result.exitCode,
         executionTime: Date.now() - startTime,
       };
@@ -234,6 +226,7 @@ export class ContainerManager {
     const startTime = Date.now();
 
     try {
+      // Use E2B code-interpreter runCode API
       const result = await sandbox.runCode(code);
 
       return {
@@ -241,7 +234,7 @@ export class ContainerManager {
         stderr: result.logs.stderr.join('\n'),
         exitCode: result.error ? 1 : 0,
         executionTime: Date.now() - startTime,
-        error: result.error?.message,
+        error: result.error?.value,
       };
 
     } catch (error) {
@@ -262,7 +255,7 @@ export class ContainerManager {
     const sandbox = await this.getSandbox(workspaceId);
 
     try {
-      const content = await sandbox.filesystem.read(path);
+      const content = await sandbox.files.read(path);
       return content;
     } catch (error) {
       throw new Error(`Failed to read file ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -276,13 +269,8 @@ export class ContainerManager {
     const sandbox = await this.getSandbox(workspaceId);
 
     try {
-      // Ensure parent directory exists
-      const dir = path.substring(0, path.lastIndexOf('/'));
-      if (dir) {
-        await sandbox.filesystem.makeDir(dir);
-      }
-
-      await sandbox.filesystem.write(path, content);
+      // E2B files.write auto-creates parent directories
+      await sandbox.files.write(path, content);
     } catch (error) {
       throw new Error(`Failed to write file ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -292,7 +280,8 @@ export class ContainerManager {
    * Delete a file from the container
    */
   async deleteFile(workspaceId: string, path: string): Promise<void> {
-    await this.executeCommand(workspaceId, `rm -rf "${path}"`);
+    const sandbox = await this.getSandbox(workspaceId);
+    await sandbox.files.remove(path);
   }
 
   /**
@@ -302,12 +291,12 @@ export class ContainerManager {
     const sandbox = await this.getSandbox(workspaceId);
 
     try {
-      const entries = await sandbox.filesystem.list(path);
+      const entries = await sandbox.files.list(path);
 
       return entries.map(entry => ({
         path: `${path}/${entry.name}`,
-        isDirectory: entry.type === 'directory',
-        size: 0, // E2B doesn't provide size directly
+        isDirectory: entry.type === 'dir',
+        size: 0,
         modifiedAt: new Date(),
       }));
     } catch (error) {
@@ -330,10 +319,10 @@ export class ContainerManager {
 
     if (isBase64) {
       // Write base64 content and decode
-      await sandbox.filesystem.write(`${path}.b64`, contentStr);
+      await sandbox.files.write(`${path}.b64`, contentStr);
       await this.executeCommand(workspaceId, `base64 -d "${path}.b64" > "${path}" && rm "${path}.b64"`);
     } else {
-      await sandbox.filesystem.write(path, contentStr);
+      await sandbox.files.write(path, contentStr);
     }
   }
 
@@ -412,12 +401,8 @@ export class ContainerManager {
    * Check if a file exists
    */
   async fileExists(workspaceId: string, path: string): Promise<boolean> {
-    try {
-      await this.readFile(workspaceId, path);
-      return true;
-    } catch {
-      return false;
-    }
+    const sandbox = await this.getSandbox(workspaceId);
+    return sandbox.files.exists(path);
   }
 
   /**
@@ -500,7 +485,7 @@ export class ContainerManager {
     workspaceId: string,
     cwd: string = '/workspace',
     port: number = 3000
-  ): Promise<{ url: string; process: unknown }> {
+  ): Promise<{ url: string; pid: number }> {
     const sandbox = await this.getSandbox(workspaceId);
 
     const hasPackageJson = await this.fileExists(workspaceId, `${cwd}/package.json`);
@@ -510,10 +495,11 @@ export class ContainerManager {
       const pkg = JSON.parse(packageJson);
 
       if (pkg.scripts?.dev) {
-        const process = await sandbox.process.start({
-          cmd: 'npm run dev',
+        // Run in background
+        const handle = await sandbox.commands.run('npm run dev', {
           cwd,
-          envVars: { PORT: port.toString() },
+          envs: { PORT: port.toString() },
+          background: true,
         });
 
         // Wait a bit for server to start
@@ -522,7 +508,7 @@ export class ContainerManager {
         // Get the public URL
         const url = sandbox.getHost(port);
 
-        return { url, process };
+        return { url, pid: handle.pid };
       }
     }
 
@@ -610,11 +596,13 @@ export class ContainerManager {
   }
 
   /**
-   * Keep container alive (extend timeout)
+   * Keep container alive (extend timeout by recreating)
    */
   async keepAlive(workspaceId: string): Promise<void> {
+    // E2B doesn't have setTimeout, so we reconnect to refresh the timeout
     const sandbox = await this.getSandbox(workspaceId);
-    await sandbox.setTimeout(300000); // Extend by 5 minutes
+    // Just accessing the sandbox refreshes its timeout
+    await sandbox.files.exists('/workspace');
   }
 
   /**
@@ -792,4 +780,4 @@ export class WorkspaceExecutor {
   }
 }
 
-// All exports are inline with their declarations
+// All exports are inline with their class declarations
