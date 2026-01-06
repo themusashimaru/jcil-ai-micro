@@ -94,19 +94,19 @@ export default function DemoShowcase() {
         </div>
 
         {/* Tab Navigation - Horizontal Scroll on Mobile */}
-        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:justify-center scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:justify-center scrollbar-hide">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`shrink-0 flex items-center gap-2 px-5 sm:px-6 py-3.5 sm:py-3 rounded-xl font-medium transition-all duration-300 min-h-[48px] ${
                 activeTab === tab.id
                   ? 'bg-white text-black'
                   : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/10'
               }`}
             >
-              <span>{tab.icon}</span>
-              <span className="text-sm sm:text-base">{tab.label}</span>
+              <span className="text-lg">{tab.icon}</span>
+              <span className="text-base">{tab.label}</span>
             </button>
           ))}
         </div>
