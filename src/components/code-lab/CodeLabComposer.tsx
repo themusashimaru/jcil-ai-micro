@@ -56,7 +56,7 @@ export function CodeLabComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Voice input
+  // Voice input - with comfortable settings for natural speech
   const {
     isRecording,
     isProcessing,
@@ -75,8 +75,8 @@ export function CodeLabComposer({
     onError: (error) => {
       console.error('[Voice Input] Error:', error);
     },
-    silenceTimeout: 2000,  // Stop after 2s of silence
-    maxDuration: 30000,    // 30 second max recording
+    silenceTimeout: 4000,  // Stop after 4s of silence (comfortable pause)
+    maxDuration: 120000,   // 2 minute max recording
   });
 
   // Auto-resize textarea
