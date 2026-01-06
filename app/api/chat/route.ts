@@ -51,10 +51,8 @@ import { getKnowledgeBaseContent } from '@/lib/knowledge/knowledgeBase';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getSystemPromptForTool } from '@/lib/openai/tools';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
-import { decideRoute, logRouteDecision, hasWebsiteIntent, hasCodeExecutionIntent, isWebsiteDiscoveryResponse, RouteTarget } from '@/lib/routing/decideRoute';
-import { executeCode, extractCodeBlocks, shouldTestCode } from '@/lib/agents/codeExecutor';
-import { isSandboxConfigured } from '@/lib/connectors/vercel-sandbox';
-import { getProviderSettings, Provider, getModelForTier, getGeminiImageModel } from '@/lib/provider/settings';
+import { decideRoute, logRouteDecision, hasCodeExecutionIntent, isWebsiteDiscoveryResponse, RouteTarget } from '@/lib/routing/decideRoute';
+import { getProviderSettings, Provider, getModelForTier } from '@/lib/provider/settings';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 // Claude hybrid routing for text generation (Haiku for simple, Sonnet for complex)
 import {
@@ -80,28 +78,6 @@ import { shouldUseResearchAgent, executeResearchAgent, isResearchAgentEnabled } 
 // Code Agent removed from main chat - now isolated to Code Lab only
 // import { shouldUseCodeAgent, executeCodeAgent, isCodeAgentEnabled, isCodeReviewRequest, generateNoRepoSelectedResponse } from '@/agents/code';
 import { isConnectorsEnabled } from '@/lib/connectors';
-// FORGE & MUSASHI: Pure AI mode - only using category detection for context, not templates
-import { detectCategory, extractBusinessInfo } from '@/lib/templates/templateService';
-// NOTE: Auth templates temporarily disabled while streaming is implemented
-// TODO: Re-enable when multi-page streaming is added
-// import { generateLoginPage, generateSignupPage, generateAuthCallbackPage, generateDashboardPage, generateMagicLinkPage, generateForgotPasswordPage, hasMagicLinkIntent, AuthConfig } from '@/lib/templates/authTemplates';
-import {
-  githubFunctionDeclarations,
-  executeGitHubTool,
-} from '@/lib/gemini/githubTools';
-// FORGE & MUSASHI: Website Pipeline - comprehensive website generation with all assets
-import {
-  generateCompleteWebsite,
-  getActiveWebsiteSession,
-  applySmartModification,
-  pushWebsiteToGitHub,
-  deployWebsiteToVercel,
-  isGitHubPushRequest,
-  isVercelDeployRequest,
-  GenerationContext,
-  WebsiteSession,
-} from '@/lib/website/websitePipeline';
-import { hasWebsiteModificationIntent } from '@/lib/routing/decideRoute';
 
 // Rate limits per hour (configurable via env vars for tier upgrades)
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10); // messages/hour for logged-in users
@@ -1407,829 +1383,115 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // FORGE & MUSASHI: WEBSITE GENERATION PIPELINE
-    // Complete website generation with all assets
+    // WEBSITE GENERATION → REDIRECT TO CODE LAB
     // ========================================
     if (routeDecision.target === 'website') {
-      // FORGE & MUSASHI: Enhanced website detection with multi-page, cloning, and auth support
-      const websiteIntent = hasWebsiteIntent(lastUserContent);
-      const isMultiPage = websiteIntent.isMultiPage;
-      const isCloning = websiteIntent.isCloning;
-      const cloneUrl = websiteIntent.cloneUrl;
-      const hasAuth = websiteIntent.hasAuth;
+      console.log('[Chat API] Website generation requested - redirecting to Code Lab');
+      return new Response(
+        JSON.stringify({
+          type: 'text',
+          content: `**Website Generation Available in Code Lab! 🚀**
 
-      console.log('[Chat API] Routing to ENHANCED website generation with Template RAG + AI images');
-      console.log('[Chat API] Multi-page:', isMultiPage, 'Cloning:', isCloning, 'Auth:', hasAuth, 'URL:', cloneUrl || 'N/A');
+I can see you want to build a website! For the best experience, head over to **Code Lab** where you get:
 
-      try {
-        // Get models from admin settings
-        const geminiModel = await getModelForTier('pro', 'gemini');
-        const imageModel = await getGeminiImageModel();
-        console.log('[Chat API] Using Gemini model:', geminiModel, 'Image model:', imageModel);
+- **Claude Opus 4.5** - Our most powerful AI for web development
+- **Full agentic capabilities** - File creation, code execution, and more
+- **Live preview** - See your website as you build it
+- **GitHub integration** - Push directly to your repositories
+- **Vercel deployment** - Go live with one click
 
-        // Check if this is a modification request to an existing website
-        const modificationCheck = hasWebsiteModificationIntent(lastUserContent);
-        let existingSession: WebsiteSession | null = null;
+**To get started:**
+1. Click **Code Lab** in the sidebar
+2. Describe the website you want to build
+3. Watch Claude Opus build it step by step!
 
-        if (rateLimitIdentifier) {
-          existingSession = await getActiveWebsiteSession(rateLimitIdentifier);
-        }
-
-        // Handle website modifications with SMART section-level editing
-        if (modificationCheck.isModification && existingSession) {
-          console.log('[Chat API] FORGE & MUSASHI: Processing smart website modification...');
-          console.log('[Chat API] Matched pattern:', modificationCheck.matchedPattern);
-
-          const modResult = await applySmartModification(
-            existingSession,
-            lastUserContent,
-            geminiModel
-          );
-
-          if (modResult.success) {
-            const sectionNote = modResult.updatedSection
-              ? `\n\n✨ *Smart update: Modified the **${modResult.updatedSection}** section using your business model.*`
-              : '';
-
-            return new Response(
-              JSON.stringify({
-                type: 'code_preview',
-                content: `**Website Updated!**\n\n${modResult.changesDescription}${sectionNote}\n\nClick **"Open Preview"** to see the changes!\n\n*Want more changes? Just tell me what to adjust. When you're happy, say "push to GitHub" or "deploy to Vercel"!*`,
-                model: geminiModel,
-                codePreview: {
-                  code: modResult.html,
-                  language: 'html',
-                  title: existingSession.businessName,
-                  description: `Modified: ${lastUserContent.slice(0, 80)}...`,
-                },
-              }),
-              {
-                status: 200,
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Route-Target': 'website-modification',
-                  'X-Session-Id': existingSession.id,
-                },
-              }
-            );
-          }
-        }
-
-        // Handle GitHub push requests
-        if (existingSession && isGitHubPushRequest(lastUserContent)) {
-          console.log('[Chat API] FORGE & MUSASHI: Processing GitHub push request...');
-
-          // Get GitHub token for the user
-          const githubToken = await getGitHubTokenForUser(rateLimitIdentifier || '');
-
-          if (!githubToken) {
-            return new Response(
-              JSON.stringify({
-                type: 'text',
-                content: `**GitHub Not Connected**\n\nTo push your website to GitHub, you need to connect your GitHub account:\n\n1. Go to **Settings** → **Connectors**\n2. Click **Connect GitHub**\n3. Authorize access\n4. Come back and say "push to GitHub" again!\n\nYour website is saved and ready to push once connected.`,
-                model: geminiModel,
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              }
-            );
-          }
-
-          const pushResult = await pushWebsiteToGitHub(existingSession, githubToken);
-
-          if (pushResult.success) {
-            return new Response(
-              JSON.stringify({
-                type: 'text',
-                content: `**Website Pushed to GitHub!** 🚀\n\nYour website is now live on GitHub:\n\n📁 **Repository**: [${pushResult.repoUrl}](${pushResult.repoUrl})\n\n*What's next?*\n- Say "deploy to Vercel" to go live\n- Enable GitHub Pages for free hosting\n- Clone the repo to make local changes`,
-                model: geminiModel,
-              }),
-              {
-                status: 200,
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Route-Target': 'website-github-push',
-                  'X-Repo-Url': pushResult.repoUrl || '',
-                },
-              }
-            );
-          } else {
-            return new Response(
-              JSON.stringify({
-                type: 'text',
-                content: `**GitHub Push Failed**\n\nSorry, I couldn't push to GitHub: ${pushResult.error}\n\nPlease try again or check your GitHub connection in Settings.`,
-                model: geminiModel,
-              }),
-              {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-              }
-            );
-          }
-        }
-
-        // Handle Vercel deployment requests
-        if (existingSession && isVercelDeployRequest(lastUserContent)) {
-          console.log('[Chat API] FORGE & MUSASHI: Processing Vercel deployment request...');
-
-          const deployResult = await deployWebsiteToVercel(existingSession);
-
-          if (deployResult.success) {
-            return new Response(
-              JSON.stringify({
-                type: 'text',
-                content: `**Website Deployed to Vercel!** 🎉\n\nYour website is now LIVE:\n\n🌐 **Live URL**: [${deployResult.deploymentUrl}](${deployResult.deploymentUrl})\n\n*Your site is now accessible to the world!*\n\n**What's next?**\n- Share your URL with others\n- Connect a custom domain in Vercel dashboard\n- Say "push to GitHub" to save the source code`,
-                model: geminiModel,
-              }),
-              {
-                status: 200,
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Route-Target': 'website-vercel-deploy',
-                  'X-Deployment-Url': deployResult.deploymentUrl || '',
-                },
-              }
-            );
-          } else {
-            return new Response(
-              JSON.stringify({
-                type: 'text',
-                content: `**Vercel Deployment Failed**\n\nSorry, I couldn't deploy to Vercel: ${deployResult.error}\n\nYou can still:\n- Preview your website using the "Open Preview" button\n- Push to GitHub and deploy from there\n- Download the HTML and host it anywhere`,
-                model: geminiModel,
-              }),
-              {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-              }
-            );
-          }
-        }
-
-        // New website generation
-        console.log('[Chat API] FORGE & MUSASHI: Generating new website with full asset pipeline...');
-
-        // Extract business info
-        const detectedCategory = detectCategory(lastUserContent);
-        const extractedInfo = extractBusinessInfo(lastUserContent);
-
-        // Smart business name extraction - STRICT: only match actual business names, not descriptions
-        // "for my photography business" = NO NAME (describing type)
-        // "for Lens & Light Studios" = NAME (actual business name)
-        // "called Smith Photography" = NAME (actual business name)
-        const businessNameMatch =
-          // Match "called/named X" - explicit naming
-          lastUserContent.match(/(?:called|named)\s+["\']?([A-Z][^"'\n,]{2,30})["\']?/i) ||
-          // Match "for [Name] Studio/Photography/etc" - but NOT "for my [type] business"
-          lastUserContent.match(/for\s+(?!my\s|a\s|an\s|the\s)([A-Z][a-zA-Z&'\s]{2,25})\s+(?:studio|photography|salon|gym|restaurant|agency|shop|store|clinic|dental|law|firm)/i) ||
-          // Match quoted names
-          lastUserContent.match(/["\']([^"']{3,30})["\']/) ||
-          // Match "Business Name: X" or "Name: X"
-          lastUserContent.match(/(?:business\s+name|name)[:\s]+([A-Z][^,\n]{2,30})/i);
-
-        const businessName = extractedInfo.name || (businessNameMatch ? businessNameMatch[1].trim() : '');
-
-        // Check if we have minimum required info for a quality website
-        // Business name is REQUIRED - without it we can't create a proper logo or branding
-        const hasBusinessName = businessName && businessName !== 'Your Business' && businessName.length > 2;
-
-        // Discovery: Ask for essential details if missing
-        if (!hasBusinessName) {
-          console.log('[Chat API] Missing business info - asking discovery questions');
-          const fallbackModel = await getModelForTier('pro', 'gemini');
-
-          return new Response(
-            JSON.stringify({
-              type: 'text',
-              content: `I'd love to build you an amazing ${detectedCategory.replace(/-/g, ' ')} website! To make it perfect, I need a few quick details:\n\n**1. What's your business name?** (This will be on your logo!)\n\n**2. What's your contact email?** (For the contact form)\n\n**3. Do you have pricing?** Tell me your rates, OR say "research market prices" and I'll look up competitive rates for ${detectedCategory.replace(/-/g, ' ')} businesses.\n\n**4. Any style preferences?** (modern, minimal, bold, elegant, etc.)\n\nJust reply with these details and I'll build you a stunning website!`,
-              model: fallbackModel,
-            }),
-            {
-              status: 200,
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Route-Target': 'website-discovery',
-              },
-            }
-          );
-        }
-
-        console.log('[Chat API] Business:', businessName, 'Industry:', detectedCategory);
-
-        // Build generation context
-        const context: GenerationContext = {
-          businessName,
-          industry: detectedCategory.replace(/-/g, ' '),
-          userPrompt: lastUserContent,
-          existingSession: existingSession || undefined,
-          isModification: false,
-        };
-
-        // ================================================
-        // STREAMING WEBSITE GENERATION
-        // Stream progress updates to prevent timeout
-        // ================================================
-        const encoder = new TextEncoder();
-
-        const stream = new ReadableStream({
-          async start(controller) {
-            try {
-              // Progress callback to stream updates during generation
-              // This keeps the connection alive and prevents Vercel timeout
-              const onProgress = (message: string, step?: number, totalSteps?: number) => {
-                const progressData = {
-                  type: 'progress',
-                  message,
-                  step: step || undefined,
-                  totalSteps: totalSteps || undefined,
-                };
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(progressData)}\n\n`));
-              };
-
-              // Generate the complete website with progress streaming
-              const result = await generateCompleteWebsite(
-                rateLimitIdentifier || 'anonymous',
-                context,
-                geminiModel,
-                imageModel,
-                onProgress
-              );
-
-              if (!result.success) {
-                controller.enqueue(encoder.encode(`data: {"type":"error","message":"${result.error || 'Website generation failed'}"}\n\n`));
-                controller.close();
-                return;
-              }
-
-              // Build response with asset summary
-              const assetSummary: string[] = [];
-              if (result.assets.favicon32) assetSummary.push('Custom favicon');
-              if (result.assets.logo) assetSummary.push('AI-generated logo');
-              if (result.assets.heroBackground) assetSummary.push('Hero background image');
-              if (Object.values(result.assets.sectionImages).some(Boolean)) {
-                assetSummary.push('Section images');
-              }
-              if (result.assets.teamAvatars.length > 0) {
-                assetSummary.push(`${result.assets.teamAvatars.length} team photos`);
-              }
-
-              // Get the generated code from result
-              let generatedCode = result.html;
-              const logoDataUrl = result.assets.logo || null;
-              const heroImageDataUrl = result.assets.heroBackground || null;
-
-              // Clean the code
-              generatedCode = generatedCode.trim();
-              if (generatedCode.startsWith('```html')) generatedCode = generatedCode.slice(7);
-              if (generatedCode.startsWith('```')) generatedCode = generatedCode.slice(3);
-              if (generatedCode.endsWith('```')) generatedCode = generatedCode.slice(0, -3);
-              generatedCode = generatedCode.trim();
-
-              // Inject the actual image data URLs if the model used placeholders
-              if (logoDataUrl) {
-                generatedCode = generatedCode.replace(
-                  /src=["'](?:logo\.png|placeholder|#logo|LOGO_URL|data:image[^"']*\.\.\.)[^"']*["']/gi,
-                  `src="${logoDataUrl}"`
-                );
-                if (!generatedCode.includes(logoDataUrl)) {
-                  generatedCode = generatedCode.replace(
-                    /(<(?:header|nav)[^>]*>)/i,
-                    `$1\n<img src="${logoDataUrl}" alt="${businessName} Logo" style="max-height: 60px; width: auto;">`
-                  );
-                }
-              }
-
-              if (heroImageDataUrl) {
-                if (!generatedCode.includes(heroImageDataUrl)) {
-                  generatedCode = generatedCode.replace(
-                    /\.hero\s*\{([^}]*)\}/i,
-                    `.hero { $1 background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('${heroImageDataUrl}'); background-size: cover; background-position: center; }`
-                  );
-                }
-              }
-
-              const titleMatch = generatedCode.match(/<title>([^<]+)<\/title>/i);
-              const title = titleMatch ? titleMatch[1] : businessName + ' - Landing Page';
-
-              const features = [
-                ...assetSummary.map(a => `🎨 ${a}`),
-                '📱 Fully responsive design',
-                '💰 Industry-researched pricing',
-                '⭐ Realistic testimonials',
-                '📝 Working contact form',
-                '🎯 Conversion-optimized layout',
-                '✨ Micro-animations & effects',
-              ];
-
-              controller.enqueue(encoder.encode(`data: {"type":"progress","message":"✅ Website complete!"}\n\n`));
-
-              // Send the final website response
-              const finalResponse = {
-                type: 'code_preview',
-                content: `**${title}**\n\nI've created a premium $10,000+ quality website with:\n${features.map(f => `- ${f}`).join('\n')}\n\nClick **"Open Preview"** to see it live!\n\n*What's next?*\n- Ask me to change colors, fonts, sections, or content\n- Say "push to GitHub" to save your code\n- Say "deploy to Vercel" to go live!`,
-                model: geminiModel,
-                codePreview: {
-                  code: generatedCode,
-                  language: 'html',
-                  title: title,
-                  description: result.description,
-                },
-                sessionId: result.sessionId,
-              };
-
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalResponse)}\n\n`));
-              controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-              controller.close();
-
-            } catch (error) {
-              console.error('[Chat API] Streaming website generation error:', error);
-              controller.enqueue(encoder.encode(`data: {"type":"error","message":"${error instanceof Error ? error.message : 'Unknown error'}"}\n\n`));
-              controller.close();
-            }
-          }
-        });
-
-        return new Response(stream, {
+*Code Lab is purpose-built for development tasks and will give you much better results.*`,
+          model: 'claude-sonnet-4-5-20250929',
+        }),
+        {
           status: 200,
           headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Route-Target': 'website',
-            'X-Route-Reason': routeDecision.reason,
-            'X-Model-Used': geminiModel,
+            'Content-Type': 'application/json',
+            'X-Route-Target': 'website-redirect',
+            'X-Redirect-To': 'code-lab',
           },
-        });
-
-        // NOTE: Multi-page and auth websites temporarily use streaming single-page for now
-        // TODO: Add streaming support for multi-page websites with auth
-      } catch (error) {
-        console.error('[Chat API] Website generation error:', error);
-        const fallbackModel = await getModelForTier('pro', 'gemini');
-        return new Response(
-          JSON.stringify({
-            type: 'text',
-            content: `**Website Generation Error**\n\nSorry, I encountered an issue: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease try again with a clear description like:\n- "Create a website for [Business Name] - a [type of business]"\n- "Build a landing page for my AI startup called TechVision"`,
-            model: fallbackModel,
-          }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
+        }
+      );
     }
 
     // ========================================
-    // CODE EXECUTION (VM Sandbox)
+    // CODE EXECUTION → REDIRECT TO CODE LAB
     // ========================================
-    // Check for code execution requests - run tests, build, execute code
     const executionCheck = hasCodeExecutionIntent(lastUserContent);
     if (executionCheck.isExecution) {
-      console.log('[Chat API] Code execution intent detected:', executionCheck.matchedPattern);
+      console.log('[Chat API] Code execution requested - redirecting to Code Lab');
+      return new Response(
+        JSON.stringify({
+          type: 'text',
+          content: `**Code Execution Available in Code Lab! 🔧**
 
-      // Get OIDC token from request headers (Vercel provides this)
-      const oidcToken = request.headers.get('x-vercel-oidc-token');
+I can see you want to run or test code! For the best experience, head over to **Code Lab** where you get:
 
-      // Check if sandbox is available
-      if (!isSandboxConfigured(oidcToken)) {
-        console.log('[Chat API] Sandbox not configured, providing guidance');
-        // Still handle the request but inform about sandbox status
-        const geminiModel = await getModelForTier('pro', 'gemini');
-        return new Response(
-          JSON.stringify({
-            type: 'text',
-            content: `**Code Execution**\n\nI can see you want to run code! The sandbox VM is being configured.\n\nIn the meantime, here's what I can help with:\n- Review your code for errors\n- Suggest fixes\n- Explain what the code does\n\nWould you like me to analyze the code instead?`,
-            model: geminiModel,
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
+- **Claude Opus 4.5** - Our most powerful AI for code analysis and execution
+- **Full sandbox environment** - Run JavaScript, TypeScript, and Python safely
+- **Real-time execution** - See output as your code runs
+- **Error handling** - Get intelligent suggestions for fixes
+- **File system access** - Work with complete projects
 
-      // Look for code in recent messages
-      const recentMessages = messages.slice(-5);
-      let codeToExecute: { language: string; code: string } | null = null;
+**To get started:**
+1. Click **Code Lab** in the sidebar
+2. Paste your code or describe what you want to build
+3. Ask Claude Opus to run, test, or debug it!
 
-      for (const msg of recentMessages.reverse()) {
-        if (msg.role === 'assistant' && typeof msg.content === 'string') {
-          const blocks = extractCodeBlocks(msg.content);
-          // Find first executable code block
-          const executableBlock = blocks.find(b =>
-            ['javascript', 'typescript', 'python', 'js', 'ts', 'py'].includes(b.language.toLowerCase())
-          );
-          if (executableBlock) {
-            codeToExecute = {
-              language: executableBlock.language.toLowerCase().replace('js', 'javascript').replace('ts', 'typescript').replace('py', 'python'),
-              code: executableBlock.code,
-            };
-            break;
-          }
+*Code Lab is purpose-built for development and will give you the best coding experience.*`,
+          model: 'claude-sonnet-4-5-20250929',
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Route-Target': 'code-execution-redirect',
+            'X-Redirect-To': 'code-lab',
+          },
         }
-      }
-
-      if (!codeToExecute) {
-        // Check user's message for code
-        const userBlocks = extractCodeBlocks(lastUserContent);
-        const executableUserBlock = userBlocks.find(b =>
-          ['javascript', 'typescript', 'python', 'js', 'ts', 'py'].includes(b.language.toLowerCase())
-        );
-        if (executableUserBlock) {
-          codeToExecute = {
-            language: executableUserBlock.language.toLowerCase().replace('js', 'javascript').replace('ts', 'typescript').replace('py', 'python'),
-            code: executableUserBlock.code,
-          };
-        }
-      }
-
-      if (codeToExecute && shouldTestCode(codeToExecute.code, codeToExecute.language)) {
-        console.log(`[Chat API] Executing ${codeToExecute.language} code in sandbox...`);
-
-        try {
-          const result = await executeCode({
-            type: 'snippet',
-            language: codeToExecute.language as 'javascript' | 'typescript' | 'python',
-            code: codeToExecute.code,
-          });
-
-          const geminiModel = await getModelForTier('pro', 'gemini');
-          const statusEmoji = result.success ? '✅' : '❌';
-          const statusText = result.success ? 'Success' : 'Failed';
-
-          return new Response(
-            JSON.stringify({
-              type: 'text',
-              content: `**Code Execution ${statusEmoji} ${statusText}**\n\n\`\`\`\n${result.output}\n\`\`\`\n${result.errors.length > 0 ? `\n**Errors:**\n${result.errors.join('\n')}\n` : ''}${result.suggestion ? `\n**Suggestion:** ${result.suggestion}` : ''}\n\n*Executed in ${result.executionTime}ms*`,
-              model: geminiModel,
-            }),
-            {
-              status: 200,
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Execution-Time': String(result.executionTime),
-                'X-Execution-Success': String(result.success),
-              },
-            }
-          );
-        } catch (error) {
-          console.error('[Chat API] Code execution error:', error);
-          const geminiModel = await getModelForTier('pro', 'gemini');
-          return new Response(
-            JSON.stringify({
-              type: 'text',
-              content: `**Code Execution Error**\n\n${error instanceof Error ? error.message : 'Unknown error occurred'}\n\nPlease try again or paste the code you'd like me to run.`,
-              model: geminiModel,
-            }),
-            {
-              status: 500,
-              headers: { 'Content-Type': 'application/json' },
-            }
-          );
-        }
-      } else {
-        // No executable code found
-        const geminiModel = await getModelForTier('pro', 'gemini');
-        return new Response(
-          JSON.stringify({
-            type: 'text',
-            content: `**Ready to Execute**\n\nI'm ready to run your code! Please share the code you'd like me to execute.\n\nSupported languages:\n- JavaScript / TypeScript\n- Python\n\nJust paste your code in a code block:\n\`\`\`javascript\nconsole.log('Hello World!');\n\`\`\``,
-            model: geminiModel,
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
+      );
     }
 
     // ========================================
-    // GITHUB CODE REVIEW (with Tool Calling)
+    // GITHUB CODE REVIEW → REDIRECT TO CODE LAB
     // ========================================
     if (routeDecision.target === 'github') {
-      console.log('[Chat API] Routing to GitHub code review');
+      console.log('[Chat API] GitHub code review requested - redirecting to Code Lab');
+      return new Response(
+        JSON.stringify({
+          type: 'text',
+          content: `**GitHub Code Review Available in Code Lab! 🔍**
 
-      // Check if user is authenticated
-      if (!isAuthenticated || !rateLimitIdentifier) {
-        return new Response(
-          JSON.stringify({
-            type: 'text',
-            content: 'To review GitHub repositories, please sign in first. Then connect your GitHub account in Settings > Connectors.',
-            model: 'system',
-          }),
-          {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
+I can see you want to review a GitHub repository! For the best experience, head over to **Code Lab** where you get:
 
-      // Get user's GitHub token
-      const githubToken = await getGitHubTokenForUser(rateLimitIdentifier);
+- **Claude Opus 4.5** - Our most powerful AI for deep code analysis
+- **Full repository access** - Clone, analyze, and navigate entire codebases
+- **Comprehensive reviews** - Security, performance, architecture analysis
+- **Code modifications** - Create branches, push fixes, and open PRs
+- **Real-time collaboration** - Work through issues step by step
 
-      if (!githubToken) {
-        return new Response(
-          JSON.stringify({
-            type: 'text',
-            content: `**GitHub Not Connected**
+**To get started:**
+1. Click **Code Lab** in the sidebar
+2. Connect your GitHub account in Settings > Connectors (if not already connected)
+3. Ask Claude Opus to review your repository!
 
-To review repositories, you need to connect your GitHub account:
-
-1. Go to **Settings** → **Connectors**
-2. Click **Connect GitHub**
-3. Authorize access to your repositories
-4. Come back and ask me to review your code!
-
-Once connected, I can:
-- 📖 Read and analyze your codebase
-- 🔍 Find bugs and security issues
-- 💡 Suggest improvements
-- 📝 Create branches and pull requests`,
-            model: 'system',
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      try {
-        // Get model from admin settings
-        const geminiModel = await getModelForTier('pro', 'gemini');
-        console.log('[Chat API] GitHub review using Gemini model:', geminiModel);
-
-        // Comprehensive developer assistant system prompt
-        const codeReviewSystemPrompt = `You are an elite full-stack developer, software architect, and DevOps engineer with 20+ years of experience across every major technology stack. You are THE expert that senior engineers consult when they're stuck.
-
-# YOUR EXPERTISE
-
-## Languages & Runtimes
-- JavaScript/TypeScript (Node.js, Deno, Bun), Python, Rust, Go, Java, Kotlin, Swift, Ruby, PHP, C/C++, C#
-
-## Frontend
-- React, Next.js, Vue, Nuxt, Angular, Svelte, SvelteKit, Astro, Remix, Gatsby, Qwik
-- State: Redux, Zustand, Jotai, Recoil, MobX, Pinia, Vuex
-- Styling: Tailwind, CSS Modules, Styled Components, Emotion, Sass/SCSS
-
-## Backend
-- Express, Fastify, NestJS, Django, Flask, FastAPI, Rails, Laravel, Spring Boot, Gin, Fiber
-- GraphQL: Apollo, Urql, Relay, Pothos, GraphQL Yoga
-
-## Databases
-- PostgreSQL, MySQL, MongoDB, Redis, SQLite, DynamoDB, Cassandra
-- ORMs: Prisma, Drizzle, TypeORM, Sequelize, Mongoose, SQLAlchemy
-
-## DevOps & Infrastructure
-- Docker, Kubernetes, Terraform, Pulumi, AWS, GCP, Azure, Vercel, Netlify, Railway, Fly.io
-- CI/CD: GitHub Actions, GitLab CI, Jenkins, CircleCI, ArgoCD
-
-## Testing
-- Jest, Vitest, Mocha, Cypress, Playwright, Testing Library, Pytest, RSpec
-
-# YOUR CAPABILITIES
-
-## 1. CODE REVIEW & ANALYSIS
-When reviewing code, you:
-- Identify bugs, security vulnerabilities (OWASP Top 10), and performance issues
-- Analyze architecture and suggest improvements
-- Check for code smells, anti-patterns, and technical debt
-- Verify best practices for the specific framework/language
-- Review error handling, edge cases, and type safety
-- Assess test coverage and quality
-- Check dependency health and security
-
-## 2. DEBUGGING & TROUBLESHOOTING
-When debugging, you:
-- Parse error messages and stack traces to identify root causes
-- Understand complex async/promise flows and race conditions
-- Debug memory leaks, performance bottlenecks, and infinite loops
-- Fix build errors (webpack, vite, tsc, babel)
-- Resolve dependency conflicts and version mismatches
-- Debug CI/CD pipeline failures
-- Fix deployment issues across platforms
-
-## 3. CODE GENERATION & IMPLEMENTATION
-When writing code, you:
-- Generate production-ready, type-safe code
-- Follow framework-specific conventions and best practices
-- Include proper error handling and edge case coverage
-- Write clean, maintainable, and well-documented code
-- Create complete implementations, not just snippets
-- Follow SOLID principles and design patterns
-- Consider performance from the start
-
-## 4. TESTING
-When working with tests, you:
-- Write comprehensive unit, integration, and e2e tests
-- Create proper mocks, stubs, and fixtures
-- Ensure edge cases are covered
-- Set up test infrastructure and configuration
-- Fix failing tests with proper understanding
-
-## 5. REFACTORING
-When refactoring, you:
-- Extract reusable functions and components
-- Eliminate code duplication (DRY)
-- Modernize legacy code patterns
-- Improve type safety and error handling
-- Optimize for readability and maintainability
-- Migrate between frameworks/versions safely
-
-## 6. DEVOPS & DEPLOYMENT
-When handling DevOps, you:
-- Write Dockerfiles and docker-compose configurations
-- Create CI/CD pipelines (GitHub Actions, etc.)
-- Configure environment variables and secrets
-- Set up monitoring and logging
-- Optimize build and deployment processes
-
-# YOUR TOOLS
-
-Use these tools strategically to help the user:
-
-- **github_clone_repo**: Fetch repository files for analysis. Use this FIRST when asked to review, analyze, or work with a repository.
-- **github_get_file**: Get specific file content when you need more detail on a particular file.
-- **github_get_repo_info**: Get repository metadata (description, default branch, etc.)
-- **github_list_branches**: List branches to understand the repo structure.
-- **github_create_branch**: Create a new branch before making changes.
-- **github_push_files**: Push code changes to implement fixes or features.
-- **github_create_pr**: Create a pull request after pushing changes.
-
-# YOUR APPROACH
-
-1. **UNDERSTAND FIRST**: Before suggesting solutions, fully understand the codebase, the user's intent, and the context.
-
-2. **BE SPECIFIC**: Always reference specific files, line numbers, and code snippets. Never be vague.
-
-3. **EXPLAIN WHY**: Don't just say what's wrong—explain WHY it's a problem and the consequences.
-
-4. **SHOW, DON'T TELL**: Provide actual code fixes, not just descriptions. Write the corrected code.
-
-5. **PRIORITIZE**: Address critical issues (security, crashes, data loss) before style preferences.
-
-6. **BE ACTIONABLE**: Every piece of feedback should have a clear action the user can take.
-
-7. **CONSIDER CONTEXT**: Understand the project's constraints, team size, and timeline.
-
-8. **BE ENCOURAGING**: Acknowledge what's done well while identifying improvements.
-
-# RESPONSE FORMAT
-
-For code reviews, structure your response as:
-
-## 🎯 Summary
-Brief overview of the codebase and your findings
-
-## 🚨 Critical Issues
-Security vulnerabilities, potential crashes, data loss risks
-
-## ⚠️ Important Improvements
-Bugs, performance issues, architectural concerns
-
-## 💡 Suggestions
-Best practices, code quality, maintainability improvements
-
-## ✅ What's Done Well
-Acknowledge good practices and well-written code
-
-## 📋 Action Items
-Clear, prioritized list of recommended changes
-
-For debugging, structure your response as:
-
-## 🔍 Problem Identified
-What's causing the error
-
-## 🛠️ Solution
-The fix with complete code
-
-## 📝 Explanation
-Why this fix works
-
-## 🔮 Prevention
-How to prevent this in the future`;
-
-        // Import the Gemini SDK for tool calling
-        const { GoogleGenAI } = await import('@google/genai');
-        const genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || '' });
-
-        // Build initial messages with conversation history
-        // Use the original messages array, converting to Gemini format
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const geminiMessages: any[] = messages.map((msg: CoreMessage) => ({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) }],
-        }));
-
-        // Tool calling loop - keep going until we get a final response
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let currentMessages: any[] = geminiMessages;
-        const maxIterations = 10; // Safety limit
-        let iteration = 0;
-        let finalResponse = '';
-
-        while (iteration < maxIterations) {
-          iteration++;
-          console.log(`[Chat API] GitHub tool loop iteration ${iteration}`);
-
-          // Make the API call with tools
-          const response = await genai.models.generateContent({
-            model: geminiModel,
-            contents: currentMessages,
-            config: {
-              systemInstruction: codeReviewSystemPrompt,
-              tools: [{ functionDeclarations: githubFunctionDeclarations }],
-            },
-          });
-
-          const candidate = response.candidates?.[0];
-          if (!candidate?.content?.parts) {
-            console.error('[Chat API] No valid response from Gemini');
-            break;
-          }
-
-          const parts = candidate.content.parts;
-
-          // Check if there are function calls
-          const functionCalls = parts.filter((p: { functionCall?: unknown }) => p.functionCall);
-
-          if (functionCalls.length === 0) {
-            // No function calls - this is the final text response
-            const textParts = parts.filter((p: { text?: string }) => p.text);
-            finalResponse = textParts.map((p: { text?: string }) => p.text || '').join('\n');
-            break;
-          }
-
-          // Execute each function call
-          const functionResults = [];
-          for (const part of functionCalls) {
-            const fc = part.functionCall as { name: string; args: Record<string, unknown> };
-            console.log(`[Chat API] Executing GitHub tool: ${fc.name}`);
-
-            const result = await executeGitHubTool(fc.name, fc.args || {}, {
-              githubToken,
-            });
-
-            functionResults.push({
-              functionResponse: {
-                name: fc.name,
-                response: result,
-              },
-            });
-          }
-
-          // Add the model's response and function results to the conversation
-          currentMessages = [
-            ...currentMessages,
-            {
-              role: 'model',
-              parts: parts,
-            },
-            {
-              role: 'user',
-              parts: functionResults,
-            },
-          ];
+*Code Lab provides a full development environment for thorough code analysis and modifications.*`,
+          model: 'claude-sonnet-4-5-20250929',
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Route-Target': 'github-redirect',
+            'X-Redirect-To': 'code-lab',
+          },
         }
-
-        if (!finalResponse) {
-          finalResponse = 'I was able to analyze the repository but encountered an issue generating the final response. Please try again.';
-        }
-
-        return new Response(
-          JSON.stringify({
-            type: 'text',
-            content: finalResponse,
-            model: geminiModel,
-          }),
-          {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Route-Target': 'github',
-              'X-Route-Reason': routeDecision.reason,
-              'X-Model-Used': geminiModel,
-            },
-          }
-        );
-      } catch (error) {
-        console.error('[Chat API] GitHub review error:', error);
-        const fallbackModel = await getModelForTier('pro', 'gemini');
-        return new Response(
-          JSON.stringify({
-            type: 'text',
-            content: `I encountered an error while trying to review the repository: ${error instanceof Error ? error.message : 'Unknown error'}. Please make sure your GitHub is connected and try again.`,
-            model: fallbackModel,
-          }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
+      );
     }
 
     // Image generation has been removed - provide helpful response
