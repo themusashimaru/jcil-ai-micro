@@ -6,7 +6,11 @@
  * - Post-tool hooks (after tool execution)
  * - Session hooks (on session start/end)
  * - User prompt hooks (before processing user input)
+ *
+ * Preferences are persisted to code_lab_user_hooks table
  */
+
+import { createClient } from '@/lib/supabase/server';
 
 export type HookEvent =
   | 'pre_tool'
@@ -132,12 +136,82 @@ function matchesToolPattern(toolName: string, pattern: string): boolean {
 export class HooksManager {
   private hooks: Map<string, HookConfig> = new Map();
   private executeCommand: ((cmd: string, timeout?: number) => Promise<{ stdout: string; stderr: string; exitCode: number }>) | null = null;
+  private userId: string | null = null;
+  private preferencesLoaded = false;
 
   constructor() {
     // Initialize with default hooks (disabled by default)
     DEFAULT_HOOKS.forEach(hook => {
-      this.hooks.set(hook.id, hook);
+      this.hooks.set(hook.id, { ...hook });
     });
+  }
+
+  /**
+   * Load user preferences from database
+   */
+  async loadUserPreferences(userId: string): Promise<void> {
+    if (this.preferencesLoaded && this.userId === userId) return;
+
+    this.userId = userId;
+
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from('code_lab_user_hooks')
+        .select('hook_id, enabled, custom_config')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      // Apply user preferences to default hooks
+      if (data) {
+        for (const pref of data) {
+          const hook = this.hooks.get(pref.hook_id);
+          if (hook) {
+            hook.enabled = pref.enabled;
+            // Apply custom config if present
+            if (pref.custom_config) {
+              Object.assign(hook, pref.custom_config);
+            }
+          } else if (pref.custom_config) {
+            // Custom user hook
+            this.hooks.set(pref.hook_id, {
+              id: pref.hook_id,
+              enabled: pref.enabled,
+              ...pref.custom_config,
+            } as HookConfig);
+          }
+        }
+      }
+
+      this.preferencesLoaded = true;
+    } catch (error) {
+      // Silently fail - use defaults
+      this.preferencesLoaded = true;
+    }
+  }
+
+  /**
+   * Save hook preference to database
+   */
+  private async saveHookPreference(hookId: string, enabled: boolean, customConfig?: Partial<HookConfig>): Promise<void> {
+    if (!this.userId) return;
+
+    try {
+      const supabase = await createClient();
+      await supabase
+        .from('code_lab_user_hooks')
+        .upsert({
+          user_id: this.userId,
+          hook_id: hookId,
+          enabled,
+          custom_config: customConfig || null,
+        }, {
+          onConflict: 'user_id,hook_id',
+        });
+    } catch {
+      // Silently fail - preference not saved but hook still works
+    }
   }
 
   /**
@@ -148,10 +222,15 @@ export class HooksManager {
   }
 
   /**
-   * Add or update a hook
+   * Add or update a hook (persists to database for custom hooks)
    */
-  addHook(config: HookConfig): void {
+  async addHook(config: HookConfig): Promise<void> {
     this.hooks.set(config.id, config);
+    // Persist custom hooks to database
+    const isDefaultHook = DEFAULT_HOOKS.some(h => h.id === config.id);
+    if (!isDefaultHook) {
+      await this.saveHookPreference(config.id, config.enabled, config);
+    }
   }
 
   /**
@@ -162,24 +241,26 @@ export class HooksManager {
   }
 
   /**
-   * Enable a hook
+   * Enable a hook (persists to database)
    */
-  enableHook(hookId: string): boolean {
+  async enableHook(hookId: string): Promise<boolean> {
     const hook = this.hooks.get(hookId);
     if (hook) {
       hook.enabled = true;
+      await this.saveHookPreference(hookId, true);
       return true;
     }
     return false;
   }
 
   /**
-   * Disable a hook
+   * Disable a hook (persists to database)
    */
-  disableHook(hookId: string): boolean {
+  async disableHook(hookId: string): Promise<boolean> {
     const hook = this.hooks.get(hookId);
     if (hook) {
       hook.enabled = false;
+      await this.saveHookPreference(hookId, false);
       return true;
     }
     return false;

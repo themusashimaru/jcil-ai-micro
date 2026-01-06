@@ -6,7 +6,11 @@
  * - Tool discovery and invocation
  * - Resource access
  * - Prompt templates
+ *
+ * Preferences are persisted to code_lab_user_mcp_servers table
  */
+
+import { createClient } from '@/lib/supabase/server';
 
 export interface MCPServerConfig {
   id: string;
@@ -116,11 +120,13 @@ export class MCPManager {
   private servers: Map<string, MCPServerConfig> = new Map();
   private serverStatus: Map<string, MCPServerStatus> = new Map();
   private toolRegistry: Map<string, MCPTool> = new Map();
+  private userId: string | null = null;
+  private preferencesLoaded = false;
 
   constructor() {
     // Initialize with default servers (disabled by default)
     DEFAULT_MCP_SERVERS.forEach(server => {
-      this.servers.set(server.id, server);
+      this.servers.set(server.id, { ...server });
       this.serverStatus.set(server.id, {
         id: server.id,
         name: server.name,
@@ -130,6 +136,83 @@ export class MCPManager {
         prompts: [],
       });
     });
+  }
+
+  /**
+   * Load user preferences from database
+   */
+  async loadUserPreferences(userId: string): Promise<void> {
+    if (this.preferencesLoaded && this.userId === userId) return;
+
+    this.userId = userId;
+
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from('code_lab_user_mcp_servers')
+        .select('server_id, enabled, custom_config')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      // Apply user preferences to default servers
+      if (data) {
+        for (const pref of data) {
+          const server = this.servers.get(pref.server_id);
+          if (server) {
+            server.enabled = pref.enabled;
+            // Apply custom config if present
+            if (pref.custom_config) {
+              Object.assign(server, pref.custom_config);
+            }
+          } else if (pref.custom_config) {
+            // Custom user server
+            const customServer = {
+              id: pref.server_id,
+              enabled: pref.enabled,
+              ...pref.custom_config,
+            } as MCPServerConfig;
+            this.servers.set(pref.server_id, customServer);
+            this.serverStatus.set(pref.server_id, {
+              id: pref.server_id,
+              name: customServer.name || pref.server_id,
+              status: 'stopped',
+              tools: [],
+              resources: [],
+              prompts: [],
+            });
+          }
+        }
+      }
+
+      this.preferencesLoaded = true;
+    } catch {
+      // Silently fail - use defaults
+      this.preferencesLoaded = true;
+    }
+  }
+
+  /**
+   * Save server preference to database
+   */
+  private async saveServerPreference(serverId: string, enabled: boolean, customConfig?: Partial<MCPServerConfig>): Promise<void> {
+    if (!this.userId) return;
+
+    try {
+      const supabase = await createClient();
+      await supabase
+        .from('code_lab_user_mcp_servers')
+        .upsert({
+          user_id: this.userId,
+          server_id: serverId,
+          enabled,
+          custom_config: customConfig || null,
+        }, {
+          onConflict: 'user_id,server_id',
+        });
+    } catch {
+      // Silently fail - preference not saved but server still works
+    }
   }
 
   /**
@@ -168,21 +251,22 @@ export class MCPManager {
   }
 
   /**
-   * Enable an MCP server
+   * Enable an MCP server (persists to database)
    */
-  enableServer(serverId: string): boolean {
+  async enableServer(serverId: string): Promise<boolean> {
     const server = this.servers.get(serverId);
     if (server) {
       server.enabled = true;
+      await this.saveServerPreference(serverId, true);
       return true;
     }
     return false;
   }
 
   /**
-   * Disable an MCP server
+   * Disable an MCP server (persists to database)
    */
-  disableServer(serverId: string): boolean {
+  async disableServer(serverId: string): Promise<boolean> {
     const server = this.servers.get(serverId);
     if (server) {
       server.enabled = false;
@@ -190,6 +274,7 @@ export class MCPManager {
       if (status) {
         status.status = 'stopped';
       }
+      await this.saveServerPreference(serverId, false);
       return true;
     }
     return false;

@@ -995,7 +995,7 @@ export class WorkspaceAgent {
           const serverId = input.server_id as string;
           const mcpManager = getMCPManager();
 
-          if (mcpManager.enableServer(serverId)) {
+          if (await mcpManager.enableServer(serverId)) {
             const startResult = await mcpManager.startServer(serverId);
             if (startResult.success) {
               return `MCP server "${serverId}" enabled and started successfully.`;
@@ -1012,7 +1012,7 @@ export class WorkspaceAgent {
           const mcpManager = getMCPManager();
 
           await mcpManager.stopServer(serverId);
-          if (mcpManager.disableServer(serverId)) {
+          if (await mcpManager.disableServer(serverId)) {
             return `MCP server "${serverId}" disabled.`;
           }
 
@@ -1054,7 +1054,7 @@ export class WorkspaceAgent {
           const hookId = input.hook_id as string;
           const hooksManager = getHooksManager();
 
-          if (hooksManager.enableHook(hookId)) {
+          if (await hooksManager.enableHook(hookId)) {
             return `Hook "${hookId}" enabled.`;
           }
 
@@ -1065,7 +1065,7 @@ export class WorkspaceAgent {
           const hookId = input.hook_id as string;
           const hooksManager = getHooksManager();
 
-          if (hooksManager.disableHook(hookId)) {
+          if (await hooksManager.disableHook(hookId)) {
             return `Hook "${hookId}" disabled.`;
           }
 
@@ -1086,7 +1086,7 @@ export class WorkspaceAgent {
             enabled: true,
           };
 
-          hooksManager.addHook(newHook);
+          await hooksManager.addHook(newHook);
 
           return `Hook "${newHook.id}" created and enabled.
 
