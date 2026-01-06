@@ -473,6 +473,11 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
 
 /**
  * Create a streaming chat completion using Claude
+ *
+ * RELIABILITY FEATURES:
+ * - Keepalive heartbeat every 15s to prevent proxy timeouts
+ * - 60s timeout per chunk to detect stalled streams
+ * - Graceful error handling
  */
 export async function createAnthropicStreamingCompletion(options: AnthropicChatOptions): Promise<{
   toTextStreamResponse: (opts?: { headers?: Record<string, string> }) => Response;
@@ -485,12 +490,41 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 
   const { system, messages } = convertMessages(options.messages, options.systemPrompt);
 
+  // Configuration for reliability
+  const CHUNK_TIMEOUT_MS = 60000; // 60s timeout per chunk
+  const KEEPALIVE_INTERVAL_MS = 15000; // Send keepalive every 15s
+
   // Create a TransformStream to convert Anthropic stream to text stream
   const { readable, writable } = new TransformStream<string, string>();
   const writer = writable.getWriter();
 
   // Start streaming in the background
   (async () => {
+    let keepaliveInterval: NodeJS.Timeout | null = null;
+    let lastActivity = Date.now();
+
+    // Keepalive function
+    const startKeepalive = () => {
+      keepaliveInterval = setInterval(async () => {
+        const timeSinceActivity = Date.now() - lastActivity;
+        if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 1000) {
+          try {
+            await writer.write(' ');
+            console.log('[Anthropic] Sent keepalive heartbeat');
+          } catch {
+            // Writer might be closed, ignore
+          }
+        }
+      }, KEEPALIVE_INTERVAL_MS);
+    };
+
+    const stopKeepalive = () => {
+      if (keepaliveInterval) {
+        clearInterval(keepaliveInterval);
+        keepaliveInterval = null;
+      }
+    };
+
     try {
       const stream = await client.messages.stream({
         model,
@@ -500,18 +534,55 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
         messages,
       });
 
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta') {
-          const delta = event.delta;
-          if ('text' in delta) {
-            await writer.write(delta.text);
+      startKeepalive();
+
+      // Wrapper to read stream with timeout
+      const iterator = stream[Symbol.asyncIterator]();
+
+      while (true) {
+        const timeoutPromise = new Promise<{ done: true; value: undefined }>((_, reject) => {
+          setTimeout(() => reject(new Error('Stream chunk timeout')), CHUNK_TIMEOUT_MS);
+        });
+
+        try {
+          const result = await Promise.race([
+            iterator.next(),
+            timeoutPromise,
+          ]);
+
+          if (result.done) break;
+
+          lastActivity = Date.now();
+          const event = result.value;
+
+          if (event.type === 'content_block_delta') {
+            const delta = event.delta;
+            if ('text' in delta) {
+              await writer.write(delta.text);
+            }
           }
+        } catch (error) {
+          if (error instanceof Error && error.message === 'Stream chunk timeout') {
+            console.error('[Anthropic] Stream chunk timeout - no data for 60s');
+            await writer.write('\n\n*[Response interrupted: Connection timed out. Please try again.]*');
+          }
+          throw error;
         }
       }
     } catch (error) {
       console.error('[Anthropic] Streaming error:', error);
-      await writer.write('\n\n[Error: Stream interrupted]');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isRateLimit = errorMessage.includes('rate_limit') || errorMessage.includes('429');
+      const userMessage = isRateLimit
+        ? '\n\n*[Response interrupted: High demand. Please try again in a moment.]*'
+        : '\n\n*[Response interrupted: Connection error. Please try again.]*';
+      try {
+        await writer.write(userMessage);
+      } catch {
+        // Writer might be closed, ignore
+      }
     } finally {
+      stopKeepalive();
       await writer.close();
     }
   })();
@@ -894,6 +965,12 @@ export function selectClaudeModel(content: string, options?: {
 /**
  * Create a streaming chat completion with auto model selection
  * Uses SSE format for streaming responses
+ *
+ * RELIABILITY FEATURES:
+ * - Keepalive heartbeat every 15s to prevent proxy timeouts
+ * - 60s timeout per chunk to detect stalled streams
+ * - Retry logic with API key rotation on rate limits
+ * - Graceful error handling with user-friendly messages
  */
 export async function createClaudeStreamingChat(options: {
   messages: CoreMessage[];
@@ -925,39 +1002,161 @@ export async function createClaudeStreamingChat(options: {
 
   console.log(`[Claude] Streaming with model: ${model} (selected for: ${lastContent.substring(0, 50)}...)`);
 
-  const client = getAnthropicClient();
   const { system, messages } = convertMessages(options.messages, options.systemPrompt);
 
   const encoder = new TextEncoder();
 
+  // Configuration for reliability
+  const CHUNK_TIMEOUT_MS = 60000; // 60s timeout per chunk (generous for complex reasoning)
+  const KEEPALIVE_INTERVAL_MS = 15000; // Send keepalive every 15s
+  const MAX_RETRIES = Math.max(1, getTotalKeyCount()); // Retry with different API keys
+
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      try {
-        const anthropicStream = await client.messages.stream({
-          model,
-          max_tokens: options.maxTokens || 4096,
-          temperature: options.temperature ?? 0.7,
-          system,
-          messages,
-        });
+      let keepaliveInterval: NodeJS.Timeout | null = null;
+      let lastActivity = Date.now();
+      let streamStarted = false;
+      let retryCount = 0;
 
-        for await (const event of anthropicStream) {
-          if (event.type === 'content_block_delta') {
-            const delta = event.delta;
-            if ('text' in delta) {
-              controller.enqueue(encoder.encode(delta.text));
+      // Keepalive function - sends a space to keep connection alive
+      // This prevents proxies/Vercel from timing out during long AI computations
+      const startKeepalive = () => {
+        keepaliveInterval = setInterval(() => {
+          const timeSinceActivity = Date.now() - lastActivity;
+          // Only send keepalive if we haven't sent data recently
+          if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 1000) {
+            // Send an invisible keepalive (empty comment that won't affect content)
+            // Using space which is safe and won't disrupt markdown
+            try {
+              controller.enqueue(encoder.encode(' '));
+              console.log('[Claude] Sent keepalive heartbeat');
+            } catch {
+              // Controller might be closed, ignore
             }
           }
+        }, KEEPALIVE_INTERVAL_MS);
+      };
+
+      const stopKeepalive = () => {
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+          keepaliveInterval = null;
         }
-        controller.close();
-      } catch (error) {
-        console.error('[Claude] Streaming error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const isRateLimit = errorMessage.includes('rate_limit') || errorMessage.includes('429');
-        const userMessage = isRateLimit
-          ? '\n\n*[Response interrupted: Rate limit reached. Please try again in a moment.]*'
-          : '\n\n*[Response interrupted: Connection error. Please try again.]*';
-        controller.enqueue(encoder.encode(userMessage));
+      };
+
+      // Wrapper to read stream with timeout
+      async function* streamWithTimeout(anthropicStream: AsyncIterable<Anthropic.MessageStreamEvent>) {
+        const iterator = anthropicStream[Symbol.asyncIterator]();
+
+        while (true) {
+          // Create a timeout promise
+          const timeoutPromise = new Promise<{ done: true; value: undefined }>((_, reject) => {
+            setTimeout(() => reject(new Error('Stream chunk timeout')), CHUNK_TIMEOUT_MS);
+          });
+
+          try {
+            // Race between next chunk and timeout
+            const result = await Promise.race([
+              iterator.next(),
+              timeoutPromise,
+            ]);
+
+            if (result.done) break;
+
+            lastActivity = Date.now();
+            yield result.value;
+          } catch (error) {
+            if (error instanceof Error && error.message === 'Stream chunk timeout') {
+              console.error('[Claude] Stream chunk timeout - no data received for 60s');
+              throw error;
+            }
+            throw error;
+          }
+        }
+      }
+
+      // Main streaming logic with retry
+      const attemptStream = async (): Promise<boolean> => {
+        const client = getAnthropicClient();
+        const currentKey = getCurrentApiKey();
+
+        try {
+          console.log(`[Claude] Starting stream attempt ${retryCount + 1}/${MAX_RETRIES}`);
+
+          const anthropicStream = await client.messages.stream({
+            model,
+            max_tokens: options.maxTokens || 4096,
+            temperature: options.temperature ?? 0.7,
+            system,
+            messages,
+          });
+
+          // Start keepalive once stream is established
+          if (!streamStarted) {
+            streamStarted = true;
+            startKeepalive();
+          }
+
+          for await (const event of streamWithTimeout(anthropicStream)) {
+            if (event.type === 'content_block_delta') {
+              const delta = event.delta;
+              if ('text' in delta) {
+                lastActivity = Date.now();
+                controller.enqueue(encoder.encode(delta.text));
+              }
+            }
+          }
+
+          return true; // Success
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`[Claude] Stream error on attempt ${retryCount + 1}:`, errorMessage);
+
+          // Check if rate limited - mark key and potentially retry
+          const isRateLimit = errorMessage.includes('rate_limit') ||
+                              errorMessage.includes('429') ||
+                              errorMessage.toLowerCase().includes('too many requests');
+
+          if (isRateLimit && currentKey) {
+            const retryMatch = errorMessage.match(/retry.?after[:\s]*(\d+)/i);
+            const retryAfter = retryMatch ? parseInt(retryMatch[1], 10) : 60;
+            markKeyRateLimited(currentKey, retryAfter);
+          }
+
+          // Check if we should retry
+          const isRetryable = isRateLimit ||
+                              errorMessage.includes('timeout') ||
+                              errorMessage.includes('ECONNRESET') ||
+                              errorMessage.includes('network');
+
+          if (isRetryable && retryCount < MAX_RETRIES - 1) {
+            retryCount++;
+            console.log(`[Claude] Retrying stream with different key (attempt ${retryCount + 1})`);
+            // Small delay before retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return false; // Signal to retry
+          }
+
+          // No more retries - send error message to client
+          const userMessage = isRateLimit
+            ? '\n\n*[Response interrupted: High demand. Please try again in a moment.]*'
+            : errorMessage.includes('timeout')
+              ? '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
+              : '\n\n*[Response interrupted: Connection error. Please try again.]*';
+
+          controller.enqueue(encoder.encode(userMessage));
+          return true; // Done (with error)
+        }
+      };
+
+      try {
+        // Attempt stream with retries
+        let done = false;
+        while (!done) {
+          done = await attemptStream();
+        }
+      } finally {
+        stopKeepalive();
         controller.close();
       }
     }

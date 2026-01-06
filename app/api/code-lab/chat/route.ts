@@ -882,10 +882,40 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
 ${codebaseContext}`;
     }
 
-    // Stream the response
+    // Stream the response with reliability features
     const encoder = new TextEncoder();
+
+    // Configuration for reliability
+    const CHUNK_TIMEOUT_MS = 60000; // 60s timeout per chunk
+    const KEEPALIVE_INTERVAL_MS = 15000; // Send keepalive every 15s
+
     const stream = new ReadableStream({
       async start(controller) {
+        let keepaliveInterval: NodeJS.Timeout | null = null;
+        let lastActivity = Date.now();
+
+        // Keepalive function to prevent proxy timeouts
+        const startKeepalive = () => {
+          keepaliveInterval = setInterval(() => {
+            const timeSinceActivity = Date.now() - lastActivity;
+            if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 1000) {
+              try {
+                controller.enqueue(encoder.encode(' ')); // Invisible keepalive
+                console.log('[CodeLab] Sent keepalive heartbeat');
+              } catch {
+                // Controller might be closed
+              }
+            }
+          }, KEEPALIVE_INTERVAL_MS);
+        };
+
+        const stopKeepalive = () => {
+          if (keepaliveInterval) {
+            clearInterval(keepaliveInterval);
+            keepaliveInterval = null;
+          }
+        };
+
         try {
           const response = await anthropic.messages.create({
             model: 'claude-opus-4-5-20251101',
@@ -897,13 +927,41 @@ ${codebaseContext}`;
 
           let fullContent = '';
 
-          for await (const event of response) {
-            if (event.type === 'content_block_delta') {
-              const delta = event.delta;
-              if ('text' in delta) {
-                fullContent += delta.text;
-                controller.enqueue(encoder.encode(delta.text));
+          // Start keepalive once stream is established
+          startKeepalive();
+
+          // Stream with timeout per chunk
+          const iterator = response[Symbol.asyncIterator]();
+
+          while (true) {
+            const timeoutPromise = new Promise<{ done: true; value: undefined }>((_, reject) => {
+              setTimeout(() => reject(new Error('Stream chunk timeout')), CHUNK_TIMEOUT_MS);
+            });
+
+            try {
+              const result = await Promise.race([
+                iterator.next(),
+                timeoutPromise,
+              ]);
+
+              if (result.done) break;
+
+              lastActivity = Date.now();
+              const event = result.value;
+
+              if (event.type === 'content_block_delta') {
+                const delta = event.delta;
+                if ('text' in delta) {
+                  fullContent += delta.text;
+                  controller.enqueue(encoder.encode(delta.text));
+                }
               }
+            } catch (error) {
+              if (error instanceof Error && error.message === 'Stream chunk timeout') {
+                console.error('[CodeLab] Stream chunk timeout - no data for 60s');
+                controller.enqueue(encoder.encode('\n\n*[Response interrupted: Connection timed out. Please try again.]*'));
+              }
+              throw error;
             }
           }
 
@@ -920,8 +978,15 @@ ${codebaseContext}`;
           controller.close();
         } catch (error) {
           console.error('[CodeLab Chat] Error:', error);
-          controller.enqueue(encoder.encode('\n\nI encountered an error. Please try again.'));
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const isTimeout = errorMessage.includes('timeout');
+          const userMessage = isTimeout
+            ? '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
+            : '\n\nI encountered an error. Please try again.';
+          controller.enqueue(encoder.encode(userMessage));
           controller.close();
+        } finally {
+          stopKeepalive();
         }
       },
     });
