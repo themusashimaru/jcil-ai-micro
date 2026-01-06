@@ -57,10 +57,10 @@ export default function MobileMenu() {
         />
       )}
 
-      {/* Slide-out Menu - Dark Glassmorphism */}
+      {/* Slide-out Menu - Solid Dark Background */}
       <div
         className={`fixed top-0 right-0 h-full w-80 z-50 transform transition-transform duration-300 ease-in-out md:hidden
-          bg-black/95 backdrop-blur-xl border-l border-white/10 shadow-2xl shadow-black/50 ${
+          bg-slate-950 border-l border-white/10 shadow-2xl ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -82,22 +82,24 @@ export default function MobileMenu() {
 
         {/* Navigation Links */}
         <nav className="p-5">
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             <li>
               <Link
-                href="#capabilities"
+                href="/chat"
                 onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
+                className="flex items-center gap-3 px-4 py-4 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl transition font-medium"
               >
-                Capabilities
+                <span className="text-lg">💬</span>
+                Chat
               </Link>
             </li>
             <li>
               <Link
                 href="/code-lab"
                 onClick={handleLinkClick}
-                className="block px-4 py-3 text-fuchsia-400 hover:text-fuchsia-300 hover:bg-fuchsia-500/10 rounded-xl transition font-medium"
+                className="flex items-center gap-3 px-4 py-4 text-fuchsia-400 hover:text-fuchsia-300 hover:bg-fuchsia-500/10 rounded-xl transition font-medium"
               >
+                <span className="text-lg">💻</span>
                 Code Lab
               </Link>
             </li>
@@ -105,17 +107,19 @@ export default function MobileMenu() {
               <Link
                 href="/docs"
                 onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
+                className="flex items-center gap-3 px-4 py-4 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
               >
-                Documentation
+                <span className="text-lg">📚</span>
+                Docs
               </Link>
             </li>
             <li>
               <Link
                 href="#pricing"
                 onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
+                className="flex items-center gap-3 px-4 py-4 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
               >
+                <span className="text-lg">💰</span>
                 Pricing
               </Link>
             </li>
@@ -123,8 +127,9 @@ export default function MobileMenu() {
               <Link
                 href="/about"
                 onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
+                className="flex items-center gap-3 px-4 py-4 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
               >
+                <span className="text-lg">ℹ️</span>
                 About
               </Link>
             </li>
@@ -138,24 +143,24 @@ export default function MobileMenu() {
             <Link
               href="/login"
               onClick={handleLinkClick}
-              className="block w-full px-4 py-3 text-center text-white border border-white/20 rounded-xl font-semibold hover:bg-white/5 hover:border-white/30 transition"
+              className="block w-full px-4 py-4 text-center text-white border border-white/20 rounded-xl font-semibold hover:bg-white/5 hover:border-white/30 transition text-lg"
             >
               Log In
             </Link>
             <Link
               href="/signup"
               onClick={handleLinkClick}
-              className="block w-full px-4 py-3 text-center text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition"
+              className="block w-full px-4 py-4 text-center text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition text-lg"
             >
-              Get Started
+              Get Started Free
             </Link>
           </div>
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-white/10">
+        <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-white/10 bg-slate-950">
           <p className="text-center text-sm text-slate-500">
-            Enterprise AI. Built on faith.
+            Same AI. Biblical foundation.
           </p>
         </div>
       </div>
