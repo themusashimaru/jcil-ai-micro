@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
 
     // Save user message
     const userMessageId = generateId();
-    await (supabase.from('code_lab_messages') as AnySupabase).insert({
+    const { error: msgError } = await (supabase.from('code_lab_messages') as AnySupabase).insert({
       id: userMessageId,
       session_id: sessionId,
       role: 'user',
@@ -227,21 +227,34 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString(),
     });
 
+    if (msgError) {
+      console.error('[CodeLab Chat] Failed to save user message:', msgError);
+      // Continue anyway - we can still process the request
+    }
+
     // Get current session to increment message count
-    const { data: currentSession } = await (supabase
+    const { data: currentSession, error: sessionError } = await (supabase
       .from('code_lab_sessions') as AnySupabase)
       .select('message_count')
       .eq('id', sessionId)
       .single();
 
+    if (sessionError) {
+      console.error('[CodeLab Chat] Failed to get session:', sessionError);
+    }
+
     // Update session timestamp and message count
-    await (supabase
+    const { error: updateError } = await (supabase
       .from('code_lab_sessions') as AnySupabase)
       .update({
         updated_at: new Date().toISOString(),
         message_count: (currentSession?.message_count || 0) + 1,
       })
       .eq('id', sessionId);
+
+    if (updateError) {
+      console.error('[CodeLab Chat] Failed to update session:', updateError);
+    }
 
     // Get conversation history with auto-summarization
     const { data: allMessages } = await (supabase
@@ -380,11 +393,11 @@ export async function POST(request: NextRequest) {
     // ========================================
     // Check if user has an active workspace for this session
     const { data: workspaceData } = await (supabase
-      .from('workspaces') as AnySupabase)
-      .select('id, status')
+      .from('code_lab_workspaces') as AnySupabase)
+      .select('id, sandbox_id, status')
       .eq('user_id', user.id)
       .eq('status', 'active')
-      .order('last_accessed_at', { ascending: false })
+      .order('last_activity_at', { ascending: false })
       .limit(1)
       .single();
 
@@ -403,34 +416,43 @@ export async function POST(request: NextRequest) {
 
       // Get or create workspace
       let workspaceId = workspaceData?.id;
+      let sandboxId = workspaceData?.sandbox_id;
 
       if (!workspaceId) {
+        // Generate a sandbox ID (will be replaced by real E2B sandbox ID when created)
+        sandboxId = `sandbox-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
         // Create a new workspace for this user
-        const { data: newWorkspace } = await (supabase
-          .from('workspaces') as AnySupabase)
+        const { data: newWorkspace, error: wsError } = await (supabase
+          .from('code_lab_workspaces') as AnySupabase)
           .insert({
             user_id: user.id,
-            name: 'Code Lab Workspace',
-            type: 'sandbox',
+            session_id: sessionId,
+            sandbox_id: sandboxId,
+            template: 'nodejs',
             status: 'active',
-            config: {
-              nodeVersion: '20',
-              timeout: 300,
-            },
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            last_activity_at: new Date().toISOString(),
           })
           .select()
           .single();
+
+        if (wsError) {
+          console.error('[CodeLab Chat] Failed to create workspace:', wsError);
+        }
 
         workspaceId = newWorkspace?.id;
       }
 
       if (workspaceId) {
-        // Update last accessed
-        await (supabase.from('workspaces') as AnySupabase)
-          .update({ last_accessed_at: new Date().toISOString() })
+        // Update last activity
+        const { error: activityError } = await (supabase.from('code_lab_workspaces') as AnySupabase)
+          .update({ last_activity_at: new Date().toISOString() })
           .eq('id', workspaceId);
+
+        if (activityError) {
+          console.error('[CodeLab Chat] Failed to update workspace activity:', activityError);
+        }
 
         // Execute workspace agent with streaming
         const workspaceStream = await executeWorkspaceAgent(content, {

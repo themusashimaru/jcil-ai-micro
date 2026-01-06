@@ -16,6 +16,13 @@
 // Real E2B SDK - requires E2B_API_KEY in environment
 import { Sandbox } from '@e2b/code-interpreter';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
+
+// Validate E2B API key at module load
+const E2B_API_KEY = process.env.E2B_API_KEY;
+if (!E2B_API_KEY && process.env.NODE_ENV === 'production') {
+  console.warn('[ContainerManager] WARNING: E2B_API_KEY not set. Workspace execution will fail.');
+}
 
 // ============================================
 // TYPES

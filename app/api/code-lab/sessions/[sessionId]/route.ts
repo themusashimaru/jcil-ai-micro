@@ -43,10 +43,18 @@ export async function GET(
         title: session.title,
         createdAt: session.created_at,
         updatedAt: session.updated_at,
-        repo: session.repo,
+        repo: session.repo_owner ? {
+          owner: session.repo_owner,
+          name: session.repo_name,
+          branch: session.repo_branch || 'main',
+          fullName: `${session.repo_owner}/${session.repo_name}`,
+        } : null,
         isActive: true,
         messageCount: session.message_count || 0,
         hasSummary: session.has_summary || false,
+        linesAdded: session.lines_added || 0,
+        linesRemoved: session.lines_removed || 0,
+        filesChanged: session.files_changed || 0,
       }
     });
   } catch (error) {
@@ -77,8 +85,18 @@ export async function PATCH(
       updates.title = body.title;
     }
 
+    // Handle repo object -> separate columns
     if (body.repo !== undefined) {
-      updates.repo = body.repo;
+      if (body.repo) {
+        updates.repo_owner = body.repo.owner;
+        updates.repo_name = body.repo.name;
+        updates.repo_branch = body.repo.branch || 'main';
+      } else {
+        // Clear repo fields if repo is null
+        updates.repo_owner = null;
+        updates.repo_name = null;
+        updates.repo_branch = null;
+      }
     }
 
     const { data: session, error } = await (supabase
@@ -100,10 +118,18 @@ export async function PATCH(
         title: session.title,
         createdAt: session.created_at,
         updatedAt: session.updated_at,
-        repo: session.repo,
+        repo: session.repo_owner ? {
+          owner: session.repo_owner,
+          name: session.repo_name,
+          branch: session.repo_branch || 'main',
+          fullName: `${session.repo_owner}/${session.repo_name}`,
+        } : null,
         isActive: true,
         messageCount: session.message_count || 0,
         hasSummary: session.has_summary || false,
+        linesAdded: session.lines_added || 0,
+        linesRemoved: session.lines_removed || 0,
+        filesChanged: session.files_changed || 0,
       }
     });
   } catch (error) {
