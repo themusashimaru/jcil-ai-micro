@@ -794,3 +794,271 @@ export async function downloadAnthropicFile(fileId: string): Promise<{
   // Placeholder - throw error for now since we don't have actual file storage
   throw new Error(`File not found: ${fileId}`);
 }
+
+// ========================================
+// HYBRID ROUTING (Haiku + Sonnet)
+// ========================================
+
+// Model IDs
+export const CLAUDE_HAIKU = 'claude-haiku-4-5-20250929';
+export const CLAUDE_SONNET = 'claude-sonnet-4-5-20250929';
+
+/**
+ * Determine which Claude model to use based on query complexity
+ *
+ * Returns Haiku for:
+ * - Simple greetings, small talk
+ * - Basic Q&A (definitions, simple facts)
+ * - Short responses under 200 chars expected
+ *
+ * Returns Sonnet for:
+ * - Research queries (multi-step reasoning)
+ * - Complex analysis
+ * - Code generation/review
+ * - Document creation
+ * - Faith/theology questions (need nuance)
+ * - Long-form content
+ */
+export function selectClaudeModel(content: string, options?: {
+  forceModel?: 'haiku' | 'sonnet';
+  isResearch?: boolean;
+  isDocumentGeneration?: boolean;
+  isFaithTopic?: boolean;
+}): string {
+  // Force override
+  if (options?.forceModel === 'haiku') return CLAUDE_HAIKU;
+  if (options?.forceModel === 'sonnet') return CLAUDE_SONNET;
+
+  // Always use Sonnet for these specialized tasks
+  if (options?.isResearch) return CLAUDE_SONNET;
+  if (options?.isDocumentGeneration) return CLAUDE_SONNET;
+  if (options?.isFaithTopic) return CLAUDE_SONNET;
+
+  const lowerContent = content.toLowerCase().trim();
+
+  // Simple greetings → Haiku
+  const simplePatterns = [
+    /^(hi|hello|hey|howdy|good\s*(morning|afternoon|evening)|what'?s?\s*up)\b/i,
+    /^(thanks?|thank\s*you|thx|ty)\b/i,
+    /^(ok|okay|sure|got\s*it|sounds?\s*good|perfect|great|nice)\b/i,
+    /^(bye|goodbye|see\s*you|later|cya)\b/i,
+  ];
+
+  for (const pattern of simplePatterns) {
+    if (pattern.test(lowerContent) && lowerContent.length < 50) {
+      return CLAUDE_HAIKU;
+    }
+  }
+
+  // Complex patterns → Sonnet
+  const complexPatterns = [
+    // Research indicators
+    /\b(research|investigate|analyze|compare|evaluate|assess|study)\b/i,
+    /\b(in\-depth|comprehensive|detailed|thorough)\b/i,
+
+    // Reasoning indicators
+    /\b(explain|why|how\s+does|what\s+causes?|reasoning|logic)\b/i,
+    /\b(pros?\s*(and|&)\s*cons?|advantages?|disadvantages?|trade\-?offs?)\b/i,
+
+    // Code indicators
+    /\b(code|function|implement|debug|refactor|review\s+my)\b/i,
+    /\b(typescript|javascript|python|react|next\.?js)\b/i,
+
+    // Document indicators
+    /\b(write|create|draft|generate)\s+(a|an|my)\s+(resume|report|document|essay|article)/i,
+
+    // Faith indicators
+    /\b(bible|scripture|verse|god|jesus|faith|pray|christian|church|theology)\b/i,
+    /\b(romans?|corinthians?|genesis|matthew|john|psalms?|proverbs?)\b/i,
+
+    // Long-form indicators
+    /\b(list\s+(of|all)|multiple|several|many|various)\b/i,
+    /\b(step\s*by\s*step|walkthrough|tutorial|guide)\b/i,
+  ];
+
+  for (const pattern of complexPatterns) {
+    if (pattern.test(lowerContent)) {
+      return CLAUDE_SONNET;
+    }
+  }
+
+  // Length-based: Longer queries typically need Sonnet
+  if (content.length > 200) {
+    return CLAUDE_SONNET;
+  }
+
+  // Default to Haiku for cost optimization
+  return CLAUDE_HAIKU;
+}
+
+/**
+ * Create a streaming chat completion with auto model selection
+ * Uses SSE format for streaming responses
+ */
+export async function createClaudeStreamingChat(options: {
+  messages: CoreMessage[];
+  systemPrompt?: string;
+  maxTokens?: number;
+  temperature?: number;
+  forceModel?: 'haiku' | 'sonnet';
+  isResearch?: boolean;
+  isFaithTopic?: boolean;
+}): Promise<{
+  stream: ReadableStream<Uint8Array>;
+  model: string;
+}> {
+  const lastUserMessage = options.messages
+    .filter(m => m.role === 'user')
+    .pop();
+
+  const lastContent = lastUserMessage
+    ? (typeof lastUserMessage.content === 'string'
+        ? lastUserMessage.content
+        : JSON.stringify(lastUserMessage.content))
+    : '';
+
+  const model = selectClaudeModel(lastContent, {
+    forceModel: options.forceModel,
+    isResearch: options.isResearch,
+    isFaithTopic: options.isFaithTopic,
+  });
+
+  console.log(`[Claude] Streaming with model: ${model} (selected for: ${lastContent.substring(0, 50)}...)`);
+
+  const client = getAnthropicClient();
+  const { system, messages } = convertMessages(options.messages, options.systemPrompt);
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        const anthropicStream = await client.messages.stream({
+          model,
+          max_tokens: options.maxTokens || 4096,
+          temperature: options.temperature ?? 0.7,
+          system,
+          messages,
+        });
+
+        for await (const event of anthropicStream) {
+          if (event.type === 'content_block_delta') {
+            const delta = event.delta;
+            if ('text' in delta) {
+              controller.enqueue(encoder.encode(delta.text));
+            }
+          }
+        }
+        controller.close();
+      } catch (error) {
+        console.error('[Claude] Streaming error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isRateLimit = errorMessage.includes('rate_limit') || errorMessage.includes('429');
+        const userMessage = isRateLimit
+          ? '\n\n*[Response interrupted: Rate limit reached. Please try again in a moment.]*'
+          : '\n\n*[Response interrupted: Connection error. Please try again.]*';
+        controller.enqueue(encoder.encode(userMessage));
+        controller.close();
+      }
+    }
+  });
+
+  return { stream, model };
+}
+
+/**
+ * Create a non-streaming completion with auto model selection
+ */
+export async function createClaudeChat(options: {
+  messages: CoreMessage[];
+  systemPrompt?: string;
+  maxTokens?: number;
+  temperature?: number;
+  forceModel?: 'haiku' | 'sonnet';
+  isResearch?: boolean;
+  isFaithTopic?: boolean;
+}): Promise<{
+  text: string;
+  model: string;
+}> {
+  const lastUserMessage = options.messages
+    .filter(m => m.role === 'user')
+    .pop();
+
+  const lastContent = lastUserMessage
+    ? (typeof lastUserMessage.content === 'string'
+        ? lastUserMessage.content
+        : JSON.stringify(lastUserMessage.content))
+    : '';
+
+  const model = selectClaudeModel(lastContent, {
+    forceModel: options.forceModel,
+    isResearch: options.isResearch,
+    isFaithTopic: options.isFaithTopic,
+  });
+
+  console.log(`[Claude] Non-streaming with model: ${model}`);
+
+  const result = await createAnthropicCompletion({
+    messages: options.messages,
+    model,
+    maxTokens: options.maxTokens,
+    temperature: options.temperature,
+    systemPrompt: options.systemPrompt,
+  });
+
+  return { text: result.text, model };
+}
+
+/**
+ * Create structured output (JSON) with Claude
+ * Always uses Sonnet for reliability
+ */
+export async function createClaudeStructuredOutput<T>(options: {
+  messages: CoreMessage[];
+  systemPrompt: string;
+  schema: object;
+}): Promise<{
+  data: T;
+  model: string;
+}> {
+  const client = getAnthropicClient();
+  const { system, messages } = convertMessages(options.messages, options.systemPrompt);
+
+  // Add JSON schema instruction to system prompt
+  const jsonSystemPrompt = `${system}
+
+IMPORTANT: You must respond with valid JSON only. No markdown, no explanation, just the JSON object.
+The response must match this schema:
+${JSON.stringify(options.schema, null, 2)}`;
+
+  const response = await client.messages.create({
+    model: CLAUDE_SONNET, // Always use Sonnet for structured output
+    max_tokens: 4096,
+    temperature: 0.3, // Lower temperature for consistent JSON
+    system: jsonSystemPrompt,
+    messages,
+  });
+
+  const textContent = response.content
+    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+    .map(block => block.text)
+    .join('');
+
+  // Parse JSON, handling potential markdown wrapper
+  let jsonText = textContent.trim();
+  if (jsonText.startsWith('```json')) {
+    jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+  } else if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+  }
+
+  try {
+    const data = JSON.parse(jsonText) as T;
+    return { data, model: CLAUDE_SONNET };
+  } catch (error) {
+    console.error('[Claude] Failed to parse structured output:', error);
+    console.error('[Claude] Raw response:', textContent.substring(0, 500));
+    throw new Error('Failed to parse Claude structured output as JSON');
+  }
+}

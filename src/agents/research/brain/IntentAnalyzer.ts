@@ -6,17 +6,14 @@
  *
  * "The user is kind of dumb. They don't really know what they're asking."
  * - This component fixes that.
+ *
+ * POWERED BY: Claude Sonnet 4.5 (migrated from Gemini)
  */
 
-import { GoogleGenAI } from '@google/genai';
+import { createClaudeStructuredOutput } from '@/lib/anthropic/client';
 import { ResearchIntent, AgentContext } from '../../core/types';
 
-const gemini = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY_1 || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
-});
-
 export class IntentAnalyzer {
-  private model = 'gemini-3-pro-preview';
 
   /**
    * Analyze a user query and extract true intent
@@ -60,29 +57,34 @@ RULES FOR ANALYSIS:
 OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
 
     try {
-      const response = await gemini.models.generateContent({
-        model: this.model,
-        contents: prompt,
+      const schema = {
+        type: 'object',
+        properties: {
+          originalQuery: { type: 'string' },
+          refinedQuery: { type: 'string' },
+          topics: { type: 'array', items: { type: 'string' } },
+          requiredDepth: { type: 'string', enum: ['quick', 'standard', 'deep'] },
+          expectedOutputs: { type: 'array', items: { type: 'string' } },
+          contextClues: { type: 'object' },
+        },
+        required: ['originalQuery', 'refinedQuery', 'topics', 'requiredDepth', 'expectedOutputs'],
+      };
+
+      const { data: parsed } = await createClaudeStructuredOutput<ResearchIntent>({
+        messages: [{ role: 'user', content: prompt }],
+        systemPrompt: 'You are an expert research analyst. Respond with valid JSON only.',
+        schema,
       });
-
-      const text = response.text?.trim() || '';
-
-      // Extract JSON from response (handle markdown code blocks)
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]) as ResearchIntent;
 
       // Validate required fields
       if (!parsed.refinedQuery || !parsed.topics || parsed.topics.length === 0) {
         throw new Error('Invalid intent structure');
       }
 
+      console.log(`[IntentAnalyzer] Using Claude Sonnet for intent analysis`);
       return parsed;
     } catch (error) {
-      console.error('[IntentAnalyzer] Error analyzing intent:', error);
+      console.error('[IntentAnalyzer] Error analyzing intent (Claude Sonnet):', error);
 
       // Fallback: create a basic intent from the query
       return this.createFallbackIntent(query);

@@ -1,15 +1,17 @@
 /**
- * CHAT API ROUTE - OpenAI GPT-5 Edition
+ * CHAT API ROUTE - Claude + Google Imagen Edition
  *
  * PURPOSE:
  * - Handle chat message requests with streaming responses
- * - Integrate with OpenAI API (GPT-5-nano/mini tiered routing)
- * - Route image generation to DALL-E 3
+ * - Text generation via Claude (Haiku 4.5 / Sonnet 4.5 hybrid routing)
+ * - Image generation via Google Imagen (Gemini)
+ * - Research via Perplexity + Claude Sonnet synthesis
  *
- * MODEL ROUTING (GPT-5 Edition):
- * - gpt-5-nano: Basic chat, greetings, simple Q&A (cost-optimized)
- * - gpt-5-mini: Search, files, images, complex reasoning, code, AND fallback
- * - DALL-E 3: Image generation only
+ * MODEL ROUTING (Claude Hybrid):
+ * - Claude Haiku 4.5: Basic chat, greetings, simple Q&A (cost-optimized)
+ * - Claude Sonnet 4.5: Research, faith topics, complex reasoning, documents
+ * - Google Imagen: Image generation only
+ * - Perplexity: Web search (with Claude post-processing)
  *
  * PUBLIC ROUTES:
  * - POST /api/chat
@@ -21,13 +23,16 @@
  * - Admin bypass for limits
  *
  * DEPENDENCIES/ENVS:
- * - OPENAI_API_KEY (required)
+ * - ANTHROPIC_API_KEY_1 (required for text)
+ * - GOOGLE_GENERATIVE_AI_API_KEY (required for images)
  * - NEXT_PUBLIC_SUPABASE_URL (optional, for auth)
  *
  * FEATURES:
  * - ✅ Streaming responses with SSE
- * - ✅ GPT-5-nano/mini tiered routing with auto-escalation
- * - ✅ Image generation with DALL-E 3
+ * - ✅ Claude Haiku/Sonnet hybrid routing (auto-select by complexity)
+ * - ✅ Image generation with Google Imagen
+ * - ✅ Research agent with Claude Sonnet synthesis
+ * - ✅ Faith-grounded responses (Biblical principles)
  * - ✅ Tool-specific system prompts
  * - ✅ Temperature and token optimization per tool
  * - ✅ Retry logic with exponential backoff
@@ -37,7 +42,7 @@
  * - [ ] Add authentication
  * - [✓] Implement rate limiting (60/hr auth, 20/hr anon)
  * - [ ] Store messages in database
- * - [✓] Add content moderation (OpenAI omni-moderation-latest)
+ * - [✓] Add content moderation
  * - [✓] Implement usage tracking (daily limits with 80% warning)
  */
 
@@ -60,16 +65,18 @@ import { isSandboxConfigured } from '@/lib/connectors/vercel-sandbox';
 // import { createPendingRequest, completePendingRequest } from '@/lib/pending-requests';
 import { getProviderSettings, Provider, getModelForTier, getGeminiImageModel } from '@/lib/provider/settings';
 import {
-  createGeminiCompletion,
-  createGeminiStreamingCompletion,
   createGeminiStructuredCompletion,
   createGeminiImageGeneration,
   getDocumentSchema,
   getDocumentSchemaDescription,
 } from '@/lib/gemini/client';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
-// PHASE 2: detectDocumentRequest is a utility function (pattern matching), not Anthropic-specific
-import { detectDocumentRequest } from '@/lib/anthropic/client';
+// Claude hybrid routing for text generation (Haiku for simple, Sonnet for complex)
+import {
+  createClaudeStreamingChat,
+  createClaudeChat,
+  detectDocumentRequest,
+} from '@/lib/anthropic/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 // Brave Search no longer needed - using native Anthropic web search
 // import { braveSearch } from '@/lib/brave/search';
@@ -2633,17 +2640,17 @@ ${rawSearchContent}
 
 Please summarize this information from our platform's perspective. Present the facts accurately while maintaining our values. Be concise and helpful.`;
 
-        // PHASE 2: Always post-process through Gemini (locked to Google)
-        const geminiModel = await getModelForTier(userTier, 'gemini');
-        const result = await createGeminiCompletion({
+        // PHASE 3: Post-process search results through Claude Sonnet
+        // Using Sonnet for search synthesis (research-level task)
+        const result = await createClaudeChat({
           messages: [{ role: 'user', content: summaryPrompt }],
-          model: geminiModel,
-          maxTokens: 2048,
           systemPrompt: platformSystemPrompt,
+          maxTokens: 2048,
+          forceModel: 'sonnet', // Always use Sonnet for search synthesis
         });
         const finalContent = result.text;
         const modelUsed = result.model;
-        console.log(`[Chat API] Search post-processed through Gemini (${modelUsed})`);
+        console.log(`[Chat API] Search post-processed through Claude (${modelUsed})`);
 
         return new Response(
           JSON.stringify({
@@ -2656,7 +2663,7 @@ Please summarize this information from our platform's perspective. Present the f
             headers: {
               'Content-Type': 'application/json',
               'X-Model-Used': modelUsed,
-              'X-Provider': activeProvider,
+              'X-Provider': 'claude',
               'X-Search-Mode': searchMode,
               'X-Web-Search': 'perplexity',
             },
@@ -2765,26 +2772,27 @@ Before generating the file, ask 2-3 brief qualifying questions to understand the
 Keep your questions concise and professional. After they provide details, you can generate the spreadsheet.
 Do NOT show a markdown table - just ask the questions conversationally.`;
 
-        const gatherResult = await createGeminiCompletion({
+        // PHASE 3: Use Claude Haiku for quick qualifying questions
+        const gatherResult = await createClaudeChat({
           messages: messagesWithContext,
-          model: geminiModel,
+          systemPrompt: spreadsheetGatheringPrompt,
           maxTokens: 500,
           temperature: 0.7,
-          systemPrompt: spreadsheetGatheringPrompt,
+          forceModel: 'haiku', // Quick questions use Haiku
         });
 
         return new Response(
           JSON.stringify({
             content: gatherResult.text,
-            model: geminiModel,
-            provider: 'gemini',
+            model: gatherResult.model,
+            provider: 'claude',
           }),
           {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'X-Model-Used': geminiModel,
-              'X-Provider': 'gemini',
+              'X-Model-Used': gatherResult.model,
+              'X-Provider': 'claude',
             },
           }
         );
@@ -2810,12 +2818,13 @@ Do NOT show a markdown table - just ask the questions conversationally.`;
 
           if (!qrUrl) {
             // No URL found - ask AI to extract it from context or ask user
-            const result = await createGeminiCompletion({
+            // PHASE 3: Use Claude Haiku for quick extraction
+            const result = await createClaudeChat({
               messages: messagesWithContext,
-              model: geminiModel,
+              systemPrompt: `${systemPrompt}\n\nThe user wants to create a QR code. Extract the URL or data they want in the QR code from the conversation. If no URL is specified, ask them to provide one. Respond briefly.`,
               maxTokens: 500,
               temperature: 0.3,
-              systemPrompt: `${systemPrompt}\n\nThe user wants to create a QR code. Extract the URL or data they want in the QR code from the conversation. If no URL is specified, ask them to provide one. Respond briefly.`,
+              forceModel: 'haiku', // Quick extraction uses Haiku
             });
 
             // Check if response contains a URL
@@ -3100,14 +3109,13 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
         const enhancedSystemPrompt = `${systemPrompt}\n\n${documentFormattingInstructions}${pdfFormatInstruction}`;
 
         // Use non-streaming for document generation (need full content for PDF)
-        const result = await createGeminiCompletion({
+        // PHASE 3: Document generation with Claude Sonnet
+        const result = await createClaudeChat({
           messages: messagesWithContext,
-          model: geminiModel,
+          systemPrompt: enhancedSystemPrompt,
           maxTokens: clampedMaxTokens,
           temperature,
-          systemPrompt: enhancedSystemPrompt,
-          userId: isAuthenticated ? rateLimitIdentifier : undefined,
-          planKey: userTier,
+          forceModel: 'sonnet', // Always use Sonnet for document generation
         });
 
         return new Response(
@@ -3116,14 +3124,14 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
             content: result.text,
             model: result.model,
             documentGeneration: true,
-            documentType: 'pdf', // Always PDF for Gemini
+            documentType: 'pdf',
           }),
           {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
               'X-Model-Used': result.model,
-              'X-Provider': 'gemini',
+              'X-Provider': 'claude',
               'X-Document-Type': 'pdf',
             },
           }
@@ -3131,19 +3139,17 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
       }
 
       // ========================================
-      // REGULAR CHAT (streaming with native Google Search)
+      // REGULAR CHAT (Claude Hybrid Streaming)
       // ========================================
-      // Gemini uses native Google Search grounding - model automatically
-      // decides when to search based on the query (no Perplexity needed)
-      const streamResult = await createGeminiStreamingCompletion({
+      // Claude hybrid routing: Haiku for simple queries, Sonnet for complex
+      // Auto-selects based on query complexity, faith topics, research needs
+      const isFaithQuery = isFaithTopic(lastUserContent);
+      const streamResult = await createClaudeStreamingChat({
         messages: messagesWithContext,
-        model: geminiModel,
+        systemPrompt,
         maxTokens: clampedMaxTokens,
         temperature,
-        systemPrompt,
-        userId: isAuthenticated ? rateLimitIdentifier : undefined,
-        planKey: userTier,
-        enableSearch: true, // Native Google Search grounding - auto-search when needed
+        isFaithTopic: isFaithQuery, // Force Sonnet for faith topics
       });
 
       // If task plan exists, prepend it to the stream
@@ -3156,8 +3162,8 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
           'Content-Type': 'text/plain; charset=utf-8',
           'Transfer-Encoding': 'chunked',
           'X-Model-Used': streamResult.model,
-          'X-Provider': 'gemini',
-          'X-Native-Search': 'google', // Indicates native search is enabled
+          'X-Provider': 'claude',
+          'X-Faith-Topic': isFaithQuery ? 'true' : 'false',
           ...(taskPlanText ? { 'X-Task-Plan': 'true' } : {}),
         },
       });
