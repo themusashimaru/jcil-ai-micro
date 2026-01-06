@@ -42,6 +42,9 @@ export type ToolUpdateCallback = (update: ToolUpdate) => void;
 // ============================================
 
 const WORKSPACE_TOOLS: Anthropic.Tool[] = [
+  // ============================================
+  // CORE CLAUDE CODE PARITY TOOLS
+  // ============================================
   {
     name: 'execute_shell',
     description: 'Execute a shell command in the workspace sandbox. Use for running scripts, installing packages, building, testing, or any CLI operation. Commands run in an isolated Linux environment.',
@@ -250,6 +253,140 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
         },
       },
       required: [],
+    },
+  },
+
+  // ============================================
+  // ADVANCED TOOLS (CLAUDE CODE PARITY+)
+  // ============================================
+  {
+    name: 'web_fetch',
+    description: 'Fetch content from a URL. Use to retrieve documentation, API responses, or any web content. Returns markdown-formatted content.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: {
+          type: 'string',
+          description: 'The URL to fetch',
+        },
+        prompt: {
+          type: 'string',
+          description: 'Optional prompt to extract specific information from the page',
+        },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'spawn_task',
+    description: 'Spawn a sub-agent to handle a complex subtask. Use for parallel work or when a task requires focused attention. The sub-agent has the same capabilities as you.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        description: {
+          type: 'string',
+          description: 'Short description of the task (3-5 words)',
+        },
+        prompt: {
+          type: 'string',
+          description: 'Detailed instructions for the sub-agent',
+        },
+      },
+      required: ['description', 'prompt'],
+    },
+  },
+  {
+    name: 'todo_write',
+    description: 'Create or update a task list to track progress on multi-step tasks. Helps organize complex work and show progress to the user.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        todos: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              content: { type: 'string', description: 'Task description' },
+              status: { type: 'string', enum: ['pending', 'in_progress', 'completed'], description: 'Task status' },
+            },
+            required: ['content', 'status'],
+          },
+          description: 'List of tasks to track',
+        },
+      },
+      required: ['todos'],
+    },
+  },
+  {
+    name: 'notebook_edit',
+    description: 'Edit a Jupyter notebook (.ipynb file). Can replace, insert, or delete cells.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        notebook_path: {
+          type: 'string',
+          description: 'Path to the notebook file',
+        },
+        cell_index: {
+          type: 'number',
+          description: 'Index of the cell to edit (0-based)',
+        },
+        edit_mode: {
+          type: 'string',
+          enum: ['replace', 'insert', 'delete'],
+          description: 'Type of edit (default: replace)',
+        },
+        cell_type: {
+          type: 'string',
+          enum: ['code', 'markdown'],
+          description: 'Cell type (for insert/replace)',
+        },
+        new_source: {
+          type: 'string',
+          description: 'New cell content',
+        },
+      },
+      required: ['notebook_path'],
+    },
+  },
+  {
+    name: 'multi_edit',
+    description: 'Apply multiple edits to a file atomically. More efficient than multiple edit_file calls.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Path to the file',
+        },
+        edits: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              old_text: { type: 'string', description: 'Text to find' },
+              new_text: { type: 'string', description: 'Text to replace with' },
+            },
+            required: ['old_text', 'new_text'],
+          },
+          description: 'List of edits to apply',
+        },
+      },
+      required: ['path', 'edits'],
+    },
+  },
+  {
+    name: 'ask_user',
+    description: 'Ask the user a clarifying question when you need more information to proceed. Use sparingly.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        question: {
+          type: 'string',
+          description: 'The question to ask the user',
+        },
+      },
+      required: ['question'],
     },
   },
 ];
@@ -550,6 +687,170 @@ export class WorkspaceAgent {
           }
         }
 
+        // ============================================
+        // ADVANCED TOOLS IMPLEMENTATIONS
+        // ============================================
+
+        case 'web_fetch': {
+          const url = input.url as string;
+          const prompt = input.prompt as string | undefined;
+
+          try {
+            // Fetch the URL
+            const response = await fetch(url, {
+              headers: {
+                'User-Agent': 'Code-Lab/1.0 (Anthropic Claude Integration)',
+              },
+            });
+
+            if (!response.ok) {
+              return `Error fetching URL: ${response.status} ${response.statusText}`;
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            let content: string;
+
+            if (contentType.includes('application/json')) {
+              const json = await response.json();
+              content = JSON.stringify(json, null, 2);
+            } else {
+              content = await response.text();
+              // Strip HTML tags for cleaner output
+              if (contentType.includes('text/html')) {
+                content = content
+                  .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                  .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                  .replace(/<[^>]+>/g, ' ')
+                  .replace(/\s+/g, ' ')
+                  .trim()
+                  .substring(0, 10000); // Limit size
+              }
+            }
+
+            if (prompt) {
+              return `Content from ${url} (with prompt: "${prompt}"):\n\n${content}`;
+            }
+            return `Content from ${url}:\n\n${content}`;
+          } catch (error) {
+            return `Error fetching URL: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          }
+        }
+
+        case 'spawn_task': {
+          const description = input.description as string;
+          const prompt = input.prompt as string;
+
+          // Create a sub-agent with the same config
+          const subAgent = new WorkspaceAgent({
+            ...this.config,
+            sessionId: `${this.config.sessionId}-subtask-${Date.now()}`,
+          });
+
+          // Collect all output from sub-agent
+          let subAgentOutput = '';
+          for await (const update of subAgent.runStreaming(prompt)) {
+            if (update.type === 'text') {
+              subAgentOutput += update.text || '';
+            } else if (update.type === 'tool_end') {
+              subAgentOutput += `\n[Tool: ${update.tool}]\n${update.output}\n`;
+            }
+          }
+
+          return `Sub-task "${description}" completed:\n\n${subAgentOutput}`;
+        }
+
+        case 'todo_write': {
+          const todos = input.todos as Array<{ content: string; status: string }>;
+
+          // Store in session context (would be sent back to frontend)
+          const todoList = todos.map((t) => {
+            const icon = t.status === 'completed' ? '✓' : t.status === 'in_progress' ? '→' : '○';
+            return `${icon} ${t.content}`;
+          }).join('\n');
+
+          return `Task list updated:\n${todoList}`;
+        }
+
+        case 'notebook_edit': {
+          const notebookPath = this.normalizePath(input.notebook_path as string);
+          const cellIndex = input.cell_index as number | undefined;
+          const editMode = (input.edit_mode as string) || 'replace';
+          const cellType = (input.cell_type as string) || 'code';
+          const newSource = input.new_source as string | undefined;
+
+          try {
+            // Read the notebook
+            const content = await this.container.readFile(this.config.workspaceId, notebookPath);
+            const notebook = JSON.parse(content);
+
+            if (!notebook.cells) {
+              return `Error: Invalid notebook format - no cells found`;
+            }
+
+            if (editMode === 'delete' && cellIndex !== undefined) {
+              notebook.cells.splice(cellIndex, 1);
+            } else if (editMode === 'insert' && newSource !== undefined) {
+              const newCell = {
+                cell_type: cellType,
+                source: newSource.split('\n'),
+                metadata: {},
+                ...(cellType === 'code' ? { outputs: [], execution_count: null } : {}),
+              };
+              const insertAt = cellIndex !== undefined ? cellIndex : notebook.cells.length;
+              notebook.cells.splice(insertAt, 0, newCell);
+            } else if (editMode === 'replace' && cellIndex !== undefined && newSource !== undefined) {
+              notebook.cells[cellIndex].source = newSource.split('\n');
+              if (cellType) {
+                notebook.cells[cellIndex].cell_type = cellType;
+              }
+            }
+
+            // Write back
+            await this.container.writeFile(this.config.workspaceId, notebookPath, JSON.stringify(notebook, null, 2));
+            this.filesModified.add(notebookPath);
+
+            return `Successfully ${editMode}d cell in ${notebookPath}`;
+          } catch (error) {
+            return `Error editing notebook: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          }
+        }
+
+        case 'multi_edit': {
+          const path = this.normalizePath(input.path as string);
+          const edits = input.edits as Array<{ old_text: string; new_text: string }>;
+
+          let content = await this.container.readFile(this.config.workspaceId, path);
+          let appliedCount = 0;
+          const errors: string[] = [];
+
+          for (const edit of edits) {
+            if (content.includes(edit.old_text)) {
+              content = content.replace(edit.old_text, edit.new_text);
+              appliedCount++;
+            } else {
+              errors.push(`Could not find: "${edit.old_text.substring(0, 50)}..."`);
+            }
+          }
+
+          if (appliedCount > 0) {
+            await this.container.writeFile(this.config.workspaceId, path, content);
+            this.filesModified.add(path);
+          }
+
+          let result = `Applied ${appliedCount}/${edits.length} edits to ${path}`;
+          if (errors.length > 0) {
+            result += `\nErrors:\n${errors.join('\n')}`;
+          }
+          return result;
+        }
+
+        case 'ask_user': {
+          const question = input.question as string;
+          // This would typically trigger a UI prompt
+          // For now, we return a marker that the frontend can handle
+          return `[AWAITING_USER_INPUT]\n${question}`;
+        }
+
         default:
           return `Unknown tool: ${name}`;
       }
@@ -817,6 +1118,12 @@ function formatToolName(tool: string): string {
     run_build: 'Running build',
     run_tests: 'Running tests',
     install_packages: 'Installing packages',
+    web_fetch: 'Fetching URL',
+    spawn_task: 'Spawning sub-task',
+    todo_write: 'Updating task list',
+    notebook_edit: 'Editing notebook',
+    multi_edit: 'Multi-edit file',
+    ask_user: 'Asking user',
   };
   return names[tool] || tool;
 }
@@ -831,7 +1138,9 @@ function formatToolInput(tool: string, input: Record<string, unknown>): string {
     case 'read_file':
     case 'write_file':
     case 'edit_file':
-      return `\`${input.path}\``;
+    case 'notebook_edit':
+    case 'multi_edit':
+      return `\`${input.path || input.notebook_path}\``;
     case 'list_files':
       return input.path ? `\`${input.path}\`` : '`/workspace`';
     case 'search_files':
@@ -840,6 +1149,12 @@ function formatToolInput(tool: string, input: Record<string, unknown>): string {
       return `"${input.pattern}"`;
     case 'git_commit':
       return `"${input.message}"`;
+    case 'web_fetch':
+      return `\`${input.url}\``;
+    case 'spawn_task':
+      return `"${input.description}"`;
+    case 'ask_user':
+      return `"${(input.question as string)?.substring(0, 50)}..."`;
     default:
       return '';
   }
