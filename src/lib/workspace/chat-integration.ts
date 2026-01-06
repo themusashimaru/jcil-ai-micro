@@ -1203,7 +1203,7 @@ Use \`bg_output\` to check output or \`bg_kill\` to stop.`;
           }
 
           // Try to get latest output
-          const output = await taskManager.getTaskOutput(taskId, async (tid) => {
+          const output = await taskManager.getTaskOutput(taskId, async (_tid) => {
             // Check if process is still running and get output
             const checkCmd = task.pid
               ? `ps -p ${task.pid} -o pid= 2>/dev/null && cat /tmp/bg-*.log 2>/dev/null | tail -100`

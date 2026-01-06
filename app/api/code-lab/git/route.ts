@@ -11,7 +11,6 @@ import { ContainerManager } from '@/lib/workspace/container';
 import { GitHubSyncBridge } from '@/lib/workspace/github-sync';
 import {
   sanitizeCommitMessage,
-  sanitizeBranchName,
   validateEncryptedTokenFormat,
   TokenDecryptionError,
 } from '@/lib/workspace/security';

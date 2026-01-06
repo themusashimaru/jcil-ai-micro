@@ -120,7 +120,7 @@ export function parsePlanFromMarkdown(markdown: string, planId: string, sessionI
   };
 
   let section = '';
-  let summaryLines: string[] = [];
+  const summaryLines: string[] = [];
 
   for (const line of lines) {
     // Parse title
