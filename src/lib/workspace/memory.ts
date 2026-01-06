@@ -269,7 +269,7 @@ export class ProjectMemoryManager {
   async addSection(
     title: string,
     content: string,
-    type: MemorySection['type'],
+    _type: MemorySection['type'],
     readFile: (path: string) => Promise<string>,
     writeFile: (path: string, content: string) => Promise<void>
   ): Promise<ProjectMemory> {
