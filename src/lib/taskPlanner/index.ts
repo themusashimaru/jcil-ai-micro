@@ -9,7 +9,7 @@
  * and display the plan - execution happens in later phases.
  */
 
-import { createGeminiStructuredCompletion } from '@/lib/gemini/client';
+import { createClaudeStructuredOutput } from '@/lib/anthropic/client';
 import type { CoreMessage } from 'ai';
 
 // ============================================================================
@@ -52,7 +52,7 @@ export interface TaskPlanResult {
 }
 
 // ============================================================================
-// Schema for Gemini Structured Output
+// Schema for Claude Structured Output
 // ============================================================================
 
 const TASK_CLASSIFICATION_SCHEMA = {
@@ -215,14 +215,13 @@ export async function analyzeRequest(
       }
     ];
 
-    const { data: plan } = await createGeminiStructuredCompletion<TaskPlan>({
+    // Use Claude Sonnet for task classification (structured output)
+    const result = await createClaudeStructuredOutput<TaskPlan>({
       messages,
       systemPrompt: CLASSIFICATION_PROMPT,
       schema: TASK_CLASSIFICATION_SCHEMA,
-      temperature: 0.3, // Low temperature for consistent classification
-      maxTokens: 1024,
-      model: 'gemini-3-pro-preview', // PHASE 1 - locked to Google
     });
+    const plan = result.data;
 
     console.log('[TaskPlanner] Classification result:', {
       isComplex: plan.isComplex,

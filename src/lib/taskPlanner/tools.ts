@@ -14,7 +14,7 @@
  * - Foundation for complex workflows
  */
 
-import { createGeminiCompletion } from '@/lib/gemini/client';
+import { createClaudeChat } from '@/lib/anthropic/client';
 import type { CoreMessage } from 'ai';
 import type { TaskType } from './index';
 import {
@@ -124,14 +124,12 @@ ${input.context ? `**Context from previous steps:**\n${input.context}\n` : ''}
 
     try {
       const messages: CoreMessage[] = [{ role: 'user', content: prompt }];
-      const result = await createGeminiCompletion({
+      // Use Claude Sonnet for research tasks (web search handled externally)
+      const result = await createClaudeChat({
         messages,
-        model: config.model,
         maxTokens: config.maxTokens || 2048,
         temperature: config.temperature || 0.5,
-        enableSearch: true, // Enable Google Search
-        userId: config.userId,
-        planKey: config.userTier,
+        forceModel: 'sonnet', // Use Sonnet for research
       });
 
       return {
@@ -139,7 +137,6 @@ ${input.context ? `**Context from previous steps:**\n${input.context}\n` : ''}
         content: result.text,
         metadata: {
           tool: 'search',
-          groundingUsed: !!result.groundingMetadata,
         },
       };
     } catch (error) {
@@ -188,14 +185,12 @@ ${input.context ? `**Data/Information to Analyze:**\n${input.context}\n` : ''}
 
     try {
       const messages: CoreMessage[] = [{ role: 'user', content: prompt }];
-      const result = await createGeminiCompletion({
+      // Use Claude Sonnet for analysis (complex reasoning)
+      const result = await createClaudeChat({
         messages,
-        model: config.model,
         maxTokens: config.maxTokens || 2048,
         temperature: config.temperature || 0.4,
-        enableSearch: true, // Enable code execution for calculations
-        userId: config.userId,
-        planKey: config.userTier,
+        forceModel: 'sonnet', // Use Sonnet for analysis
       });
 
       return {
@@ -275,14 +270,12 @@ ${input.context ? `**Available Data/Context:**\n${input.context}\n` : ''}
       // === ITERATION 1: Initial Execution ===
       console.log('[CodeTool] Starting execution (attempt 1)...');
       const messages: CoreMessage[] = [{ role: 'user', content: initialPrompt }];
-      let result = await createGeminiCompletion({
+      // Use Claude Sonnet for code tasks
+      let result = await createClaudeChat({
         messages,
-        model: config.model,
         maxTokens: config.maxTokens || 2048,
         temperature: config.temperature || 0.3,
-        enableSearch: true, // Enables code execution
-        userId: config.userId,
-        planKey: config.userTier,
+        forceModel: 'sonnet', // Use Sonnet for code generation
       });
 
       currentOutput = result.text;
@@ -320,14 +313,12 @@ ${input.context ? `**Available Data/Context:**\n${input.context}\n` : ''}
 
         // Execute the fix
         const fixMessages: CoreMessage[] = [{ role: 'user', content: fixPrompt }];
-        result = await createGeminiCompletion({
+        // Use Claude Sonnet for code fixes
+        result = await createClaudeChat({
           messages: fixMessages,
-          model: config.model,
           maxTokens: config.maxTokens || 2048,
           temperature: Math.min(0.3 + retryCount * 0.1, 0.6), // Slightly increase temp on retries
-          enableSearch: true,
-          userId: config.userId,
-          planKey: config.userTier,
+          forceModel: 'sonnet', // Use Sonnet for code fixes
         });
 
         currentOutput = result.text;
@@ -590,14 +581,12 @@ ${input.context}
 
     try {
       const messages: CoreMessage[] = [{ role: 'user', content: prompt }];
-      const result = await createGeminiCompletion({
+      // Use Claude Sonnet for content generation
+      const result = await createClaudeChat({
         messages,
-        model: config.model,
         maxTokens: config.maxTokens || 4096,
         temperature: config.temperature || 0.7,
-        enableSearch: false,
-        userId: config.userId,
-        planKey: config.userTier,
+        forceModel: 'sonnet', // Use Sonnet for generation
       });
 
       return {
@@ -637,14 +626,12 @@ ${input.context ? `Context: ${input.context}` : ''}`;
 
     try {
       const messages: CoreMessage[] = [{ role: 'user', content: prompt }];
-      const result = await createGeminiCompletion({
+      // Use Claude Haiku for simple conversations (cost-effective)
+      const result = await createClaudeChat({
         messages,
-        model: config.model,
         maxTokens: config.maxTokens || 1024,
         temperature: config.temperature || 0.7,
-        enableSearch: false,
-        userId: config.userId,
-        planKey: config.userTier,
+        forceModel: 'haiku', // Use Haiku for simple chat
       });
 
       return {
@@ -680,7 +667,7 @@ const deepResearchTool: Tool = {
   ],
   taskTypes: ['deep-research'], // Selected for comprehensive research tasks
 
-  async execute(input: ToolInput, config: ToolConfig): Promise<ToolOutput> {
+  async execute(input: ToolInput, _config: ToolConfig): Promise<ToolOutput> {
     const startTime = Date.now();
 
     // Step 1: Decompose the research query into 3-5 parallel sub-queries
@@ -703,14 +690,12 @@ Return ONLY a JSON array of 3-5 specific research questions, like:
     let subQueries: string[] = [];
     try {
       const messages: CoreMessage[] = [{ role: 'user', content: decompositionPrompt }];
-      const decompResult = await createGeminiCompletion({
+      // Use Claude Sonnet for query decomposition (requires reasoning)
+      const decompResult = await createClaudeChat({
         messages,
-        model: config.model,
         maxTokens: 500,
         temperature: 0.3,
-        enableSearch: false,
-        userId: config.userId,
-        planKey: config.userTier,
+        forceModel: 'sonnet', // Use Sonnet for decomposition
       });
 
       // Parse the JSON array from response
@@ -748,14 +733,12 @@ Return ONLY a JSON array of 3-5 specific research questions, like:
 
       try {
         const messages: CoreMessage[] = [{ role: 'user', content: searchPrompt }];
-        const result = await createGeminiCompletion({
+        // Use Claude Sonnet for research (web search handled externally)
+        const result = await createClaudeChat({
           messages,
-          model: config.model,
           maxTokens: 1500,
           temperature: 0.5,
-          enableSearch: true, // Use Google Search
-          userId: config.userId,
-          planKey: config.userTier,
+          forceModel: 'sonnet', // Use Sonnet for research
         });
 
         return {
@@ -813,14 +796,12 @@ ${combinedFindings}
 
     try {
       const messages: CoreMessage[] = [{ role: 'user', content: synthesisPrompt }];
-      const synthesisResult = await createGeminiCompletion({
+      // Use Claude Sonnet for synthesis (complex reasoning, document generation)
+      const synthesisResult = await createClaudeChat({
         messages,
-        model: config.model,
         maxTokens: 3000,
         temperature: 0.4,
-        enableSearch: false,
-        userId: config.userId,
-        planKey: config.userTier,
+        forceModel: 'sonnet', // Use Sonnet for synthesis
       });
 
       const totalTime = Date.now() - startTime;
@@ -1031,16 +1012,14 @@ ${reviewPrompts[reviewFocus]}
 
 **Your Code Review:**`;
 
-      // Step 4: Run the review with Gemini
+      // Step 4: Run the review with Claude Sonnet
       const messages: CoreMessage[] = [{ role: 'user', content: reviewPrompt }];
-      const result = await createGeminiCompletion({
+      // Use Claude Sonnet for code review (complex analysis)
+      const result = await createClaudeChat({
         messages,
-        model: config.model,
         maxTokens: 4096,
         temperature: 0.4,
-        enableSearch: false,
-        userId: config.userId,
-        planKey: config.userTier,
+        forceModel: 'sonnet', // Use Sonnet for code review
       });
 
       const totalTime = Date.now() - startTime;
@@ -1663,7 +1642,7 @@ interface GeneratedFile {
 async function planProjectStructure(
   query: string,
   originalRequest: string,
-  config: ToolConfig
+  _config: ToolConfig
 ): Promise<ProjectPlan> {
   const planPrompt = `You are a project architect. Plan the file structure for this project request.
 
@@ -1692,12 +1671,12 @@ RULES:
 
   try {
     const messages: CoreMessage[] = [{ role: 'user', content: planPrompt }];
-    const result = await createGeminiCompletion({
+    // Use Claude Sonnet for project planning (complex reasoning)
+    const result = await createClaudeChat({
       messages,
-      model: config.model,
-      userId: config.userId,
       maxTokens: 1024,
       temperature: 0.3,
+      forceModel: 'sonnet', // Use Sonnet for project planning
     });
 
     // Parse the JSON response
@@ -1741,7 +1720,7 @@ async function generateProjectFiles(
 async function generateFileContent(
   file: { path: string; description: string },
   plan: ProjectPlan,
-  config: ToolConfig
+  _config: ToolConfig
 ): Promise<GeneratedFile | null> {
   const ext = file.path.split('.').pop()?.toLowerCase() || '';
 
@@ -1765,12 +1744,12 @@ ${file.path === 'README.md' ? 'Include project title, description, setup instruc
 
   try {
     const messages: CoreMessage[] = [{ role: 'user', content: generatePrompt }];
-    const result = await createGeminiCompletion({
+    // Use Claude Sonnet for file generation (code generation)
+    const result = await createClaudeChat({
       messages,
-      model: config.model,
-      userId: config.userId,
       maxTokens: 4096,
       temperature: 0.5,
+      forceModel: 'sonnet', // Use Sonnet for code generation
     });
 
     // Clean up the content (remove any markdown code blocks if present)

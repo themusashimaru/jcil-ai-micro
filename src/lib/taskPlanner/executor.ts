@@ -13,7 +13,7 @@
  * - AUTONOMOUS MODE: Runs all steps without checkpoints, self-corrects on errors
  */
 
-import { createGeminiCompletion } from '@/lib/gemini/client';
+import { createClaudeChat } from '@/lib/anthropic/client';
 import { executeForTaskType } from './tools';
 import type { CoreMessage } from 'ai';
 import type { SubTask, TaskPlan } from './index';
@@ -176,8 +176,8 @@ async function attemptSelfCorrection(
   step: SubTask,
   error: string,
   context: ExecutionContext,
-  model: string,
-  userId?: string
+  _model: string,
+  _userId?: string
 ): Promise<StepResult | null> {
   console.log(`[TaskExecutor] Attempting self-correction for step ${step.id}`);
 
@@ -197,12 +197,12 @@ Please:
 Focus on delivering value despite the error.`;
 
     const messages: CoreMessage[] = [{ role: 'user', content: correctionPrompt }];
-    const result = await createGeminiCompletion({
+    // Use Claude Sonnet for self-correction (complex reasoning)
+    const result = await createClaudeChat({
       messages,
-      model,
-      userId,
       maxTokens: CONFIG.maxTokensPerStep,
       temperature: 0.5,
+      forceModel: 'sonnet', // Always use Sonnet for error recovery
     });
 
     if (result.text && result.text.length > 50) {
@@ -229,9 +229,9 @@ Focus on delivering value despite the error.`;
 async function synthesizeResults(
   context: ExecutionContext,
   plan: TaskPlan,
-  model: string,
-  userId?: string,
-  userTier?: string
+  _model: string,
+  _userId?: string,
+  _userTier?: string
 ): Promise<string> {
   console.log('[TaskExecutor] Synthesizing final results');
 
@@ -281,14 +281,12 @@ Write your response:`;
 
   const messages: CoreMessage[] = [{ role: 'user', content: synthesisPrompt }];
 
-  const result = await createGeminiCompletion({
+  // Use Claude Sonnet for synthesis (complex reasoning, document generation)
+  const result = await createClaudeChat({
     messages,
-    model,
     maxTokens: CONFIG.maxTokensSynthesis,
     temperature: 0.6,
-    enableSearch: false,
-    userId,
-    planKey: userTier,
+    forceModel: 'sonnet', // Always use Sonnet for synthesis
   });
 
   return result.text;
