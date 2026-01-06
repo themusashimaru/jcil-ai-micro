@@ -31,12 +31,13 @@ function getEncryptionKey(): Buffer {
   return crypto.createHash('sha256').update(key).digest();
 }
 
-// Decrypt token - same as connectors API
-function decryptToken(encryptedData: string): string {
+// Decrypt token - with proper error handling
+function decryptToken(encryptedData: string): string | null {
   try {
     const parts = encryptedData.split(':');
     if (parts.length !== 3) {
-      throw new Error('Invalid encrypted format');
+      console.error('[CodeLab Chat] Invalid encrypted token format');
+      return null;
     }
     const iv = Buffer.from(parts[0], 'hex');
     const authTag = Buffer.from(parts[1], 'hex');
@@ -46,9 +47,16 @@ function decryptToken(encryptedData: string): string {
     decipher.setAuthTag(authTag);
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
+
+    if (!decrypted) {
+      console.error('[CodeLab Chat] Decrypted token is empty');
+      return null;
+    }
+
     return decrypted;
-  } catch {
-    return '';
+  } catch (error) {
+    console.error('[CodeLab Chat] Token decryption failed:', error);
+    return null;
   }
 }
 
@@ -531,7 +539,12 @@ export async function POST(request: NextRequest) {
 
       let githubToken: string | undefined;
       if (userData?.github_token) {
-        githubToken = decryptToken(userData.github_token);
+        const decrypted = decryptToken(userData.github_token);
+        if (decrypted) {
+          githubToken = decrypted;
+        } else {
+          console.warn('[CodeLab Chat] GitHub token decryption failed - proceeding without GitHub access');
+        }
       }
 
       // Execute Code Agent with streaming
