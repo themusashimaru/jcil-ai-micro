@@ -114,6 +114,21 @@ const MAX_RESPONSE_TOKENS = 4096; // Cap response size (saves money)
 const DEFAULT_RESPONSE_TOKENS = 2048; // Default if not specified
 const MAX_CONTEXT_MESSAGES = 40; // Max messages to send (oldest get truncated)
 const MAX_CONTEXT_CHARS = 150000; // ~37K tokens approx (leave room for response)
+const MAX_SYSTEM_PROMPT_CHARS = 20000; // ~5K tokens max for system prompt
+
+/**
+ * Truncate system prompt to prevent context overflow
+ */
+function truncateSystemPrompt(prompt: string, maxChars: number = MAX_SYSTEM_PROMPT_CHARS): string {
+  if (prompt.length <= maxChars) return prompt;
+  console.log(`[Chat API] System prompt too long (${prompt.length} chars), truncating to ${maxChars}`);
+  const truncated = prompt.substring(0, maxChars);
+  const lastSection = truncated.lastIndexOf('\n\n---\n\n');
+  if (lastSection > maxChars * 0.7) {
+    return truncated.substring(0, lastSection) + '\n\n[Additional context truncated]';
+  }
+  return truncated + '\n\n[Context truncated]';
+}
 
 /**
  * Truncate conversation history to fit within context limits
@@ -2881,9 +2896,13 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
       // Claude hybrid routing: Haiku for simple queries, Sonnet for complex
       // Auto-selects based on query complexity, faith topics, research needs
       const isFaithQuery = isFaithTopic(lastUserContent);
+
+      // Apply system prompt truncation to prevent context overflow
+      const finalSystemPrompt = truncateSystemPrompt(systemPrompt);
+
       const streamResult = await createClaudeStreamingChat({
         messages: messagesWithContext,
-        systemPrompt,
+        systemPrompt: finalSystemPrompt,
         maxTokens: clampedMaxTokens,
         temperature,
         isFaithTopic: isFaithQuery, // Force Sonnet for faith topics
@@ -2918,4 +2937,4 @@ IMPORTANT: Since you cannot create native ${docName} files, format your response
 // Use Node.js runtime for better streaming support and logging
 // Edge runtime can have issues with streaming responses
 export const runtime = 'nodejs';
-export const maxDuration = 120; // Allow up to 120 seconds for AI responses (Pro plan supports up to 300s)
+export const maxDuration = 300; // Allow up to 300 seconds for complex AI responses with large context
