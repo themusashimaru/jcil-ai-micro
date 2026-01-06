@@ -1,0 +1,795 @@
+/**
+ * CONTAINER ORCHESTRATION ENGINE
+ *
+ * This is the REAL sandboxed execution layer.
+ * Uses E2B (same tech as OpenAI Code Interpreter) for secure code execution.
+ *
+ * E2B provides:
+ * - Fully isolated sandboxes (microVMs)
+ * - File system access
+ * - Shell command execution
+ * - Network access
+ * - Persistent storage
+ * - Real-time output streaming
+ */
+
+// Using stub until E2B is properly configured
+// To enable real E2B: npm install @e2b/code-interpreter && change import
+import { Sandbox } from './e2b-stub';
+import { createClient } from '@supabase/supabase-js';
+
+// ============================================
+// TYPES
+// ============================================
+
+export interface ContainerConfig {
+  template: 'base' | 'nodejs' | 'python' | 'go' | 'rust' | 'custom';
+  timeout: number; // seconds
+  memory: number; // MB
+  cpu: number; // cores
+  envVars: Record<string, string>;
+  persistentDirs?: string[];
+}
+
+export interface ExecutionResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  executionTime: number;
+  error?: string;
+}
+
+export interface FileInfo {
+  path: string;
+  isDirectory: boolean;
+  size: number;
+  modifiedAt: Date;
+}
+
+export interface StreamHandler {
+  onStdout?: (data: string) => void;
+  onStderr?: (data: string) => void;
+  onExit?: (code: number) => void;
+}
+
+// ============================================
+// CONTAINER MANAGER
+// ============================================
+
+export class ContainerManager {
+  private supabase;
+  private activeSandboxes: Map<string, Sandbox> = new Map();
+
+  constructor() {
+    this.supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+
+  /**
+   * Create a new sandboxed container
+   */
+  async createContainer(
+    workspaceId: string,
+    config: Partial<ContainerConfig> = {}
+  ): Promise<string> {
+    const fullConfig: ContainerConfig = {
+      template: config.template || 'nodejs',
+      timeout: config.timeout || 300,
+      memory: config.memory || 512,
+      cpu: config.cpu || 1,
+      envVars: config.envVars || {},
+      persistentDirs: config.persistentDirs || ['/workspace'],
+    };
+
+    try {
+      // Create E2B sandbox
+      const sandbox = await Sandbox.create({
+        template: this.getE2BTemplate(fullConfig.template),
+        timeout: fullConfig.timeout * 1000,
+        envVars: fullConfig.envVars,
+      });
+
+      // Store sandbox reference
+      this.activeSandboxes.set(workspaceId, sandbox);
+
+      // Update database with container ID
+      await this.supabase
+        .from('workspaces')
+        .update({
+          container_id: sandbox.sandboxId,
+          status: 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', workspaceId);
+
+      // Initialize workspace directory
+      await sandbox.filesystem.makeDir('/workspace');
+
+      return sandbox.sandboxId;
+
+    } catch (error) {
+      console.error('Failed to create container:', error);
+      throw new Error(`Container creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get E2B template name
+   */
+  private getE2BTemplate(template: ContainerConfig['template']): string {
+    const templates: Record<string, string> = {
+      base: 'base',
+      nodejs: 'nodejs20',
+      python: 'python3',
+      go: 'golang',
+      rust: 'rust',
+      custom: 'base',
+    };
+    return templates[template] || 'base';
+  }
+
+  /**
+   * Get or create sandbox for workspace
+   */
+  async getSandbox(workspaceId: string): Promise<Sandbox> {
+    // Check if we have an active sandbox
+    let sandbox = this.activeSandboxes.get(workspaceId);
+
+    if (!sandbox) {
+      // Try to reconnect to existing sandbox
+      const { data: workspace } = await this.supabase
+        .from('workspaces')
+        .select('container_id')
+        .eq('id', workspaceId)
+        .single();
+
+      if (workspace?.container_id) {
+        try {
+          sandbox = await Sandbox.connect(workspace.container_id);
+          this.activeSandboxes.set(workspaceId, sandbox);
+        } catch {
+          // Sandbox expired, create new one
+          await this.createContainer(workspaceId);
+          sandbox = this.activeSandboxes.get(workspaceId);
+        }
+      } else {
+        // No container exists, create one
+        await this.createContainer(workspaceId);
+        sandbox = this.activeSandboxes.get(workspaceId);
+      }
+    }
+
+    if (!sandbox) {
+      throw new Error('Failed to get or create sandbox');
+    }
+
+    return sandbox;
+  }
+
+  /**
+   * Execute a shell command in the container
+   */
+  async executeCommand(
+    workspaceId: string,
+    command: string,
+    options: {
+      cwd?: string;
+      timeout?: number;
+      stream?: StreamHandler;
+    } = {}
+  ): Promise<ExecutionResult> {
+    const startTime = Date.now();
+    const sandbox = await this.getSandbox(workspaceId);
+
+    try {
+      let stdout = '';
+      let stderr = '';
+
+      const process = await sandbox.process.start({
+        cmd: command,
+        cwd: options.cwd || '/workspace',
+        timeoutMs: options.timeout || 30000,
+        onStdout: (data) => {
+          stdout += data;
+          options.stream?.onStdout?.(data);
+        },
+        onStderr: (data) => {
+          stderr += data;
+          options.stream?.onStderr?.(data);
+        },
+      });
+
+      const result = await process.wait();
+
+      options.stream?.onExit?.(result.exitCode);
+
+      return {
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        exitCode: result.exitCode,
+        executionTime: Date.now() - startTime,
+      };
+
+    } catch (error) {
+      return {
+        stdout: '',
+        stderr: error instanceof Error ? error.message : 'Unknown error',
+        exitCode: 1,
+        executionTime: Date.now() - startTime,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Execute Python code directly
+   */
+  async executePython(
+    workspaceId: string,
+    code: string
+  ): Promise<ExecutionResult> {
+    const sandbox = await this.getSandbox(workspaceId);
+    const startTime = Date.now();
+
+    try {
+      const result = await sandbox.runCode(code);
+
+      return {
+        stdout: result.logs.stdout.join('\n'),
+        stderr: result.logs.stderr.join('\n'),
+        exitCode: result.error ? 1 : 0,
+        executionTime: Date.now() - startTime,
+        error: result.error?.message,
+      };
+
+    } catch (error) {
+      return {
+        stdout: '',
+        stderr: error instanceof Error ? error.message : 'Unknown error',
+        exitCode: 1,
+        executionTime: Date.now() - startTime,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Read a file from the container
+   */
+  async readFile(workspaceId: string, path: string): Promise<string> {
+    const sandbox = await this.getSandbox(workspaceId);
+
+    try {
+      const content = await sandbox.filesystem.read(path);
+      return content;
+    } catch (error) {
+      throw new Error(`Failed to read file ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Write a file to the container
+   */
+  async writeFile(workspaceId: string, path: string, content: string): Promise<void> {
+    const sandbox = await this.getSandbox(workspaceId);
+
+    try {
+      // Ensure parent directory exists
+      const dir = path.substring(0, path.lastIndexOf('/'));
+      if (dir) {
+        await sandbox.filesystem.makeDir(dir);
+      }
+
+      await sandbox.filesystem.write(path, content);
+    } catch (error) {
+      throw new Error(`Failed to write file ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Delete a file from the container
+   */
+  async deleteFile(workspaceId: string, path: string): Promise<void> {
+    await this.executeCommand(workspaceId, `rm -rf "${path}"`);
+  }
+
+  /**
+   * List directory contents
+   */
+  async listDirectory(workspaceId: string, path: string): Promise<FileInfo[]> {
+    const sandbox = await this.getSandbox(workspaceId);
+
+    try {
+      const entries = await sandbox.filesystem.list(path);
+
+      return entries.map(entry => ({
+        path: `${path}/${entry.name}`,
+        isDirectory: entry.type === 'directory',
+        size: 0, // E2B doesn't provide size directly
+        modifiedAt: new Date(),
+      }));
+    } catch (error) {
+      throw new Error(`Failed to list directory ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Upload a file to the container
+   */
+  async uploadFile(
+    workspaceId: string,
+    path: string,
+    content: Buffer | string
+  ): Promise<void> {
+    const sandbox = await this.getSandbox(workspaceId);
+
+    const contentStr = typeof content === 'string' ? content : content.toString('base64');
+    const isBase64 = typeof content !== 'string';
+
+    if (isBase64) {
+      // Write base64 content and decode
+      await sandbox.filesystem.write(`${path}.b64`, contentStr);
+      await this.executeCommand(workspaceId, `base64 -d "${path}.b64" > "${path}" && rm "${path}.b64"`);
+    } else {
+      await sandbox.filesystem.write(path, contentStr);
+    }
+  }
+
+  /**
+   * Download a file from the container
+   */
+  async downloadFile(workspaceId: string, path: string): Promise<string> {
+    return this.readFile(workspaceId, path);
+  }
+
+  /**
+   * Clone a git repository
+   */
+  async cloneRepository(
+    workspaceId: string,
+    repoUrl: string,
+    branch: string = 'main',
+    targetDir: string = '/workspace'
+  ): Promise<ExecutionResult> {
+    // First, ensure git is installed
+    await this.executeCommand(workspaceId, 'apt-get update && apt-get install -y git');
+
+    // Clone the repository
+    return this.executeCommand(
+      workspaceId,
+      `git clone --branch ${branch} --single-branch ${repoUrl} ${targetDir}`,
+      { timeout: 120000 } // 2 minute timeout for large repos
+    );
+  }
+
+  /**
+   * Install dependencies based on project type
+   */
+  async installDependencies(workspaceId: string, cwd: string = '/workspace'): Promise<ExecutionResult> {
+    // Check which package manager to use
+    const hasPackageJson = await this.fileExists(workspaceId, `${cwd}/package.json`);
+    const hasRequirementsTxt = await this.fileExists(workspaceId, `${cwd}/requirements.txt`);
+    const hasGoMod = await this.fileExists(workspaceId, `${cwd}/go.mod`);
+    const hasCargoToml = await this.fileExists(workspaceId, `${cwd}/Cargo.toml`);
+
+    if (hasPackageJson) {
+      // Check for lock files to determine package manager
+      const hasYarnLock = await this.fileExists(workspaceId, `${cwd}/yarn.lock`);
+      const hasPnpmLock = await this.fileExists(workspaceId, `${cwd}/pnpm-lock.yaml`);
+
+      if (hasPnpmLock) {
+        return this.executeCommand(workspaceId, 'pnpm install', { cwd, timeout: 120000 });
+      } else if (hasYarnLock) {
+        return this.executeCommand(workspaceId, 'yarn install', { cwd, timeout: 120000 });
+      } else {
+        return this.executeCommand(workspaceId, 'npm install', { cwd, timeout: 120000 });
+      }
+    }
+
+    if (hasRequirementsTxt) {
+      return this.executeCommand(workspaceId, 'pip install -r requirements.txt', { cwd, timeout: 120000 });
+    }
+
+    if (hasGoMod) {
+      return this.executeCommand(workspaceId, 'go mod download', { cwd, timeout: 120000 });
+    }
+
+    if (hasCargoToml) {
+      return this.executeCommand(workspaceId, 'cargo build', { cwd, timeout: 180000 });
+    }
+
+    return {
+      stdout: 'No package manager detected',
+      stderr: '',
+      exitCode: 0,
+      executionTime: 0,
+    };
+  }
+
+  /**
+   * Check if a file exists
+   */
+  async fileExists(workspaceId: string, path: string): Promise<boolean> {
+    try {
+      await this.readFile(workspaceId, path);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Run tests
+   */
+  async runTests(workspaceId: string, cwd: string = '/workspace'): Promise<ExecutionResult> {
+    const hasPackageJson = await this.fileExists(workspaceId, `${cwd}/package.json`);
+
+    if (hasPackageJson) {
+      // Check if test script exists
+      const packageJson = await this.readFile(workspaceId, `${cwd}/package.json`);
+      const pkg = JSON.parse(packageJson);
+
+      if (pkg.scripts?.test) {
+        return this.executeCommand(workspaceId, 'npm test', { cwd, timeout: 300000 });
+      }
+    }
+
+    // Try pytest for Python
+    const hasPytest = await this.fileExists(workspaceId, `${cwd}/pytest.ini`) ||
+                      await this.fileExists(workspaceId, `${cwd}/tests`);
+
+    if (hasPytest) {
+      return this.executeCommand(workspaceId, 'pytest', { cwd, timeout: 300000 });
+    }
+
+    // Try go test
+    const hasGoMod = await this.fileExists(workspaceId, `${cwd}/go.mod`);
+    if (hasGoMod) {
+      return this.executeCommand(workspaceId, 'go test ./...', { cwd, timeout: 300000 });
+    }
+
+    return {
+      stdout: 'No test framework detected',
+      stderr: '',
+      exitCode: 0,
+      executionTime: 0,
+    };
+  }
+
+  /**
+   * Run build
+   */
+  async runBuild(workspaceId: string, cwd: string = '/workspace'): Promise<ExecutionResult> {
+    const hasPackageJson = await this.fileExists(workspaceId, `${cwd}/package.json`);
+
+    if (hasPackageJson) {
+      const packageJson = await this.readFile(workspaceId, `${cwd}/package.json`);
+      const pkg = JSON.parse(packageJson);
+
+      if (pkg.scripts?.build) {
+        return this.executeCommand(workspaceId, 'npm run build', { cwd, timeout: 300000 });
+      }
+    }
+
+    // Try cargo for Rust
+    const hasCargoToml = await this.fileExists(workspaceId, `${cwd}/Cargo.toml`);
+    if (hasCargoToml) {
+      return this.executeCommand(workspaceId, 'cargo build --release', { cwd, timeout: 300000 });
+    }
+
+    // Try go build
+    const hasGoMod = await this.fileExists(workspaceId, `${cwd}/go.mod`);
+    if (hasGoMod) {
+      return this.executeCommand(workspaceId, 'go build ./...', { cwd, timeout: 300000 });
+    }
+
+    return {
+      stdout: 'No build script detected',
+      stderr: '',
+      exitCode: 0,
+      executionTime: 0,
+    };
+  }
+
+  /**
+   * Start a development server
+   */
+  async startDevServer(
+    workspaceId: string,
+    cwd: string = '/workspace',
+    port: number = 3000
+  ): Promise<{ url: string; process: unknown }> {
+    const sandbox = await this.getSandbox(workspaceId);
+
+    const hasPackageJson = await this.fileExists(workspaceId, `${cwd}/package.json`);
+
+    if (hasPackageJson) {
+      const packageJson = await this.readFile(workspaceId, `${cwd}/package.json`);
+      const pkg = JSON.parse(packageJson);
+
+      if (pkg.scripts?.dev) {
+        const process = await sandbox.process.start({
+          cmd: 'npm run dev',
+          cwd,
+          envVars: { PORT: port.toString() },
+        });
+
+        // Wait a bit for server to start
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // Get the public URL
+        const url = sandbox.getHost(port);
+
+        return { url, process };
+      }
+    }
+
+    throw new Error('No dev script found');
+  }
+
+  /**
+   * Get file tree recursively
+   */
+  async getFileTree(
+    workspaceId: string,
+    path: string = '/workspace',
+    maxDepth: number = 5
+  ): Promise<FileInfo[]> {
+    const result = await this.executeCommand(
+      workspaceId,
+      `find "${path}" -maxdepth ${maxDepth} -type f -o -type d 2>/dev/null | head -500`
+    );
+
+    const files: FileInfo[] = [];
+    const paths = result.stdout.split('\n').filter(p => p.trim());
+
+    for (const filePath of paths) {
+      const isDir = (await this.executeCommand(workspaceId, `test -d "${filePath}" && echo "dir"`))
+        .stdout.includes('dir');
+
+      files.push({
+        path: filePath,
+        isDirectory: isDir,
+        size: 0,
+        modifiedAt: new Date(),
+      });
+    }
+
+    return files;
+  }
+
+  /**
+   * Create a snapshot of the workspace
+   */
+  async createSnapshot(workspaceId: string, name: string): Promise<string> {
+    const fileTree = await this.getFileTree(workspaceId);
+
+    // Get git commit if available
+    const gitResult = await this.executeCommand(workspaceId, 'git rev-parse HEAD 2>/dev/null');
+    const gitCommit = gitResult.exitCode === 0 ? gitResult.stdout.trim() : undefined;
+
+    const snapshotId = crypto.randomUUID();
+
+    await this.supabase.from('workspace_snapshots').insert({
+      id: snapshotId,
+      workspace_id: workspaceId,
+      name,
+      file_tree: fileTree,
+      git_commit: gitCommit,
+      created_at: new Date().toISOString(),
+    });
+
+    return snapshotId;
+  }
+
+  /**
+   * Terminate a container
+   */
+  async terminateContainer(workspaceId: string): Promise<void> {
+    const sandbox = this.activeSandboxes.get(workspaceId);
+
+    if (sandbox) {
+      try {
+        await sandbox.kill();
+      } catch (e) {
+        console.error('Failed to kill sandbox:', e);
+      }
+      this.activeSandboxes.delete(workspaceId);
+    }
+
+    await this.supabase
+      .from('workspaces')
+      .update({
+        container_id: null,
+        status: 'suspended',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', workspaceId);
+  }
+
+  /**
+   * Keep container alive (extend timeout)
+   */
+  async keepAlive(workspaceId: string): Promise<void> {
+    const sandbox = await this.getSandbox(workspaceId);
+    await sandbox.setTimeout(300000); // Extend by 5 minutes
+  }
+
+  /**
+   * Get container status
+   */
+  async getStatus(workspaceId: string): Promise<{
+    isRunning: boolean;
+    containerId?: string;
+    uptime?: number;
+  }> {
+    const { data: workspace } = await this.supabase
+      .from('workspaces')
+      .select('container_id, status, updated_at')
+      .eq('id', workspaceId)
+      .single();
+
+    if (!workspace?.container_id) {
+      return { isRunning: false };
+    }
+
+    // Try to check if sandbox is still alive
+    try {
+      const sandbox = await Sandbox.connect(workspace.container_id);
+      this.activeSandboxes.set(workspaceId, sandbox);
+
+      return {
+        isRunning: true,
+        containerId: workspace.container_id,
+        uptime: Date.now() - new Date(workspace.updated_at).getTime(),
+      };
+    } catch {
+      return { isRunning: false, containerId: workspace.container_id };
+    }
+  }
+}
+
+// ============================================
+// STREAMING SHELL
+// ============================================
+
+export class StreamingShell {
+  private container: ContainerManager;
+  private workspaceId: string;
+
+  constructor(workspaceId: string) {
+    this.container = new ContainerManager();
+    this.workspaceId = workspaceId;
+  }
+
+  /**
+   * Execute command with real-time streaming
+   */
+  async execute(
+    command: string,
+    onOutput: (type: 'stdout' | 'stderr', data: string) => void
+  ): Promise<number> {
+    const result = await this.container.executeCommand(this.workspaceId, command, {
+      stream: {
+        onStdout: (data) => onOutput('stdout', data),
+        onStderr: (data) => onOutput('stderr', data),
+      },
+    });
+
+    return result.exitCode;
+  }
+
+  /**
+   * Create async iterator for streaming output
+   */
+  async *stream(command: string): AsyncGenerator<{ type: 'stdout' | 'stderr' | 'exit'; data: string | number }> {
+    const outputQueue: Array<{ type: 'stdout' | 'stderr' | 'exit'; data: string | number }> = [];
+    let done = false;
+
+    const promise = this.container.executeCommand(this.workspaceId, command, {
+      stream: {
+        onStdout: (data) => outputQueue.push({ type: 'stdout', data }),
+        onStderr: (data) => outputQueue.push({ type: 'stderr', data }),
+        onExit: (code) => {
+          outputQueue.push({ type: 'exit', data: code });
+          done = true;
+        },
+      },
+    });
+
+    while (!done || outputQueue.length > 0) {
+      if (outputQueue.length > 0) {
+        yield outputQueue.shift()!;
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+    }
+
+    await promise;
+  }
+}
+
+// ============================================
+// WORKSPACE EXECUTOR (Convenience Class)
+// ============================================
+
+export class WorkspaceExecutor {
+  private container: ContainerManager;
+  private workspaceId: string;
+
+  constructor(workspaceId: string) {
+    this.container = new ContainerManager();
+    this.workspaceId = workspaceId;
+  }
+
+  // Shell commands
+  async run(command: string, options?: { cwd?: string; timeout?: number }): Promise<ExecutionResult> {
+    return this.container.executeCommand(this.workspaceId, command, options);
+  }
+
+  // File operations
+  async read(path: string): Promise<string> {
+    return this.container.readFile(this.workspaceId, path);
+  }
+
+  async write(path: string, content: string): Promise<void> {
+    return this.container.writeFile(this.workspaceId, path, content);
+  }
+
+  async delete(path: string): Promise<void> {
+    return this.container.deleteFile(this.workspaceId, path);
+  }
+
+  async list(path: string): Promise<FileInfo[]> {
+    return this.container.listDirectory(this.workspaceId, path);
+  }
+
+  async exists(path: string): Promise<boolean> {
+    return this.container.fileExists(this.workspaceId, path);
+  }
+
+  // Git operations
+  async gitClone(url: string, branch?: string): Promise<ExecutionResult> {
+    return this.container.cloneRepository(this.workspaceId, url, branch);
+  }
+
+  async gitStatus(): Promise<string> {
+    const result = await this.run('git status');
+    return result.stdout;
+  }
+
+  async gitCommit(message: string): Promise<ExecutionResult> {
+    await this.run('git add .');
+    return this.run(`git commit -m "${message}"`);
+  }
+
+  async gitPush(): Promise<ExecutionResult> {
+    return this.run('git push');
+  }
+
+  // Project operations
+  async install(): Promise<ExecutionResult> {
+    return this.container.installDependencies(this.workspaceId);
+  }
+
+  async build(): Promise<ExecutionResult> {
+    return this.container.runBuild(this.workspaceId);
+  }
+
+  async test(): Promise<ExecutionResult> {
+    return this.container.runTests(this.workspaceId);
+  }
+
+  // Lifecycle
+  async snapshot(name: string): Promise<string> {
+    return this.container.createSnapshot(this.workspaceId, name);
+  }
+
+  async terminate(): Promise<void> {
+    return this.container.terminateContainer(this.workspaceId);
+  }
+}
+
+// All exports are inline with their declarations
