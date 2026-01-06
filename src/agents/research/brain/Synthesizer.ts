@@ -5,9 +5,11 @@
  * Takes all collected research and creates a structured, actionable output.
  *
  * This is where raw data becomes intelligence.
+ *
+ * POWERED BY: Claude Sonnet 4.5 (migrated from Gemini)
  */
 
-import { GoogleGenAI } from '@google/genai';
+import { createClaudeStructuredOutput } from '@/lib/anthropic/client';
 import {
   ResearchIntent,
   SearchResult,
@@ -18,12 +20,7 @@ import {
   EvaluatedResults,
 } from '../../core/types';
 
-const gemini = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY_1 || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
-});
-
 export class Synthesizer {
-  private model = 'gemini-3-pro-preview';
 
   /**
    * Synthesize all research into a structured output
@@ -119,18 +116,55 @@ SYNTHESIS RULES:
 OUTPUT ONLY THE JSON OBJECT.`;
 
     try {
-      const response = await gemini.models.generateContent({
-        model: this.model,
-        contents: prompt,
-      });
+      const schema = {
+        type: 'object',
+        properties: {
+          executiveSummary: { type: 'string' },
+          keyFindings: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                finding: { type: 'string' },
+                confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+                sources: { type: 'array', items: { type: 'string' } },
+              },
+            },
+          },
+          detailedSections: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                content: { type: 'string' },
+                findings: { type: 'array' },
+              },
+            },
+          },
+          gaps: { type: 'array', items: { type: 'string' } },
+          suggestions: { type: 'array', items: { type: 'string' } },
+          sources: { type: 'array' },
+        },
+        required: ['executiveSummary', 'keyFindings'],
+      };
 
-      const text = response.text?.trim() || '';
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
+      interface SynthesisResponse {
+        executiveSummary?: string;
+        keyFindings?: unknown[];
+        detailedSections?: unknown[];
+        gaps?: string[];
+        suggestions?: string[];
+        sources?: unknown[];
       }
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      const { data: parsed } = await createClaudeStructuredOutput<SynthesisResponse>({
+        messages: [{ role: 'user', content: prompt }],
+        systemPrompt: 'You are an expert research analyst. Respond with valid JSON only.',
+        schema,
+      });
+
+      console.log(`[Synthesizer] Using Claude Sonnet for research synthesis`);
 
       // Build the output with proper typing
       const output: ResearchOutput = {
@@ -151,7 +185,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
 
       return output;
     } catch (error) {
-      console.error('[Synthesizer] Error synthesizing results:', error);
+      console.error('[Synthesizer] Error synthesizing results (Claude Sonnet):', error);
       return this.createFallbackOutput(results, intent, metadata);
     }
   }

@@ -6,21 +6,18 @@
  *
  * Uses Perplexity exclusively for faster, more reliable results.
  * Dynamically generates 1-10 queries based on complexity.
+ *
+ * POWERED BY: Claude Sonnet 4.5 (migrated from Gemini)
  */
 
-import { GoogleGenAI } from '@google/genai';
+import { createClaudeStructuredOutput } from '@/lib/anthropic/client';
 import {
   ResearchIntent,
   ResearchStrategy,
   GeneratedQuery,
 } from '../../core/types';
 
-const gemini = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY_1 || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
-});
-
 export class StrategyGenerator {
-  private model = 'gemini-3-pro-preview';
 
   /**
    * Generate a dynamic research strategy based on intent
@@ -74,20 +71,33 @@ QUERY OPTIMIZATION:
 OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
 
     try {
-      const response = await gemini.models.generateContent({
-        model: this.model,
-        contents: prompt,
+      const schema = {
+        type: 'object',
+        properties: {
+          queries: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                query: { type: 'string' },
+                purpose: { type: 'string' },
+                expectedInfo: { type: 'array', items: { type: 'string' } },
+                priority: { type: 'number' },
+              },
+            },
+          },
+          maxIterations: { type: 'number' },
+        },
+        required: ['queries'],
+      };
+
+      const { data: parsed } = await createClaudeStructuredOutput<{ queries: unknown[]; maxIterations?: number }>({
+        messages: [{ role: 'user', content: prompt }],
+        systemPrompt: 'You are an expert research strategist. Respond with valid JSON only.',
+        schema,
       });
 
-      const text = response.text?.trim() || '';
-
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
+      console.log(`[StrategyGenerator] Using Claude Sonnet for strategy generation`);
 
       // Build the strategy - single phase with all queries
       const queries = this.buildQueries(parsed.queries || []);
@@ -209,19 +219,29 @@ Be specific. Target the exact gaps. Don't repeat previous queries.
 OUTPUT ONLY THE JSON ARRAY.`;
 
     try {
-      const response = await gemini.models.generateContent({
-        model: this.model,
-        contents: prompt,
+      const schema = {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            query: { type: 'string' },
+            purpose: { type: 'string' },
+            expectedInfo: { type: 'array', items: { type: 'string' } },
+            priority: { type: 'number' },
+          },
+        },
+      };
+
+      const { data: parsed } = await createClaudeStructuredOutput<unknown[]>({
+        messages: [{ role: 'user', content: prompt }],
+        systemPrompt: 'You are a research strategist. Respond with valid JSON array only.',
+        schema,
       });
 
-      const text = response.text?.trim() || '';
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) return [];
-
-      const parsed = JSON.parse(jsonMatch[0]) as unknown[];
+      console.log(`[StrategyGenerator] Using Claude Sonnet for gap-filling queries`);
       return this.buildQueries(parsed);
     } catch (error) {
-      console.error('[StrategyGenerator] Error generating gap queries:', error);
+      console.error('[StrategyGenerator] Error generating gap queries (Claude Sonnet):', error);
       return [];
     }
   }
