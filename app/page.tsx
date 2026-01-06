@@ -22,6 +22,7 @@ import DatabaseDemo from './components/DatabaseDemo';
 import ApiBuilderDemo from './components/ApiBuilderDemo';
 import ImageGenDemo from './components/ImageGenDemo';
 import WebsiteBuilderDemo from './components/WebsiteBuilderDemo';
+import CodeLabDemo from './components/CodeLabDemo';
 
 export default function HomePage() {
   return (
@@ -37,14 +38,17 @@ export default function HomePage() {
               <Link href="#capabilities" className="text-slate-400 hover:text-white font-medium transition">
                 Capabilities
               </Link>
-              <Link href="#agent" className="text-slate-400 hover:text-white font-medium transition">
-                Agent Mode
+              <Link href="/code-lab" className="text-fuchsia-400 hover:text-fuchsia-300 font-medium transition">
+                Code Lab
+              </Link>
+              <Link href="/docs" className="text-slate-400 hover:text-white font-medium transition">
+                Docs
               </Link>
               <Link href="#pricing" className="text-slate-400 hover:text-white font-medium transition">
                 Pricing
               </Link>
-              <Link href="/about" className="text-slate-400 hover:text-white font-medium transition">
-                About
+              <Link href="/api-info" className="text-slate-400 hover:text-white font-medium transition">
+                API
               </Link>
             </div>
 
@@ -753,6 +757,18 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Code Lab IDE Demo - NEW */}
+      <section id="code-lab" className="relative bg-gradient-to-b from-black via-fuchsia-900/10 to-black py-16 sm:py-24 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-fuchsia-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="container mx-auto px-4 relative">
+          <CodeLabDemo />
+        </div>
+      </section>
+
       {/* Faith Demo - Chat */}
       <section className="relative bg-gradient-to-b from-black to-slate-900 py-16 sm:py-24 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -965,7 +981,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-black text-white py-12 border-t border-white/10">
         <div className="container mx-auto px-4">
-          <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
+          <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             <div className="sm:col-span-2 md:col-span-1">
               <h3 className="mb-4 text-xl font-bold">JCIL.AI</h3>
               <p className="text-sm text-slate-400 leading-relaxed">
@@ -977,8 +993,13 @@ export default function HomePage() {
               <h4 className="mb-4 font-semibold">Product</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>
-                  <Link href="#capabilities" className="hover:text-white transition">
-                    Capabilities
+                  <Link href="/code-lab" className="hover:text-fuchsia-400 transition">
+                    Code Lab
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/chat" className="hover:text-white transition">
+                    Chat
                   </Link>
                 </li>
                 <li>
@@ -987,8 +1008,29 @@ export default function HomePage() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/chat" className="hover:text-white transition">
-                    Chat
+                  <Link href="/api-info" className="hover:text-white transition">
+                    API Access
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="mb-4 font-semibold">Developers</h4>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li>
+                  <Link href="/docs" className="hover:text-white transition">
+                    Documentation
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs/code-lab" className="hover:text-white transition">
+                    Code Lab Docs
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/docs/api" className="hover:text-white transition">
+                    API Reference
                   </Link>
                 </li>
               </ul>
