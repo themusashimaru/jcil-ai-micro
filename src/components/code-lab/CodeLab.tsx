@@ -19,6 +19,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { CodeLabSidebar } from './CodeLabSidebar';
 import { CodeLabThread } from './CodeLabThread';
 import { CodeLabComposer, CodeLabAttachment } from './CodeLabComposer';
+import { CodeLabCommandPalette } from './CodeLabCommandPalette';
+import { CodeLabKeyboardShortcuts } from './CodeLabKeyboardShortcuts';
 import type { CodeLabSession, CodeLabMessage } from './types';
 
 interface CodeLabProps {
@@ -37,6 +39,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // AbortController for canceling streams
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -435,6 +439,32 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     setIsStreaming(false);
   }, []);
 
+  // Handler for slash commands from command palette
+  const handleSlashCommand = useCallback((command: string) => {
+    if (!currentSessionId) {
+      createSession().then((session) => {
+        if (session) {
+          sendMessage(command);
+        }
+      });
+    } else {
+      sendMessage(command);
+    }
+  }, [currentSessionId, createSession, sendMessage]);
+
+  // Handler for direct messages from command palette
+  const handlePaletteMessage = useCallback((message: string) => {
+    if (!currentSessionId) {
+      createSession().then((session) => {
+        if (session) {
+          sendMessage(message);
+        }
+      });
+    } else {
+      sendMessage(message);
+    }
+  }, [currentSessionId, createSession, sendMessage]);
+
   // ========================================
   // KEYBOARD SHORTCUTS
   // ========================================
@@ -465,13 +495,22 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setSidebarCollapsed(prev => !prev);
       }
 
-      // Cmd/Ctrl+/ - Focus input (composer)
+      // Cmd/Ctrl+K - Open command palette
+      if (cmdKey && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+
+      // Cmd/Ctrl+/ - Show keyboard shortcuts
       if (cmdKey && e.key === '/') {
         e.preventDefault();
-        const composer = document.querySelector('.composer-input') as HTMLTextAreaElement;
-        if (composer) {
-          composer.focus();
-        }
+        setShortcutsOpen(true);
+      }
+
+      // Cmd/Ctrl+Shift+P - Open command palette (VSCode style)
+      if (cmdKey && e.shiftKey && e.key === 'p') {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
       }
     };
 
@@ -572,6 +611,20 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           <button onClick={() => setError(null)}>×</button>
         </div>
       )}
+
+      {/* Command Palette */}
+      <CodeLabCommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onExecuteSlashCommand={handleSlashCommand}
+        onSendMessage={handlePaletteMessage}
+      />
+
+      {/* Keyboard Shortcuts Help */}
+      <CodeLabKeyboardShortcuts
+        isOpen={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
 
       <style jsx>{`
         .code-lab {
