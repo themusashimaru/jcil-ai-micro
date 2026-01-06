@@ -9,6 +9,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { GitHubSyncBridge } from '@/lib/workspace/github-sync';
+import {
+  sanitizeCommitMessage,
+  sanitizeBranchName,
+  validateEncryptedTokenFormat,
+  TokenDecryptionError,
+} from '@/lib/workspace/security';
 import crypto from 'crypto';
 
 type GitOperation = 'clone' | 'push' | 'pull' | 'status' | 'commit' | 'branch' | 'checkout' | 'diff';
@@ -19,13 +25,16 @@ function getEncryptionKey() {
   return crypto.createHash('sha256').update(key).digest();
 }
 
-// Decrypt token
+// Decrypt token with proper error handling
 function decryptToken(encryptedData: string): string {
+  // Validate format first
+  const validation = validateEncryptedTokenFormat(encryptedData);
+  if (!validation.valid) {
+    throw new TokenDecryptionError(validation.error || 'Invalid token format', 'INVALID_FORMAT');
+  }
+
   try {
     const parts = encryptedData.split(':');
-    if (parts.length !== 3) {
-      throw new Error('Invalid encrypted format');
-    }
     const iv = Buffer.from(parts[0], 'hex');
     const authTag = Buffer.from(parts[1], 'hex');
     const encrypted = parts[2];
@@ -34,9 +43,20 @@ function decryptToken(encryptedData: string): string {
     decipher.setAuthTag(authTag);
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
+
+    if (!decrypted) {
+      throw new TokenDecryptionError('Decrypted token is empty', 'EMPTY_RESULT');
+    }
+
     return decrypted;
-  } catch {
-    return '';
+  } catch (error) {
+    if (error instanceof TokenDecryptionError) {
+      throw error;
+    }
+    throw new TokenDecryptionError(
+      `Token decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'DECRYPTION_FAILED'
+    );
   }
 }
 
@@ -64,6 +84,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
     }
 
+    // Verify session ownership
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('code_lab_sessions')
+      .select('id')
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (sessionError || !sessionData) {
+      return NextResponse.json(
+        { error: 'Session not found or access denied' },
+        { status: 403 }
+      );
+    }
+
     // Get user's GitHub token
     const { data: userData } = await supabase
       .from('users')
@@ -80,7 +115,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const githubToken = decryptToken(userTokens.github_token);
+    let githubToken: string;
+    try {
+      githubToken = decryptToken(userTokens.github_token);
+    } catch (error) {
+      console.error('[Git API] Token decryption failed:', error);
+      return NextResponse.json(
+        { error: 'GitHub token decryption failed. Please reconnect your GitHub account.' },
+        { status: 400 }
+      );
+    }
 
     // Initialize container
     const container = new ContainerManager();
@@ -185,8 +229,10 @@ export async function POST(request: NextRequest) {
       }
 
       case 'commit': {
+        // Sanitize commit message to prevent command injection
+        const safeMessage = sanitizeCommitMessage(message || 'Update');
         const commitResult = await executeShell(
-          `cd /workspace/repo && git add -A && git commit -m "${(message || 'Update').replace(/"/g, '\\"')}"`
+          `cd /workspace/repo && git add -A && git commit -m '${safeMessage}'`
         );
 
         return NextResponse.json({

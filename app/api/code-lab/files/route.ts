@@ -8,6 +8,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
+import { sanitizeFilePath } from '@/lib/workspace/security';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabase = any;
+
+// Helper to verify session ownership
+async function verifySessionOwnership(
+  supabase: AnySupabase,
+  sessionId: string,
+  userId: string
+): Promise<boolean> {
+  const { data, error } = await (supabase
+    .from('code_lab_sessions') as AnySupabase)
+    .select('id')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .single();
+
+  return !error && !!data;
+}
 
 // GET - List files or read file content
 export async function GET(request: NextRequest) {
@@ -29,13 +49,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
   }
 
+  // Verify session ownership
+  const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
+  if (!hasAccess) {
+    return NextResponse.json(
+      { error: 'Session not found or access denied' },
+      { status: 403 }
+    );
+  }
+
   try {
     const container = new ContainerManager();
 
     if (path) {
-      // Read specific file
-      const content = await container.readFile(sessionId, path);
-      return NextResponse.json({ content, path });
+      // Sanitize and read specific file
+      const safePath = sanitizeFilePath(path);
+      const content = await container.readFile(sessionId, safePath);
+      return NextResponse.json({ content, path: safePath });
     } else {
       // List all files recursively
       const files = await container.listDirectory(sessionId, '/workspace');
@@ -72,10 +102,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const container = new ContainerManager();
-    await container.writeFile(sessionId, path, content);
+    // Verify session ownership
+    const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Session not found or access denied' },
+        { status: 403 }
+      );
+    }
 
-    return NextResponse.json({ success: true, path });
+    // Sanitize path
+    const safePath = sanitizeFilePath(path);
+
+    const container = new ContainerManager();
+    await container.writeFile(sessionId, safePath, content);
+
+    return NextResponse.json({ success: true, path: safePath });
   } catch (error) {
     console.error('[Files API] Error creating file:', error);
     return NextResponse.json(
@@ -107,10 +149,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const container = new ContainerManager();
-    await container.writeFile(sessionId, path, content);
+    // Verify session ownership
+    const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Session not found or access denied' },
+        { status: 403 }
+      );
+    }
 
-    return NextResponse.json({ success: true, path });
+    // Sanitize path
+    const safePath = sanitizeFilePath(path);
+
+    const container = new ContainerManager();
+    await container.writeFile(sessionId, safePath, content);
+
+    return NextResponse.json({ success: true, path: safePath });
   } catch (error) {
     console.error('[Files API] Error updating file:', error);
     return NextResponse.json(
@@ -143,9 +197,21 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
+  // Verify session ownership
+  const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
+  if (!hasAccess) {
+    return NextResponse.json(
+      { error: 'Session not found or access denied' },
+      { status: 403 }
+    );
+  }
+
   try {
+    // Sanitize path
+    const safePath = sanitizeFilePath(path);
+
     const container = new ContainerManager();
-    await container.deleteFile(sessionId, path);
+    await container.deleteFile(sessionId, safePath);
 
     return NextResponse.json({ success: true });
   } catch (error) {

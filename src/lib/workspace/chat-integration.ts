@@ -13,6 +13,18 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ContainerManager } from './container';
 import { createClient } from '@supabase/supabase-js';
+import {
+  sanitizeShellArg,
+  sanitizeCommitMessage,
+  sanitizeFilePath,
+  sanitizeGlobPattern,
+  sanitizeSearchPattern,
+} from './security';
+import { getPlanModeTools, getPlanModeManager, formatPlanAsMarkdown } from './planning';
+import { getMCPConfigTools, getMCPManager } from './mcp';
+import { getHooksTools, getHooksManager, HookConfig } from './hooks';
+import { getMemoryTools, getMemoryManager } from './memory';
+import { getBackgroundTaskTools, getBackgroundTaskManager } from './background-tasks';
 
 // ============================================
 // TYPES
@@ -389,6 +401,31 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
       required: ['question'],
     },
   },
+
+  // ============================================
+  // PLANNING MODE TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getPlanModeTools(),
+
+  // ============================================
+  // MCP (MODEL CONTEXT PROTOCOL) TOOLS
+  // ============================================
+  ...getMCPConfigTools(),
+
+  // ============================================
+  // HOOKS SYSTEM TOOLS
+  // ============================================
+  ...getHooksTools(),
+
+  // ============================================
+  // PROJECT MEMORY TOOLS
+  // ============================================
+  ...getMemoryTools(),
+
+  // ============================================
+  // BACKGROUND TASK TOOLS
+  // ============================================
+  ...getBackgroundTaskTools(),
 ];
 
 // ============================================
@@ -590,22 +627,22 @@ export class WorkspaceAgent {
         }
 
         case 'search_files': {
-          const pattern = input.pattern as string;
+          const pattern = sanitizeGlobPattern(input.pattern as string);
           const result = await this.container.executeCommand(
             this.config.workspaceId,
-            `find /workspace -name "${pattern}" -type f 2>/dev/null | head -50`
+            `find /workspace -name ${sanitizeShellArg(pattern)} -type f 2>/dev/null | head -50`
           );
           return result.stdout || 'No files found matching pattern';
         }
 
         case 'search_code': {
-          const pattern = input.pattern as string;
-          const path = this.normalizePath((input.path as string) || '/workspace');
-          const filePattern = input.file_pattern as string | undefined;
+          const pattern = sanitizeSearchPattern(input.pattern as string);
+          const path = sanitizeFilePath((input.path as string) || '/workspace');
+          const filePattern = input.file_pattern ? sanitizeGlobPattern(input.file_pattern as string) : undefined;
 
-          let cmd = `grep -rn "${pattern}" ${path}`;
+          let cmd = `grep -rn ${sanitizeShellArg(pattern)} ${sanitizeShellArg(path)}`;
           if (filePattern) {
-            cmd += ` --include="${filePattern}"`;
+            cmd += ` --include=${sanitizeShellArg(filePattern)}`;
           }
           cmd += ' | head -100';
 
@@ -624,30 +661,34 @@ export class WorkspaceAgent {
         case 'git_diff': {
           let cmd = 'git diff';
           if (input.staged) cmd += ' --staged';
-          if (input.file) cmd += ` -- "${input.file}"`;
+          if (input.file) {
+            const safeFile = sanitizeFilePath(input.file as string);
+            cmd += ` -- ${sanitizeShellArg(safeFile)}`;
+          }
 
           const result = await this.container.executeCommand(this.config.workspaceId, cmd);
           return result.stdout || 'No changes';
         }
 
         case 'git_commit': {
-          const message = input.message as string;
+          const message = sanitizeCommitMessage(input.message as string);
           const files = input.files as string[] | undefined;
 
           // Stage files
           if (files && files.length > 0) {
+            const safeFiles = files.map(f => sanitizeShellArg(sanitizeFilePath(f))).join(' ');
             await this.container.executeCommand(
               this.config.workspaceId,
-              `git add ${files.map(f => `"${f}"`).join(' ')}`
+              `git add ${safeFiles}`
             );
           } else {
             await this.container.executeCommand(this.config.workspaceId, 'git add .');
           }
 
-          // Commit
+          // Commit with sanitized message
           const result = await this.container.executeCommand(
             this.config.workspaceId,
-            `git commit -m "${message.replace(/"/g, '\\"')}"`
+            `git commit -m '${message}'`
           );
 
           return result.stdout || result.stderr;
@@ -851,7 +892,417 @@ export class WorkspaceAgent {
           return `[AWAITING_USER_INPUT]\n${question}`;
         }
 
+        // ============================================
+        // PLANNING MODE TOOLS (CLAUDE CODE PARITY)
+        // ============================================
+
+        case 'enter_plan_mode': {
+          const reason = input.reason as string;
+          const initialQuestions = input.initial_questions as string[] | undefined;
+
+          const planManager = getPlanModeManager();
+          const result = planManager.enterPlanMode(this.config.sessionId, reason, initialQuestions);
+
+          if (result.success) {
+            // Create the plans directory
+            await this.container.executeCommand(
+              this.config.workspaceId,
+              'mkdir -p /workspace/.claude/plans'
+            );
+          }
+
+          return result.message;
+        }
+
+        case 'write_plan': {
+          const title = input.title as string;
+          const summary = input.summary as string;
+          const tasks = input.tasks as Array<{ title: string; description?: string; complexity?: string }>;
+          const notes = input.notes as string | undefined;
+
+          const planManager = getPlanModeManager();
+          const result = planManager.writePlan(title, summary, tasks, notes);
+
+          if (result.success) {
+            // Write the plan to file
+            const plan = planManager.getCurrentPlan();
+            if (plan) {
+              const planContent = formatPlanAsMarkdown(plan);
+              await this.container.writeFile(
+                this.config.workspaceId,
+                `/workspace/.claude/plans/${plan.id}.md`,
+                planContent
+              );
+              this.filesModified.add(`/workspace/.claude/plans/${plan.id}.md`);
+            }
+          }
+
+          return result.message;
+        }
+
+        case 'exit_plan_mode': {
+          const readyForApproval = input.ready_for_approval as boolean;
+          const questionsForUser = input.questions_for_user as string[] | undefined;
+
+          const planManager = getPlanModeManager();
+          const result = planManager.exitPlanMode(readyForApproval, questionsForUser);
+
+          if (result.success && result.plan) {
+            // Update the plan file with final status
+            const planContent = formatPlanAsMarkdown(result.plan);
+            await this.container.writeFile(
+              this.config.workspaceId,
+              `/workspace/.claude/plans/${result.plan.id}.md`,
+              planContent
+            );
+          }
+
+          return result.message;
+        }
+
+        // ============================================
+        // MCP (MODEL CONTEXT PROTOCOL) TOOLS
+        // ============================================
+
+        case 'mcp_list_servers': {
+          const mcpManager = getMCPManager();
+          const servers = mcpManager.getAllServerStatus();
+
+          if (servers.length === 0) {
+            return 'No MCP servers configured.';
+          }
+
+          const lines = ['**Configured MCP Servers:**\n'];
+          for (const server of servers) {
+            const statusIcon = server.status === 'running' ? '🟢' :
+                              server.status === 'error' ? '🔴' :
+                              server.status === 'starting' ? '🟡' : '⚪';
+            lines.push(`${statusIcon} **${server.name}** (${server.id})`);
+            lines.push(`   Status: ${server.status}`);
+            if (server.tools.length > 0) {
+              lines.push(`   Tools: ${server.tools.map(t => t.name).join(', ')}`);
+            }
+            if (server.error) {
+              lines.push(`   Error: ${server.error}`);
+            }
+            lines.push('');
+          }
+
+          return lines.join('\n');
+        }
+
+        case 'mcp_enable_server': {
+          const serverId = input.server_id as string;
+          const mcpManager = getMCPManager();
+
+          if (mcpManager.enableServer(serverId)) {
+            const startResult = await mcpManager.startServer(serverId);
+            if (startResult.success) {
+              return `MCP server "${serverId}" enabled and started successfully.`;
+            } else {
+              return `MCP server "${serverId}" enabled but failed to start: ${startResult.error}`;
+            }
+          }
+
+          return `MCP server "${serverId}" not found. Available: filesystem, github, puppeteer, postgres, memory`;
+        }
+
+        case 'mcp_disable_server': {
+          const serverId = input.server_id as string;
+          const mcpManager = getMCPManager();
+
+          await mcpManager.stopServer(serverId);
+          if (mcpManager.disableServer(serverId)) {
+            return `MCP server "${serverId}" disabled.`;
+          }
+
+          return `MCP server "${serverId}" not found.`;
+        }
+
+        // ============================================
+        // HOOKS SYSTEM TOOLS
+        // ============================================
+
+        case 'hooks_list': {
+          const hooksManager = getHooksManager();
+          const hooks = hooksManager.getHooks();
+
+          if (hooks.length === 0) {
+            return 'No hooks configured.';
+          }
+
+          const lines = ['**Configured Hooks:**\n'];
+          for (const hook of hooks) {
+            const statusIcon = hook.enabled ? '✓' : '○';
+            lines.push(`${statusIcon} **${hook.name}** (${hook.id})`);
+            lines.push(`   Event: ${hook.event}`);
+            if (hook.toolPattern) {
+              lines.push(`   Tool Pattern: ${hook.toolPattern}`);
+            }
+            lines.push(`   Command: ${hook.command} ${hook.args?.join(' ') || ''}`);
+            lines.push(`   Action: ${hook.action || 'allow'}`);
+            if (hook.description) {
+              lines.push(`   ${hook.description}`);
+            }
+            lines.push('');
+          }
+
+          return lines.join('\n');
+        }
+
+        case 'hooks_enable': {
+          const hookId = input.hook_id as string;
+          const hooksManager = getHooksManager();
+
+          if (hooksManager.enableHook(hookId)) {
+            return `Hook "${hookId}" enabled.`;
+          }
+
+          return `Hook "${hookId}" not found. Available: pre-commit-lint, pre-commit-test, post-write-format, session-start-deps`;
+        }
+
+        case 'hooks_disable': {
+          const hookId = input.hook_id as string;
+          const hooksManager = getHooksManager();
+
+          if (hooksManager.disableHook(hookId)) {
+            return `Hook "${hookId}" disabled.`;
+          }
+
+          return `Hook "${hookId}" not found.`;
+        }
+
+        case 'hooks_create': {
+          const hooksManager = getHooksManager();
+
+          const newHook: HookConfig = {
+            id: input.id as string,
+            name: input.name as string,
+            event: input.event as HookConfig['event'],
+            command: input.command as string,
+            toolPattern: input.tool_pattern as string | undefined,
+            action: (input.action as 'allow' | 'block') || 'allow',
+            blockMessage: input.block_message as string | undefined,
+            enabled: true,
+          };
+
+          hooksManager.addHook(newHook);
+
+          return `Hook "${newHook.id}" created and enabled.
+
+**${newHook.name}**
+- Event: ${newHook.event}
+- Command: ${newHook.command}
+- Action: ${newHook.action}`;
+        }
+
+        // ============================================
+        // PROJECT MEMORY TOOLS
+        // ============================================
+
+        case 'memory_read': {
+          const memoryManager = getMemoryManager();
+          const readFileFn = async (path: string) => {
+            return await this.container.readFile(this.config.workspaceId, path);
+          };
+
+          const memory = await memoryManager.load(readFileFn);
+
+          if (!memory) {
+            return 'No project memory file found (CODELAB.md). Use memory_create to create one.';
+          }
+
+          return `**Project Memory** (${memory.memoryPath})\n\n${memory.content}`;
+        }
+
+        case 'memory_create': {
+          const memoryManager = getMemoryManager();
+          const writeFileFn = async (path: string, content: string) => {
+            await this.container.writeFile(this.config.workspaceId, path, content);
+          };
+
+          const memory = await memoryManager.create(writeFileFn);
+          this.filesModified.add(memory.memoryPath);
+
+          return `Project memory file created at ${memory.memoryPath}.\n\nYou can now customize it with project-specific instructions.`;
+        }
+
+        case 'memory_update': {
+          const content = input.content as string;
+          const memoryManager = getMemoryManager();
+          const writeFileFn = async (path: string, cnt: string) => {
+            await this.container.writeFile(this.config.workspaceId, path, cnt);
+          };
+
+          const memory = await memoryManager.update(content, writeFileFn);
+          this.filesModified.add(memory.memoryPath);
+
+          return `Project memory updated at ${memory.memoryPath}.`;
+        }
+
+        case 'memory_add_section': {
+          const title = input.title as string;
+          const content = input.content as string;
+          const type = (input.type as 'instructions' | 'context' | 'patterns' | 'preferences' | 'notes') || 'notes';
+
+          const memoryManager = getMemoryManager();
+          const readFileFn = async (path: string) => {
+            return await this.container.readFile(this.config.workspaceId, path);
+          };
+          const writeFileFn = async (path: string, cnt: string) => {
+            await this.container.writeFile(this.config.workspaceId, path, cnt);
+          };
+
+          const memory = await memoryManager.addSection(title, content, type, readFileFn, writeFileFn);
+          this.filesModified.add(memory.memoryPath);
+
+          return `Section "${title}" added to project memory.`;
+        }
+
+        // ============================================
+        // BACKGROUND TASK TOOLS
+        // ============================================
+
+        case 'bg_run': {
+          const command = input.command as string;
+          const taskManager = getBackgroundTaskManager();
+
+          // Start the background task
+          const task = await taskManager.startTask(command, async (cmd) => {
+            // Run the command in the background using nohup
+            const bgCmd = `nohup ${cmd} > /tmp/bg-${Date.now()}.log 2>&1 & echo $!`;
+            const result = await this.container.executeCommand(
+              this.config.workspaceId,
+              bgCmd,
+              { timeout: 5000 }
+            );
+            return {
+              taskId: result.stdout.trim(),
+              initialOutput: `Started background process with PID: ${result.stdout.trim()}`,
+            };
+          });
+
+          this.commandsExecuted.push(`[bg] ${command}`);
+
+          return `**Background task started**
+- Task ID: ${task.id}
+- Command: \`${task.command}\`
+- Status: ${task.status}
+- Started: ${task.startedAt}
+
+Use \`bg_output\` to check output or \`bg_kill\` to stop.`;
+        }
+
+        case 'bg_output': {
+          const taskId = input.task_id as string;
+          const taskManager = getBackgroundTaskManager();
+          const task = taskManager.getTask(taskId);
+
+          if (!task) {
+            return `Task ${taskId} not found.`;
+          }
+
+          // Try to get latest output
+          const output = await taskManager.getTaskOutput(taskId, async (tid) => {
+            // Check if process is still running and get output
+            const checkCmd = task.pid
+              ? `ps -p ${task.pid} -o pid= 2>/dev/null && cat /tmp/bg-*.log 2>/dev/null | tail -100`
+              : `cat /tmp/bg-*.log 2>/dev/null | tail -100`;
+
+            const result = await this.container.executeCommand(
+              this.config.workspaceId,
+              checkCmd,
+              { timeout: 5000 }
+            );
+
+            const isComplete = task.pid ? result.stdout.trim() === '' : false;
+
+            return {
+              output: result.stdout || '[No new output]',
+              isComplete,
+              exitCode: isComplete ? 0 : undefined,
+            };
+          });
+
+          if (!output) {
+            return `Task ${taskId} not found.`;
+          }
+
+          return `**Task ${taskId}** (${task.status})
+
+**Command:** \`${task.command}\`
+
+**Output:**
+\`\`\`
+${output.newOutput.substring(0, 2000)}${output.newOutput.length > 2000 ? '\n... (truncated)' : ''}
+\`\`\`
+
+${output.isComplete ? `✓ Task completed (exit code: ${output.exitCode})` : '⏳ Task still running'}`;
+        }
+
+        case 'bg_kill': {
+          const taskId = input.task_id as string;
+          const taskManager = getBackgroundTaskManager();
+          const task = taskManager.getTask(taskId);
+
+          if (!task) {
+            return `Task ${taskId} not found.`;
+          }
+
+          const result = await taskManager.killTask(taskId, async () => {
+            if (task.pid) {
+              const killResult = await this.container.executeCommand(
+                this.config.workspaceId,
+                `kill -9 ${task.pid} 2>/dev/null || true`,
+                { timeout: 5000 }
+              );
+              return killResult.exitCode === 0;
+            }
+            return true;
+          });
+
+          return result.success
+            ? `✓ Task ${taskId} killed successfully.`
+            : `✗ Failed to kill task: ${result.message}`;
+        }
+
+        case 'bg_list': {
+          const filter = (input.filter as 'running' | 'completed' | 'all') || 'all';
+          const taskManager = getBackgroundTaskManager();
+          const tasks = taskManager.listTasks(filter);
+          const summary = taskManager.getSummary();
+
+          if (tasks.length === 0) {
+            return `No ${filter === 'all' ? '' : filter + ' '}background tasks.`;
+          }
+
+          const lines = [
+            `**Background Tasks** (${summary.running} running, ${summary.completed + summary.failed + summary.killed} completed)`,
+            '',
+          ];
+
+          for (const task of tasks) {
+            const statusIcon = task.status === 'running' ? '⏳' :
+                              task.status === 'completed' ? '✓' :
+                              task.status === 'killed' ? '⊘' : '✗';
+            lines.push(`${statusIcon} **${task.id}** - \`${task.command.substring(0, 50)}${task.command.length > 50 ? '...' : ''}\``);
+            lines.push(`   Status: ${task.status} | Started: ${task.startedAt}`);
+          }
+
+          return lines.join('\n');
+        }
+
         default:
+          // Check if it's an MCP tool call
+          if (name.startsWith('mcp__')) {
+            const mcpManager = getMCPManager();
+            const result = await mcpManager.executeTool(name, input);
+            if (result.success) {
+              return String(result.result);
+            }
+            return `MCP tool error: ${result.error}`;
+          }
+
           return `Unknown tool: ${name}`;
       }
     } catch (error) {
@@ -1124,7 +1575,39 @@ function formatToolName(tool: string): string {
     notebook_edit: 'Editing notebook',
     multi_edit: 'Multi-edit file',
     ask_user: 'Asking user',
+    // Planning mode
+    enter_plan_mode: 'Entering plan mode',
+    write_plan: 'Writing plan',
+    exit_plan_mode: 'Exiting plan mode',
+    // MCP
+    mcp_list_servers: 'Listing MCP servers',
+    mcp_enable_server: 'Enabling MCP server',
+    mcp_disable_server: 'Disabling MCP server',
+    // Hooks
+    hooks_list: 'Listing hooks',
+    hooks_enable: 'Enabling hook',
+    hooks_disable: 'Disabling hook',
+    hooks_create: 'Creating hook',
+    // Project Memory
+    memory_read: 'Reading project memory',
+    memory_create: 'Creating project memory',
+    memory_update: 'Updating project memory',
+    memory_add_section: 'Adding memory section',
+    // Background Tasks
+    bg_run: 'Starting background task',
+    bg_output: 'Getting task output',
+    bg_kill: 'Killing task',
+    bg_list: 'Listing tasks',
   };
+
+  // Handle MCP tool names
+  if (tool.startsWith('mcp__')) {
+    const parts = tool.split('__');
+    if (parts.length >= 3) {
+      return `MCP: ${parts[2]}`;
+    }
+  }
+
   return names[tool] || tool;
 }
 
