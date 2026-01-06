@@ -37,6 +37,13 @@ export { CodeLabPreview } from './CodeLabPreview';
 export { CodeLabOutputPanel } from './CodeLabOutputPanel';
 export { CodeLabDeploy } from './CodeLabDeploy';
 
+// Phase 1-3 Advanced Components
+export { CodeLabDiffViewer } from './CodeLabDiffViewer';
+export { CodeLabLiveFileTree } from './CodeLabLiveFileTree';
+export { CodeLabVisualToCode } from './CodeLabVisualToCode';
+export { CodeLabDeployFlow } from './CodeLabDeployFlow';
+export { CodeLabVoiceCoding } from './CodeLabVoiceCoding';
+
 // Types
 export type {
   CodeLabSession,
