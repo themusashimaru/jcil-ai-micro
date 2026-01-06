@@ -21,7 +21,14 @@ import { CodeLabThread } from './CodeLabThread';
 import { CodeLabComposer, CodeLabAttachment } from './CodeLabComposer';
 import { CodeLabCommandPalette } from './CodeLabCommandPalette';
 import { CodeLabKeyboardShortcuts } from './CodeLabKeyboardShortcuts';
+import { CodeLabLiveFileTree } from './CodeLabLiveFileTree';
+import { CodeLabDiffViewer } from './CodeLabDiffViewer';
+import { CodeLabVisualToCode } from './CodeLabVisualToCode';
+import { CodeLabDeployFlow } from './CodeLabDeployFlow';
+import { CodeLabVoiceCoding } from './CodeLabVoiceCoding';
 import type { CodeLabSession, CodeLabMessage } from './types';
+import type { FileNode } from './CodeLabLiveFileTree';
+import type { FileDiff } from './CodeLabDiffViewer';
 
 interface CodeLabProps {
   userId?: string;
@@ -41,6 +48,14 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const [error, setError] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Workspace panel state
+  const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'files' | 'diff' | 'deploy' | 'visual'>('files');
+  const [workspaceFiles, setWorkspaceFiles] = useState<FileNode[]>([]);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [diffFiles, setDiffFiles] = useState<FileDiff[]>([]);
+  const [voiceModeActive, setVoiceModeActive] = useState(false);
 
   // AbortController for canceling streams
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -235,8 +250,194 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       setSessions(prev =>
         prev.map(s => (s.id === sessionId ? { ...s, repo } : s))
       );
+
+      // When repo is set, load workspace files
+      if (repo) {
+        loadWorkspaceFiles(sessionId);
+      }
     } catch (err) {
       console.error('[CodeLab] Error setting repo:', err);
+    }
+  };
+
+  // ========================================
+  // WORKSPACE MANAGEMENT
+  // ========================================
+
+  const loadWorkspaceFiles = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/code-lab/files?sessionId=${sessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setWorkspaceFiles(data.files || []);
+      }
+    } catch (err) {
+      console.error('[CodeLab] Error loading workspace files:', err);
+    }
+  };
+
+  const handleFileSelect = async (path: string) => {
+    setSelectedFile(path);
+    // File content will be loaded by the file tree component
+  };
+
+  const handleFileCreate = async (path: string, content: string = '') => {
+    if (!currentSessionId) return;
+    try {
+      await fetch('/api/code-lab/files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: currentSessionId, path, content }),
+      });
+      loadWorkspaceFiles(currentSessionId);
+    } catch (err) {
+      console.error('[CodeLab] Error creating file:', err);
+    }
+  };
+
+  const handleFileDelete = async (path: string) => {
+    if (!currentSessionId) return;
+    try {
+      await fetch(`/api/code-lab/files?sessionId=${currentSessionId}&path=${encodeURIComponent(path)}`, {
+        method: 'DELETE',
+      });
+      loadWorkspaceFiles(currentSessionId);
+    } catch (err) {
+      console.error('[CodeLab] Error deleting file:', err);
+    }
+  };
+
+  // Git operations
+  const handleGitPush = async () => {
+    if (!currentSessionId || !currentSession?.repo) return;
+    try {
+      const response = await fetch('/api/code-lab/git', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: currentSessionId,
+          operation: 'push',
+          repo: currentSession.repo,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.diff) {
+          setDiffFiles(data.diff);
+        }
+      }
+    } catch (err) {
+      console.error('[CodeLab] Error pushing to git:', err);
+      setError('Failed to push changes');
+    }
+  };
+
+  const handleGitPull = async () => {
+    if (!currentSessionId || !currentSession?.repo) return;
+    try {
+      await fetch('/api/code-lab/git', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: currentSessionId,
+          operation: 'pull',
+          repo: currentSession.repo,
+        }),
+      });
+      loadWorkspaceFiles(currentSessionId);
+    } catch (err) {
+      console.error('[CodeLab] Error pulling from git:', err);
+      setError('Failed to pull changes');
+    }
+  };
+
+  // Visual to code handler
+  const handleVisualToCode = async (imageBase64: string, framework: string, instructions?: string) => {
+    const response = await fetch('/api/code-lab/visual-to-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imageBase64, framework, instructions }),
+    });
+
+    if (!response.ok) throw new Error('Failed to generate code');
+    return response.json();
+  };
+
+  // Deploy handler
+  const handleDeploy = async (config: {
+    platform: 'vercel' | 'netlify' | 'railway' | 'cloudflare';
+    projectName: string;
+    buildCommand: string;
+    outputDir: string;
+    envVars: Record<string, string>;
+    domain?: string;
+  }) => {
+    if (!currentSessionId) {
+      return {
+        id: '',
+        status: 'error' as const,
+        createdAt: new Date(),
+        buildLogs: [],
+        error: 'No session',
+      };
+    }
+
+    const response = await fetch('/api/code-lab/deploy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: currentSessionId,
+        platform: config.platform,
+        config: {
+          projectName: config.projectName,
+          buildCommand: config.buildCommand,
+          outputDir: config.outputDir,
+          envVars: config.envVars,
+          domain: config.domain,
+        },
+      }),
+    });
+
+    const result = await response.json();
+
+    return {
+      id: result.projectId || `deploy-${Date.now()}`,
+      status: result.success ? 'success' as const : 'error' as const,
+      url: result.url,
+      createdAt: new Date(),
+      buildLogs: [],
+      error: result.error,
+    };
+  };
+
+  // Voice command handler
+  const handleVoiceCommand = (action: string, payload?: string) => {
+    switch (action) {
+      case 'build':
+        sendMessage('/build');
+        break;
+      case 'test':
+        sendMessage('/test');
+        break;
+      case 'commit':
+        handleGitPush();
+        break;
+      case 'push':
+        handleGitPush();
+        break;
+      case 'fix':
+        sendMessage(`/fix ${payload || ''}`);
+        break;
+      case 'explain':
+        sendMessage(`/explain ${payload || ''}`);
+        break;
+      case 'search':
+        sendMessage(`@search ${payload || ''}`);
+        break;
+      default:
+        if (payload) {
+          sendMessage(payload);
+        }
     }
   };
 
@@ -512,6 +713,40 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         e.preventDefault();
         setCommandPaletteOpen(true);
       }
+
+      // Cmd/Ctrl+E - Toggle workspace panel
+      if (cmdKey && e.key === 'e') {
+        e.preventDefault();
+        setWorkspacePanelOpen(prev => !prev);
+      }
+
+      // Cmd/Ctrl+1,2,3,4 - Switch workspace tabs
+      if (cmdKey && e.key === '1') {
+        e.preventDefault();
+        setActiveWorkspaceTab('files');
+        setWorkspacePanelOpen(true);
+      }
+      if (cmdKey && e.key === '2') {
+        e.preventDefault();
+        setActiveWorkspaceTab('diff');
+        setWorkspacePanelOpen(true);
+      }
+      if (cmdKey && e.key === '3') {
+        e.preventDefault();
+        setActiveWorkspaceTab('deploy');
+        setWorkspacePanelOpen(true);
+      }
+      if (cmdKey && e.key === '4') {
+        e.preventDefault();
+        setActiveWorkspaceTab('visual');
+        setWorkspacePanelOpen(true);
+      }
+
+      // Cmd/Ctrl+Shift+V - Toggle voice mode
+      if (cmdKey && e.shiftKey && e.key === 'v') {
+        e.preventDefault();
+        setVoiceModeActive(prev => !prev);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -561,27 +796,139 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             </svg>
           </button>
           <span className="mobile-title">{currentSession?.title || 'Code Lab'}</span>
+          <div className="header-actions">
+            <button
+              className={`header-btn ${voiceModeActive ? 'active' : ''}`}
+              onClick={() => setVoiceModeActive(!voiceModeActive)}
+              title="Voice Mode (Cmd+Shift+V)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+              </svg>
+            </button>
+            <button
+              className={`header-btn ${workspacePanelOpen ? 'active' : ''}`}
+              onClick={() => setWorkspacePanelOpen(!workspacePanelOpen)}
+              title="Workspace Panel (Cmd+E)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </button>
+          </div>
         </div>
         {currentSessionId ? (
-          <>
-            {/* Thread - Messages */}
-            <CodeLabThread
-              messages={messages}
-              isLoading={isLoading}
-              isStreaming={isStreaming}
-              sessionTitle={currentSession?.title || 'Session'}
-              repo={currentSession?.repo}
-            />
+          <div className="code-lab-content">
+            <div className={`chat-area ${workspacePanelOpen ? 'with-panel' : ''}`}>
+              {/* Thread - Messages */}
+              <CodeLabThread
+                messages={messages}
+                isLoading={isLoading}
+                isStreaming={isStreaming}
+                sessionTitle={currentSession?.title || 'Session'}
+                repo={currentSession?.repo}
+              />
 
-            {/* Composer - Input */}
-            <CodeLabComposer
-              onSend={sendMessage}
-              isStreaming={isStreaming}
-              onCancel={cancelStream}
-              placeholder="Ask anything, build anything..."
-              disabled={!currentSessionId}
-            />
-          </>
+              {/* Composer - Input */}
+              <CodeLabComposer
+                onSend={sendMessage}
+                isStreaming={isStreaming}
+                onCancel={cancelStream}
+                placeholder="Ask anything, build anything..."
+                disabled={!currentSessionId}
+              />
+            </div>
+
+            {/* Workspace Panel */}
+            {workspacePanelOpen && (
+              <div className="workspace-panel">
+                <div className="workspace-tabs">
+                  <button
+                    className={activeWorkspaceTab === 'files' ? 'active' : ''}
+                    onClick={() => setActiveWorkspaceTab('files')}
+                  >
+                    Files
+                  </button>
+                  <button
+                    className={activeWorkspaceTab === 'diff' ? 'active' : ''}
+                    onClick={() => setActiveWorkspaceTab('diff')}
+                  >
+                    Changes
+                  </button>
+                  <button
+                    className={activeWorkspaceTab === 'deploy' ? 'active' : ''}
+                    onClick={() => setActiveWorkspaceTab('deploy')}
+                  >
+                    Deploy
+                  </button>
+                  <button
+                    className={activeWorkspaceTab === 'visual' ? 'active' : ''}
+                    onClick={() => setActiveWorkspaceTab('visual')}
+                  >
+                    Visual
+                  </button>
+                </div>
+                <div className="workspace-content">
+                  {activeWorkspaceTab === 'files' && (
+                    <CodeLabLiveFileTree
+                      files={workspaceFiles}
+                      selectedPath={selectedFile ?? undefined}
+                      onFileSelect={handleFileSelect}
+                      onFileCreate={(path) => handleFileCreate(path)}
+                      onFileDelete={handleFileDelete}
+                      onRefresh={() => { if (currentSessionId) loadWorkspaceFiles(currentSessionId); }}
+                    />
+                  )}
+                  {activeWorkspaceTab === 'diff' && (
+                    <div className="diff-list">
+                      {diffFiles.length === 0 ? (
+                        <div className="diff-empty">
+                          <p>No changes to display</p>
+                          <p className="hint">Push or pull from GitHub to see file changes</p>
+                        </div>
+                      ) : (
+                        diffFiles.map((fileDiff, index) => (
+                          <CodeLabDiffViewer
+                            key={`${fileDiff.oldPath || fileDiff.newPath}-${index}`}
+                            diff={fileDiff}
+                            onAcceptHunk={(hunkIndex) => console.log('Accept hunk:', hunkIndex, 'in', fileDiff.newPath)}
+                            onRejectHunk={(hunkIndex) => console.log('Reject hunk:', hunkIndex, 'in', fileDiff.newPath)}
+                          />
+                        ))
+                      )}
+                    </div>
+                  )}
+                  {activeWorkspaceTab === 'deploy' && (
+                    <CodeLabDeployFlow
+                      onDeploy={handleDeploy}
+                    />
+                  )}
+                  {activeWorkspaceTab === 'visual' && (
+                    <CodeLabVisualToCode
+                      onGenerate={handleVisualToCode}
+                      onInsertCode={(code) => sendMessage(`/create file with this code:\n\`\`\`\n${code}\n\`\`\``)}
+                    />
+                  )}
+                </div>
+                {currentSession?.repo && (
+                  <div className="workspace-git-actions">
+                    <button onClick={handleGitPull} className="git-btn pull">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                      Pull
+                    </button>
+                    <button onClick={handleGitPush} className="git-btn push">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                      </svg>
+                      Push
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         ) : (
           // Empty state
           <div className="code-lab-empty">
@@ -624,6 +971,13 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       <CodeLabKeyboardShortcuts
         isOpen={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
+      />
+
+      {/* Voice Coding Mode */}
+      <CodeLabVoiceCoding
+        onCommand={handleVoiceCommand}
+        onDictation={(text) => sendMessage(text)}
+        isEnabled={voiceModeActive}
       />
 
       <style jsx>{`
@@ -785,6 +1139,213 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           cursor: pointer;
           padding: 0;
           line-height: 1;
+        }
+
+        /* Header actions */
+        .header-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin-left: auto;
+        }
+
+        .header-btn {
+          background: none;
+          border: none;
+          padding: 0.5rem;
+          cursor: pointer;
+          color: #6b7280;
+          border-radius: 6px;
+          transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+          background: #f3f4f6;
+          color: #374151;
+        }
+
+        .header-btn.active {
+          background: #6366f1;
+          color: white;
+        }
+
+        .header-btn svg {
+          width: 20px;
+          height: 20px;
+        }
+
+        /* Content layout with workspace panel */
+        .code-lab-content {
+          flex: 1;
+          display: flex;
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .chat-area {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          transition: flex 0.3s ease;
+        }
+
+        .chat-area.with-panel {
+          flex: 0.6;
+        }
+
+        /* Workspace Panel */
+        .workspace-panel {
+          width: 40%;
+          min-width: 300px;
+          max-width: 600px;
+          background: #ffffff;
+          border-left: 1px solid #e5e7eb;
+          display: flex;
+          flex-direction: column;
+          animation: slideIn 0.2s ease;
+        }
+
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .workspace-tabs {
+          display: flex;
+          border-bottom: 1px solid #e5e7eb;
+          padding: 0 0.5rem;
+          background: #fafbfc;
+        }
+
+        .workspace-tabs button {
+          background: none;
+          border: none;
+          padding: 0.75rem 1rem;
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: #6b7280;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+          margin-bottom: -1px;
+          transition: all 0.2s;
+        }
+
+        .workspace-tabs button:hover {
+          color: #374151;
+        }
+
+        .workspace-tabs button.active {
+          color: #6366f1;
+          border-bottom-color: #6366f1;
+        }
+
+        .workspace-content {
+          flex: 1;
+          overflow: auto;
+          padding: 1rem;
+        }
+
+        .workspace-git-actions {
+          display: flex;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          border-top: 1px solid #e5e7eb;
+          background: #fafbfc;
+        }
+
+        .git-btn {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          background: white;
+          font-size: 0.8125rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .git-btn svg {
+          width: 16px;
+          height: 16px;
+        }
+
+        .git-btn.pull {
+          color: #3b82f6;
+        }
+
+        .git-btn.pull:hover {
+          background: #eff6ff;
+          border-color: #3b82f6;
+        }
+
+        .git-btn.push {
+          color: #22c55e;
+        }
+
+        .git-btn.push:hover {
+          background: #f0fdf4;
+          border-color: #22c55e;
+        }
+
+        /* Diff list */
+        .diff-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .diff-empty {
+          text-align: center;
+          padding: 2rem 1rem;
+          color: #6b7280;
+        }
+
+        .diff-empty p {
+          margin: 0 0 0.5rem;
+        }
+
+        .diff-empty .hint {
+          font-size: 0.8125rem;
+          color: #9ca3af;
+        }
+
+        /* Mobile workspace panel */
+        @media (max-width: 1024px) {
+          .workspace-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            max-width: 400px;
+            z-index: 50;
+            box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+          }
+
+          .chat-area.with-panel {
+            flex: 1;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .workspace-panel {
+            max-width: 100%;
+          }
+
+          .header-actions {
+            display: flex;
+          }
         }
       `}</style>
     </div>
