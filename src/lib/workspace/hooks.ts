@@ -154,12 +154,24 @@ export class HooksManager {
 
     this.userId = userId;
 
+    // Type for the database row (table not in generated types yet)
+    type HookPref = { hook_id: string; enabled: boolean; custom_config: Record<string, unknown> | null };
+
     try {
       const supabase = await createClient();
-      const { data, error } = await supabase
+      // Cast to any since table is not in generated types yet
+      const result = await (supabase as unknown as {
+        from: (table: string) => {
+          select: (cols: string) => {
+            eq: (col: string, val: string) => Promise<{ data: HookPref[] | null; error: unknown }>
+          }
+        }
+      })
         .from('code_lab_user_hooks')
         .select('hook_id, enabled, custom_config')
         .eq('user_id', userId);
+
+      const { data, error } = result;
 
       if (error) throw error;
 
@@ -185,7 +197,7 @@ export class HooksManager {
       }
 
       this.preferencesLoaded = true;
-    } catch (error) {
+    } catch {
       // Silently fail - use defaults
       this.preferencesLoaded = true;
     }
@@ -199,7 +211,8 @@ export class HooksManager {
 
     try {
       const supabase = await createClient();
-      await supabase
+      // Cast to any since table is not in generated types yet
+      await (supabase as unknown as { from: (table: string) => { upsert: (data: unknown, opts: unknown) => Promise<unknown> } })
         .from('code_lab_user_hooks')
         .upsert({
           user_id: this.userId,
