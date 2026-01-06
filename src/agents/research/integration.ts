@@ -54,6 +54,11 @@ export function shouldUseResearchAgent(request: string): boolean {
 
 /**
  * Execute the Research Agent and return a streaming response
+ *
+ * RELIABILITY FEATURES:
+ * - Global 4-minute timeout to prevent Vercel function timeout
+ * - Keepalive heartbeat every 20s during long operations
+ * - Graceful error handling with user-friendly messages
  */
 export async function executeResearchAgent(
   query: string,
@@ -66,9 +71,53 @@ export async function executeResearchAgent(
 ): Promise<ReadableStream<Uint8Array>> {
   const encoder = new TextEncoder();
 
+  // Configuration for reliability
+  const GLOBAL_TIMEOUT_MS = 240000; // 4 minutes (under Vercel's 5min limit)
+  const KEEPALIVE_INTERVAL_MS = 20000; // Send keepalive every 20s
+
   return new ReadableStream({
     async start(controller) {
+      let keepaliveInterval: NodeJS.Timeout | null = null;
+      let globalTimeout: NodeJS.Timeout | null = null;
+      let lastActivity = Date.now();
+      let isComplete = false;
+
+      // Keepalive function
+      const startKeepalive = () => {
+        keepaliveInterval = setInterval(() => {
+          if (isComplete) return;
+          const timeSinceActivity = Date.now() - lastActivity;
+          if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 2000) {
+            try {
+              controller.enqueue(encoder.encode(' ')); // Invisible keepalive
+              console.log('[ResearchAgent] Sent keepalive heartbeat');
+            } catch {
+              // Controller might be closed
+            }
+          }
+        }, KEEPALIVE_INTERVAL_MS);
+      };
+
+      const cleanup = () => {
+        isComplete = true;
+        if (keepaliveInterval) {
+          clearInterval(keepaliveInterval);
+          keepaliveInterval = null;
+        }
+        if (globalTimeout) {
+          clearTimeout(globalTimeout);
+          globalTimeout = null;
+        }
+      };
+
       try {
+        // Set global timeout
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          globalTimeout = setTimeout(() => {
+            reject(new Error('Research timeout: Operation took too long'));
+          }, GLOBAL_TIMEOUT_MS);
+        });
+
         // Build context
         const context: AgentContext = {
           userId: options.userId || 'anonymous',
@@ -91,15 +140,21 @@ export async function executeResearchAgent(
         controller.enqueue(encoder.encode(`---\n\n`));
         controller.enqueue(encoder.encode(`### Analysis Pipeline\n\n`));
 
-        // Execute with streaming progress
-        const result = await researchAgent.execute(
+        // Start keepalive
+        startKeepalive();
+
+        // Execute with streaming progress (race against timeout)
+        const executePromise = researchAgent.execute(
           input,
           context,
           (event: AgentStreamEvent) => {
+            lastActivity = Date.now();
             const progressLine = formatProgressEvent(event);
             controller.enqueue(encoder.encode(progressLine));
           }
         );
+
+        const result = await Promise.race([executePromise, timeoutPromise]);
 
         if (result.success && result.data) {
           // Stream the final report
@@ -109,12 +164,17 @@ export async function executeResearchAgent(
         } else {
           controller.enqueue(encoder.encode(`\n\n❌ **Research Failed**\n\n${result.error || 'Unknown error'}\n`));
         }
-
-        controller.close();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error('[ResearchAgent Integration] Error:', errorMessage);
-        controller.enqueue(encoder.encode(`\n\n❌ **Research Error**\n\n${errorMessage}\n`));
+
+        const userMessage = errorMessage.includes('timeout')
+          ? `\n\n⏱️ **Research Timeout**\n\nThe research is taking longer than expected. Please try:\n- A more specific query\n- Using "quick" depth for faster results\n- Breaking your question into smaller parts\n`
+          : `\n\n❌ **Research Error**\n\n${errorMessage}\n`;
+
+        controller.enqueue(encoder.encode(userMessage));
+      } finally {
+        cleanup();
         controller.close();
       }
     },
