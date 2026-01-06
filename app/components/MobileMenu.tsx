@@ -2,8 +2,9 @@
  * MOBILE MENU COMPONENT
  *
  * PURPOSE:
- * - Hamburger menu for mobile navigation on landing page
- * - Slide-out drawer with navigation links
+ * - Hamburger menu for mobile navigation
+ * - Dark glassmorphism slide-out drawer
+ * - Matches tier-one brand identity
  */
 
 'use client';
@@ -22,7 +23,6 @@ export default function MobileMenu() {
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when menu is open
       document.body.style.overflow = 'hidden';
     }
 
@@ -32,20 +32,19 @@ export default function MobileMenu() {
     };
   }, [isOpen]);
 
-  // Close menu when clicking a link
   const handleLinkClick = () => {
     setIsOpen(false);
   };
 
   return (
     <>
-      {/* Hamburger Button - Only visible on mobile */}
+      {/* Hamburger Button - Dark theme */}
       <button
         onClick={() => setIsOpen(true)}
-        className="md:hidden p-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition"
+        className="md:hidden p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition"
         aria-label="Open menu"
       >
-        <svg className="w-6 h-6 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
@@ -53,26 +52,26 @@ export default function MobileMenu() {
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 md:hidden"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Slide-out Menu */}
+      {/* Slide-out Menu - Dark Glassmorphism */}
       <div
-        className={`fixed top-0 right-0 h-full w-72 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out md:hidden ${
+        className={`fixed top-0 right-0 h-full w-80 z-50 transform transition-transform duration-300 ease-in-out md:hidden
+          bg-black/95 backdrop-blur-xl border-l border-white/10 shadow-2xl shadow-black/50 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
-        style={{ backgroundColor: '#ffffff' }}
       >
-        {/* Close Button */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-200">
-          <span className="text-xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-white/10">
+          <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
             JCIL.AI
           </span>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 text-slate-500 hover:text-slate-700 transition"
+            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition"
             aria-label="Close menu"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -82,31 +81,40 @@ export default function MobileMenu() {
         </div>
 
         {/* Navigation Links */}
-        <nav className="p-4">
-          <ul className="space-y-2">
+        <nav className="p-5">
+          <ul className="space-y-1">
             <li>
               <Link
-                href="#how-it-works"
+                href="#capabilities"
                 onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-lg transition font-medium"
+                className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
               >
-                How It Works
+                Capabilities
               </Link>
             </li>
             <li>
               <Link
-                href="/coding"
+                href="/code-lab"
                 onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-lg transition font-medium"
+                className="block px-4 py-3 text-fuchsia-400 hover:text-fuchsia-300 hover:bg-fuchsia-500/10 rounded-xl transition font-medium"
               >
-                Coding Assistant
+                Code Lab
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/docs"
+                onClick={handleLinkClick}
+                className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
+              >
+                Documentation
               </Link>
             </li>
             <li>
               <Link
                 href="#pricing"
                 onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-lg transition font-medium"
+                className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
               >
                 Pricing
               </Link>
@@ -115,48 +123,39 @@ export default function MobileMenu() {
               <Link
                 href="/about"
                 onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-lg transition font-medium"
+                className="block px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
               >
                 About
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/contact"
-                onClick={handleLinkClick}
-                className="block px-4 py-3 text-slate-700 hover:bg-slate-50 rounded-lg transition font-medium"
-              >
-                Contact
               </Link>
             </li>
           </ul>
 
           {/* Divider */}
-          <div className="my-4 border-t border-slate-200" />
+          <div className="my-6 border-t border-white/10" />
 
           {/* Auth Buttons */}
           <div className="space-y-3">
             <Link
               href="/login"
               onClick={handleLinkClick}
-              className="block w-full px-4 py-3 text-center text-slate-700 border border-slate-300 rounded-xl font-semibold hover:bg-slate-50 transition"
+              className="block w-full px-4 py-3 text-center text-white border border-white/20 rounded-xl font-semibold hover:bg-white/5 hover:border-white/30 transition"
             >
               Log In
             </Link>
             <Link
               href="/signup"
               onClick={handleLinkClick}
-              className="block w-full px-4 py-3 text-center text-white bg-gradient-to-r from-blue-900 to-blue-700 rounded-xl font-semibold hover:shadow-lg transition"
+              className="block w-full px-4 py-3 text-center text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition"
             >
-              Sign Up Free
+              Get Started
             </Link>
           </div>
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-slate-50">
-          <p className="text-center text-xs text-slate-500">
-            AI-powered tools built for people of faith
+        <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-white/10">
+          <p className="text-center text-sm text-slate-500">
+            Enterprise AI. Built on faith.
           </p>
         </div>
       </div>
