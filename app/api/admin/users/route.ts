@@ -185,3 +185,4 @@ export async function GET(request: NextRequest) {
 // Mark this route as dynamic to prevent static generation
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration = 30;

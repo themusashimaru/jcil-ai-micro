@@ -7,6 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 import { ContainerManager } from '@/lib/workspace/container';
 import { GitHubSyncBridge } from '@/lib/workspace/github-sync';
 import {

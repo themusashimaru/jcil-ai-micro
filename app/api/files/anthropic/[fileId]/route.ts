@@ -15,6 +15,7 @@ import { getServerSession } from '@/lib/supabase/server-auth';
 import { downloadAnthropicFile } from '@/lib/anthropic/client';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function GET(
   _request: NextRequest,
@@ -31,7 +32,7 @@ export async function GET(
       );
     }
 
-    const user = session.user;
+    // User is authenticated (session.user verified above)
 
     const { fileId } = params;
 
@@ -42,7 +43,7 @@ export async function GET(
       );
     }
 
-    console.log(`[Anthropic Files API] Downloading file: ${fileId} for user: ${user.id}`);
+    // Processing authenticated file download request
 
     // Download file from Anthropic
     const result = await downloadAnthropicFile(fileId);

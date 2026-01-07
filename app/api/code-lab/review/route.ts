@@ -8,6 +8,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+
+export const runtime = 'nodejs';
+export const maxDuration = 180;
 import { createClient } from '@supabase/supabase-js';
 import {
   fetchPRInfo,

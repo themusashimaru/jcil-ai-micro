@@ -13,6 +13,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const runtime = 'nodejs';
+export const maxDuration = 30;
+
 // SECURITY FIX: Allowed origins for generated websites
 // Wildcard CORS exposes this endpoint to any website
 const ALLOWED_ORIGIN_PATTERNS = [

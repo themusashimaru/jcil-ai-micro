@@ -12,6 +12,7 @@ import Stripe from 'stripe';
 // Runtime configuration
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 // Use service role key for webhook operations
 function getSupabaseAdmin() {
