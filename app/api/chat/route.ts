@@ -17,10 +17,11 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { createClaudeStreamingChat, createClaudeChat } from '@/lib/anthropic/client';
+import { createClaudeStreamingChat, createClaudeChat, detectDocumentRequest } from '@/lib/anthropic/client';
 import { shouldUseResearchAgent, executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
+import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
 
 // Rate limits per hour
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
@@ -137,6 +138,86 @@ function getLastUserContent(messages: CoreMessage[]): string {
       .join(' ');
   }
   return '';
+}
+
+function getDocumentTypeName(type: string): string {
+  const names: Record<string, string> = {
+    xlsx: 'Excel spreadsheet',
+    docx: 'Word document',
+    pptx: 'PowerPoint presentation',
+    pdf: 'PDF',
+  };
+  return names[type] || 'document';
+}
+
+function getDocumentSchemaPrompt(documentType: string): string {
+  const baseInstruction = `You are a document generation assistant. Based on the user's request, generate a JSON object that describes the document they want. Output ONLY valid JSON, no explanation.`;
+
+  if (documentType === 'xlsx') {
+    return `${baseInstruction}
+
+Generate a spreadsheet JSON with this structure:
+{
+  "type": "spreadsheet",
+  "title": "Document Title",
+  "sheets": [{
+    "name": "Sheet1",
+    "rows": [
+      { "cells": [{ "value": "Header1", "bold": true }, { "value": "Header2", "bold": true }], "isHeader": true },
+      { "cells": [{ "value": "Data1" }, { "value": 100, "currency": true }] }
+    ],
+    "columnWidths": [20, 15]
+  }]
+}
+
+For formulas use: { "formula": "=SUM(B2:B10)" }
+For currency: { "value": 100, "currency": true }
+For percentages: { "value": 0.15, "percent": true }`;
+  }
+
+  if (documentType === 'docx') {
+    return `${baseInstruction}
+
+Generate a Word document JSON with this structure:
+{
+  "type": "document",
+  "title": "Document Title",
+  "sections": [
+    { "type": "paragraph", "content": { "text": "Main Title", "style": "title" } },
+    { "type": "paragraph", "content": { "text": "Introduction paragraph here.", "style": "normal" } },
+    { "type": "paragraph", "content": { "text": "Section Heading", "style": "heading1" } },
+    { "type": "paragraph", "content": { "text": "Bullet point", "bulletLevel": 1 } },
+    { "type": "table", "content": { "headers": ["Col1", "Col2"], "rows": [["Data1", "Data2"]] } }
+  ]
+}
+
+Available styles: title, subtitle, heading1, heading2, heading3, normal`;
+  }
+
+  if (documentType === 'pdf') {
+    return `${baseInstruction}
+
+Generate an invoice/PDF JSON with this structure:
+{
+  "type": "invoice",
+  "invoiceNumber": "INV-001",
+  "date": "2024-01-15",
+  "dueDate": "2024-02-15",
+  "from": { "name": "Your Company", "address": ["123 Main St", "City, ST 12345"], "email": "info@company.com" },
+  "to": { "name": "Client Name", "address": ["456 Oak Ave", "City, ST 67890"] },
+  "items": [
+    { "description": "Service 1", "quantity": 1, "unitPrice": 100 },
+    { "description": "Service 2", "quantity": 2, "unitPrice": 50 }
+  ],
+  "taxRate": 8.5,
+  "notes": "Thank you for your business!"
+}`;
+  }
+
+  // Default to Word document
+  return `${baseInstruction}
+
+Generate a Word document JSON. Structure your response as valid JSON with type "document".`;
 }
 
 // ============================================================================
@@ -298,7 +379,73 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // ROUTE 3: CLAUDE CHAT (Haiku/Sonnet auto-routing)
+    // ROUTE 3: DOCUMENT GENERATION (Excel, Word, PDF)
+    // ========================================
+    const documentType = detectDocumentRequest(lastUserContent);
+    if (documentType && isAuthenticated) {
+      console.log(`[Chat] Document generation request: ${documentType}`);
+
+      try {
+        // Get the appropriate JSON schema prompt based on document type
+        const schemaPrompt = getDocumentSchemaPrompt(documentType);
+
+        // Have Claude generate the structured JSON
+        const result = await createClaudeChat({
+          messages: [...messages.slice(-5), { role: 'user', content: lastUserContent }],
+          systemPrompt: schemaPrompt,
+          maxTokens: 4096,
+          temperature: 0.3, // Lower temp for structured output
+          forceModel: 'sonnet',
+        });
+
+        // Extract JSON from response
+        let jsonText = result.text.trim();
+        if (jsonText.startsWith('```json')) {
+          jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+        } else if (jsonText.startsWith('```')) {
+          jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+        }
+
+        const documentData = JSON.parse(jsonText) as DocumentData;
+
+        // Validate the document structure
+        const validation = validateDocumentJSON(documentData);
+        if (!validation.valid) {
+          throw new Error(`Invalid document structure: ${validation.error}`);
+        }
+
+        // Generate the actual file
+        const fileResult = await generateDocument(documentData);
+
+        // Convert to base64 for response
+        const base64 = fileResult.buffer.toString('base64');
+        const dataUrl = `data:${fileResult.mimeType};base64,${base64}`;
+
+        // Return document info with download data
+        const responseText = `I've created your ${getDocumentTypeName(documentType)} document: **${fileResult.filename}**\n\n` +
+          `Click the download button below to save it.\n\n` +
+          `[DOCUMENT_DOWNLOAD:${JSON.stringify({
+            filename: fileResult.filename,
+            mimeType: fileResult.mimeType,
+            dataUrl: dataUrl,
+            type: documentType,
+          })}]`;
+
+        return new Response(responseText, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Document-Generated': 'true',
+            'X-Document-Type': documentType,
+          },
+        });
+      } catch (error) {
+        console.error('[Chat] Document generation error:', error);
+        // Fall through to regular chat with an explanation
+      }
+    }
+
+    // ========================================
+    // ROUTE 4: CLAUDE CHAT (Haiku/Sonnet auto-routing)
     // ========================================
     const truncatedMessages = truncateMessages(messages);
     const clampedMaxTokens = clampMaxTokens(max_tokens);
@@ -310,6 +457,7 @@ CAPABILITIES:
 - Deep research on complex topics
 - Code review and generation
 - Scripture and faith-based guidance
+- Document generation (Excel spreadsheets, Word documents, PDF invoices)
 
 STYLE:
 - Be concise but thorough
