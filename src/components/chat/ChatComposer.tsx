@@ -145,6 +145,8 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
   const cameraInputRef = useRef<HTMLInputElement>(null);
   // Track if component is mounted in browser (for portal)
   const [isMounted, setIsMounted] = useState(false);
+  // Track last applied initialText to prevent re-applying on message changes
+  const lastInitialTextRef = useRef<string | undefined>(undefined);
 
   // Set mounted state on client-side (for portal rendering)
   useEffect(() => {
@@ -152,8 +154,10 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
   }, []);
 
   // Handle initial text from quick prompts
+  // Uses ref to track last applied value, avoiding message dependency
   useEffect(() => {
-    if (initialText && initialText !== message) {
+    if (initialText && initialText !== lastInitialTextRef.current) {
+      lastInitialTextRef.current = initialText;
       setMessage(initialText);
       // Focus the textarea and move cursor to end
       if (textareaRef.current) {
