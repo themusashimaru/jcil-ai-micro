@@ -32,9 +32,9 @@ export async function GET() {
         exists: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
         value: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING',
       },
-      openaiApiKey: {
-        exists: !!process.env.OPENAI_API_KEY,
-        value: process.env.OPENAI_API_KEY ? 'SET' : 'MISSING',
+      anthropicApiKey: {
+        exists: !!process.env.ANTHROPIC_API_KEY,
+        value: process.env.ANTHROPIC_API_KEY ? 'SET' : 'MISSING',
       },
       stripeSecretKey: {
         exists: !!process.env.STRIPE_SECRET_KEY,

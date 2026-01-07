@@ -1005,20 +1005,12 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
             {isAdmin && !isUser && message.model && (
               <span
                 className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
-                  message.model.includes('nano')
-                    ? 'bg-emerald-500/20 text-emerald-400'
-                    : message.model.includes('mini')
-                    ? 'bg-blue-500/20 text-blue-400'
-                    : message.model.includes('dall-e')
-                    ? 'bg-pink-500/20 text-pink-400'
-                    : message.model.includes('haiku')
+                  message.model.includes('haiku')
                     ? 'bg-cyan-500/20 text-cyan-400'
                     : message.model.includes('sonnet')
                     ? 'bg-violet-500/20 text-violet-400'
                     : message.model.includes('opus')
                     ? 'bg-amber-500/20 text-amber-400'
-                    : message.model.includes('grok')
-                    ? 'bg-red-500/20 text-red-400'
                     : message.model.includes('sonar')
                     ? 'bg-orange-500/20 text-orange-400'
                     : 'bg-purple-500/20 text-purple-400'

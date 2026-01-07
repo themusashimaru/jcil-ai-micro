@@ -128,8 +128,6 @@ export function ChatClient() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  // Track active provider (for conditional UI like search buttons)
-  const [activeProvider, setActiveProvider] = useState<string>('openai');
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();
@@ -300,24 +298,6 @@ export function ChatClient() {
       }
     };
     checkAdminStatus();
-  }, []);
-
-  // Check feature availability (image generation depends on provider)
-  useEffect(() => {
-    const checkFeatures = async () => {
-      try {
-        const response = await fetch('/api/features');
-        if (response.ok) {
-          const data = await response.json();
-          setActiveProvider(data.activeProvider || 'openai');
-        }
-      } catch (error) {
-        console.error('[ChatClient] Error checking features:', error);
-        // Default to OpenAI behavior on error
-        setActiveProvider('openai');
-      }
-    };
-    checkFeatures();
   }, []);
 
   // Detect screen size and set initial sidebar state
@@ -2341,7 +2321,7 @@ export function ChatClient() {
                 onStop={handleStop}
                 isStreaming={isStreaming}
                 disabled={isWaitingForReply}
-                showSearchButtons={activeProvider !== 'gemini'}
+                showSearchButtons={true}
                 replyingTo={replyingTo}
                 onClearReply={() => setReplyingTo(null)}
                 initialText={quickPromptText}
