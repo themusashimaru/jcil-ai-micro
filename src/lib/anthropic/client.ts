@@ -256,7 +256,15 @@ export function getAnthropicKeyStats(): {
 }
 
 /**
+ * Track the last selected key state for consistent client/key pairing
+ * This prevents the bug where getAnthropicClient and getCurrentApiKey
+ * would return different keys due to round-robin advancement
+ */
+let lastSelectedKeyState: ApiKeyState | null = null;
+
+/**
  * Get Anthropic client for current key (with caching)
+ * Also stores the key state for getCurrentApiKey to use
  */
 function getAnthropicClient(): Anthropic {
   const keyState = getApiKeyState();
@@ -264,6 +272,9 @@ function getAnthropicClient(): Anthropic {
   if (!keyState) {
     throw new Error('ANTHROPIC_API_KEY is not configured. Set ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_1, _2, etc.');
   }
+
+  // Store for getCurrentApiKey to use (consistent pairing)
+  lastSelectedKeyState = keyState;
 
   // Cache the client instance for this key
   if (!keyState.client) {
@@ -275,10 +286,13 @@ function getAnthropicClient(): Anthropic {
 
 /**
  * Get current API key (for rate limit tracking)
+ * Returns the SAME key that was used by the last getAnthropicClient call
+ * This ensures we mark the correct key when rate limited
  */
 function getCurrentApiKey(): string | null {
-  const keyState = getApiKeyState();
-  return keyState?.key || null;
+  // Return the key that matches the last client we returned
+  // This prevents the round-robin mismatch bug
+  return lastSelectedKeyState?.key || null;
 }
 
 export interface AnthropicChatOptions {

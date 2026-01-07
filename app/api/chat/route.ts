@@ -146,6 +146,7 @@ function getLastUserContent(messages: CoreMessage[]): string {
 export async function POST(request: NextRequest) {
   const requestId = generateRequestId();
   let slotAcquired = false;
+  let isStreamingResponse = false; // Track if we're returning a stream
 
   try {
     // Acquire queue slot
@@ -271,7 +272,22 @@ export async function POST(request: NextRequest) {
         })),
       });
 
-      return new Response(researchStream, {
+      // Wrap stream to release slot when done
+      const wrappedResearchStream = new TransformStream<Uint8Array, Uint8Array>({
+        transform(chunk, controller) {
+          controller.enqueue(chunk);
+        },
+        flush() {
+          if (slotAcquired) {
+            releaseSlot(requestId).catch(err => console.error('[Chat] Error releasing slot:', err));
+            slotAcquired = false;
+          }
+        },
+      });
+
+      isStreamingResponse = true;
+
+      return new Response(researchStream.pipeThrough(wrappedResearchStream), {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           'Transfer-Encoding': 'chunked',
@@ -298,7 +314,28 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Chat] Using model: ${streamResult.model}`);
 
-    return new Response(streamResult.stream, {
+    // Wrap the stream to release the slot when streaming completes
+    // This fixes the bug where slot was released immediately after Response creation
+    const wrappedStream = new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        controller.enqueue(chunk);
+      },
+      flush() {
+        // Release slot when stream is fully consumed
+        if (slotAcquired) {
+          releaseSlot(requestId).catch(err => console.error('[Chat] Error releasing slot:', err));
+          slotAcquired = false; // Mark as released
+        }
+      },
+    });
+
+    // Pipe through the wrapper - slot released when stream ends
+    const finalStream = streamResult.stream.pipeThrough(wrappedStream);
+
+    // Mark as streaming so finally block doesn't double-release
+    isStreamingResponse = true;
+
+    return new Response(finalStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Transfer-Encoding': 'chunked',
@@ -308,7 +345,9 @@ export async function POST(request: NextRequest) {
     });
 
   } finally {
-    if (slotAcquired) {
+    // Only release here for non-streaming responses (search/error paths)
+    // For streaming, the TransformStream.flush() handles release when stream ends
+    if (slotAcquired && !isStreamingResponse) {
       releaseSlot(requestId).catch(err => console.error('[Chat] Error releasing slot:', err));
     }
   }
