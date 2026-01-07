@@ -239,11 +239,20 @@ export function TypingIndicator({ documentType, userMessage }: TypingIndicatorPr
           style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
         >
           <div className="flex items-center gap-3">
-            {/* Animated dots with gradient colors */}
+            {/* Animated dots using theme colors */}
             <div className="flex gap-1">
-              <div className="h-2 w-2 animate-bounce rounded-full bg-violet-500" style={{ animationDelay: '0ms' }} />
-              <div className="h-2 w-2 animate-bounce rounded-full bg-cyan-500" style={{ animationDelay: '150ms' }} />
-              <div className="h-2 w-2 animate-bounce rounded-full bg-violet-500" style={{ animationDelay: '300ms' }} />
+              <div
+                className="h-2 w-2 animate-bounce rounded-full"
+                style={{ backgroundColor: 'var(--primary)', animationDelay: '0ms' }}
+              />
+              <div
+                className="h-2 w-2 animate-bounce rounded-full"
+                style={{ backgroundColor: 'var(--primary)', opacity: 0.7, animationDelay: '150ms' }}
+              />
+              <div
+                className="h-2 w-2 animate-bounce rounded-full"
+                style={{ backgroundColor: 'var(--primary)', animationDelay: '300ms' }}
+              />
             </div>
 
             {/* Intelligent status message */}

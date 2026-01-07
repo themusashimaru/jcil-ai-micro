@@ -583,8 +583,8 @@ export function CodeLabComposer({
 
         .composer-container {
           display: flex;
-          align-items: flex-end;
-          gap: 0.75rem;
+          flex-direction: column;
+          gap: 0.5rem;
           padding: 0.75rem 1rem;
           background: #f8fafc;
           border: 1px solid #e2e8f0;
@@ -598,7 +598,7 @@ export function CodeLabComposer({
         }
 
         .composer-input {
-          flex: 1;
+          width: 100%;
           border: none;
           background: transparent;
           font-size: 0.9375rem;
@@ -606,7 +606,7 @@ export function CodeLabComposer({
           color: #1a1f36;
           resize: none;
           outline: none;
-          min-height: 24px;
+          min-height: 60px;
           max-height: 200px;
         }
 
@@ -621,7 +621,10 @@ export function CodeLabComposer({
         .composer-actions {
           display: flex;
           align-items: center;
+          justify-content: flex-end;
           gap: 0.5rem;
+          padding-top: 0.25rem;
+          border-top: 1px solid #e5e7eb;
         }
 
         .composer-btn {

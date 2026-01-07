@@ -813,10 +813,11 @@ export function isImageGenerationRequest(content: string): boolean {
 export function detectDocumentRequest(content: string): 'xlsx' | 'pptx' | 'docx' | 'pdf' | null {
   const lowerContent = content.toLowerCase();
 
-  // Excel detection
+  // Excel detection - spreadsheets, budgets, financial documents, trackers
   if (/\b(excel|spreadsheet|xlsx|xls)\b/.test(lowerContent) ||
-      /\b(budget|financial model|data table)\b.*\b(create|make|generate)\b/.test(lowerContent) ||
-      /\b(create|make|generate)\b.*\b(budget|financial model|data table)\b/.test(lowerContent)) {
+      /\b(budget|financial|expense|income|tracker|tracking|schedule|calendar|planner)\b.*\b(spreadsheet|sheet)\b/.test(lowerContent) ||
+      /\b(create|make|generate|build|give me|can you make|i need)\b.*\b(spreadsheet|budget|tracker|schedule)\b/.test(lowerContent) ||
+      /\b(spreadsheet|budget|financial tracker)\b.*\b(create|make|for me|for)\b/.test(lowerContent)) {
     return 'xlsx';
   }
 
@@ -826,14 +827,19 @@ export function detectDocumentRequest(content: string): 'xlsx' | 'pptx' | 'docx'
     return 'pptx';
   }
 
-  // Word detection
-  if (/\b(word document|docx|doc)\b/.test(lowerContent) ||
-      /\b(create|make|generate)\b.*\b(word|docx)\b/.test(lowerContent)) {
+  // Word detection - documents, resumes, letters, contracts, reports
+  if (/\b(word document|docx|doc file|word doc)\b/.test(lowerContent) ||
+      /\b(create|make|generate|write|build|give me|can you make|i need)\b.*\b(document|resume|cv|letter|contract|proposal|report|memo|essay)\b/.test(lowerContent) ||
+      /\b(resume|cv|cover letter|business letter|contract|proposal|report|memo)\b.*\b(create|make|generate|for me|for)\b/.test(lowerContent) ||
+      /\b(professional|formal)\b.*\b(document|letter|resume)\b/.test(lowerContent)) {
     return 'docx';
   }
 
-  // PDF detection (explicit)
-  if (/\b(pdf)\b/.test(lowerContent) && /\b(create|make|generate)\b/.test(lowerContent)) {
+  // PDF detection - invoices, receipts, formal documents
+  if (/\b(pdf)\b/.test(lowerContent) ||
+      /\b(invoice|receipt|bill)\b/.test(lowerContent) ||
+      /\b(create|make|generate|build|give me)\b.*\b(invoice|receipt|bill|pdf)\b/.test(lowerContent) ||
+      /\b(invoice|receipt|bill)\b.*\b(create|make|generate|for)\b/.test(lowerContent)) {
     return 'pdf';
   }
 

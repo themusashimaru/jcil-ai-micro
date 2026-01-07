@@ -25,7 +25,6 @@ import { CodeLabLiveFileTree } from './CodeLabLiveFileTree';
 import { CodeLabDiffViewer } from './CodeLabDiffViewer';
 import { CodeLabVisualToCode } from './CodeLabVisualToCode';
 import { CodeLabDeployFlow } from './CodeLabDeployFlow';
-import { CodeLabVoiceCoding } from './CodeLabVoiceCoding';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
 import type { FileDiff } from './CodeLabDiffViewer';
@@ -55,7 +54,6 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const [workspaceFiles, setWorkspaceFiles] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [diffFiles, setDiffFiles] = useState<FileDiff[]>([]);
-  const [voiceModeActive, setVoiceModeActive] = useState(false);
 
   // AbortController for canceling streams
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -410,37 +408,6 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     };
   };
 
-  // Voice command handler
-  const handleVoiceCommand = (action: string, payload?: string) => {
-    switch (action) {
-      case 'build':
-        sendMessage('/build');
-        break;
-      case 'test':
-        sendMessage('/test');
-        break;
-      case 'commit':
-        handleGitPush();
-        break;
-      case 'push':
-        handleGitPush();
-        break;
-      case 'fix':
-        sendMessage(`/fix ${payload || ''}`);
-        break;
-      case 'explain':
-        sendMessage(`/explain ${payload || ''}`);
-        break;
-      case 'search':
-        sendMessage(`@search ${payload || ''}`);
-        break;
-      default:
-        if (payload) {
-          sendMessage(payload);
-        }
-    }
-  };
-
   // ========================================
   // MESSAGING
   // ========================================
@@ -742,11 +709,6 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setWorkspacePanelOpen(true);
       }
 
-      // Cmd/Ctrl+Shift+V - Toggle voice mode
-      if (cmdKey && e.shiftKey && e.key === 'v') {
-        e.preventDefault();
-        setVoiceModeActive(prev => !prev);
-      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -797,15 +759,6 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           </button>
           <span className="mobile-title">{currentSession?.title || 'Code Lab'}</span>
           <div className="header-actions">
-            <button
-              className={`header-btn ${voiceModeActive ? 'active' : ''}`}
-              onClick={() => setVoiceModeActive(!voiceModeActive)}
-              title="Voice Mode (Cmd+Shift+V)"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-              </svg>
-            </button>
             <button
               className={`header-btn ${workspacePanelOpen ? 'active' : ''}`}
               onClick={() => setWorkspacePanelOpen(!workspacePanelOpen)}
@@ -973,12 +926,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         onClose={() => setShortcutsOpen(false)}
       />
 
-      {/* Voice Coding Mode */}
-      <CodeLabVoiceCoding
-        onCommand={handleVoiceCommand}
-        onDictation={(text) => sendMessage(text)}
-        isEnabled={voiceModeActive}
-      />
+      {/* Voice Coding Mode - Disabled to prevent double messages with composer voice button */}
+      {/* The composer has its own voice input button which is cleaner UX */}
 
       <style jsx>{`
         .code-lab {
