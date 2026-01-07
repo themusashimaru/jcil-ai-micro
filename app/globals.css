@@ -260,28 +260,22 @@
   }
 
   /* Dark mode overrides (pure dark theme only, not ocean) */
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble,
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble {
-    background: transparent;
-    box-shadow: none;
-    border: none;
+  /* User bubble gets the nice bordered style in dark mode */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble {
+    background: rgba(30, 30, 40, 0.6);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
   }
 
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble::before,
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble::before,
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble::after {
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble::before,
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble::after {
     display: none;
   }
 
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble {
-    border: 1px solid var(--chat-ai-bubble-border);
-    overflow: hidden; /* Ensure content respects rounded corners */
-  }
-
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.user-bubble:hover,
-  :root:not(.light-mode):not(.ocean-mode) .chat-bubble.ai-bubble:hover {
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble:hover {
     transform: none;
-    box-shadow: none;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   }
 
   /* ========================================
@@ -289,13 +283,27 @@
    * Premium dark sea inspired with electric cyan
    * ======================================== */
 
-  /* Ocean mode - User bubble: TRANSPARENT (like light mode) */
+  /* Ocean mode - User bubble: Frosted deep sea glass */
   :root.ocean-mode .chat-bubble.user-bubble {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+    background: linear-gradient(
+      135deg,
+      rgba(8, 25, 45, 0.85) 0%,
+      rgba(15, 40, 70, 0.75) 50%,
+      rgba(8, 25, 45, 0.85) 100%
+    ) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 20px rgba(0, 180, 216, 0.08),
+      inset 0 0.5px 0 rgba(0, 180, 216, 0.15),
+      inset 0 -0.5px 0 rgba(0, 0, 0, 0.3) !important;
+    border: 1.5px solid rgba(0, 180, 216, 0.2) !important;
+    border-top-color: rgba(0, 180, 216, 0.3) !important;
+    border-left-color: rgba(0, 180, 216, 0.25) !important;
+    border-bottom-color: rgba(0, 0, 0, 0.3) !important;
+    border-right-color: rgba(0, 0, 0, 0.25) !important;
+    overflow: hidden;
   }
 
   :root.ocean-mode .chat-bubble.user-bubble::before,
@@ -304,9 +312,10 @@
   }
 
   :root.ocean-mode .chat-bubble.user-bubble:hover {
-    background: transparent !important;
-    transform: none !important;
-    box-shadow: none !important;
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.5),
+      0 0 30px rgba(0, 180, 216, 0.12),
+      inset 0 0.5px 0 rgba(0, 180, 216, 0.2) !important;
   }
 
   /* Ocean mode - AI bubble: Premium deep navy frosted glass */
@@ -380,14 +389,16 @@
    * Minimal styling, natural message flow
    * ======================================== */
 
-  /* Pro mode - User bubble: Transparent (natural flow) */
+  /* Pro mode - User bubble: Clean, professional container */
   :root.pro-mode .chat-bubble.user-bubble {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+    background: var(--chat-ai-bubble-bg) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    border: 1px solid var(--chat-ai-bubble-border) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: var(--chat-ai-bubble-shadow) !important;
     color: var(--chat-user-bubble-text);
+    overflow: hidden;
   }
 
   :root.pro-mode .chat-bubble.user-bubble::before,
@@ -395,34 +406,11 @@
     display: none !important;
   }
 
+  /* Pro mode - subtle hover effect for user bubble */
   :root.pro-mode .chat-bubble.user-bubble:hover {
-    background: transparent !important;
     transform: none !important;
-    box-shadow: none !important;
-  }
-
-  /* Pro mode - AI bubble: Clean, minimal container */
-  :root.pro-mode .chat-bubble.ai-bubble {
-    background: var(--chat-ai-bubble-bg);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border: 1px solid var(--chat-ai-bubble-border);
-    border-radius: 0.75rem;
-    box-shadow: var(--chat-ai-bubble-shadow);
-    color: var(--chat-ai-bubble-text);
-    overflow: hidden;
-  }
-
-  :root.pro-mode .chat-bubble.ai-bubble::before,
-  :root.pro-mode .chat-bubble.ai-bubble::after {
-    display: none !important;
-  }
-
-  /* Pro mode - subtle hover effect */
-  :root.pro-mode .chat-bubble.ai-bubble:hover {
-    transform: none;
-    background: #f3f4f6;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: #f3f4f6 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   }
 
   /* Pro mode rounded corners - less rounded for professional look */
@@ -460,6 +448,22 @@
 
   :root.pro-mode a:hover {
     color: #4f46e5;
+  }
+
+  /* AI Message - Clean, no bubble, flows into background */
+  .ai-message-clean {
+    @apply rounded-lg p-3 md:p-4 text-base leading-relaxed;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 768px) {
+    .ai-message-clean {
+      font-size: 16px;
+    }
   }
 
   .chat-bubble-tail {
@@ -500,27 +504,21 @@
     border-radius: 1rem !important; /* Consistent rounded corners */
   }
 
+  /* Light mode: User bubble gets the nice frosted glass styling */
   :root.light-mode .chat-bubble.user-bubble {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.06),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.8),
+      inset 0 -0.5px 0 rgba(30, 58, 95, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    overflow: hidden;
   }
 
   :root.light-mode .chat-bubble.user-bubble::before,
   :root.light-mode .chat-bubble.user-bubble::after {
-    display: none !important;
-  }
-
-  :root.light-mode .chat-bubble.ai-bubble {
-    border: 1px solid rgba(255, 255, 255, 0.4) !important;
-    overflow: hidden; /* Ensure content respects rounded corners */
-  }
-
-  /* Hide pseudo-elements in light mode - causes sharp corner artifacts */
-  :root.light-mode .chat-bubble.ai-bubble::before,
-  :root.light-mode .chat-bubble.ai-bubble::after {
     display: none !important;
   }
 
