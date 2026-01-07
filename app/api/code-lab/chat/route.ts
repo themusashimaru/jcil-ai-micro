@@ -60,13 +60,10 @@ function decryptToken(encryptedData: string): string | null {
   }
 }
 
-// Generate UUID without external dependency
+// SECURITY FIX: Use cryptographically secure UUID generation
+// Math.random() is NOT secure and IDs could be predicted
 function generateId(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  return crypto.randomUUID();
 }
 
 // Initialize Anthropic client

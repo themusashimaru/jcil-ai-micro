@@ -13,12 +13,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// CORS headers for generated websites
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Allow all origins (generated sites)
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+// SECURITY FIX: Allowed origins for generated websites
+// Wildcard CORS exposes this endpoint to any website
+const ALLOWED_ORIGIN_PATTERNS = [
+  /\.vercel\.app$/,
+  /\.netlify\.app$/,
+  /\.pages\.dev$/,  // Cloudflare Pages
+  /\.github\.io$/,
+  /localhost(:\d+)?$/,
+];
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    return ALLOWED_ORIGIN_PATTERNS.some(pattern => pattern.test(url.hostname));
+  } catch {
+    return false;
+  }
+}
+
+// Get CORS headers dynamically based on origin
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = isAllowedOrigin(origin) ? origin! : 'null';
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
+}
 
 // Service role client for database operations
 function getSupabaseAdmin() {
@@ -35,8 +59,9 @@ function getSupabaseAdmin() {
 }
 
 // Handle CORS preflight
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: corsHeaders });
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  return new NextResponse(null, { status: 200, headers: getCorsHeaders(origin) });
 }
 
 // Rate limiting for lead submissions (prevent spam)
@@ -88,6 +113,10 @@ function sanitize(input: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Get origin for CORS - computed once for all responses
+  const origin = request.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   try {
     // Get client IP for rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||

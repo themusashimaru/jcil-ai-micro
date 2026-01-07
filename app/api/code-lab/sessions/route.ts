@@ -8,17 +8,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { randomUUID } from 'crypto';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
 
-// Generate UUID without external dependency
+// SECURITY FIX: Use cryptographically secure UUID generation
+// Math.random() is NOT secure and session IDs could be predicted
 function generateId(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  return randomUUID();
 }
 
 export async function GET() {

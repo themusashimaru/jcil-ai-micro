@@ -24,12 +24,14 @@ export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 seconds max for cron jobs
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret in production
+  // SECURITY FIX: Verify cron secret - REQUIRE it even if not set
+  // Previously, if CRON_SECRET was unset, ANY request was allowed
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    console.log('[Cron] Unauthorized request');
+  // ALWAYS require authentication - don't skip if secret is not configured
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    console.log('[Cron] Unauthorized request - CRON_SECRET required');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
