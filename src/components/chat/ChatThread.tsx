@@ -73,9 +73,34 @@ interface ChatThreadProps {
   onReply?: (message: Message) => void;
   enableCodeActions?: boolean;
   lastUserMessage?: string; // For intelligent status messages
+  onQuickPrompt?: (prompt: string) => void; // For quick prompt templates
 }
 
-export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, documentType, onReply, enableCodeActions, lastUserMessage }: ChatThreadProps) {
+// Quick prompt templates shown on empty chat
+const QUICK_PROMPTS = [
+  {
+    icon: '💡',
+    label: 'Explain a concept',
+    prompt: 'Explain to me like I\'m 5: ',
+  },
+  {
+    icon: '📝',
+    label: 'Help me write',
+    prompt: 'Help me write ',
+  },
+  {
+    icon: '🔍',
+    label: 'Research a topic',
+    prompt: 'Research and summarize: ',
+  },
+  {
+    icon: '🙏',
+    label: 'Biblical guidance',
+    prompt: 'What does the Bible say about ',
+  },
+];
+
+export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, documentType, onReply, enableCodeActions, lastUserMessage, onQuickPrompt }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -258,6 +283,27 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, docu
                 <span className="animate-pulse" style={{ color: 'var(--primary)' }}>|</span>
               )}
             </p>
+          )}
+
+          {/* Quick Prompt Templates - Claude-inspired starter prompts */}
+          {onQuickPrompt && (
+            <div className="mt-6 grid grid-cols-2 gap-2 max-w-md mx-auto px-4">
+              {QUICK_PROMPTS.map((item, index) => (
+                <button
+                  key={index}
+                  onClick={() => onQuickPrompt(item.prompt)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-left text-sm transition-all duration-200 hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: 'var(--glass-bg)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              ))}
+            </div>
           )}
 
         </div>

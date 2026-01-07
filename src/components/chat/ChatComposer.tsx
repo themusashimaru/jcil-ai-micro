@@ -48,6 +48,7 @@ interface ChatComposerProps {
   showSearchButtons?: boolean; // Show Search/Fact Check buttons (Anthropic only)
   replyingTo?: Message | null; // Message being replied to
   onClearReply?: () => void; // Clear the reply
+  initialText?: string; // Pre-fill the input with text (for quick prompts)
 }
 
 /**
@@ -118,7 +119,7 @@ const PLACEHOLDER_SUGGESTIONS_NO_IMAGE = PLACEHOLDER_SUGGESTIONS.filter(
   s => !s.toLowerCase().includes('image')
 );
 
-export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons, replyingTo, onClearReply }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons, replyingTo, onClearReply, initialText }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
   const selectedRepo = codeExecution?.selectedRepo;
@@ -149,6 +150,18 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Handle initial text from quick prompts
+  useEffect(() => {
+    if (initialText && initialText !== message) {
+      setMessage(initialText);
+      // Focus the textarea and move cursor to end
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(initialText.length, initialText.length);
+      }
+    }
+  }, [initialText]);
 
   // Initial delay before starting placeholder animation (let welcome screen animate first)
   useEffect(() => {

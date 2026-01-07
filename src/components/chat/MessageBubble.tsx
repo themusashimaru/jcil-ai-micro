@@ -343,7 +343,23 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
 
   return (
     <div className={`flex items-start gap-2 mb-2 ${isUser ? 'justify-end' : ''}`}>
-      {/* Avatar - User messages only, on left side of their bubble */}
+      {/* AI Avatar - Assistant messages on left */}
+      {!isUser && (
+        <div
+          className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
+          style={{
+            background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent-hover) 100%)',
+            color: 'white',
+          }}
+        >
+          {/* AI spark icon */}
+          <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+          </svg>
+        </div>
+      )}
+
+      {/* User Avatar - User messages on left side of their bubble */}
       {isUser && (
         <div
           className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full order-first"

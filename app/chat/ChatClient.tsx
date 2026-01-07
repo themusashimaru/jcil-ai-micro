@@ -146,6 +146,8 @@ export function ChatClient() {
   const [continuationDismissed, setContinuationDismissed] = useState(false);
   // Reply to message feature - tracks which message is being replied to
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  // Quick prompt text from welcome screen
+  const [quickPromptText, setQuickPromptText] = useState<string>('');
   // AbortController for cancelling in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
   // Polling interval ref for background reply checking
@@ -2488,6 +2490,7 @@ export function ChatClient() {
                 onReply={(message) => setReplyingTo(message)}
                 enableCodeActions
                 lastUserMessage={messages.filter(m => m.role === 'user').pop()?.content || ''}
+                onQuickPrompt={(prompt) => setQuickPromptText(prompt)}
               />
               {/* Live To-Do List - extracted from AI responses */}
               <LiveTodoList
@@ -2512,6 +2515,7 @@ export function ChatClient() {
                 showSearchButtons={activeProvider !== 'gemini'}
                 replyingTo={replyingTo}
                 onClearReply={() => setReplyingTo(null)}
+                initialText={quickPromptText}
               />
               {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
