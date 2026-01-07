@@ -62,7 +62,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <path d="M2 7c2-2 4-3 6-3s4 1 6 3 4 3 6 3 4-1 6-3" />
         </svg>
       ) : (
-        // Sparkle icon - currently pro (Refined), will switch to dark
+        // Leaf icon - currently pro (Refined), will switch to dark
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -70,9 +70,8 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           viewBox="0 0 24 24"
           strokeWidth={2}
         >
-          <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
-          <path d="M19 14l.9 2.7 2.7.9-2.7.9-.9 2.7-.9-2.7-2.7-.9 2.7-.9.9-2.7z" />
-          <path d="M5 17l.6 1.8 1.8.6-1.8.6-.6 1.8-.6-1.8-1.8-.6 1.8-.6.6-1.8z" />
+          <path d="M5 21c.5-4.5 2.5-8 7-10" />
+          <path d="M9 18c6.218 0 10-3.782 10-10V3h-5c-6.218 0-10 3.782-10 10v5h5z" />
         </svg>
       )}
     </button>

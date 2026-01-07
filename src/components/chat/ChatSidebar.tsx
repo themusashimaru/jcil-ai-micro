@@ -520,8 +520,8 @@ export function ChatSidebar({
           <div className="p-3 flex gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
             <button
               onClick={onNewChat}
-              className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition"
-              style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
+              className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition new-chat-btn"
+              style={{ backgroundColor: 'var(--primary)' }}
             >
               + New Chat
             </button>
