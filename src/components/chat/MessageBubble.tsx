@@ -343,17 +343,18 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
 
   return (
     <div className={`flex items-start gap-2 mb-2 ${isUser ? 'justify-end' : ''}`}>
-      {/* Avatar - AI messages only, on left */}
-      {!isUser && (
+      {/* Avatar - User messages only, on left side of their bubble */}
+      {isUser && (
         <div
-          className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
+          className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full order-first"
           style={{
             backgroundColor: 'var(--primary-hover)',
             color: 'var(--primary)',
           }}
         >
+          {/* User icon */}
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" />
+            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
           </svg>
         </div>
       )}
@@ -787,15 +788,17 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
           </div>
         )}
 
-        {/* Message Bubble */}
+        {/* Message Bubble - User gets bubble styling, AI flows into background */}
         <div
-          className={`chat-bubble chat-bubble-tail ${
-            isUser ? 'right user-bubble' : 'left ai-bubble'
+          className={`${
+            isUser
+              ? 'chat-bubble chat-bubble-tail right user-bubble'
+              : 'ai-message-clean'
           }`}
           style={{
             userSelect: 'text',
             WebkitUserSelect: 'text',
-            color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--chat-ai-bubble-text)',
+            color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--text-primary)',
           }}
         >
           <div className="break-words select-text">

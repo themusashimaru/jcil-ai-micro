@@ -60,9 +60,10 @@ export default function MobileMenu() {
       {/* Slide-out Menu - Solid Dark Background */}
       <div
         className={`fixed top-0 right-0 h-full w-80 z-50 transform transition-transform duration-300 ease-in-out md:hidden
-          bg-slate-950 border-l border-white/10 shadow-2xl ${
+          border-l border-white/10 shadow-2xl ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
+        style={{ backgroundColor: '#020617' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-white/10">
@@ -158,7 +159,7 @@ export default function MobileMenu() {
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-white/10 bg-slate-950">
+        <div className="absolute bottom-0 left-0 right-0 p-5 border-t border-white/10" style={{ backgroundColor: '#020617' }}>
           <p className="text-center text-sm text-slate-500">
             Same AI. Biblical foundation.
           </p>
