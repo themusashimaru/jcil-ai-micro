@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 
+export const runtime = 'nodejs';
+export const maxDuration = 30;
+
 // Get authenticated Supabase client
 async function getSupabaseClient() {
   const cookieStore = await cookies();
@@ -50,7 +53,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('[API] GET /api/conversations - User ID:', user.id, 'Email:', user.email);
+    // User authenticated successfully - logging minimized for privacy
 
     // Fetch conversations with folder info
     const { data: conversations, error } = await supabase
@@ -68,8 +71,7 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log('[API] GET /api/conversations - Found', conversations?.length || 0, 'conversations for user', user.id);
-    console.log('[API] Conversations:', conversations);
+    // Successfully fetched conversations
 
     return NextResponse.json({ conversations });
   } catch (error) {
@@ -103,8 +105,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { id, title, tool_context, summary } = body;
 
-    console.log('[API] POST /api/conversations - User ID:', user.id, 'Email:', user.email);
-    console.log('[API] Request body:', { id, title, tool_context, summary });
+    // User authenticated - processing conversation request
 
     // Calculate retention date (30 days from now by default)
     const retentionDate = new Date();
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     if (id) {
       // Update existing conversation
-      console.log('[API] Updating conversation with ID:', id);
+      // Updating existing conversation
       const { data: conversation, error } = await supabase
         .from('conversations')
         .update({
@@ -131,11 +132,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      console.log('[API] Updated conversation:', conversation);
+      // Conversation updated successfully
       return NextResponse.json({ conversation });
     } else {
       // Create new conversation
-      console.log('[API] Creating new conversation for user:', user.id);
+      // Creating new conversation
       const { data: conversation, error } = await supabase
         .from('conversations')
         .insert({
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message, details: error.details }, { status: 500 });
       }
 
-      console.log('[API] Created new conversation:', conversation);
+      // Conversation created successfully
       return NextResponse.json({ conversation });
     }
   } catch (error) {

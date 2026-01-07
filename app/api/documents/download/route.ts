@@ -17,6 +17,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 // SECURITY: Validate filename to prevent path traversal attacks
 function isValidFilename(filename: string): boolean {

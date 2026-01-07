@@ -1,12 +1,57 @@
 /**
  * UPLOAD START ROUTE
  * PURPOSE: Initiate file upload, generate presigned URL, validate file
- * SECURITY: File type/size validation, malware scanning, rate limits
+ * SECURITY: Authentication required, file type/size validation, rate limits
  * TODO: Implement presigned URL generation, validation logic
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { validateCSRF } from '@/lib/security/csrf';
 
-export async function POST() {
-  return NextResponse.json({ message: 'Upload start - implementation pending' });
+export async function POST(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
+  try {
+    // Require authentication
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Ignore cookie errors in API routes
+            }
+          },
+        },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // TODO: Implement actual upload start logic
+    return NextResponse.json({
+      message: 'Upload start - implementation pending',
+      userId: user.id
+    });
+  } catch (error) {
+    console.error('[Upload Start] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
+
+export const runtime = 'nodejs';
+export const maxDuration = 30;

@@ -7,6 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+
+export const runtime = 'nodejs';
+export const maxDuration = 120;
 import { convertVisualToCode, quickConvert } from '@/lib/visual-to-code';
 
 /**

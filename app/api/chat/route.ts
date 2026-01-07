@@ -22,6 +22,7 @@ import { shouldUseResearchAgent, executeResearchAgent, isResearchAgentEnabled } 
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
+import { validateCSRF } from '@/lib/security/csrf';
 
 // Rate limits per hour
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
@@ -279,6 +280,10 @@ Generate a Word document JSON. Structure your response as valid JSON with type "
 // ============================================================================
 
 export async function POST(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const requestId = generateRequestId();
   let slotAcquired = false;
   let isStreamingResponse = false; // Track if we're returning a stream

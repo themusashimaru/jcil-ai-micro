@@ -11,6 +11,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const runtime = 'nodejs';
+export const maxDuration = 120;
+
 // Service role client for database and storage operations (bypasses RLS)
 function createServiceClient() {
   return createClient(

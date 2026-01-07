@@ -8,6 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+export const runtime = 'nodejs';
+export const maxDuration = 120;
+
 type DeployPlatform = 'vercel' | 'netlify' | 'railway' | 'cloudflare';
 
 interface DeployConfig {
