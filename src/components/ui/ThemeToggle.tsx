@@ -13,8 +13,8 @@ interface ThemeToggleProps {
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const { theme, toggleTheme, isLoading } = useTheme();
 
-  // Get next theme name for aria-label
-  const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'ocean' : theme === 'ocean' ? 'pro' : 'dark';
+  // Get next theme name for aria-label (pro is displayed as "refined")
+  const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'ocean' : theme === 'ocean' ? 'refined' : 'dark';
 
   return (
     <button
@@ -62,7 +62,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <path d="M2 7c2-2 4-3 6-3s4 1 6 3 4 3 6 3 4-1 6-3" />
         </svg>
       ) : (
-        // Code/Terminal icon - currently pro, will switch to dark
+        // Sparkle icon - currently pro (Refined), will switch to dark
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -70,7 +70,9 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           viewBox="0 0 24 24"
           strokeWidth={2}
         >
-          <path d="M16 18l6-6-6-6M8 6l-6 6 6 6" />
+          <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
+          <path d="M19 14l.9 2.7 2.7.9-2.7.9-.9 2.7-.9-2.7-2.7-.9 2.7-.9.9-2.7z" />
+          <path d="M5 17l.6 1.8 1.8.6-1.8.6-.6 1.8-.6-1.8-1.8-.6 1.8-.6.6-1.8z" />
         </svg>
       )}
     </button>

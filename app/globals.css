@@ -97,41 +97,51 @@
 }
 
 /* ========================================
- * PRO THEME - Professional Developer Mode
- * Clean, minimal, Code Lab inspired
+ * PRO THEME - "Refined"
+ * Sophisticated, warm, Claude-inspired aesthetic
+ * Terracotta accents on warm parchment
+ * Premium, typography-focused design
  * ======================================== */
 :root.pro-mode {
-  --background: #ffffff;
-  --foreground: #1a1f36;
-  --glass-bg: rgba(249, 250, 251, 0.95);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-shadow: rgba(0, 0, 0, 0.05);
+  /* Warm parchment background - like fine paper */
+  --background: #FAF7F4;
+  --foreground: #2D2A27;
+  --glass-bg: rgba(250, 247, 244, 0.98);
+  --glass-border: rgba(180, 160, 140, 0.15);
+  --glass-shadow: rgba(139, 90, 43, 0.06);
 
-  /* Pro theme colors - Professional indigo accents */
-  --primary: #6366f1; /* Indigo-500 */
-  --primary-hover: rgba(99, 102, 241, 0.1);
-  --primary-glow: rgba(99, 102, 241, 0.3);
-  --text-primary: #1a1f36; /* Dark navy */
-  --text-secondary: #4b5563; /* Gray-600 */
-  --text-muted: #6b7280; /* Gray-500 */
-  --surface: #ffffff;
-  --surface-elevated: #f9fafb; /* Gray-50 */
-  --border: rgba(0, 0, 0, 0.1);
+  /* Terracotta/Clay accent - sophisticated warmth */
+  --primary: #C96442; /* Refined terracotta */
+  --primary-hover: rgba(201, 100, 66, 0.08);
+  --primary-glow: rgba(201, 100, 66, 0.25);
+  --text-primary: #2D2A27; /* Warm charcoal */
+  --text-secondary: #5C5651; /* Warm gray */
+  --text-muted: #8A837C; /* Soft warm gray */
+  --surface: #FAF7F4;
+  --surface-elevated: #F5F1ED; /* Slightly deeper warm */
+  --border: rgba(139, 90, 43, 0.12);
 
-  /* Chat-specific pro mode - Clean, minimal styling */
-  --chat-input-bg: #f8fafc;
-  --chat-user-bubble-bg: transparent;
-  --chat-user-bubble-text: #1a1f36;
-  --chat-ai-bubble-bg: #f9fafb;
-  --chat-ai-bubble-text: #1a1f36;
-  --chat-ai-bubble-border: #e5e7eb;
-  --chat-ai-bubble-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --chat-user-bubble-shadow: none;
+  /* Chat styling - refined, elegant */
+  --chat-input-bg: #FFFFFF;
+  --chat-user-bubble-bg: linear-gradient(135deg, #F0EBE6 0%, #EDE7E1 100%);
+  --chat-user-bubble-text: #2D2A27;
+  --chat-ai-bubble-bg: transparent;
+  --chat-ai-bubble-text: #2D2A27;
+  --chat-ai-bubble-border: rgba(139, 90, 43, 0.1);
+  --chat-ai-bubble-shadow: none;
+  --chat-user-bubble-shadow: 0 2px 8px rgba(139, 90, 43, 0.08);
 
-  /* Pro-specific accents */
-  --pro-code-bg: #f8fafc;
-  --pro-code-border: #e2e8f0;
-  --pro-accent: #6366f1;
+  /* Pro-specific refined styling */
+  --pro-code-bg: #F8F5F2;
+  --pro-code-border: rgba(139, 90, 43, 0.15);
+  --pro-accent: #C96442;
+  --pro-accent-soft: #E8A88A;
+  --pro-highlight: rgba(201, 100, 66, 0.06);
+
+  /* Typography refinement */
+  --pro-font-weight: 400;
+  --pro-heading-weight: 500;
+  --pro-line-height: 1.7;
 }
 
 @layer base {
@@ -385,39 +395,68 @@
   }
 
   /* ========================================
-   * PRO MODE - Professional, Clean, Code Lab Style
-   * Minimal styling, natural message flow
+   * PRO MODE - "Refined" Theme Styling
+   * Sophisticated, warm, Claude-inspired
+   * Typography-focused with terracotta accents
    * ======================================== */
 
-  /* Pro mode - User bubble: Clean, professional container */
+  /* Pro mode - User bubble: Elegant warm container */
   :root.pro-mode .chat-bubble.user-bubble {
-    background: var(--chat-ai-bubble-bg) !important;
+    background: linear-gradient(135deg, #F0EBE6 0%, #EDE7E1 100%) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    border: 1px solid var(--chat-ai-bubble-border) !important;
-    border-radius: 0.75rem !important;
-    box-shadow: var(--chat-ai-bubble-shadow) !important;
+    border: 1px solid rgba(139, 90, 43, 0.12) !important;
+    border-radius: 1rem !important;
+    box-shadow:
+      0 2px 8px rgba(139, 90, 43, 0.06),
+      0 1px 2px rgba(139, 90, 43, 0.04) !important;
     color: var(--chat-user-bubble-text);
     overflow: hidden;
+    position: relative;
   }
 
-  :root.pro-mode .chat-bubble.user-bubble::before,
+  /* Subtle inner glow for refinement */
+  :root.pro-mode .chat-bubble.user-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.5),
+      transparent
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
   :root.pro-mode .chat-bubble.user-bubble::after {
     display: none !important;
   }
 
-  /* Pro mode - subtle hover effect for user bubble */
+  /* Pro mode - elegant hover with subtle lift */
   :root.pro-mode .chat-bubble.user-bubble:hover {
-    transform: none !important;
-    background: #f3f4f6 !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    transform: translateY(-1px) !important;
+    background: linear-gradient(135deg, #F3EEE9 0%, #F0EAE4 100%) !important;
+    box-shadow:
+      0 4px 12px rgba(139, 90, 43, 0.1),
+      0 2px 4px rgba(139, 90, 43, 0.06) !important;
   }
 
-  /* Pro mode rounded corners - less rounded for professional look */
+  /* Pro mode typography - refined reading experience */
   :root.pro-mode .chat-bubble {
-    border-radius: 0.75rem !important;
+    border-radius: 1rem !important;
     font-size: 15px;
-    line-height: 1.7;
+    line-height: 1.75;
+    letter-spacing: -0.01em;
+  }
+
+  @media (min-width: 768px) {
+    :root.pro-mode .chat-bubble {
+      font-size: 16px;
+    }
   }
 
   /* Hide triangle tails in pro mode for clean look */
@@ -427,27 +466,221 @@
     visibility: hidden !important;
   }
 
-  /* Pro mode code blocks - professional styling */
+  /* Pro mode AI message - clean flow with refined typography */
+  :root.pro-mode .ai-message-clean {
+    background: transparent;
+    color: #2D2A27;
+    line-height: 1.75;
+    letter-spacing: -0.01em;
+  }
+
+  /* Pro mode code blocks - warm, refined styling */
   :root.pro-mode pre,
   :root.pro-mode code {
-    background: var(--pro-code-bg) !important;
-    border: 1px solid var(--pro-code-border) !important;
-    color: #1a1f36 !important;
+    background: #F8F5F2 !important;
+    border: 1px solid rgba(139, 90, 43, 0.12) !important;
+    color: #2D2A27 !important;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   }
 
   :root.pro-mode pre {
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin: 0.5rem 0;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin: 1rem 0;
+    box-shadow: inset 0 1px 2px rgba(139, 90, 43, 0.04);
   }
 
-  /* Pro mode links - indigo accent */
+  :root.pro-mode code {
+    padding: 0.15em 0.4em;
+    border-radius: 0.375rem;
+    font-size: 0.9em;
+  }
+
+  /* Pro mode inline code - terracotta tint */
+  :root.pro-mode p code,
+  :root.pro-mode li code {
+    background: rgba(201, 100, 66, 0.08) !important;
+    color: #9A4A2C !important;
+    border: none !important;
+  }
+
+  /* Pro mode links - terracotta accent with elegant hover */
   :root.pro-mode a {
-    color: var(--pro-accent);
+    color: #C96442;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(201, 100, 66, 0.3);
+    transition: all 0.2s ease;
   }
 
   :root.pro-mode a:hover {
-    color: #4f46e5;
+    color: #A84E2F;
+    border-bottom-color: #A84E2F;
+  }
+
+  /* Pro mode headings - refined weight */
+  :root.pro-mode h1,
+  :root.pro-mode h2,
+  :root.pro-mode h3,
+  :root.pro-mode h4 {
+    color: #2D2A27;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  /* Pro mode blockquotes - elegant left border */
+  :root.pro-mode blockquote {
+    border-left: 3px solid #C96442;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #5C5651;
+    font-style: italic;
+  }
+
+  /* Pro mode lists - refined spacing */
+  :root.pro-mode ul,
+  :root.pro-mode ol {
+    padding-left: 1.5rem;
+  }
+
+  :root.pro-mode li {
+    margin-bottom: 0.5rem;
+  }
+
+  :root.pro-mode li::marker {
+    color: #C96442;
+  }
+
+  /* Pro mode horizontal rules - subtle warm divider */
+  :root.pro-mode hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(139, 90, 43, 0.15), transparent);
+    margin: 2rem 0;
+  }
+
+  /* Pro mode selection - warm highlight */
+  :root.pro-mode ::selection {
+    background: rgba(201, 100, 66, 0.15);
+    color: inherit;
+  }
+
+  /* Pro mode chat input - elegant, refined styling */
+  :root.pro-mode .chat-input-glass {
+    background: #FFFFFF !important;
+    border: 1px solid rgba(139, 90, 43, 0.15) !important;
+    border-radius: 1rem !important;
+    box-shadow:
+      0 2px 8px rgba(139, 90, 43, 0.04),
+      0 1px 2px rgba(139, 90, 43, 0.02),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  }
+
+  :root.pro-mode .chat-input-glass:focus-within {
+    border-color: rgba(201, 100, 66, 0.3) !important;
+    box-shadow:
+      0 0 0 3px rgba(201, 100, 66, 0.08),
+      0 2px 12px rgba(139, 90, 43, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  }
+
+  /* Pro mode glass-morphism - warm, subtle */
+  :root.pro-mode .glass-morphism {
+    background: rgba(250, 247, 244, 0.98) !important;
+    border: 1px solid rgba(139, 90, 43, 0.08) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: 0 1px 3px rgba(139, 90, 43, 0.03) !important;
+  }
+
+  /* Pro mode buttons - refined accent styling */
+  :root.pro-mode button[style*="--primary"] {
+    color: #C96442 !important;
+  }
+
+  /* Pro mode scrollbar - elegant, subtle */
+  :root.pro-mode ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  :root.pro-mode ::-webkit-scrollbar-track {
+    background: rgba(139, 90, 43, 0.03);
+    border-radius: 3px;
+  }
+
+  :root.pro-mode ::-webkit-scrollbar-thumb {
+    background: rgba(139, 90, 43, 0.15);
+    border-radius: 3px;
+  }
+
+  :root.pro-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(201, 100, 66, 0.25);
+  }
+
+  /* Pro mode page background - subtle warm texture */
+  :root.pro-mode body {
+    background: linear-gradient(
+      180deg,
+      #FAF7F4 0%,
+      #F8F4F0 50%,
+      #FAF7F4 100%
+    ) !important;
+  }
+
+  /* Pro mode header/nav styling */
+  :root.pro-mode header,
+  :root.pro-mode nav {
+    background: rgba(250, 247, 244, 0.95) !important;
+    border-color: rgba(139, 90, 43, 0.08) !important;
+  }
+
+  /* Pro mode avatar styling - warm accent */
+  :root.pro-mode .rounded-full[style*="--primary"] {
+    background: rgba(201, 100, 66, 0.1) !important;
+    color: #C96442 !important;
+  }
+
+  /* Pro mode loading dots - terracotta */
+  :root.pro-mode .animate-bounce {
+    background-color: #C96442 !important;
+  }
+
+  /* Pro mode focus rings - warm accent */
+  :root.pro-mode *:focus-visible {
+    outline-color: rgba(201, 100, 66, 0.5) !important;
+  }
+
+  /* Pro mode tables - refined styling */
+  :root.pro-mode table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid rgba(139, 90, 43, 0.12);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  :root.pro-mode th {
+    background: #F5F1ED;
+    color: #2D2A27;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(139, 90, 43, 0.12);
+  }
+
+  :root.pro-mode td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(139, 90, 43, 0.06);
+  }
+
+  :root.pro-mode tr:last-child td {
+    border-bottom: none;
+  }
+
+  :root.pro-mode tr:hover td {
+    background: rgba(201, 100, 66, 0.03);
   }
 
   /* AI Message - Clean, no bubble, flows into background */
