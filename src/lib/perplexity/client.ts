@@ -347,8 +347,9 @@ ALWAYS:
               content: options.query,
             },
           ],
-          // Enable web search
-          search_recency_filter: 'day', // Prefer recent results
+          // Note: Removed search_recency_filter - it was set to 'day' which excluded
+          // valid results for queries about established facts (store locations, etc.)
+          // The filter is too restrictive for general search queries
           return_citations: true,
           return_related_questions: false,
         }),
