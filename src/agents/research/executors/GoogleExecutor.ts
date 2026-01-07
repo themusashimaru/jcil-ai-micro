@@ -100,9 +100,9 @@ Be thorough and specific. Include numbers, dates, and concrete details.`,
     const lowerContent = content.toLowerCase();
     const queryWords = query.query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
 
-    // Count how many query words appear in content
+    // Count how many query words appear in content - protect against division by zero
     const matchedWords = queryWords.filter(word => lowerContent.includes(word));
-    const wordScore = matchedWords.length / queryWords.length;
+    const wordScore = queryWords.length > 0 ? matchedWords.length / queryWords.length : 0.5;
 
     // Check for expected info
     const expectedMatches = query.expectedInfo.filter(info =>

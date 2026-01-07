@@ -690,64 +690,6 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
           </div>
         )}
 
-        {/* Image Job Progress (Nano Banana) */}
-        {message.imageJob && !message.imageUrl && (
-          <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-sm p-4 bg-white/5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="text-2xl">🍌</div>
-              <div className="flex-1">
-                <div className="text-sm font-medium text-white">
-                  {message.imageJob.status === 'pending' && 'Image Queued'}
-                  {message.imageJob.status === 'processing' && 'Generating Image...'}
-                  {message.imageJob.status === 'completed' && 'Image Ready!'}
-                  {message.imageJob.status === 'failed' && 'Generation Failed'}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {message.imageJob.model || 'Nano Banana'} - {message.imageJob.type}
-                </div>
-              </div>
-            </div>
-
-            {/* Animated loading indicator */}
-            {(message.imageJob.status === 'pending' || message.imageJob.status === 'processing') && (
-              <div className="mb-3">
-                <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 animate-pulse" style={{ width: '100%' }} />
-                </div>
-              </div>
-            )}
-
-            {/* Error message */}
-            {message.imageJob.status === 'failed' && message.imageJob.error && (
-              <div className="text-sm text-red-400 mb-2">
-                {message.imageJob.error}
-              </div>
-            )}
-
-            {(message.imageJob.status === 'pending' || message.imageJob.status === 'processing') && (
-              <div className="text-xs text-gray-400 flex items-center gap-2">
-                <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                <span>Image generation typically takes 20-60 seconds</span>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Shopping Products - Horizontal Scrolling */}
         {message.products && message.products.length > 0 && (
           <div className="mb-3">

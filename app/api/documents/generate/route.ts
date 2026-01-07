@@ -2211,6 +2211,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Limit content size to prevent memory exhaustion attacks (max 1MB)
+    const MAX_CONTENT_SIZE = 1024 * 1024; // 1MB
+    if (content.length > MAX_CONTENT_SIZE) {
+      return NextResponse.json(
+        { error: `Content too large. Maximum size is ${MAX_CONTENT_SIZE / 1024}KB` },
+        { status: 413 }
+      );
+    }
+
     // Get authenticated user ID from session (secure - not from request body)
     const userId = await getAuthenticatedUserId();
 

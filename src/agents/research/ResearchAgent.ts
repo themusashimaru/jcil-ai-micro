@@ -43,6 +43,10 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
   private readonly MAX_SEARCH_TIME_MS = 50000;
   private executionStartTime: number = 0;
 
+  // Maximum limits to prevent memory exhaustion
+  private readonly MAX_RESULTS = 100;
+  private readonly MAX_EVALUATIONS = 10;
+
   // Store all results across iterations
   private allResults: SearchResult[] = [];
   private allEvaluations: EvaluatedResults[] = [];
@@ -164,7 +168,15 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
 
         // Execute searches in parallel (Google and Perplexity)
         const results = await this.executeQueries(pendingQueries, onStream, progressBase);
-        this.allResults.push(...results);
+
+        // Add results with limit to prevent memory exhaustion
+        for (const result of results) {
+          if (this.allResults.length >= this.MAX_RESULTS) {
+            console.warn('[ResearchAgent] Max results limit reached, skipping remaining');
+            break;
+          }
+          this.allResults.push(result);
+        }
 
         // Stop heartbeat after searches complete
         this.stopHeartbeat();
@@ -193,7 +205,11 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
           iteration,
           strategy.maxIterations
         );
-        this.allEvaluations.push(evaluation);
+
+        // Add evaluation with limit
+        if (this.allEvaluations.length < this.MAX_EVALUATIONS) {
+          this.allEvaluations.push(evaluation);
+        }
 
         this.emit(onStream, 'evaluating', `Coverage: ${(evaluation.coverage.score * 100).toFixed(0)}% | Quality: ${(evaluation.quality.score * 100).toFixed(0)}%`, {
           phase: `Iteration ${iteration}`,

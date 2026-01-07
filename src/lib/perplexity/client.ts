@@ -166,7 +166,7 @@ function getFallbackKey(): string | null {
  * Get the next available Perplexity API key
  * Priority: Primary pool (round-robin) → Fallback pool → Wait for soonest available
  */
-function getApiKey(): string | null {
+async function getApiKey(): Promise<string | null> {
   initializeApiKeys();
 
   // No keys configured at all
@@ -196,8 +196,15 @@ function getApiKey(): string | null {
     }
   }
 
-  const waitTime = Math.ceil((soonestKey.rateLimitedUntil - Date.now()) / 1000);
-  console.log(`[Perplexity] All ${allKeys.length} keys rate limited. Using ${soonestKey.pool} key ${soonestKey.index} (available in ${waitTime}s)`);
+  const waitTime = Math.max(0, Math.ceil((soonestKey.rateLimitedUntil - Date.now()) / 1000));
+
+  // If we need to wait, wait before returning the key
+  if (waitTime > 0) {
+    console.log(`[Perplexity] All ${allKeys.length} keys rate limited. Waiting ${waitTime}s for ${soonestKey.pool} key ${soonestKey.index}...`);
+    // Cap wait time at 30 seconds to prevent hanging forever
+    const cappedWait = Math.min(waitTime, 30);
+    await new Promise(resolve => setTimeout(resolve, cappedWait * 1000));
+  }
 
   return soonestKey.key;
 }
@@ -320,7 +327,7 @@ ALWAYS:
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const apiKey = getApiKey();
+    const apiKey = await getApiKey();
 
     if (!apiKey) {
       throw new Error('No Perplexity API keys available');
@@ -328,6 +335,10 @@ ALWAYS:
 
     try {
       console.log(`[Perplexity] Searching for: ${options.query} (attempt ${attempt + 1}/${maxRetries})`);
+
+      // Add request timeout (30 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(PERPLEXITY_API_URL, {
         method: 'POST',
@@ -353,7 +364,10 @@ ALWAYS:
           return_citations: true,
           return_related_questions: false,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       // Check for rate limit
       if (response.status === 429) {
