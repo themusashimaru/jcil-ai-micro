@@ -79,7 +79,7 @@ export default function CookiesPage() {
               <li><strong className="text-slate-700">Vercel:</strong> Used for hosting metrics and edge network performance.</li>
             </ul>
             <p className="mt-4">
-              <strong className="text-slate-700">Note:</strong> Our AI providers (xAI and OpenAI) process your text inputs on the server side and do not place cookies on your browser.
+              <strong className="text-slate-700">Note:</strong> Our AI providers (Anthropic Claude and Perplexity) process your text inputs on the server side and do not place cookies on your browser.
             </p>
           </section>
 

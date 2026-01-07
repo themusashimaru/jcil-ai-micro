@@ -30,13 +30,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": [
-    "node_modules",
-    "app/admin/billing/**/*",
-    "app/admin/branding/**/*",
-    "app/admin/broadcasts/**/*",
-    "app/admin/cms/**/*",
-    "app/admin/devotionals/**/*",
-    "app/admin/inbox-external/**/*"
-  ]
+  "exclude": ["node_modules"]
 }

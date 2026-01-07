@@ -46,7 +46,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">2. Description of Service</h2>
             <p>
-              JCIL.AI is an AI-powered chat assistant designed to provide information and guidance through a specific Christian conservative worldview. The Service utilizes third-party Large Language Models (xAI) and moderation tools (OpenAI) to generate responses.
+              JCIL.AI is an AI-powered chat assistant designed to provide information and guidance through a specific Christian conservative worldview. The Service utilizes third-party Large Language Models (Anthropic Claude) and web search (Perplexity) to generate responses.
             </p>
           </section>
 
@@ -107,7 +107,7 @@ export default function TermsPage() {
                 <strong className="text-slate-700">Not Professional Advice:</strong> JCIL.AI is an automated system. It is not a licensed counselor, theologian, medical doctor, or attorney. Responses should not be considered professional advice.
               </li>
               <li>
-                <strong className="text-slate-700">No Endorsement:</strong> While we strive for accuracy within our worldview, the AI (powered by xAI) may occasionally produce incorrect (&quot;hallucinated&quot;) or biased information. You use the information provided at your own risk.
+                <strong className="text-slate-700">No Endorsement:</strong> While we strive for accuracy within our worldview, the AI may occasionally produce incorrect (&quot;hallucinated&quot;) or biased information. You use the information provided at your own risk.
               </li>
               <li>
                 <strong className="text-slate-700">&quot;As Is&quot; Basis:</strong> The Service is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis.
@@ -125,7 +125,7 @@ export default function TermsPage() {
                 <strong className="text-slate-700">Our Content:</strong> The interface, branding, logos, and custom code of JCIL.AI are the property of JCIL.AI.
               </li>
               <li>
-                <strong className="text-slate-700">AI License:</strong> You are granted a limited, non-exclusive right to use the AI-generated outputs for your personal or internal business use, subject to the restrictions of our upstream providers (xAI).
+                <strong className="text-slate-700">AI License:</strong> You are granted a limited, non-exclusive right to use the AI-generated outputs for your personal or internal business use, subject to the restrictions of our upstream providers (Anthropic).
               </li>
             </ul>
           </section>
@@ -135,7 +135,7 @@ export default function TermsPage() {
             <p>Your use of the Service is also governed by our Privacy Policy. You acknowledge that:</p>
             <ul className="list-disc ml-6 mt-4 space-y-2">
               <li>Chats are retained for 6 months for legal compliance and safety auditing.</li>
-              <li>Chats are processed by third-party providers (xAI and OpenAI) as described in the Privacy Policy.</li>
+              <li>Chats are processed by third-party providers (Anthropic and Perplexity) as described in the Privacy Policy.</li>
             </ul>
           </section>
 

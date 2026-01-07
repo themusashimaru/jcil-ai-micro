@@ -69,10 +69,10 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc ml-6 mt-4 space-y-2">
               <li>
-                <strong className="text-slate-700">LLM Provider (xAI):</strong> Our core conversational intelligence is powered by xAI. Your prompts are sent to xAI to generate responses.
+                <strong className="text-slate-700">LLM Provider (Anthropic Claude):</strong> Our core conversational intelligence is powered by Anthropic&apos;s Claude. Your prompts are sent to Anthropic to generate responses.
               </li>
               <li>
-                <strong className="text-slate-700">Content Moderation (OpenAI):</strong> To ensure a safe environment, user inputs and outputs are passed through OpenAI&apos;s moderation endpoints. This is strictly for safety analysis and policy enforcement, not for training purposes.
+                <strong className="text-slate-700">Web Search (Perplexity):</strong> For real-time web searches, queries are processed through Perplexity&apos;s API. This allows us to provide up-to-date information when needed.
               </li>
               <li>
                 <strong className="text-slate-700">Infrastructure:</strong>
@@ -122,7 +122,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">6. Content Filtering & Values</h2>
             <p>
-              Our AI is tuned to provide responses through a Christian conservative lens. While we utilize xAI for intelligence and OpenAI for safety moderation, we apply our own system instructions to ensure content aligns with our community standards.
+              Our AI is tuned to provide responses through a Christian conservative lens. While we utilize Anthropic Claude for intelligence and Perplexity for web search, we apply our own system instructions to ensure content aligns with our community standards.
             </p>
           </section>
 
