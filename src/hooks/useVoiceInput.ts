@@ -186,9 +186,18 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         }
       };
 
+      // CRITICAL FIX: Wrap processAudio in try-catch to handle errors
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        await processAudio(audioBlob);
+        try {
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          await processAudio(audioBlob);
+        } catch (error) {
+          console.error('[VoiceInput] Error processing audio:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to process audio';
+          setState(prev => ({ ...prev, error: errorMessage, isProcessing: false }));
+          onError?.(errorMessage);
+          cleanup();
+        }
       };
 
       // Start recording

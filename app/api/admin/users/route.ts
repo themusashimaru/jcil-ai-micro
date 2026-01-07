@@ -65,13 +65,15 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('[Admin API] Error fetching users:', error);
+      // SECURITY FIX: Log full error server-side, return generic message to client
+      // Previously exposed database schema details in error response
+      console.error('[Admin API] Error fetching users:', error.message, error.code, error.details);
       return NextResponse.json(
         {
           error: 'Failed to fetch users',
           message: 'Unable to load user data. Please try again.',
-          code: 'DATABASE_ERROR',
-          details: error.message
+          code: 'DATABASE_ERROR'
+          // REMOVED: details field that exposed internal error messages
         },
         { status: 500 }
       );

@@ -256,43 +256,61 @@ export function getAnthropicKeyStats(): {
 }
 
 /**
- * Track the last selected key state for consistent client/key pairing
- * This prevents the bug where getAnthropicClient and getCurrentApiKey
- * would return different keys due to round-robin advancement
+ * CRITICAL FIX: Request-scoped key tracking
+ * Instead of global mutable state, we return both client and key together
+ * This prevents race conditions in concurrent requests
  */
-let lastSelectedKeyState: ApiKeyState | null = null;
+interface ClientWithKey {
+  client: Anthropic;
+  key: string;
+  keyIndex: number;
+}
+
+// Store the current request's key for backward compatibility
+let currentRequestKey: string | null = null;
 
 /**
- * Get Anthropic client for current key (with caching)
- * Also stores the key state for getCurrentApiKey to use
+ * Get Anthropic client with associated key (request-scoped)
+ * Returns both the client AND the key to prevent mismatch bugs
  */
-function getAnthropicClient(): Anthropic {
+function getAnthropicClientWithKey(): ClientWithKey {
   const keyState = getApiKeyState();
 
   if (!keyState) {
     throw new Error('ANTHROPIC_API_KEY is not configured. Set ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_1, _2, etc.');
   }
 
-  // Store for getCurrentApiKey to use (consistent pairing)
-  lastSelectedKeyState = keyState;
-
   // Cache the client instance for this key
   if (!keyState.client) {
     keyState.client = new Anthropic({ apiKey: keyState.key });
   }
 
-  return keyState.client;
+  // Store for backward compatibility with getCurrentApiKey
+  currentRequestKey = keyState.key;
+
+  return {
+    client: keyState.client,
+    key: keyState.key,
+    keyIndex: keyState.index
+  };
+}
+
+/**
+ * Legacy function - Get Anthropic client for current key (with caching)
+ * Use getAnthropicClientWithKey() for new code to prevent race conditions
+ */
+function getAnthropicClient(): Anthropic {
+  const { client } = getAnthropicClientWithKey();
+  return client;
 }
 
 /**
  * Get current API key (for rate limit tracking)
- * Returns the SAME key that was used by the last getAnthropicClient call
- * This ensures we mark the correct key when rate limited
+ * WARNING: In concurrent scenarios, prefer using the key from getAnthropicClientWithKey()
+ * This function exists for backward compatibility
  */
 function getCurrentApiKey(): string | null {
-  // Return the key that matches the last client we returned
-  // This prevents the round-robin mismatch bug
-  return lastSelectedKeyState?.key || null;
+  return currentRequestKey;
 }
 
 export interface AnthropicChatOptions {

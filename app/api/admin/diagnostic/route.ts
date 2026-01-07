@@ -73,7 +73,9 @@ export async function GET() {
       .select('id', { count: 'exact', head: true });
 
     if (usersError) {
-      diagnostics.checks.error = `Users query failed: ${usersError.message}`;
+      // SECURITY FIX: Log detailed error server-side only, return generic status
+      console.error('[Diagnostic] Users query failed:', usersError.message, usersError.code);
+      diagnostics.checks.error = 'Database query failed';
     } else {
       diagnostics.checks.canQueryDatabase = true;
       diagnostics.checks.userCount = users?.length || 0;
@@ -85,15 +87,19 @@ export async function GET() {
       .select('id', { count: 'exact', head: true });
 
     if (adminError) {
+      // SECURITY FIX: Log detailed error server-side only
+      console.error('[Diagnostic] Admin users query failed:', adminError.message, adminError.code);
       diagnostics.checks.error = diagnostics.checks.error
-        ? `${diagnostics.checks.error} | Admin users query failed: ${adminError.message}`
-        : `Admin users query failed: ${adminError.message}`;
+        ? 'Multiple database queries failed'
+        : 'Database query failed';
     } else {
       diagnostics.checks.adminUserCount = adminUsers?.length || 0;
     }
 
   } catch (error) {
-    diagnostics.checks.error = error instanceof Error ? error.message : 'Unknown error';
+    // SECURITY FIX: Don't expose internal error details to client
+    console.error('[Diagnostic] Unexpected error:', error);
+    diagnostics.checks.error = 'Diagnostic check failed';
   }
 
   return NextResponse.json(diagnostics, { status: 200 });

@@ -48,6 +48,7 @@ interface ChatComposerProps {
   showSearchButtons?: boolean; // Show Search/Fact Check buttons (Anthropic only)
   replyingTo?: Message | null; // Message being replied to
   onClearReply?: () => void; // Clear the reply
+  initialText?: string; // Pre-fill the input with text (for quick prompts)
 }
 
 /**
@@ -118,7 +119,7 @@ const PLACEHOLDER_SUGGESTIONS_NO_IMAGE = PLACEHOLDER_SUGGESTIONS.filter(
   s => !s.toLowerCase().includes('image')
 );
 
-export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons, replyingTo, onClearReply }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons, replyingTo, onClearReply, initialText }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
   const selectedRepo = codeExecution?.selectedRepo;
@@ -144,11 +145,27 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
   const cameraInputRef = useRef<HTMLInputElement>(null);
   // Track if component is mounted in browser (for portal)
   const [isMounted, setIsMounted] = useState(false);
+  // Track last applied initialText to prevent re-applying on message changes
+  const lastInitialTextRef = useRef<string | undefined>(undefined);
 
   // Set mounted state on client-side (for portal rendering)
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Handle initial text from quick prompts
+  // Uses ref to track last applied value, avoiding message dependency
+  useEffect(() => {
+    if (initialText && initialText !== lastInitialTextRef.current) {
+      lastInitialTextRef.current = initialText;
+      setMessage(initialText);
+      // Focus the textarea and move cursor to end
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(initialText.length, initialText.length);
+      }
+    }
+  }, [initialText]);
 
   // Initial delay before starting placeholder animation (let welcome screen animate first)
   useEffect(() => {
@@ -308,6 +325,7 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
         return;
       }
 
+      // CRITICAL FIX: Batch all file processing to prevent state inconsistencies
       // Process images with compression to avoid 413 errors
       if (isImageFile(file)) {
         try {
@@ -320,11 +338,12 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
             thumbnail: compressed.dataUrl,
             url: compressed.dataUrl,
           };
-          setAttachments((prev) => [...prev, attachment]);
+          newAttachments.push(attachment); // Add to batch instead of immediate state update
         } catch (error) {
           console.error('[ChatComposer] Failed to compress image:', file.name, error);
           setFileError(`Failed to process "${file.name}". Please try a different image.`);
           setTimeout(() => setFileError(null), 5000);
+          // Continue processing other files - don't return early
         }
       } else {
         // Non-image files: Read content for data analysis
@@ -342,10 +361,12 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
           console.error('[ChatComposer] Failed to read file:', file.name, error);
           setFileError(`Failed to read "${file.name}". Please try again.`);
           setTimeout(() => setFileError(null), 5000);
+          // Continue processing other files - don't return early
         }
       }
     }
 
+    // CRITICAL FIX: Update state once with all successfully processed attachments
     if (newAttachments.length > 0) {
       setAttachments((prev) => [...prev, ...newAttachments]);
     }

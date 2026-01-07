@@ -15,7 +15,7 @@
 
 import { useState, useMemo } from 'react';
 import type { CodeLabMessage as MessageType } from './types';
-import { sanitizeHtml, escapeHtml } from '@/lib/sanitize';
+import { sanitizeHtml, escapeHtml, sanitizeUrl } from '@/lib/sanitize';
 
 interface CodeLabMessageProps {
   message: MessageType;
@@ -499,7 +499,7 @@ function parseMarkdown(content: string): ContentBlock[] {
 }
 
 function formatText(text: string): string {
-  // Convert markdown to HTML
+  // SECURITY FIX: Convert markdown to HTML with URL sanitization
   return text
     // Headers
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
@@ -511,8 +511,11 @@ function formatText(text: string): string {
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     // Inline code
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // Links
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    // Links - SECURITY FIX: Sanitize URLs to prevent javascript: and data: protocols
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, linkText, url) => {
+      const safeUrl = sanitizeUrl(url);
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(linkText)}</a>`;
+    })
     // Unordered lists
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')

@@ -436,6 +436,16 @@ export async function POST(request: NextRequest) {
     // ROUTE 3: DOCUMENT GENERATION (Excel, Word, PDF)
     // ========================================
     const documentType = detectDocumentRequest(lastUserContent);
+
+    // CRITICAL FIX: Provide clear feedback if document generation is requested but user isn't authenticated
+    if (documentType && !isAuthenticated) {
+      console.log(`[Chat] Document generation requested but user not authenticated`);
+      return Response.json({
+        error: 'Document generation requires authentication. Please sign in to create downloadable documents.',
+        code: 'AUTH_REQUIRED',
+      }, { status: 401 });
+    }
+
     if (documentType && isAuthenticated) {
       console.log(`[Chat] Document generation request: ${documentType}`);
 
@@ -584,19 +594,33 @@ SECURITY:
 
     console.log(`[Chat] Using model: ${streamResult.model}`);
 
+    // CRITICAL FIX: Track slot release with a promise-based cleanup
+    // This ensures slot is released even if client disconnects mid-stream
+    let slotReleased = false;
+    const ensureSlotReleased = () => {
+      if (slotAcquired && !slotReleased) {
+        slotReleased = true;
+        releaseSlot(requestId).catch(err => console.error('[Chat] Error releasing slot:', err));
+      }
+    };
+
     // Wrap the stream to release the slot when streaming completes
-    // This fixes the bug where slot was released immediately after Response creation
+    // Note: cancel() removed - not valid on Transformer type. Client disconnect
+    // is handled by the abort listener below instead.
     const wrappedStream = new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         controller.enqueue(chunk);
       },
       flush() {
-        // Release slot when stream is fully consumed
-        if (slotAcquired) {
-          releaseSlot(requestId).catch(err => console.error('[Chat] Error releasing slot:', err));
-          slotAcquired = false; // Mark as released
-        }
+        // Release slot when stream is fully consumed (normal completion)
+        ensureSlotReleased();
       },
+    });
+
+    // Also listen for request abort (client disconnected)
+    request.signal.addEventListener('abort', () => {
+      console.log('[Chat] Request aborted (client disconnect), releasing slot');
+      ensureSlotReleased();
     });
 
     // Pipe through the wrapper - slot released when stream ends
@@ -604,6 +628,7 @@ SECURITY:
 
     // Mark as streaming so finally block doesn't double-release
     isStreamingResponse = true;
+    slotAcquired = false; // Mark as handled by stream
 
     return new Response(finalStream, {
       headers: {

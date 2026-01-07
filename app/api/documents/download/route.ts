@@ -18,11 +18,28 @@ import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 
+// SECURITY: Validate filename to prevent path traversal attacks
+function isValidFilename(filename: string): boolean {
+  // Reject path traversal attempts
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return false;
+  }
+  // Only allow alphanumeric, hyphens, underscores, dots
+  // Must have a valid extension (.pdf, .docx, .xlsx)
+  const validPattern = /^[\w\-.]+\.(pdf|docx|xlsx)$/i;
+  return validPattern.test(filename);
+}
+
 // Decode token (encoded as base64url JSON with userId, filename, type)
 function decodeToken(token: string): { userId: string; filename: string; type: 'pdf' | 'docx' | 'xlsx' } | null {
   try {
     const data = JSON.parse(Buffer.from(token, 'base64url').toString());
     if (data.u && data.f && data.t) {
+      // SECURITY FIX: Validate filename to prevent path traversal
+      if (!isValidFilename(data.f)) {
+        console.error('[Download] Invalid filename detected - possible path traversal attempt:', data.f);
+        return null;
+      }
       return { userId: data.u, filename: data.f, type: data.t };
     }
     return null;

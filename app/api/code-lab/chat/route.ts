@@ -60,13 +60,10 @@ function decryptToken(encryptedData: string): string | null {
   }
 }
 
-// Generate UUID without external dependency
+// SECURITY FIX: Use cryptographically secure UUID generation
+// Math.random() is NOT secure and IDs could be predicted
 function generateId(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  return crypto.randomUUID();
 }
 
 // Initialize Anthropic client
@@ -154,6 +151,29 @@ function shouldUseSearch(message: string): boolean {
   return searchPatterns.some(p => p.test(message));
 }
 
+// In-memory rate limit store (per user, resets every minute)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_REQUESTS = 30; // 30 requests per minute
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+
+function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  const userLimit = rateLimitStore.get(userId);
+
+  if (!userLimit || now > userLimit.resetTime) {
+    // Reset or initialize
+    rateLimitStore.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, remaining: RATE_LIMIT_REQUESTS - 1 };
+  }
+
+  if (userLimit.count >= RATE_LIMIT_REQUESTS) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  userLimit.count++;
+  return { allowed: true, remaining: RATE_LIMIT_REQUESTS - userLimit.count };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
@@ -161,6 +181,23 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return new Response('Unauthorized', { status: 401 });
+    }
+
+    // SECURITY FIX: Rate limiting to prevent abuse
+    const { allowed } = checkRateLimit(user.id);
+    if (!allowed) {
+      console.warn(`[CodeLab] Rate limit exceeded for user: ${user.id}`);
+      return new Response(JSON.stringify({
+        error: 'Rate limit exceeded. Please wait a moment before sending more messages.',
+        code: 'RATE_LIMIT_EXCEEDED'
+      }), {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + 60)
+        }
+      });
     }
 
     const body = await request.json();
