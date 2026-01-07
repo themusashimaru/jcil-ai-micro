@@ -8,6 +8,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { validateCSRF } from '@/lib/security/csrf';
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -85,6 +86,10 @@ export async function GET() {
  * Create or update a conversation
  */
 export async function POST(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await getSupabaseClient();
 

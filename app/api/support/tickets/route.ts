@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { validateCSRF } from '@/lib/security/csrf';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -107,6 +108,10 @@ const VALID_CATEGORIES = [
  * POST - Create a new support ticket
  */
 export async function POST(request: NextRequest) {
+  // CSRF Protection (validates origin/referer for same-site requests)
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const body = await request.json();
     const {

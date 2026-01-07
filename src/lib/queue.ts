@@ -22,12 +22,15 @@ const ACTIVE_REQUESTS_KEY = 'queue:active';
 
 /**
  * In-memory fallback for when Redis is not available
+ * WARNING: This does NOT work correctly in serverless environments!
+ * Each invocation gets a fresh process with reset memory.
  */
 let inMemoryActiveCount = 0;
 const inMemoryQueue: Array<{
   resolve: (value: boolean) => void;
   timeout: NodeJS.Timeout;
 }> = [];
+let warnedAboutFallback = false;
 
 /**
  * Acquire a slot in the queue
@@ -135,6 +138,12 @@ async function releaseSlotRedis(requestId: string): Promise<void> {
 // ========================================
 
 function acquireSlotMemory(): Promise<boolean> {
+  // Warn once about in-memory fallback in serverless
+  if (!warnedAboutFallback && process.env.VERCEL) {
+    warnedAboutFallback = true;
+    console.warn('[Queue] WARNING: Using in-memory queue in serverless environment. Configure UPSTASH_REDIS for proper rate limiting.');
+  }
+
   return new Promise((resolve) => {
     if (inMemoryActiveCount < MAX_CONCURRENT_REQUESTS) {
       inMemoryActiveCount++;

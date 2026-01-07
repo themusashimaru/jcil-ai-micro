@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { validateCSRF } from '@/lib/security/csrf';
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -53,6 +54,10 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const supabase = await getSupabase();
 
   const { data: { user } } = await supabase.auth.getUser();

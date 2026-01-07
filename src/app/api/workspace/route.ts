@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WorkspaceManager } from '@/lib/workspace';
 import { ContainerManager } from '@/lib/workspace/container';
+import { validateCSRF } from '@/lib/security/csrf';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -58,6 +59,10 @@ export async function GET(_request: NextRequest) {
  * POST - Create a new workspace
  */
 export async function POST(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
