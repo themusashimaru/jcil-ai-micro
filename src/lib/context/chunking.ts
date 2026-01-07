@@ -9,8 +9,7 @@
  */
 
 import { createHash } from 'crypto';
-import { generateText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropicCompletion, CLAUDE_HAIKU } from '@/lib/anthropic/client';
 
 // Redis client (optional - graceful fallback if not configured)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,27 +117,26 @@ export async function makeDocProfile(id: string, rawText: string): Promise<DocPr
     sections.push({ i: idx, h: header, start, end: lines.length });
   }
 
-  // Generate synopsis using mini model (cost-efficient)
+  // Generate synopsis using Claude Haiku (fast and cost-efficient)
   const snippet = lines.slice(0, 300).join('\n');
   let synopsis = 'Synopsis unavailable.';
 
   try {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (apiKey) {
-      const openai = createOpenAI({ apiKey });
-      const result = await generateText({
-        // Note: gpt-5-mini is a reasoning model and does not support temperature
-        model: openai('gpt-5-mini'),
-        prompt: `Summarize the following document for retrieval.
+    const result = await createAnthropicCompletion({
+      messages: [{
+        role: 'user',
+        content: `Summarize the following document for retrieval.
 Return ~350 tokens, include key entities, sections and terms:
 
 ${snippet}
 
-If needed, add "...(more sections not shown)".`,
-        maxOutputTokens: 600,
-      });
-      synopsis = result.text || 'Synopsis unavailable.';
-    }
+If needed, add "...(more sections not shown)".`
+      }],
+      model: CLAUDE_HAIKU,
+      maxTokens: 600,
+      temperature: 0.3,
+    });
+    synopsis = result.text || 'Synopsis unavailable.';
   } catch (error) {
     console.error('[Chunking] Synopsis generation error:', error);
   }

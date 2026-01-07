@@ -16,7 +16,8 @@ import {
   failPendingRequest,
   cleanupOldRequests,
 } from '@/lib/pending-requests';
-import { createChatCompletion } from '@/lib/openai/client';
+import { createAnthropicCompletion } from '@/lib/anthropic/client';
+import type { CoreMessage } from 'ai';
 
 // This route should only be called by Vercel Cron
 // Verify using CRON_SECRET in production
@@ -69,20 +70,15 @@ export async function GET(request: NextRequest) {
 
         console.log('[Cron] Processing request:', request.id, 'for user:', request.user_id);
 
-        // Call the AI to complete the request
+        // Call Claude to complete the request
         // Use non-streaming since there's no client to stream to
-        const result = await createChatCompletion({
-          messages: request.messages as Parameters<typeof createChatCompletion>[0]['messages'],
-          tool: request.tool as Parameters<typeof createChatCompletion>[0]['tool'],
-          stream: false,
+        const result = await createAnthropicCompletion({
+          messages: request.messages as CoreMessage[],
           userId: request.user_id,
-          conversationId: request.conversation_id,
-          // No pendingRequestId - we'll handle completion manually
         });
 
         // Extract the response text
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const responseText = (result as any).text || '';
+        const responseText = result.text || '';
 
         if (!responseText) {
           console.error('[Cron] Empty response for request:', request.id);

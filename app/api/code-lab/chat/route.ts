@@ -15,7 +15,6 @@ import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { executeCodeAgent, shouldUseCodeAgent as checkCodeAgentIntent } from '@/agents/code/integration';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { orchestrateStream, shouldUseMultiAgent, getSuggestedAgents } from '@/lib/multi-agent';
-import { searchCodebase, hasCodebaseIndex } from '@/lib/codebase-rag';
 import { executeWorkspaceAgent } from '@/lib/workspace/chat-integration';
 import { processSlashCommand, isSlashCommand, parseSlashCommand } from '@/lib/workspace/slash-commands';
 import { detectCodeLabIntent } from '@/lib/workspace/intent-detector';
@@ -816,35 +815,10 @@ Be honest about knowledge cutoff limitations when relevant.`,
     }
 
     // ========================================
-    // CODEBASE RAG - Retrieve relevant code context
-    // ========================================
-    let codebaseContext = '';
-    if (repo) {
-      try {
-        const indexStatus = await hasCodebaseIndex(user.id, repo.owner, repo.name);
-        if (indexStatus.indexed) {
-          console.log(`[CodeLab] Searching codebase RAG for ${repo.fullName}...`);
-          const { contextString } = await searchCodebase(
-            user.id,
-            repo.owner,
-            repo.name,
-            enhancedContent,
-            { matchCount: 6, matchThreshold: 0.35 }
-          );
-          codebaseContext = contextString;
-          if (codebaseContext) {
-            console.log(`[CodeLab] RAG found relevant code context`);
-          }
-        }
-      } catch (ragError) {
-        console.error('[CodeLab] RAG search error:', ragError);
-        // Continue without RAG context
-      }
-    }
-
-    // ========================================
     // REGULAR CHAT - Claude Opus 4.5
     // ========================================
+    // Note: Codebase RAG removed (used Google embeddings)
+    // Use Code Lab grep/find tools for code search instead
     const messages: Anthropic.MessageParam[] = (history || []).map((m: { role: string; content: string }) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
@@ -910,13 +884,6 @@ Style Guidelines:
       systemPrompt += `
 
 The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'main'})`;
-    }
-
-    // Add codebase RAG context if available
-    if (codebaseContext) {
-      systemPrompt += `
-
-${codebaseContext}`;
     }
 
     // Stream the response with reliability features
