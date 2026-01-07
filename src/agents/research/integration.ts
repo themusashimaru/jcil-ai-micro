@@ -16,6 +16,26 @@ import { AgentContext, AgentStreamEvent } from '../core/types';
 export function shouldUseResearchAgent(request: string): boolean {
   const lowerRequest = request.toLowerCase();
 
+  // EXCLUSIONS - Do NOT use Research Agent for these
+  const exclusionPatterns = [
+    // Document/file analysis (user uploaded something)
+    /\b(this|the) (document|file|pdf|image|photo|picture)\b/i,
+    /\bwhat is this\b/i,
+    /\banalyze this\b/i,
+    /\bread this\b/i,
+    /\bsummarize this\b/i,
+    /\.(pdf|docx?|xlsx?|pptx?|png|jpe?g|gif|webp)\b/i,
+    /\[document:/i,
+    // Simple questions
+    /^(hi|hello|hey|what'?s? up|how are you)/i,
+    /^(thanks?|thank you)/i,
+  ];
+
+  // If any exclusion pattern matches, don't use research agent
+  if (exclusionPatterns.some(pattern => pattern.test(lowerRequest))) {
+    return false;
+  }
+
   // Strong research indicators
   const researchPatterns = [
     // Explicit research requests
