@@ -35,7 +35,6 @@ export default function AdminLayoutClient({
     { name: 'Live', href: '/admin/live', icon: '🔴', disabled: true },
     { name: 'Logs', href: '/admin/logs', icon: '📋', disabled: true },
     { name: 'Moderation', href: '/admin/moderation', icon: '🛡️', disabled: true },
-    { name: 'Providers', href: '/admin/providers', icon: '🔌' },
     { name: 'System', href: '/admin/system', icon: '⚙️', disabled: true },
   ];
 

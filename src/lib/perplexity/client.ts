@@ -18,9 +18,9 @@
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
 // Models available
-// sonar: Default, good balance of speed and accuracy
-// sonar-pro: Most accurate, best for complex queries
-const DEFAULT_MODEL = 'sonar';
+// sonar: Fast, good for simple lookups
+// sonar-pro: Most accurate, best for complex queries (RECOMMENDED)
+const DEFAULT_MODEL = 'sonar-pro';
 
 /**
  * Extract readable domain name from URL
