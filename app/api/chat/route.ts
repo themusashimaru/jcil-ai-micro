@@ -23,6 +23,9 @@ import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/clien
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('ChatAPI');
 
 // Rate limits per hour
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
@@ -361,13 +364,13 @@ export async function POST(request: NextRequest) {
     }
 
     const lastUserContent = getLastUserContent(messages);
-    console.log('[Chat] Processing:', lastUserContent.substring(0, 100));
+    log.debug('Processing request', { contentPreview: lastUserContent.substring(0, 50) });
 
     // ========================================
     // ROUTE 1: PERPLEXITY SEARCH (Search/Fact-check buttons)
     // ========================================
     if (searchMode && searchMode !== 'none' && isPerplexityConfigured()) {
-      console.log(`[Chat] Search mode: ${searchMode}`);
+      log.info('Search mode activated', { searchMode });
 
       try {
         const systemPrompt = searchMode === 'factcheck'
@@ -392,7 +395,7 @@ export async function POST(request: NextRequest) {
           { status: 200, headers: { 'Content-Type': 'application/json', 'X-Search-Mode': searchMode } }
         );
       } catch (error) {
-        console.error('[Chat] Search error:', error);
+        log.error('Search error', error as Error);
         // Fall through to regular chat
       }
     }
@@ -401,7 +404,7 @@ export async function POST(request: NextRequest) {
     // ROUTE 2: RESEARCH AGENT (Deep research requests)
     // ========================================
     if (isResearchAgentEnabled() && shouldUseResearchAgent(lastUserContent)) {
-      console.log('[Chat] Routing to Research Agent');
+      log.info('Routing to Research Agent');
 
       const researchStream = await executeResearchAgent(lastUserContent, {
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
@@ -419,7 +422,7 @@ export async function POST(request: NextRequest) {
         },
         flush() {
           if (slotAcquired) {
-            releaseSlot(requestId).catch(err => console.error('[Chat] Error releasing slot:', err));
+            releaseSlot(requestId).catch(err => log.error('Error releasing slot', err));
             slotAcquired = false;
           }
         },
@@ -444,7 +447,7 @@ export async function POST(request: NextRequest) {
 
     // CRITICAL FIX: Provide clear feedback if document generation is requested but user isn't authenticated
     if (documentType && !isAuthenticated) {
-      console.log(`[Chat] Document generation requested but user not authenticated`);
+      log.debug('Document generation requested but user not authenticated');
       return Response.json({
         error: 'Document generation requires authentication. Please sign in to create downloadable documents.',
         code: 'AUTH_REQUIRED',
@@ -452,7 +455,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (documentType && isAuthenticated) {
-      console.log(`[Chat] Document generation request: ${documentType}`);
+      log.info('Document generation request', { documentType });
 
       try {
         // Get the appropriate JSON schema prompt based on document type
@@ -508,7 +511,7 @@ export async function POST(request: NextRequest) {
           },
         });
       } catch (error) {
-        console.error('[Chat] Document generation error:', error);
+        log.error('Document generation error', error as Error);
         // Fall through to regular chat with an explanation
       }
     }
@@ -597,7 +600,7 @@ SECURITY:
       temperature,
     });
 
-    console.log(`[Chat] Using model: ${streamResult.model}`);
+    log.debug('Using model', { model: streamResult.model });
 
     // CRITICAL FIX: Track slot release with a promise-based cleanup
     // This ensures slot is released even if client disconnects mid-stream
@@ -605,7 +608,7 @@ SECURITY:
     const ensureSlotReleased = () => {
       if (slotAcquired && !slotReleased) {
         slotReleased = true;
-        releaseSlot(requestId).catch(err => console.error('[Chat] Error releasing slot:', err));
+        releaseSlot(requestId).catch(err => log.error('Error releasing slot', err));
       }
     };
 
@@ -624,7 +627,7 @@ SECURITY:
 
     // Also listen for request abort (client disconnected)
     request.signal.addEventListener('abort', () => {
-      console.log('[Chat] Request aborted (client disconnect), releasing slot');
+      log.debug('Request aborted (client disconnect)');
       ensureSlotReleased();
     });
 
@@ -648,7 +651,7 @@ SECURITY:
     // Only release here for non-streaming responses (search/error paths)
     // For streaming, the TransformStream.flush() handles release when stream ends
     if (slotAcquired && !isStreamingResponse) {
-      releaseSlot(requestId).catch(err => console.error('[Chat] Error releasing slot:', err));
+      releaseSlot(requestId).catch(err => log.error('Error releasing slot', err));
     }
   }
 }
