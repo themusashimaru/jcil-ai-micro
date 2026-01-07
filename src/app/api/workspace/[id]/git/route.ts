@@ -12,6 +12,27 @@ export const runtime = 'nodejs';
 export const maxDuration = 120; // Git operations can be slow
 
 /**
+ * Shell-escape a string to prevent command injection
+ * This function ensures user input cannot break out of quoted strings
+ */
+function shellEscape(str: string): string {
+  // Single quotes are the safest - they prevent all shell expansion
+  // To include a single quote inside single quotes, we need to end the string,
+  // add an escaped single quote, and start a new single-quoted string
+  return "'" + str.replace(/'/g, "'\\''") + "'";
+}
+
+/**
+ * Validate a git branch/remote/ref name to prevent injection
+ * Git refs can contain many characters, but we restrict to safe ones
+ */
+function isValidGitRef(ref: string): boolean {
+  // Allow alphanumeric, hyphens, underscores, slashes, periods
+  // Disallow: spaces, semicolons, pipes, backticks, $, etc.
+  return /^[a-zA-Z0-9._\-\/]+$/.test(ref) && !ref.includes('..');
+}
+
+/**
  * GET - Get git status, log, or diff
  */
 export async function GET(
@@ -93,7 +114,7 @@ export async function GET(
 
         let cmd = 'git diff';
         if (staged) cmd += ' --staged';
-        if (file) cmd += ` -- "${file}"`;
+        if (file) cmd += ` -- ${shellEscape(file)}`;
 
         const result = await container.executeCommand(workspaceId, cmd);
         return NextResponse.json({ diff: result.stdout });
@@ -196,8 +217,11 @@ export async function POST(
 
       case 'add': {
         const { files = '.' } = options;
-        const filesStr = Array.isArray(files) ? files.join(' ') : files;
-        const result = await container.executeCommand(workspaceId, `git add ${filesStr}`);
+        // Escape each file path to prevent command injection
+        const escapedFiles = Array.isArray(files)
+          ? files.map(f => shellEscape(f)).join(' ')
+          : shellEscape(files);
+        const result = await container.executeCommand(workspaceId, `git add ${escapedFiles}`);
         return NextResponse.json({ success: result.exitCode === 0 });
       }
 
@@ -212,10 +236,10 @@ export async function POST(
           await container.executeCommand(workspaceId, 'git add .');
         }
 
-        const escapedMessage = message.replace(/"/g, '\\"');
+        // Use shellEscape for complete protection against injection
         const result = await container.executeCommand(
           workspaceId,
-          `git commit -m "${escapedMessage}"`
+          `git commit -m ${shellEscape(message)}`
         );
 
         // Extract commit hash
@@ -232,6 +256,11 @@ export async function POST(
       case 'push': {
         const { remote = 'origin', branch, force = false } = options;
 
+        // Validate remote name to prevent injection
+        if (!isValidGitRef(remote)) {
+          return NextResponse.json({ error: 'Invalid remote name' }, { status: 400 });
+        }
+
         // Get current branch if not specified
         let targetBranch = branch;
         if (!targetBranch) {
@@ -239,10 +268,15 @@ export async function POST(
           targetBranch = branchResult.stdout.trim();
         }
 
+        // Validate branch name
+        if (!isValidGitRef(targetBranch)) {
+          return NextResponse.json({ error: 'Invalid branch name' }, { status: 400 });
+        }
+
         const forceFlag = force ? ' -f' : '';
         const result = await container.executeCommand(
           workspaceId,
-          `git push${forceFlag} ${remote} ${targetBranch}`,
+          `git push${forceFlag} ${shellEscape(remote)} ${shellEscape(targetBranch)}`,
           { timeout: 60000 }
         );
 
@@ -256,15 +290,25 @@ export async function POST(
       case 'pull': {
         const { remote = 'origin', branch } = options;
 
+        // Validate remote name
+        if (!isValidGitRef(remote)) {
+          return NextResponse.json({ error: 'Invalid remote name' }, { status: 400 });
+        }
+
         let targetBranch = branch;
         if (!targetBranch) {
           const branchResult = await container.executeCommand(workspaceId, 'git branch --show-current');
           targetBranch = branchResult.stdout.trim();
         }
 
+        // Validate branch name
+        if (!isValidGitRef(targetBranch)) {
+          return NextResponse.json({ error: 'Invalid branch name' }, { status: 400 });
+        }
+
         const result = await container.executeCommand(
           workspaceId,
-          `git pull ${remote} ${targetBranch}`,
+          `git pull ${shellEscape(remote)} ${shellEscape(targetBranch)}`,
           { timeout: 60000 }
         );
 
@@ -281,10 +325,15 @@ export async function POST(
           return NextResponse.json({ error: 'Branch is required' }, { status: 400 });
         }
 
+        // Validate branch name to prevent injection
+        if (!isValidGitRef(branch)) {
+          return NextResponse.json({ error: 'Invalid branch name' }, { status: 400 });
+        }
+
         const createFlag = create ? ' -b' : '';
         const result = await container.executeCommand(
           workspaceId,
-          `git checkout${createFlag} ${branch}`
+          `git checkout${createFlag} ${shellEscape(branch)}`
         );
 
         return NextResponse.json({
@@ -300,7 +349,12 @@ export async function POST(
           return NextResponse.json({ error: 'Branch is required' }, { status: 400 });
         }
 
-        const result = await container.executeCommand(workspaceId, `git merge ${branch}`);
+        // Validate branch name to prevent injection
+        if (!isValidGitRef(branch)) {
+          return NextResponse.json({ error: 'Invalid branch name' }, { status: 400 });
+        }
+
+        const result = await container.executeCommand(workspaceId, `git merge ${shellEscape(branch)}`);
 
         // Check for conflicts
         let conflicts: string[] = [];
@@ -327,7 +381,8 @@ export async function POST(
         if (pop) {
           cmd = 'git stash pop';
         } else if (message) {
-          cmd = `git stash -m "${message}"`;
+          // Use shellEscape to prevent injection via message
+          cmd = `git stash -m ${shellEscape(message)}`;
         }
 
         const result = await container.executeCommand(workspaceId, cmd);
@@ -340,9 +395,21 @@ export async function POST(
 
       case 'reset': {
         const { commit = 'HEAD', mode = 'mixed' } = options;
+
+        // Validate mode to prevent injection (only allow known values)
+        const validModes = ['soft', 'mixed', 'hard'];
+        if (!validModes.includes(mode)) {
+          return NextResponse.json({ error: 'Invalid reset mode' }, { status: 400 });
+        }
+
+        // Validate commit ref
+        if (!isValidGitRef(commit)) {
+          return NextResponse.json({ error: 'Invalid commit reference' }, { status: 400 });
+        }
+
         const result = await container.executeCommand(
           workspaceId,
-          `git reset --${mode} ${commit}`
+          `git reset --${mode} ${shellEscape(commit)}`
         );
         return NextResponse.json({
           success: result.exitCode === 0,
@@ -357,9 +424,14 @@ export async function POST(
           return NextResponse.json({ error: 'Name and URL are required' }, { status: 400 });
         }
 
+        // Validate remote name
+        if (!isValidGitRef(name)) {
+          return NextResponse.json({ error: 'Invalid remote name' }, { status: 400 });
+        }
+
         const result = await container.executeCommand(
           workspaceId,
-          `git remote add ${name} ${url}`
+          `git remote add ${shellEscape(name)} ${shellEscape(url)}`
         );
         return NextResponse.json({
           success: result.exitCode === 0,
@@ -373,9 +445,14 @@ export async function POST(
           return NextResponse.json({ error: 'Key and value are required' }, { status: 400 });
         }
 
+        // Validate config key format (e.g., user.name, user.email)
+        if (!/^[a-zA-Z][a-zA-Z0-9._-]*\.[a-zA-Z][a-zA-Z0-9._-]*$/.test(key)) {
+          return NextResponse.json({ error: 'Invalid config key format' }, { status: 400 });
+        }
+
         const result = await container.executeCommand(
           workspaceId,
-          `git config ${key} "${value}"`
+          `git config ${shellEscape(key)} ${shellEscape(value)}`
         );
         return NextResponse.json({ success: result.exitCode === 0 });
       }

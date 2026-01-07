@@ -44,7 +44,6 @@ interface ChatComposerProps {
   onStop?: () => void; // Called when user clicks stop button during streaming
   isStreaming: boolean;
   disabled?: boolean; // When waiting for background reply
-  hideImageSuggestion?: boolean; // Hide "Create an image..." when Anthropic is active
   showSearchButtons?: boolean; // Show Search/Fact Check buttons (Anthropic only)
   replyingTo?: Message | null; // Message being replied to
   onClearReply?: () => void; // Clear the reply
@@ -103,7 +102,6 @@ async function readFileContent(file: File): Promise<string> {
 // Rotating placeholder suggestions to showcase AI capabilities
 const PLACEHOLDER_SUGGESTIONS = [
   'Type your message...',
-  'Create an image...',
   'Write a resume...',
   'Draft an email...',
   'Analyze data...',
@@ -114,18 +112,12 @@ const PLACEHOLDER_SUGGESTIONS = [
   'Plan a trip...',
 ];
 
-// Suggestions without image creation (for Anthropic)
-const PLACEHOLDER_SUGGESTIONS_NO_IMAGE = PLACEHOLDER_SUGGESTIONS.filter(
-  s => !s.toLowerCase().includes('image')
-);
-
-export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hideImageSuggestion, showSearchButtons, replyingTo, onClearReply, initialText }: ChatComposerProps) {
+export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, showSearchButtons, replyingTo, onClearReply, initialText }: ChatComposerProps) {
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
   const selectedRepo = codeExecution?.selectedRepo;
 
-  // Use filtered suggestions when image generation is not available
-  const suggestions = hideImageSuggestion ? PLACEHOLDER_SUGGESTIONS_NO_IMAGE : PLACEHOLDER_SUGGESTIONS;
+  const suggestions = PLACEHOLDER_SUGGESTIONS;
   const [message, setMessage] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
