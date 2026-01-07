@@ -605,17 +605,14 @@ SECURITY:
     };
 
     // Wrap the stream to release the slot when streaming completes
+    // Note: cancel() removed - not valid on Transformer type. Client disconnect
+    // is handled by the abort listener below instead.
     const wrappedStream = new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         controller.enqueue(chunk);
       },
       flush() {
         // Release slot when stream is fully consumed (normal completion)
-        ensureSlotReleased();
-      },
-      cancel() {
-        // CRITICAL FIX: Release slot on stream cancel (client disconnect)
-        console.log('[Chat] Stream cancelled (client disconnect), releasing slot');
         ensureSlotReleased();
       },
     });
