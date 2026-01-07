@@ -7,6 +7,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { validateCSRF } from '@/lib/security/csrf';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,10 @@ interface RouteParams {
  * Update a folder's name, color, or position
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id } = await params;
     const supabase = await getSupabaseClient();
@@ -113,7 +118,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
  * DELETE /api/folders/[id]
  * Delete a folder (conversations are moved to unfiled)
  */
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id } = await params;
     const supabase = await getSupabaseClient();

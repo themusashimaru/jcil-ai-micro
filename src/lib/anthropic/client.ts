@@ -41,8 +41,8 @@ interface ApiKeyState {
 // Separate pools for better management
 const primaryPool: ApiKeyState[] = [];
 const fallbackPool: ApiKeyState[] = [];
-let primaryKeyIndex = 0; // Round-robin index for primary pool
-let fallbackKeyIndex = 0; // Round-robin index for fallback pool
+// Note: Using random key selection instead of round-robin indices
+// to avoid race conditions in serverless environments
 let initialized = false;
 
 /**
@@ -109,48 +109,46 @@ function initializeApiKeys(): void {
 }
 
 /**
- * Get an available key state from the primary pool (round-robin)
- * Returns null if all primary keys are rate limited
+ * Get an available key state from the primary pool
+ * Uses random selection for serverless-safe load distribution
+ * (Round-robin with global indices causes race conditions in concurrent requests)
  */
 function getPrimaryKeyState(): ApiKeyState | null {
   const now = Date.now();
 
-  // Round-robin through primary pool
-  for (let i = 0; i < primaryPool.length; i++) {
-    const keyIndex = (primaryKeyIndex + i) % primaryPool.length;
-    const keyState = primaryPool[keyIndex];
+  // Get all available (non-rate-limited) keys
+  const availableKeys = primaryPool.filter(k => k.rateLimitedUntil <= now);
 
-    if (keyState.rateLimitedUntil <= now) {
-      // Advance round-robin for next request (load distribution)
-      primaryKeyIndex = (keyIndex + 1) % primaryPool.length;
-      return keyState;
-    }
+  if (availableKeys.length === 0) {
+    return null; // All primary keys are rate limited
   }
 
-  return null; // All primary keys are rate limited
+  // Random selection for serverless-safe load distribution
+  const randomIndex = Math.floor(Math.random() * availableKeys.length);
+  return availableKeys[randomIndex];
 }
 
 /**
  * Get an available key state from the fallback pool
- * Returns null if all fallback keys are rate limited
+ * Uses random selection for serverless-safe load distribution
  */
 function getFallbackKeyState(): ApiKeyState | null {
   if (fallbackPool.length === 0) return null;
 
   const now = Date.now();
 
-  for (let i = 0; i < fallbackPool.length; i++) {
-    const keyIndex = (fallbackKeyIndex + i) % fallbackPool.length;
-    const keyState = fallbackPool[keyIndex];
+  // Get all available (non-rate-limited) fallback keys
+  const availableKeys = fallbackPool.filter(k => k.rateLimitedUntil <= now);
 
-    if (keyState.rateLimitedUntil <= now) {
-      fallbackKeyIndex = (keyIndex + 1) % fallbackPool.length;
-      console.log(`[Anthropic] Using FALLBACK key ${keyState.index} (primary pool exhausted)`);
-      return keyState;
-    }
+  if (availableKeys.length === 0) {
+    return null; // All fallback keys are also rate limited
   }
 
-  return null; // All fallback keys are also rate limited
+  // Random selection for serverless-safe load distribution
+  const randomIndex = Math.floor(Math.random() * availableKeys.length);
+  const keyState = availableKeys[randomIndex];
+  console.log(`[Anthropic] Using FALLBACK key ${keyState.index} (primary pool exhausted)`);
+  return keyState;
 }
 
 /**
@@ -256,9 +254,9 @@ export function getAnthropicKeyStats(): {
 }
 
 /**
- * CRITICAL FIX: Request-scoped key tracking
- * Instead of global mutable state, we return both client and key together
- * This prevents race conditions in concurrent requests
+ * Request-scoped key and client tracking
+ * Returns both client and key together atomically to prevent race conditions
+ * in concurrent serverless requests.
  */
 interface ClientWithKey {
   client: Anthropic;
@@ -266,12 +264,13 @@ interface ClientWithKey {
   keyIndex: number;
 }
 
-// Store the current request's key for backward compatibility
-let currentRequestKey: string | null = null;
-
 /**
  * Get Anthropic client with associated key (request-scoped)
- * Returns both the client AND the key to prevent mismatch bugs
+ * Returns both the client AND the key atomically to prevent race conditions.
+ *
+ * This is the PRIMARY function to use for all API calls.
+ * It ensures the client and key are always paired correctly,
+ * even when multiple concurrent requests are being processed.
  */
 function getAnthropicClientWithKey(): ClientWithKey {
   const keyState = getApiKeyState();
@@ -285,32 +284,11 @@ function getAnthropicClientWithKey(): ClientWithKey {
     keyState.client = new Anthropic({ apiKey: keyState.key });
   }
 
-  // Store for backward compatibility with getCurrentApiKey
-  currentRequestKey = keyState.key;
-
   return {
     client: keyState.client,
     key: keyState.key,
     keyIndex: keyState.index
   };
-}
-
-/**
- * Legacy function - Get Anthropic client for current key (with caching)
- * Use getAnthropicClientWithKey() for new code to prevent race conditions
- */
-function getAnthropicClient(): Anthropic {
-  const { client } = getAnthropicClientWithKey();
-  return client;
-}
-
-/**
- * Get current API key (for rate limit tracking)
- * WARNING: In concurrent scenarios, prefer using the key from getAnthropicClientWithKey()
- * This function exists for backward compatibility
- */
-function getCurrentApiKey(): string | null {
-  return currentRequestKey;
 }
 
 export interface AnthropicChatOptions {
@@ -435,6 +413,9 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
 /**
  * Create a chat completion using Claude
  * Includes automatic retry with different API keys on rate limit
+ *
+ * RACE CONDITION FIX: Uses getAnthropicClientWithKey() to ensure
+ * the client and key are captured together atomically.
  */
 export async function createAnthropicCompletion(options: AnthropicChatOptions): Promise<{
   text: string;
@@ -453,8 +434,8 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const currentKey = getCurrentApiKey();
-    const client = getAnthropicClient();
+    // CRITICAL: Get client and key together to prevent race conditions
+    const { client, key: currentKey } = getAnthropicClientWithKey();
 
     try {
       if (attempt > 0) {
@@ -522,12 +503,15 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
  * - Keepalive heartbeat every 15s to prevent proxy timeouts
  * - 60s timeout per chunk to detect stalled streams
  * - Graceful error handling
+ *
+ * RACE CONDITION FIX: Uses getAnthropicClientWithKey() to capture
+ * client atomically.
  */
 export async function createAnthropicStreamingCompletion(options: AnthropicChatOptions): Promise<{
   toTextStreamResponse: (opts?: { headers?: Record<string, string> }) => Response;
   model: string;
 }> {
-  const client = getAnthropicClient();
+  const { client } = getAnthropicClientWithKey();
   const model = options.model || DEFAULT_MODEL;
   const maxTokens = options.maxTokens || 4096;
   const temperature = options.temperature ?? 0.7;
@@ -648,6 +632,8 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 /**
  * Create a chat completion with web search support
  * Uses Brave Search when available
+ *
+ * RACE CONDITION FIX: Uses getAnthropicClientWithKey() atomically.
  */
 export async function createAnthropicCompletionWithSearch(
   options: AnthropicChatOptions
@@ -665,7 +651,7 @@ export async function createAnthropicCompletionWithSearch(
     return { ...result, citations: [], numSourcesUsed: 0 };
   }
 
-  const client = getAnthropicClient();
+  const { client } = getAnthropicClientWithKey();
   const model = rest.model || DEFAULT_MODEL;
   const maxTokens = rest.maxTokens || 4096;
   const temperature = rest.temperature ?? 0.7;
@@ -1128,8 +1114,8 @@ export async function createClaudeStreamingChat(options: {
 
       // Main streaming logic with retry
       const attemptStream = async (): Promise<boolean> => {
-        const client = getAnthropicClient();
-        const currentKey = getCurrentApiKey();
+        // CRITICAL: Get client and key together to prevent race conditions
+        const { client, key: currentKey } = getAnthropicClientWithKey();
 
         try {
           console.log(`[Claude] Starting stream attempt ${retryCount + 1}/${MAX_RETRIES}`);
@@ -1263,6 +1249,8 @@ export async function createClaudeChat(options: {
 /**
  * Create structured output (JSON) with Claude
  * Always uses Sonnet for reliability
+ *
+ * RACE CONDITION FIX: Uses getAnthropicClientWithKey() atomically.
  */
 export async function createClaudeStructuredOutput<T>(options: {
   messages: CoreMessage[];
@@ -1272,7 +1260,7 @@ export async function createClaudeStructuredOutput<T>(options: {
   data: T;
   model: string;
 }> {
-  const client = getAnthropicClient();
+  const { client } = getAnthropicClientWithKey();
   const { system, messages } = convertMessages(options.messages, options.systemPrompt);
 
   // Add JSON schema instruction to system prompt
