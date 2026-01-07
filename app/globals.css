@@ -98,50 +98,49 @@
 
 /* ========================================
  * PRO THEME - "Refined"
- * Sophisticated, warm, Claude-inspired aesthetic
- * Terracotta accents on warm parchment
- * Premium, typography-focused design
+ * Claude-inspired dark aesthetic
+ * Charcoal background with forest green accents
+ * Clean, minimal, professional design
  * ======================================== */
 :root.pro-mode {
-  /* Warm parchment background - like fine paper */
-  --background: #FAF7F4;
-  --foreground: #2D2A27;
-  --glass-bg: rgba(250, 247, 244, 0.98);
-  --glass-border: rgba(180, 160, 140, 0.15);
-  --glass-shadow: rgba(139, 90, 43, 0.06);
+  /* Charcoal background - like Claude's interface */
+  --background: #2F2F2F;
+  --foreground: #FFFFFF;
+  --glass-bg: rgba(47, 47, 47, 0.98);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: rgba(0, 0, 0, 0.3);
 
-  /* Terracotta/Clay accent - sophisticated warmth */
-  --primary: #C96442; /* Refined terracotta */
-  --primary-hover: rgba(201, 100, 66, 0.08);
-  --primary-glow: rgba(201, 100, 66, 0.25);
-  --text-primary: #2D2A27; /* Warm charcoal */
-  --text-secondary: #5C5651; /* Warm gray */
-  --text-muted: #8A837C; /* Soft warm gray */
-  --surface: #FAF7F4;
-  --surface-elevated: #F5F1ED; /* Slightly deeper warm */
-  --border: rgba(139, 90, 43, 0.12);
+  /* Forest green accent - unique identity */
+  --primary: #2D5A27; /* Dark forest green */
+  --primary-hover: rgba(45, 90, 39, 0.15);
+  --primary-glow: rgba(45, 90, 39, 0.3);
+  --text-primary: #FFFFFF;
+  --text-secondary: #B4B4B4; /* Light gray */
+  --text-muted: #8A8A8A; /* Medium gray */
+  --surface: #2F2F2F;
+  --surface-elevated: #3A3A3A; /* Slightly lighter charcoal */
+  --border: rgba(255, 255, 255, 0.1);
 
-  /* Chat styling - refined, elegant */
-  --chat-input-bg: #FFFFFF;
-  --chat-user-bubble-bg: linear-gradient(135deg, #F0EBE6 0%, #EDE7E1 100%);
-  --chat-user-bubble-text: #2D2A27;
+  /* Chat styling - clean, dark */
+  --chat-input-bg: #1A1A1A;
+  --chat-user-bubble-bg: #1A1A1A;
+  --chat-user-bubble-text: #FFFFFF;
   --chat-ai-bubble-bg: transparent;
-  --chat-ai-bubble-text: #2D2A27;
-  --chat-ai-bubble-border: rgba(139, 90, 43, 0.1);
+  --chat-ai-bubble-text: #FFFFFF;
+  --chat-ai-bubble-border: transparent;
   --chat-ai-bubble-shadow: none;
-  --chat-user-bubble-shadow: 0 2px 8px rgba(139, 90, 43, 0.08);
+  --chat-user-bubble-shadow: none;
 
-  /* Pro-specific refined styling */
-  --pro-code-bg: #F8F5F2;
-  --pro-code-border: rgba(139, 90, 43, 0.15);
-  --pro-accent: #C96442;
-  --pro-accent-soft: #E8A88A;
-  --pro-highlight: rgba(201, 100, 66, 0.06);
+  /* Pro-specific styling */
+  --pro-code-bg: #1A1A1A;
+  --pro-code-border: rgba(255, 255, 255, 0.1);
+  --pro-accent: #2D5A27;
+  --pro-accent-light: #3D7A37; /* Lighter green for hover states */
+  --pro-highlight: rgba(45, 90, 39, 0.15);
 
-  /* Typography refinement */
-  --pro-font-weight: 400;
-  --pro-heading-weight: 500;
-  --pro-line-height: 1.7;
+  /* Sidebar styling */
+  --sidebar-bg: #2F2F2F;
+  --sidebar-hover: #3A3A3A;
 }
 
 @layer base {
@@ -396,61 +395,40 @@
 
   /* ========================================
    * PRO MODE - "Refined" Theme Styling
-   * Sophisticated, warm, Claude-inspired
-   * Typography-focused with terracotta accents
+   * Claude-inspired dark charcoal aesthetic
+   * Forest green accents - unique identity
+   * Clean, minimal, professional design
    * ======================================== */
 
-  /* Pro mode - User bubble: Elegant warm container */
+  /* Pro mode - User bubble: Clean black container */
   :root.pro-mode .chat-bubble.user-bubble {
-    background: linear-gradient(135deg, #F0EBE6 0%, #EDE7E1 100%) !important;
+    background: #1A1A1A !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    border: 1px solid rgba(139, 90, 43, 0.12) !important;
-    border-radius: 1rem !important;
-    box-shadow:
-      0 2px 8px rgba(139, 90, 43, 0.06),
-      0 1px 2px rgba(139, 90, 43, 0.04) !important;
-    color: var(--chat-user-bubble-text);
+    border: none !important;
+    border-radius: 1.25rem !important;
+    box-shadow: none !important;
+    color: #FFFFFF !important;
     overflow: hidden;
-    position: relative;
   }
 
-  /* Subtle inner glow for refinement */
-  :root.pro-mode .chat-bubble.user-bubble::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 40%;
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.5),
-      transparent
-    );
-    border-radius: inherit;
-    pointer-events: none;
-  }
-
+  :root.pro-mode .chat-bubble.user-bubble::before,
   :root.pro-mode .chat-bubble.user-bubble::after {
     display: none !important;
   }
 
-  /* Pro mode - elegant hover with subtle lift */
+  /* Pro mode - no hover effects for clean look */
   :root.pro-mode .chat-bubble.user-bubble:hover {
-    transform: translateY(-1px) !important;
-    background: linear-gradient(135deg, #F3EEE9 0%, #F0EAE4 100%) !important;
-    box-shadow:
-      0 4px 12px rgba(139, 90, 43, 0.1),
-      0 2px 4px rgba(139, 90, 43, 0.06) !important;
+    transform: none !important;
+    background: #1A1A1A !important;
+    box-shadow: none !important;
   }
 
-  /* Pro mode typography - refined reading experience */
+  /* Pro mode typography - clean reading experience */
   :root.pro-mode .chat-bubble {
-    border-radius: 1rem !important;
+    border-radius: 1.25rem !important;
     font-size: 15px;
-    line-height: 1.75;
-    letter-spacing: -0.01em;
+    line-height: 1.6;
   }
 
   @media (min-width: 768px) {
@@ -466,20 +444,19 @@
     visibility: hidden !important;
   }
 
-  /* Pro mode AI message - clean flow with refined typography */
+  /* Pro mode AI message - clean flow on charcoal */
   :root.pro-mode .ai-message-clean {
     background: transparent;
-    color: #2D2A27;
-    line-height: 1.75;
-    letter-spacing: -0.01em;
+    color: #FFFFFF;
+    line-height: 1.6;
   }
 
-  /* Pro mode code blocks - warm, refined styling */
+  /* Pro mode code blocks - dark styling */
   :root.pro-mode pre,
   :root.pro-mode code {
-    background: #F8F5F2 !important;
-    border: 1px solid rgba(139, 90, 43, 0.12) !important;
-    color: #2D2A27 !important;
+    background: #1A1A1A !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #E0E0E0 !important;
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   }
 
@@ -487,7 +464,6 @@
     border-radius: 0.75rem;
     padding: 1.25rem;
     margin: 1rem 0;
-    box-shadow: inset 0 1px 2px rgba(139, 90, 43, 0.04);
   }
 
   :root.pro-mode code {
@@ -496,43 +472,40 @@
     font-size: 0.9em;
   }
 
-  /* Pro mode inline code - terracotta tint */
+  /* Pro mode inline code - green tint */
   :root.pro-mode p code,
   :root.pro-mode li code {
-    background: rgba(201, 100, 66, 0.08) !important;
-    color: #9A4A2C !important;
+    background: rgba(45, 90, 39, 0.2) !important;
+    color: #7CB374 !important;
     border: none !important;
   }
 
-  /* Pro mode links - terracotta accent with elegant hover */
+  /* Pro mode links - forest green accent */
   :root.pro-mode a {
-    color: #C96442;
+    color: #5DA355;
     text-decoration: none;
-    border-bottom: 1px solid rgba(201, 100, 66, 0.3);
     transition: all 0.2s ease;
   }
 
   :root.pro-mode a:hover {
-    color: #A84E2F;
-    border-bottom-color: #A84E2F;
+    color: #7CB374;
   }
 
-  /* Pro mode headings - refined weight */
+  /* Pro mode headings - white on charcoal */
   :root.pro-mode h1,
   :root.pro-mode h2,
   :root.pro-mode h3,
   :root.pro-mode h4 {
-    color: #2D2A27;
+    color: #FFFFFF;
     font-weight: 500;
-    letter-spacing: -0.02em;
   }
 
-  /* Pro mode blockquotes - elegant left border */
+  /* Pro mode blockquotes - forest green left border */
   :root.pro-mode blockquote {
-    border-left: 3px solid #C96442;
+    border-left: 3px solid #2D5A27;
     padding-left: 1rem;
     margin-left: 0;
-    color: #5C5651;
+    color: #B4B4B4;
     font-style: italic;
   }
 
@@ -547,132 +520,117 @@
   }
 
   :root.pro-mode li::marker {
-    color: #C96442;
+    color: #5DA355;
   }
 
-  /* Pro mode horizontal rules - subtle warm divider */
+  /* Pro mode horizontal rules - subtle divider */
   :root.pro-mode hr {
     border: none;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(139, 90, 43, 0.15), transparent);
+    background: rgba(255, 255, 255, 0.1);
     margin: 2rem 0;
   }
 
-  /* Pro mode selection - warm highlight */
+  /* Pro mode selection - green highlight */
   :root.pro-mode ::selection {
-    background: rgba(201, 100, 66, 0.15);
-    color: inherit;
+    background: rgba(45, 90, 39, 0.4);
+    color: #FFFFFF;
   }
 
-  /* Pro mode chat input - elegant, refined styling */
+  /* Pro mode chat input - clean dark styling */
   :root.pro-mode .chat-input-glass {
-    background: #FFFFFF !important;
-    border: 1px solid rgba(139, 90, 43, 0.15) !important;
-    border-radius: 1rem !important;
-    box-shadow:
-      0 2px 8px rgba(139, 90, 43, 0.04),
-      0 1px 2px rgba(139, 90, 43, 0.02),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    background: #1A1A1A !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 1.5rem !important;
+    box-shadow: none !important;
   }
 
   :root.pro-mode .chat-input-glass:focus-within {
-    border-color: rgba(201, 100, 66, 0.3) !important;
-    box-shadow:
-      0 0 0 3px rgba(201, 100, 66, 0.08),
-      0 2px 12px rgba(139, 90, 43, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    border-color: rgba(45, 90, 39, 0.5) !important;
+    box-shadow: none !important;
   }
 
-  /* Pro mode glass-morphism - warm, subtle */
+  /* Pro mode glass-morphism - charcoal */
   :root.pro-mode .glass-morphism {
-    background: rgba(250, 247, 244, 0.98) !important;
-    border: 1px solid rgba(139, 90, 43, 0.08) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
-    box-shadow: 0 1px 3px rgba(139, 90, 43, 0.03) !important;
+    background: #2F2F2F !important;
+    border: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
   }
 
-  /* Pro mode buttons - refined accent styling */
-  :root.pro-mode button[style*="--primary"] {
-    color: #C96442 !important;
-  }
-
-  /* Pro mode scrollbar - elegant, subtle */
+  /* Pro mode scrollbar - subtle dark */
   :root.pro-mode ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   :root.pro-mode ::-webkit-scrollbar-track {
-    background: rgba(139, 90, 43, 0.03);
-    border-radius: 3px;
+    background: #1A1A1A;
+    border-radius: 4px;
   }
 
   :root.pro-mode ::-webkit-scrollbar-thumb {
-    background: rgba(139, 90, 43, 0.15);
-    border-radius: 3px;
+    background: #3A3A3A;
+    border-radius: 4px;
   }
 
   :root.pro-mode ::-webkit-scrollbar-thumb:hover {
-    background: rgba(201, 100, 66, 0.25);
+    background: #4A4A4A;
   }
 
-  /* Pro mode page background - subtle warm texture */
+  /* Pro mode page background - solid charcoal */
   :root.pro-mode body {
-    background: linear-gradient(
-      180deg,
-      #FAF7F4 0%,
-      #F8F4F0 50%,
-      #FAF7F4 100%
-    ) !important;
+    background: #2F2F2F !important;
   }
 
-  /* Pro mode header/nav styling */
+  /* Pro mode header/nav styling - charcoal */
   :root.pro-mode header,
   :root.pro-mode nav {
-    background: rgba(250, 247, 244, 0.95) !important;
-    border-color: rgba(139, 90, 43, 0.08) !important;
+    background: #2F2F2F !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
   }
 
-  /* Pro mode avatar styling - warm accent */
+  /* Pro mode avatar styling - forest green accent */
   :root.pro-mode .rounded-full[style*="--primary"] {
-    background: rgba(201, 100, 66, 0.1) !important;
-    color: #C96442 !important;
+    background: rgba(45, 90, 39, 0.2) !important;
+    color: #5DA355 !important;
   }
 
-  /* Pro mode loading dots - terracotta */
+  /* Pro mode loading dots - forest green */
   :root.pro-mode .animate-bounce {
-    background-color: #C96442 !important;
+    background-color: #2D5A27 !important;
   }
 
-  /* Pro mode focus rings - warm accent */
+  /* Pro mode focus rings - green accent */
   :root.pro-mode *:focus-visible {
-    outline-color: rgba(201, 100, 66, 0.5) !important;
+    outline-color: rgba(45, 90, 39, 0.6) !important;
   }
 
-  /* Pro mode tables - refined styling */
+  /* Pro mode tables - dark styling */
   :root.pro-mode table {
     border-collapse: separate;
     border-spacing: 0;
-    border: 1px solid rgba(139, 90, 43, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 0.75rem;
     overflow: hidden;
   }
 
   :root.pro-mode th {
-    background: #F5F1ED;
-    color: #2D2A27;
+    background: #3A3A3A;
+    color: #FFFFFF;
     font-weight: 500;
     text-transform: uppercase;
     font-size: 0.75rem;
     letter-spacing: 0.05em;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(139, 90, 43, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   :root.pro-mode td {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(139, 90, 43, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #E0E0E0;
   }
 
   :root.pro-mode tr:last-child td {
@@ -680,7 +638,71 @@
   }
 
   :root.pro-mode tr:hover td {
-    background: rgba(201, 100, 66, 0.03);
+    background: rgba(45, 90, 39, 0.1);
+  }
+
+  /* Pro mode buttons - forest green styling */
+  :root.pro-mode button.bg-blue-500,
+  :root.pro-mode button.bg-blue-600,
+  :root.pro-mode [class*="bg-blue-"] {
+    background-color: #2D5A27 !important;
+  }
+
+  :root.pro-mode button.bg-blue-500:hover,
+  :root.pro-mode button.bg-blue-600:hover,
+  :root.pro-mode [class*="bg-blue-"]:hover {
+    background-color: #3D7A37 !important;
+  }
+
+  /* Pro mode primary colored elements */
+  :root.pro-mode [style*="--primary"] {
+    color: #5DA355 !important;
+  }
+
+  /* Pro mode sidebar - ensure text is visible */
+  :root.pro-mode aside,
+  :root.pro-mode [class*="sidebar"] {
+    background: #2F2F2F !important;
+    color: #FFFFFF !important;
+  }
+
+  :root.pro-mode aside button,
+  :root.pro-mode [class*="sidebar"] button {
+    color: #FFFFFF !important;
+  }
+
+  :root.pro-mode aside a,
+  :root.pro-mode [class*="sidebar"] a {
+    color: #FFFFFF !important;
+  }
+
+  /* Pro mode New Chat button - white text on green */
+  :root.pro-mode button[style*="--primary"][style*="--background"] {
+    color: #FFFFFF !important;
+    background-color: #2D5A27 !important;
+  }
+
+  :root.pro-mode button[style*="--primary"][style*="--background"]:hover {
+    background-color: #3D7A37 !important;
+  }
+
+  /* Pro mode - ensure primary buttons have white text */
+  :root.pro-mode button[style*="backgroundColor: 'var(--primary)"],
+  :root.pro-mode button[style*="background-color: var(--primary)"] {
+    color: #FFFFFF !important;
+  }
+
+  /* New Chat button - theme-aware text color */
+  .new-chat-btn {
+    color: var(--background);
+  }
+
+  :root.pro-mode .new-chat-btn {
+    color: #FFFFFF !important;
+  }
+
+  :root.ocean-mode .new-chat-btn {
+    color: #030810 !important;
   }
 
   /* AI Message - Clean, no bubble, flows into background */
