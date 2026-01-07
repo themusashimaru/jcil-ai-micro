@@ -129,7 +129,7 @@ export function ChatClient() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   // Track active provider (for conditional UI like search buttons)
-  const [activeProvider, setActiveProvider] = useState<string>('openai');
+  const [activeProvider, setActiveProvider] = useState<string>('anthropic');
   const { profile, hasProfile } = useUserProfile();
   // Passkey prompt for Face ID / Touch ID setup
   const { shouldShow: showPasskeyPrompt, dismiss: dismissPasskeyPrompt } = usePasskeyPrompt();

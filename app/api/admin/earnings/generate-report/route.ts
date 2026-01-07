@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       costsByModel[usage.model_name].cost += parseFloat(String(usage.total_cost)) || 0;
     });
 
-    // Prepare data for GPT-5.1
+    // Prepare data for Claude
     const financialData = {
       period: {
         type: reportType,
@@ -145,10 +145,10 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // Generate report using OpenAI GPT-5.1
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY not configured');
+    // Generate report using Claude
+    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+    if (!anthropicApiKey) {
+      throw new Error('ANTHROPIC_API_KEY not configured');
     }
 
     const prompt = `You are a business analyst for JCIL.ai, an AI chat platform. Generate a comprehensive ${reportType} business report based on the following financial data:
@@ -168,7 +168,7 @@ Please provide:
    - Customer acquisition and retention insights
 
 3. **Cost Analysis**
-   - API costs breakdown by model (gpt-5-nano, gpt-5-mini, dall-e-3, whisper-1, tts-1-hd)
+   - API costs breakdown by model (claude-haiku, claude-sonnet, perplexity)
    - News page costs (updated every 30 min)
    - Cost efficiency metrics
    - Areas of high spend
@@ -196,36 +196,33 @@ Please provide:
 
 Format the report professionally with clear sections, bullet points where appropriate, and actionable insights. Use specific numbers from the data provided.`;
 
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${openaiApiKey}`,
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini',
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: 'You are a professional business analyst specializing in SaaS and AI platform financial analysis.',
         messages: [
-          {
-            role: 'system',
-            content: 'You are a professional business analyst specializing in SaaS and AI platform financial analysis.',
-          },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.3,
-        max_tokens: 4000,
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.json();
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    if (!claudeResponse.ok) {
+      const errorData = await claudeResponse.json();
+      throw new Error(`Claude API error: ${errorData.error?.message || 'Unknown error'}`);
     }
 
-    const openaiData = await openaiResponse.json();
-    const reportContent = openaiData.choices[0].message.content;
+    const claudeData = await claudeResponse.json();
+    const reportContent = claudeData.content[0].text;
 
     // Save report to database
     const { data: savedReport, error: saveError } = await supabase
