@@ -56,6 +56,29 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin'
           },
+          {
+            // Content Security Policy - protect against XSS
+            // Note: 'unsafe-inline' needed for Next.js styled-jsx and some third-party scripts
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.stripe.com https://js.stripe.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: blob: https://*.supabase.co https://*.stripe.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://*.stripe.com https://api.perplexity.ai https://api.replicate.com",
+              "frame-src 'self' https://*.stripe.com https://js.stripe.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "frame-ancestors 'self'",
+              "upgrade-insecure-requests"
+            ].join('; ')
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(self), geolocation=(), interest-cohort=()'
+          },
         ],
       },
     ];
