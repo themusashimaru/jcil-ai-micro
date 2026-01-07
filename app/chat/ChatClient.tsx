@@ -2106,6 +2106,43 @@ export function ChatClient() {
         }
       }
 
+      // Check for [DOCUMENT_DOWNLOAD: ...] marker in the response
+      // This handles native document generation (Excel, Word, PDF) from the chat route
+      const docDownloadMatch = finalContent.match(/\[DOCUMENT_DOWNLOAD:(.+?)\]/s);
+      if (docDownloadMatch) {
+        try {
+          const docData = JSON.parse(docDownloadMatch[1]);
+          console.log('[ChatClient] Detected DOCUMENT_DOWNLOAD marker:', docData.filename);
+
+          // Remove the marker from the displayed text
+          const cleanedContent = finalContent.replace(/\[DOCUMENT_DOWNLOAD:.+?\]/s, '').trim();
+
+          // Trigger auto-download using the dataUrl
+          if (docData.dataUrl) {
+            const link = document.createElement('a');
+            link.href = docData.dataUrl;
+            link.download = docData.filename || 'document';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Update the message to show success
+            const successContent = cleanedContent + `\n\n✅ **Downloaded!** Check your downloads folder for "${docData.filename}"`;
+
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: successContent }
+                  : msg
+              )
+            );
+            finalContent = successContent;
+          }
+        } catch (docError) {
+          console.error('[ChatClient] Error parsing DOCUMENT_DOWNLOAD marker:', docError);
+        }
+      }
+
       setIsStreaming(false);
       setPendingDocumentType(null); // Clear document type indicator
       // Clear the abort controller after successful completion
