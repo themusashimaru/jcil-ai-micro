@@ -1139,9 +1139,11 @@ export function ChatClient() {
 
         // If no images, send message with any document content appended
         if (!imageAttachments || imageAttachments.length === 0) {
+          // Ensure non-empty content for Claude API validation
+          const content = messageContent.trim() || (msg.role === 'assistant' ? '[Response]' : '[Message]');
           return {
             role: msg.role,
-            content: messageContent,
+            content,
           };
         }
 
@@ -1814,10 +1816,11 @@ export function ChatClient() {
               console.log('[ChatClient] Auto-generated image successfully');
 
               // Add the generated image as a new message
+              const imageDescription = `Generated image based on: "${imagePrompt.slice(0, 100)}${imagePrompt.length > 100 ? '...' : ''}"`;
               const imageMessage: Message = {
                 id: (Date.now() + 2).toString(),
                 role: 'assistant',
-                content: '', // No additional text needed
+                content: imageDescription,
                 imageUrl: imageData.url,
                 timestamp: new Date(),
               };
@@ -1827,7 +1830,7 @@ export function ChatClient() {
               await saveMessageToDatabase(
                 newChatId,
                 'assistant',
-                `Generated image based on: "${imagePrompt.slice(0, 100)}..."`,
+                imageDescription,
                 'image',
                 imageData.url
               );
