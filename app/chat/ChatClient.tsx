@@ -1036,7 +1036,8 @@ export function ChatClient() {
 
     try {
       // Save user message to database BEFORE displaying
-      const saveResult = await saveMessageToDatabase(
+      // Note: We don't need the result, just ensuring the save succeeds before displaying
+      await saveMessageToDatabase(
         newChatId,
         'user',
         content,

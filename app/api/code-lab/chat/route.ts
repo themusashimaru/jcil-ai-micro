@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
     }
 
     // SECURITY FIX: Rate limiting to prevent abuse
-    const { allowed, remaining } = checkRateLimit(user.id);
+    const { allowed } = checkRateLimit(user.id);
     if (!allowed) {
       console.warn(`[CodeLab] Rate limit exceeded for user: ${user.id}`);
       return new Response(JSON.stringify({
