@@ -18,6 +18,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { CoreMessage } from 'ai';
+import { logger } from '@/lib/logger';
+
+const log = logger('Anthropic');
 
 // Default model: Claude Sonnet 4 (latest stable)
 const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
@@ -102,9 +105,10 @@ function initializeApiKeys(): void {
   // Log the detected configuration
   const totalKeys = primaryPool.length + fallbackPool.length;
   if (totalKeys > 0) {
-    console.log(`[Anthropic] Initialized dual-pool system (dynamic detection):`);
-    console.log(`[Anthropic]   Primary pool: ${primaryPool.length} key(s) (round-robin load distribution)`);
-    console.log(`[Anthropic]   Fallback pool: ${fallbackPool.length} key(s) (emergency reserve)`);
+    log.info('Initialized dual-pool system', {
+      primaryKeys: primaryPool.length,
+      fallbackKeys: fallbackPool.length
+    });
   }
 }
 
@@ -147,7 +151,7 @@ function getFallbackKeyState(): ApiKeyState | null {
   // Random selection for serverless-safe load distribution
   const randomIndex = Math.floor(Math.random() * availableKeys.length);
   const keyState = availableKeys[randomIndex];
-  console.log(`[Anthropic] Using FALLBACK key ${keyState.index} (primary pool exhausted)`);
+  log.info('Using fallback key (primary pool exhausted)', { keyIndex: keyState.index });
   return keyState;
 }
 
@@ -186,7 +190,7 @@ function getApiKeyState(): ApiKeyState | null {
   }
 
   const waitTime = Math.ceil((soonestKey.rateLimitedUntil - Date.now()) / 1000);
-  console.log(`[Anthropic] All ${allKeys.length} keys rate limited. Using ${soonestKey.pool} key ${soonestKey.index} (available in ${waitTime}s)`);
+  log.warn('All keys rate limited', { totalKeys: allKeys.length, pool: soonestKey.pool, waitSeconds: waitTime });
 
   return soonestKey;
 }
@@ -200,13 +204,17 @@ function markKeyRateLimited(apiKey: string, retryAfterSeconds: number = 60): voi
 
   if (keyState) {
     keyState.rateLimitedUntil = Date.now() + (retryAfterSeconds * 1000);
-    console.log(`[Anthropic] ${keyState.pool.toUpperCase()} key ${keyState.index} rate limited for ${retryAfterSeconds}s`);
 
     // Log pool status
     const now = Date.now();
     const availablePrimary = primaryPool.filter(k => k.rateLimitedUntil <= now).length;
     const availableFallback = fallbackPool.filter(k => k.rateLimitedUntil <= now).length;
-    console.log(`[Anthropic] Pool status: ${availablePrimary}/${primaryPool.length} primary, ${availableFallback}/${fallbackPool.length} fallback available`);
+    log.warn('Key rate limited', {
+      pool: keyState.pool,
+      retryAfterSeconds,
+      availablePrimary,
+      availableFallback
+    });
   }
 }
 
@@ -351,7 +359,7 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
         // Claude API requires non-empty content for all messages except optional final assistant
         // Skip empty messages (unless it's the final assistant message)
         if (!msg.content.trim() && !(isLastMessage && msg.role === 'assistant')) {
-          console.warn(`[Anthropic] Skipping ${msg.role} message with empty content at index ${i}`);
+          log.debug('Skipping message with empty content', { role: msg.role, index: i });
           continue;
         }
         anthropicMessages.push({
@@ -401,7 +409,7 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
           });
         } else if (!(isLastMessage && msg.role === 'assistant')) {
           // Skip empty array content (except final assistant message)
-          console.warn(`[Anthropic] Skipping ${msg.role} message with no valid content parts at index ${i}`);
+          log.debug('Skipping message with no valid content parts', { role: msg.role, index: i });
         }
       }
     }
@@ -439,7 +447,7 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
 
     try {
       if (attempt > 0) {
-        console.log(`[Anthropic] Retry attempt ${attempt + 1}/${maxRetries}`);
+        log.info('Retry attempt', { attempt: attempt + 1, maxRetries });
       }
 
       // Non-streaming mode
@@ -477,18 +485,18 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
         markKeyRateLimited(currentKey, retryAfter);
 
         if (attempt < maxRetries - 1) {
-          console.log(`[Anthropic] Rate limited, trying next key...`);
+          log.info('Rate limited, trying next key');
           continue;
         }
       }
 
       // For non-rate-limit errors or last attempt, throw
       if (attempt === maxRetries - 1) {
-        console.error('[Anthropic] Chat completion error (all retries exhausted):', lastError);
+        log.error('Chat completion error (all retries exhausted)', lastError);
         throw lastError;
       }
 
-      console.error(`[Anthropic] Error on attempt ${attempt + 1}, retrying:`, lastError.message);
+      log.warn('Error on attempt, retrying', { attempt: attempt + 1, error: lastError.message });
     }
   }
 
@@ -538,7 +546,7 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
         if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 1000) {
           try {
             await writer.write(' ');
-            console.log('[Anthropic] Sent keepalive heartbeat');
+            log.debug('Sent keepalive heartbeat');
           } catch {
             // Writer might be closed, ignore
           }
@@ -591,14 +599,14 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
           }
         } catch (error) {
           if (error instanceof Error && error.message === 'Stream chunk timeout') {
-            console.error('[Anthropic] Stream chunk timeout - no data for 60s');
+            log.error('Stream chunk timeout - no data for 60s');
             await writer.write('\n\n*[Response interrupted: Connection timed out. Please try again.]*');
           }
           throw error;
         }
       }
     } catch (error) {
-      console.error('[Anthropic] Streaming error:', error);
+      log.error('Streaming error', error as Error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const isRateLimit = errorMessage.includes('rate_limit') || errorMessage.includes('429');
       const userMessage = isRateLimit
@@ -717,7 +725,7 @@ export async function createAnthropicCompletionWithSearch(
     for (const toolUse of toolUseBlocks) {
       if (toolUse.name === 'web_search') {
         const query = (toolUse.input as { query: string }).query;
-        console.log('[Anthropic] Executing web search:', query);
+        log.debug('Executing web search', { query: query.substring(0, 50) });
 
         try {
           const searchResults = await webSearchFn(query);
@@ -764,7 +772,7 @@ export async function createAnthropicCompletionWithSearch(
             }] as unknown as Array<{ type: 'text'; text: string }>,
           });
         } catch (error) {
-          console.error('[Anthropic] Web search error:', error);
+          log.error('Web search error', error as Error);
           // Provide error feedback to the model
           currentMessages.push({
             role: 'assistant',
@@ -897,7 +905,7 @@ export async function downloadAnthropicFile(fileId: string): Promise<{
   filename: string;
   mimeType: string;
 }> {
-  console.log('[Anthropic] File download requested:', fileId);
+  log.debug('File download requested', { fileId });
   // Placeholder - throw error for now since we don't have actual file storage
   throw new Error(`File not found: ${fileId}`);
 }
