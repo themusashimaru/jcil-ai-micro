@@ -308,6 +308,7 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
         return;
       }
 
+      // CRITICAL FIX: Batch all file processing to prevent state inconsistencies
       // Process images with compression to avoid 413 errors
       if (isImageFile(file)) {
         try {
@@ -320,11 +321,12 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
             thumbnail: compressed.dataUrl,
             url: compressed.dataUrl,
           };
-          setAttachments((prev) => [...prev, attachment]);
+          newAttachments.push(attachment); // Add to batch instead of immediate state update
         } catch (error) {
           console.error('[ChatComposer] Failed to compress image:', file.name, error);
           setFileError(`Failed to process "${file.name}". Please try a different image.`);
           setTimeout(() => setFileError(null), 5000);
+          // Continue processing other files - don't return early
         }
       } else {
         // Non-image files: Read content for data analysis
@@ -342,10 +344,12 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
           console.error('[ChatComposer] Failed to read file:', file.name, error);
           setFileError(`Failed to read "${file.name}". Please try again.`);
           setTimeout(() => setFileError(null), 5000);
+          // Continue processing other files - don't return early
         }
       }
     }
 
+    // CRITICAL FIX: Update state once with all successfully processed attachments
     if (newAttachments.length > 0) {
       setAttachments((prev) => [...prev, ...newAttachments]);
     }
