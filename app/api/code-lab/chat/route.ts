@@ -20,6 +20,9 @@ import { processSlashCommand, isSlashCommand, parseSlashCommand } from '@/lib/wo
 import { detectCodeLabIntent } from '@/lib/workspace/intent-detector';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLabChat');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
@@ -35,7 +38,7 @@ function decryptToken(encryptedData: string): string | null {
   try {
     const parts = encryptedData.split(':');
     if (parts.length !== 3) {
-      console.error('[CodeLab Chat] Invalid encrypted token format');
+      log.warn('Invalid encrypted token format');
       return null;
     }
     const iv = Buffer.from(parts[0], 'hex');
@@ -48,13 +51,13 @@ function decryptToken(encryptedData: string): string | null {
     decrypted += decipher.final('utf8');
 
     if (!decrypted) {
-      console.error('[CodeLab Chat] Decrypted token is empty');
+      log.warn('Decrypted token is empty');
       return null;
     }
 
     return decrypted;
   } catch (error) {
-    console.error('[CodeLab Chat] Token decryption failed:', error);
+    log.error('Token decryption failed', error as Error);
     return null;
   }
 }
@@ -185,7 +188,7 @@ export async function POST(request: NextRequest) {
     // SECURITY FIX: Rate limiting to prevent abuse
     const { allowed } = checkRateLimit(user.id);
     if (!allowed) {
-      console.warn(`[CodeLab] Rate limit exceeded for user: ${user.id}`);
+      log.warn('Rate limit exceeded', { userId: user.id });
       return new Response(JSON.stringify({
         error: 'Rate limit exceeded. Please wait a moment before sending more messages.',
         code: 'RATE_LIMIT_EXCEEDED'
@@ -242,7 +245,7 @@ export async function POST(request: NextRequest) {
           } : undefined,
         });
         if (processedPrompt) {
-          console.log(`[CodeLab] Slash command detected: ${content} -> ${processedPrompt.substring(0, 100)}...`);
+          log.debug('Slash command detected', { command: content?.substring(0, 50) });
           enhancedContent = processedPrompt;
         }
       } else {
@@ -250,16 +253,17 @@ export async function POST(request: NextRequest) {
         const commandName = enhancedContent.split(' ')[0];
         slashCommandFailed = true;
         slashCommandError = `Unknown command: ${commandName}. Try /help to see available commands.`;
-        console.log(`[CodeLab] Unknown slash command: ${commandName}`);
+        log.debug('Unknown slash command', { command: commandName });
       }
     }
 
     // Run intelligent intent detection
     const intentResult = detectCodeLabIntent(enhancedContent);
-    console.log(`[CodeLab] Intent detected: ${intentResult.type} (${intentResult.confidence}% confidence, workspace: ${intentResult.shouldUseWorkspace})`);
-    if (intentResult.signals.length > 0) {
-      console.log(`[CodeLab] Signals: ${intentResult.signals.slice(0, 3).join(', ')}`);
-    }
+    log.debug('Intent detected', {
+      type: intentResult.type,
+      confidence: intentResult.confidence,
+      workspace: intentResult.shouldUseWorkspace
+    });
 
     // Save user message
     const userMessageId = generateId();
@@ -272,7 +276,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (msgError) {
-      console.error('[CodeLab Chat] Failed to save user message:', msgError);
+      log.warn('Failed to save user message', { error: msgError.message });
       // Continue anyway - we can still process the request
     }
 
@@ -284,7 +288,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (sessionError) {
-      console.error('[CodeLab Chat] Failed to get session:', sessionError);
+      log.warn('Failed to get session', { error: sessionError.message });
     }
 
     // Update session timestamp and message count
@@ -297,7 +301,7 @@ export async function POST(request: NextRequest) {
       .eq('id', sessionId);
 
     if (updateError) {
-      console.error('[CodeLab Chat] Failed to update session:', updateError);
+      log.warn('Failed to update session', { error: updateError.message });
     }
 
     // Get conversation history with auto-summarization
@@ -318,7 +322,7 @@ export async function POST(request: NextRequest) {
 
     if (messageCount > SUMMARY_THRESHOLD && !existingSummary) {
       // Need to generate a summary
-      console.log(`[CodeLab] Auto-summarizing ${messageCount} messages...`);
+      log.info('Auto-summarizing conversation', { messageCount });
 
       const messagesToSummarize = (allMessages || [])
         .filter((m: { type: string }) => m.type !== 'summary')
@@ -360,7 +364,7 @@ export async function POST(request: NextRequest) {
               })),
           ];
         } catch (err) {
-          console.error('[CodeLab] Summary generation failed:', err);
+          log.error('Summary generation failed', err as Error);
           // Fall back to recent messages only
           history = (allMessages || [])
             .slice(-20)
@@ -456,7 +460,7 @@ export async function POST(request: NextRequest) {
     const shouldActivateWorkspace = (workspaceData?.id && useWorkspaceAgent && intentResult.confidence >= 50) || forceWorkspace;
 
     if (shouldActivateWorkspace) {
-      console.log('[CodeLab] Using Workspace Agent (E2B sandbox mode)');
+      log.info('Using Workspace Agent (E2B sandbox mode)');
 
       // Get or create workspace
       let workspaceId = workspaceData?.id;
@@ -482,7 +486,7 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (wsError) {
-          console.error('[CodeLab Chat] Failed to create workspace:', wsError);
+          log.error('Failed to create workspace', wsError);
         }
 
         workspaceId = newWorkspace?.id;
@@ -495,7 +499,7 @@ export async function POST(request: NextRequest) {
           .eq('id', workspaceId);
 
         if (activityError) {
-          console.error('[CodeLab Chat] Failed to update workspace activity:', activityError);
+          log.warn('Failed to update workspace activity', { error: activityError.message });
         }
 
         // Execute workspace agent with streaming
@@ -539,7 +543,7 @@ export async function POST(request: NextRequest) {
 
               controller.close();
             } catch (error) {
-              console.error('[CodeLab Chat] Workspace Agent error:', error);
+              log.error('Workspace Agent error', error as Error);
               controller.enqueue(encoder.encode('\n\n`✕ Error:` I encountered an error during workspace execution. Please try again.'));
               controller.close();
             }
@@ -579,7 +583,7 @@ export async function POST(request: NextRequest) {
         if (decrypted) {
           githubToken = decrypted;
         } else {
-          console.warn('[CodeLab Chat] GitHub token decryption failed - proceeding without GitHub access');
+          log.warn('GitHub token decryption failed - proceeding without GitHub access');
         }
       }
 
@@ -632,7 +636,7 @@ export async function POST(request: NextRequest) {
 
             controller.close();
           } catch (error) {
-            console.error('[CodeLab Chat] Code Agent error:', error);
+            log.error('Code Agent error', error as Error);
             controller.enqueue(encoder.encode('\n\nI encountered an error during code generation. Please try again.'));
             controller.close();
           }
@@ -653,7 +657,7 @@ export async function POST(request: NextRequest) {
     // ========================================
     if (useMultiAgent) {
       const suggestedAgents = getSuggestedAgents(enhancedContent);
-      console.log('[CodeLab] Multi-Agent mode activated. Agents:', suggestedAgents);
+      log.info('Multi-Agent mode activated', { agents: suggestedAgents });
 
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
@@ -694,7 +698,7 @@ export async function POST(request: NextRequest) {
 
             controller.close();
           } catch (error) {
-            console.error('[CodeLab Chat] Multi-Agent error:', error);
+            log.error('Multi-Agent error', error as Error);
             controller.enqueue(encoder.encode('\n\nI encountered an error with the multi-agent system. Please try again.'));
             controller.close();
           }
@@ -764,7 +768,7 @@ Keep it professional and focused on development.`,
 
             controller.close();
           } catch (error) {
-            console.error('[CodeLab Chat] Perplexity search error:', error);
+            log.error('Perplexity search error', error as Error);
             // Fall back to Claude if Perplexity fails
             controller.enqueue(encoder.encode('`Search unavailable, using knowledge base...`\n\n'));
 
@@ -796,7 +800,7 @@ Be honest about knowledge cutoff limitations when relevant.`,
                 type: 'search',
               });
             } catch (fallbackError) {
-              console.error('[CodeLab Chat] Fallback error:', fallbackError);
+              log.error('Fallback error', fallbackError as Error);
               controller.enqueue(encoder.encode('\n\nI encountered an error. Please try again.'));
             }
 
@@ -905,7 +909,7 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
             if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 1000) {
               try {
                 controller.enqueue(encoder.encode(' ')); // Invisible keepalive
-                console.log('[CodeLab] Sent keepalive heartbeat');
+                log.debug('Sent keepalive heartbeat');
               } catch {
                 // Controller might be closed
               }
@@ -962,7 +966,7 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
               }
             } catch (error) {
               if (error instanceof Error && error.message === 'Stream chunk timeout') {
-                console.error('[CodeLab] Stream chunk timeout - no data for 60s');
+                log.error('Stream chunk timeout - no data for 60s');
                 controller.enqueue(encoder.encode('\n\n*[Response interrupted: Connection timed out. Please try again.]*'));
               }
               throw error;
@@ -981,7 +985,7 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
 
           controller.close();
         } catch (error) {
-          console.error('[CodeLab Chat] Error:', error);
+          log.error('Stream error', error as Error);
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           const isTimeout = errorMessage.includes('timeout');
           const userMessage = isTimeout
@@ -1003,7 +1007,7 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
       },
     });
   } catch (error) {
-    console.error('[CodeLab Chat] Error:', error);
+    log.error('Request error', error as Error);
     return new Response('Internal server error', { status: 500 });
   }
 }

@@ -8,6 +8,9 @@ import { headers } from 'next/headers';
 import { stripe } from '@/lib/stripe/client';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+import { logger } from '@/lib/logger';
+
+const log = logger('StripeWebhook');
 
 // Runtime configuration
 export const dynamic = 'force-dynamic';
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
   const signature = headersList.get('stripe-signature');
 
   if (!signature) {
-    console.error('[Stripe Webhook] No signature found');
+    log.warn('No signature found in request');
     return NextResponse.json({ error: 'No signature' }, { status: 400 });
   }
 
@@ -41,11 +44,11 @@ export async function POST(request: NextRequest) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err) {
-    console.error('[Stripe Webhook] Signature verification failed:', err);
+    log.error('Signature verification failed', err as Error);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  console.log('[Stripe Webhook] Received event:', event.type);
+  log.info('Received event', { type: event.type });
 
   try {
     switch (event.type) {
@@ -81,12 +84,12 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log('[Stripe Webhook] Unhandled event type:', event.type);
+        log.debug('Unhandled event type', { type: event.type });
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('[Stripe Webhook] Error processing webhook:', error);
+    log.error('Error processing webhook', error as Error);
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }
@@ -100,16 +103,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const customerId = session.customer as string;
 
   if (!userId || !tier) {
-    console.error('[Stripe Webhook] Missing metadata in checkout session');
+    log.warn('Missing metadata in checkout session');
     return;
   }
 
   if (!customerId) {
-    console.error('[Stripe Webhook] Missing customer ID in checkout session');
+    log.warn('Missing customer ID in checkout session');
     return;
   }
 
-  console.log('[Stripe Webhook] Checkout completed for user:', userId, 'tier:', tier);
+  log.info('Checkout completed', { tier });
 
   // SECURITY: Verify the user exists and doesn't already have a different Stripe customer ID
   // This prevents malicious users from hijacking another user's subscription
@@ -121,16 +124,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     .single();
 
   if (lookupError || !existingUser) {
-    console.error('[Stripe Webhook] User not found for ID:', userId);
+    log.warn('User not found during checkout');
     return;
   }
 
   // If user already has a different Stripe customer ID, this is suspicious
   if (existingUser.stripe_customer_id && existingUser.stripe_customer_id !== customerId) {
-    console.error('[Stripe Webhook] SECURITY: User already has different Stripe customer ID!', {
-      userId,
-      existingCustomerId: existingUser.stripe_customer_id,
-      newCustomerId: customerId,
+    log.error('SECURITY: User already has different Stripe customer ID', {
+      existingCustomerId: '[redacted]',
+      newCustomerId: '[redacted]',
     });
     return;
   }
@@ -147,7 +149,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     .eq('id', userId);
 
   if (updateError) {
-    console.error('[Stripe Webhook] Error updating user:', updateError);
+    log.error('Error updating user after checkout', { error: updateError.message });
   }
 }
 
@@ -160,11 +162,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
 
   if (!userId || !tier) {
-    console.error('[Stripe Webhook] Missing metadata in subscription');
+    log.warn('Missing metadata in subscription');
     return;
   }
 
-  console.log('[Stripe Webhook] Subscription updated for user:', userId);
+  log.info('Subscription updated', { tier });
 
   // SECURITY: Verify the user's stripe_customer_id matches this subscription's customer
   const supabase = getSupabaseAdmin();
@@ -175,17 +177,13 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     .single();
 
   if (lookupError || !existingUser) {
-    console.error('[Stripe Webhook] User not found for ID:', userId);
+    log.warn('User not found during subscription update');
     return;
   }
 
   // Verify customer ID matches (if user already has one set)
   if (existingUser.stripe_customer_id && existingUser.stripe_customer_id !== customerId) {
-    console.error('[Stripe Webhook] SECURITY: Customer ID mismatch in subscription update!', {
-      userId,
-      existingCustomerId: existingUser.stripe_customer_id,
-      subscriptionCustomerId: customerId,
-    });
+    log.error('SECURITY: Customer ID mismatch in subscription update');
     return;
   }
 
@@ -212,7 +210,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     .eq('id', userId);
 
   if (updateError) {
-    console.error('[Stripe Webhook] Error updating subscription:', updateError);
+    log.error('Error updating subscription', { error: updateError.message });
     return;
   }
 
@@ -237,7 +235,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     });
 
   if (historyError) {
-    console.error('[Stripe Webhook] Error logging subscription history:', historyError);
+    log.warn('Error logging subscription history', { error: historyError.message });
   }
 }
 
@@ -249,11 +247,11 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
 
   if (!userId) {
-    console.error('[Stripe Webhook] Missing user_id in subscription metadata');
+    log.warn('Missing user_id in subscription metadata');
     return;
   }
 
-  console.log('[Stripe Webhook] Subscription deleted for user:', userId);
+  log.info('Subscription deleted');
 
   // SECURITY: Verify the user's stripe_customer_id matches before downgrading
   const supabase = getSupabaseAdmin();
@@ -264,17 +262,13 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     .single();
 
   if (lookupError || !existingUser) {
-    console.error('[Stripe Webhook] User not found for ID:', userId);
+    log.warn('User not found during subscription deletion');
     return;
   }
 
   // Verify customer ID matches
   if (existingUser.stripe_customer_id && existingUser.stripe_customer_id !== customerId) {
-    console.error('[Stripe Webhook] SECURITY: Customer ID mismatch in subscription deletion!', {
-      userId,
-      existingCustomerId: existingUser.stripe_customer_id,
-      subscriptionCustomerId: customerId,
-    });
+    log.error('SECURITY: Customer ID mismatch in subscription deletion');
     return;
   }
 
@@ -290,7 +284,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     .eq('id', userId);
 
   if (updateError) {
-    console.error('[Stripe Webhook] Error downgrading user:', updateError);
+    log.error('Error downgrading user', { error: updateError.message });
   }
 }
 
@@ -298,7 +292,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
  * Handle successful payment
  */
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  console.log('[Stripe Webhook] Payment succeeded for invoice:', invoice.id);
+  log.info('Payment succeeded', { invoiceId: invoice.id });
   // Payment tracking could be added here if needed
 }
 
@@ -308,7 +302,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
 
-  console.log('[Stripe Webhook] Payment failed for customer:', customerId);
+  log.warn('Payment failed', { customerId: customerId ? '[set]' : '[missing]' });
 
   // Find user by Stripe customer ID and update status
   const { error: updateError } = await getSupabaseAdmin()
@@ -320,6 +314,6 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     .eq('stripe_customer_id', customerId);
 
   if (updateError) {
-    console.error('[Stripe Webhook] Error updating payment failed status:', updateError);
+    log.error('Error updating payment failed status', { error: updateError.message });
   }
 }
