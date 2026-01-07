@@ -1073,13 +1073,13 @@ export async function POST(request: NextRequest) {
                 completedSteps: checkpointState.completedSteps.length
               });
 
-              // Resume execution from checkpoint
-              const geminiModel = await getModelForTier(userTier, 'gemini');
+              // Resume execution from checkpoint - using Claude
+              const claudeModel = await getModelForTier(userTier, 'anthropic');
 
               const executionStream = await executeTaskPlan(
                 checkpointState.plan,
                 checkpointState.originalRequest,
-                geminiModel,
+                claudeModel,
                 isAuthenticated ? rateLimitIdentifier : undefined,
                 userTier,
                 checkpointState, // Pass checkpoint state to resume
@@ -1091,7 +1091,7 @@ export async function POST(request: NextRequest) {
                 headers: {
                   'Content-Type': 'text/plain; charset=utf-8',
                   'Transfer-Encoding': 'chunked',
-                  'X-Model-Used': geminiModel,
+                  'X-Model-Used': claudeModel,
                   'X-Provider': 'anthropic',
                   'X-Task-Plan': 'resumed',
                 },
@@ -1148,10 +1148,10 @@ export async function POST(request: NextRequest) {
     if (isOrchestrationEnabled() && lastUserContent && shouldUseOrchestration(lastUserContent)) {
       console.log('[Chat API] Using multi-agent orchestration for request');
 
-      const geminiModel = await getModelForTier(userTier, 'gemini');
+      const claudeModel = await getModelForTier(userTier, 'anthropic');
 
       const orchestrationStream = await orchestrateAgents(lastUserContent, {
-        model: geminiModel,
+        model: claudeModel,
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         userTier,
         enableResearcher: true,
@@ -1162,7 +1162,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           'Transfer-Encoding': 'chunked',
-          'X-Model-Used': geminiModel,
+          'X-Model-Used': claudeModel,
           'X-Provider': 'anthropic',
           'X-Orchestration': 'multi-agent',
         },
@@ -1264,13 +1264,13 @@ export async function POST(request: NextRequest) {
           if (isSequentialExecutionEnabled() && taskPlanResult.plan.subtasks.length > 0) {
             console.log('[Chat API] Starting sequential task execution');
 
-            // Get the model to use (Gemini for now)
-            const geminiModel = await getModelForTier(userTier, 'gemini');
+            // Get the Claude model for task execution
+            const claudeModel = await getModelForTier(userTier, 'anthropic');
 
             const executionStream = await executeTaskPlan(
               taskPlanResult.plan,
               lastUserContent,
-              geminiModel,
+              claudeModel,
               isAuthenticated ? rateLimitIdentifier : undefined,
               userTier,
               undefined, // No checkpoint state
@@ -1282,7 +1282,7 @@ export async function POST(request: NextRequest) {
               headers: {
                 'Content-Type': 'text/plain; charset=utf-8',
                 'Transfer-Encoding': 'chunked',
-                'X-Model-Used': geminiModel,
+                'X-Model-Used': claudeModel,
                 'X-Provider': 'anthropic',
                 'X-Task-Plan': 'sequential',
               },
