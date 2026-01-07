@@ -36,8 +36,8 @@ export interface ProviderSettings {
 // Claude models for different use cases
 // Must match IDs in anthropic/client.ts
 const CLAUDE_MODELS = {
-  fast: 'claude-haiku-4-5-20250929',    // Quick responses, simple tasks
-  smart: 'claude-sonnet-4-5-20250929',  // Complex reasoning, code
+  fast: 'claude-3-5-haiku-20241022',    // Quick responses, simple tasks
+  smart: 'claude-3-5-sonnet-20241022',  // Complex reasoning, code
 } as const;
 
 // Default settings - Uses Claude for all text generation

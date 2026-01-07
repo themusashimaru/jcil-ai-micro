@@ -19,8 +19,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CoreMessage } from 'ai';
 
-// Default model: Claude Sonnet 4.5
-const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
+// Default model: Claude 3.5 Sonnet (latest stable)
+const DEFAULT_MODEL = 'claude-3-5-sonnet-20241022';
 
 // ========================================
 // DUAL-POOL API KEY SYSTEM (DYNAMIC)
@@ -884,9 +884,10 @@ export async function downloadAnthropicFile(fileId: string): Promise<{
 // HYBRID ROUTING (Haiku + Sonnet)
 // ========================================
 
-// Model IDs
-export const CLAUDE_HAIKU = 'claude-haiku-4-5-20250929';
-export const CLAUDE_SONNET = 'claude-sonnet-4-5-20250929';
+// Model IDs - ACTUAL VALID ANTHROPIC MODEL IDs
+// See: https://docs.anthropic.com/en/docs/about-claude/models
+export const CLAUDE_HAIKU = 'claude-3-5-haiku-20241022';   // Fast, cost-effective
+export const CLAUDE_SONNET = 'claude-3-5-sonnet-20241022'; // Smart, balanced
 
 /**
  * Determine which Claude model to use based on query complexity
