@@ -11,6 +11,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { escapeHtml } from '@/lib/sanitize';
 
 interface CodeFile {
   name: string;
@@ -83,27 +84,31 @@ function generatePreviewHtml(files: CodeFile[]): string {
 }
 
 // Syntax highlighting (basic)
+// SECURITY FIX: Escape HTML first to prevent XSS, then apply highlighting
 function highlightCode(code: string, language: string): string {
+  // First escape HTML to prevent XSS attacks
+  const escaped = escapeHtml(code);
+
   if (language === 'html') {
-    return code
-      .replace(/(&lt;\/?)(\w+)/g, '$1<span class="text-pink-400">$2</span>')
-      .replace(/(\w+)=/g, '<span class="text-yellow-400">$1</span>=')
-      .replace(/"([^"]*)"/g, '<span class="text-green-400">"$1"</span>');
+    return escaped
+      .replace(/(&amp;lt;\/?)(\w+)/g, '$1<span class="text-pink-400">$2</span>')
+      .replace(/(\w+)&#x3D;/g, '<span class="text-yellow-400">$1</span>&#x3D;')
+      .replace(/&quot;([^&]*)&quot;/g, '<span class="text-green-400">&quot;$1&quot;</span>');
   }
   if (language === 'css') {
-    return code
+    return escaped
       .replace(/([.#]?\w+)\s*\{/g, '<span class="text-yellow-400">$1</span> {')
       .replace(/([\w-]+):/g, '<span class="text-cyan-400">$1</span>:')
       .replace(/:\s*([^;]+);/g, ': <span class="text-green-400">$1</span>;');
   }
   if (language === 'javascript' || language === 'typescript') {
-    return code
+    return escaped
       .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await)\b/g,
         '<span class="text-purple-400">$1</span>')
-      .replace(/(['"`])([^'"`]*)\1/g, '<span class="text-green-400">$1$2$1</span>')
-      .replace(/\/\/.*/g, '<span class="text-slate-500">$&</span>');
+      .replace(/(&#x27;|&quot;|&#x60;)([^&#]*)\1/g, '<span class="text-green-400">$1$2$1</span>')
+      .replace(/&#x2F;&#x2F;.*/g, '<span class="text-slate-500">$&</span>');
   }
-  return code;
+  return escaped;
 }
 
 // Language icons
