@@ -971,6 +971,8 @@ export function ChatClient() {
       };
       setChats([newChat, ...chats]);
       setCurrentChatId(tempId);
+      // Update ref immediately to avoid race conditions
+      currentChatIdRef.current = tempId;
 
       // Create conversation in database - MUST succeed before proceeding
       try {
@@ -985,6 +987,9 @@ export function ChatClient() {
         // Use the database UUID for all subsequent operations
         newChatId = dbConversationId;
         setCurrentChatId(dbConversationId);
+        // CRITICAL: Update ref immediately to fix race condition with streaming
+        // setState is async, but ref update is synchronous
+        currentChatIdRef.current = dbConversationId;
         setChats((prevChats) => {
           const updated = prevChats.map((chat) =>
             chat.id === tempId ? { ...chat, id: dbConversationId } : chat
@@ -1650,7 +1655,8 @@ export function ChatClient() {
                       const event = JSON.parse(data);
 
                       // CRITICAL FIX: Only update UI if still on the same chat
-                      const shouldUpdateUI = currentChatId === newChatId;
+                      // Use ref instead of state to avoid stale closure during async streaming
+                      const shouldUpdateUI = currentChatIdRef.current === newChatId;
 
                       if (event.type === 'progress') {
                         // Update message with progress
@@ -1744,7 +1750,8 @@ export function ChatClient() {
 
                 // CRITICAL FIX: Only update UI if still on the same chat
                 // This prevents streaming responses from appearing in wrong conversations
-                if (currentChatId === newChatId) {
+                // Use ref instead of state to avoid stale closure during async streaming
+                if (currentChatIdRef.current === newChatId) {
                   // Update the message with accumulated content
                   setMessages((prev) =>
                     prev.map((msg) =>
