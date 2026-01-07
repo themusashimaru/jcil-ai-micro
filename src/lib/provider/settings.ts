@@ -33,11 +33,11 @@ export interface ProviderSettings {
   };
 }
 
-// Claude models for different use cases
+// Claude models for different use cases (Claude 3.x retired July 2025)
 // Must match IDs in anthropic/client.ts
 const CLAUDE_MODELS = {
-  fast: 'claude-3-5-haiku-20241022',    // Quick responses, simple tasks
-  smart: 'claude-3-5-sonnet-20241022',  // Complex reasoning, code
+  fast: 'claude-haiku-4-5-20251001',    // Quick responses, simple tasks
+  smart: 'claude-sonnet-4-20250514',    // Complex reasoning, code
 } as const;
 
 // Default settings - Uses Claude for all text generation
