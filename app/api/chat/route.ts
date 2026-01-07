@@ -151,7 +151,7 @@ function getDocumentTypeName(type: string): string {
 }
 
 function getDocumentSchemaPrompt(documentType: string): string {
-  const baseInstruction = `You are a document generation assistant. Based on the user's request, generate a JSON object that describes the document they want. Output ONLY valid JSON, no explanation.`;
+  const baseInstruction = `You are a professional document generation assistant. Based on the user's request, generate a JSON object that describes the document they want. Output ONLY valid JSON, no explanation. Create professional, well-structured content with proper formatting.`;
 
   if (documentType === 'xlsx') {
     return `${baseInstruction}
@@ -160,19 +160,35 @@ Generate a spreadsheet JSON with this structure:
 {
   "type": "spreadsheet",
   "title": "Document Title",
+  "settings": {
+    "margins": { "top": 0.75, "bottom": 0.75, "left": 0.7, "right": 0.7 },
+    "headerRow": true,
+    "autoFilter": true
+  },
   "sheets": [{
     "name": "Sheet1",
     "rows": [
-      { "cells": [{ "value": "Header1", "bold": true }, { "value": "Header2", "bold": true }], "isHeader": true },
-      { "cells": [{ "value": "Data1" }, { "value": 100, "currency": true }] }
+      { "cells": [{ "value": "Header1", "bold": true, "fill": "#4472C4", "fontColor": "#FFFFFF" }, { "value": "Header2", "bold": true, "fill": "#4472C4", "fontColor": "#FFFFFF" }], "isHeader": true },
+      { "cells": [{ "value": "Data1" }, { "value": 100, "currency": true }] },
+      { "cells": [{ "value": "Total", "bold": true }, { "formula": "=SUM(B2:B10)", "bold": true }] }
     ],
-    "columnWidths": [20, 15]
+    "columnWidths": [25, 18, 15]
   }]
 }
 
-For formulas use: { "formula": "=SUM(B2:B10)" }
-For currency: { "value": 100, "currency": true }
-For percentages: { "value": 0.15, "percent": true }`;
+Cell options:
+- { "formula": "=SUM(B2:B10)" } for formulas
+- { "value": 100, "currency": true } for currency formatting
+- { "value": 0.15, "percent": true } for percentages
+- { "bold": true, "italic": true } for text styling
+- { "fill": "#4472C4", "fontColor": "#FFFFFF" } for colors
+- { "align": "center" } for alignment (left, center, right)
+
+Make the spreadsheet professional with:
+- Clear headers with background color
+- Proper column widths for content
+- Summary/total rows where appropriate
+- Formulas for calculations`;
   }
 
   if (documentType === 'docx') {
@@ -182,16 +198,32 @@ Generate a Word document JSON with this structure:
 {
   "type": "document",
   "title": "Document Title",
+  "settings": {
+    "margins": { "top": 1, "bottom": 1, "left": 1, "right": 1 },
+    "font": "Calibri",
+    "fontSize": 11
+  },
   "sections": [
-    { "type": "paragraph", "content": { "text": "Main Title", "style": "title" } },
-    { "type": "paragraph", "content": { "text": "Introduction paragraph here.", "style": "normal" } },
+    { "type": "paragraph", "content": { "text": "Main Title", "style": "title", "alignment": "center" } },
+    { "type": "paragraph", "content": { "text": "Contact info or subtitle", "style": "subtitle", "alignment": "center" } },
+    { "type": "paragraph", "content": { "text": "" } },
     { "type": "paragraph", "content": { "text": "Section Heading", "style": "heading1" } },
-    { "type": "paragraph", "content": { "text": "Bullet point", "bulletLevel": 1 } },
-    { "type": "table", "content": { "headers": ["Col1", "Col2"], "rows": [["Data1", "Data2"]] } }
+    { "type": "paragraph", "content": { "text": "Body paragraph with detailed content.", "style": "normal" } },
+    { "type": "paragraph", "content": { "text": "Bullet point item", "bulletLevel": 1 } },
+    { "type": "paragraph", "content": { "text": "Sub-bullet point", "bulletLevel": 2 } },
+    { "type": "table", "content": { "headers": ["Column 1", "Column 2"], "rows": [["Data 1", "Data 2"]], "headerStyle": "bold" } }
   ]
 }
 
-Available styles: title, subtitle, heading1, heading2, heading3, normal`;
+Available styles: title, subtitle, heading1, heading2, heading3, normal
+Alignment: left, center, right, justify
+Bullet levels: 1, 2, 3
+
+Make the document professional with:
+- Proper spacing between sections
+- Consistent formatting throughout
+- Clear hierarchy with headings
+- Professional language`;
   }
 
   if (documentType === 'pdf') {
@@ -203,15 +235,37 @@ Generate an invoice/PDF JSON with this structure:
   "invoiceNumber": "INV-001",
   "date": "2024-01-15",
   "dueDate": "2024-02-15",
-  "from": { "name": "Your Company", "address": ["123 Main St", "City, ST 12345"], "email": "info@company.com" },
-  "to": { "name": "Client Name", "address": ["456 Oak Ave", "City, ST 67890"] },
+  "settings": {
+    "margins": { "top": 50, "bottom": 50, "left": 50, "right": 50 },
+    "primaryColor": "#2563eb",
+    "accentColor": "#1e40af"
+  },
+  "from": {
+    "name": "Your Company",
+    "address": ["123 Main St", "City, ST 12345"],
+    "email": "info@company.com",
+    "phone": "(555) 123-4567"
+  },
+  "to": {
+    "name": "Client Name",
+    "company": "Client Company",
+    "address": ["456 Oak Ave", "City, ST 67890"],
+    "email": "client@email.com"
+  },
   "items": [
-    { "description": "Service 1", "quantity": 1, "unitPrice": 100 },
-    { "description": "Service 2", "quantity": 2, "unitPrice": 50 }
+    { "description": "Service 1", "details": "Detailed description", "quantity": 1, "unitPrice": 100 },
+    { "description": "Service 2", "details": "Another description", "quantity": 2, "unitPrice": 50 }
   ],
   "taxRate": 8.5,
-  "notes": "Thank you for your business!"
-}`;
+  "discount": 0,
+  "notes": "Thank you for your business!",
+  "paymentTerms": "Net 30"
+}
+
+Make the invoice professional with:
+- Clear itemization with descriptions
+- Proper tax and total calculations
+- Professional formatting and branding`;
   }
 
   // Default to Word document
@@ -457,7 +511,18 @@ CAPABILITIES:
 - Deep research on complex topics
 - Code review and generation
 - Scripture and faith-based guidance
-- Document generation (Excel spreadsheets, Word documents, PDF invoices)
+- **DOCUMENT GENERATION**: You CAN create downloadable files:
+  * Excel spreadsheets (.xlsx): budgets, trackers, schedules, data tables
+  * Word documents (.docx): resumes, letters, contracts, proposals, reports
+  * PDF invoices: professional invoices with itemized billing
+
+  When users ask for documents, ask clarifying questions about:
+  - Content they want included
+  - Layout preferences (margins, columns, sections)
+  - Styling (fonts, colors, formatting)
+  - Any specific data or details to include
+
+  Then generate the document; a download link will appear automatically.
 
 STYLE:
 - Be concise but thorough
