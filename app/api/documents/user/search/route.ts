@@ -1,19 +1,13 @@
 /**
  * DOCUMENT SEARCH API
  *
- * Semantic search across user's documents
- * Uses vector similarity to find relevant chunks
+ * Keyword-based search across user's documents
+ * Uses simple keyword matching (embeddings removed to eliminate Google dependency)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { GoogleGenAI } from '@google/genai';
-
-// Initialize Gemini for embeddings (same provider as chat!)
-const gemini = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY_1 || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,45 +39,62 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { query, matchCount = 5, matchThreshold = 0.7 } = body;
+    const { query, matchCount = 5 } = body;
 
     if (!query || query.trim().length === 0) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    // Generate embedding for the query using Gemini
-    const embeddingResponse = await gemini.models.embedContent({
-      model: 'text-embedding-004',
-      contents: query.trim(),
-    });
+    // Extract keywords
+    const keywords = query.toLowerCase().split(/\W+/).filter((w: string) => w.length > 2);
 
-    if (!embeddingResponse.embeddings?.[0]?.values) {
-      console.error('[Search] No embedding returned from Gemini');
-      return NextResponse.json({ error: 'Failed to generate embedding' }, { status: 500 });
+    if (keywords.length === 0) {
+      return NextResponse.json({ results: [], query, matchCount: 0 });
     }
 
-    const queryEmbedding = embeddingResponse.embeddings[0].values;
+    // Build ILIKE search pattern
+    const searchPatterns = keywords.slice(0, 5).map((k: string) => `%${k}%`);
 
-    // Search using the database function
-    const { data: results, error: searchError } = await supabase.rpc(
-      'search_user_documents',
-      {
-        p_user_id: user.id,
-        p_query_embedding: JSON.stringify(queryEmbedding),
-        p_match_count: matchCount,
-        p_match_threshold: matchThreshold,
-      }
-    );
+    // Search chunks using keyword matching
+    const { data: results, error: searchError } = await supabase
+      .from('user_document_chunks')
+      .select(`
+        id,
+        document_id,
+        content,
+        user_documents!inner (
+          name
+        )
+      `)
+      .eq('user_id', user.id)
+      .or(searchPatterns.map((p: string) => `content.ilike.${p}`).join(','))
+      .limit(matchCount);
 
     if (searchError) {
       console.error('[Search] Search error:', searchError);
       return NextResponse.json({ error: 'Search failed' }, { status: 500 });
     }
 
+    // Format results
+    const formattedResults = (results || []).map((r: {
+      id: string;
+      document_id: string;
+      content: string;
+      user_documents: { name: string } | { name: string }[];
+    }) => ({
+      chunk_id: r.id,
+      document_id: r.document_id,
+      document_name: Array.isArray(r.user_documents)
+        ? r.user_documents[0]?.name || 'Unknown'
+        : r.user_documents?.name || 'Unknown',
+      content: r.content,
+      similarity: 0.8, // Placeholder for keyword match
+    }));
+
     return NextResponse.json({
-      results: results || [],
+      results: formattedResults,
       query,
-      matchCount: results?.length || 0,
+      matchCount: formattedResults.length,
     });
   } catch (error) {
     console.error('[Search] Unexpected error:', error);
@@ -123,7 +134,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Count ready documents with chunks
     const { count } = await supabase
       .from('user_documents')
       .select('*', { count: 'exact', head: true })

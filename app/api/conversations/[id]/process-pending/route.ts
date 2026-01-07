@@ -9,7 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { createChatCompletion } from '@/lib/openai/client';
+import { createAnthropicCompletion } from '@/lib/anthropic/client';
+import type { CoreMessage } from 'ai';
 
 export const maxDuration = 120; // Allow up to 2 minutes for processing
 
@@ -75,17 +76,13 @@ export async function POST(
       .update({ status: 'processing', started_at: new Date().toISOString() })
       .eq('id', pendingRequest.id);
 
-    // Process the request
-    const result = await createChatCompletion({
-      messages: pendingRequest.messages as Parameters<typeof createChatCompletion>[0]['messages'],
-      tool: pendingRequest.tool as Parameters<typeof createChatCompletion>[0]['tool'],
-      stream: false,
+    // Process the request with Claude
+    const result = await createAnthropicCompletion({
+      messages: pendingRequest.messages as CoreMessage[],
       userId: user.id,
-      conversationId: conversationId,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const responseText = (result as any).text || '';
+    const responseText = result.text || '';
 
     if (!responseText) {
       // Mark as failed

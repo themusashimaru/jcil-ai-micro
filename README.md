@@ -103,7 +103,7 @@ A Claude Code-like development environment in your browser with isolated E2B san
 ### Core
 
 - **Framework**: Next.js 14 (App Router), TypeScript 5, Tailwind CSS
-- **AI**: Anthropic Claude (claude-sonnet-4-20250514), OpenAI (GPT-4o, DALL-E 3, Whisper, TTS)
+- **AI**: Anthropic Claude (Haiku + Sonnet), Perplexity (web search)
 - **Sandboxing**: E2B Code Interpreter (isolated cloud VMs)
 - **Auth**: Supabase (Google OAuth)
 - **Database**: Supabase Postgres with RLS
@@ -126,7 +126,7 @@ A Claude Code-like development environment in your browser with isolated E2B san
 - Node.js 20.x
 - pnpm 8+
 - Supabase project
-- API keys (Anthropic, E2B, OpenAI, Stripe)
+- API keys (Anthropic, E2B, Perplexity, Stripe)
 
 ### Installation
 
@@ -156,7 +156,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # AI Providers
 ANTHROPIC_API_KEY=sk-ant-xxx
-OPENAI_API_KEY=sk-xxx
+PERPLEXITY_API_KEY=pplx-xxx
 E2B_API_KEY=e2b_xxx
 
 # Redis
@@ -200,7 +200,6 @@ jcil-ai-micro/
 │   │   ├── email/
 │   │   ├── essay/
 │   │   ├── research/
-│   │   ├── image/
 │   │   └── website-builder/
 │   ├── admin/                    # Admin panel
 │   └── api/                      # API routes
@@ -260,12 +259,12 @@ validateEncryptedTokenFormat() // Token validation
 
 ## Subscription Tiers
 
-| Tier | Messages/Day | Code Lab | Image/Video | Price |
-|------|-------------|----------|-------------|-------|
-| **Free** | 10 | ❌ | ❌ | $0 |
-| **Basic** | 100 | ✅ | ❌ | $9/mo |
-| **Pro** | 200 | ✅ | 5/day | $29/mo |
-| **Executive** | 1000 | ✅ | 10/day | $99/mo |
+| Tier | Messages/Day | Code Lab | Web Search | Price |
+|------|-------------|----------|------------|-------|
+| **Free** | 10 | ❌ | ✅ | $0 |
+| **Basic** | 100 | ✅ | ✅ | $9/mo |
+| **Pro** | 200 | ✅ | ✅ | $29/mo |
+| **Executive** | 1000 | ✅ | ✅ | $99/mo |
 
 ---
 
@@ -313,7 +312,6 @@ pnpm start
 
 ### In Progress
 - [ ] API access for developers
-- [ ] Multi-model support (GPT-4, Claude, Gemini)
 - [ ] Team workspaces
 - [ ] Real-time collaboration
 

@@ -2,7 +2,7 @@
   "name": "jcil-ai",
   "version": "0.1.0",
   "private": true,
-  "description": "JCIL.AI - Christian Conservative AI Chat Interface - Production PWA with Next.js, Supabase, OpenAI",
+  "description": "JCIL.AI - Christian Conservative AI Chat Interface - Production PWA with Next.js, Supabase, Claude AI",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"
@@ -20,15 +20,12 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.56",
-    "@ai-sdk/openai": "^2.0.75",
     "@anthropic-ai/sdk": "^0.71.2",
     "@capacitor/android": "^7.4.4",
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@capacitor/ios": "^7.4.4",
     "@e2b/code-interpreter": "^2.3.3",
-    "@google/genai": "^1.34.0",
-    "@google/generative-ai": "^0.7.0",
     "@octokit/rest": "^22.0.1",
     "@simplewebauthn/browser": "^13.2.2",
     "@simplewebauthn/server": "^13.2.2",
@@ -52,7 +49,6 @@
     "ms": "^2.1.3",
     "next": "^14.2.0",
     "octokit": "^5.0.5",
-    "openai": "^4.47.0",
     "pdf-parse": "^2.4.5",
     "pdfkit": "^0.17.2",
     "qrcode": "^1.5.4",

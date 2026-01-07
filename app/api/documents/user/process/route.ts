@@ -5,13 +5,11 @@
  * 1. Downloads file from storage
  * 2. Extracts text content
  * 3. Chunks into smaller pieces
- * 4. Generates embeddings
- * 5. Stores in vector database
+ * 4. Stores in database (no embeddings - uses keyword search)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenAI } from '@google/genai';
 
 // Service role client for database and storage operations (bypasses RLS)
 function createServiceClient() {
@@ -22,11 +20,6 @@ function createServiceClient() {
   );
 }
 
-// Initialize Gemini for embeddings (same provider as chat!)
-const gemini = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY_1 || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
-});
-
 // Chunk settings
 const CHUNK_SIZE = 500; // tokens (approximate)
 const CHUNK_OVERLAP = 50; // tokens overlap between chunks
@@ -36,25 +29,18 @@ const CHUNK_OVERLAP = 50; // tokens overlap between chunks
  */
 function chunkText(text: string, maxChunkSize: number = CHUNK_SIZE): string[] {
   const chunks: string[] = [];
-
-  // Split by double newlines (paragraphs)
   const paragraphs = text.split(/\n\s*\n/);
-
   let currentChunk = '';
 
   for (const paragraph of paragraphs) {
     const trimmedPara = paragraph.trim();
     if (!trimmedPara) continue;
 
-    // Rough token estimate: ~4 chars per token
     const paraTokens = Math.ceil(trimmedPara.length / 4);
     const currentTokens = Math.ceil(currentChunk.length / 4);
 
     if (currentTokens + paraTokens > maxChunkSize && currentChunk) {
-      // Save current chunk and start new one
       chunks.push(currentChunk.trim());
-
-      // Keep some overlap
       const words = currentChunk.split(' ');
       const overlapWords = words.slice(-Math.floor(CHUNK_OVERLAP / 2));
       currentChunk = overlapWords.join(' ') + '\n\n' + trimmedPara;
@@ -63,7 +49,6 @@ function chunkText(text: string, maxChunkSize: number = CHUNK_SIZE): string[] {
     }
   }
 
-  // Don't forget the last chunk
   if (currentChunk.trim()) {
     chunks.push(currentChunk.trim());
   }
@@ -87,20 +72,14 @@ async function extractText(
       return { text: buffer.toString('utf-8') };
 
     case 'pdf':
-      // Use unpdf for PDFs (serverless-friendly)
       try {
         const { extractText } = await import('unpdf');
-        // unpdf expects Uint8Array, not Node.js Buffer
         const uint8Array = new Uint8Array(buffer);
         const result = await extractText(uint8Array, { mergePages: true });
-        // Handle both string and string[] return types
         const textContent = Array.isArray(result.text)
           ? result.text.join('\n')
           : String(result.text || '');
-        return {
-          text: textContent,
-          pageCount: result.totalPages,
-        };
+        return { text: textContent, pageCount: result.totalPages };
       } catch (error) {
         console.error('[Process] PDF parsing error:', error);
         throw new Error(`Failed to parse PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -108,7 +87,6 @@ async function extractText(
 
     case 'docx':
     case 'doc':
-      // Use mammoth for Word docs
       try {
         const mammoth = await import('mammoth');
         const result = await mammoth.extractRawText({ buffer });
@@ -120,18 +98,15 @@ async function extractText(
 
     case 'xlsx':
     case 'xls':
-      // Use xlsx for Excel files
       try {
         const XLSX = await import('xlsx');
         const workbook = XLSX.read(buffer, { type: 'buffer' });
         let text = '';
-
         for (const sheetName of workbook.SheetNames) {
           const sheet = workbook.Sheets[sheetName];
           const csv = XLSX.utils.sheet_to_csv(sheet);
           text += `\n=== Sheet: ${sheetName} ===\n${csv}\n`;
         }
-
         return { text };
       } catch (error) {
         console.error('[Process] Excel parsing error:', error);
@@ -141,38 +116,6 @@ async function extractText(
     default:
       throw new Error(`Unsupported file type: ${fileType}`);
   }
-}
-
-/**
- * Generate embeddings for text chunks using Gemini
- * Uses text-embedding-004 model (768 dimensions)
- */
-async function generateEmbeddings(chunks: string[]): Promise<number[][]> {
-  const embeddings: number[][] = [];
-
-  // Process chunks one at a time (Gemini embedding API)
-  for (const chunk of chunks) {
-    try {
-      const response = await gemini.models.embedContent({
-        model: 'text-embedding-004',
-        contents: chunk,
-      });
-
-      if (response.embeddings?.[0]?.values) {
-        embeddings.push(response.embeddings[0].values);
-      } else {
-        console.error('[Process] No embedding returned for chunk');
-        // Use zero vector as fallback
-        embeddings.push(new Array(768).fill(0));
-      }
-    } catch (error) {
-      console.error('[Process] Embedding error:', error);
-      // Use zero vector as fallback
-      embeddings.push(new Array(768).fill(0));
-    }
-  }
-
-  return embeddings;
 }
 
 export async function POST(request: NextRequest) {
@@ -229,27 +172,22 @@ export async function POST(request: NextRequest) {
       const chunks = chunkText(text);
       console.log(`[Process] Document ${documentId}: ${chunks.length} chunks created`);
 
-      // Generate embeddings
-      const embeddings = await generateEmbeddings(chunks);
-      console.log(`[Process] Document ${documentId}: ${embeddings.length} embeddings generated`);
-
       // Delete existing chunks (in case of re-processing)
       await supabase
         .from('user_document_chunks')
         .delete()
         .eq('document_id', documentId);
 
-      // Insert chunks with embeddings
+      // Insert chunks (no embeddings - keyword search only)
       const chunkRecords = chunks.map((content, index) => ({
         document_id: documentId,
         user_id: document.user_id,
         content,
         chunk_index: index,
-        embedding: JSON.stringify(embeddings[index]), // pgvector accepts JSON array
         token_count: Math.ceil(content.length / 4),
       }));
 
-      // Insert in batches to avoid payload limits
+      // Insert in batches
       const insertBatchSize = 50;
       for (let i = 0; i < chunkRecords.length; i += insertBatchSize) {
         const batch = chunkRecords.slice(i, i + insertBatchSize);
@@ -263,7 +201,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Calculate word count
       const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
 
       // Update document as ready
@@ -289,7 +226,6 @@ export async function POST(request: NextRequest) {
     } catch (processingError) {
       console.error('[Process] Processing error:', processingError);
 
-      // Update document with error
       await supabase
         .from('user_documents')
         .update({

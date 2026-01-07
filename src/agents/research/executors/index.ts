@@ -1,6 +1,6 @@
 /**
- * Research Executors - All search providers
+ * Research Executors - Search providers
+ * Note: Google executor removed (Claude + Perplexity only mode)
  */
 
-export { googleExecutor, GoogleExecutor } from './GoogleExecutor';
 export { perplexityExecutor, PerplexityExecutor } from './PerplexityExecutor';

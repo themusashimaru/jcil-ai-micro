@@ -12,7 +12,6 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { searchCodebase } from '@/lib/codebase-rag';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -61,24 +60,9 @@ export async function predictNextActions(
   // Analyze recent actions to understand intent
   const intent = analyzeIntent(context);
 
-  // Get related code from RAG if repo is connected
-  let relatedCode = '';
-  if (context.repo) {
-    const lastQuery = context.conversationHistory
-      .filter(m => m.role === 'user')
-      .pop()?.content || '';
-
-    if (lastQuery) {
-      const { contextString } = await searchCodebase(
-        context.userId,
-        context.repo.owner,
-        context.repo.name,
-        lastQuery,
-        { matchCount: 3 }
-      );
-      relatedCode = contextString;
-    }
-  }
+  // Note: RAG-based code search disabled (used Google embeddings)
+  // Predictions now rely on conversation history and recent actions
+  const relatedCode = '';
 
   // Generate predictions with Claude
   const response = await anthropic.messages.create({

@@ -17,7 +17,7 @@
  * - ✅ Includes meditation, prayer, and application
  */
 
-import { createChatCompletion } from '@/lib/openai/client';
+import { createAnthropicCompletion } from '@/lib/anthropic/client';
 import { NextResponse } from 'next/server';
 
 interface Devotional {
@@ -91,20 +91,14 @@ Return ONLY a valid JSON object in this exact format (no markdown, no code block
 }`;
 
   try {
-    const response = await createChatCompletion({
+    const response = await createAnthropicCompletion({
       messages: [
-        {
-          role: 'system',
-          content:
-            'You are a Christian pastor and theologian who creates biblically sound, encouraging devotionals for everyday believers. You have deep knowledge of Scripture, theology, and biblical context. Write at a college reading level using clear, accessible language that is theologically accurate but not overly academic. Always use accurate KJV Bible verses with proper (KJV) notation. Return only valid JSON with no markdown formatting.',
-        },
         {
           role: 'user',
           content: prompt,
         },
       ],
-      tool: 'scripture',
-      stream: false,
+      systemPrompt: 'You are a Christian pastor and theologian who creates biblically sound, encouraging devotionals for everyday believers. You have deep knowledge of Scripture, theology, and biblical context. Write at a college reading level using clear, accessible language that is theologically accurate but not overly academic. Always use accurate KJV Bible verses with proper (KJV) notation. Return only valid JSON with no markdown formatting.',
       temperature: 0.8,
       maxTokens: 1500,
     });

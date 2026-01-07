@@ -1,21 +1,19 @@
 /**
  * WORKSPACE INDEX API
  *
- * Codebase indexing and semantic search
+ * Codebase indexing (symbol extraction and basic search)
+ * Note: Semantic search via embeddings disabled (Claude + Perplexity only mode)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
-import OpenAI from 'openai';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
-const openai = new OpenAI();
-
 /**
- * GET - Get current index or search
+ * GET - Get current index status or simple search
  */
 export async function GET(
   request: NextRequest,
@@ -43,16 +41,17 @@ export async function GET(
     }
 
     const url = new URL(request.url);
-    const query = url.searchParams.get('query');
     const action = url.searchParams.get('action') || 'status';
 
-    if (action === 'search' && query) {
-      // Semantic search
-      const results = await semanticSearch(workspaceId, query, supabase);
-      return NextResponse.json({ results });
+    if (action === 'search') {
+      // Semantic search disabled - suggest using grep/find in Code Lab
+      return NextResponse.json({
+        message: 'Semantic search disabled. Use Code Lab grep/find tools for code search.',
+        results: [],
+      });
     }
 
-    // Return index status (table created by workspace schema)
+    // Return index status
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: index } = await (supabase as any)
       .from('codebase_indexes')
@@ -84,7 +83,7 @@ export async function GET(
 }
 
 /**
- * POST - Start indexing the codebase
+ * POST - Index the codebase (symbols and structure only, no embeddings)
  */
 export async function POST(
   request: NextRequest,
@@ -112,9 +111,8 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const { includeEmbeddings = true, path = '/workspace' } = body;
+    const { path = '/workspace' } = body;
 
-    // Start indexing
     const container = new ContainerManager();
 
     // Get all source files
@@ -149,7 +147,7 @@ export async function POST(
     // Parse dependencies
     const dependencies = await parseDependencies(container, workspaceId);
 
-    // Store basic index
+    // Store basic index (no embeddings)
     const indexData = {
       workspace_id: workspaceId,
       files: allFiles.map(f => ({
@@ -167,19 +165,14 @@ export async function POST(
       .from('codebase_indexes')
       .upsert(indexData);
 
-    // Generate embeddings if requested
-    if (includeEmbeddings) {
-      await generateEmbeddings(workspaceId, allFiles, supabase);
-    }
-
     return NextResponse.json({
       success: true,
       stats: {
         files: allFiles.length,
         symbols: symbols.length,
         dependencies: dependencies.length,
-        embeddingsGenerated: includeEmbeddings,
       },
+      note: 'Index created. Use Code Lab grep/find tools for code search.',
     });
 
   } catch (error) {
@@ -189,120 +182,6 @@ export async function POST(
       details: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
   }
-}
-
-/**
- * Semantic search using embeddings
- */
-async function semanticSearch(
-  workspaceId: string,
-  query: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
-): Promise<Array<{ path: string; content: string; similarity: number }>> {
-  // Generate embedding for query
-  const embeddingResponse = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
-    input: query,
-  });
-
-  const queryEmbedding = embeddingResponse.data[0].embedding;
-
-  // Search using pgvector (custom RPC function)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: results } = await (supabase as any).rpc('search_code_embeddings', {
-    p_workspace_id: workspaceId,
-    p_query_embedding: queryEmbedding,
-    p_limit: 10,
-  });
-
-  return results || [];
-}
-
-/**
- * Generate embeddings for code chunks
- */
-async function generateEmbeddings(
-  workspaceId: string,
-  files: Array<{ path: string; content: string; language: string }>,
-  supabase: Awaited<ReturnType<typeof createClient>>
-): Promise<void> {
-  // Delete existing embeddings (table created by workspace schema)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
-    .from('file_embeddings')
-    .delete()
-    .eq('workspace_id', workspaceId);
-
-  // Process files in batches
-  const BATCH_SIZE = 20;
-  const CHUNK_SIZE = 1000; // Characters per chunk
-
-  for (let i = 0; i < files.length; i += BATCH_SIZE) {
-    const batch = files.slice(i, i + BATCH_SIZE);
-    const embeddings: Array<{
-      workspace_id: string;
-      file_path: string;
-      chunk_index: number;
-      content: string;
-      embedding: number[];
-    }> = [];
-
-    for (const file of batch) {
-      // Split file into chunks
-      const chunks = splitIntoChunks(file.content, CHUNK_SIZE);
-
-      for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
-        try {
-          const response = await openai.embeddings.create({
-            model: 'text-embedding-3-small',
-            input: `File: ${file.path}\n\n${chunks[chunkIndex]}`,
-          });
-
-          embeddings.push({
-            workspace_id: workspaceId,
-            file_path: file.path,
-            chunk_index: chunkIndex,
-            content: chunks[chunkIndex],
-            embedding: response.data[0].embedding,
-          });
-        } catch {
-          // Skip failed embeddings
-        }
-      }
-    }
-
-    // Insert batch
-    if (embeddings.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from('file_embeddings').insert(embeddings);
-    }
-  }
-}
-
-/**
- * Split text into chunks
- */
-function splitIntoChunks(text: string, chunkSize: number): string[] {
-  const chunks: string[] = [];
-  const lines = text.split('\n');
-  let currentChunk = '';
-
-  for (const line of lines) {
-    if (currentChunk.length + line.length > chunkSize) {
-      if (currentChunk) {
-        chunks.push(currentChunk.trim());
-      }
-      currentChunk = line;
-    } else {
-      currentChunk += '\n' + line;
-    }
-  }
-
-  if (currentChunk.trim()) {
-    chunks.push(currentChunk.trim());
-  }
-
-  return chunks;
 }
 
 /**

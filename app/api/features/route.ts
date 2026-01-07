@@ -1,31 +1,20 @@
 /**
  * PUBLIC FEATURES API
- * Returns which features are available based on current provider settings
+ * Returns which features are available
  * This is a public endpoint (no auth required)
  */
 
 import { NextResponse } from 'next/server';
-import { getProviderSettings } from '@/lib/provider/settings';
 
 export async function GET() {
-  try {
-    const settings = await getProviderSettings();
-
-    // Image generation is only available with OpenAI
-    const imageGenerationAvailable = settings.activeProvider === 'openai';
-
-    return NextResponse.json({
-      imageGeneration: imageGenerationAvailable,
-      activeProvider: settings.activeProvider,
-    });
-  } catch (error) {
-    console.error('[Features API] Error:', error);
-    // Default to OpenAI behavior on error
-    return NextResponse.json({
-      imageGeneration: true,
-      activeProvider: 'openai',
-    });
-  }
+  return NextResponse.json({
+    // Image generation is not available (Claude + Perplexity only)
+    imageGeneration: false,
+    // Video generation is not available
+    videoGeneration: false,
+    // Web search is available via Perplexity
+    webSearch: true,
+    // Active provider is always Claude
+    activeProvider: 'anthropic',
+  });
 }
-
-export const runtime = 'nodejs';
