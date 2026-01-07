@@ -379,6 +379,13 @@ export function ChatClient() {
     messagesRef.current = messages;
   }, [messages]);
 
+  // CRITICAL FIX: Ref to track streaming state for visibility handler
+  // This prevents stale closures when the effect re-runs
+  const isStreamingRef = useRef(false);
+  useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
   // Helper function to fetch and format messages
   const fetchMessages = async (chatId: string): Promise<Message[] | null> => {
     try {
@@ -424,6 +431,7 @@ export function ChatClient() {
   const isProcessingRef = useRef(false);
 
   // Process pending request immediately when returning to tab
+  // CRITICAL FIX: Use refs instead of state to prevent stale closures
   useEffect(() => {
     const handleVisibilityChange = async () => {
       // Only check if tab is becoming visible and we have a current chat
@@ -433,21 +441,22 @@ export function ChatClient() {
 
       const chatId = currentChatIdRef.current;
       const currentMessages = messagesRef.current;
+      const currentlyStreaming = isStreamingRef.current; // Use ref instead of state
 
       console.log('[ChatClient] Tab visible, checking for pending replies...', {
         chatId,
         messageCount: currentMessages.length,
         lastRole: currentMessages[currentMessages.length - 1]?.role,
-        isStreaming,
+        isStreaming: currentlyStreaming,
       });
 
       // If currently streaming, check if we need to wait a bit
       // (Stream might have just completed)
-      if (isStreaming) {
+      if (currentlyStreaming) {
         // Give the stream a moment to complete naturally
         await new Promise(resolve => setTimeout(resolve, 500));
-        // Re-check if still streaming
-        if (isStreaming) {
+        // Re-check if still streaming (use ref for current value)
+        if (isStreamingRef.current) {
           console.log('[ChatClient] Still streaming, will check on next visibility change');
           return;
         }
@@ -535,7 +544,7 @@ export function ChatClient() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       stopPolling();
     };
-  }, [isStreaming]); // Keep isStreaming dependency for re-registration
+  }, []); // CRITICAL FIX: Empty deps - use refs for current values to prevent memory leaks
 
   // Load conversations from database
   useEffect(() => {
@@ -1008,36 +1017,55 @@ export function ChatClient() {
       setReplyingTo(null);
     }
 
+    const userMessageId = Date.now().toString();
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: userMessageId,
       role: 'user',
       content: finalContent,
       attachments: attachments.length > 0 ? attachments : undefined,
       timestamp: new Date(),
     };
 
-    setMessages([...messages, userMessage]);
-    setIsStreaming(true);
-
-    // Detect if this is a document generation request for UI feedback
-    const detectedDocType = detectDocumentTypeFromMessage(content);
-    setPendingDocumentType(detectedDocType);
-    if (detectedDocType) {
-      console.log(`[ChatClient] Document generation detected: ${detectedDocType}`);
-    }
-
-    // Save user message to database
+    // CRITICAL FIX: Save to database FIRST with rollback on failure
+    // This prevents "ghost messages" that appear in UI but aren't persisted
     const attachmentUrls = attachments
       .filter(att => att.url)
       .map(att => att.url!);
-    await saveMessageToDatabase(
-      newChatId,
-      'user',
-      content,
-      'text',
-      undefined,
-      attachmentUrls.length > 0 ? attachmentUrls : undefined
-    );
+
+    try {
+      // Save user message to database BEFORE displaying
+      const saveResult = await saveMessageToDatabase(
+        newChatId,
+        'user',
+        content,
+        'text',
+        undefined,
+        attachmentUrls.length > 0 ? attachmentUrls : undefined
+      );
+
+      // Only show message in UI AFTER successful database save
+      setMessages([...messages, userMessage]);
+      setIsStreaming(true);
+
+      // Detect if this is a document generation request for UI feedback
+      const detectedDocType = detectDocumentTypeFromMessage(content);
+      setPendingDocumentType(detectedDocType);
+      if (detectedDocType) {
+        console.log(`[ChatClient] Document generation detected: ${detectedDocType}`);
+      }
+    } catch (saveError) {
+      // Database save failed - show error to user instead of ghost message
+      console.error('[ChatClient] Failed to save user message:', saveError);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, your message could not be sent. Please check your connection and try again.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsStreaming(false);
+      return; // Exit early - don't proceed with API call
+    }
 
     try {
       // Get all messages including the new one
@@ -1211,9 +1239,23 @@ export function ChatClient() {
         throw new Error(`${errorCode}: ${errorMsg}`);
       }
 
+      // CRITICAL FIX: Validate response before processing
       // Check content type to determine if streaming or JSON
       const contentType = response.headers.get('content-type') || '';
       const isJsonResponse = contentType.includes('application/json');
+      const isTextStream = contentType.includes('text/plain') || contentType.includes('text/event-stream');
+
+      // Validate that we have a processable response type
+      if (!isJsonResponse && !isTextStream && !response.body) {
+        console.error('[ChatClient] Invalid response type:', contentType);
+        throw new Error('INVALID_RESPONSE: Server returned unexpected content type');
+      }
+
+      // Validate response body exists for streaming
+      if (!isJsonResponse && !response.body) {
+        console.error('[ChatClient] Missing response body for streaming');
+        throw new Error('INVALID_RESPONSE: No response body for streaming');
+      }
 
       // Get model and search provider from response headers (for admin debugging)
       const modelUsed = response.headers.get('X-Model-Used') || undefined;
@@ -1602,48 +1644,57 @@ export function ChatClient() {
                     try {
                       const event = JSON.parse(data);
 
+                      // CRITICAL FIX: Only update UI if still on the same chat
+                      const shouldUpdateUI = currentChatId === newChatId;
+
                       if (event.type === 'progress') {
                         // Update message with progress
                         console.log('[ChatClient] Website progress:', event.message);
-                        setMessages((prev) =>
-                          prev.map((msg) =>
-                            msg.id === assistantMessageId
-                              ? { ...msg, content: event.message }
-                              : msg
-                          )
-                        );
+                        if (shouldUpdateUI) {
+                          setMessages((prev) =>
+                            prev.map((msg) =>
+                              msg.id === assistantMessageId
+                                ? { ...msg, content: event.message }
+                                : msg
+                            )
+                          );
+                        }
                       } else if (event.type === 'code_preview' && event.codePreview) {
                         // Final website response
                         console.log('[ChatClient] Website generated:', event.codePreview.title);
-                        setMessages((prev) =>
-                          prev.map((msg) =>
-                            msg.id === assistantMessageId
-                              ? {
-                                  ...msg,
-                                  content: event.content || 'Here is your website:',
-                                  codePreview: {
-                                    code: event.codePreview.code,
-                                    language: event.codePreview.language,
-                                    title: event.codePreview.title,
-                                    description: event.codePreview.description,
-                                  },
-                                }
-                              : msg
-                          )
-                        );
+                        if (shouldUpdateUI) {
+                          setMessages((prev) =>
+                            prev.map((msg) =>
+                              msg.id === assistantMessageId
+                                ? {
+                                    ...msg,
+                                    content: event.content || 'Here is your website:',
+                                    codePreview: {
+                                      code: event.codePreview.code,
+                                      language: event.codePreview.language,
+                                      title: event.codePreview.title,
+                                      description: event.codePreview.description,
+                                    },
+                                  }
+                                : msg
+                            )
+                          );
+                        }
                         finalContent = event.content;
 
-                        // Save to database
+                        // Save to database (always save regardless of UI state)
                         await saveMessageToDatabase(newChatId, 'assistant', event.content || 'Generated website', 'text');
                       } else if (event.type === 'error') {
                         console.error('[ChatClient] Website generation error:', event.message);
-                        setMessages((prev) =>
-                          prev.map((msg) =>
-                            msg.id === assistantMessageId
-                              ? { ...msg, content: `❌ Error: ${event.message}` }
-                              : msg
-                          )
-                        );
+                        if (shouldUpdateUI) {
+                          setMessages((prev) =>
+                            prev.map((msg) =>
+                              msg.id === assistantMessageId
+                                ? { ...msg, content: `❌ Error: ${event.message}` }
+                                : msg
+                            )
+                          );
+                        }
                       }
                     } catch (parseError) {
                       // Not valid JSON, might be partial data
@@ -1686,14 +1737,18 @@ export function ChatClient() {
                 const chunk = decoder.decode(value, { stream: true });
                 accumulatedContent += chunk;
 
-                // Update the message with accumulated content
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: accumulatedContent }
-                      : msg
-                  )
-                );
+                // CRITICAL FIX: Only update UI if still on the same chat
+                // This prevents streaming responses from appearing in wrong conversations
+                if (currentChatId === newChatId) {
+                  // Update the message with accumulated content
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? { ...msg, content: accumulatedContent }
+                        : msg
+                    )
+                  );
+                }
               }
             } catch (readerError) {
               // Stream was interrupted (user navigated away, network issue, etc.)
@@ -2299,6 +2354,16 @@ export function ChatClient() {
 
       // Save error message to database (keep technical details in logs only)
       await saveMessageToDatabase(newChatId, 'assistant', errorMessage.content, 'error');
+    } finally {
+      // CRITICAL: Always clean up abort controller to prevent memory leaks
+      // This runs on both success AND error paths
+      abortControllerRef.current = null;
+
+      // Ensure streaming state is always reset
+      if (isMountedRef.current) {
+        setIsStreaming(false);
+        setPendingDocumentType(null);
+      }
     }
   };
 
