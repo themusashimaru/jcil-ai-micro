@@ -572,11 +572,7 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
                   <button
                     onClick={() => toggleSearchMode('search')}
                     disabled={isStreaming || disabled}
-                    className={`rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium ${
-                      searchMode === 'search'
-                        ? 'bg-blue-500/20 text-blue-400'
-                        : 'hover:bg-white/5'
-                    }`}
+                    className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium"
                     style={{ color: searchMode === 'search' ? '#3b82f6' : 'var(--text-secondary)' }}
                     title="Search the web"
                   >
@@ -596,11 +592,7 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, hid
                   <button
                     onClick={() => toggleSearchMode('factcheck')}
                     disabled={isStreaming || disabled}
-                    className={`rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium ${
-                      searchMode === 'factcheck'
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'hover:bg-white/5'
-                    }`}
+                    className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium"
                     style={{ color: searchMode === 'factcheck' ? '#10b981' : 'var(--text-secondary)' }}
                     title="Fact check information"
                   >
