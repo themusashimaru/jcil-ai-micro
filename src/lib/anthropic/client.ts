@@ -361,12 +361,21 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
     content: AnthropicMessageContent;
   }> = [];
 
-  for (const msg of messages) {
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    const isLastMessage = i === messages.length - 1;
+
     // Skip system messages - they go in the system parameter
     if (msg.role === 'system') continue;
 
     if (msg.role === 'user' || msg.role === 'assistant') {
       if (typeof msg.content === 'string') {
+        // Claude API requires non-empty content for all messages except optional final assistant
+        // Skip empty messages (unless it's the final assistant message)
+        if (!msg.content.trim() && !(isLastMessage && msg.role === 'assistant')) {
+          console.warn(`[Anthropic] Skipping ${msg.role} message with empty content at index ${i}`);
+          continue;
+        }
         anthropicMessages.push({
           role: msg.role,
           content: msg.content,
@@ -412,6 +421,9 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
             role: msg.role,
             content: parts,
           });
+        } else if (!(isLastMessage && msg.role === 'assistant')) {
+          // Skip empty array content (except final assistant message)
+          console.warn(`[Anthropic] Skipping ${msg.role} message with no valid content parts at index ${i}`);
         }
       }
     }
