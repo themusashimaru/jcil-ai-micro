@@ -2,7 +2,7 @@
  * GITHUB SYNC BRIDGE
  *
  * Real-time synchronization between Code Lab workspace and GitHub.
- * This is the killer feature that bridges sandboxed execution with real repositories.
+ * Bridges sandboxed code execution with production repositories.
  *
  * Features:
  * - Clone repos into workspace

@@ -22,7 +22,7 @@ const anthropic = new Anthropic({
 });
 
 export class CodeGenerator {
-  // Opus 4.5 for maximum code quality - crush Manus
+  // Claude Opus 4.5 for high-quality code generation
   private model = 'claude-opus-4-5-20251101';
 
   // Already generated files (for context)

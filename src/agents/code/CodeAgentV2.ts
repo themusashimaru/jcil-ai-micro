@@ -1,44 +1,18 @@
 /**
- * CODE AGENT V2 - THE ULTIMATE
+ * CODE AGENT V2
  *
- * The most sophisticated autonomous coding agent ever built.
- * Combines all advanced capabilities into one seamless experience.
+ * Enterprise-grade autonomous coding agent.
+ * Combines advanced AI capabilities into one seamless experience.
  *
  * CAPABILITIES:
- * ├─ 🧠 Advanced Reasoning
- * │  ├─ Chain-of-Thought (visible thinking)
- * │  ├─ Tree-of-Thought (explore multiple approaches)
- * │  └─ Self-Reflection (critique own output)
- * │
- * ├─ 🔧 Tool System (Claude Code style)
- * │  ├─ Read files from GitHub
- * │  ├─ Search codebases
- * │  └─ Execute commands in sandbox
- * │
- * ├─ 📊 Analysis
- * │  ├─ Codebase understanding
- * │  ├─ Security scanning (OWASP)
- * │  └─ Performance analysis
- * │
- * ├─ 🏗️ Generation
- * │  ├─ Intent analysis
- * │  ├─ Project planning
- * │  ├─ Code generation
- * │  ├─ Test generation
- * │  └─ Documentation
- * │
- * ├─ 🔄 Self-Healing
- * │  ├─ Error detection
- * │  ├─ Auto-fixing
- * │  └─ Iterative improvement
- * │
- * └─ 🧠 Memory & Learning
- *    ├─ User preferences
- *    ├─ Project history
- *    └─ Pattern learning
+ * - Advanced Reasoning (Chain-of-Thought, Tree-of-Thought, Self-Reflection)
+ * - Tool System (file reading, codebase search, sandbox execution)
+ * - Analysis (codebase understanding, security scanning, performance)
+ * - Generation (intent analysis, planning, code, tests, documentation)
+ * - Self-Healing (error detection, auto-fixing, iterative improvement)
+ * - Memory & Learning (user preferences, project history, patterns)
  *
- * Built by Claude Opus 4.5 + Musashi
- * THE MANUS KILLER
+ * Powered by Claude Opus 4.5.
  */
 
 import { BaseAgent } from '../core/BaseAgent';

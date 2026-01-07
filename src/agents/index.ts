@@ -1,8 +1,8 @@
 /**
  * JCIL AGENTS
  *
- * The agent system that competes with Manus.
- * Dynamic, self-evaluating, streaming-first agents.
+ * Enterprise-grade AI agent system.
+ * Dynamic, self-evaluating, streaming-first architecture.
  */
 
 // Core infrastructure

@@ -26,7 +26,7 @@ const anthropic = new Anthropic({
 });
 
 export class ProjectPlanner {
-  // Opus 4.5 for maximum reasoning power - crush Manus
+  // Claude Opus 4.5 for advanced reasoning
   private model = 'claude-opus-4-5-20251101';
 
   /**

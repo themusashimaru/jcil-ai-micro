@@ -206,7 +206,8 @@ export interface SourceCitation {
 }
 
 // =============================================================================
-// CODE AGENT TYPES - THE MANUS KILLER
+// CODE AGENT TYPES
+// Autonomous code generation with self-correction capabilities
 // =============================================================================
 
 /**

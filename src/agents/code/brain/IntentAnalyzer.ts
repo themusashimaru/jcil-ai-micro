@@ -45,7 +45,7 @@ const anthropic = new Anthropic({
 });
 
 export class CodeIntentAnalyzer {
-  // Opus 4.5 for maximum understanding - crush Manus
+  // Claude Opus 4.5 for comprehensive intent analysis
   private model = 'claude-opus-4-5-20251101';
 
   /**

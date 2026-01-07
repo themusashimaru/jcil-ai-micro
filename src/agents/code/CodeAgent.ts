@@ -4,16 +4,14 @@
  * The main orchestrator for the autonomous coding system.
  * Coordinates: Intent → Plan → Generate → Test → Fix → Deliver
  *
- * This is the MANUS KILLER.
- *
- * Features:
+ * Capabilities:
  * - Fully autonomous code generation
  * - Self-evaluation and error correction
  * - Iterative improvement loop
  * - Sandbox testing before delivery
- * - GitHub push when ready
+ * - GitHub integration for version control
  *
- * Powered by Claude Opus 4.5 for maximum intelligence.
+ * Powered by Claude Opus 4.5.
  */
 
 import { BaseAgent } from '../core/BaseAgent';

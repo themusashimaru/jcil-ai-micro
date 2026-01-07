@@ -2,12 +2,12 @@
  * INTENT ANALYZER
  *
  * The first stage of the Research Brain.
- * Analyzes vague user requests and extracts what they REALLY need.
+ * Analyzes user requests and extracts precise requirements.
  *
- * "The user is kind of dumb. They don't really know what they're asking."
- * - This component fixes that.
+ * Users often express needs vaguely or incompletely.
+ * This component clarifies and expands their requests into actionable research tasks.
  *
- * POWERED BY: Claude Sonnet 4.5 (migrated from Gemini)
+ * Powered by Claude Sonnet 4.5.
  */
 
 import { createClaudeStructuredOutput } from '@/lib/anthropic/client';
