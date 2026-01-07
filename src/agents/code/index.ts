@@ -1,20 +1,18 @@
 /**
  * CODE AGENT MODULE
  *
- * THE ULTIMATE AUTONOMOUS CODING AGENT
- * Built by Claude Opus 4.5 + Musashi
+ * Enterprise-grade autonomous code generation system.
+ * Powered by Claude Opus 4.5.
  *
- * Features:
+ * Capabilities:
  * - Advanced reasoning (Chain-of-Thought, Tree-of-Thought)
  * - Self-reflection and self-healing
- * - Security scanning (OWASP)
+ * - Security scanning (OWASP Top 10)
  * - Performance analysis
- * - Auto-test generation
- * - Auto-documentation
+ * - Automated test generation
+ * - Documentation generation
  * - Memory and learning
  * - GitHub integration
- *
- * THE MANUS KILLER
  */
 
 // ============================================================================

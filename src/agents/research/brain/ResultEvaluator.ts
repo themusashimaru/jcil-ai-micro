@@ -4,12 +4,12 @@
  * The third stage of the Research Brain.
  * Evaluates search results and decides: continue, pivot, or synthesize?
  *
- * This is what makes JCIL different from Manus:
- * - Self-evaluating
- * - Gap-detecting
- * - Dynamically adaptive
+ * Capabilities:
+ * - Self-evaluating result quality
+ * - Gap detection in research coverage
+ * - Dynamic adaptation based on findings
  *
- * POWERED BY: Claude Sonnet 4.5 (migrated from Gemini)
+ * Powered by Claude Sonnet 4.5.
  */
 
 import { createClaudeStructuredOutput } from '@/lib/anthropic/client';

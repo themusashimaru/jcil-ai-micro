@@ -4,11 +4,11 @@
  * The main orchestrator for the dynamic research system.
  * Coordinates: Intent → Strategy → Execution → Evaluation → Synthesis
  *
- * This is what makes JCIL different from Manus:
+ * Key Features:
  * - Dynamic query generation (1-10 queries based on complexity)
  * - Perplexity-powered search (fast, reliable, synthesized)
  * - Single iteration, parallel execution
- * - Streaming progress (never times out)
+ * - Streaming progress for real-time feedback
  */
 
 import { BaseAgent } from '../core/BaseAgent';

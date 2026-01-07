@@ -1,24 +1,23 @@
 /**
  * CODE AGENT BRAIN
  *
- * The cognitive system that makes the Code Agent intelligent.
- * This is the most sophisticated AI coding brain ever built.
+ * The cognitive system that powers the Code Agent.
  *
  * Components:
- * - IntentAnalyzer: Understands what user wants to build
+ * - IntentAnalyzer: Understands user requirements
  * - ProjectPlanner: Creates architecture and file structure
  * - CodeGenerator: Generates production-quality code
  * - ErrorAnalyzer: Diagnoses and fixes errors
  * - Reasoner: Chain-of-Thought and Tree-of-Thought reasoning
  * - CodebaseAnalyzer: Understands existing projects
  * - SecurityScanner: Finds vulnerabilities (OWASP, CVE)
- * - PerformanceAnalyzer: Finds bottlenecks
+ * - PerformanceAnalyzer: Identifies bottlenecks
  * - TestGenerator: Auto-generates comprehensive tests
  * - AutoFixer: Self-heals code issues
  * - DocGenerator: Creates documentation
- * - MemorySystem: Learns and remembers
+ * - MemorySystem: Learns and remembers patterns
  *
- * Built with Claude Opus 4.5 - The Manus Killer
+ * Powered by Claude Opus 4.5.
  */
 
 // Core analysis
