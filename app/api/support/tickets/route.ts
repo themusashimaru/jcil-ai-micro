@@ -10,19 +10,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
+import { z } from 'zod';
+import { emailSchema } from '@/lib/validation/schemas';
 
 const log = logger('SupportTickets');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-
-const RATE_LIMIT = 5; // 5 tickets per hour
-
-// Input validation constants
-const MAX_NAME_LENGTH = 100;
-const MAX_SUBJECT_LENGTH = 200;
-const MAX_MESSAGE_LENGTH = 5000;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Sanitize input - strip potential script tags as defense in depth
@@ -70,6 +65,9 @@ async function getAuthenticatedClient() {
   );
 }
 
+// Database-backed rate limit for support tickets
+const DB_RATE_LIMIT = 3; // 3 tickets per hour
+
 async function checkRateLimit(supabase: ReturnType<typeof getSupabaseAdmin>, identifier: string): Promise<boolean> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
@@ -81,7 +79,7 @@ async function checkRateLimit(supabase: ReturnType<typeof getSupabaseAdmin>, ide
     .eq('action', 'support_ticket')
     .gte('created_at', oneHourAgo);
 
-  if ((count || 0) >= RATE_LIMIT) {
+  if ((count || 0) >= DB_RATE_LIMIT) {
     return false;
   }
 
@@ -107,6 +105,18 @@ const VALID_CATEGORIES = [
   'other',
 ];
 
+// Validation schema for ticket creation (matches actual request structure)
+const createTicketRequestSchema = z.object({
+  category: z.string().max(50).refine((val) => VALID_CATEGORIES.includes(val), {
+    message: 'Invalid category',
+  }),
+  subject: z.string().min(5, 'Subject must be at least 5 characters').max(200),
+  message: z.string().min(20, 'Message must be at least 20 characters').max(5000),
+  senderEmail: emailSchema.optional(),
+  senderName: z.string().max(100).optional(),
+  honeypot: z.string().optional(),
+});
+
 /**
  * POST - Create a new support ticket
  */
@@ -116,7 +126,10 @@ export async function POST(request: NextRequest) {
   if (!csrfCheck.valid) return csrfCheck.response!;
 
   try {
-    const body = await request.json();
+    // Validate request body
+    const validation = await validateBody(request, createTicketRequestSchema);
+    if (!validation.success) return validation.response;
+
     const {
       category,
       subject,
@@ -124,7 +137,7 @@ export async function POST(request: NextRequest) {
       senderEmail,
       senderName,
       honeypot, // Spam protection field
-    } = body;
+    } = validation.data;
 
     // Honeypot check - if filled, it's a bot
     if (honeypot) {
@@ -132,60 +145,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, ticketId: 'fake' });
     }
 
-    // Validate required fields
-    if (!category || !subject || !message) {
-      return NextResponse.json(
-        { error: 'Category, subject, and message are required' },
-        { status: 400 }
-      );
-    }
-
-    if (!VALID_CATEGORIES.includes(category)) {
-      return NextResponse.json(
-        { error: 'Invalid category' },
-        { status: 400 }
-      );
-    }
-
-    // Validate input lengths
-    if (subject.length > MAX_SUBJECT_LENGTH) {
-      return NextResponse.json(
-        { error: `Subject must be ${MAX_SUBJECT_LENGTH} characters or less` },
-        { status: 400 }
-      );
-    }
-
-    if (message.length > MAX_MESSAGE_LENGTH) {
-      return NextResponse.json(
-        { error: `Message must be ${MAX_MESSAGE_LENGTH} characters or less` },
-        { status: 400 }
-      );
-    }
-
-    if (senderName && senderName.length > MAX_NAME_LENGTH) {
-      return NextResponse.json(
-        { error: `Name must be ${MAX_NAME_LENGTH} characters or less` },
-        { status: 400 }
-      );
-    }
-
-    // Validate email format if provided
-    if (senderEmail && !EMAIL_REGEX.test(senderEmail)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
     // Sanitize inputs (defense in depth)
     const sanitizedSubject = sanitizeInput(subject);
     const sanitizedMessage = sanitizeInput(message);
     const sanitizedName = senderName ? sanitizeInput(senderName) : null;
 
-    // Get IP for rate limiting
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-               request.headers.get('x-real-ip') ||
-               'unknown';
+    // Get IP for logging
+    const ip = getClientIP(request);
     const userAgent = request.headers.get('user-agent') || '';
 
     const supabase = getSupabaseAdmin();
@@ -198,14 +164,16 @@ export async function POST(request: NextRequest) {
     let userId: string | null = null;
     let email: string;
     let name: string | null = null;
-    let rateLimitKey: string;
 
     if (user) {
       // Authenticated user - internal ticket
+      // Apply strict rate limiting for authenticated users
+      const rateLimitResult = checkRequestRateLimit(`tickets:${user.id}`, rateLimits.strict);
+      if (!rateLimitResult.allowed) return rateLimitResult.response;
+
       source = 'internal';
       userId = user.id;
-      email = user.email || senderEmail;
-      rateLimitKey = user.id;
+      email = user.email || senderEmail || 'unknown@internal.user';
 
       // Get user's name from database
       const { data: userData } = await supabase
@@ -217,27 +185,25 @@ export async function POST(request: NextRequest) {
       name = userData?.full_name || senderName || null;
     } else {
       // External contact form
+      // Apply strict rate limiting for external users by IP
+      const rateLimitResult = checkRequestRateLimit(`tickets:${ip}`, rateLimits.strict);
+      if (!rateLimitResult.allowed) return rateLimitResult.response;
+
       source = 'external';
 
       if (!senderEmail) {
-        return NextResponse.json(
-          { error: 'Email is required for contact form' },
-          { status: 400 }
-        );
+        return errors.badRequest('Email is required for contact form');
       }
 
       email = senderEmail;
       name = sanitizedName;
-      rateLimitKey = ip;
     }
 
-    // Check rate limit (database-backed, persists across restarts)
+    // Check database-backed rate limit (legacy, persists across restarts)
+    const rateLimitKey = user ? user.id : ip;
     const withinLimit = await checkRateLimit(supabase, rateLimitKey);
     if (!withinLimit) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
+      return errors.rateLimited();
     }
 
     // Create the ticket with sanitized inputs
@@ -259,39 +225,36 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       log.error('[Support API] Error creating ticket:', error instanceof Error ? error : { error });
-      return NextResponse.json(
-        { error: 'Failed to create support ticket' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     log.info(`[Support API] Ticket created: ${ticket.id} (${source})`);
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       ticketId: ticket.id,
       message: 'Your message has been received. We will respond within 24-48 hours.',
     });
   } catch (error) {
     log.error('[Support API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 
 /**
  * GET - Get user's own support tickets
  */
-export async function GET() {
+export async function GET(_request: NextRequest) {
   try {
     const authClient = await getAuthenticatedClient();
     const { data: { user }, error: authError } = await authClient.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Apply rate limiting for authenticated user
+    const rateLimitResult = checkRequestRateLimit(`tickets:get:${user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
     const { data: tickets, error } = await supabase
@@ -312,10 +275,7 @@ export async function GET() {
 
     if (error) {
       log.error('[Support API] Error fetching tickets:', error instanceof Error ? error : { error });
-      return NextResponse.json(
-        { error: 'Failed to fetch tickets' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Get reply counts for each ticket
@@ -342,12 +302,9 @@ export async function GET() {
       reply_count: replyCounts[t.id] || 0,
     }));
 
-    return NextResponse.json({ tickets: ticketsWithCounts || [] });
+    return successResponse({ tickets: ticketsWithCounts || [] });
   } catch (error) {
     log.error('[Support API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

@@ -4,7 +4,7 @@
  * PUT /api/auth/webauthn/register - Verify and save new passkey
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from '@/lib/supabase/server-auth';
 import {
@@ -16,6 +16,7 @@ import {
   type RegistrationResponseJSON,
 } from '@/lib/auth/webauthn';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('WebAuthnRegister');
 
@@ -45,8 +46,12 @@ export async function POST(_request: NextRequest) {
     // Require authentication
     const session = await getServerSession();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`webauthn:register:${session.user.id}`, rateLimits.auth);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
     const userId = session.user.id;
@@ -88,13 +93,10 @@ export async function POST(_request: NextRequest) {
       }
     }
 
-    return NextResponse.json(options);
+    return successResponse(options);
   } catch (error) {
     log.error('Passkey registration options error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to generate registration options' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 
@@ -106,8 +108,12 @@ export async function PUT(request: NextRequest) {
     // Require authentication
     const session = await getServerSession();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`webauthn:verify:${session.user.id}`, rateLimits.auth);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const userId = session.user.id;
 
@@ -115,10 +121,7 @@ export async function PUT(request: NextRequest) {
     const storedChallenge = challengeStore.get(userId);
     if (!storedChallenge || storedChallenge.expires < Date.now()) {
       challengeStore.delete(userId);
-      return NextResponse.json(
-        { error: 'Challenge expired, please try again' },
-        { status: 400 }
-      );
+      return errors.badRequest('Challenge expired, please try again');
     }
 
     // Parse request body
@@ -135,10 +138,7 @@ export async function PUT(request: NextRequest) {
     );
 
     if (!verification.verified || !verification.registrationInfo) {
-      return NextResponse.json(
-        { error: 'Verification failed' },
-        { status: 400 }
-      );
+      return errors.badRequest('Verification failed');
     }
 
     const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
@@ -160,16 +160,13 @@ export async function PUT(request: NextRequest) {
 
     if (insertError) {
       log.error('Failed to save passkey:', { error: insertError ?? 'Unknown error' });
-      return NextResponse.json(
-        { error: 'Failed to save passkey' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Clear the challenge
     challengeStore.delete(userId);
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: 'Passkey registered successfully',
       deviceType: credentialDeviceType,
@@ -177,9 +174,6 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     log.error('Passkey registration error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to register passkey' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

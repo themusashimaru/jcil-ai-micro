@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
+import { checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
 
 const log = logger('AuthLinkGitHub');
 
@@ -21,6 +22,13 @@ export const runtime = 'nodejs';
  * If the GitHub email matches the current user's email, accounts merge
  */
 export async function GET(request: NextRequest) {
+  // Rate limit by IP
+  const ip = getClientIP(request);
+  const rateLimitResult = checkRequestRateLimit(`github:link:${ip}`, rateLimits.auth);
+  if (!rateLimitResult.allowed) {
+    const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    return NextResponse.redirect(new URL('/chat?error=rate_limited', origin));
+  }
   const { searchParams } = new URL(request.url);
   const redirectTo = searchParams.get('redirect') || '/chat';
   const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;

@@ -6,6 +6,10 @@
 
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { logger } from '@/lib/logger';
+import { errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+
+const log = logger('UserExport');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -17,11 +21,12 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return errors.unauthorized();
     }
+
+    // Rate limit - strict limit for data exports
+    const rateLimitResult = checkRequestRateLimit(`user:export:${user.id}`, rateLimits.strict);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Fetch user profile
     const { data: userProfile } = await supabase
@@ -152,10 +157,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('[User Export] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to export data' },
-      { status: 500 }
-    );
+    log.error('[User Export] Error:', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }

@@ -4,10 +4,11 @@
  * DELETE /api/auth/webauthn/passkeys - Remove a passkey
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('WebAuthnPasskeys');
 
@@ -33,8 +34,12 @@ export async function GET() {
   try {
     const session = await getServerSession();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`passkeys:get:${session.user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
     const { data: passkeys, error } = await supabase
@@ -45,19 +50,13 @@ export async function GET() {
 
     if (error) {
       log.error('Failed to fetch passkeys:', error instanceof Error ? error : { error });
-      return NextResponse.json(
-        { error: 'Failed to fetch passkeys' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
-    return NextResponse.json({ passkeys: passkeys || [] });
+    return successResponse({ passkeys: passkeys || [] });
   } catch (error) {
     log.error('Passkey list error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to fetch passkeys' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 
@@ -68,17 +67,18 @@ export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`passkeys:delete:${session.user.id}`, rateLimits.strict);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { searchParams } = new URL(request.url);
     const passkeyId = searchParams.get('id');
 
     if (!passkeyId) {
-      return NextResponse.json(
-        { error: 'Passkey ID required' },
-        { status: 400 }
-      );
+      return errors.badRequest('Passkey ID required');
     }
 
     const supabase = getSupabaseAdmin();
@@ -91,18 +91,12 @@ export async function DELETE(request: NextRequest) {
 
     if (error) {
       log.error('Failed to delete passkey:', error instanceof Error ? error : { error });
-      return NextResponse.json(
-        { error: 'Failed to delete passkey' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     log.error('Passkey delete error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to delete passkey' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

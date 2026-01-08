@@ -3,13 +3,19 @@
  * PURPOSE: Create Stripe checkout sessions for subscription purchases
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { createCheckoutSession, STRIPE_PRICE_IDS } from '@/lib/stripe/client';
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('StripeCheckout');
+
+const checkoutSchema = z.object({
+  tier: z.enum(['plus', 'pro', 'executive']),
+});
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -47,17 +53,18 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
-    // Get request body
-    const body = await request.json();
-    const { tier } = body;
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`stripe:checkout:${user.id}`, rateLimits.strict);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
-    // Validate tier
-    if (!tier || !['plus', 'pro', 'executive'].includes(tier)) {
-      return NextResponse.json({ error: 'Invalid subscription tier' }, { status: 400 });
-    }
+    // Validate request body
+    const validation = await validateBody(request, checkoutSchema);
+    if (!validation.success) return validation.response;
+
+    const { tier } = validation.data;
 
     // Get price ID for the tier
     const priceId = STRIPE_PRICE_IDS[tier as keyof typeof STRIPE_PRICE_IDS];
@@ -65,10 +72,8 @@ export async function POST(request: NextRequest) {
     log.info(`[Stripe Checkout] Env vars - PLUS: ${process.env.STRIPE_PRICE_ID_PLUS ? 'SET' : 'MISSING'}, PRO: ${process.env.STRIPE_PRICE_ID_PRO ? 'SET' : 'MISSING'}, EXECUTIVE: ${process.env.STRIPE_PRICE_ID_EXECUTIVE ? 'SET' : 'MISSING'}`);
 
     if (!priceId) {
-      return NextResponse.json(
-        { error: `Price ID not configured for tier: ${tier}. Please check STRIPE_PRICE_ID_${tier.toUpperCase()} env var.` },
-        { status: 500 }
-      );
+      log.error(`[Stripe Checkout] Price ID not configured for tier: ${tier}`);
+      return errors.serverError();
     }
 
     // Get user details from database
@@ -80,18 +85,15 @@ export async function POST(request: NextRequest) {
 
     if (userError || !userData) {
       log.error('[Stripe Checkout] Error fetching user:', userError);
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return errors.notFound('User');
     }
 
     // Create checkout session
     const session = await createCheckoutSession(user.id, priceId, tier, userData.email);
 
-    return NextResponse.json({ sessionId: session.id, url: session.url });
+    return successResponse({ sessionId: session.id, url: session.url });
   } catch (error) {
     log.error('[Stripe Checkout] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to create checkout session' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

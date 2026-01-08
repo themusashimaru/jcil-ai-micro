@@ -3,9 +3,12 @@
  * POST /api/user/dismiss-passkey-prompt
  */
 
-import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from '@/lib/supabase/server-auth';
+import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+
+const log = logger('DismissPasskeyPrompt');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -26,8 +29,12 @@ export async function POST() {
   try {
     const session = await getServerSession();
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`passkey:dismiss:${session.user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
     // Update user's passkey prompt dismissed flag
@@ -36,9 +43,9 @@ export async function POST() {
       .update({ passkey_prompt_dismissed: true })
       .eq('id', session.user.id);
 
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
-    console.error('Failed to dismiss passkey prompt:', error);
-    return NextResponse.json({ error: 'Failed' }, { status: 500 });
+    log.error('Failed to dismiss passkey prompt:', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }

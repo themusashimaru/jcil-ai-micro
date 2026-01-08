@@ -11,6 +11,8 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { createMessageSchema } from '@/lib/validation/schemas';
 
 const log = logger('MessagesAPI');
 
@@ -74,7 +76,7 @@ export async function GET(
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
     // Verify conversation belongs to user
@@ -86,7 +88,7 @@ export async function GET(
       .single();
 
     if (convError || !conversation) {
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+      return errors.notFound('Conversation');
     }
 
     // Fetch messages
@@ -99,16 +101,13 @@ export async function GET(
 
     if (error) {
       log.error('Error fetching messages', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to load messages' }, { status: 500 });
+      return errors.serverError();
     }
 
-    return NextResponse.json({ messages });
+    return successResponse({ messages });
   } catch (error) {
     log.error('Unexpected error in GET', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 
@@ -131,8 +130,12 @@ export async function POST(
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return errorResponse(401, 'UNAUTHORIZED', 'Authentication required');
+      return errors.unauthorized();
     }
+
+    // Rate limiting
+    const rateLimitResult = checkRequestRateLimit(`messages:${user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const contentType = request.headers.get('content-type') || '';
 
@@ -219,31 +222,27 @@ export async function POST(
       }
     } else {
       // Handle JSON request
-      let body: Record<string, unknown>;
-      try {
-        body = await request.json();
-      } catch (e) {
-        log.error('[API] JSON parse error', e instanceof Error ? e : { error: e });
-        return errorResponse(400, 'BAD_JSON', 'Request body is not valid JSON');
+      // Make content optional to allow messages with only attachments or prompts
+      const messageSchema = createMessageSchema.partial({ content: true });
+      const validation = await validateBody(request, messageSchema);
+
+      if (!validation.success) {
+        return validation.response;
       }
 
-      // Safely extract fields with defaults
-      role = typeof body.role === 'string' ? body.role : 'user';
-      content = typeof body.content === 'string' ? body.content : '';
-      content_type_field = typeof body.content_type === 'string' ? body.content_type : 'text';
-      model_used = typeof body.model_used === 'string' ? body.model_used : null;
-      temperature = typeof body.temperature === 'number' ? body.temperature : null;
-      tokens_used = typeof body.tokens_used === 'number' ? body.tokens_used : null;
-      image_url = typeof body.image_url === 'string' ? body.image_url : null;
-      prompt = typeof body.prompt === 'string' ? body.prompt : null;
-      type = typeof body.type === 'string' ? body.type : 'text';
+      const body = validation.data;
 
-      // Handle attachment URLs
-      if (Array.isArray(body.attachment_urls)) {
-        attachment_urls = body.attachment_urls.filter(
-          (url): url is string => typeof url === 'string'
-        );
-      }
+      // Extract validated fields
+      role = body.role;
+      content = body.content || '';
+      content_type_field = body.content_type;
+      model_used = body.model_used || null;
+      temperature = body.temperature || null;
+      tokens_used = body.tokens_used || null;
+      image_url = body.image_url || null;
+      prompt = body.prompt || null;
+      type = body.type;
+      attachment_urls = body.attachment_urls || [];
     }
 
     // Normalize content: handle different message types
@@ -274,7 +273,7 @@ export async function POST(
       .single();
 
     if (convError || !conversation) {
-      return errorResponse(404, 'NOT_FOUND', 'Conversation not found');
+      return errors.notFound('Conversation');
     }
 
     // Calculate retention date (30 days from now by default)
@@ -317,7 +316,7 @@ export async function POST(
 
     if (error) {
       log.error('Error saving message', error instanceof Error ? error : { error });
-      return errorResponse(500, 'DB_ERROR', 'Failed to save message');
+      return errors.serverError();
     }
 
     log.info(`Message saved: ${message.id}`);
@@ -338,21 +337,18 @@ export async function POST(
     }
 
     // Return structured success response
-    return NextResponse.json({
-      ok: true,
+    return successResponse({
       message,
-      data: {
-        conversationId,
-        role,
-        content: normalizedContent || null,
-        attachments: attachment_urls.map((url, i) => ({
-          index: i,
-          hasData: url.startsWith('data:'),
-        })),
-      },
+      conversationId,
+      role,
+      content: normalizedContent || null,
+      attachments: attachment_urls.map((url, i) => ({
+        index: i,
+        hasData: url.startsWith('data:'),
+      })),
     });
   } catch (error) {
     log.error('Unexpected error in POST', error as Error);
-    return errorResponse(500, 'INTERNAL', 'Failed to save message');
+    return errors.serverError();
   }
 }

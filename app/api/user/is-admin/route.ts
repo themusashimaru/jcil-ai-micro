@@ -4,8 +4,11 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+
+const log = logger('IsAdmin');
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -43,11 +46,12 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({
-        isAdmin: false,
-        error: 'Not authenticated'
-      }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`admin:check:${user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Check if user is in admin_users table
     const { data: adminUser, error: adminError } = await supabase
@@ -58,20 +62,17 @@ export async function GET() {
 
     if (adminError && adminError.code !== 'PGRST116') {
       // PGRST116 is "not found" error, which is expected for non-admins
-      console.error('[API] Error checking admin status:', adminError);
+      log.error('[API] Error checking admin status:', adminError instanceof Error ? adminError : { adminError });
     }
 
-    return NextResponse.json({
+    return successResponse({
       isAdmin: !!adminUser,
       userId: user.id,
       email: user.email
     });
   } catch (error) {
-    console.error('[API] Admin check error:', error);
-    return NextResponse.json({
-      isAdmin: false,
-      error: 'Internal server error'
-    }, { status: 500 });
+    log.error('[API] Admin check error:', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }
 
