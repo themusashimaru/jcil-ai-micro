@@ -14,11 +14,18 @@ import {
 } from '@/lib/auth/webauthn';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
+import { cacheGet, cacheSet, cacheDelete, isRedisAvailable } from '@/lib/redis/client';
 
 const log = logger('WebAuthnAuthenticate');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+// Challenge TTL in seconds (5 minutes)
+const CHALLENGE_TTL_SECONDS = 5 * 60;
+
+// In-memory fallback only when Redis is unavailable (development only)
+const memoryFallbackStore = new Map<string, { challenge: string; expires: number }>();
 
 // Create Supabase client inside functions to avoid build-time initialization
 function getSupabaseAdmin() {
@@ -32,8 +39,59 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-// In-memory challenge store (in production, use Redis or database)
-const challengeStore = new Map<string, { challenge: string; expires: number }>();
+/**
+ * Store WebAuthn challenge (Redis-first with memory fallback)
+ */
+async function storeChallenge(key: string, challenge: string): Promise<void> {
+  const redisKey = `webauthn:auth:${key}`;
+
+  if (isRedisAvailable()) {
+    await cacheSet(redisKey, { challenge }, CHALLENGE_TTL_SECONDS);
+  } else {
+    // Memory fallback for development - cleanup old entries first
+    const now = Date.now();
+    for (const [k, v] of memoryFallbackStore.entries()) {
+      if (v.expires < now) memoryFallbackStore.delete(k);
+    }
+    memoryFallbackStore.set(key, {
+      challenge,
+      expires: now + CHALLENGE_TTL_SECONDS * 1000,
+    });
+    log.warn('Using memory fallback for challenge storage - not recommended in production');
+  }
+}
+
+/**
+ * Get stored WebAuthn challenge (Redis-first with memory fallback)
+ */
+async function getChallenge(key: string): Promise<string | null> {
+  const redisKey = `webauthn:auth:${key}`;
+
+  if (isRedisAvailable()) {
+    const data = await cacheGet<{ challenge: string }>(redisKey);
+    return data?.challenge || null;
+  } else {
+    const entry = memoryFallbackStore.get(key);
+    if (!entry || entry.expires < Date.now()) {
+      memoryFallbackStore.delete(key);
+      return null;
+    }
+    return entry.challenge;
+  }
+}
+
+/**
+ * Delete stored WebAuthn challenge
+ */
+async function deleteChallenge(key: string): Promise<void> {
+  const redisKey = `webauthn:auth:${key}`;
+
+  if (isRedisAvailable()) {
+    await cacheDelete(redisKey);
+  } else {
+    memoryFallbackStore.delete(key);
+  }
+}
 
 /**
  * POST - Generate authentication options
@@ -73,19 +131,9 @@ export async function POST(request: NextRequest) {
     // Generate authentication options
     const options = await generatePasskeyAuthenticationOptions(userPasskeys);
 
-    // Store challenge (use a session ID or random key for anonymous auth)
+    // Store challenge in Redis (use a session ID or random key for anonymous auth)
     const challengeKey = email || `anon_${options.challenge.slice(0, 16)}`;
-    challengeStore.set(challengeKey, {
-      challenge: options.challenge,
-      expires: Date.now() + 5 * 60 * 1000,
-    });
-
-    // Clean up expired challenges
-    for (const [key, value] of challengeStore.entries()) {
-      if (value.expires < Date.now()) {
-        challengeStore.delete(key);
-      }
-    }
+    await storeChallenge(challengeKey, options.challenge);
 
     return successResponse({
       ...options,
@@ -113,10 +161,9 @@ export async function PUT(request: NextRequest) {
       challengeKey: string;
     };
 
-    // Get stored challenge
-    const storedChallenge = challengeStore.get(challengeKey);
-    if (!storedChallenge || storedChallenge.expires < Date.now()) {
-      challengeStore.delete(challengeKey);
+    // Get stored challenge from Redis
+    const storedChallenge = await getChallenge(challengeKey);
+    if (!storedChallenge) {
       return errors.badRequest('Challenge expired, please try again');
     }
 
@@ -136,7 +183,7 @@ export async function PUT(request: NextRequest) {
     // Verify the authentication response
     const verification = await verifyPasskeyAuthentication(
       response,
-      storedChallenge.challenge,
+      storedChallenge,
       passkey as StoredPasskey
     );
 
@@ -153,8 +200,8 @@ export async function PUT(request: NextRequest) {
       })
       .eq('id', passkey.id);
 
-    // Clear the challenge
-    challengeStore.delete(challengeKey);
+    // Clear the challenge from Redis
+    await deleteChallenge(challengeKey);
 
     // Get the user data
     const { data: userData, error: userError } = await supabase

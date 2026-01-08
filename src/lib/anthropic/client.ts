@@ -496,7 +496,14 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
         throw lastError;
       }
 
-      log.warn('Error on attempt, retrying', { attempt: attempt + 1, error: lastError.message });
+      // Exponential backoff: 1s, 2s, 4s, 8s (capped at 8s)
+      const backoffMs = Math.min(1000 * Math.pow(2, attempt), 8000);
+      log.warn('Error on attempt, retrying with exponential backoff', {
+        attempt: attempt + 1,
+        backoffMs,
+        error: lastError.message,
+      });
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
     }
   }
 

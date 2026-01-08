@@ -53,8 +53,35 @@ function getSupabaseAdmin() {
 const memoryRateLimits = new Map<string, { count: number; resetAt: number }>();
 const MEMORY_RATE_LIMIT = 10;
 const MEMORY_WINDOW_MS = 60 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Clean up every 5 minutes
+let lastCleanup = Date.now();
+
+/**
+ * Clean up expired entries from the in-memory rate limit map
+ * Prevents memory leak from unbounded growth
+ */
+function cleanupExpiredEntries(): void {
+  const now = Date.now();
+  // Only cleanup if enough time has passed (avoid doing it on every request)
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+
+  lastCleanup = now;
+  let cleaned = 0;
+  for (const [key, value] of memoryRateLimits.entries()) {
+    if (value.resetAt < now) {
+      memoryRateLimits.delete(key);
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) {
+    log.debug('Rate limit cleanup', { cleaned, remaining: memoryRateLimits.size });
+  }
+}
 
 function checkMemoryRateLimit(identifier: string): { allowed: boolean; remaining: number } {
+  // Periodically clean up expired entries to prevent memory leak
+  cleanupExpiredEntries();
+
   const now = Date.now();
   const entry = memoryRateLimits.get(identifier);
 
