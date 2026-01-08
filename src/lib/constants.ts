@@ -42,6 +42,55 @@ export const RATE_LIMITS = {
 } as const;
 
 // ========================================
+// TIERED RATE LIMITS BY SUBSCRIPTION
+// ========================================
+
+export type SubscriptionTier = 'free' | 'plus' | 'pro' | 'executive' | 'admin';
+
+export const TIERED_RATE_LIMITS = {
+  /** Chat messages per minute by tier */
+  CHAT_PER_MINUTE: {
+    free: 5, // 5 messages/min for free
+    plus: 30, // 30 messages/min for Plus
+    pro: 60, // 60 messages/min for Pro
+    executive: 120, // 120 messages/min for Executive
+    admin: 999, // Effectively unlimited for admins
+  },
+  /** Chat messages per hour by tier */
+  CHAT_PER_HOUR: {
+    free: 30, // 30 messages/hour for free
+    plus: 300, // 300 messages/hour for Plus
+    pro: 600, // 600 messages/hour for Pro
+    executive: 1200, // 1200 messages/hour for Executive
+    admin: 9999, // Effectively unlimited for admins
+  },
+  /** API requests per minute by tier */
+  API_PER_MINUTE: {
+    free: 30, // 30 req/min for free
+    plus: 100, // 100 req/min for Plus
+    pro: 200, // 200 req/min for Pro
+    executive: 500, // 500 req/min for Executive
+    admin: 9999, // Effectively unlimited for admins
+  },
+  /** Image generations per minute by tier */
+  IMAGE_PER_MINUTE: {
+    free: 1, // 1 image/min for free
+    plus: 3, // 3 images/min for Plus
+    pro: 5, // 5 images/min for Pro
+    executive: 10, // 10 images/min for Executive
+    admin: 99, // High limit for admins
+  },
+  /** Image generations per hour by tier */
+  IMAGE_PER_HOUR: {
+    free: 5, // 5 images/hour for free
+    plus: 20, // 20 images/hour for Plus
+    pro: 50, // 50 images/hour for Pro
+    executive: 100, // 100 images/hour for Executive
+    admin: 999, // High limit for admins
+  },
+} as const;
+
+// ========================================
 // TIMEOUTS (in milliseconds)
 // ========================================
 

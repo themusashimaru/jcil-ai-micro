@@ -17,8 +17,16 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { createClaudeStreamingChat, createClaudeChat, detectDocumentRequest } from '@/lib/anthropic/client';
-import { shouldUseResearchAgent, executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
+import {
+  createClaudeStreamingChat,
+  createClaudeChat,
+  detectDocumentRequest,
+} from '@/lib/anthropic/client';
+import {
+  shouldUseResearchAgent,
+  executeResearchAgent,
+  isResearchAgentEnabled,
+} from '@/agents/research';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
@@ -26,6 +34,7 @@ import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
+import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
 
 const log = logger('ChatAPI');
 
@@ -140,7 +149,10 @@ async function checkChatRateLimit(
 // HELPERS
 // ============================================================================
 
-function truncateMessages(messages: CoreMessage[], maxMessages: number = MAX_CONTEXT_MESSAGES): CoreMessage[] {
+function truncateMessages(
+  messages: CoreMessage[],
+  maxMessages: number = MAX_CONTEXT_MESSAGES
+): CoreMessage[] {
   if (messages.length <= maxMessages) return messages;
   const keepFirst = messages[0];
   const keepLast = messages.slice(-(maxMessages - 1));
@@ -318,7 +330,11 @@ export async function POST(request: NextRequest) {
     slotAcquired = await acquireSlot(requestId);
     if (!slotAcquired) {
       return new Response(
-        JSON.stringify({ error: 'Server busy', message: 'Please try again in a few seconds.', retryAfter: 5 }),
+        JSON.stringify({
+          error: 'Server busy',
+          message: 'Please try again in a few seconds.',
+          retryAfter: 5,
+        }),
         { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } }
       );
     }
@@ -348,7 +364,10 @@ export async function POST(request: NextRequest) {
           ok: false,
           error: 'Validation failed',
           code: 'VALIDATION_ERROR',
-          details: validation.error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
+          details: validation.error.errors.map((e) => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
@@ -356,10 +375,11 @@ export async function POST(request: NextRequest) {
 
     const { messages, temperature, max_tokens, searchMode } = validation.data;
 
-    // Get user auth
+    // Get user auth and plan info
     let rateLimitIdentifier: string;
     let isAuthenticated = false;
     let isAdmin = false;
+    let userPlanKey = 'free';
 
     try {
       const cookieStore = await cookies();
@@ -368,28 +388,46 @@ export async function POST(request: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
           cookies: {
-            getAll() { return cookieStore.getAll(); },
+            getAll() {
+              return cookieStore.getAll();
+            },
             setAll(cookiesToSet) {
-              try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); }
-              catch { /* ignore */ }
+              try {
+                cookiesToSet.forEach(({ name, value, options }) =>
+                  cookieStore.set(name, value, options)
+                );
+              } catch {
+                /* ignore */
+              }
             },
           },
         }
       );
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         rateLimitIdentifier = user.id;
         isAuthenticated = true;
-        const { data: userData } = await supabase.from('users').select('is_admin').eq('id', user.id).single();
+        const { data: userData } = await supabase
+          .from('users')
+          .select('is_admin, subscription_tier')
+          .eq('id', user.id)
+          .single();
         isAdmin = userData?.is_admin === true;
+        userPlanKey = userData?.subscription_tier || 'free';
       } else {
-        rateLimitIdentifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                              request.headers.get('x-real-ip') || 'anonymous';
+        rateLimitIdentifier =
+          request.headers.get('x-forwarded-for')?.split(',')[0] ||
+          request.headers.get('x-real-ip') ||
+          'anonymous';
       }
     } catch {
-      rateLimitIdentifier = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                            request.headers.get('x-real-ip') || 'anonymous';
+      rateLimitIdentifier =
+        request.headers.get('x-forwarded-for')?.split(',')[0] ||
+        request.headers.get('x-real-ip') ||
+        'anonymous';
     }
 
     // Check rate limit (skip for admins)
@@ -402,7 +440,49 @@ export async function POST(request: NextRequest) {
             message: `Please wait ${Math.ceil(rateLimit.resetIn / 60)} minutes before continuing.`,
             retryAfter: rateLimit.resetIn,
           }),
-          { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rateLimit.resetIn) } }
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': String(rateLimit.resetIn),
+            },
+          }
+        );
+      }
+    }
+
+    // ========================================
+    // TOKEN QUOTA ENFORCEMENT
+    // ========================================
+    // Check if user has exceeded their token quota (skip for admins)
+    if (isAuthenticated && !isAdmin) {
+      const canProceed = await canMakeRequest(rateLimitIdentifier, userPlanKey);
+      if (!canProceed) {
+        const usage = await getTokenUsage(rateLimitIdentifier, userPlanKey);
+        const isFreeUser = userPlanKey === 'free';
+        const warningMessage = getTokenLimitWarningMessage(usage, isFreeUser);
+
+        log.warn('Token quota exceeded', {
+          userId: rateLimitIdentifier,
+          plan: userPlanKey,
+          usage: usage.percentage,
+        });
+
+        return new Response(
+          JSON.stringify({
+            error: 'Token quota exceeded',
+            code: 'QUOTA_EXCEEDED',
+            message:
+              warningMessage ||
+              'You have exceeded your token limit. Please upgrade your plan to continue.',
+            usage: {
+              used: usage.used,
+              limit: usage.limit,
+              percentage: usage.percentage,
+            },
+            upgradeUrl: '/settings?tab=subscription',
+          }),
+          { status: 402, headers: { 'Content-Type': 'application/json' } }
         );
       }
     }
@@ -417,13 +497,13 @@ export async function POST(request: NextRequest) {
       log.info('Search mode activated', { searchMode });
 
       try {
-        const systemPrompt = searchMode === 'factcheck'
-          ? 'Verify the claim. Return TRUE, FALSE, PARTIALLY TRUE, or UNVERIFIABLE with evidence.'
-          : 'Search the web and provide accurate, up-to-date information with sources.';
+        const systemPrompt =
+          searchMode === 'factcheck'
+            ? 'Verify the claim. Return TRUE, FALSE, PARTIALLY TRUE, or UNVERIFIABLE with evidence.'
+            : 'Search the web and provide accurate, up-to-date information with sources.';
 
-        const query = searchMode === 'factcheck'
-          ? `Fact check: ${lastUserContent}`
-          : lastUserContent;
+        const query =
+          searchMode === 'factcheck' ? `Fact check: ${lastUserContent}` : lastUserContent;
 
         const result = await perplexitySearch({ query, systemPrompt });
 
@@ -436,7 +516,10 @@ export async function POST(request: NextRequest) {
 
         return new Response(
           JSON.stringify({ type: 'text', content: synthesis.text, model: synthesis.model }),
-          { status: 200, headers: { 'Content-Type': 'application/json', 'X-Search-Mode': searchMode } }
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json', 'X-Search-Mode': searchMode },
+          }
         );
       } catch (error) {
         log.error('Search error', error as Error);
@@ -453,7 +536,7 @@ export async function POST(request: NextRequest) {
       const researchStream = await executeResearchAgent(lastUserContent, {
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
         depth: 'standard',
-        previousMessages: messages.slice(-5).map(m => ({
+        previousMessages: messages.slice(-5).map((m) => ({
           role: String(m.role),
           content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
         })),
@@ -466,7 +549,7 @@ export async function POST(request: NextRequest) {
         },
         flush() {
           if (slotAcquired) {
-            releaseSlot(requestId).catch(err => log.error('Error releasing slot', err));
+            releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
             slotAcquired = false;
           }
         },
@@ -492,10 +575,14 @@ export async function POST(request: NextRequest) {
     // CRITICAL FIX: Provide clear feedback if document generation is requested but user isn't authenticated
     if (documentType && !isAuthenticated) {
       log.debug('Document generation requested but user not authenticated');
-      return Response.json({
-        error: 'Document generation requires authentication. Please sign in to create downloadable documents.',
-        code: 'AUTH_REQUIRED',
-      }, { status: 401 });
+      return Response.json(
+        {
+          error:
+            'Document generation requires authentication. Please sign in to create downloadable documents.',
+          code: 'AUTH_REQUIRED',
+        },
+        { status: 401 }
+      );
     }
 
     if (documentType && isAuthenticated) {
@@ -538,7 +625,8 @@ export async function POST(request: NextRequest) {
         const dataUrl = `data:${fileResult.mimeType};base64,${base64}`;
 
         // Return document info with download data
-        const responseText = `I've created your ${getDocumentTypeName(documentType)} document: **${fileResult.filename}**\n\n` +
+        const responseText =
+          `I've created your ${getDocumentTypeName(documentType)} document: **${fileResult.filename}**\n\n` +
           `Click the download button below to save it.\n\n` +
           `[DOCUMENT_DOWNLOAD:${JSON.stringify({
             filename: fileResult.filename,
@@ -652,7 +740,7 @@ SECURITY:
     const ensureSlotReleased = () => {
       if (slotAcquired && !slotReleased) {
         slotReleased = true;
-        releaseSlot(requestId).catch(err => log.error('Error releasing slot', err));
+        releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
       }
     };
 
@@ -690,12 +778,11 @@ SECURITY:
         'X-Provider': 'claude',
       },
     });
-
   } finally {
     // Only release here for non-streaming responses (search/error paths)
     // For streaming, the TransformStream.flush() handles release when stream ends
     if (slotAcquired && !isStreamingResponse) {
-      releaseSlot(requestId).catch(err => log.error('Error releasing slot', err));
+      releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
     }
   }
 }

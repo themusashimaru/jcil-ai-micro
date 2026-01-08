@@ -2,6 +2,7 @@
  * NEXT.JS MIDDLEWARE
  *
  * Global request processing for security and performance:
+ * - Correlation IDs for request tracing (X-Request-ID)
  * - Security headers on all responses
  * - Request size validation for POST/PUT/PATCH
  * - Early rejection of oversized payloads
@@ -11,13 +12,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+/**
+ * Generate a unique correlation ID for request tracing
+ * Uses crypto.randomUUID() for secure, globally unique IDs
+ */
+function generateRequestId(): string {
+  return crypto.randomUUID();
+}
+
 // Size limits by route type (in bytes)
 const SIZE_LIMITS = {
-  DEFAULT: 1 * 1024 * 1024,      // 1MB - default for most routes
-  UPLOAD: 10 * 1024 * 1024,      // 10MB - file uploads
-  ADMIN: 5 * 1024 * 1024,        // 5MB - admin operations
-  CHAT: 500 * 1024,              // 500KB - chat messages
-  WEBHOOK: 5 * 1024 * 1024,      // 5MB - webhook payloads
+  DEFAULT: 1 * 1024 * 1024, // 1MB - default for most routes
+  UPLOAD: 10 * 1024 * 1024, // 10MB - file uploads
+  ADMIN: 5 * 1024 * 1024, // 5MB - admin operations
+  CHAT: 500 * 1024, // 500KB - chat messages
+  WEBHOOK: 5 * 1024 * 1024, // 5MB - webhook payloads
 } as const;
 
 /**
@@ -59,13 +68,22 @@ const securityHeaders = {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Generate or use existing correlation ID for request tracing
+  // Check common headers: X-Request-ID, X-Correlation-ID, or generate new
+  const requestId =
+    request.headers.get('x-request-id') ||
+    request.headers.get('x-correlation-id') ||
+    generateRequestId();
+
   // Skip middleware for static assets and internal routes
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/static') ||
     pathname.includes('.') // Static files like .ico, .png, etc.
   ) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.headers.set('X-Request-ID', requestId);
+    return response;
   }
 
   // For state-changing requests, check content-length before processing
@@ -83,23 +101,35 @@ export function middleware(request: NextRequest) {
             error: 'Request too large',
             message: `Request size (${formatBytes(size)}) exceeds the maximum allowed size of ${formatBytes(limit)}.`,
             code: 'REQUEST_TOO_LARGE',
+            requestId,
           },
           {
             status: 413,
-            headers: securityHeaders,
+            headers: {
+              ...securityHeaders,
+              'X-Request-ID': requestId,
+            },
           }
         );
       }
     }
   }
 
-  // Add security headers to all responses
-  const response = NextResponse.next();
+  // Create response with request headers forwarding the correlation ID
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-request-id', requestId);
+
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 
   // Apply security headers
   Object.entries(securityHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
   });
+
+  // Add correlation ID to response for client-side tracing
+  response.headers.set('X-Request-ID', requestId);
 
   return response;
 }
