@@ -81,6 +81,45 @@ const TOOL_CATEGORIES = [
   },
 ];
 
+const TECH_STACK = [
+  {
+    name: 'Claude Opus 4.5',
+    category: 'AI Model',
+    desc: 'Latest Anthropic model with extended thinking for complex reasoning',
+    icon: '🧠',
+  },
+  {
+    name: 'E2B Sandbox',
+    category: 'Execution',
+    desc: 'Isolated cloud containers with full Linux environment',
+    icon: '📦',
+  },
+  {
+    name: 'Model Context Protocol',
+    category: 'Integration',
+    desc: 'Open standard for AI-tool communication',
+    icon: '🔌',
+  },
+  {
+    name: 'WebSocket Streaming',
+    category: 'Real-time',
+    desc: 'Sub-100ms latency for tool execution feedback',
+    icon: '⚡',
+  },
+  {
+    name: 'Encrypted PAT Storage',
+    category: 'Security',
+    desc: 'AES-256 encryption for GitHub tokens',
+    icon: '🔐',
+  },
+  {
+    name: 'Session Persistence',
+    category: 'State',
+    desc: 'Workspace snapshots with instant restore',
+    icon: '💾',
+  },
+];
+
 const FEATURES = [
   {
     title: 'Sandboxed Execution',
@@ -237,6 +276,255 @@ export default function CodeLabAboutPage() {
               <div className="text-center">
                 <div className="text-3xl font-bold text-fuchsia-400">∞</div>
                 <div className="text-slate-500">Persistence</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Technical Architecture Section */}
+      <section className="py-24 border-t border-white/10 bg-gradient-to-b from-black to-slate-900/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-white mb-4">Technical Architecture</h2>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+              Enterprise-grade infrastructure built on cutting-edge AI technology.
+            </p>
+          </div>
+
+          {/* Tech Stack Grid */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto mb-16">
+            {TECH_STACK.map((tech, i) => (
+              <div
+                key={i}
+                className="bg-slate-900/50 rounded-xl p-6 border border-slate-800 hover:border-fuchsia-500/30 transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-3xl">{tech.icon}</div>
+                  <div>
+                    <div className="text-xs text-fuchsia-400 font-medium mb-1">{tech.category}</div>
+                    <h3 className="text-lg font-bold text-white mb-1">{tech.name}</h3>
+                    <p className="text-sm text-slate-400">{tech.desc}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Architecture Diagram */}
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-slate-900/80 rounded-2xl p-8 border border-slate-800">
+              <h3 className="text-xl font-bold text-white mb-6 text-center">Request Flow Architecture</h3>
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
+                <div className="flex flex-col items-center gap-2 p-4 bg-blue-500/10 rounded-xl border border-blue-500/30 w-full md:w-auto">
+                  <span className="text-2xl">👤</span>
+                  <span className="text-blue-300 font-medium">User Request</span>
+                  <span className="text-slate-500 text-xs">Natural Language</span>
+                </div>
+                <div className="text-fuchsia-400 text-2xl">→</div>
+                <div className="flex flex-col items-center gap-2 p-4 bg-purple-500/10 rounded-xl border border-purple-500/30 w-full md:w-auto">
+                  <span className="text-2xl">🧠</span>
+                  <span className="text-purple-300 font-medium">Claude Opus 4.5</span>
+                  <span className="text-slate-500 text-xs">Tool Selection</span>
+                </div>
+                <div className="text-fuchsia-400 text-2xl">→</div>
+                <div className="flex flex-col items-center gap-2 p-4 bg-amber-500/10 rounded-xl border border-amber-500/30 w-full md:w-auto">
+                  <span className="text-2xl">⚡</span>
+                  <span className="text-amber-300 font-medium">E2B Sandbox</span>
+                  <span className="text-slate-500 text-xs">Isolated Execution</span>
+                </div>
+                <div className="text-fuchsia-400 text-2xl">→</div>
+                <div className="flex flex-col items-center gap-2 p-4 bg-green-500/10 rounded-xl border border-green-500/30 w-full md:w-auto">
+                  <span className="text-2xl">✅</span>
+                  <span className="text-green-300 font-medium">Result</span>
+                  <span className="text-slate-500 text-xs">Streamed Response</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Code Examples Section */}
+      <section className="py-24 border-t border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-white mb-4">Real Tool Examples</h2>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+              See how natural language translates to powerful tool execution.
+            </p>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-2 max-w-6xl mx-auto">
+            {/* Example 1: File Creation */}
+            <div className="bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-800">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700">
+                <span className="text-sm font-medium text-fuchsia-400">Example: Creating a React Component</span>
+              </div>
+              <div className="p-6">
+                <div className="mb-4">
+                  <div className="text-xs text-slate-500 mb-2">USER REQUEST</div>
+                  <div className="bg-blue-500/10 rounded-lg p-3 text-blue-200 text-sm">
+                    &quot;Create a Button component with primary and secondary variants&quot;
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <div className="text-xs text-slate-500 mb-2">TOOL EXECUTED</div>
+                  <code className="block bg-slate-800 rounded-lg p-3 text-fuchsia-300 text-sm font-mono">
+                    write_file(path: &quot;src/components/Button.tsx&quot;, content: ...)
+                  </code>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-2">GENERATED CODE</div>
+                  <pre className="bg-slate-950 rounded-lg p-3 text-sm font-mono overflow-x-auto text-slate-300">
+{`interface ButtonProps {
+  variant?: 'primary' | 'secondary';
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+
+export function Button({
+  variant = 'primary',
+  children,
+  onClick
+}: ButtonProps) {
+  const styles = variant === 'primary'
+    ? 'bg-blue-600 hover:bg-blue-500'
+    : 'bg-slate-600 hover:bg-slate-500';
+
+  return (
+    <button
+      className={\`px-4 py-2 rounded \${styles}\`}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Example 2: Git Operations */}
+            <div className="bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-800">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700">
+                <span className="text-sm font-medium text-fuchsia-400">Example: Git Workflow</span>
+              </div>
+              <div className="p-6">
+                <div className="mb-4">
+                  <div className="text-xs text-slate-500 mb-2">USER REQUEST</div>
+                  <div className="bg-blue-500/10 rounded-lg p-3 text-blue-200 text-sm">
+                    &quot;Commit the auth changes and push to the feature branch&quot;
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <div className="text-xs text-slate-500 mb-2">TOOLS EXECUTED (Sequence)</div>
+                  <div className="space-y-2">
+                    <code className="block bg-slate-800 rounded-lg p-3 text-fuchsia-300 text-sm font-mono">
+                      1. git_status()
+                    </code>
+                    <code className="block bg-slate-800 rounded-lg p-3 text-fuchsia-300 text-sm font-mono">
+                      2. git_diff(staged: false)
+                    </code>
+                    <code className="block bg-slate-800 rounded-lg p-3 text-fuchsia-300 text-sm font-mono">
+                      3. git_commit(message: &quot;feat: add user auth&quot;)
+                    </code>
+                    <code className="block bg-slate-800 rounded-lg p-3 text-fuchsia-300 text-sm font-mono">
+                      4. execute_shell(&quot;git push origin feature/auth&quot;)
+                    </code>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-2">RESULT</div>
+                  <pre className="bg-slate-950 rounded-lg p-3 text-sm font-mono text-green-400">
+{`[feature/auth 7a3b2c1] feat: add user auth
+ 3 files changed, 142 insertions(+)
+
+To github.com:user/repo.git
+   abc1234..7a3b2c1  feature/auth -> feature/auth`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Example 3: Search & Refactor */}
+            <div className="bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-800">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700">
+                <span className="text-sm font-medium text-fuchsia-400">Example: Codebase Search</span>
+              </div>
+              <div className="p-6">
+                <div className="mb-4">
+                  <div className="text-xs text-slate-500 mb-2">USER REQUEST</div>
+                  <div className="bg-blue-500/10 rounded-lg p-3 text-blue-200 text-sm">
+                    &quot;Find all API endpoints that handle authentication&quot;
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <div className="text-xs text-slate-500 mb-2">TOOL EXECUTED</div>
+                  <code className="block bg-slate-800 rounded-lg p-3 text-fuchsia-300 text-sm font-mono">
+                    search_code(pattern: &quot;auth|login|session&quot;, file_pattern: &quot;**/api/**/*.ts&quot;)
+                  </code>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-2">RESULT</div>
+                  <pre className="bg-slate-950 rounded-lg p-3 text-sm font-mono text-slate-300 overflow-x-auto">
+{`Found 12 matches in 5 files:
+
+app/api/auth/login/route.ts:15
+  export async function POST(req: Request)
+
+app/api/auth/logout/route.ts:8
+  export async function POST(req: Request)
+
+app/api/auth/session/route.ts:12
+  export async function GET(req: Request)
+
+...and 9 more matches`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Example 4: Planning Mode */}
+            <div className="bg-slate-900/50 rounded-2xl overflow-hidden border border-slate-800">
+              <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-700">
+                <span className="text-sm font-medium text-fuchsia-400">Example: Planning Mode</span>
+              </div>
+              <div className="p-6">
+                <div className="mb-4">
+                  <div className="text-xs text-slate-500 mb-2">USER REQUEST</div>
+                  <div className="bg-blue-500/10 rounded-lg p-3 text-blue-200 text-sm">
+                    &quot;Add a payment integration with Stripe&quot;
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <div className="text-xs text-slate-500 mb-2">AI ENTERS PLANNING MODE</div>
+                  <div className="bg-amber-500/10 rounded-lg p-3 text-amber-200 text-sm">
+                    Complex task detected. Entering planning mode to explore architecture options...
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-2">GENERATED PLAN</div>
+                  <pre className="bg-slate-950 rounded-lg p-3 text-sm font-mono text-slate-300 overflow-x-auto">
+{`## Implementation Plan: Stripe Integration
+
+### Tasks:
+1. Install @stripe/stripe-js (client)
+2. Install stripe (server SDK)
+3. Create /api/stripe/checkout route
+4. Create /api/stripe/webhook route
+5. Add pricing components
+6. Configure environment variables
+
+### Architecture Decision:
+- Using Stripe Checkout (hosted)
+- Webhook for subscription events
+- Database sync via webhook
+
+Awaiting approval to proceed...`}
+                  </pre>
+                </div>
               </div>
             </div>
           </div>

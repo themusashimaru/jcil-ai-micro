@@ -172,13 +172,25 @@ export default function HomePage() {
                     </div>
                     <div>
                       <h2 className="text-xl sm:text-2xl font-bold text-white">Code Lab</h2>
-                      <p className="text-sm text-fuchsia-300">For developers</p>
+                      <p className="text-sm text-fuchsia-300">Claude Code Alternative</p>
                     </div>
                   </div>
 
-                  <p className="text-slate-300 mb-6 text-sm sm:text-base">
-                    Full dev environment with sandboxed execution, GitHub integration, and agentic workflows.
+                  <p className="text-slate-300 mb-4 text-sm sm:text-base">
+                    Full AI dev environment in your browser. 30+ tools, sandboxed execution, and autonomous coding workflows.
                   </p>
+
+                  {/* Technical Specs */}
+                  <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+                    <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
+                      <div className="text-fuchsia-300 font-bold">30+</div>
+                      <div className="text-slate-500">Tools</div>
+                    </div>
+                    <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
+                      <div className="text-fuchsia-300 font-bold">90%</div>
+                      <div className="text-slate-500">Claude Code Parity</div>
+                    </div>
+                  </div>
 
                   {/* Capabilities - Horizontal Scroll on Mobile */}
                   <div className="flex gap-2 overflow-x-auto pb-2 mb-6 -mx-2 px-2 scrollbar-hide">
