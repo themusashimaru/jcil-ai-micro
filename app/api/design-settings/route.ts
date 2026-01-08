@@ -9,6 +9,9 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { cacheGet, cacheSet, cacheDelete } from '@/lib/redis/client';
+import { logger } from '@/lib/logger';
+
+const log = logger('DesignSettingsAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -60,7 +63,7 @@ export async function GET() {
       .single();
 
     if (error) {
-      console.error('[Design Settings API] Error fetching settings:', error.code, error.message);
+      log.error('Error fetching settings', error);
       // Cache defaults on error to prevent repeated DB hits
       await cacheSet(CACHE_KEY, DEFAULT_SETTINGS, 60); // Short TTL for errors
       return NextResponse.json(DEFAULT_SETTINGS, {
@@ -83,7 +86,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[Design Settings API] Error:', error);
+    log.error('Unexpected error in GET', error as Error);
     return NextResponse.json(DEFAULT_SETTINGS, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
@@ -123,8 +126,6 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const settings = await request.json();
-
-    console.log('[Design Settings API] Saving settings, lightModeLogo:', settings.lightModeLogo ? 'present' : 'empty');
 
     // Use service role key for update (admin operation)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -181,27 +182,25 @@ export async function POST(request: NextRequest) {
     }
 
     if (result.error) {
-      console.error('[Design Settings API] Error saving settings:', result.error);
+      log.error('Error saving settings', result.error);
       return NextResponse.json(
-        { error: 'Failed to save settings', details: result.error.message },
+        { error: 'Failed to save settings' },
         { status: 500 }
       );
     }
-
-    console.log('[Design Settings API] Save successful, light_mode_logo in result:', result.data?.light_mode_logo ? 'present' : 'empty/missing');
 
     // Invalidate cache and store new settings
     await cacheDelete(CACHE_KEY);
     await cacheSet(CACHE_KEY, result.data, CACHE_TTL_SECONDS);
 
-    console.log('[Admin Audit] Design settings updated by admin, cache invalidated');
+    log.info('Design settings updated by admin');
 
     return NextResponse.json({
       success: true,
       settings: result.data,
     });
   } catch (error) {
-    console.error('[Design Settings API] Error:', error);
+    log.error('Unexpected error in POST', error as Error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -10,6 +10,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('MessagesAPI');
 
 // Force Node runtime for file Buffer support
 export const runtime = 'nodejs';
@@ -95,13 +98,13 @@ export async function GET(
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching messages:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      log.error('Error fetching messages', error);
+      return NextResponse.json({ error: 'Failed to load messages' }, { status: 500 });
     }
 
     return NextResponse.json({ messages });
   } catch (error) {
-    console.error('Error in GET /api/conversations/[id]/messages:', error);
+    log.error('Unexpected error in GET', error as Error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -313,17 +316,11 @@ export async function POST(
       .single();
 
     if (error) {
-      console.error('[API] Error saving message:', {
-        error,
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-      });
-      return errorResponse(500, 'DB_ERROR', error.message || 'Failed to save message');
+      log.error('Error saving message', error);
+      return errorResponse(500, 'DB_ERROR', 'Failed to save message');
     }
 
-    console.log('[API] Message saved successfully:', message.id);
+    log.info(`Message saved: ${message.id}`);
 
     // Note: message_count is incremented by database trigger (increment_conversation_message_count)
     // We only update last_message_at here to avoid duplicate counting
@@ -336,7 +333,7 @@ export async function POST(
       .eq('id', conversationId);
 
     if (updateError) {
-      console.error('Error updating conversation timestamp:', updateError);
+      log.error('Error updating conversation timestamp', updateError);
       // Don't fail the request if this fails
     }
 
@@ -355,9 +352,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error('Error in POST /api/conversations/[id]/messages:', error);
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown server error';
-    return errorResponse(500, 'INTERNAL', errorMessage);
+    log.error('Unexpected error in POST', error as Error);
+    return errorResponse(500, 'INTERNAL', 'Failed to save message');
   }
 }

@@ -3,13 +3,21 @@
  *
  * Parses Excel and PDF files server-side and returns extracted text.
  * This enables the AI to analyze data from these file formats.
+ *
+ * @module api/files/parse
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { logger } from '@/lib/logger';
+
+const log = logger('FileParseAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
+
+/** Maximum characters to return from parsed files */
+const MAX_PARSED_LENGTH = 50000;
 
 interface ParseRequest {
   fileName: string;
@@ -19,36 +27,43 @@ interface ParseRequest {
 
 /**
  * Parse Excel file and return as formatted text
+ * Uses ExcelJS (secure alternative to xlsx)
+ *
+ * @param base64Data - Base64 encoded Excel file content
+ * @returns Formatted text representation of the spreadsheet
+ * @throws Error if parsing fails
  */
-function parseExcel(base64Data: string): string {
+async function parseExcel(base64Data: string): Promise<string> {
   try {
     // Remove data URL prefix if present
     const base64Content = base64Data.replace(/^data:.*?;base64,/, '');
 
-    // Convert base64 to buffer
+    // Convert base64 to ArrayBuffer (ExcelJS compatible)
     const buffer = Buffer.from(base64Content, 'base64');
+    const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
 
-    // Parse workbook
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    // Parse workbook with ExcelJS
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(arrayBuffer);
 
     const result: string[] = [];
 
-    // Process each sheet
-    for (const sheetName of workbook.SheetNames) {
-      const sheet = workbook.Sheets[sheetName];
+    // Process each worksheet
+    workbook.eachSheet((worksheet) => {
+      if (!worksheet.name) return;
 
-      // Convert to JSON for easier processing
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
+      result.push(`=== Sheet: ${worksheet.name} ===\n`);
 
-      if (jsonData.length === 0) continue;
+      let rowIndex = 0;
+      worksheet.eachRow((row) => {
+        const values = row.values as (string | number | boolean | Date | null | undefined)[];
+        // ExcelJS row.values is 1-indexed, first element is undefined
+        const cells = values.slice(1);
 
-      result.push(`=== Sheet: ${sheetName} ===\n`);
-
-      // Format as readable table
-      jsonData.forEach((row, rowIndex) => {
-        if (Array.isArray(row) && row.length > 0) {
-          const formattedRow = row.map(cell => {
+        if (cells.length > 0) {
+          const formattedRow = cells.map(cell => {
             if (cell === null || cell === undefined) return '';
+            if (cell instanceof Date) return cell.toISOString();
             return String(cell);
           }).join('\t|\t');
 
@@ -58,22 +73,23 @@ function parseExcel(base64Data: string): string {
           if (rowIndex === 0) {
             result.push('-'.repeat(Math.min(formattedRow.length, 80)));
           }
+          rowIndex++;
         }
       });
 
       result.push(''); // Empty line between sheets
-    }
+    });
 
     const parsed = result.join('\n');
 
-    // Limit size to prevent token overflow (roughly 50k chars = ~12k tokens)
-    if (parsed.length > 50000) {
-      return parsed.slice(0, 50000) + '\n\n[Data truncated - file too large to display in full]';
+    // Limit size to prevent token overflow
+    if (parsed.length > MAX_PARSED_LENGTH) {
+      return parsed.slice(0, MAX_PARSED_LENGTH) + '\n\n[Data truncated - file too large to display in full]';
     }
 
     return parsed;
   } catch (error) {
-    console.error('[File Parse] Excel parsing error:', error);
+    log.error('Excel parsing error', error as Error);
     throw new Error('Failed to parse Excel file');
   }
 }
@@ -83,6 +99,9 @@ function parseExcel(base64Data: string): string {
  *
  * Uses 'unpdf' library which is specifically designed for serverless
  * environments and doesn't require canvas/DOM APIs like DOMMatrix.
+ *
+ * @param base64Data - Base64 encoded PDF file content
+ * @returns Extracted text from the PDF
  */
 async function parsePDF(base64Data: string): Promise<string> {
   try {
@@ -116,19 +135,29 @@ async function parsePDF(base64Data: string): Promise<string> {
     ].join('\n');
 
     // Limit size to prevent token overflow
-    if (result.length > 50000) {
-      return result.slice(0, 50000) + '\n\n[Content truncated - document too large]';
+    if (result.length > MAX_PARSED_LENGTH) {
+      return result.slice(0, MAX_PARSED_LENGTH) + '\n\n[Content truncated - document too large]';
     }
 
     return result;
   } catch (error) {
-    console.error('[File Parse] PDF parsing error:', error);
+    log.error('PDF parsing error', error as Error);
 
     // If unpdf fails, return a graceful error message
     return '[PDF text extraction encountered an error. Please try uploading the file again or copy-paste the text content directly.]';
   }
 }
 
+/**
+ * POST /api/files/parse
+ *
+ * Parses uploaded files (Excel, PDF, CSV, TXT) and returns extracted text.
+ *
+ * @param request - Contains fileName, fileType, and base64 content
+ * @returns Parsed text content and metadata
+ * @throws 400 if no content or unsupported file type
+ * @throws 500 if parsing fails
+ */
 export async function POST(request: NextRequest) {
   try {
     const body: ParseRequest = await request.json();
@@ -146,8 +175,8 @@ export async function POST(request: NextRequest) {
     // Route to appropriate parser
     if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
         fileType === 'application/vnd.ms-excel') {
-      // Excel file
-      parsedText = parseExcel(content);
+      // Excel file (now async with ExcelJS)
+      parsedText = await parseExcel(content);
     } else if (fileType === 'application/pdf') {
       // PDF file
       parsedText = await parsePDF(content);
@@ -164,7 +193,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[File Parse] Successfully parsed ${fileName} (${fileType}): ${parsedText.length} chars`);
+    log.info(`Parsed ${fileName} (${fileType}): ${parsedText.length} chars`);
 
     return NextResponse.json({
       success: true,
@@ -175,12 +204,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[File Parse] Error:', error);
+    log.error('File parsing failed', error as Error);
     return NextResponse.json(
-      {
-        error: 'Failed to parse file',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to parse file' },
       { status: 500 }
     );
   }

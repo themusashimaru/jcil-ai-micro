@@ -10,6 +10,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminUsersAPI');
 
 // Use service role key for admin operations (bypasses RLS)
 function getSupabaseAdmin() {
@@ -65,16 +68,9 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      // SECURITY FIX: Log full error server-side, return generic message to client
-      // Previously exposed database schema details in error response
-      console.error('[Admin API] Error fetching users:', error.message, error.code, error.details);
+      log.error('Error fetching users', error);
       return NextResponse.json(
-        {
-          error: 'Failed to fetch users',
-          message: 'Unable to load user data. Please try again.',
-          code: 'DATABASE_ERROR'
-          // REMOVED: details field that exposed internal error messages
-        },
+        { error: 'Failed to fetch users' },
         { status: 500 }
       );
     }
@@ -93,7 +89,7 @@ export async function GET(request: NextRequest) {
       `);
 
     if (allUsersError) {
-      console.error('[Admin API] Error fetching all users for stats:', allUsersError);
+      log.error('Error fetching all users for stats', allUsersError);
     }
 
     const statsUsers = allUsers || users || [];
@@ -170,13 +166,9 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[Admin API] Error:', error);
+    log.error('Unexpected error', error as Error);
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.',
-        code: 'INTERNAL_ERROR'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

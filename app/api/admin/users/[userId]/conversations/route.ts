@@ -7,6 +7,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminUserConversationsAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -62,20 +65,15 @@ export async function GET(
     const { data: conversations, error } = await query;
 
     if (error) {
-      console.error('[Admin API] Error fetching user conversations:', error);
+      log.error('Error fetching user conversations', error);
       return NextResponse.json(
-        {
-          error: 'Failed to fetch conversations',
-          message: 'Unable to load user conversations',
-          code: 'DATABASE_ERROR',
-          details: error.message
-        },
+        { error: 'Failed to fetch conversations' },
         { status: 500 }
       );
     }
 
     // Log admin access for audit trail
-    console.log(`[Admin Audit] Admin viewed conversations for user: ${userId}`);
+    log.info(`Admin viewed conversations for user: ${userId}`);
 
     return NextResponse.json({
       conversations: conversations || [],
@@ -88,13 +86,9 @@ export async function GET(
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[Admin API] Error:', error);
+    log.error('Unexpected error', error as Error);
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
-        code: 'INTERNAL_ERROR'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

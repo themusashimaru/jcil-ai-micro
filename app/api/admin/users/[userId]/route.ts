@@ -7,6 +7,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminUserAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -60,26 +63,17 @@ export async function GET(
       .single();
 
     if (error) {
-      console.error('[Admin API] Error fetching user:', error);
+      log.error('Error fetching user', error);
 
       if (error.code === 'PGRST116') {
         return NextResponse.json(
-          {
-            error: 'User not found',
-            message: 'The requested user does not exist',
-            code: 'NOT_FOUND'
-          },
+          { error: 'User not found' },
           { status: 404 }
         );
       }
 
       return NextResponse.json(
-        {
-          error: 'Failed to fetch user',
-          message: 'Unable to load user data',
-          code: 'DATABASE_ERROR',
-          details: error.message
-        },
+        { error: 'Failed to fetch user' },
         { status: 500 }
       );
     }
@@ -99,7 +93,7 @@ export async function GET(
       .is('deleted_at', null);
 
     // Log admin access for audit trail
-    console.log(`[Admin Audit] Admin viewed user: ${userId}`);
+    log.info(`Admin viewed user: ${userId}`);
 
     return NextResponse.json({
       user: {
@@ -110,13 +104,9 @@ export async function GET(
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[Admin API] Error:', error);
+    log.error('Unexpected error', error as Error);
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
-        code: 'INTERNAL_ERROR'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
