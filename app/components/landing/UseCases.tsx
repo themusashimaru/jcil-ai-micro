@@ -225,7 +225,7 @@ export default function UseCases() {
             <span className="text-sm font-medium text-purple-300">Use Cases</span>
           </div>
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-            Built for every corner of the Kingdom
+            Engineered for faith-driven work
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             Whether you&apos;re preaching on Sunday, coding on Monday, or leading a Bible study on
