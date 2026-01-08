@@ -12,23 +12,43 @@
 import { createClaudeChat } from '@/lib/anthropic/client';
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
+import { generateTitleSchema } from '@/lib/validation/schemas';
+import { validateCSRF } from '@/lib/security/csrf';
+import { checkRequestRateLimit, rateLimits, errors } from '@/lib/api/utils';
 
 const log = logger('GenerateTitleAPI');
 
-interface GenerateTitleRequest {
-  userMessage: string;
-  assistantMessage: string;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const body: GenerateTitleRequest = await request.json();
-    const userMessage = body?.userMessage || '';
-    const assistantMessage = body?.assistantMessage || '';
+    // CSRF Protection
+    const csrfCheck = validateCSRF(request);
+    if (!csrfCheck.valid) return csrfCheck.response!;
+
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const rateLimitResult = checkRequestRateLimit(`generate-title:${ip}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
+    // Parse and validate body
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
+      return errors.badRequest('Invalid JSON body');
+    }
+
+    const validation = generateTitleSchema.safeParse(rawBody);
+    if (!validation.success) {
+      return errors.validationError(
+        validation.error.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+      );
+    }
+
+    const { userMessage, assistantMessage = '' } = validation.data;
 
     log.info('[API] Generate title request:', {
       userMessage: userMessage.slice(0, 100),
-      assistantMessage: assistantMessage.slice(0, 100),
+      assistantMessage: assistantMessage?.slice(0, 100) || '',
     });
 
     if (!userMessage.trim()) {

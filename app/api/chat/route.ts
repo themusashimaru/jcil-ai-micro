@@ -24,6 +24,8 @@ import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+import { chatRequestSchema } from '@/lib/validation/schemas';
+import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
 
 const log = logger('ChatAPI');
 
@@ -35,13 +37,6 @@ const RATE_LIMIT_ANONYMOUS = parseInt(process.env.RATE_LIMIT_ANON || '30', 10);
 const MAX_RESPONSE_TOKENS = 4096;
 const DEFAULT_RESPONSE_TOKENS = 2048;
 const MAX_CONTEXT_MESSAGES = 40;
-
-interface ChatRequestBody {
-  messages: CoreMessage[];
-  temperature?: number;
-  max_tokens?: number;
-  searchMode?: 'none' | 'search' | 'factcheck';
-}
 
 // ============================================================================
 // RATE LIMITING
@@ -301,16 +296,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request
-    const body: ChatRequestBody = await request.json();
-    const { messages, temperature, max_tokens, searchMode } = body;
-
-    if (!messages || messages.length === 0) {
+    // Parse and validate request body
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: 'Messages are required' }),
+        JSON.stringify({ ok: false, error: 'Invalid JSON body', code: 'INVALID_JSON' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
+
+    // Validate request size
+    const sizeCheck = validateRequestSize(rawBody, SIZE_LIMITS.MEDIUM);
+    if (!sizeCheck.valid) {
+      return sizeCheck.response!;
+    }
+
+    // Validate with Zod schema
+    const validation = chatRequestSchema.safeParse(rawBody);
+    if (!validation.success) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: 'Validation failed',
+          code: 'VALIDATION_ERROR',
+          details: validation.error.errors.map(e => ({ field: e.path.join('.'), message: e.message })),
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { messages, temperature, max_tokens, searchMode } = validation.data;
 
     // Get user auth
     let rateLimitIdentifier: string;
