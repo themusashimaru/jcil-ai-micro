@@ -28,6 +28,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -35,6 +36,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PWAInstaller() {
+  const log = logger('PWAInstaller');
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -56,7 +58,7 @@ export function PWAInstaller() {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          console.log('[PWA] Service Worker registered:', registration.scope);
+          log.info('Service Worker registered', { scope: registration.scope });
 
           // Check if there's already a waiting worker
           if (registration.waiting) {
@@ -84,12 +86,12 @@ export function PWAInstaller() {
           }, 60 * 60 * 1000);
         })
         .catch((error) => {
-          console.error('[PWA] Service Worker registration failed:', error);
+          log.error('Service Worker registration failed', error instanceof Error ? error : { error });
         });
 
       // Listen for controller change (when new SW takes over)
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('[PWA] New service worker activated, reloading...');
+        log.info('New service worker activated, reloading...');
         window.location.reload();
       });
     }
@@ -122,7 +124,7 @@ export function PWAInstaller() {
 
     // Wait for user choice
     const { outcome } = await deferredPrompt.userChoice;
-    console.log(`[PWA] User ${outcome} the install prompt`);
+    log.info('User responded to install prompt', { outcome });
 
     // Clear deferred prompt
     setDeferredPrompt(null);

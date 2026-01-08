@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 interface User {
   id: string;
@@ -52,6 +53,7 @@ interface Stats {
 }
 
 export default function UsersPage() {
+  const log = logger('AdminUsers');
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,19 +70,19 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      console.log('[Admin Users] Fetching users from API...');
+      log.info('Fetching users from API...');
       const response = await fetch('/api/admin/users');
 
-      console.log('[Admin Users] API response status:', response.status);
+      log.info('API response status', { status: response.status });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[Admin Users] API error response:', errorData);
+        log.error('API error response', errorData);
         throw new Error(errorData.message || `Failed to fetch users (${response.status})`);
       }
 
       const data = await response.json();
-      console.log('[Admin Users] API response data:', {
+      log.info('API response data', {
         userCount: data.users?.length || 0,
         hasStats: !!data.stats,
         timestamp: data.timestamp
@@ -90,7 +92,7 @@ export default function UsersPage() {
       setStats(data.stats || null);
       setError(null);
     } catch (err) {
-      console.error('[Admin Users] Error fetching users:', err);
+      log.error('Error fetching users', err instanceof Error ? err : { error: err });
       setError(err instanceof Error ? err.message : 'Failed to load users');
     } finally {
       setLoading(false);

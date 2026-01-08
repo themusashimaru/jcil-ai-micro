@@ -14,11 +14,14 @@ import { useUserProfile, type UserProfile } from '@/contexts/UserProfileContext'
 import { useTheme } from '@/contexts/ThemeContext';
 import PasskeySettings from '@/components/auth/PasskeySettings';
 import DOMPurify from 'dompurify';
+import { logger } from '@/lib/logger';
 
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const log = logger('UserProfileModal');
 
 export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const { profile, updateProfile } = useUserProfile();
@@ -52,7 +55,7 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      console.log('[ProfileModal] Calling logout API...');
+      log.info('Calling logout API...');
       // Call the API route to handle logout with proper cookie management
       const response = await fetch('/api/auth/signout', {
         method: 'POST',
@@ -62,11 +65,11 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
         throw new Error('Logout failed');
       }
 
-      console.log('[ProfileModal] Logout successful, redirecting...');
+      log.info('Logout successful, redirecting...');
       // Force a hard redirect to clear all state
       window.location.href = '/login';
     } catch (error) {
-      console.error('[ProfileModal] Logout error:', error);
+      log.error('Logout error:', error instanceof Error ? error : { error });
       setIsLoggingOut(false);
       alert('Failed to logout. Please try again.');
     }
