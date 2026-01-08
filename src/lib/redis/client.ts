@@ -93,9 +93,10 @@ export async function cacheDeletePattern(pattern: string): Promise<boolean> {
 /**
  * Check rate limit using sliding window
  * Returns true if within limit, false if exceeded
+ * SECURITY: Fails closed - returns false if Redis unavailable (deny by default)
  */
 export async function checkRateLimit(key: string, limit: number, windowSeconds: number): Promise<boolean> {
-  if (!redis) return true; // Allow if Redis not configured
+  if (!redis) return false; // SECURITY: Fail closed - deny if Redis not configured
 
   try {
     const now = Date.now();
@@ -113,8 +114,8 @@ export async function checkRateLimit(key: string, limit: number, windowSeconds: 
 
     return count <= limit;
   } catch (error) {
-    log.warn('Rate limit check error', error as Error);
-    return true; // Allow on error
+    log.error('Rate limit check error - failing closed', error as Error);
+    return false; // SECURITY: Fail closed - deny on error
   }
 }
 

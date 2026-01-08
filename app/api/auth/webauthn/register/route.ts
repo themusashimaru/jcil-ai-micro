@@ -17,11 +17,18 @@ import {
 } from '@/lib/auth/webauthn';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { cacheGet, cacheSet, cacheDelete, isRedisAvailable } from '@/lib/redis/client';
 
 const log = logger('WebAuthnRegister');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+// Challenge TTL in seconds (5 minutes)
+const CHALLENGE_TTL_SECONDS = 5 * 60;
+
+// In-memory fallback only when Redis is unavailable (development only)
+const memoryFallbackStore = new Map<string, { challenge: string; expires: number }>();
 
 // Create Supabase client inside functions to avoid build-time initialization
 function getSupabaseAdmin() {
@@ -35,8 +42,59 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-// In-memory challenge store (in production, use Redis or database)
-const challengeStore = new Map<string, { challenge: string; expires: number }>();
+/**
+ * Store WebAuthn challenge (Redis-first with memory fallback)
+ */
+async function storeChallenge(key: string, challenge: string): Promise<void> {
+  const redisKey = `webauthn:register:${key}`;
+
+  if (isRedisAvailable()) {
+    await cacheSet(redisKey, { challenge }, CHALLENGE_TTL_SECONDS);
+  } else {
+    // Memory fallback for development - cleanup old entries first
+    const now = Date.now();
+    for (const [k, v] of memoryFallbackStore.entries()) {
+      if (v.expires < now) memoryFallbackStore.delete(k);
+    }
+    memoryFallbackStore.set(key, {
+      challenge,
+      expires: now + CHALLENGE_TTL_SECONDS * 1000,
+    });
+    log.warn('Using memory fallback for challenge storage - not recommended in production');
+  }
+}
+
+/**
+ * Get stored WebAuthn challenge (Redis-first with memory fallback)
+ */
+async function getChallenge(key: string): Promise<string | null> {
+  const redisKey = `webauthn:register:${key}`;
+
+  if (isRedisAvailable()) {
+    const data = await cacheGet<{ challenge: string }>(redisKey);
+    return data?.challenge || null;
+  } else {
+    const entry = memoryFallbackStore.get(key);
+    if (!entry || entry.expires < Date.now()) {
+      memoryFallbackStore.delete(key);
+      return null;
+    }
+    return entry.challenge;
+  }
+}
+
+/**
+ * Delete stored WebAuthn challenge
+ */
+async function deleteChallenge(key: string): Promise<void> {
+  const redisKey = `webauthn:register:${key}`;
+
+  if (isRedisAvailable()) {
+    await cacheDelete(redisKey);
+  } else {
+    memoryFallbackStore.delete(key);
+  }
+}
 
 /**
  * POST - Generate registration options for a new passkey
@@ -80,18 +138,8 @@ export async function POST(_request: NextRequest) {
       (existingPasskeys || []) as StoredPasskey[]
     );
 
-    // Store challenge for verification (expires in 5 minutes)
-    challengeStore.set(userId, {
-      challenge: options.challenge,
-      expires: Date.now() + 5 * 60 * 1000,
-    });
-
-    // Clean up expired challenges
-    for (const [key, value] of challengeStore.entries()) {
-      if (value.expires < Date.now()) {
-        challengeStore.delete(key);
-      }
-    }
+    // Store challenge in Redis for verification (expires in 5 minutes)
+    await storeChallenge(userId, options.challenge);
 
     return successResponse(options);
   } catch (error) {
@@ -117,10 +165,9 @@ export async function PUT(request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Get stored challenge
-    const storedChallenge = challengeStore.get(userId);
-    if (!storedChallenge || storedChallenge.expires < Date.now()) {
-      challengeStore.delete(userId);
+    // Get stored challenge from Redis
+    const storedChallenge = await getChallenge(userId);
+    if (!storedChallenge) {
       return errors.badRequest('Challenge expired, please try again');
     }
 
@@ -134,7 +181,7 @@ export async function PUT(request: NextRequest) {
     // Verify the registration response
     const verification = await verifyPasskeyRegistration(
       response,
-      storedChallenge.challenge
+      storedChallenge
     );
 
     if (!verification.verified || !verification.registrationInfo) {
@@ -163,8 +210,8 @@ export async function PUT(request: NextRequest) {
       return errors.serverError();
     }
 
-    // Clear the challenge
-    challengeStore.delete(userId);
+    // Clear the challenge from Redis
+    await deleteChallenge(userId);
 
     return successResponse({
       success: true,

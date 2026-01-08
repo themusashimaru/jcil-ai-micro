@@ -21,6 +21,7 @@ import {
   createPullRequest,
   searchCode,
 } from '@/lib/github/client';
+import { validateCSRF } from '@/lib/security/csrf';
 
 export const runtime = 'nodejs';
 
@@ -176,6 +177,10 @@ export async function GET(request: NextRequest) {
  * POST - Write operations
  */
 export async function POST(request: NextRequest) {
+  // CSRF Protection for state-changing operations
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const auth = await requireAdmin(request);
   if (!auth.isAdmin) return auth.error;
 

@@ -57,8 +57,8 @@ interface ApiKeyState {
 // Separate pools for better management
 const primaryPool: ApiKeyState[] = [];
 const fallbackPool: ApiKeyState[] = [];
-let primaryKeyIndex = 0; // Round-robin index for primary pool
-let fallbackKeyIndex = 0; // Round-robin index for fallback pool
+// Note: Using random key selection instead of round-robin indices
+// to avoid race conditions in serverless environments
 let initialized = false;
 
 /**
@@ -123,29 +123,29 @@ function initializeApiKeys(): void {
 }
 
 /**
- * Get an available key from the primary pool (round-robin)
+ * Get an available key from the primary pool
+ * Uses random selection for serverless-safe load distribution
+ * (Round-robin with global indices causes race conditions in concurrent requests)
  * Returns null if all primary keys are rate limited
  */
 function getPrimaryKey(): string | null {
   const now = Date.now();
 
-  // Round-robin through primary pool
-  for (let i = 0; i < primaryPool.length; i++) {
-    const keyIndex = (primaryKeyIndex + i) % primaryPool.length;
-    const keyState = primaryPool[keyIndex];
+  // Get all available (non-rate-limited) keys
+  const availableKeys = primaryPool.filter(k => k.rateLimitedUntil <= now);
 
-    if (keyState.rateLimitedUntil <= now) {
-      // Advance round-robin for next request (load distribution)
-      primaryKeyIndex = (keyIndex + 1) % primaryPool.length;
-      return keyState.key;
-    }
+  if (availableKeys.length === 0) {
+    return null; // All primary keys are rate limited
   }
 
-  return null; // All primary keys are rate limited
+  // Random selection for serverless-safe load distribution
+  const randomIndex = Math.floor(Math.random() * availableKeys.length);
+  return availableKeys[randomIndex].key;
 }
 
 /**
  * Get an available key from the fallback pool
+ * Uses random selection for serverless-safe load distribution
  * Returns null if all fallback keys are rate limited
  */
 function getFallbackKey(): string | null {
@@ -153,23 +153,23 @@ function getFallbackKey(): string | null {
 
   const now = Date.now();
 
-  for (let i = 0; i < fallbackPool.length; i++) {
-    const keyIndex = (fallbackKeyIndex + i) % fallbackPool.length;
-    const keyState = fallbackPool[keyIndex];
+  // Get all available (non-rate-limited) fallback keys
+  const availableKeys = fallbackPool.filter(k => k.rateLimitedUntil <= now);
 
-    if (keyState.rateLimitedUntil <= now) {
-      fallbackKeyIndex = (keyIndex + 1) % fallbackPool.length;
-      log.info('Using fallback key', { keyIndex: keyState.index, reason: 'primary pool exhausted' });
-      return keyState.key;
-    }
+  if (availableKeys.length === 0) {
+    return null; // All fallback keys are also rate limited
   }
 
-  return null; // All fallback keys are also rate limited
+  // Random selection for serverless-safe load distribution
+  const randomIndex = Math.floor(Math.random() * availableKeys.length);
+  const keyState = availableKeys[randomIndex];
+  log.info('Using fallback key (primary pool exhausted)', { keyIndex: keyState.index });
+  return keyState.key;
 }
 
 /**
  * Get the next available Perplexity API key
- * Priority: Primary pool (round-robin) → Fallback pool → Wait for soonest available
+ * Priority: Primary pool (random selection) → Fallback pool → Wait for soonest available
  */
 async function getApiKey(): Promise<string | null> {
   initializeApiKeys();
@@ -179,7 +179,7 @@ async function getApiKey(): Promise<string | null> {
     return null;
   }
 
-  // Try primary pool first (round-robin for load distribution)
+  // Try primary pool first (random selection for load distribution)
   const primaryKey = getPrimaryKey();
   if (primaryKey) {
     return primaryKey;

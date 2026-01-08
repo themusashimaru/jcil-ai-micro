@@ -82,19 +82,35 @@ export function validatePositiveInt(
 
 /**
  * Validate path parameter is safe (no traversal)
+ * Checks both literal and URL-encoded path traversal attempts
  * Basic check - use sanitizeFilePath for full sanitization
  */
 export function isPathSafe(path: string): boolean {
   if (!path) return false;
 
-  // Check for null bytes
+  // Check for null bytes (both literal and encoded)
   if (path.includes('\0')) return false;
+  if (path.toLowerCase().includes('%00')) return false;
 
-  // Check for path traversal
-  if (path.includes('..')) return false;
+  // URL-decode the path to catch encoded traversal attempts
+  // e.g., %2e%2e = .., %2f = /, %5c = \
+  let decodedPath: string;
+  try {
+    decodedPath = decodeURIComponent(path);
+  } catch {
+    // If decoding fails, the path contains invalid encoding - reject it
+    return false;
+  }
+
+  // Check for path traversal (both original and decoded)
+  if (path.includes('..') || decodedPath.includes('..')) return false;
+
+  // Check for backslash traversal (Windows-style)
+  if (path.includes('\\') || decodedPath.includes('\\')) return false;
 
   // Check for shell metacharacters
   if (/[;&|`$(){}[\]<>!]/.test(path)) return false;
+  if (/[;&|`$(){}[\]<>!]/.test(decodedPath)) return false;
 
   return true;
 }
