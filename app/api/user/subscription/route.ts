@@ -10,8 +10,11 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+
+const log = logger('UserSubscription');
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -49,8 +52,12 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`subscription:get:${user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Fetch user's subscription details from database
     const { data: userData, error: dbError } = await supabase
@@ -60,24 +67,18 @@ export async function GET() {
       .single();
 
     if (dbError) {
-      console.error('[API] Error fetching subscription:', dbError);
-      return NextResponse.json(
-        { error: 'Failed to fetch subscription' },
-        { status: 500 }
-      );
+      log.error('[API] Error fetching subscription:', dbError instanceof Error ? dbError : { dbError });
+      return errors.serverError();
     }
 
-    return NextResponse.json({
+    return successResponse({
       tier: userData.subscription_tier || 'free',
       status: userData.subscription_status || 'active',
       hasStripeCustomer: !!userData.stripe_customer_id,
       hasActiveSubscription: !!userData.stripe_subscription_id,
     });
   } catch (error) {
-    console.error('[API] Subscription fetch error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    log.error('[API] Subscription fetch error:', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }

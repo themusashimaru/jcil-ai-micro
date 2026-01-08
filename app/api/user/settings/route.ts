@@ -5,11 +5,13 @@
  * PUT - Update current user's settings
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { userSettingsSchema } from '@/lib/validation/schemas';
 
 const log = logger('UserSettings');
 
@@ -28,13 +30,17 @@ async function getSupabase() {
   );
 }
 
-export async function GET() {
+export async function GET(_request: NextRequest) {
   const supabase = await getSupabase();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
+
+  // Rate limiting by user
+  const rateLimitCheck = checkRequestRateLimit(`settings:get:${user.id}`, rateLimits.standard);
+  if (!rateLimitCheck.allowed) return rateLimitCheck.response;
 
   // Get user settings
   const { data: settings, error } = await supabase
@@ -45,11 +51,11 @@ export async function GET() {
 
   if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
     log.error('[User Settings] Error fetching settings:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
+    return errors.serverError();
   }
 
   // Return settings or defaults
-  return NextResponse.json({
+  return successResponse({
     settings: settings || {
       theme: 'dark',
     },
@@ -65,18 +71,18 @@ export async function PUT(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return errors.unauthorized();
   }
 
-  // Parse request body with error handling
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
-  }
+  // Rate limiting by user
+  const rateLimitCheck = checkRequestRateLimit(`settings:put:${user.id}`, rateLimits.standard);
+  if (!rateLimitCheck.allowed) return rateLimitCheck.response;
 
-  const { theme } = body;
+  // Validate request body
+  const bodyValidation = await validateBody(request, userSettingsSchema);
+  if (!bodyValidation.success) return bodyValidation.response;
+
+  const { theme } = bodyValidation.data;
 
   // Validate theme - light mode is admin only for now
   if (theme === 'light') {
@@ -88,10 +94,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (!adminUser) {
-      return NextResponse.json(
-        { error: 'Light mode is currently only available for admins' },
-        { status: 403 }
-      );
+      return errors.forbidden('Light mode is currently only available for admins');
     }
   }
 
@@ -113,8 +116,8 @@ export async function PUT(request: NextRequest) {
 
   if (error) {
     log.error('[User Settings] Error updating settings:', error instanceof Error ? error : { error });
-    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
+    return errors.serverError();
   }
 
-  return NextResponse.json({ settings });
+  return successResponse({ settings });
 }

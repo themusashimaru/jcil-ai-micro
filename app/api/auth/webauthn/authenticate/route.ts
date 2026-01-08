@@ -4,7 +4,7 @@
  * PUT /api/auth/webauthn/authenticate - Verify passkey and create session
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import {
   generatePasskeyAuthenticationOptions,
@@ -13,6 +13,7 @@ import {
   type AuthenticationResponseJSON,
 } from '@/lib/auth/webauthn';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
 
 const log = logger('WebAuthnAuthenticate');
 
@@ -39,6 +40,11 @@ const challengeStore = new Map<string, { challenge: string; expires: number }>()
  * Can be called with or without email (for discoverable credentials)
  */
 export async function POST(request: NextRequest) {
+  // Rate limit by IP for login attempts
+  const ip = getClientIP(request);
+  const rateLimitResult = checkRequestRateLimit(`webauthn:auth:${ip}`, rateLimits.auth);
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
+
   try {
     const body = await request.json().catch(() => ({}));
     const { email } = body as { email?: string };
@@ -81,16 +87,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    return successResponse({
       ...options,
       challengeKey, // Return this so client can send it back
     });
   } catch (error) {
     log.error('Passkey auth options error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to generate authentication options' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 
@@ -98,6 +101,11 @@ export async function POST(request: NextRequest) {
  * PUT - Verify authentication response and create session
  */
 export async function PUT(request: NextRequest) {
+  // Rate limit by IP for login attempts
+  const ip = getClientIP(request);
+  const rateLimitResult = checkRequestRateLimit(`webauthn:verify:${ip}`, rateLimits.auth);
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
+
   try {
     const body = await request.json();
     const { response, challengeKey } = body as {
@@ -109,10 +117,7 @@ export async function PUT(request: NextRequest) {
     const storedChallenge = challengeStore.get(challengeKey);
     if (!storedChallenge || storedChallenge.expires < Date.now()) {
       challengeStore.delete(challengeKey);
-      return NextResponse.json(
-        { error: 'Challenge expired, please try again' },
-        { status: 400 }
-      );
+      return errors.badRequest('Challenge expired, please try again');
     }
 
     const supabase = getSupabaseAdmin();
@@ -125,10 +130,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (findError || !passkey) {
-      return NextResponse.json(
-        { error: 'Passkey not found' },
-        { status: 404 }
-      );
+      return errors.notFound('Passkey');
     }
 
     // Verify the authentication response
@@ -139,10 +141,7 @@ export async function PUT(request: NextRequest) {
     );
 
     if (!verification.verified) {
-      return NextResponse.json(
-        { error: 'Verification failed' },
-        { status: 400 }
-      );
+      return errors.badRequest('Verification failed');
     }
 
     // Update the counter to prevent replay attacks
@@ -165,10 +164,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (userError || !userData) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return errors.notFound('User');
     }
 
     // Generate a magic link for the user
@@ -179,20 +175,14 @@ export async function PUT(request: NextRequest) {
 
     if (authError || !authData) {
       log.error('Failed to generate auth link', { error: authError ?? 'Unknown error' });
-      return NextResponse.json(
-        { error: 'Failed to create session' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Extract the token hash from the action link
     // The action link format: https://xxx.supabase.co/auth/v1/verify?token=TOKEN&type=magiclink&redirect_to=...
     const actionLink = authData.properties?.action_link;
     if (!actionLink) {
-      return NextResponse.json(
-        { error: 'Failed to create session' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Parse the token from the URL
@@ -201,10 +191,7 @@ export async function PUT(request: NextRequest) {
     const type = url.searchParams.get('type');
 
     if (!token) {
-      return NextResponse.json(
-        { error: 'Failed to extract token' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Update last login
@@ -213,7 +200,7 @@ export async function PUT(request: NextRequest) {
       .update({ last_login_at: new Date().toISOString() })
       .eq('id', userData.id);
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       // Return token info for client-side verification
       token,
@@ -226,9 +213,6 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     log.error('Passkey authentication error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to authenticate' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

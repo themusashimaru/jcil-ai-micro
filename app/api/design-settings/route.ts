@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { cacheGet, cacheSet, cacheDelete } from '@/lib/redis/client';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
+import { designSettingsSchema } from '@/lib/validation/schemas';
 
 const log = logger('DesignSettingsAPI');
 
@@ -33,8 +35,13 @@ const DEFAULT_SETTINGS = {
 };
 
 // GET - Public endpoint to fetch current design settings (Redis + HTTP cached)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const rateLimitCheck = checkRequestRateLimit(clientIP, rateLimits.standard);
+    if (!rateLimitCheck.allowed) return rateLimitCheck.response;
+
     // Try Redis cache first
     const cached = await cacheGet<typeof DEFAULT_SETTINGS>(CACHE_KEY);
     if (cached) {
@@ -99,15 +106,17 @@ export async function GET() {
 // POST - Admin only endpoint to update design settings
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const rateLimitCheck = checkRequestRateLimit(clientIP, rateLimits.strict);
+    if (!rateLimitCheck.allowed) return rateLimitCheck.response;
+
     // Check admin authentication
     const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return errors.unauthorized();
     }
 
     // Check if user is admin
@@ -118,14 +127,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!adminUser) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
+      return errors.forbidden();
     }
 
-    // Parse request body
-    const settings = await request.json();
+    // Validate request body
+    const validation = await validateBody(request, designSettingsSchema);
+    if (!validation.success) return validation.response;
+
+    const settings = validation.data;
 
     // Use service role key for update (admin operation)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -183,10 +192,7 @@ export async function POST(request: NextRequest) {
 
     if (result.error) {
       log.error('Error saving settings', result.error);
-      return NextResponse.json(
-        { error: 'Failed to save settings' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Invalidate cache and store new settings
@@ -195,15 +201,11 @@ export async function POST(request: NextRequest) {
 
     log.info('Design settings updated by admin');
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       settings: result.data,
     });
   } catch (error) {
     log.error('Unexpected error in POST', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

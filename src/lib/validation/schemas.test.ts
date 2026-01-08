@@ -342,16 +342,18 @@ describe('Validation Schemas', () => {
   describe('designSettingsSchema', () => {
     it('should parse valid design settings', () => {
       const input = {
-        primary_color: '#FF5500',
-        company_name: 'My Company',
+        siteName: 'My Company',
+        subtitle: 'Best in class',
+        modelName: 'Custom AI',
       };
       const result = designSettingsSchema.parse(input);
-      expect(result.primary_color).toBe('#FF5500');
+      expect(result.siteName).toBe('My Company');
+      expect(result.subtitle).toBe('Best in class');
     });
 
-    it('should reject invalid hex colors', () => {
-      expect(() => designSettingsSchema.parse({ primary_color: 'red' })).toThrow();
-      expect(() => designSettingsSchema.parse({ primary_color: '#GGG' })).toThrow();
+    it('should reject site names exceeding max length', () => {
+      expect(() => designSettingsSchema.parse({ siteName: 'a'.repeat(101) })).toThrow();
+      expect(() => designSettingsSchema.parse({ subtitle: 'a'.repeat(201) })).toThrow();
     });
   });
 

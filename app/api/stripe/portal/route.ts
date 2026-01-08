@@ -3,11 +3,12 @@
  * PURPOSE: Redirect users to Stripe's billing portal to manage subscriptions
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { createBillingPortalSession } from '@/lib/stripe/client';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('StripePortal');
 
@@ -47,8 +48,12 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`stripe:portal:${user.id}`, rateLimits.strict);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Get user's Stripe customer ID
     const { data: userData, error: userError } = await supabase
@@ -58,14 +63,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !userData || !userData.stripe_customer_id) {
-      return NextResponse.json(
-        { error: 'No active subscription found' },
-        { status: 404 }
-      );
+      return errors.notFound('Subscription');
     }
 
     // Get return URL from request body (optional)
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const returnUrl = body.returnUrl;
 
     // Create billing portal session
@@ -74,12 +76,9 @@ export async function POST(request: NextRequest) {
       returnUrl
     );
 
-    return NextResponse.json({ url: session.url });
+    return successResponse({ url: session.url });
   } catch (error) {
     log.error('[Stripe Portal] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to create billing portal session' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

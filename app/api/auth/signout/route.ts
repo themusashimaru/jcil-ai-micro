@@ -8,13 +8,18 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
 
 const log = logger('AuthSignout');
 
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
+  // Rate limit by IP
+  const ip = getClientIP(request);
+  const rateLimitResult = checkRequestRateLimit(`signout:${ip}`, rateLimits.auth);
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
   try {
     const cookieStore = await cookies();
 
@@ -66,12 +71,9 @@ export async function POST(_request: NextRequest) {
     log.info('[API] Remaining cookies', { cookies: cookieStore.getAll().map(c => c.name) });
 
     // Return success - let client handle redirect
-    return NextResponse.json({ success: true }, { status: 200 });
+    return successResponse({ success: true });
   } catch (error) {
     log.error('[API] Signout error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to sign out' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

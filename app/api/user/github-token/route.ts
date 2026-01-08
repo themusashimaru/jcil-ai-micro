@@ -6,11 +6,15 @@
  * Tokens are encrypted with AES-256-GCM before storage.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+
+const log = logger('GitHubToken');
 
 export const runtime = 'nodejs';
 
@@ -57,7 +61,7 @@ function decryptToken(encryptedData: string): string {
 
     return decrypted;
   } catch (error) {
-    console.error('[GitHub Token] Decryption error:', error);
+    log.error('[GitHub Token] Decryption error:', error instanceof Error ? error : { error });
     throw new Error('Failed to decrypt token');
   }
 }
@@ -96,8 +100,12 @@ export async function GET() {
   const { user, error } = await getUser();
 
   if (error || !user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return errors.unauthorized();
   }
+
+  // Rate limit by user
+  const rateLimitResult = checkRequestRateLimit(`github:token:get:${user.id}`, rateLimits.standard);
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   // Use service role to read from users table
   const adminClient = createClient(
@@ -125,7 +133,7 @@ export async function GET() {
 
       if (response.ok) {
         const ghUser = await response.json();
-        return NextResponse.json({
+        return successResponse({
           connected: true,
           username: ghUser.login,
           avatarUrl: ghUser.avatar_url,
@@ -137,14 +145,14 @@ export async function GET() {
           .update({ github_token: null, github_username: null })
           .eq('id', user.id);
 
-        return NextResponse.json({ connected: false, error: 'Token expired or invalid' });
+        return successResponse({ connected: false, error: 'Token expired or invalid' });
       }
     } catch {
-      return NextResponse.json({ connected: false, error: 'Failed to verify token' });
+      return successResponse({ connected: false, error: 'Failed to verify token' });
     }
   }
 
-  return NextResponse.json({ connected: false });
+  return successResponse({ connected: false });
 }
 
 /**
@@ -154,14 +162,18 @@ export async function POST(request: NextRequest) {
   const { user, error } = await getUser();
 
   if (error || !user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return errors.unauthorized();
   }
+
+  // Rate limit by user - strict limit for token operations
+  const rateLimitResult = checkRequestRateLimit(`github:token:save:${user.id}`, rateLimits.strict);
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   const body = await request.json();
   const { token } = body;
 
   if (!token) {
-    return NextResponse.json({ error: 'Token required' }, { status: 400 });
+    return errors.badRequest('Token required');
   }
 
   // Validate the token by making a test request
@@ -174,12 +186,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[GitHub Token] Validation failed:', errorText);
-      return NextResponse.json({
-        error: 'Invalid token. Make sure it has the "repo" scope.',
-        details: response.status === 401 ? 'Token is invalid or expired' : 'GitHub API error'
-      }, { status: 400 });
+      log.error('[GitHub Token] Validation failed');
+      return errors.badRequest('Invalid token. Make sure it has the "repo" scope.');
     }
 
     const ghUser = await response.json();
@@ -193,9 +201,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!reposResponse.ok) {
-      return NextResponse.json({
-        error: 'Token needs "repo" scope to push code',
-      }, { status: 400 });
+      return errors.badRequest('Token needs "repo" scope to push code');
     }
 
     // Store encrypted token
@@ -216,19 +222,19 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('[GitHub Token] Save error:', updateError);
-      return NextResponse.json({ error: 'Failed to save token' }, { status: 500 });
+      log.error('[GitHub Token] Save error:', updateError instanceof Error ? updateError : { updateError });
+      return errors.serverError();
     }
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       username: ghUser.login,
       avatarUrl: ghUser.avatar_url,
     });
 
   } catch (err) {
-    console.error('[GitHub Token] Error:', err);
-    return NextResponse.json({ error: 'Failed to validate token' }, { status: 500 });
+    log.error('[GitHub Token] Error:', err instanceof Error ? err : { err });
+    return errors.serverError();
   }
 }
 
@@ -239,8 +245,12 @@ export async function DELETE() {
   const { user, error } = await getUser();
 
   if (error || !user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    return errors.unauthorized();
   }
+
+  // Rate limit by user
+  const rateLimitResult = checkRequestRateLimit(`github:token:delete:${user.id}`, rateLimits.strict);
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   const adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -253,5 +263,5 @@ export async function DELETE() {
     .update({ github_token: null, github_username: null })
     .eq('id', user.id);
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 }

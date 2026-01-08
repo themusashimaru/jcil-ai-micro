@@ -200,12 +200,14 @@ export const adminSearchSchema = z.object({
 
 /** Design settings */
 export const designSettingsSchema = z.object({
-  primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color').optional(),
-  secondary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color').optional(),
-  logo_url: urlSchema.optional().nullable(),
-  favicon_url: urlSchema.optional().nullable(),
-  company_name: z.string().max(100).optional(),
-  tagline: z.string().max(200).optional(),
+  mainLogo: z.string().optional(),
+  headerLogo: z.string().optional(),
+  loginLogo: z.string().optional(),
+  lightModeLogo: z.string().optional(),
+  favicon: z.string().optional(),
+  siteName: z.string().max(100).optional(),
+  subtitle: z.string().max(200).optional(),
+  modelName: z.string().max(100).optional(),
 });
 
 // ========================================

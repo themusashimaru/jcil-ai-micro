@@ -6,15 +6,24 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { createConversationSchema } from '@/lib/validation/schemas';
+import { z } from 'zod';
 
 const log = logger('ConversationsAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
+
+// Schema for create/update conversation body
+const conversationBodySchema = createConversationSchema.extend({
+  id: z.string().uuid().optional(),
+  summary: z.string().max(5000).optional().nullable(),
+});
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -52,8 +61,12 @@ export async function GET() {
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limiting
+    const rateLimitResult = checkRequestRateLimit(`conv-list:${user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // User authenticated successfully - logging minimized for privacy
 
@@ -70,18 +83,15 @@ export async function GET() {
 
     if (error) {
       log.error('Error fetching conversations', error instanceof Error ? error : { error });
-      return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
+      return errors.serverError();
     }
 
     // Successfully fetched conversations
 
-    return NextResponse.json({ conversations });
+    return successResponse({ conversations });
   } catch (error) {
     log.error('Unexpected error in GET', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 
@@ -100,11 +110,18 @@ export async function POST(request: NextRequest) {
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errors.unauthorized();
     }
 
-    const body = await request.json();
-    const { id, title, tool_context, summary } = body;
+    // Rate limiting
+    const rateLimitResult = checkRequestRateLimit(`conv-create:${user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
+    // Validate request body
+    const validation = await validateBody(request, conversationBodySchema);
+    if (!validation.success) return validation.response;
+
+    const { id, title, tool_context, summary } = validation.data;
 
     // User authenticated - processing conversation request
 
@@ -130,11 +147,11 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         log.error('Error updating conversation', error instanceof Error ? error : { error });
-        return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 });
+        return errors.serverError();
       }
 
       // Conversation updated successfully
-      return NextResponse.json({ conversation });
+      return successResponse({ conversation });
     } else {
       // Create new conversation
       // Creating new conversation
@@ -155,17 +172,14 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         log.error('Error creating conversation', error instanceof Error ? error : { error });
-        return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 });
+        return errors.serverError();
       }
 
       // Conversation created successfully
-      return NextResponse.json({ conversation });
+      return successResponse({ conversation });
     }
   } catch (error) {
     log.error('Unexpected error in POST', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

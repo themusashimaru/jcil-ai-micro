@@ -17,10 +17,18 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
+import { checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
 
 const log = logger('AuthCallback');
 
 export async function GET(request: NextRequest) {
+  // Rate limit by IP
+  const ip = getClientIP(request);
+  const rateLimitResult = checkRequestRateLimit(`auth:callback:${ip}`, rateLimits.auth);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.redirect(new URL('/login?error=Too%20many%20requests', request.url));
+  }
+
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next') || '/chat';

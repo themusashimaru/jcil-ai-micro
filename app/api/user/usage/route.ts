@@ -10,9 +10,12 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getTokenUsage, getImageUsage, getTokenLimit, getImageLimit, formatTokenCount } from '@/lib/limits';
+import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+
+const log = logger('UserUsage');
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -58,12 +61,12 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({
-        error: 'Authentication required',
-        message: 'Please sign in to view your usage statistics.',
-        code: 'AUTH_REQUIRED'
-      }, { status: 401 });
+      return errors.unauthorized();
     }
+
+    // Rate limit by user
+    const rateLimitResult = checkRequestRateLimit(`usage:get:${user.id}`, rateLimits.standard);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Fetch user's tier from database
     const { data: userData, error: dbError } = await supabase
@@ -73,15 +76,8 @@ export async function GET() {
       .single();
 
     if (dbError) {
-      console.error('[API] Error fetching usage:', dbError);
-      return NextResponse.json(
-        {
-          error: 'Unable to load usage data',
-          message: 'We encountered an issue loading your usage statistics. Please try again later.',
-          code: 'DATABASE_ERROR'
-        },
-        { status: 500 }
-      );
+      log.error('[API] Error fetching usage:', dbError instanceof Error ? dbError : { dbError });
+      return errors.serverError();
     }
 
     const tier = (userData.subscription_tier || 'free') as keyof typeof TIER_FEATURES;
@@ -91,7 +87,7 @@ export async function GET() {
     const tokenUsage = await getTokenUsage(user.id, tier);
     const imageUsage = await getImageUsage(user.id, tier);
 
-    return NextResponse.json({
+    return successResponse({
       tier,
       // Token usage (monthly)
       tokens: {
@@ -129,14 +125,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[API] Usage fetch error:', error);
-    return NextResponse.json(
-      {
-        error: 'Service temporarily unavailable',
-        message: 'We are having trouble loading your usage data. Please try again in a moment.',
-        code: 'INTERNAL_ERROR'
-      },
-      { status: 500 }
-    );
+    log.error('[API] Usage fetch error:', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }
