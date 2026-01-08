@@ -8,6 +8,7 @@ import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
+import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 
 const log = logger('StreamAPI');
@@ -53,8 +54,14 @@ export async function POST(
       });
     }
 
-    const body = await request.json();
-    const { command, cwd, timeout = 300000 } = body;
+    const jsonResult = await safeParseJSON<{ command?: string; cwd?: string; timeout?: number }>(request);
+    if (!jsonResult.success) {
+      return new Response(JSON.stringify({ error: jsonResult.error }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const { command, cwd, timeout = 300000 } = jsonResult.data;
 
     if (!command) {
       return new Response(JSON.stringify({ error: 'Command is required' }), {

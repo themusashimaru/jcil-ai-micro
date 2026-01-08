@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
-import { validatePositiveInt } from '@/lib/security/validation';
+import { validatePositiveInt, safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 
 const log = logger('GitAPI');
@@ -210,8 +210,28 @@ export async function POST(
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { action, ...options } = body;
+    interface GitRequestBody {
+      action?: string;
+      url?: string;
+      branch?: string;
+      files?: string | string[];
+      message?: string;
+      stageAll?: boolean;
+      remote?: string;
+      force?: boolean;
+      create?: boolean;
+      pop?: boolean;
+      commit?: string;
+      mode?: string;
+      name?: string;
+      key?: string;
+      value?: string;
+    }
+    const jsonResult = await safeParseJSON<GitRequestBody>(request);
+    if (!jsonResult.success) {
+      return NextResponse.json({ error: jsonResult.error }, { status: 400 });
+    }
+    const { action, ...options } = jsonResult.data;
 
     const container = new ContainerManager();
 

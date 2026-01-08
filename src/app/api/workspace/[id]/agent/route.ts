@@ -8,7 +8,7 @@ import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { StreamingCodingAgent, AutonomousAgent, AgentUpdate } from '@/lib/workspace/agent';
 import { validateCSRF } from '@/lib/security/csrf';
-import { validateQueryLimit } from '@/lib/security/validation';
+import { validateQueryLimit, safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 
 const log = logger('AgentAPI');
@@ -54,8 +54,14 @@ export async function POST(
       });
     }
 
-    const body = await request.json();
-    const { prompt, mode = 'interactive', model = 'claude-sonnet-4-20250514' } = body;
+    const jsonResult = await safeParseJSON<{ prompt?: string; mode?: string; model?: string }>(request);
+    if (!jsonResult.success) {
+      return new Response(JSON.stringify({ error: jsonResult.error }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const { prompt, mode = 'interactive', model = 'claude-sonnet-4-20250514' } = jsonResult.data;
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: 'Prompt is required' }), {

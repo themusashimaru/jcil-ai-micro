@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 import { WorkspaceManager } from '@/lib/workspace';
 import { ContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
+import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 
 const log = logger('WorkspaceAPI');
@@ -88,8 +89,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { name, type = 'sandbox', githubRepo, config = {} } = body;
+    type WorkspaceType = 'sandbox' | 'github' | 'project';
+    const jsonResult = await safeParseJSON<{ name?: string; type?: WorkspaceType; githubRepo?: string; config?: Record<string, unknown> }>(request);
+    if (!jsonResult.success) {
+      return NextResponse.json({ error: jsonResult.error }, { status: 400 });
+    }
+    const { name, type = 'sandbox' as WorkspaceType, githubRepo, config = {} } = jsonResult.data;
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });

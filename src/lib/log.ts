@@ -1,8 +1,14 @@
 /**
- * Structured Logging
+ * @deprecated Use @/lib/logger instead for structured logging
+ *
+ * Telemetry Logging (LEGACY)
  *
  * JSON logging for telemetry, analytics, and billing
  * Captures: user_id, model, tool_name, tokens, latency, errors
+ *
+ * MIGRATION: Import from @/lib/logger instead:
+ * import { logger } from '@/lib/logger';
+ * const log = logger('ModuleName');
  */
 
 import { createHash } from 'crypto';

@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
-import { validateQueryLimit } from '@/lib/security/validation';
+import { validateQueryLimit, safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 
 const log = logger('ShellAPI');
@@ -48,8 +48,11 @@ export async function POST(
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { command, cwd, timeout = 30000 } = body;
+    const jsonResult = await safeParseJSON<{ command?: string; cwd?: string; timeout?: number }>(request);
+    if (!jsonResult.success) {
+      return NextResponse.json({ error: jsonResult.error }, { status: 400 });
+    }
+    const { command, cwd, timeout = 30000 } = jsonResult.data;
 
     if (!command) {
       return NextResponse.json({ error: 'Command is required' }, { status: 400 });

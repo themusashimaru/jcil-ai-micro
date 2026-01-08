@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
+import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 
 const log = logger('WorkspaceAPI');
@@ -80,8 +81,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { name, config, status } = body;
+    const jsonResult = await safeParseJSON<{ name?: string; config?: Record<string, unknown>; status?: string }>(request);
+    if (!jsonResult.success) {
+      return NextResponse.json({ error: jsonResult.error }, { status: 400 });
+    }
+    const { name, config, status } = jsonResult.data;
 
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (name) updates.name = name;
