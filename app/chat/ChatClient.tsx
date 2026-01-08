@@ -153,12 +153,16 @@ export function ChatClient() {
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   // Quick prompt text from welcome screen
   const [quickPromptText, setQuickPromptText] = useState<string>('');
+  // Conversation loading error state
+  const [conversationLoadError, setConversationLoadError] = useState<string | null>(null);
   // AbortController for cancelling in-flight requests
   const abortControllerRef = useRef<AbortController | null>(null);
   // Polling interval ref for background reply checking
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // Track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
+  // Track last time conversations were loaded to debounce visibility refreshes
+  const lastConversationLoadRef = useRef<number>(0);
 
   /* Voice Chat - Hidden until feature is production-ready
   // Track current streaming assistant message ID for voice
@@ -540,9 +544,17 @@ export function ChatClient() {
 
   // Load conversations from database
   useEffect(() => {
-    const loadConversations = async () => {
+    const loadConversations = async (isRefresh = false) => {
+      // Debounce: don't reload if we loaded within the last 5 seconds (for refresh)
+      const now = Date.now();
+      if (isRefresh && now - lastConversationLoadRef.current < 5000) {
+        log.debug('Skipping conversation reload - debounced');
+        return;
+      }
+
       try {
-        log.debug('Loading conversations from API...');
+        log.debug('Loading conversations from API...', { isRefresh });
+        setConversationLoadError(null);
         const response = await fetch('/api/conversations');
         log.debug('API response status:', { status: response.status });
 
@@ -550,7 +562,6 @@ export function ChatClient() {
           const data = await response.json();
           log.debug('Loaded conversations from DB:', {
             count: data.conversations?.length || 0,
-            conversations: data.conversations,
           });
 
           const formattedChats: Chat[] = data.conversations.map(
@@ -584,16 +595,38 @@ export function ChatClient() {
             })
           );
           setChats(formattedChats);
+          lastConversationLoadRef.current = now;
           log.debug('Set chats state with conversations', { count: formattedChats.length });
+        } else if (response.status === 401) {
+          // User not authenticated - this is expected if session expired
+          log.debug('User not authenticated, clearing conversations');
+          setChats([]);
+          setConversationLoadError('Please sign in to view your conversations');
         } else {
           log.error('Failed to load conversations:', new Error(response.statusText));
+          setConversationLoadError('Unable to load conversations. Please refresh the page.');
         }
       } catch (error) {
         log.error('Error loading conversations:', error as Error);
+        setConversationLoadError('Unable to load conversations. Please check your connection.');
       }
     };
 
+    // Initial load
     loadConversations();
+
+    // Refresh conversations when app returns to foreground
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        log.debug('App returned to foreground, refreshing conversations...');
+        loadConversations(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handleNewChat = async () => {
@@ -658,11 +691,34 @@ export function ChatClient() {
     setChats(chats.map((chat) => (chat.id === chatId ? { ...chat, title: newTitle } : chat)));
   };
 
-  const handleDeleteChat = (chatId: string) => {
+  const handleDeleteChat = async (chatId: string) => {
+    // Optimistically remove from UI
+    const previousChats = [...chats];
     setChats(chats.filter((chat) => chat.id !== chatId));
+
     if (currentChatId === chatId) {
       setCurrentChatId(null);
       setMessages([]);
+    }
+
+    // Call API to soft-delete in database
+    try {
+      const response = await fetch(`/api/conversations/${chatId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        // Revert on failure
+        log.error('Failed to delete conversation from database');
+        setChats(previousChats);
+        // Could show error toast here
+      } else {
+        log.debug('Conversation deleted from database', { chatId });
+      }
+    } catch (error) {
+      log.error('Error deleting conversation:', error as Error);
+      // Revert on error
+      setChats(previousChats);
     }
   };
 
@@ -2342,6 +2398,7 @@ export function ChatClient() {
             chats={chats}
             currentChatId={currentChatId}
             collapsed={sidebarCollapsed}
+            loadError={conversationLoadError}
             onNewChat={handleNewChat}
             onSelectChat={handleSelectChat}
             onRenameChat={handleRenameChat}
