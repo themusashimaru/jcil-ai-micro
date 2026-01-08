@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 
 interface Folder {
   id: string;
@@ -46,6 +47,8 @@ const FOLDER_COLORS = [
   '#06b6d4', // cyan
   '#f97316', // orange
 ];
+
+const log = logger('MyFilesPanel');
 
 export default function MyFilesPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -106,7 +109,7 @@ export default function MyFilesPanel() {
         setFolders(data.folders || []);
       } else {
         const errData = await foldersRes.json();
-        console.error('[MyFiles] Folders error:', errData);
+        log.error('Folders error', { error: errData });
       }
 
       if (filesRes.ok) {
@@ -115,10 +118,10 @@ export default function MyFilesPanel() {
         setStats(data.stats || null);
       } else {
         const errData = await filesRes.json();
-        console.error('[MyFiles] Files error:', errData);
+        log.error('Files error', { error: errData });
       }
     } catch (err) {
-      console.error('[MyFiles] Error loading data:', err);
+      log.error('Error loading data', { error: err instanceof Error ? err : { error: err } });
       setError('Failed to load files');
     } finally {
       setIsLoading(false);
@@ -151,12 +154,12 @@ export default function MyFilesPanel() {
 
         if (!uploadRes.ok) {
           const err = await uploadRes.json();
-          console.error('[MyFiles] Upload failed:', err);
+          log.error('Upload failed', { error: err });
           throw new Error(err.error || 'Upload failed');
         }
 
         const { document } = await uploadRes.json();
-        console.log('[MyFiles] Upload successful:', document);
+        log.info('Upload successful', { document });
 
         // Trigger processing
         setUploadProgress(`Processing ${file.name}...`);
@@ -167,11 +170,11 @@ export default function MyFilesPanel() {
         });
 
         if (!processRes.ok) {
-          console.error('[MyFiles] Processing failed');
+          log.error('Processing failed');
         }
 
       } catch (err) {
-        console.error('[MyFiles] Upload error:', err);
+        log.error('Upload error', { error: err instanceof Error ? err : { error: err } });
         setError(err instanceof Error ? err.message : 'Upload failed');
       }
     }
@@ -200,7 +203,7 @@ export default function MyFilesPanel() {
 
       loadData();
     } catch (err) {
-      console.error('[MyFiles] Delete error:', err);
+      log.error('Delete error', { error: err instanceof Error ? err : { error: err } });
       setError('Failed to delete file');
     }
   };
@@ -262,7 +265,7 @@ export default function MyFilesPanel() {
       setShowFolderModal(false);
       loadData();
     } catch (err) {
-      console.error('[MyFiles] Folder save error:', err);
+      log.error('Folder save error', { error: err instanceof Error ? err : { error: err } });
       setError(err instanceof Error ? err.message : 'Failed to save folder');
     } finally {
       setIsSavingFolder(false);
@@ -284,7 +287,7 @@ export default function MyFilesPanel() {
       setContextMenu(null);
       loadData();
     } catch (err) {
-      console.error('[MyFiles] Folder delete error:', err);
+      log.error('Folder delete error', { error: err instanceof Error ? err : { error: err } });
       setError('Failed to delete folder');
     }
   };
@@ -307,7 +310,7 @@ export default function MyFilesPanel() {
       setContextMenu(null);
       loadData();
     } catch (err) {
-      console.error('[MyFiles] Move error:', err);
+      log.error('Move error', { error: err instanceof Error ? err : { error: err } });
       setError('Failed to move file');
     }
   };
