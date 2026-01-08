@@ -3,6 +3,8 @@
  *
  * GET - Load all messages for a conversation
  * POST - Save a new message to a conversation
+ * PATCH - Edit an existing message (user messages only)
+ * DELETE - Delete a message (soft delete)
  *
  * Supports both JSON and multipart/form-data for file uploads
  */
@@ -11,7 +13,13 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  validateBody,
+  checkRequestRateLimit,
+  rateLimits,
+} from '@/lib/api/utils';
 import { createMessageSchema } from '@/lib/validation/schemas';
 
 const log = logger('MessagesAPI');
@@ -24,16 +32,8 @@ export const dynamic = 'force-dynamic';
 /**
  * Structured error response helper
  */
-function errorResponse(
-  status: number,
-  code: string,
-  message: string,
-  extra?: unknown
-) {
-  return NextResponse.json(
-    { ok: false, error: { code, message, extra } },
-    { status }
-  );
+function errorResponse(status: number, code: string, message: string, extra?: unknown) {
+  return NextResponse.json({ ok: false, error: { code, message, extra } }, { status });
 }
 
 // Get authenticated Supabase client
@@ -65,16 +65,16 @@ async function getSupabaseClient() {
  * GET /api/conversations/[id]/messages
  * Load all messages for a conversation
  */
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await getSupabaseClient();
     const { id } = await params;
 
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return errors.unauthorized();
     }
@@ -119,16 +119,16 @@ export async function GET(
  * - JSON: { role, content, content_type, attachment_urls, ... }
  * - FormData: text, role, files[], attachments_json
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const supabase = await getSupabaseClient();
     const { id: conversationId } = await params;
 
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return errors.unauthorized();
     }
@@ -190,7 +190,10 @@ export async function POST(
               const dataUrl = `data:${mimeType};base64,${base64}`;
               attachment_urls.push(dataUrl);
             } catch (fileError) {
-              log.error('[API] File processing error', fileError instanceof Error ? fileError : { error: fileError });
+              log.error(
+                '[API] File processing error',
+                fileError instanceof Error ? fileError : { error: fileError }
+              );
               // Continue with other files
             }
           }
@@ -216,7 +219,10 @@ export async function POST(
             }
           }
         } catch (jsonError) {
-          log.error('[API] attachments_json parse error', jsonError instanceof Error ? jsonError : { error: jsonError });
+          log.error(
+            '[API] attachments_json parse error',
+            jsonError instanceof Error ? jsonError : { error: jsonError }
+          );
           return errorResponse(400, 'BAD_ATTACHMENTS_JSON', 'attachments_json is not valid JSON');
         }
       }
@@ -248,11 +254,7 @@ export async function POST(
     // Normalize content: handle different message types
     // For image messages, content might be empty but prompt exists
     const normalizedContent =
-      content && content.trim()
-        ? content
-        : prompt && typeof prompt === 'string'
-          ? prompt
-          : '';
+      content && content.trim() ? content : prompt && typeof prompt === 'string' ? prompt : '';
 
     // Include image_url in attachments if present
     if (image_url) {
@@ -282,9 +284,7 @@ export async function POST(
 
     // Safe preview for logging
     const contentPreview =
-      normalizedContent.length > 0
-        ? normalizedContent.slice(0, 50)
-        : '[no text content]';
+      normalizedContent.length > 0 ? normalizedContent.slice(0, 50) : '[no text content]';
 
     log.info('[API] Attempting to save message:', {
       conversation_id: conversationId,
@@ -349,6 +349,217 @@ export async function POST(
     });
   } catch (error) {
     log.error('Unexpected error in POST', error as Error);
+    return errors.serverError();
+  }
+}
+
+/**
+ * PATCH /api/conversations/[id]/messages
+ * Edit an existing message
+ *
+ * Body: { messageId: string, content: string }
+ *
+ * Note: Only user messages can be edited. Editing updates the content
+ * and marks the message as edited with a timestamp.
+ */
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const supabase = await getSupabaseClient();
+    const { id: conversationId } = await params;
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return errors.unauthorized();
+    }
+
+    // Rate limiting
+    const rateLimitResult = checkRequestRateLimit(`messages:edit:${user.id}`, rateLimits.strict);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
+    // Parse request body
+    let body: { messageId: string; content: string };
+    try {
+      body = await request.json();
+    } catch {
+      return errorResponse(400, 'BAD_JSON', 'Invalid JSON body');
+    }
+
+    const { messageId, content } = body;
+
+    if (!messageId || typeof messageId !== 'string') {
+      return errorResponse(400, 'MISSING_MESSAGE_ID', 'messageId is required');
+    }
+
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      return errorResponse(400, 'EMPTY_CONTENT', 'content cannot be empty');
+    }
+
+    // Verify conversation belongs to user
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (convError || !conversation) {
+      return errors.notFound('Conversation');
+    }
+
+    // Get the message and verify ownership
+    const { data: existingMessage, error: msgError } = await supabase
+      .from('messages')
+      .select('id, role, user_id, content')
+      .eq('id', messageId)
+      .eq('conversation_id', conversationId)
+      .is('deleted_at', null)
+      .single();
+
+    if (msgError || !existingMessage) {
+      return errors.notFound('Message');
+    }
+
+    // Only allow editing own messages
+    if (existingMessage.user_id !== user.id) {
+      return errors.forbidden('You can only edit your own messages');
+    }
+
+    // Only allow editing user messages (not assistant messages)
+    if (existingMessage.role !== 'user') {
+      return errorResponse(403, 'CANNOT_EDIT_ROLE', 'Only user messages can be edited');
+    }
+
+    // Store the original content for audit purposes
+    const originalContent = existingMessage.content;
+
+    // Update the message
+    const { data: updatedMessage, error: updateError } = await supabase
+      .from('messages')
+      .update({
+        content: content.trim(),
+        edited_at: new Date().toISOString(),
+        original_content: originalContent, // Store original for reference
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', messageId)
+      .select()
+      .single();
+
+    if (updateError) {
+      log.error('Error updating message', { error: updateError });
+      return errors.serverError();
+    }
+
+    log.info(`Message edited: ${messageId} by user ${user.id}`);
+
+    return successResponse({
+      message: updatedMessage,
+      edited: true,
+      previousContent: originalContent,
+    });
+  } catch (error) {
+    log.error('Unexpected error in PATCH', error as Error);
+    return errors.serverError();
+  }
+}
+
+/**
+ * DELETE /api/conversations/[id]/messages
+ * Soft delete a message
+ *
+ * Body: { messageId: string }
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await getSupabaseClient();
+    const { id: conversationId } = await params;
+
+    // Get authenticated user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return errors.unauthorized();
+    }
+
+    // Rate limiting
+    const rateLimitResult = checkRequestRateLimit(`messages:delete:${user.id}`, rateLimits.strict);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
+    // Parse request body
+    let body: { messageId: string };
+    try {
+      body = await request.json();
+    } catch {
+      return errorResponse(400, 'BAD_JSON', 'Invalid JSON body');
+    }
+
+    const { messageId } = body;
+
+    if (!messageId || typeof messageId !== 'string') {
+      return errorResponse(400, 'MISSING_MESSAGE_ID', 'messageId is required');
+    }
+
+    // Verify conversation belongs to user
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (convError || !conversation) {
+      return errors.notFound('Conversation');
+    }
+
+    // Get the message and verify ownership
+    const { data: existingMessage, error: msgError } = await supabase
+      .from('messages')
+      .select('id, user_id')
+      .eq('id', messageId)
+      .eq('conversation_id', conversationId)
+      .is('deleted_at', null)
+      .single();
+
+    if (msgError || !existingMessage) {
+      return errors.notFound('Message');
+    }
+
+    // Only allow deleting own messages
+    if (existingMessage.user_id !== user.id) {
+      return errors.forbidden('You can only delete your own messages');
+    }
+
+    // Soft delete the message
+    const { error: deleteError } = await supabase
+      .from('messages')
+      .update({
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', messageId);
+
+    if (deleteError) {
+      log.error('Error deleting message', { error: deleteError });
+      return errors.serverError();
+    }
+
+    log.info(`Message deleted: ${messageId} by user ${user.id}`);
+
+    return successResponse({
+      deleted: true,
+      messageId,
+    });
+  } catch (error) {
+    log.error('Unexpected error in DELETE', error as Error);
     return errors.serverError();
   }
 }
