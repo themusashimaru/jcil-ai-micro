@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error generating Excel export:', error);
     return NextResponse.json(
-      { error: 'Failed to generate export', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to generate export' },
       { status: 500 }
     );
   }

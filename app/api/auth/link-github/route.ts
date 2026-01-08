@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('[Link GitHub] OAuth Error:', error);
-    return NextResponse.redirect(new URL(`${redirectTo}?error=oauth_failed&message=${encodeURIComponent(error.message)}`, origin));
+    return NextResponse.redirect(new URL(`${redirectTo}?error=oauth_failed`, origin));
   }
 
   if (data?.url) {

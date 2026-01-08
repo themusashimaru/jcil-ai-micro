@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
         console.error('[Cron] Failed to process request:', request.id, error);
         await failPendingRequest(
           request.id,
-          error instanceof Error ? error.message : 'Unknown error'
+          'Processing failed'
         );
         failed++;
       }
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[Cron] Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to process pending requests' },
       { status: 500 }
     );
   }

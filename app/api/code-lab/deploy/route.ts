@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Deploy API] Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Deployment failed' },
+      { error: 'Deployment failed' },
       { status: 500 }
     );
   }
@@ -167,10 +167,11 @@ async function deployToVercel(token: string, config: DeployConfig, _sessionId: s
       message: 'Project created. Connect your GitHub repo in Vercel dashboard to deploy.',
     };
   } catch (error) {
+    console.error('[Deploy] Vercel error:', error);
     return {
       success: false,
       platform: 'vercel',
-      error: error instanceof Error ? error.message : 'Vercel deployment failed',
+      error: 'Vercel deployment failed',
     };
   }
 }
@@ -195,8 +196,7 @@ async function deployToNetlify(token: string, config: DeployConfig, _sessionId: 
     });
 
     if (!siteResponse.ok) {
-      const error = await siteResponse.json();
-      throw new Error(error.message || 'Failed to create Netlify site');
+      throw new Error('Failed to create Netlify site');
     }
 
     const site = await siteResponse.json();
@@ -222,10 +222,11 @@ async function deployToNetlify(token: string, config: DeployConfig, _sessionId: 
       message: 'Site created. Connect your GitHub repo to deploy.',
     };
   } catch (error) {
+    console.error('[Deploy] Netlify error:', error);
     return {
       success: false,
       platform: 'netlify',
-      error: error instanceof Error ? error.message : 'Netlify deployment failed',
+      error: 'Netlify deployment failed',
     };
   }
 }
@@ -273,10 +274,11 @@ async function deployToRailway(token: string, config: DeployConfig, _sessionId: 
       message: 'Project created. Deploy via Railway dashboard or CLI.',
     };
   } catch (error) {
+    console.error('[Deploy] Railway error:', error);
     return {
       success: false,
       platform: 'railway',
-      error: error instanceof Error ? error.message : 'Railway deployment failed',
+      error: 'Railway deployment failed',
     };
   }
 }
@@ -337,10 +339,11 @@ async function deployToCloudflare(token: string, config: DeployConfig, _sessionI
       message: 'Project created. Connect your GitHub repo to deploy.',
     };
   } catch (error) {
+    console.error('[Deploy] Cloudflare error:', error);
     return {
       success: false,
       platform: 'cloudflare',
-      error: error instanceof Error ? error.message : 'Cloudflare deployment failed',
+      error: 'Cloudflare deployment failed',
     };
   }
 }

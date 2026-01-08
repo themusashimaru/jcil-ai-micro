@@ -154,7 +154,7 @@ export async function GET() {
   } catch (error) {
     console.error('[User Export] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to export data', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to export data' },
       { status: 500 }
     );
   }
