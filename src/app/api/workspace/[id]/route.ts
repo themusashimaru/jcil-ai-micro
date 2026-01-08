@@ -5,6 +5,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
+import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('WorkspaceAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -51,7 +55,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to get workspace:', error);
+    log.error('Failed to get workspace', error as Error);
     return NextResponse.json({ error: 'Failed to get workspace' }, { status: 500 });
   }
 }
@@ -63,6 +67,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -94,7 +102,7 @@ export async function PATCH(
     return NextResponse.json({ workspace });
 
   } catch (error) {
-    console.error('Failed to update workspace:', error);
+    log.error('Failed to update workspace', error as Error);
     return NextResponse.json({ error: 'Failed to update workspace' }, { status: 500 });
   }
 }
@@ -103,9 +111,13 @@ export async function PATCH(
  * DELETE - Delete workspace and terminate container
  */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -131,7 +143,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error('Failed to delete workspace:', error);
+    log.error('Failed to delete workspace', error as Error);
     return NextResponse.json({ error: 'Failed to delete workspace' }, { status: 500 });
   }
 }

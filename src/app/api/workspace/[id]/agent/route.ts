@@ -7,6 +7,11 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { StreamingCodingAgent, AutonomousAgent, AgentUpdate } from '@/lib/workspace/agent';
+import { validateCSRF } from '@/lib/security/csrf';
+import { validateQueryLimit } from '@/lib/security/validation';
+import { logger } from '@/lib/logger';
+
+const log = logger('AgentAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for complex tasks
@@ -18,6 +23,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -126,10 +135,9 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Agent error:', error);
+    log.error('Agent error', error as Error);
     return new Response(JSON.stringify({
       error: 'Agent execution failed',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -157,7 +165,8 @@ export async function GET(
     }
 
     const url = new URL(request.url);
-    const limit = parseInt(url.searchParams.get('limit') || '20');
+    // SECURITY: Validate limit parameter
+    const limit = validateQueryLimit(url.searchParams.get('limit'), { default: 20, max: 100 });
 
     const { data: executions, error } = await supabase
       .from('tool_executions')
@@ -174,7 +183,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Failed to get agent history:', error);
+    log.error('Failed to get agent history', error as Error);
     return new Response(JSON.stringify({ error: 'Failed to get agent history' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

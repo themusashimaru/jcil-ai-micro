@@ -7,6 +7,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
+import { validateCSRF } from '@/lib/security/csrf';
+import { validatePositiveInt } from '@/lib/security/validation';
+import { logger } from '@/lib/logger';
+
+const log = logger('GitAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 120; // Git operations can be slow
@@ -94,7 +99,17 @@ export async function GET(
       }
 
       case 'log': {
-        const count = url.searchParams.get('count') || '10';
+        // SECURITY: Validate count parameter to prevent command injection
+        const countValidation = validatePositiveInt(url.searchParams.get('count'), {
+          name: 'count',
+          default: 10,
+          max: 100,
+        });
+        if (!countValidation.valid) {
+          return NextResponse.json({ error: countValidation.error }, { status: 400 });
+        }
+        const count = countValidation.value;
+
         const result = await container.executeCommand(
           workspaceId,
           `git log -${count} --pretty=format:"%H|%an|%ae|%aI|%s"`
@@ -155,9 +170,9 @@ export async function GET(
     }
 
   } catch (error) {
-    console.error('Git operation failed:', error);
+    log.error('Git operation failed', error as Error);
     return NextResponse.json(
-      { error: 'Git operation failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Git operation failed' },
       { status: 500 }
     );
   }
@@ -170,6 +185,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -462,9 +481,9 @@ export async function POST(
     }
 
   } catch (error) {
-    console.error('Git operation failed:', error);
+    log.error('Git operation failed', error as Error);
     return NextResponse.json(
-      { error: 'Git operation failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Git operation failed' },
       { status: 500 }
     );
   }

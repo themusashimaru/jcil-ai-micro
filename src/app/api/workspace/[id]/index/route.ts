@@ -8,6 +8,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
+import { validateCSRF } from '@/lib/security/csrf';
+import { sanitizeFilePath, sanitizeGlobPattern } from '@/lib/workspace/security';
+import { logger } from '@/lib/logger';
+
+const log = logger('IndexAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -77,7 +82,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Index operation failed:', error);
+    log.error('Index operation failed', error as Error);
     return NextResponse.json({ error: 'Index operation failed' }, { status: 500 });
   }
 }
@@ -89,6 +94,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -111,7 +120,9 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const { path = '/workspace' } = body;
+    // SECURITY: Sanitize path to prevent traversal attacks
+    const rawPath = body.path || '/workspace';
+    const safePath = sanitizeFilePath(rawPath, '/workspace');
 
     const container = new ContainerManager();
 
@@ -120,9 +131,11 @@ export async function POST(
     const allFiles: Array<{ path: string; content: string; language: string }> = [];
 
     for (const pattern of filePatterns) {
+      // SECURITY: Sanitize glob pattern
+      const safePattern = sanitizeGlobPattern(pattern);
       const result = await container.executeCommand(
         workspaceId,
-        `find ${path} -name "${pattern}" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" | head -200`
+        `find ${safePath} -name "${safePattern}" -type f ! -path "*/node_modules/*" ! -path "*/.git/*" | head -200`
       );
 
       const files = result.stdout.split('\n').filter(f => f.trim());
@@ -176,10 +189,9 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Indexing failed:', error);
+    log.error('Indexing failed', error as Error);
     return NextResponse.json({
       error: 'Indexing failed',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
   }
 }
