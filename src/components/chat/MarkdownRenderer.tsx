@@ -19,6 +19,9 @@ import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { CodeBlockWithActions } from './CodeBlockWithActions';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
+import { logger } from '@/lib/logger';
+
+const log = logger('MarkdownRenderer');
 
 interface MarkdownRendererProps {
   content: string;
@@ -95,11 +98,11 @@ const components: Components = {
   // For document downloads (PDF, DOCX, XLSX), force download instead of opening
   a: ({ href, children }) => {
     // Debug: log all links
-    console.log('[MarkdownRenderer] Link rendered: href=' + href + ', isDoc=' + (href && (href.includes('/api/documents/') || href.includes('.pdf'))));
+    log.debug('Link rendered: href=' + href + ', isDoc=' + (href && (href.includes('/api/documents/') || href.includes('.pdf'))));
 
     // SAFETY: If href is empty or invalid, render as plain text (prevents navigation crash)
     if (!href || href === '' || href === '#') {
-      console.warn('[MarkdownRenderer] Empty or invalid href detected, rendering as text');
+      log.warn('Empty or invalid href detected, rendering as text');
       return <span style={{ color: 'var(--primary)' }}>{children}</span>;
     }
 
@@ -120,11 +123,11 @@ const components: Components = {
             // Base64url decode: replace URL-safe chars and decode
             const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
             const decoded = JSON.parse(atob(base64));
-            console.log('[MarkdownRenderer] Decoded token:', decoded);
+            log.debug('Decoded token:', decoded);
             return { type: decoded.t, filename: decoded.f };
           }
         } catch (e) {
-          console.warn('[MarkdownRenderer] Failed to decode token:', e);
+          log.warn('Failed to decode token', { error: e });
         }
         return {};
       };
@@ -178,28 +181,28 @@ const components: Components = {
         e.stopPropagation();
 
         if (!href) {
-          console.error('[MarkdownRenderer] No href for download');
+          log.error('No href for download');
           return;
         }
 
         const filename = getFilename();
         const { mimeType } = getFileInfo();
 
-        console.log('[MarkdownRenderer] Starting download:', { href, filename, mimeType, tokenInfo });
+        log.debug('Starting download:', { href, filename, mimeType, tokenInfo });
 
         try {
           // Fetch the file first
           const response = await fetch(href, { credentials: 'include' });
 
           if (!response.ok) {
-            console.error('[MarkdownRenderer] Download response not ok:', response.status, response.statusText);
+            log.error('Download response not ok', { status: response.status, statusText: response.statusText });
             // Try opening in new tab as fallback
             window.open(href, '_blank', 'noopener,noreferrer');
             return;
           }
 
           const blob = await response.blob();
-          console.log('[MarkdownRenderer] Blob received:', blob.size, 'bytes');
+          log.debug('Blob received', { size: blob.size });
 
           // On mobile with Web Share API support, use native share (Save to Files)
           if (isMobile && navigator.share && navigator.canShare) {
@@ -227,19 +230,19 @@ const components: Components = {
             window.URL.revokeObjectURL(blobUrl);
           }, 100);
         } catch (error) {
-          console.error('[MarkdownRenderer] Download error:', error);
+          log.error('Download error', error as Error);
           // Ultimate fallback - open in new tab (don't throw!)
           try {
             window.open(href, '_blank', 'noopener,noreferrer');
           } catch (openError) {
-            console.error('[MarkdownRenderer] Could not open window:', openError);
+            log.error('Could not open window', openError as Error);
             // Show user-friendly message
             alert('Download failed. Please try generating the document again.');
           }
         }
       };
 
-      console.log('[MarkdownRenderer] Rendering download BUTTON for:', href);
+      log.debug('Rendering download BUTTON for', { href });
 
       return (
         <button
@@ -256,7 +259,7 @@ const components: Components = {
     }
 
     // Regular links open in new tab
-    console.log('[MarkdownRenderer] Rendering regular LINK (not document) for:', href);
+    log.debug('Rendering regular LINK (not document) for', { href });
 
     return (
       <a
@@ -432,11 +435,11 @@ export function MarkdownRenderer({
       }
 
       // Block code - use CodeBlockWithActions when enabled
-      console.log('[MarkdownRenderer] Code block render:', { enableCodeActions, hasCodeExecution: !!codeExecution, language });
+      log.debug('Code block render:', { enableCodeActions, hasCodeExecution: !!codeExecution, language });
       if (enableCodeActions && codeExecution) {
         const codeHash = getCodeHash(codeContent);
         const testState = testResults.get(codeHash);
-        console.log('[MarkdownRenderer] Rendering CodeBlockWithActions:', { codeHash, testState });
+        log.debug('Rendering CodeBlockWithActions:', { codeHash, testState });
 
         return (
           <CodeBlockWithActions
@@ -449,7 +452,7 @@ export function MarkdownRenderer({
             externalTesting={testState?.testing}
             externalTestResult={testState && !testState.testing ? { success: testState.success, output: testState.output } : undefined}
             onTest={async (code, lang) => {
-              console.log('[MarkdownRenderer] onTest called:', { lang, codeLength: code.length, codeHash });
+              log.debug('onTest called:', { lang, codeLength: code.length, codeHash });
 
               // Set testing state
               setTestResults(prev => {
@@ -460,7 +463,7 @@ export function MarkdownRenderer({
 
               try {
                 const result = await codeExecution.testCode(code, lang);
-                console.log('[MarkdownRenderer] testCode result:', result);
+                log.debug('testCode result', { result });
                 const output = result.outputs.map(o => o.stdout || o.stderr).join('\n') || result.error || '';
 
                 // Store result

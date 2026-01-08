@@ -16,6 +16,9 @@ import {
   ResearchStrategy,
   GeneratedQuery,
 } from '../../core/types';
+import { logger } from '@/lib/logger';
+
+const log = logger('StrategyGenerator');
 
 export class StrategyGenerator {
 
@@ -97,7 +100,7 @@ OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
         schema,
       });
 
-      console.log(`[StrategyGenerator] Using Claude Sonnet for strategy generation`);
+      log.info(`Using Claude Sonnet for strategy generation`);
 
       // Build the strategy - single phase with all queries
       const queries = this.buildQueries(parsed.queries || []);
@@ -127,7 +130,7 @@ OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
 
       return strategy;
     } catch (error) {
-      console.error('[StrategyGenerator] Error generating strategy:', error);
+      log.error('Error generating strategy', error as Error);
       return this.createFallbackStrategy(intent);
     }
   }
@@ -238,10 +241,10 @@ OUTPUT ONLY THE JSON ARRAY.`;
         schema,
       });
 
-      console.log(`[StrategyGenerator] Using Claude Sonnet for gap-filling queries`);
+      log.info(`Using Claude Sonnet for gap-filling queries`);
       return this.buildQueries(parsed);
     } catch (error) {
-      console.error('[StrategyGenerator] Error generating gap queries (Claude Sonnet):', error);
+      log.error('Error generating gap queries (Claude Sonnet)', error as Error);
       return [];
     }
   }

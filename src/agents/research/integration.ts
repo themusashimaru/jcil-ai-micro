@@ -8,6 +8,9 @@
 import { researchAgent, ResearchInput } from './ResearchAgent';
 import { synthesizer } from './brain/Synthesizer';
 import { AgentContext, AgentStreamEvent } from '../core/types';
+import { logger } from '@/lib/logger';
+
+const log = logger('ResearchAgentIntegration');
 
 /**
  * Check if a request should use the Research Agent
@@ -110,7 +113,7 @@ export async function executeResearchAgent(
           if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 2000) {
             try {
               controller.enqueue(encoder.encode(' ')); // Invisible keepalive
-              console.log('[ResearchAgent] Sent keepalive heartbeat');
+              log.info('Sent keepalive heartbeat');
             } catch {
               // Controller might be closed
             }
@@ -186,7 +189,7 @@ export async function executeResearchAgent(
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        console.error('[ResearchAgent Integration] Error:', errorMessage);
+        log.error('Research execution error', { message: errorMessage });
 
         const userMessage = errorMessage.includes('timeout')
           ? `\n\n⏱️ **Research Timeout**\n\nThe research is taking longer than expected. Please try:\n- A more specific query\n- Using "quick" depth for faster results\n- Breaking your question into smaller parts\n`

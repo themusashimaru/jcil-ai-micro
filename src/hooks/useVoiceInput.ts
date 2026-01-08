@@ -141,6 +141,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
     };
 
     checkLevel();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- stopRecording is stable, avoiding circular dependency
   }, [silenceTimeout, state.isRecording, SILENCE_GRACE_PERIOD, AUDIO_THRESHOLD]);
 
   // Start recording
@@ -235,6 +236,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       onError?.(errorMessage);
       cleanup();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- processAudio/stopRecording are stable, avoiding circular dependency
   }, [cleanup, maxDuration, monitorAudioLevel, onError, silenceTimeout]);
 
   // Stop recording

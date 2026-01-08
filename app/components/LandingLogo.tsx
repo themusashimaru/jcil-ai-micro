@@ -45,6 +45,7 @@ export default function LandingLogo() {
         </span>
       ) : logoUrl ? (
         // Show uploaded logo (light mode logo from admin settings)
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoUrl}
           alt="JCIL.AI"

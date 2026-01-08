@@ -114,6 +114,7 @@ export function PWAInstaller() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- log is stable, only run on mount
   }, []);
 
   const handleInstallClick = async () => {

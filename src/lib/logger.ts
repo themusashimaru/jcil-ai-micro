@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * STRUCTURED LOGGING SYSTEM
  *

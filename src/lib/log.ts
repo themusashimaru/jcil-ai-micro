@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * @deprecated Use @/lib/logger instead for structured logging
  *

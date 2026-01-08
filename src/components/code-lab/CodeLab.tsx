@@ -16,6 +16,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLab');
 import { CodeLabSidebar } from './CodeLabSidebar';
 import { CodeLabThread } from './CodeLabThread';
 import { CodeLabComposer, CodeLabAttachment } from './CodeLabComposer';
@@ -68,6 +71,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // Load sessions on mount
   useEffect(() => {
     loadSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSessions = async () => {
@@ -83,10 +87,11 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
       }
     } catch (err) {
-      console.error('[CodeLab] Error loading sessions:', err);
+      log.error('Error loading sessions', err as Error);
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized for simplicity
   const createSession = async (title?: string) => {
     try {
       const response = await fetch('/api/code-lab/sessions', {
@@ -103,7 +108,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         return data.session;
       }
     } catch (err) {
-      console.error('[CodeLab] Error creating session:', err);
+      log.error('Error creating session', err as Error);
       setError('Failed to create session');
     }
     return null;
@@ -120,7 +125,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setMessages(data.messages || []);
       }
     } catch (err) {
-      console.error('[CodeLab] Error loading messages:', err);
+      log.error('Error loading messages', err as Error);
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +146,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
       }
     } catch (err) {
-      console.error('[CodeLab] Error deleting session:', err);
+      log.error('Error deleting session', err as Error);
     }
   };
 
@@ -160,7 +165,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           exportMessages = data.messages || [];
         }
       } catch (err) {
-        console.error('[CodeLab] Error fetching messages for export:', err);
+        log.error('Error fetching messages for export', err as Error);
         return;
       }
     }
@@ -230,7 +235,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         prev.map(s => (s.id === sessionId ? { ...s, title } : s))
       );
     } catch (err) {
-      console.error('[CodeLab] Error renaming session:', err);
+      log.error('Error renaming session', err as Error);
     }
   };
 
@@ -254,7 +259,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         loadWorkspaceFiles(sessionId);
       }
     } catch (err) {
-      console.error('[CodeLab] Error setting repo:', err);
+      log.error('Error setting repo', err as Error);
     }
   };
 
@@ -270,7 +275,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setWorkspaceFiles(data.files || []);
       }
     } catch (err) {
-      console.error('[CodeLab] Error loading workspace files:', err);
+      log.error('Error loading workspace files', err as Error);
     }
   };
 
@@ -289,7 +294,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       });
       loadWorkspaceFiles(currentSessionId);
     } catch (err) {
-      console.error('[CodeLab] Error creating file:', err);
+      log.error('Error creating file', err as Error);
     }
   };
 
@@ -301,7 +306,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       });
       loadWorkspaceFiles(currentSessionId);
     } catch (err) {
-      console.error('[CodeLab] Error deleting file:', err);
+      log.error('Error deleting file', err as Error);
     }
   };
 
@@ -325,7 +330,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
       }
     } catch (err) {
-      console.error('[CodeLab] Error pushing to git:', err);
+      log.error('Error pushing to git', err as Error);
       setError('Failed to push changes');
     }
   };
@@ -344,7 +349,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       });
       loadWorkspaceFiles(currentSessionId);
     } catch (err) {
-      console.error('[CodeLab] Error pulling from git:', err);
+      log.error('Error pulling from git', err as Error);
       setError('Failed to pull changes');
     }
   };
@@ -571,14 +576,14 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
               }
             }
           } catch (titleErr) {
-            console.error('[CodeLab] Error generating title:', titleErr);
+            log.error('Error generating title', titleErr as Error);
           }
         }
       }
     } catch (err) {
       // Don't show error for user-initiated cancellations
       if (err instanceof Error && err.name === 'AbortError') {
-        console.log('[CodeLab] Stream cancelled by user');
+        log.info('Stream cancelled by user');
         // Mark the partial message as complete (not streaming)
         setMessages(prev =>
           prev.map(m =>
@@ -588,7 +593,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           )
         );
       } else {
-        console.error('[CodeLab] Error sending message:', err);
+        log.error('Error sending message', err as Error);
         setError('Failed to send message');
         // Remove the failed assistant message
         setMessages(prev => prev.filter(m => m.id !== assistantId));
@@ -618,6 +623,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     } else {
       sendMessage(command);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
   }, [currentSessionId, createSession, sendMessage]);
 
   // Handler for direct messages from command palette
@@ -631,6 +637,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     } else {
       sendMessage(message);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
   }, [currentSessionId, createSession, sendMessage]);
 
   // ========================================
@@ -713,6 +720,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
   }, [isStreaming, cancelStream, sidebarCollapsed, createSession]);
 
   // ========================================
@@ -844,8 +852,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                           <CodeLabDiffViewer
                             key={`${fileDiff.oldPath || fileDiff.newPath}-${index}`}
                             diff={fileDiff}
-                            onAcceptHunk={(hunkIndex) => console.log('Accept hunk:', hunkIndex, 'in', fileDiff.newPath)}
-                            onRejectHunk={(hunkIndex) => console.log('Reject hunk:', hunkIndex, 'in', fileDiff.newPath)}
+                            onAcceptHunk={(hunkIndex) => log.debug('Accept hunk', { hunkIndex, file: fileDiff.newPath })}
+                            onRejectHunk={(hunkIndex) => log.debug('Reject hunk', { hunkIndex, file: fileDiff.newPath })}
                           />
                         ))
                       )}

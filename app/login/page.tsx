@@ -110,6 +110,7 @@ function LoginForm() {
             {isLogoLoading ? (
               <div className="h-12 mx-auto" />
             ) : logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={logo} alt="JCIL.ai" className="h-12 mx-auto" />
             ) : (
               <h1 className="text-3xl sm:text-4xl font-bold">

@@ -239,6 +239,7 @@ export function CodeLabComposer({
           {attachments.map(attachment => (
             <div key={attachment.id} className="attachment-item">
               {attachment.type === 'image' && attachment.preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={attachment.preview} alt={attachment.file.name} />
               ) : (
                 <div className="attachment-icon">

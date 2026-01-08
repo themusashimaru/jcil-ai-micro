@@ -22,6 +22,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
+
+const log = logger('ChatClient');
 // Voice Chat imports - Hidden until feature is production-ready
 // import { useCallback } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
@@ -266,7 +269,7 @@ export function ChatClient() {
           }
         }
       } catch (err) {
-        console.error('[ChatClient] Failed to load header logo:', err);
+        log.error('Failed to load header logo:', err as Error);
       }
     };
     loadLogo();
@@ -293,7 +296,7 @@ export function ChatClient() {
           setIsAdmin(data.isAdmin === true);
         }
       } catch (error) {
-        console.error('[ChatClient] Error checking admin status:', error);
+        log.error('Error checking admin status:', error as Error);
         setIsAdmin(false);
       }
     };
@@ -391,7 +394,7 @@ export function ChatClient() {
         });
       }
     } catch (error) {
-      console.error('[ChatClient] Error fetching messages:', error);
+      log.error('Error fetching messages:', error as Error);
     }
     return null;
   };
@@ -421,7 +424,7 @@ export function ChatClient() {
       const currentMessages = messagesRef.current;
       const currentlyStreaming = isStreamingRef.current; // Use ref instead of state
 
-      console.log('[ChatClient] Tab visible, checking for pending replies...', {
+      log.debug('Tab visible, checking for pending replies...', {
         chatId,
         messageCount: currentMessages.length,
         lastRole: currentMessages[currentMessages.length - 1]?.role,
@@ -435,7 +438,7 @@ export function ChatClient() {
         await new Promise(resolve => setTimeout(resolve, 500));
         // Re-check if still streaming (use ref for current value)
         if (isStreamingRef.current) {
-          console.log('[ChatClient] Still streaming, will check on next visibility change');
+          log.debug('Still streaming, will check on next visibility change');
           return;
         }
       }
@@ -446,7 +449,7 @@ export function ChatClient() {
 
       // If we got new messages, just display them
       if (fetchedMessages.length > currentMessages.length) {
-        console.log('[ChatClient] New messages found:', fetchedMessages.length - currentMessages.length);
+        log.debug('New messages found:', { count: fetchedMessages.length - currentMessages.length });
         setMessages(fetchedMessages);
         setIsStreaming(false); // Reset streaming state since we have the response
         return;
@@ -459,7 +462,7 @@ export function ChatClient() {
       const lastMessage = lastFetchedMessage || lastLocalMessage;
 
       if (lastMessage && lastMessage.role === 'user') {
-        console.log('[ChatClient] Last message is from user, processing pending request...');
+        log.debug('Last message is from user, processing pending request...');
         isProcessingRef.current = true;
         setIsWaitingForReply(true);
         setIsStreaming(false); // Reset streaming state
@@ -480,7 +483,7 @@ export function ChatClient() {
           if (!isMountedRef.current) return;
 
           const result = await response.json();
-          console.log('[ChatClient] Process pending result:', result.status);
+          log.debug('Process pending result:', result.status);
 
           if (result.status === 'completed' && result.content) {
             // Add the new message to the UI
@@ -504,9 +507,9 @@ export function ChatClient() {
           // Check if this was a timeout abort
           const isTimeoutError = error instanceof Error && error.name === 'AbortError';
           if (isTimeoutError) {
-            console.log('[ChatClient] Pending request timed out after 2 minutes');
+            log.debug('Pending request timed out after 2 minutes');
           } else {
-            console.error('[ChatClient] Error processing pending request:', error);
+            log.error('Error processing pending request:', error as Error);
           }
         } finally {
           if (isMountedRef.current) {
@@ -528,13 +531,13 @@ export function ChatClient() {
   useEffect(() => {
     const loadConversations = async () => {
       try {
-        console.log('[ChatClient] Loading conversations from API...');
+        log.debug('Loading conversations from API...');
         const response = await fetch('/api/conversations');
-        console.log('[ChatClient] API response status:', response.status);
+        log.debug('API response status:', { status: response.status });
 
         if (response.ok) {
           const data = await response.json();
-          console.log('[ChatClient] Loaded conversations from DB:', {
+          log.debug('Loaded conversations from DB:', {
             count: data.conversations?.length || 0,
             conversations: data.conversations,
           });
@@ -566,12 +569,12 @@ export function ChatClient() {
             updatedAt: new Date(conv.last_message_at || conv.updated_at),
           }));
           setChats(formattedChats);
-          console.log('[ChatClient] Set chats state with', formattedChats.length, 'conversations');
+          log.debug('Set chats state with conversations', { count: formattedChats.length });
         } else {
-          console.error('[ChatClient] Failed to load conversations:', response.statusText);
+          log.error('Failed to load conversations:', new Error(response.statusText));
         }
       } catch (error) {
-        console.error('[ChatClient] Error loading conversations:', error);
+        log.error('Error loading conversations:', error as Error);
       }
     };
 
@@ -628,7 +631,7 @@ export function ChatClient() {
         setMessages(formattedMessages);
       }
     } catch (error) {
-      console.error('Error loading messages:', error);
+      log.error('Error loading messages:', error as Error);
       setMessages([]);
     }
   };
@@ -673,12 +676,12 @@ export function ChatClient() {
       });
 
       if (!response.ok) {
-        console.error('[ChatClient] Failed to move chat to folder');
+        log.error('Failed to move chat to folder');
         // Revert on error
         setChats(chats);
       }
     } catch (error) {
-      console.error('[ChatClient] Error moving chat to folder:', error);
+      log.error('Error moving chat to folder:', error as Error);
       setChats(chats);
     }
   };
@@ -753,7 +756,7 @@ export function ChatClient() {
     const hasAttachments = (attachmentUrls && attachmentUrls.length > 0) || imageUrl;
 
     if (!hasContent && !hasAttachments) {
-      console.log('[ChatClient] Skipping save - no content or attachments');
+      log.debug('Skipping save - no content or attachments');
       return null;
     }
 
@@ -775,13 +778,13 @@ export function ChatClient() {
       if (!response.ok || data?.ok === false) {
         const errorMsg = data?.error?.message || `HTTP ${response.status}`;
         const errorCode = data?.error?.code || 'UNKNOWN';
-        console.error(`[ChatClient] Save message failed: ${errorCode}: ${errorMsg}`);
+        log.error(`Save message failed: ${errorCode}: ${errorMsg}`);
         throw new Error(`${errorCode}: ${errorMsg}`);
       }
 
       return data;
     } catch (error) {
-      console.error('Error saving message to database:', error);
+      log.error('Error saving message to database:', error as Error);
       // Don't re-throw - message display still works even if save fails
     }
   };
@@ -792,7 +795,7 @@ export function ChatClient() {
     toolContext?: string
   ) => {
     try {
-      console.log('[ChatClient] Creating conversation in DB:', { title, toolContext });
+      log.debug('Creating conversation in DB:', { title, toolContext });
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -803,26 +806,26 @@ export function ChatClient() {
         }),
       });
 
-      console.log('[ChatClient] Conversation API response status:', response.status);
+      log.debug('Conversation API response status:', { status: response.status });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('[ChatClient] Conversation creation failed:', errorData);
+        log.error('Conversation creation failed:', errorData);
         throw new Error(`Failed to create conversation: ${errorData.error || response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('[ChatClient] Conversation API result:', result);
+      log.debug('Conversation API result:', result);
 
       // Return the database-generated UUID (don't update state here - let caller handle it)
       if (result.conversation && result.conversation.id) {
-        console.log('[ChatClient] Returning conversation ID:', result.conversation.id);
+        log.debug('Returning conversation ID:', result.conversation.id);
         return result.conversation.id;
       }
 
       throw new Error('No conversation ID returned from API');
     } catch (error) {
-      console.error('[ChatClient] Error creating conversation in database:', error);
+      log.error('Error creating conversation in database:', error as Error);
       throw error; // Re-throw to let caller handle it
     }
   };
@@ -832,7 +835,7 @@ export function ChatClient() {
    */
   const handleStop = () => {
     if (abortControllerRef.current) {
-      console.log('[ChatClient] User clicked stop - aborting request');
+      log.debug('User clicked stop - aborting request');
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
@@ -898,9 +901,9 @@ export function ChatClient() {
       // Create the conversation in the database
       await createConversationInDatabase('Continuation', 'general');
 
-      console.log('[ChatClient] Created continuation chat with summary');
+      log.debug('Created continuation chat with summary');
     } catch (error) {
-      console.error('[ChatClient] Error creating continuation:', error);
+      log.error('Error creating continuation:', error as Error);
     } finally {
       setIsGeneratingSummary(false);
     }
@@ -953,7 +956,7 @@ export function ChatClient() {
       // Create conversation in database - MUST succeed before proceeding
       try {
         const dbConversationId = await createConversationInDatabase('New Chat', 'general');
-        console.log('[ChatClient] Created conversation:', { tempId, dbId: dbConversationId });
+        log.debug('Created conversation:', { tempId, dbId: dbConversationId });
 
         // Validate we got a proper UUID back
         if (!dbConversationId || typeof dbConversationId !== 'string') {
@@ -971,11 +974,11 @@ export function ChatClient() {
             chat.id === tempId ? { ...chat, id: dbConversationId } : chat
           );
           const updatedChat = updated.find(c => c.id === dbConversationId);
-          console.log('[ChatClient] Updated chats array - found chat with new UUID:', updatedChat?.id, 'title:', updatedChat?.title);
+          log.debug('Updated chats array - found chat with new UUID:', { id: updatedChat?.id, title: updatedChat?.title });
           return updated;
         });
       } catch (error) {
-        console.error('Failed to create conversation:', error);
+        log.error('Failed to create conversation:', error as Error);
         // Remove the temporary chat from UI since we couldn't create it in database
         setChats((prevChats) => prevChats.filter(c => c.id !== tempId));
         setCurrentChatId(null);
@@ -1035,11 +1038,11 @@ export function ChatClient() {
       const detectedDocType = detectDocumentTypeFromMessage(content);
       setPendingDocumentType(detectedDocType);
       if (detectedDocType) {
-        console.log(`[ChatClient] Document generation detected: ${detectedDocType}`);
+        log.debug(`Document generation detected: ${detectedDocType}`);
       }
     } catch (saveError) {
       // Database save failed - show error to user instead of ghost message
-      console.error('[ChatClient] Failed to save user message:', saveError);
+      log.error('Failed to save user message:', saveError as Error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -1066,7 +1069,7 @@ export function ChatClient() {
       }
 
       // Debug: Log attachment info
-      console.log('[ChatClient] Message formatting:', {
+      log.debug('Message formatting:', {
         totalMessages: allMessages.length,
         lastImageMessageIndex,
         newMessageAttachments: userMessage.attachments?.map(a => ({
@@ -1167,13 +1170,15 @@ export function ChatClient() {
       // Debug: Log the formatted API messages
       const messagesWithImages = apiMessages.filter(m => Array.isArray(m.content));
       if (messagesWithImages.length > 0) {
-        console.log('[ChatClient] Messages with images being sent:', messagesWithImages.map(m => ({
-          role: m.role,
-          contentTypes: Array.isArray(m.content) ? m.content.map((c: { type: string }) => c.type) : 'string',
-          imageDataLength: Array.isArray(m.content)
-            ? m.content.filter((c: { type: string }) => c.type === 'image').map((c: { image?: string }) => c.image?.length || 0)
-            : 0,
-        })));
+        log.debug('Messages with images being sent:', {
+          messages: messagesWithImages.map(m => ({
+            role: m.role,
+            contentTypes: Array.isArray(m.content) ? m.content.map((c: { type: string }) => c.type) : 'string',
+            imageDataLength: Array.isArray(m.content)
+              ? m.content.filter((c: { type: string }) => c.type === 'image').map((c: { image?: string }) => c.image?.length || 0)
+              : 0,
+          }))
+        });
       }
 
       // Build user context for personalization
@@ -1233,13 +1238,13 @@ export function ChatClient() {
 
       // Validate that we have a processable response type
       if (!isJsonResponse && !isTextStream && !response.body) {
-        console.error('[ChatClient] Invalid response type:', contentType);
+        log.error('Invalid response type:', new Error(contentType));
         throw new Error('INVALID_RESPONSE: Server returned unexpected content type');
       }
 
       // Validate response body exists for streaming
       if (!isJsonResponse && !response.body) {
-        console.error('[ChatClient] Missing response body for streaming');
+        log.error('Missing response body for streaming');
         throw new Error('INVALID_RESPONSE: No response body for streaming');
       }
 
@@ -1258,7 +1263,7 @@ export function ChatClient() {
         // Check if this is an image generation response
         if (data.type === 'image' && data.url) {
           isImageResponse = true;
-          console.log('[ChatClient] Received image generation response:', {
+          log.debug('Received image generation response:', {
             prompt: data.prompt,
             model: data.model,
             hasUrl: !!data.url,
@@ -1280,7 +1285,7 @@ export function ChatClient() {
           await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'image', data.url);
         } else if (data.type === 'code_preview' && data.codePreview) {
           // Website/landing page code generation response
-          console.log('[ChatClient] Received code preview response:', {
+          log.debug('Received code preview response:', {
             title: data.codePreview.title,
             language: data.codePreview.language,
           });
@@ -1306,7 +1311,7 @@ export function ChatClient() {
           await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'text');
         } else if (data.type === 'multi_page_website' && data.multiPageWebsite) {
           // FORGE: Multi-page website generation response
-          console.log('[ChatClient] Received multi-page website response:', {
+          log.debug('Received multi-page website response:', {
             title: data.multiPageWebsite.title,
             pageCount: data.multiPageWebsite.pages?.length || 0,
           });
@@ -1333,7 +1338,7 @@ export function ChatClient() {
           await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'text');
         } else if (data.type === 'video_job' && data.video_job) {
           // Video generation job started (admin only)
-          console.log('[ChatClient] Received video job response:', {
+          log.debug('Received video job response:', {
             job_id: data.video_job.job_id,
             status: data.video_job.status,
             model: data.video_job.model,
@@ -1369,7 +1374,7 @@ export function ChatClient() {
           const pollVideoStatus = async () => {
             const statusUrl = data.video_job.status_url;
             if (!statusUrl) {
-              console.error('[ChatClient] No status URL for video job');
+              log.error('No status URL for video job');
               return;
             }
 
@@ -1381,7 +1386,7 @@ export function ChatClient() {
               try {
                 const statusResponse = await fetch(statusUrl);
                 if (!statusResponse.ok) {
-                  console.error('[ChatClient] Video status check failed:', statusResponse.status);
+                  log.error('Video status check failed:', new Error(`Status: ${statusResponse.status}`));
                   if (attempts < maxAttempts) {
                     setTimeout(poll, 5000);
                   }
@@ -1389,7 +1394,7 @@ export function ChatClient() {
                 }
 
                 const statusData = await statusResponse.json();
-                console.log('[ChatClient] Video status:', statusData.status, 'progress:', statusData.progress);
+                log.debug('Video status:', { status: statusData.status, progress: statusData.progress });
 
                 // Update the message with new status
                 setMessages((prev) =>
@@ -1415,12 +1420,12 @@ export function ChatClient() {
                     setTimeout(poll, 5000);
                   }
                 } else if (statusData.status === 'completed') {
-                  console.log('[ChatClient] Video completed! Download URL:', statusData.download_url);
+                  log.debug('Video completed! Download URL:', statusData.download_url);
                 } else if (statusData.status === 'failed') {
-                  console.error('[ChatClient] Video generation failed:', statusData.error);
+                  log.error('Video generation failed:', statusData.error);
                 }
               } catch (error) {
-                console.error('[ChatClient] Error polling video status:', error);
+                log.error('Error polling video status:', error as Error);
                 if (attempts < maxAttempts) {
                   setTimeout(poll, 5000);
                 }
@@ -1440,7 +1445,7 @@ export function ChatClient() {
           // This happens when Gemini/etc generates native DOCX/XLSX files
           let messageContent = data.content || '';
           if (data.documentDownload?.url) {
-            console.log('[ChatClient] Document download included in response:', {
+            log.debug('Document download included in response:', {
               filename: data.documentDownload.filename,
               format: data.documentDownload.format,
             });
@@ -1466,10 +1471,10 @@ export function ChatClient() {
           };
 
           if (data.files?.length > 0) {
-            console.log(`[ChatClient] Document generation: ${data.files.length} file(s) generated`);
+            log.debug(`Document generation: ${data.files.length} file(s) generated`);
           }
           if (data.citations?.length > 0 || data.sourcesUsed > 0) {
-            console.log(`[ChatClient] Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`);
+            log.debug(`Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`);
           }
 
           setMessages((prev) => [...prev, assistantMessage]);
@@ -1480,7 +1485,7 @@ export function ChatClient() {
 
         if (isSSE) {
           // SSE streaming for website generation
-          console.log('[ChatClient] Processing SSE stream (website generation)');
+          log.debug('Processing SSE stream (website generation)');
 
           // Create initial assistant message with progress indicator
           const assistantMessage: Message = {
@@ -1523,7 +1528,7 @@ export function ChatClient() {
 
                       if (event.type === 'progress') {
                         // Update message with progress
-                        console.log('[ChatClient] Website progress:', event.message);
+                        log.debug('Website progress:', event.message);
                         if (shouldUpdateUI) {
                           setMessages((prev) =>
                             prev.map((msg) =>
@@ -1535,7 +1540,7 @@ export function ChatClient() {
                         }
                       } else if (event.type === 'code_preview' && event.codePreview) {
                         // Final website response
-                        console.log('[ChatClient] Website generated:', event.codePreview.title);
+                        log.debug('Website generated:', event.codePreview.title);
                         if (shouldUpdateUI) {
                           setMessages((prev) =>
                             prev.map((msg) =>
@@ -1559,7 +1564,7 @@ export function ChatClient() {
                         // Save to database (always save regardless of UI state)
                         await saveMessageToDatabase(newChatId, 'assistant', event.content || 'Generated website', 'text');
                       } else if (event.type === 'error') {
-                        console.error('[ChatClient] Website generation error:', event.message);
+                        log.error('Website generation error:', event.message);
                         if (shouldUpdateUI) {
                           setMessages((prev) =>
                             prev.map((msg) =>
@@ -1572,7 +1577,7 @@ export function ChatClient() {
                       }
                     } catch (parseError) {
                       // Not valid JSON, might be partial data
-                      console.log('[ChatClient] SSE parse error:', parseError);
+                      log.debug('SSE parse error:', { error: parseError });
                     }
                   }
                 }
@@ -1583,7 +1588,7 @@ export function ChatClient() {
           }
         } else {
           // Regular text streaming response
-          console.log('[ChatClient] Processing streaming response (text stream)');
+          log.debug('Processing streaming response (text stream)');
 
           // Create initial empty assistant message
           const assistantMessage: Message = {
@@ -1627,10 +1632,10 @@ export function ChatClient() {
               }
             } catch (readerError) {
               // Stream was interrupted (user navigated away, network issue, etc.)
-              console.log('[ChatClient] Stream interrupted:', readerError instanceof Error ? readerError.message : 'unknown');
+              log.debug('Stream interrupted:', { message: readerError instanceof Error ? readerError.message : 'unknown' });
               // If we have some content, use it instead of showing an error
               if (accumulatedContent.length > 0) {
-                console.log('[ChatClient] Using partial content, length:', accumulatedContent.length);
+                log.debug('Using partial content, length:', { length: accumulatedContent.length });
                 finalContent = accumulatedContent;
               } else {
                 // Re-throw to trigger the outer error handler
@@ -1642,7 +1647,7 @@ export function ChatClient() {
 
             // Set final content from accumulated stream
             if (!finalContent && accumulatedContent) {
-              console.log('[ChatClient] Stream finished, total length:', accumulatedContent.length);
+              log.debug('Stream finished, total length:', { length: accumulatedContent.length });
               finalContent = accumulatedContent;
             }
           }
@@ -1654,7 +1659,7 @@ export function ChatClient() {
       const pdfMarkerMatch = finalContent.match(/\[GENERATE_PDF:\s*(.+?)\]/s);
       if (pdfMarkerMatch) {
         const pdfTitle = pdfMarkerMatch[1].trim();
-        console.log('[ChatClient] Detected GENERATE_PDF marker, title:', pdfTitle);
+        log.debug('Detected GENERATE_PDF marker, title:', { title: pdfTitle });
 
         // Extract the content after the marker (the markdown content for the PDF)
         const markerStartIndex = finalContent.indexOf('[GENERATE_PDF:');
@@ -1666,7 +1671,7 @@ export function ChatClient() {
 
         // Validate content before proceeding
         if (!pdfTitle || !pdfContent || pdfContent.length < 10) {
-          console.warn('[ChatClient] PDF marker found but content is empty or too short');
+          log.warn('PDF marker found but content is empty or too short');
           // Don't try to generate, just clean up the response
           const cleanedContent = textBeforeMarker || 'I tried to generate a PDF but encountered an issue. Please try again with more content.';
           setMessages((prev) =>
@@ -1715,7 +1720,7 @@ export function ChatClient() {
             const isSupabaseUrl = !!pdfData.downloadUrl;
 
             if (downloadUrl) {
-              console.log('[ChatClient] PDF generated successfully, storage:', pdfData.storage);
+              log.debug('PDF generated successfully, storage:', pdfData.storage);
 
               if (isSupabaseUrl) {
                 // Supabase Storage: Show clickable download link
@@ -1759,7 +1764,7 @@ export function ChatClient() {
               }
             }
           } else {
-            console.error('[ChatClient] PDF generation failed:', await pdfResponse.text());
+            log.error('PDF generation failed:', new Error(await pdfResponse.text()));
             // Update message with error (no new message = no flash)
             const errorContent = textBeforeMarker
               ? `${textBeforeMarker}\n\n⚠️ Sorry, I couldn't generate the PDF. Please try again.`
@@ -1774,7 +1779,7 @@ export function ChatClient() {
             );
           }
         } catch (pdfError) {
-          console.error('[ChatClient] Error during PDF generation:', pdfError);
+          log.error('Error during PDF generation:', pdfError as Error);
           // Show error to user instead of silently failing
           const errorContent = textBeforeMarker
             ? `${textBeforeMarker}\n\n⚠️ Sorry, there was an error generating your PDF. Please try again.`
@@ -1796,7 +1801,7 @@ export function ChatClient() {
       const xlsxMarkerMatch = finalContent.match(/\[GENERATE_XLSX:\s*(.+?)\]/s);
       if (xlsxMarkerMatch) {
         const xlsxTitle = xlsxMarkerMatch[1].trim();
-        console.log('[ChatClient] Detected GENERATE_XLSX marker, title:', xlsxTitle);
+        log.debug('Detected GENERATE_XLSX marker, title:', { title: xlsxTitle });
 
         // Extract the content after the marker (the markdown table content)
         const markerStartIndex = finalContent.indexOf('[GENERATE_XLSX:');
@@ -1808,7 +1813,7 @@ export function ChatClient() {
 
         // Validate content before proceeding
         if (!xlsxTitle || !xlsxContent || xlsxContent.length < 10) {
-          console.warn('[ChatClient] XLSX marker found but content is empty or too short');
+          log.warn('XLSX marker found but content is empty or too short');
           const cleanedContent = textBeforeMarker || 'I tried to generate a spreadsheet but encountered an issue. Please try again with more content.';
           setMessages((prev) =>
             prev.map((msg) =>
@@ -1850,7 +1855,7 @@ export function ChatClient() {
               const isSupabaseUrl = !!xlsxData.downloadUrl;
 
               if (downloadUrl) {
-                console.log('[ChatClient] Excel generated successfully, storage:', xlsxData.storage);
+                log.debug('Excel generated successfully, storage:', xlsxData.storage);
 
                 if (isSupabaseUrl) {
                   // Supabase Storage: Show clickable download link
@@ -1890,13 +1895,13 @@ export function ChatClient() {
                   );
                 }
               } else {
-                console.error('[ChatClient] Excel response missing download URL');
+                log.error('Excel response missing download URL');
               }
             } else {
-              console.error('[ChatClient] Excel generation failed:', await xlsxResponse.text());
+              log.error('Excel generation failed:', new Error(await xlsxResponse.text()));
             }
           } catch (xlsxError) {
-            console.error('[ChatClient] Error during Excel generation:', xlsxError);
+            log.error('Error during Excel generation:', xlsxError as Error);
             const errorContent = textBeforeMarker
               ? `${textBeforeMarker}\n\n⚠️ Sorry, there was an error generating your spreadsheet. Please try again.`
               : `⚠️ Sorry, there was an error generating your spreadsheet. Please try again.`;
@@ -1917,7 +1922,7 @@ export function ChatClient() {
       const qrMarkerMatch = finalContent.match(/\[GENERATE_QR:\s*(.+?)\]/s);
       if (qrMarkerMatch) {
         const qrData = qrMarkerMatch[1].trim();
-        console.log('[ChatClient] Detected GENERATE_QR marker, data:', qrData.slice(0, 100));
+        log.debug('Detected GENERATE_QR marker, data:', { data: qrData.slice(0, 100) });
 
         // Remove the marker from the displayed text
         const cleanedContent = finalContent.replace(/\[GENERATE_QR:\s*.+?\]/s, '🔲 **Generating QR Code...**\n\n').trim();
@@ -1946,7 +1951,7 @@ export function ChatClient() {
           if (qrResponse.ok) {
             const qrResult = await qrResponse.json();
             if (qrResult.dataUrl) {
-              console.log('[ChatClient] QR code generated successfully');
+              log.debug('QR code generated successfully');
 
               // Add a message with the QR code image
               const qrMessage: Message = {
@@ -1959,7 +1964,7 @@ export function ChatClient() {
               setMessages((prev) => [...prev, qrMessage]);
             }
           } else {
-            console.error('[ChatClient] QR generation failed:', await qrResponse.text());
+            log.error('QR generation failed:', new Error(await qrResponse.text()));
             const errorMsg: Message = {
               id: (Date.now() + 4).toString(),
               role: 'assistant',
@@ -1969,7 +1974,7 @@ export function ChatClient() {
             setMessages((prev) => [...prev, errorMsg]);
           }
         } catch (qrError) {
-          console.error('[ChatClient] Error during QR generation:', qrError);
+          log.error('Error during QR generation:', qrError as Error);
         }
       }
 
@@ -1979,7 +1984,7 @@ export function ChatClient() {
       if (docDownloadMatch) {
         try {
           const docData = JSON.parse(docDownloadMatch[1]);
-          console.log('[ChatClient] Detected DOCUMENT_DOWNLOAD marker:', docData.filename);
+          log.debug('Detected DOCUMENT_DOWNLOAD marker:', docData.filename);
 
           // Remove the marker from the displayed text
           const cleanedContent = finalContent.replace(/\[DOCUMENT_DOWNLOAD:.+?\]/s, '').trim();
@@ -2006,7 +2011,7 @@ export function ChatClient() {
             finalContent = successContent;
           }
         } catch (docError) {
-          console.error('[ChatClient] Error parsing DOCUMENT_DOWNLOAD marker:', docError);
+          log.error('Error parsing DOCUMENT_DOWNLOAD marker:', docError as Error);
         }
       }
 
@@ -2029,7 +2034,7 @@ export function ChatClient() {
       const isMeaningfulMessage = content.length > 20; // Skip short greetings
       const shouldRegenerateTitle = hasGenericTitle && isMeaningfulMessage && messages.length > 0;
 
-      console.log('[ChatClient] Title generation check:', {
+      log.debug('Title generation check:', {
         isNewConversation,
         messageCount: messages.length,
         newChatId,
@@ -2039,7 +2044,7 @@ export function ChatClient() {
       });
 
       if ((isNewConversation || shouldRegenerateTitle) && newChatId) {
-        console.log('[ChatClient] STARTING title generation:', { isNewConversation, shouldRegenerateTitle });
+        log.debug('STARTING title generation:', { isNewConversation, shouldRegenerateTitle });
         try {
           const titleResponse = await fetch('/api/chat/generate-title', {
             method: 'POST',
@@ -2053,7 +2058,7 @@ export function ChatClient() {
           if (titleResponse.ok) {
             const titleData = await titleResponse.json();
             const generatedTitle = titleData.title || 'New Chat';
-            console.log('[ChatClient] Generated title:', generatedTitle);
+            log.debug('Generated title:', generatedTitle);
 
             // Only update if the new title is better (not generic)
             if (!isGenericTitle(generatedTitle) || isNewConversation) {
@@ -2074,7 +2079,7 @@ export function ChatClient() {
             }
           }
         } catch (titleError) {
-          console.error('[ChatClient] Title generation error:', titleError);
+          log.error('Title generation error:', titleError as Error);
         }
       }
     } catch (error) {
@@ -2096,7 +2101,7 @@ export function ChatClient() {
 
       if (isAbortError || isNetworkError) {
         // User navigated away or network issue - this is not a server error
-        console.log('[ChatClient] Request interrupted:', error instanceof Error ? error.message : 'unknown');
+        log.debug('Request interrupted:', { message: error instanceof Error ? error.message : 'unknown' });
         // Clean up abort controller to prevent memory leaks
         abortControllerRef.current = null;
         // Only update state if component is still mounted
@@ -2107,11 +2112,11 @@ export function ChatClient() {
         return; // Don't show error message for interrupted requests
       }
 
-      console.error('Chat API error:', error);
+      log.error('Chat API error:', error as Error);
       // Log more details about the error for debugging
       if (error instanceof Error) {
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
+        log.debug('Error name:', { name: error.name });
+        log.debug('Error message:', { message: error.message });
       }
 
       // Only show error message if component is still mounted
@@ -2218,6 +2223,7 @@ export function ChatClient() {
                   <span style={{ color: 'var(--primary)' }}>ai</span>
                 </h1>
               ) : headerLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={headerLogo} alt="JCIL.ai" className="h-8" />
               ) : (
                 <h1 className="text-base md:text-xl font-semibold">

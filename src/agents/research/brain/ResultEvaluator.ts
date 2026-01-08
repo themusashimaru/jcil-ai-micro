@@ -19,6 +19,9 @@ import {
   EvaluatedResults,
   GeneratedQuery,
 } from '../../core/types';
+import { logger } from '@/lib/logger';
+
+const log = logger('ResultEvaluator');
 
 export class ResultEvaluator {
 
@@ -136,7 +139,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
         schema,
       });
 
-      console.log(`[ResultEvaluator] Using Claude Sonnet for result evaluation`);
+      log.info(`Using Claude Sonnet for result evaluation`);
 
       // Build evaluated results with proper typing
       const evaluated: EvaluatedResults = {
@@ -166,7 +169,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
 
       return evaluated;
     } catch (error) {
-      console.error('[ResultEvaluator] Error evaluating results (Claude Sonnet):', error);
+      log.error('Error evaluating results (Claude Sonnet)', error as Error);
       return this.createFallbackEvaluation(results, iteration >= maxIterations);
     }
   }

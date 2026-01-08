@@ -218,6 +218,7 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, docu
             ) : theme === 'light' ? (
               // Light mode: Use light mode logo if uploaded, otherwise show text
               lightModeLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={lightModeLogo}
                   alt="JCIL.ai"
@@ -241,6 +242,7 @@ export function ChatThread({ messages, isStreaming, currentChatId, isAdmin, docu
                   className="h-36 md:h-72 w-auto mx-auto mb-2"
                 />
               ) : (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={mainLogo}
                   alt="JCIL.ai"
