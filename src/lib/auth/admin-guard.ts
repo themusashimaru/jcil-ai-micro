@@ -28,6 +28,9 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminGuard');
 
 interface AdminAuthResult {
   authorized: true;
@@ -123,7 +126,7 @@ export async function requireAdmin(request?: NextRequest): Promise<AdminAuthResp
     };
   } catch (error) {
     // Unexpected error during auth check
-    console.error('[Admin Guard] Unexpected error during authentication:', error);
+    log.error('Unexpected error during authentication', error as Error);
 
     return {
       authorized: false,

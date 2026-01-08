@@ -5,6 +5,10 @@
  * Uses Puppeteer for high-quality PDF generation
  */
 
+import { logger } from '@/lib/logger';
+
+const log = logger('PDF');
+
 // Note: This module requires puppeteer to be installed
 // npm install puppeteer
 
@@ -196,7 +200,7 @@ export async function markdownToPdf(
     return Buffer.from(pdf);
   } catch {
     // Fallback: return HTML if Puppeteer not available
-    console.error('[PDF] Puppeteer not available, returning HTML');
+    log.error('Puppeteer not available for PDF generation');
     throw new Error(
       'PDF generation requires Puppeteer. Install with: npm install puppeteer'
     );

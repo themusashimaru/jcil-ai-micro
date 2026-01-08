@@ -13,6 +13,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeTelepathy');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -92,7 +95,7 @@ export class CodeTelepathy {
     userId: string,
     repos: Array<{ owner: string; name: string; files: Array<{ path: string; content: string }> }>
   ): Promise<DeveloperProfile> {
-    console.log(`[CodeTelepathy] Building profile for ${userId} from ${repos.length} repos`);
+    log.info('Building profile', { userId, repoCount: repos.length });
 
     const patterns: CodingPattern[] = [];
     const solutions: Solution[] = [];

@@ -14,6 +14,9 @@ import type {
   PublicKeyCredentialRequestOptionsJSON,
 } from '@simplewebauthn/browser';
 import { createBrowserClient } from '@/lib/supabase/client';
+import { logger } from '@/lib/logger';
+
+const log = logger('WebAuthn');
 
 export { browserSupportsWebAuthn, platformAuthenticatorIsAvailable };
 
@@ -79,7 +82,7 @@ export async function registerPasskey(): Promise<{ success: boolean; error?: str
     if (error instanceof Error && error.name === 'NotAllowedError') {
       return { success: false, error: 'Registration was cancelled' };
     }
-    console.error('Passkey registration error:', error);
+    log.error('Passkey registration error', error as Error);
     return { success: false, error: 'Failed to register passkey' };
   }
 }
@@ -135,7 +138,7 @@ export async function authenticateWithPasskey(
       });
 
       if (verifyError) {
-        console.error('OTP verification error:', verifyError);
+        log.error('OTP verification error', verifyError as Error);
         return { success: false, error: 'Failed to create session' };
       }
 
@@ -148,7 +151,7 @@ export async function authenticateWithPasskey(
     if (error instanceof Error && error.name === 'NotAllowedError') {
       return { success: false, error: 'Authentication was cancelled' };
     }
-    console.error('Passkey authentication error:', error);
+    log.error('Passkey authentication error', error as Error);
     return { success: false, error: 'Failed to authenticate' };
   }
 }

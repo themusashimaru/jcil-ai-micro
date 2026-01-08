@@ -7,6 +7,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { PRInfo, FileDiff, CodeReviewResult, ReviewComment, ReviewOptions, ReviewSeverity } from './types';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeReview');
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -50,7 +53,7 @@ export async function fetchPRInfo(
       url: data.html_url,
     };
   } catch (error) {
-    console.error('[CodeReview] Error fetching PR info:', error);
+    log.error('Error fetching PR info', error as Error);
     return null;
   }
 }
@@ -95,7 +98,7 @@ export async function fetchPRDiff(
       previousFilename: file.previous_filename,
     }));
   } catch (error) {
-    console.error('[CodeReview] Error fetching PR diff:', error);
+    log.error('Error fetching PR diff', error as Error);
     return [];
   }
 }
@@ -115,7 +118,7 @@ export async function reviewPR(
     strictMode = false,
   } = options;
 
-  console.log(`[CodeReview] Reviewing PR #${prInfo.number}: ${prInfo.title}`);
+  log.info('Reviewing PR', { prNumber: prInfo.number, title: prInfo.title });
 
   // Build the diff summary
   let diffContent = '';
@@ -236,11 +239,11 @@ Return ONLY valid JSON, no markdown formatting.`,
         recommendations: review.recommendations || [],
       };
     } catch (parseError) {
-      console.error('[CodeReview] Parse error:', parseError);
+      log.error('Parse error', parseError as Error);
       return createFallbackReview(content);
     }
   } catch (error) {
-    console.error('[CodeReview] API error:', error);
+    log.error('API error', error as Error);
     throw error;
   }
 }
@@ -402,7 +405,7 @@ export async function postReviewToGitHub(
 
     return response.ok;
   } catch (error) {
-    console.error('[CodeReview] Error posting to GitHub:', error);
+    log.error('Error posting to GitHub', error as Error);
     return false;
   }
 }

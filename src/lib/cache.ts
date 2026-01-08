@@ -6,6 +6,9 @@
  */
 
 import { createHash } from 'crypto';
+import { logger } from '@/lib/logger';
+
+const log = logger('Cache');
 
 // Redis client (optional - graceful fallback if not configured)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,7 +27,7 @@ async function getRedis() {
       redis = Redis.fromEnv();
       return redis;
     } catch {
-      console.warn('[Cache] Upstash Redis not available, using in-memory fallback');
+      log.warn('Upstash Redis not available, using in-memory fallback');
     }
   }
 
@@ -75,8 +78,7 @@ export async function cachedWebSearch<T>(
     if (r) {
       const hit = await r.get(key);
       if (hit) {
-        // eslint-disable-next-line no-console
-        console.log('[Cache] Web search cache HIT for query');
+        log.debug('Web search cache HIT');
         // Upstash Redis auto-parses JSON, so check if it's already an object
         // If it's a string, parse it; if it's already an object, use it directly
         const data = typeof hit === 'string' ? JSON.parse(hit) : hit;
@@ -84,13 +86,11 @@ export async function cachedWebSearch<T>(
       }
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[Cache] Redis get error:', error);
+    log.error('Redis get error', error as Error);
   }
 
   // Cache miss - fetch fresh data
-  // eslint-disable-next-line no-console
-  console.log('[Cache] Web search cache MISS, fetching fresh');
+  log.debug('Web search cache MISS, fetching fresh');
   const data = await fetchFn();
 
   // Store in cache
@@ -100,8 +100,7 @@ export async function cachedWebSearch<T>(
       await r.set(key, JSON.stringify(data), { ex: ttlSec });
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[Cache] Redis set error:', error);
+    log.error('Redis set error', error as Error);
   }
 
   return { data, cached: false };
@@ -126,8 +125,7 @@ export async function cached<T>(
       }
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[Cache] Redis get error:', error);
+    log.error('Redis get error', error as Error);
   }
 
   const data = await fetchFn();
@@ -138,8 +136,7 @@ export async function cached<T>(
       await r.set(key, JSON.stringify(data), { ex: ttlSec });
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[Cache] Redis set error:', error);
+    log.error('Redis set error', error as Error);
   }
 
   return { data, cached: false };
@@ -157,7 +154,7 @@ export async function invalidateCache(key: string): Promise<void> {
     }
     memoryCache.delete(key);
   } catch (error) {
-    console.error('[Cache] Invalidation error:', error);
+    log.error('Cache invalidation error', error as Error);
   }
 }
 

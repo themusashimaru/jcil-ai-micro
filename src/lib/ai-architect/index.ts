@@ -13,6 +13,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('AIArchitect');
 
 // ============================================
 // TYPES
@@ -115,7 +118,7 @@ export class AIArchitect {
   async analyzeArchitecture(
     files: Array<{ path: string; content: string }>
   ): Promise<ArchitectureAnalysis> {
-    console.log(`[AIArchitect] Analyzing architecture of ${files.length} files`);
+    log.info('Analyzing architecture', { fileCount: files.length });
 
     try {
       const response = await this.anthropic.messages.create({
@@ -182,7 +185,7 @@ ${files.slice(0, 15).map(f => `--- ${f.path} ---\n${f.content.substring(0, 1000)
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[AIArchitect] Analysis error:', error);
+      log.error('Analysis error', error as Error);
       return this.getDefaultAnalysis();
     }
   }
@@ -263,7 +266,7 @@ Title: ${request.title || 'System Architecture'}`,
         description: analysis.overview,
       };
     } catch (error) {
-      console.error('[AIArchitect] System diagram error:', error);
+      log.error('System diagram error', error as Error);
       return this.getDefaultDiagram('system', format);
     }
   }
@@ -334,7 +337,7 @@ ${schemaFiles.map(f => `--- ${f.path} ---\n${f.content}`).join('\n\n')}`,
         description: 'Entity-Relationship diagram showing database tables and their relationships',
       };
     } catch (error) {
-      console.error('[AIArchitect] ER diagram error:', error);
+      log.error('ER diagram error', error as Error);
       return this.getDefaultDiagram('database', format);
     }
   }
@@ -393,7 +396,7 @@ ${apiFiles.map(f => `--- ${f.path} ---\n${f.content.substring(0, 1500)}`).join('
         description: 'API endpoint flow diagram showing request/response paths',
       };
     } catch (error) {
-      console.error('[AIArchitect] API flow error:', error);
+      log.error('API flow error', error as Error);
       return this.getDefaultDiagram('api-flow', format);
     }
   }
@@ -455,7 +458,7 @@ ${componentFiles.slice(0, 10).map(f => `--- ${f.path} ---\n${f.content.substring
         description: 'Component dependency graph showing UI component relationships',
       };
     } catch (error) {
-      console.error('[AIArchitect] Component diagram error:', error);
+      log.error('Component diagram error', error as Error);
       return this.getDefaultDiagram('component', format);
     }
   }
@@ -518,7 +521,7 @@ ${files.slice(0, 10).map(f => `${f.path}`).join('\n')}`,
         description: request.description || 'User interaction sequence diagram',
       };
     } catch (error) {
-      console.error('[AIArchitect] Sequence diagram error:', error);
+      log.error('Sequence diagram error', error as Error);
       return this.getDefaultDiagram('sequence', format);
     }
   }
@@ -588,7 +591,7 @@ ${infraFiles.length > 0
         description: 'Infrastructure and deployment architecture diagram',
       };
     } catch (error) {
-      console.error('[AIArchitect] Infra diagram error:', error);
+      log.error('Infra diagram error', error as Error);
       return this.getDefaultDiagram('infrastructure', format);
     }
   }
@@ -658,7 +661,7 @@ ${classFiles.slice(0, 10).map(f => `--- ${f.path} ---\n${f.content.substring(0, 
         description: 'UML class diagram showing types and relationships',
       };
     } catch (error) {
-      console.error('[AIArchitect] Class diagram error:', error);
+      log.error('Class diagram error', error as Error);
       return this.getDefaultDiagram('class', format);
     }
   }
@@ -715,7 +718,7 @@ ${files.slice(0, 5).map(f => f.path).join('\n')}`,
         description: request.description || 'Application flow diagram',
       };
     } catch (error) {
-      console.error('[AIArchitect] Flowchart error:', error);
+      log.error('Flowchart error', error as Error);
       return this.getDefaultDiagram('flowchart', format);
     }
   }

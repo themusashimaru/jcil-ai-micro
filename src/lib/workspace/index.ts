@@ -13,6 +13,9 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+
+const log = logger('Workspace');
 
 // ============================================
 // TYPES
@@ -276,7 +279,7 @@ export class WorkspaceManager {
     // 1. Light operations: WebContainers in browser
     // 2. Heavy operations: Server-side Docker containers
 
-    console.log(`Initializing workspace ${workspace.id}`);
+    log.debug('Initializing workspace', { workspaceId: workspace.id });
   }
 
   /**
@@ -851,7 +854,7 @@ export class TaskQueue {
     await this.supabase.from('background_tasks').insert(task);
 
     // Trigger the worker (in production, use a proper job queue)
-    this.processTask(task.id).catch(console.error);
+    this.processTask(task.id).catch((err) => log.error('Task processing failed', err as Error));
 
     return task;
   }
@@ -1487,7 +1490,7 @@ export class BatchOperationManager {
             break;
         }
       } catch (e) {
-        console.error(`Failed to rollback operation:`, op, e);
+        log.error('Failed to rollback operation', e as Error, { operation: op });
       }
     }
   }

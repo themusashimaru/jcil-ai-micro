@@ -11,6 +11,9 @@
  */
 
 import { redis } from './redis/client';
+import { logger } from '@/lib/logger';
+
+const log = logger('Queue');
 
 // Configuration
 const MAX_CONCURRENT_REQUESTS = parseInt(process.env.QUEUE_MAX_CONCURRENT || '50', 10);
@@ -68,7 +71,7 @@ export async function getQueueStatus(): Promise<{
     try {
       activeRequests = await redis.scard(ACTIVE_REQUESTS_KEY);
     } catch (error) {
-      console.warn('[Queue] Error getting status:', error);
+      log.warn('Error getting status', error as Error);
     }
   } else {
     activeRequests = inMemoryActiveCount;
@@ -102,7 +105,7 @@ async function acquireSlotRedis(requestId: string): Promise<boolean> {
           // Use a separate key for TTL tracking
           await redis!.set(`queue:req:${requestId}`, '1', { ex: REQUEST_TTL_SECONDS });
 
-          console.log(`[Queue] Slot acquired: ${requestId} (${currentCount + 1}/${MAX_CONCURRENT_REQUESTS})`);
+          log.debug('Slot acquired', { requestId, active: currentCount + 1, max: MAX_CONCURRENT_REQUESTS });
           return true;
         }
       }
@@ -111,13 +114,13 @@ async function acquireSlotRedis(requestId: string): Promise<boolean> {
       await sleep(100 + Math.random() * 100); // 100-200ms jitter
 
     } catch (error) {
-      console.warn('[Queue] Error acquiring slot:', error);
+      log.warn('Error acquiring slot', error as Error);
       // On Redis error, allow the request through
       return true;
     }
   }
 
-  console.warn(`[Queue] Timeout waiting for slot: ${requestId}`);
+  log.warn('Timeout waiting for slot', { requestId });
   return false;
 }
 
@@ -127,9 +130,9 @@ async function releaseSlotRedis(requestId: string): Promise<void> {
     await redis!.del(`queue:req:${requestId}`);
 
     const remaining = await redis!.scard(ACTIVE_REQUESTS_KEY);
-    console.log(`[Queue] Slot released: ${requestId} (${remaining}/${MAX_CONCURRENT_REQUESTS})`);
+    log.debug('Slot released', { requestId, active: remaining, max: MAX_CONCURRENT_REQUESTS });
   } catch (error) {
-    console.warn('[Queue] Error releasing slot:', error);
+    log.warn('Error releasing slot', error as Error);
   }
 }
 
@@ -141,13 +144,13 @@ function acquireSlotMemory(): Promise<boolean> {
   // Warn once about in-memory fallback in serverless
   if (!warnedAboutFallback && process.env.VERCEL) {
     warnedAboutFallback = true;
-    console.warn('[Queue] WARNING: Using in-memory queue in serverless environment. Configure UPSTASH_REDIS for proper rate limiting.');
+    log.warn('Using in-memory queue in serverless environment - configure UPSTASH_REDIS for proper rate limiting');
   }
 
   return new Promise((resolve) => {
     if (inMemoryActiveCount < MAX_CONCURRENT_REQUESTS) {
       inMemoryActiveCount++;
-      console.log(`[Queue] Slot acquired (memory): ${inMemoryActiveCount}/${MAX_CONCURRENT_REQUESTS}`);
+      log.debug('Slot acquired (memory)', { active: inMemoryActiveCount, max: MAX_CONCURRENT_REQUESTS });
       resolve(true);
       return;
     }
@@ -158,7 +161,7 @@ function acquireSlotMemory(): Promise<boolean> {
       if (index !== -1) {
         inMemoryQueue.splice(index, 1);
       }
-      console.warn('[Queue] Timeout waiting for slot (memory)');
+      log.warn('Timeout waiting for slot (memory)');
       resolve(false);
     }, QUEUE_TIMEOUT_MS);
 
@@ -168,7 +171,7 @@ function acquireSlotMemory(): Promise<boolean> {
 
 function releaseSlotMemory(): void {
   inMemoryActiveCount = Math.max(0, inMemoryActiveCount - 1);
-  console.log(`[Queue] Slot released (memory): ${inMemoryActiveCount}/${MAX_CONCURRENT_REQUESTS}`);
+  log.debug('Slot released (memory)', { active: inMemoryActiveCount, max: MAX_CONCURRENT_REQUESTS });
 
   // Process next in queue
   if (inMemoryQueue.length > 0 && inMemoryActiveCount < MAX_CONCURRENT_REQUESTS) {
@@ -217,12 +220,12 @@ export async function cleanupStaleRequests(): Promise<number> {
     }
 
     if (cleaned > 0) {
-      console.log(`[Queue] Cleaned up ${cleaned} stale requests`);
+      log.info('Cleaned up stale requests', { count: cleaned });
     }
 
     return cleaned;
   } catch (error) {
-    console.warn('[Queue] Error cleaning up stale requests:', error);
+    log.warn('Error cleaning up stale requests', error as Error);
     return 0;
   }
 }

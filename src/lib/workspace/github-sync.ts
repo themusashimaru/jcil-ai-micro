@@ -14,6 +14,9 @@
  */
 
 import { Octokit } from '@octokit/rest';
+import { logger } from '@/lib/logger';
+
+const log = logger('GitHubSync');
 
 export interface GitHubRepo {
   owner: string;
@@ -429,7 +432,7 @@ export class GitHubSyncBridge {
         number: data.number,
       };
     } catch (error) {
-      console.error('Failed to create PR:', error);
+      log.error('Failed to create PR', error as Error);
       return null;
     }
   }

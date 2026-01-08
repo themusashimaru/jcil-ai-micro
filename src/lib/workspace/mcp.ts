@@ -11,6 +11,9 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
+
+const log = logger('MCP');
 
 export interface MCPServerConfig {
   id: string;
@@ -405,7 +408,7 @@ export class MCPManager {
     try {
       // In production, this would send a JSON-RPC request to the MCP server
       // For now, we simulate the execution
-      console.log(`[MCP] Executing tool ${toolName} with input:`, input);
+      log.debug('Executing tool', { toolName, input });
 
       return {
         success: true,

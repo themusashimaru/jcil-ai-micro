@@ -22,6 +22,9 @@
  */
 
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+
+const log = logger('RequestSize');
 
 interface SizeValidationResult {
   valid: boolean;
@@ -67,10 +70,9 @@ export function validateRequestSize(
   const bodySize = calculateJSONSize(body);
 
   if (bodySize > maxSizeBytes) {
-    console.warn('[Request Size] Blocked oversized request', {
+    log.warn('Blocked oversized request', {
       size: formatBytes(bodySize),
       limit: formatBytes(maxSizeBytes),
-      exceeded: formatBytes(bodySize - maxSizeBytes),
     });
 
     return {
@@ -142,10 +144,9 @@ export async function validateFormDataSize(
   }
 
   if (totalSize > maxSizeBytes) {
-    console.warn('[Request Size] Blocked oversized form data', {
+    log.warn('Blocked oversized form data', {
       size: formatBytes(totalSize),
       limit: formatBytes(maxSizeBytes),
-      exceeded: formatBytes(totalSize - maxSizeBytes),
     });
 
     return {
@@ -203,7 +204,7 @@ export function checkContentLength(
   }
 
   if (size > maxSizeBytes) {
-    console.warn('[Request Size] Blocked request with large content-length', {
+    log.warn('Blocked request with large content-length', {
       size: formatBytes(size),
       limit: formatBytes(maxSizeBytes),
     });

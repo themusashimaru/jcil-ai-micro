@@ -8,6 +8,9 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Octokit } from 'octokit';
+import { logger } from '@/lib/logger';
+
+const log = logger('GitHubConnector');
 import type {
   GitHubConnector,
   GitHubRepo,
@@ -51,7 +54,7 @@ export async function getGitHubTokenFromSession(
     const { data, error } = await supabase.auth.getUser();
 
     if (error || !data.user) {
-      console.error('[GitHub Connector] Failed to get user:', error);
+      log.error('Failed to get user', error as Error);
       return null;
     }
 
@@ -61,7 +64,7 @@ export async function getGitHubTokenFromSession(
     );
 
     if (!githubIdentity) {
-      console.log('[GitHub Connector] User did not login with GitHub');
+      log.debug('User did not login with GitHub');
       return null;
     }
 
@@ -78,10 +81,10 @@ export async function getGitHubTokenFromSession(
       return data.user.user_metadata.github_token as string;
     }
 
-    console.log('[GitHub Connector] No provider token available');
+    log.debug('No provider token available');
     return null;
   } catch (error) {
-    console.error('[GitHub Connector] Error getting token:', error);
+    log.error('Error getting token', error as Error);
     return null;
   }
 }
@@ -130,7 +133,7 @@ export async function getGitHubConnectionStatus(
       },
     };
   } catch (error) {
-    console.error('[GitHub Connector] Connection check failed:', error);
+    log.error('Connection check failed', error as Error);
     return {
       ...baseConnector,
       status: 'error',
@@ -176,7 +179,7 @@ export async function listUserRepos(token: string): Promise<GitHubRepo[]> {
       owner: repo.owner.login,
     }));
   } catch (error) {
-    console.error('[GitHub Connector] Failed to list repos:', error);
+    log.error('Failed to list repos', error as Error);
     return [];
   }
 }
@@ -207,7 +210,7 @@ export async function createRepository(
       owner: data.owner.login,
     };
   } catch (error) {
-    console.error('[GitHub Connector] Failed to create repo:', error);
+    log.error('Failed to create repo', error as Error);
     return null;
   }
 }
@@ -317,7 +320,7 @@ export async function pushFiles(
       repoUrl: `https://github.com/${owner}/${repo}`,
     };
   } catch (error) {
-    console.error('[GitHub Connector] Push failed:', error);
+    log.error('Push failed', error as Error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Push failed',
@@ -443,7 +446,7 @@ export async function getRepoContents(
       downloadUrl: item.download_url || undefined,
     }));
   } catch (error) {
-    console.error('[GitHub Connector] Failed to get contents:', error);
+    log.error('Failed to get contents', error as Error);
     return null;
   }
 }
@@ -526,7 +529,7 @@ export async function getRepoTree(
       truncated: data.truncated ?? false,
     };
   } catch (error) {
-    console.error('[GitHub Connector] Failed to get tree:', error);
+    log.error('Failed to get tree', error as Error);
     return null;
   }
 }
@@ -553,7 +556,7 @@ export async function getBranches(
       protected: branch.protected,
     }));
   } catch (error) {
-    console.error('[GitHub Connector] Failed to list branches:', error);
+    log.error('Failed to list branches', error as Error);
     return [];
   }
 }
@@ -588,7 +591,7 @@ export async function getCommits(
       htmlUrl: commit.html_url,
     }));
   } catch (error) {
-    console.error('[GitHub Connector] Failed to list commits:', error);
+    log.error('Failed to list commits', error as Error);
     return [];
   }
 }
@@ -758,7 +761,7 @@ export async function cloneRepo(
       fetchedFiles: files.length,
     };
   } catch (error) {
-    console.error('[GitHub Connector] Clone failed:', error);
+    log.error('Clone failed', error as Error);
     return {
       success: false,
       files: [],
@@ -817,7 +820,7 @@ export async function createBranch(
 
     return { success: true, sha: sourceSha };
   } catch (error) {
-    console.error('[GitHub Connector] Create branch failed:', error);
+    log.error('Create branch failed', error as Error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create branch',
@@ -850,7 +853,7 @@ export async function createPullRequest(
       prUrl: data.html_url,
     };
   } catch (error) {
-    console.error('[GitHub Connector] Create PR failed:', error);
+    log.error('Create PR failed', error as Error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create pull request',
@@ -900,7 +903,7 @@ export async function compareBranches(
       })),
     };
   } catch (error) {
-    console.error('[GitHub Connector] Compare failed:', error);
+    log.error('Compare failed', error as Error);
     return null;
   }
 }
@@ -927,7 +930,7 @@ export async function getRepoInfo(
       owner: data.owner.login,
     };
   } catch (error) {
-    console.error('[GitHub Connector] Get repo info failed:', error);
+    log.error('Get repo info failed', error as Error);
     return null;
   }
 }

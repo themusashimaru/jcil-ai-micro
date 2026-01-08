@@ -15,6 +15,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('BugOracle');
 
 // ============================================
 // TYPES
@@ -260,7 +263,7 @@ export class BugOracle {
   async predictBugs(
     files: Array<{ path: string; content: string }>
   ): Promise<BugPredictionResult> {
-    console.log(`[BugOracle] Analyzing ${files.length} files for potential bugs`);
+    log.info('Analyzing files for potential bugs', { fileCount: files.length });
 
     const predictions: PredictedBug[] = [];
 
@@ -443,7 +446,7 @@ ${file.content.substring(0, 8000)}
         relatedPatterns: [],
       }));
     } catch (error) {
-      console.error(`[BugOracle] AI prediction error for ${file.path}:`, error);
+      log.error('AI prediction error', error as Error, { filePath: file.path });
       return [];
     }
   }

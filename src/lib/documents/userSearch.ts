@@ -9,6 +9,9 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+
+const log = logger('UserSearch');
 
 // Service role client for database operations (bypasses RLS)
 function createServiceClient() {
@@ -44,7 +47,7 @@ export async function searchUserDocuments(
 }> {
   const { matchCount = 5 } = options;
 
-  console.log(`[UserSearch] Starting search for user ${userId}, query: "${query.substring(0, 50)}..."`);
+  log.debug('Starting search', { queryPreview: query.substring(0, 50) });
 
   try {
     const supabase = createServiceClient();
@@ -57,11 +60,11 @@ export async function searchUserDocuments(
       .eq('status', 'ready');
 
     if (countError) {
-      console.error('[UserSearch] Error checking document count:', countError);
+      log.error('Error checking document count', { error: countError.message });
       return { results: [], contextString: '' };
     }
 
-    console.log(`[UserSearch] User has ${count || 0} ready documents`);
+    log.debug('Document count', { count: count || 0 });
 
     if (!count || count === 0) {
       return { results: [], contextString: '' };
@@ -71,16 +74,16 @@ export async function searchUserDocuments(
     const results = await keywordSearch(supabase, userId, query, matchCount);
 
     if (results.length === 0) {
-      console.log('[UserSearch] No matching chunks found');
+      log.debug('No matching chunks found');
       return { results: [], contextString: '' };
     }
 
     const contextString = formatSearchResultsForChat(results);
-    console.log(`[UserSearch] SUCCESS: Found ${results.length} relevant chunks`);
+    log.info('Search completed', { resultCount: results.length });
 
     return { results, contextString };
   } catch (error) {
-    console.error('[UserSearch] Unexpected error:', error);
+    log.error('Unexpected error during search', error as Error);
     return { results: [], contextString: '' };
   }
 }
@@ -126,7 +129,7 @@ async function keywordSearch(
       .limit(limit);
 
     if (error || !chunks || chunks.length === 0) {
-      console.log('[UserSearch] No keyword matches, falling back to recent chunks');
+      log.debug('No keyword matches, falling back to recent chunks');
       return await getRecentChunks(supabase, userId, limit);
     }
 
@@ -152,7 +155,7 @@ async function keywordSearch(
       };
     }).sort((a, b) => b.similarity - a.similarity);
   } catch (error) {
-    console.error('[UserSearch] Keyword search error:', error);
+    log.error('Keyword search error', error as Error);
     return [];
   }
 }
@@ -197,7 +200,7 @@ async function getRecentChunks(
       similarity: 0.5,
     }));
   } catch (error) {
-    console.error('[UserSearch] Recent chunks error:', error);
+    log.error('Recent chunks error', error as Error);
     return [];
   }
 }
@@ -251,7 +254,7 @@ export async function userHasDocuments(userId: string): Promise<boolean> {
 
     return (count || 0) > 0;
   } catch (error) {
-    console.error('[UserSearch] Error checking documents:', error);
+    log.error('Error checking documents', error as Error);
     return false;
   }
 }

@@ -8,6 +8,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { AgentRole, AgentContext, AgentResponse } from './types';
 import { getAgent, orchestratorAgent } from './agents';
+import { logger } from '@/lib/logger';
+
+const log = logger('Orchestrator');
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -104,7 +107,7 @@ Return ONLY a JSON object with no markdown formatting.`,
       return determineAgentsFallback(userMessage);
     }
   } catch (error) {
-    console.error('[Orchestrator] Planning error:', error);
+    log.error('Planning error', error as Error);
     return determineAgentsFallback(userMessage);
   }
 }
@@ -249,7 +252,7 @@ export async function executeAgent(
       confidence: 0.85, // Default confidence
     };
   } catch (error) {
-    console.error(`[${role.toUpperCase()} Agent] Execution error:`, error);
+    log.error('Agent execution error', error as Error, { role });
     return {
       role,
       content: `I encountered an error processing this request. Please try again.`,
@@ -359,7 +362,7 @@ export async function orchestrate(
   // 1. Plan the orchestration
   const plan = await planOrchestration(userMessage, context);
 
-  console.log('[Orchestrator] Plan:', JSON.stringify(plan, null, 2));
+  log.debug('Plan', { plan });
 
   // 2. Execute the agents
   const { responses, summary } = await executeMultiAgent(plan, context);

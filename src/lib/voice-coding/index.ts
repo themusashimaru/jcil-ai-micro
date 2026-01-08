@@ -12,6 +12,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('VoiceCoding');
 
 // ============================================
 // TYPES
@@ -328,7 +331,7 @@ Generate the appropriate code or action.`,
           : undefined,
       };
     } catch (error) {
-      console.error('[VoiceCoding] AI interpretation error:', error);
+      log.error('AI interpretation error', error as Error);
       return {
         success: false,
         action: 'error',

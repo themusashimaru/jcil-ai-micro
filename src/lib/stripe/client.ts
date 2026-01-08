@@ -4,6 +4,9 @@
  */
 
 import Stripe from 'stripe';
+import { logger } from '@/lib/logger';
+
+const log = logger('Stripe');
 
 // Lazy-initialize Stripe to avoid build-time errors when env vars aren't set
 let _stripe: Stripe | null = null;
@@ -101,7 +104,7 @@ export async function createCheckoutSession(
       return session;
     } catch (error) {
       // If coupon fails (e.g., doesn't apply to this product), try without coupon
-      console.warn('[Stripe] Coupon failed, proceeding without discount:', error);
+      log.warn('Coupon failed, proceeding without discount', error as Error);
       const sessionConfig = { ...baseSessionConfig, allow_promotion_codes: true };
       const session = await stripe.checkout.sessions.create(sessionConfig);
       return session;
@@ -126,7 +129,7 @@ export async function createBillingPortalSession(customerId: string, returnUrl?:
 
     return session;
   } catch (error) {
-    console.error('[Stripe] Error creating billing portal session:', error);
+    log.error('Error creating billing portal session', error as Error);
     throw error;
   }
 }
@@ -139,7 +142,7 @@ export async function getSubscription(subscriptionId: string) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     return subscription;
   } catch (error) {
-    console.error('[Stripe] Error retrieving subscription:', error);
+    log.error('Error retrieving subscription', error as Error);
     throw error;
   }
 }
@@ -152,7 +155,7 @@ export async function cancelSubscription(subscriptionId: string) {
     const subscription = await stripe.subscriptions.cancel(subscriptionId);
     return subscription;
   } catch (error) {
-    console.error('[Stripe] Error canceling subscription:', error);
+    log.error('Error canceling subscription', error as Error);
     throw error;
   }
 }

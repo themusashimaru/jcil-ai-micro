@@ -4,7 +4,7 @@
  * PURPOSE:
  * - Provide Claude AI chat completion functionality
  * - Support streaming responses
- * - Handle tool calls (web search via Brave)
+ * - Handle tool calls (web search via Perplexity)
  *
  * FEATURES:
  * - Dual-pool round-robin API key system (same as Perplexity)
@@ -13,7 +13,7 @@
  * - Rate limit handling with automatic key rotation
  * - Streaming text responses
  * - Non-streaming for image analysis
- * - Web search integration via Brave
+ * - Web search integration via Perplexity
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -308,11 +308,11 @@ export interface AnthropicChatOptions {
   systemPrompt?: string;
   userId?: string;
   planKey?: string;
-  // Web search function (injected from Brave Search module)
-  webSearchFn?: (query: string) => Promise<BraveSearchResult>;
+  // Web search function (injected from Perplexity module)
+  webSearchFn?: (query: string) => Promise<WebSearchResult>;
 }
 
-export interface BraveSearchResult {
+export interface WebSearchResult {
   results: Array<{
     title: string;
     url: string;
@@ -639,7 +639,7 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 
 /**
  * Create a chat completion with web search support
- * Uses Brave Search when available
+ * Uses Perplexity when available for web search
  *
  * RACE CONDITION FIX: Uses getAnthropicClientWithKey() atomically.
  */
@@ -1045,7 +1045,7 @@ export async function createClaudeStreamingChat(options: {
     isFaithTopic: options.isFaithTopic,
   });
 
-  console.log(`[Claude] Streaming with model: ${model} (selected for: ${lastContent.substring(0, 50)}...)`);
+  log.info('Starting streaming', { model, context: lastContent.substring(0, 50) });
 
   const { system, messages } = convertMessages(options.messages, options.systemPrompt);
 
@@ -1074,7 +1074,7 @@ export async function createClaudeStreamingChat(options: {
             // Using space which is safe and won't disrupt markdown
             try {
               controller.enqueue(encoder.encode(' '));
-              console.log('[Claude] Sent keepalive heartbeat');
+              log.debug('Sent keepalive heartbeat');
             } catch {
               // Controller might be closed, ignore
             }
@@ -1112,7 +1112,7 @@ export async function createClaudeStreamingChat(options: {
             yield result.value;
           } catch (error) {
             if (error instanceof Error && error.message === 'Stream chunk timeout') {
-              console.error('[Claude] Stream chunk timeout - no data received for 60s');
+              log.error('Stream chunk timeout - no data received for 60s');
               throw error;
             }
             throw error;
@@ -1126,7 +1126,7 @@ export async function createClaudeStreamingChat(options: {
         const { client, key: currentKey } = getAnthropicClientWithKey();
 
         try {
-          console.log(`[Claude] Starting stream attempt ${retryCount + 1}/${MAX_RETRIES}`);
+          log.info('Starting stream attempt', { attempt: retryCount + 1, maxRetries: MAX_RETRIES });
 
           const anthropicStream = await client.messages.stream({
             model,
@@ -1155,7 +1155,7 @@ export async function createClaudeStreamingChat(options: {
           return true; // Success
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`[Claude] Stream error on attempt ${retryCount + 1}:`, errorMessage);
+          log.error('Stream error', { attempt: retryCount + 1, error: errorMessage });
 
           // Check if rate limited - mark key and potentially retry
           const isRateLimit = errorMessage.includes('rate_limit') ||
@@ -1176,7 +1176,7 @@ export async function createClaudeStreamingChat(options: {
 
           if (isRetryable && retryCount < MAX_RETRIES - 1) {
             retryCount++;
-            console.log(`[Claude] Retrying stream with different key (attempt ${retryCount + 1})`);
+            log.info('Retrying stream with different key', { attempt: retryCount + 1 });
             // Small delay before retry
             await new Promise(resolve => setTimeout(resolve, 1000));
             return false; // Signal to retry
@@ -1241,7 +1241,7 @@ export async function createClaudeChat(options: {
     isFaithTopic: options.isFaithTopic,
   });
 
-  console.log(`[Claude] Non-streaming with model: ${model}`);
+  log.info('Non-streaming request', { model });
 
   const result = await createAnthropicCompletion({
     messages: options.messages,
@@ -1303,8 +1303,7 @@ ${JSON.stringify(options.schema, null, 2)}`;
     const data = JSON.parse(jsonText) as T;
     return { data, model: CLAUDE_SONNET };
   } catch (error) {
-    console.error('[Claude] Failed to parse structured output:', error);
-    console.error('[Claude] Raw response:', textContent.substring(0, 500));
+    log.error('Failed to parse structured output', error as Error, { responsePreview: textContent.substring(0, 200) });
     throw new Error('Failed to parse Claude structured output as JSON');
   }
 }

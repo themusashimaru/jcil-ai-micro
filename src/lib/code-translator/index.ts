@@ -13,6 +13,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeTranslator');
 
 // ============================================
 // TYPES
@@ -189,7 +192,7 @@ export class CodeTranslator {
     files: Array<{ path: string; content: string }>,
     request: TranslationRequest
   ): Promise<TranslationResult> {
-    console.log(`[CodeTranslator] Translating ${files.length} files from ${request.sourceLanguage} to ${request.targetLanguage}`);
+    log.info('Translating files', { fileCount: files.length, from: request.sourceLanguage, to: request.targetLanguage });
 
     const translatedFiles: TranslatedFile[] = [];
     const warnings: string[] = [];
@@ -321,7 +324,7 @@ ${file.content}
         manualReviewRequired: true,
       };
     } catch (error) {
-      console.error(`[CodeTranslator] Translation error for ${file.path}:`, error);
+      log.error('Translation error', error as Error, { filePath: file.path });
       throw error;
     }
   }

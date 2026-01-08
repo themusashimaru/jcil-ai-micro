@@ -12,6 +12,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('PredictiveCoding');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -120,7 +123,7 @@ Generate 3-5 predictions as JSON array:
       predictions.push(...parsed.filter((p: Prediction) => p.confidence > 0.6));
     }
   } catch (e) {
-    console.error('[PredictiveCoding] Parse error:', e);
+    log.error('Parse error', e as Error);
   }
 
   return predictions.sort((a, b) => b.confidence - a.confidence);

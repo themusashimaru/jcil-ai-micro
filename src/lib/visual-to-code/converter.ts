@@ -7,6 +7,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { VisualToCodeOptions, VisualToCodeResult, GeneratedComponent } from './types';
+import { logger } from '@/lib/logger';
+
+const log = logger('VisualToCode');
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -29,7 +32,7 @@ export async function convertVisualToCode(
     componentName = 'GeneratedComponent',
   } = options;
 
-  console.log('[Visual-to-Code] Converting image to code...');
+  log.info('Converting image to code');
 
   // First pass: Analyze the design
   const analysis = await analyzeDesign(imageData);

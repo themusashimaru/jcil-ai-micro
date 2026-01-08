@@ -5,6 +5,9 @@
  */
 
 import { Redis } from '@upstash/redis';
+import { logger } from '@/lib/logger';
+
+const log = logger('Redis');
 
 // Check if Redis is configured
 const isRedisConfigured = !!(
@@ -31,7 +34,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
     const value = await redis.get<T>(key);
     return value;
   } catch (error) {
-    console.warn('[Redis] Cache get error:', error);
+    log.warn('Cache get error', error as Error);
     return null;
   }
 }
@@ -47,7 +50,7 @@ export async function cacheSet<T>(key: string, value: T, ttlSeconds: number): Pr
     await redis.set(key, value, { ex: ttlSeconds });
     return true;
   } catch (error) {
-    console.warn('[Redis] Cache set error:', error);
+    log.warn('Cache set error', error as Error);
     return false;
   }
 }
@@ -63,7 +66,7 @@ export async function cacheDelete(key: string): Promise<boolean> {
     await redis.del(key);
     return true;
   } catch (error) {
-    console.warn('[Redis] Cache delete error:', error);
+    log.warn('Cache delete error', error as Error);
     return false;
   }
 }
@@ -82,7 +85,7 @@ export async function cacheDeletePattern(pattern: string): Promise<boolean> {
     }
     return true;
   } catch (error) {
-    console.warn('[Redis] Cache delete pattern error:', error);
+    log.warn('Cache delete pattern error', error as Error);
     return false;
   }
 }
@@ -110,7 +113,7 @@ export async function checkRateLimit(key: string, limit: number, windowSeconds: 
 
     return count <= limit;
   } catch (error) {
-    console.warn('[Redis] Rate limit check error:', error);
+    log.warn('Rate limit check error', error as Error);
     return true; // Allow on error
   }
 }

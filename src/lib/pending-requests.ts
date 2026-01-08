@@ -6,6 +6,9 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+
+const log = logger('PendingRequests');
 
 // Lazy-init Supabase client with service role (bypasses RLS)
 let supabaseAdmin: SupabaseClient | null = null;
@@ -17,7 +20,7 @@ function getSupabaseAdmin(): SupabaseClient | null {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
-    console.log('[PendingRequests] Supabase not configured');
+    log.debug('Supabase not configured');
     return null;
   }
 
@@ -57,7 +60,7 @@ export async function createPendingRequest(params: {
   try {
     const supabase = getSupabaseAdmin();
     if (!supabase) {
-      console.log('[PendingRequests] Supabase not configured');
+      log.debug('Supabase not configured');
       return null;
     }
 
@@ -75,14 +78,14 @@ export async function createPendingRequest(params: {
       .single();
 
     if (error) {
-      console.error('[PendingRequests] Failed to create:', error.message);
+      log.error('Failed to create pending request', { error: error.message });
       return null;
     }
 
-    console.log('[PendingRequests] Created pending request:', data.id);
+    log.debug('Created pending request', { requestId: data.id });
     return data.id;
   } catch (e) {
-    console.error('[PendingRequests] Error creating:', (e as Error).message);
+    log.error('Error creating pending request', e as Error);
     return null;
   }
 }
@@ -103,12 +106,12 @@ export async function completePendingRequest(requestId: string): Promise<void> {
       .eq('id', requestId);
 
     if (error) {
-      console.error('[PendingRequests] Failed to complete:', error.message);
+      log.error('Failed to complete pending request', { error: error.message });
     } else {
-      console.log('[PendingRequests] Completed and removed:', requestId);
+      log.debug('Completed and removed pending request', { requestId });
     }
   } catch (e) {
-    console.error('[PendingRequests] Error completing:', (e as Error).message);
+    log.error('Error completing pending request', e as Error);
   }
 }
 
@@ -130,10 +133,10 @@ export async function failPendingRequest(requestId: string, errorMessage: string
       .eq('id', requestId);
 
     if (error) {
-      console.error('[PendingRequests] Failed to mark as failed:', error.message);
+      log.error('Failed to mark request as failed', { error: error.message });
     }
   } catch (e) {
-    console.error('[PendingRequests] Error marking as failed:', (e as Error).message);
+    log.error('Error marking request as failed', e as Error);
   }
 }
 
@@ -162,13 +165,13 @@ export async function getPendingRequestsToProcess(limit = 5): Promise<PendingReq
       .limit(limit);
 
     if (error) {
-      console.error('[PendingRequests] Failed to fetch:', error.message);
+      log.error('Failed to fetch pending requests', { error: error.message });
       return [];
     }
 
     return data || [];
   } catch (e) {
-    console.error('[PendingRequests] Error fetching:', (e as Error).message);
+    log.error('Error fetching pending requests', e as Error);
     return [];
   }
 }
@@ -198,10 +201,10 @@ export async function markRequestProcessing(requestId: string): Promise<boolean>
       return false;
     }
 
-    console.log('[PendingRequests] Marked as processing:', requestId);
+    log.debug('Marked request as processing', { requestId });
     return true;
   } catch (e) {
-    console.error('[PendingRequests] Error marking as processing:', (e as Error).message);
+    log.error('Error marking request as processing', e as Error);
     return false;
   }
 }
@@ -232,7 +235,7 @@ export async function saveBackgroundResponse(
       });
 
     if (msgError) {
-      console.error('[PendingRequests] Failed to save message:', msgError.message);
+      log.error('Failed to save message', { error: msgError.message });
       throw msgError;
     }
 
@@ -248,12 +251,12 @@ export async function saveBackgroundResponse(
       .eq('id', requestId);
 
     if (updateError) {
-      console.error('[PendingRequests] Failed to update status:', updateError.message);
+      log.error('Failed to update status', { error: updateError.message });
     }
 
-    console.log('[PendingRequests] Background response saved for:', requestId);
+    log.info('Background response saved', { requestId });
   } catch (e) {
-    console.error('[PendingRequests] Error saving response:', (e as Error).message);
+    log.error('Error saving background response', e as Error);
     await failPendingRequest(requestId, (e as Error).message);
   }
 }
@@ -276,17 +279,17 @@ export async function cleanupOldRequests(): Promise<number> {
       .select('id');
 
     if (error) {
-      console.error('[PendingRequests] Cleanup failed:', error.message);
+      log.error('Cleanup failed', { error: error.message });
       return 0;
     }
 
     const count = data?.length || 0;
     if (count > 0) {
-      console.log('[PendingRequests] Cleaned up', count, 'old requests');
+      log.info('Cleaned up old requests', { count });
     }
     return count;
   } catch (e) {
-    console.error('[PendingRequests] Cleanup error:', (e as Error).message);
+    log.error('Cleanup error', e as Error);
     return 0;
   }
 }
