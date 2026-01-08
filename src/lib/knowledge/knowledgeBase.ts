@@ -41,6 +41,9 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+
+const log = logger('KnowledgeBase');
 
 // Cache to avoid repeated DB calls for same categories
 const contentCache = new Map<string, { content: string; timestamp: number }>();
@@ -54,7 +57,7 @@ function getSupabase() {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    console.warn('[KnowledgeBase] Supabase not configured');
+    log.warn('Supabase not configured');
     return null;
   }
 
@@ -73,13 +76,13 @@ export async function getKnowledgeBaseContent(categories: string[]): Promise<str
   const cacheKey = categories.sort().join(',');
   const cached = contentCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    console.log(`[KnowledgeBase] Cache hit for: ${cacheKey}`);
+    log.debug('Cache hit', { categories: cacheKey });
     return cached.content;
   }
 
   const supabase = getSupabase();
   if (!supabase) {
-    console.log('[KnowledgeBase] Supabase not available, using fallback');
+    log.debug('Supabase not available, using fallback');
     return getFallbackContent(categories);
   }
 
@@ -93,12 +96,12 @@ export async function getKnowledgeBaseContent(categories: string[]): Promise<str
       .order('category', { ascending: true });
 
     if (error) {
-      console.error('[KnowledgeBase] Query error:', error);
+      log.error('Query error', { error: error.message });
       return getFallbackContent(categories);
     }
 
     if (!data || data.length === 0) {
-      console.log(`[KnowledgeBase] No content found for: ${categories.join(', ')}`);
+      log.debug('No content found', { categories: categories.join(', ') });
       return getFallbackContent(categories);
     }
 
@@ -110,10 +113,10 @@ export async function getKnowledgeBaseContent(categories: string[]): Promise<str
     // Cache the result
     contentCache.set(cacheKey, { content, timestamp: Date.now() });
 
-    console.log(`[KnowledgeBase] Loaded ${data.length} entries for: ${categories.join(', ')}`);
+    log.info('Loaded knowledge base entries', { count: data.length, categories: categories.join(', ') });
     return content;
   } catch (error) {
-    console.error('[KnowledgeBase] Error:', error);
+    log.error('Knowledge base error', error as Error);
     return getFallbackContent(categories);
   }
 }
@@ -221,5 +224,5 @@ const STOP_WORDS = new Set([
  */
 export function clearKnowledgeBaseCache(): void {
   contentCache.clear();
-  console.log('[KnowledgeBase] Cache cleared');
+  log.info('Cache cleared');
 }
