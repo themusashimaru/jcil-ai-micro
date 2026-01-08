@@ -13,6 +13,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ContainerManager } from './container';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+
+const log = logger('WorkspaceAgent');
 import {
   sanitizeShellArg,
   sanitizeCommitMessage,
@@ -1376,7 +1379,7 @@ Always explain what you're doing and why.`;
 
       await this.supabase.from('tool_executions').insert(executions);
     } catch (error) {
-      console.error('[WorkspaceAgent] Failed to log tool executions:', error);
+      log.error('Failed to log tool executions', error as Error);
     }
   }
 

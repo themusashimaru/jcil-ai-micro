@@ -15,6 +15,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('SecurityScanner');
 
 // ============================================
 // TYPES
@@ -542,7 +545,7 @@ Report any security issues found.`,
         filePath,
       }));
     } catch (error) {
-      console.error('[SecurityScanner] AI analysis error:', error);
+      log.error('AI analysis error', error as Error);
       return [];
     }
   }
@@ -709,7 +712,7 @@ ${fullCode}`,
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[SecurityScanner] Fix generation error:', error);
+      log.error('Fix generation error', error as Error);
       return null;
     }
   }

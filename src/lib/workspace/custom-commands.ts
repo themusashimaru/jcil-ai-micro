@@ -11,6 +11,10 @@
  * - Command sharing
  */
 
+import { logger } from '@/lib/logger';
+
+const log = logger('CustomCommands');
+
 export interface CustomCommandParameter {
   name: string;
   description: string;
@@ -362,7 +366,7 @@ export class CustomCommandManager {
         }
       }
     } catch (e) {
-      console.error('Failed to load custom commands:', e);
+      log.error('Failed to load custom commands', e as Error);
     }
   }
 
@@ -374,7 +378,7 @@ export class CustomCommandManager {
       const commands = this.getAll();
       localStorage.setItem(this.storageKey, JSON.stringify(commands));
     } catch (e) {
-      console.error('Failed to save custom commands:', e);
+      log.error('Failed to save custom commands', e as Error);
     }
   }
 

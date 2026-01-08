@@ -17,11 +17,14 @@
 import { Sandbox } from '@e2b/code-interpreter';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
+
+const log = logger('ContainerManager');
 
 // Validate E2B API key at module load
 const E2B_API_KEY = process.env.E2B_API_KEY;
 if (!E2B_API_KEY && process.env.NODE_ENV === 'production') {
-  console.warn('[ContainerManager] WARNING: E2B_API_KEY not set. Workspace execution will fail.');
+  log.warn('E2B_API_KEY not set - workspace execution will fail');
 }
 
 // ============================================
@@ -116,7 +119,7 @@ export class ContainerManager {
       return sandbox.sandboxId;
 
     } catch (error) {
-      console.error('Failed to create container:', error);
+      log.error('Failed to create container', error as Error);
       throw new Error(`Container creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -587,7 +590,7 @@ export class ContainerManager {
       try {
         await sandbox.kill();
       } catch (e) {
-        console.error('Failed to kill sandbox:', e);
+        log.error('Failed to kill sandbox', e as Error);
       }
       this.activeSandboxes.delete(workspaceId);
     }

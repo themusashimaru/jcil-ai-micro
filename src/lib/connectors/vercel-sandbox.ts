@@ -14,6 +14,9 @@
 
 import { Sandbox } from '@vercel/sandbox';
 import ms from 'ms';
+import { logger } from '@/lib/logger';
+
+const log = logger('Sandbox');
 
 // Types for sandbox operations
 export interface SandboxConfig {
@@ -69,7 +72,7 @@ export async function executeSandbox(
     // Check which auth method to use
     const hasOIDC = !!config.oidcToken;
 
-    console.log('[Sandbox] Creating sandbox:', {
+    log.debug('Creating sandbox', {
       authMethod: hasOIDC ? 'OIDC' : 'Access Token',
       hasOidcToken: !!config.oidcToken,
       hasAccessToken: !!config.token,
@@ -141,15 +144,9 @@ export async function executeSandbox(
 
   } catch (error) {
     // Log detailed error info for debugging
-    console.error('[Sandbox] Error details:', {
-      error,
-      errorMessage: error instanceof Error ? error.message : 'Unknown',
-      errorName: error instanceof Error ? error.name : 'Unknown',
-      errorStack: error instanceof Error ? error.stack : undefined,
-      // Check if error has additional properties
+    log.error('Sandbox error', error as Error, {
       errorBody: (error as Record<string, unknown>)?.body,
       errorStatus: (error as Record<string, unknown>)?.status,
-      errorResponse: (error as Record<string, unknown>)?.response,
     });
 
     return {

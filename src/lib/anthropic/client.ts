@@ -1045,7 +1045,7 @@ export async function createClaudeStreamingChat(options: {
     isFaithTopic: options.isFaithTopic,
   });
 
-  console.log(`[Claude] Streaming with model: ${model} (selected for: ${lastContent.substring(0, 50)}...)`);
+  log.info('Starting streaming', { model, context: lastContent.substring(0, 50) });
 
   const { system, messages } = convertMessages(options.messages, options.systemPrompt);
 
@@ -1074,7 +1074,7 @@ export async function createClaudeStreamingChat(options: {
             // Using space which is safe and won't disrupt markdown
             try {
               controller.enqueue(encoder.encode(' '));
-              console.log('[Claude] Sent keepalive heartbeat');
+              log.debug('Sent keepalive heartbeat');
             } catch {
               // Controller might be closed, ignore
             }
@@ -1112,7 +1112,7 @@ export async function createClaudeStreamingChat(options: {
             yield result.value;
           } catch (error) {
             if (error instanceof Error && error.message === 'Stream chunk timeout') {
-              console.error('[Claude] Stream chunk timeout - no data received for 60s');
+              log.error('Stream chunk timeout - no data received for 60s');
               throw error;
             }
             throw error;
@@ -1126,7 +1126,7 @@ export async function createClaudeStreamingChat(options: {
         const { client, key: currentKey } = getAnthropicClientWithKey();
 
         try {
-          console.log(`[Claude] Starting stream attempt ${retryCount + 1}/${MAX_RETRIES}`);
+          log.info('Starting stream attempt', { attempt: retryCount + 1, maxRetries: MAX_RETRIES });
 
           const anthropicStream = await client.messages.stream({
             model,
@@ -1155,7 +1155,7 @@ export async function createClaudeStreamingChat(options: {
           return true; // Success
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`[Claude] Stream error on attempt ${retryCount + 1}:`, errorMessage);
+          log.error('Stream error', { attempt: retryCount + 1, error: errorMessage });
 
           // Check if rate limited - mark key and potentially retry
           const isRateLimit = errorMessage.includes('rate_limit') ||
@@ -1176,7 +1176,7 @@ export async function createClaudeStreamingChat(options: {
 
           if (isRetryable && retryCount < MAX_RETRIES - 1) {
             retryCount++;
-            console.log(`[Claude] Retrying stream with different key (attempt ${retryCount + 1})`);
+            log.info('Retrying stream with different key', { attempt: retryCount + 1 });
             // Small delay before retry
             await new Promise(resolve => setTimeout(resolve, 1000));
             return false; // Signal to retry
@@ -1241,7 +1241,7 @@ export async function createClaudeChat(options: {
     isFaithTopic: options.isFaithTopic,
   });
 
-  console.log(`[Claude] Non-streaming with model: ${model}`);
+  log.info('Non-streaming request', { model });
 
   const result = await createAnthropicCompletion({
     messages: options.messages,

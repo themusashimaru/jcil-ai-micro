@@ -10,6 +10,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('PairProgrammer');
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -132,7 +135,7 @@ Return JSON array of suggestions with confidence scores.`,
         // If parsing fails, extract suggestions manually
       }
     } catch (error) {
-      console.error('[PairProgrammer] Analysis error:', error);
+      log.error('Analysis error', error as Error);
     }
 
     return suggestions;

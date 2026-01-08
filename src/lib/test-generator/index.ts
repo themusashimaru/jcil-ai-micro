@@ -14,6 +14,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('TestGenerator');
 
 // ============================================
 // TYPES
@@ -110,7 +113,7 @@ export class AITestGenerator {
     filePath: string,
     options: TestGenerationOptions
   ): Promise<TestSuite> {
-    console.log(`[TestGenerator] Generating ${options.testType} tests for ${filePath}`);
+    log.info('Generating tests', { testType: options.testType, filePath });
 
     // Analyze the code first
     const analysis = await this.analyzeCode(code, filePath);
@@ -197,7 +200,7 @@ Return JSON:
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[TestGenerator] Analysis error:', error);
+      log.error('Analysis error', error as Error);
       // Return minimal analysis
       return {
         functions: [],
@@ -278,13 +281,13 @@ Generate comprehensive tests covering all exported functions and classes.`,
       // Extract JSON array from response
       const jsonMatch = content.text.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
-        console.error('[TestGenerator] No JSON array in response');
+        log.warn('No JSON array in response');
         return [];
       }
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[TestGenerator] Test generation error:', error);
+      log.error('Test generation error', error as Error);
       return [];
     }
   }
@@ -346,7 +349,7 @@ ${code}`,
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[TestGenerator] Mock generation error:', error);
+      log.error('Mock generation error', error as Error);
       return [];
     }
   }
@@ -534,7 +537,7 @@ Return JSON array of edge case tests.`,
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[TestGenerator] Edge case generation error:', error);
+      log.error('Edge case generation error', error as Error);
       return [];
     }
   }
@@ -580,7 +583,7 @@ Return JSON array of performance tests.`,
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[TestGenerator] Performance test generation error:', error);
+      log.error('Performance test generation error', error as Error);
       return [];
     }
   }
