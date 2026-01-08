@@ -11,7 +11,7 @@ import LandingHeader from './components/landing/LandingHeader';
 import LandingFooter from './components/landing/LandingFooter';
 import Section, { SectionHeader } from './components/landing/Section';
 import FeatureCard from './components/landing/FeatureCard';
-import Testimonials from './components/landing/Testimonials';
+import SocialProof from './components/landing/Testimonials';
 import UseCases from './components/landing/UseCases';
 import EmailCapture from './components/landing/EmailCapture';
 import LogoCarousel from './components/landing/LogoCarousel';
@@ -100,18 +100,8 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Trust Indicators */}
+            {/* Trust Indicators - Only TRUE claims */}
             <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-slate-500">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>SOC 2 Type II Ready</span>
-              </div>
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -140,7 +130,17 @@ export default function HomePage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span>2,500+ Active Users</span>
+                <span>721 Automated Tests</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span>E2B Sandboxed Execution</span>
               </div>
             </div>
           </div>
@@ -404,8 +404,8 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* Testimonials Section */}
-      <Testimonials />
+      {/* Social Proof Section */}
+      <SocialProof />
 
       {/* How It Works Section */}
       <Section background="muted" padding="lg" className="border-y border-white/5">
@@ -465,19 +465,19 @@ export default function HomePage() {
           description="Fortune 500-grade security infrastructure. Ministry data deserves the highest protection."
         />
 
-        {/* Compliance Badges */}
+        {/* Security Features - Only TRUE claims */}
         <div className="flex flex-wrap justify-center gap-3 mb-12">
           <span className="px-4 py-2 rounded-full bg-green-500/10 border border-green-500/30 text-sm font-medium text-green-300">
-            SOC 2 Type II
+            AES-256 Encryption
           </span>
           <span className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-sm font-medium text-blue-300">
-            GDPR Compliant
+            US Data Centers
           </span>
           <span className="px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/30 text-sm font-medium text-purple-300">
-            CCPA Compliant
+            No Training on Your Data
           </span>
           <span className="px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30 text-sm font-medium text-amber-300">
-            Anthropic Exclusive
+            Powered by Claude
           </span>
         </div>
 
@@ -523,19 +523,10 @@ export default function HomePage() {
         <div className="max-w-2xl mx-auto">
           <EmailCapture
             title="Stay in the Word, stay in the loop"
-            description="Get updates on new features, faith-based AI insights, and early access to upcoming tools. Join 2,500+ believers already using JCIL."
-            buttonText="Join the Community"
+            description="Get updates on new features, faith-based AI insights, and early access to upcoming tools."
+            buttonText="Get Updates"
           />
         </div>
-      </Section>
-
-      {/* Churches Logo Carousel */}
-      <Section padding="md">
-        <LogoCarousel
-          variant="churches"
-          title="Trusted by churches and ministries worldwide"
-          speed="slow"
-        />
       </Section>
 
       {/* Final CTA */}
@@ -550,8 +541,8 @@ export default function HomePage() {
               Ready to build with faith-aligned AI?
             </h2>
             <p className="text-lg text-slate-400 mb-8 max-w-xl mx-auto">
-              Join thousands of pastors, developers, and ministry leaders using JCIL to advance the
-              Kingdom. Start free, scale as you grow.
+              Be an early adopter of faith-aligned AI. Help us build something meaningful for the
+              Kingdom. Start free, grow with us.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link

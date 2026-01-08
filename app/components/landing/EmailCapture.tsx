@@ -101,9 +101,7 @@ export default function EmailCapture({
           <p className="text-green-400 text-sm mt-3 text-center">{message}</p>
         )}
         {status === 'error' && <p className="text-red-400 text-sm mt-3 text-center">{message}</p>}
-        <p className="text-slate-500 text-xs mt-4 text-center">
-          Join 2,500+ believers already using JCIL. No spam, unsubscribe anytime.
-        </p>
+        <p className="text-slate-500 text-xs mt-4 text-center">No spam, unsubscribe anytime.</p>
       </div>
     );
   }
