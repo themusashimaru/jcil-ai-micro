@@ -34,7 +34,11 @@ import { ChatComposer, SearchMode } from '@/components/chat/ChatComposer';
 // import VoiceButton from './VoiceButton';
 // REMOVED: Notification system - users have built-in phone notifications
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
-import { ChatContinuationBanner, CHAT_LENGTH_WARNING, generateSummaryPrompt } from '@/components/chat/ChatContinuationBanner';
+import {
+  ChatContinuationBanner,
+  CHAT_LENGTH_WARNING,
+  generateSummaryPrompt,
+} from '@/components/chat/ChatContinuationBanner';
 import { LiveTodoList } from '@/components/chat/LiveTodoList';
 import { parseSlashCommand } from '@/lib/slashCommands';
 import { useUserProfile } from '@/contexts/UserProfileContext';
@@ -87,10 +91,10 @@ function detectDocumentTypeFromMessage(content: string): 'pdf' | 'docx' | 'xlsx'
   ];
 
   // Check in priority order: PDF -> Excel -> PowerPoint -> Word
-  if (pdfPatterns.some(pattern => pattern.test(lowerContent))) return 'pdf';
-  if (excelPatterns.some(pattern => pattern.test(lowerContent))) return 'xlsx';
-  if (pptxPatterns.some(pattern => pattern.test(lowerContent))) return 'pptx';
-  if (docxPatterns.some(pattern => pattern.test(lowerContent))) return 'docx';
+  if (pdfPatterns.some((pattern) => pattern.test(lowerContent))) return 'pdf';
+  if (excelPatterns.some((pattern) => pattern.test(lowerContent))) return 'xlsx';
+  if (pptxPatterns.some((pattern) => pattern.test(lowerContent))) return 'pptx';
+  if (docxPatterns.some((pattern) => pattern.test(lowerContent))) return 'docx';
 
   return null;
 }
@@ -117,7 +121,7 @@ function isGenericTitle(title: string | undefined): boolean {
     /^conversation$/i,
   ];
 
-  return genericPatterns.some(pattern => pattern.test(title.trim()));
+  return genericPatterns.some((pattern) => pattern.test(title.trim()));
 }
 
 export function ChatClient() {
@@ -139,7 +143,9 @@ export function ChatClient() {
   // Header logo from design settings
   const [headerLogo, setHeaderLogo] = useState<string>('');
   // Document generation type (for progress indicator)
-  const [pendingDocumentType, setPendingDocumentType] = useState<'pdf' | 'docx' | 'xlsx' | 'pptx' | null>(null);
+  const [pendingDocumentType, setPendingDocumentType] = useState<
+    'pdf' | 'docx' | 'xlsx' | 'pptx' | null
+  >(null);
   // Chat continuation - track when generating summary
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [continuationDismissed, setContinuationDismissed] = useState(false);
@@ -314,7 +320,7 @@ export function ChatClient() {
 
     // Handle toggle sidebar event from sidebar close button
     const handleToggleSidebar = () => {
-      setSidebarCollapsed(prev => !prev);
+      setSidebarCollapsed((prev) => !prev);
     };
 
     // Set initial state
@@ -373,25 +379,28 @@ export function ChatClient() {
       const response = await fetch(`/api/conversations/${chatId}/messages`);
       if (response.ok) {
         const data = await response.json();
-        return data.messages.map((msg: {
-          id: string;
-          role: 'user' | 'assistant' | 'system';
-          content: string;
-          content_type: string;
-          attachment_urls: string[] | null;
-          created_at: string;
-        }) => {
-          const imageUrl = msg.attachment_urls && msg.attachment_urls.length > 0
-            ? msg.attachment_urls[0]
-            : undefined;
-          return {
-            id: msg.id,
-            role: msg.role,
-            content: msg.content,
-            imageUrl,
-            timestamp: new Date(msg.created_at),
-          };
-        });
+        return data.messages.map(
+          (msg: {
+            id: string;
+            role: 'user' | 'assistant' | 'system';
+            content: string;
+            content_type: string;
+            attachment_urls: string[] | null;
+            created_at: string;
+          }) => {
+            const imageUrl =
+              msg.attachment_urls && msg.attachment_urls.length > 0
+                ? msg.attachment_urls[0]
+                : undefined;
+            return {
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              imageUrl,
+              timestamp: new Date(msg.created_at),
+            };
+          }
+        );
       }
     } catch (error) {
       log.error('Error fetching messages:', error as Error);
@@ -435,7 +444,7 @@ export function ChatClient() {
       // (Stream might have just completed)
       if (currentlyStreaming) {
         // Give the stream a moment to complete naturally
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         // Re-check if still streaming (use ref for current value)
         if (isStreamingRef.current) {
           log.debug('Still streaming, will check on next visibility change');
@@ -449,7 +458,9 @@ export function ChatClient() {
 
       // If we got new messages, just display them
       if (fetchedMessages.length > currentMessages.length) {
-        log.debug('New messages found:', { count: fetchedMessages.length - currentMessages.length });
+        log.debug('New messages found:', {
+          count: fetchedMessages.length - currentMessages.length,
+        });
         setMessages(fetchedMessages);
         setIsStreaming(false); // Reset streaming state since we have the response
         return;
@@ -493,7 +504,7 @@ export function ChatClient() {
               content: result.content,
               timestamp: new Date(),
             };
-            setMessages(prev => [...prev, newMessage]);
+            setMessages((prev) => [...prev, newMessage]);
           } else if (result.status === 'no_pending_request') {
             // No pending request - maybe it was already processed or never created
             // Fetch messages again just in case
@@ -542,32 +553,36 @@ export function ChatClient() {
             conversations: data.conversations,
           });
 
-          const formattedChats: Chat[] = data.conversations.map((conv: {
-            id: string;
-            title: string;
-            summary: string | null;
-            tool_context: string | null;
-            folder_id: string | null;
-            folder: { id: string; name: string; color: string | null } | null;
-            created_at: string;
-            updated_at: string;
-            last_message_at: string;
-          }) => ({
-            id: conv.id,
-            title: conv.title,
-            summary: conv.summary || undefined,
-            folderId: conv.folder_id || undefined,
-            folder: conv.folder ? {
-              id: conv.folder.id,
-              name: conv.folder.name,
-              color: conv.folder.color,
-              position: 0,
-            } : undefined,
-            isPinned: false, // TODO: Add isPinned to database schema
-            lastMessage: '', // We'll update this if needed
-            createdAt: new Date(conv.created_at),
-            updatedAt: new Date(conv.last_message_at || conv.updated_at),
-          }));
+          const formattedChats: Chat[] = data.conversations.map(
+            (conv: {
+              id: string;
+              title: string;
+              summary: string | null;
+              tool_context: string | null;
+              folder_id: string | null;
+              folder: { id: string; name: string; color: string | null } | null;
+              created_at: string;
+              updated_at: string;
+              last_message_at: string;
+            }) => ({
+              id: conv.id,
+              title: conv.title,
+              summary: conv.summary || undefined,
+              folderId: conv.folder_id || undefined,
+              folder: conv.folder
+                ? {
+                    id: conv.folder.id,
+                    name: conv.folder.name,
+                    color: conv.folder.color,
+                    position: 0,
+                  }
+                : undefined,
+              isPinned: false, // TODO: Add isPinned to database schema
+              lastMessage: '', // We'll update this if needed
+              createdAt: new Date(conv.created_at),
+              updatedAt: new Date(conv.last_message_at || conv.updated_at),
+            })
+          );
           setChats(formattedChats);
           log.debug('Set chats state with conversations', { count: formattedChats.length });
         } else {
@@ -607,27 +622,30 @@ export function ChatClient() {
       const response = await fetch(`/api/conversations/${chatId}/messages`);
       if (response.ok) {
         const data = await response.json();
-        const formattedMessages: Message[] = data.messages.map((msg: {
-          id: string;
-          role: 'user' | 'assistant' | 'system';
-          content: string;
-          content_type: string;
-          attachment_urls: string[] | null;
-          created_at: string;
-        }) => {
-          // Check if there are any image attachments
-          const imageUrl = msg.attachment_urls && msg.attachment_urls.length > 0
-            ? msg.attachment_urls[0]
-            : undefined;
+        const formattedMessages: Message[] = data.messages.map(
+          (msg: {
+            id: string;
+            role: 'user' | 'assistant' | 'system';
+            content: string;
+            content_type: string;
+            attachment_urls: string[] | null;
+            created_at: string;
+          }) => {
+            // Check if there are any image attachments
+            const imageUrl =
+              msg.attachment_urls && msg.attachment_urls.length > 0
+                ? msg.attachment_urls[0]
+                : undefined;
 
-          return {
-            id: msg.id,
-            role: msg.role,
-            content: msg.content,
-            imageUrl,
-            timestamp: new Date(msg.created_at),
-          };
-        });
+            return {
+              id: msg.id,
+              role: msg.role,
+              content: msg.content,
+              imageUrl,
+              timestamp: new Date(msg.created_at),
+            };
+          }
+        );
         setMessages(formattedMessages);
       }
     } catch (error) {
@@ -654,18 +672,24 @@ export function ChatClient() {
     );
   };
 
-  const handleMoveToFolder = async (chatId: string, folderId: string | null, folderData?: { id: string; name: string; color: string | null }) => {
+  const handleMoveToFolder = async (
+    chatId: string,
+    folderId: string | null,
+    folderData?: { id: string; name: string; color: string | null }
+  ) => {
     // Optimistically update UI
-    setChats(chats.map((chat) => {
-      if (chat.id === chatId) {
-        return {
-          ...chat,
-          folderId: folderId || undefined,
-          folder: folderData ? { ...folderData, position: 0 } : undefined,
-        };
-      }
-      return chat;
-    }));
+    setChats(
+      chats.map((chat) => {
+        if (chat.id === chatId) {
+          return {
+            ...chat,
+            folderId: folderId || undefined,
+            folder: folderData ? { ...folderData, position: 0 } : undefined,
+          };
+        }
+        return chat;
+      })
+    );
 
     // Call API to persist change
     try {
@@ -727,7 +751,9 @@ export function ChatClient() {
   /**
    * Helper to safely parse JSON response and extract error message
    */
-  const safeJsonParse = async (res: Response): Promise<{
+  const safeJsonParse = async (
+    res: Response
+  ): Promise<{
     ok: boolean;
     data?: unknown;
     error?: { code?: string; message?: string };
@@ -790,10 +816,7 @@ export function ChatClient() {
   };
 
   // Helper function to create conversation in database
-  const createConversationInDatabase = async (
-    title: string,
-    toolContext?: string
-  ) => {
+  const createConversationInDatabase = async (title: string, toolContext?: string) => {
     try {
       log.debug('Creating conversation in DB:', { title, toolContext });
       const response = await fetch('/api/conversations', {
@@ -817,10 +840,11 @@ export function ChatClient() {
       const result = await response.json();
       log.debug('Conversation API result:', result);
 
-      // Return the database-generated UUID (don't update state here - let caller handle it)
-      if (result.conversation && result.conversation.id) {
-        log.debug('Returning conversation ID:', result.conversation.id);
-        return result.conversation.id;
+      // API returns { ok: true, data: { conversation: {...} } }
+      const conversation = result.data?.conversation || result.conversation;
+      if (conversation && conversation.id) {
+        log.debug('Returning conversation ID:', conversation.id);
+        return conversation.id;
       }
 
       throw new Error('No conversation ID returned from API');
@@ -853,7 +877,7 @@ export function ChatClient() {
     try {
       // Generate summary using AI
       const summaryPrompt = generateSummaryPrompt(
-        messages.map(m => ({ role: m.role, content: m.content }))
+        messages.map((m) => ({ role: m.role, content: m.content }))
       );
 
       const response = await fetch('/api/chat', {
@@ -888,14 +912,16 @@ export function ChatClient() {
       };
 
       // Add the new chat and switch to it
-      setChats(prev => [newChat, ...prev]);
+      setChats((prev) => [newChat, ...prev]);
       setCurrentChatId(newChatId);
-      setMessages([{
-        id: crypto.randomUUID?.() || Date.now().toString(),
-        role: 'assistant',
-        content: contextMessage,
-        timestamp: new Date(),
-      }]);
+      setMessages([
+        {
+          id: crypto.randomUUID?.() || Date.now().toString(),
+          role: 'assistant',
+          content: contextMessage,
+          timestamp: new Date(),
+        },
+      ]);
       setContinuationDismissed(false);
 
       // Create the conversation in the database
@@ -909,7 +935,12 @@ export function ChatClient() {
     }
   };
 
-  const handleSendMessage = async (content: string, attachments: Attachment[], searchMode?: SearchMode, selectedRepo?: SelectedRepoInfo | null) => {
+  const handleSendMessage = async (
+    content: string,
+    attachments: Attachment[],
+    searchMode?: SearchMode,
+    selectedRepo?: SelectedRepoInfo | null
+  ) => {
     if (!content.trim() && attachments.length === 0) return;
 
     // Check for slash commands
@@ -923,7 +954,7 @@ export function ChatClient() {
           content: parsed.helpText,
           timestamp: new Date(),
         };
-        setMessages(prev => [...prev, helpMessage]);
+        setMessages((prev) => [...prev, helpMessage]);
         return;
       }
 
@@ -973,14 +1004,17 @@ export function ChatClient() {
           const updated = prevChats.map((chat) =>
             chat.id === tempId ? { ...chat, id: dbConversationId } : chat
           );
-          const updatedChat = updated.find(c => c.id === dbConversationId);
-          log.debug('Updated chats array - found chat with new UUID:', { id: updatedChat?.id, title: updatedChat?.title });
+          const updatedChat = updated.find((c) => c.id === dbConversationId);
+          log.debug('Updated chats array - found chat with new UUID:', {
+            id: updatedChat?.id,
+            title: updatedChat?.title,
+          });
           return updated;
         });
       } catch (error) {
         log.error('Failed to create conversation:', error as Error);
         // Remove the temporary chat from UI since we couldn't create it in database
-        setChats((prevChats) => prevChats.filter(c => c.id !== tempId));
+        setChats((prevChats) => prevChats.filter((c) => c.id !== tempId));
         setCurrentChatId(null);
         // Show error to user
         alert('Unable to start a new conversation. Please try again.');
@@ -994,9 +1028,10 @@ export function ChatClient() {
     let finalContent = content;
     if (replyingTo) {
       // Truncate long messages for the quote - clean format for the AI
-      const quotedContent = replyingTo.content.length > 200
-        ? replyingTo.content.slice(0, 200) + '...'
-        : replyingTo.content;
+      const quotedContent =
+        replyingTo.content.length > 200
+          ? replyingTo.content.slice(0, 200) + '...'
+          : replyingTo.content;
       // Simple bracketed format that AI understands but looks clean to user
       finalContent = `[Replying to: "${quotedContent}"]\n\n${content}`;
       // Clear the reply state
@@ -1014,9 +1049,7 @@ export function ChatClient() {
 
     // CRITICAL FIX: Save to database FIRST with rollback on failure
     // This prevents "ghost messages" that appear in UI but aren't persisted
-    const attachmentUrls = attachments
-      .filter(att => att.url)
-      .map(att => att.url!);
+    const attachmentUrls = attachments.filter((att) => att.url).map((att) => att.url!);
 
     try {
       // Save user message to database BEFORE displaying
@@ -1046,7 +1079,8 @@ export function ChatClient() {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, your message could not be sent. Please check your connection and try again.',
+        content:
+          'Sorry, your message could not be sent. Please check your connection and try again.',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -1062,7 +1096,7 @@ export function ChatClient() {
       let lastImageMessageIndex = -1;
       for (let i = allMessages.length - 1; i >= 0; i--) {
         const msg = allMessages[i];
-        if (msg.role === 'user' && msg.attachments?.some(att => att.type.startsWith('image/'))) {
+        if (msg.role === 'user' && msg.attachments?.some((att) => att.type.startsWith('image/'))) {
           lastImageMessageIndex = i;
           break;
         }
@@ -1072,7 +1106,7 @@ export function ChatClient() {
       log.debug('Message formatting:', {
         totalMessages: allMessages.length,
         lastImageMessageIndex,
-        newMessageAttachments: userMessage.attachments?.map(a => ({
+        newMessageAttachments: userMessage.attachments?.map((a) => ({
           name: a.name,
           type: a.type,
           hasThumbnail: !!a.thumbnail,
@@ -1099,7 +1133,11 @@ export function ChatClient() {
         let messageContent = msg.content || '';
 
         // If this is the current message and has document attachments, include content
-        if (index === allMessages.length - 1 && documentAttachments && documentAttachments.length > 0) {
+        if (
+          index === allMessages.length - 1 &&
+          documentAttachments &&
+          documentAttachments.length > 0
+        ) {
           documentAttachments.forEach((doc) => {
             const fileContent = doc.url || '';
 
@@ -1111,11 +1149,12 @@ export function ChatClient() {
               messageContent = `[File: ${doc.name} - Unable to extract content]\n\n${messageContent}`;
             } else {
               // File was parsed - include the actual content
-              const fileLabel = doc.type.includes('spreadsheet') || doc.type.includes('excel')
-                ? 'Spreadsheet'
-                : doc.type.includes('pdf')
-                  ? 'Document'
-                  : 'File';
+              const fileLabel =
+                doc.type.includes('spreadsheet') || doc.type.includes('excel')
+                  ? 'Spreadsheet'
+                  : doc.type.includes('pdf')
+                    ? 'Document'
+                    : 'File';
               messageContent = `[${fileLabel}: ${doc.name}]\n\n${fileContent}\n\n---\n\n${messageContent}`;
             }
           });
@@ -1124,7 +1163,8 @@ export function ChatClient() {
         // If no images, send message with any document content appended
         if (!imageAttachments || imageAttachments.length === 0) {
           // Ensure non-empty content for Claude API validation
-          const content = messageContent.trim() || (msg.role === 'assistant' ? '[Response]' : '[Message]');
+          const content =
+            messageContent.trim() || (msg.role === 'assistant' ? '[Response]' : '[Message]');
           return {
             role: msg.role,
             content,
@@ -1168,16 +1208,20 @@ export function ChatClient() {
       });
 
       // Debug: Log the formatted API messages
-      const messagesWithImages = apiMessages.filter(m => Array.isArray(m.content));
+      const messagesWithImages = apiMessages.filter((m) => Array.isArray(m.content));
       if (messagesWithImages.length > 0) {
         log.debug('Messages with images being sent:', {
-          messages: messagesWithImages.map(m => ({
+          messages: messagesWithImages.map((m) => ({
             role: m.role,
-            contentTypes: Array.isArray(m.content) ? m.content.map((c: { type: string }) => c.type) : 'string',
+            contentTypes: Array.isArray(m.content)
+              ? m.content.map((c: { type: string }) => c.type)
+              : 'string',
             imageDataLength: Array.isArray(m.content)
-              ? m.content.filter((c: { type: string }) => c.type === 'image').map((c: { image?: string }) => c.image?.length || 0)
+              ? m.content
+                  .filter((c: { type: string }) => c.type === 'image')
+                  .map((c: { image?: string }) => c.image?.length || 0)
               : 0,
-          }))
+          })),
         });
       }
 
@@ -1234,7 +1278,8 @@ export function ChatClient() {
       // Check content type to determine if streaming or JSON
       const contentType = response.headers.get('content-type') || '';
       const isJsonResponse = contentType.includes('application/json');
-      const isTextStream = contentType.includes('text/plain') || contentType.includes('text/event-stream');
+      const isTextStream =
+        contentType.includes('text/plain') || contentType.includes('text/event-stream');
 
       // Validate that we have a processable response type
       if (!isJsonResponse && !isTextStream && !response.body) {
@@ -1282,7 +1327,13 @@ export function ChatClient() {
           finalContent = assistantMessage.content;
 
           // Save the image message to database
-          await saveMessageToDatabase(newChatId, 'assistant', assistantMessage.content, 'image', data.url);
+          await saveMessageToDatabase(
+            newChatId,
+            'assistant',
+            assistantMessage.content,
+            'image',
+            data.url
+          );
         } else if (data.type === 'code_preview' && data.codePreview) {
           // Website/landing page code generation response
           log.debug('Received code preview response:', {
@@ -1386,7 +1437,10 @@ export function ChatClient() {
               try {
                 const statusResponse = await fetch(statusUrl);
                 if (!statusResponse.ok) {
-                  log.error('Video status check failed:', new Error(`Status: ${statusResponse.status}`));
+                  log.error(
+                    'Video status check failed:',
+                    new Error(`Status: ${statusResponse.status}`)
+                  );
                   if (attempts < maxAttempts) {
                     setTimeout(poll, 5000);
                   }
@@ -1394,7 +1448,10 @@ export function ChatClient() {
                 }
 
                 const statusData = await statusResponse.json();
-                log.debug('Video status:', { status: statusData.status, progress: statusData.progress });
+                log.debug('Video status:', {
+                  status: statusData.status,
+                  progress: statusData.progress,
+                });
 
                 // Update the message with new status
                 setMessages((prev) =>
@@ -1474,7 +1531,9 @@ export function ChatClient() {
             log.debug(`Document generation: ${data.files.length} file(s) generated`);
           }
           if (data.citations?.length > 0 || data.sourcesUsed > 0) {
-            log.debug(`Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`);
+            log.debug(
+              `Live Search: ${data.sourcesUsed} sources, ${data.citations?.length} citations`
+            );
           }
 
           setMessages((prev) => [...prev, assistantMessage]);
@@ -1562,7 +1621,12 @@ export function ChatClient() {
                         finalContent = event.content;
 
                         // Save to database (always save regardless of UI state)
-                        await saveMessageToDatabase(newChatId, 'assistant', event.content || 'Generated website', 'text');
+                        await saveMessageToDatabase(
+                          newChatId,
+                          'assistant',
+                          event.content || 'Generated website',
+                          'text'
+                        );
                       } else if (event.type === 'error') {
                         log.error('Website generation error:', event.message);
                         if (shouldUpdateUI) {
@@ -1623,16 +1687,16 @@ export function ChatClient() {
                   // Update the message with accumulated content
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === assistantMessageId
-                        ? { ...msg, content: accumulatedContent }
-                        : msg
+                      msg.id === assistantMessageId ? { ...msg, content: accumulatedContent } : msg
                     )
                   );
                 }
               }
             } catch (readerError) {
               // Stream was interrupted (user navigated away, network issue, etc.)
-              log.debug('Stream interrupted:', { message: readerError instanceof Error ? readerError.message : 'unknown' });
+              log.debug('Stream interrupted:', {
+                message: readerError instanceof Error ? readerError.message : 'unknown',
+              });
               // If we have some content, use it instead of showing an error
               if (accumulatedContent.length > 0) {
                 log.debug('Using partial content, length:', { length: accumulatedContent.length });
@@ -1667,133 +1731,121 @@ export function ChatClient() {
         const pdfContent = markerEnd > 0 ? finalContent.slice(markerEnd).trim() : '';
 
         // Get any text BEFORE the marker (intro text like "Creating your PDF now.")
-        const textBeforeMarker = markerStartIndex > 0 ? finalContent.slice(0, markerStartIndex).trim() : '';
+        const textBeforeMarker =
+          markerStartIndex > 0 ? finalContent.slice(0, markerStartIndex).trim() : '';
 
         // Validate content before proceeding
         if (!pdfTitle || !pdfContent || pdfContent.length < 10) {
           log.warn('PDF marker found but content is empty or too short');
           // Don't try to generate, just clean up the response
-          const cleanedContent = textBeforeMarker || 'I tried to generate a PDF but encountered an issue. Please try again with more content.';
+          const cleanedContent =
+            textBeforeMarker ||
+            'I tried to generate a PDF but encountered an issue. Please try again with more content.';
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? { ...msg, content: cleanedContent }
-                : msg
+              msg.id === assistantMessageId ? { ...msg, content: cleanedContent } : msg
             )
           );
           // Skip the PDF generation
         } else {
+          // Show ONLY the intro text + generating status - NOT the full content again
+          // User already saw the content in the previous message
+          const cleanedContent = textBeforeMarker
+            ? `${textBeforeMarker}\n\n📄 **Generating PDF: ${pdfTitle}...**`
+            : `📄 **Generating PDF: ${pdfTitle}...**`;
 
-        // Show ONLY the intro text + generating status - NOT the full content again
-        // User already saw the content in the previous message
-        const cleanedContent = textBeforeMarker
-          ? `${textBeforeMarker}\n\n📄 **Generating PDF: ${pdfTitle}...**`
-          : `📄 **Generating PDF: ${pdfTitle}...**`;
+          // Update the message to show just the status (hide redundant content)
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId ? { ...msg, content: cleanedContent } : msg
+            )
+          );
+          finalContent = cleanedContent;
 
-        // Update the message to show just the status (hide redundant content)
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMessageId
-              ? { ...msg, content: cleanedContent }
-              : msg
-          )
-        );
-        finalContent = cleanedContent;
+          // Trigger PDF generation
+          try {
+            const pdfResponse = await fetch('/api/documents/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content: pdfContent,
+                title: pdfTitle,
+                format: 'pdf',
+              }),
+            });
 
-        // Trigger PDF generation
-        try {
-          const pdfResponse = await fetch('/api/documents/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: pdfContent,
-              title: pdfTitle,
-              format: 'pdf',
-            }),
-          });
+            if (pdfResponse.ok) {
+              const pdfData = await pdfResponse.json();
 
-          if (pdfResponse.ok) {
-            const pdfData = await pdfResponse.json();
+              // Check for downloadUrl (Supabase Storage) or dataUrl (fallback)
+              const downloadUrl = pdfData.downloadUrl || pdfData.dataUrl;
+              const isSupabaseUrl = !!pdfData.downloadUrl;
 
-            // Check for downloadUrl (Supabase Storage) or dataUrl (fallback)
-            const downloadUrl = pdfData.downloadUrl || pdfData.dataUrl;
-            const isSupabaseUrl = !!pdfData.downloadUrl;
+              if (downloadUrl) {
+                log.debug('PDF generated successfully, storage:', pdfData.storage);
 
-            if (downloadUrl) {
-              log.debug('PDF generated successfully, storage:', pdfData.storage);
+                if (isSupabaseUrl) {
+                  // Supabase Storage: Show clickable download link
+                  // UPDATE the existing message instead of adding new one (prevents screen flash)
+                  let messageContent = textBeforeMarker ? `${textBeforeMarker}\n\n` : '';
+                  messageContent += `✅ **Your PDF is ready!**\n\n`;
+                  messageContent += `📄 **[Download PDF](${downloadUrl})**`;
+                  messageContent += `\n\n*Link expires in 1 hour. If you need it later, just ask me to generate again.*`;
 
-              if (isSupabaseUrl) {
-                // Supabase Storage: Show clickable download link
-                // UPDATE the existing message instead of adding new one (prevents screen flash)
-                let messageContent = textBeforeMarker
-                  ? `${textBeforeMarker}\n\n`
-                  : '';
-                messageContent += `✅ **Your PDF is ready!**\n\n`;
-                messageContent += `📄 **[Download PDF](${downloadUrl})**`;
-                messageContent += `\n\n*Link expires in 1 hour. If you need it later, just ask me to generate again.*`;
+                  // Update the SAME message (smoother UX, no flash)
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId ? { ...msg, content: messageContent } : msg
+                    )
+                  );
+                } else {
+                  // Data URL fallback: Trigger auto-download
+                  const link = document.createElement('a');
+                  link.href = downloadUrl;
+                  link.download = pdfData.filename || `${pdfTitle}.pdf`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
 
-                // Update the SAME message (smoother UX, no flash)
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: messageContent }
-                      : msg
-                  )
-                );
-              } else {
-                // Data URL fallback: Trigger auto-download
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = pdfData.filename || `${pdfTitle}.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                  // Update the SAME message (smoother UX)
+                  const successContent = textBeforeMarker
+                    ? `${textBeforeMarker}\n\n✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder.`
+                    : `✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder.`;
 
-                // Update the SAME message (smoother UX)
-                const successContent = textBeforeMarker
-                  ? `${textBeforeMarker}\n\n✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder.`
-                  : `✅ **${pdfTitle}.pdf** has been downloaded!\n\nCheck your downloads folder.`;
-
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: successContent }
-                      : msg
-                  )
-                );
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId ? { ...msg, content: successContent } : msg
+                    )
+                  );
+                }
               }
+            } else {
+              log.error('PDF generation failed:', new Error(await pdfResponse.text()));
+              // Update message with error (no new message = no flash)
+              const errorContent = textBeforeMarker
+                ? `${textBeforeMarker}\n\n⚠️ Sorry, I couldn't generate the PDF. Please try again.`
+                : `⚠️ Sorry, I couldn't generate the PDF. Please try again.`;
+
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId ? { ...msg, content: errorContent } : msg
+                )
+              );
             }
-          } else {
-            log.error('PDF generation failed:', new Error(await pdfResponse.text()));
-            // Update message with error (no new message = no flash)
+          } catch (pdfError) {
+            log.error('Error during PDF generation:', pdfError as Error);
+            // Show error to user instead of silently failing
             const errorContent = textBeforeMarker
-              ? `${textBeforeMarker}\n\n⚠️ Sorry, I couldn't generate the PDF. Please try again.`
-              : `⚠️ Sorry, I couldn't generate the PDF. Please try again.`;
+              ? `${textBeforeMarker}\n\n⚠️ Sorry, there was an error generating your PDF. Please try again.`
+              : `⚠️ Sorry, there was an error generating your PDF. Please try again.`;
 
             setMessages((prev) =>
               prev.map((msg) =>
-                msg.id === assistantMessageId
-                  ? { ...msg, content: errorContent }
-                  : msg
+                msg.id === assistantMessageId ? { ...msg, content: errorContent } : msg
               )
             );
           }
-        } catch (pdfError) {
-          log.error('Error during PDF generation:', pdfError as Error);
-          // Show error to user instead of silently failing
-          const errorContent = textBeforeMarker
-            ? `${textBeforeMarker}\n\n⚠️ Sorry, there was an error generating your PDF. Please try again.`
-            : `⚠️ Sorry, there was an error generating your PDF. Please try again.`;
-
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? { ...msg, content: errorContent }
-                : msg
-            )
-          );
         }
-      }
       }
 
       // Check for [GENERATE_XLSX: ...] marker in the response
@@ -1809,17 +1861,18 @@ export function ChatClient() {
         const xlsxContent = markerEnd > 0 ? finalContent.slice(markerEnd).trim() : '';
 
         // Get any text BEFORE the marker (intro text)
-        const textBeforeMarker = markerStartIndex > 0 ? finalContent.slice(0, markerStartIndex).trim() : '';
+        const textBeforeMarker =
+          markerStartIndex > 0 ? finalContent.slice(0, markerStartIndex).trim() : '';
 
         // Validate content before proceeding
         if (!xlsxTitle || !xlsxContent || xlsxContent.length < 10) {
           log.warn('XLSX marker found but content is empty or too short');
-          const cleanedContent = textBeforeMarker || 'I tried to generate a spreadsheet but encountered an issue. Please try again with more content.';
+          const cleanedContent =
+            textBeforeMarker ||
+            'I tried to generate a spreadsheet but encountered an issue. Please try again with more content.';
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? { ...msg, content: cleanedContent }
-                : msg
+              msg.id === assistantMessageId ? { ...msg, content: cleanedContent } : msg
             )
           );
         } else {
@@ -1830,9 +1883,7 @@ export function ChatClient() {
 
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === assistantMessageId
-                ? { ...msg, content: cleanedContent }
-                : msg
+              msg.id === assistantMessageId ? { ...msg, content: cleanedContent } : msg
             )
           );
           finalContent = cleanedContent;
@@ -1859,18 +1910,14 @@ export function ChatClient() {
 
                 if (isSupabaseUrl) {
                   // Supabase Storage: Show clickable download link
-                  let messageContent = textBeforeMarker
-                    ? `${textBeforeMarker}\n\n`
-                    : '';
+                  let messageContent = textBeforeMarker ? `${textBeforeMarker}\n\n` : '';
                   messageContent += `✅ **Your Excel spreadsheet is ready!**\n\n`;
                   messageContent += `📊 **[Download ${xlsxTitle}.xlsx](${downloadUrl})**`;
                   messageContent += `\n\n*Link expires in 1 hour. If you need it later, just ask me to generate again.*`;
 
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === assistantMessageId
-                        ? { ...msg, content: messageContent }
-                        : msg
+                      msg.id === assistantMessageId ? { ...msg, content: messageContent } : msg
                     )
                   );
                 } else {
@@ -1888,9 +1935,7 @@ export function ChatClient() {
 
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === assistantMessageId
-                        ? { ...msg, content: successContent }
-                        : msg
+                      msg.id === assistantMessageId ? { ...msg, content: successContent } : msg
                     )
                   );
                 }
@@ -1908,9 +1953,7 @@ export function ChatClient() {
 
             setMessages((prev) =>
               prev.map((msg) =>
-                msg.id === assistantMessageId
-                  ? { ...msg, content: errorContent }
-                  : msg
+                msg.id === assistantMessageId ? { ...msg, content: errorContent } : msg
               )
             );
           }
@@ -1925,14 +1968,14 @@ export function ChatClient() {
         log.debug('Detected GENERATE_QR marker, data:', { data: qrData.slice(0, 100) });
 
         // Remove the marker from the displayed text
-        const cleanedContent = finalContent.replace(/\[GENERATE_QR:\s*.+?\]/s, '🔲 **Generating QR Code...**\n\n').trim();
+        const cleanedContent = finalContent
+          .replace(/\[GENERATE_QR:\s*.+?\]/s, '🔲 **Generating QR Code...**\n\n')
+          .trim();
 
         // Update the message
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === assistantMessageId
-              ? { ...msg, content: cleanedContent }
-              : msg
+            msg.id === assistantMessageId ? { ...msg, content: cleanedContent } : msg
           )
         );
         finalContent = cleanedContent;
@@ -1999,13 +2042,13 @@ export function ChatClient() {
             document.body.removeChild(link);
 
             // Update the message to show success
-            const successContent = cleanedContent + `\n\n✅ **Downloaded!** Check your downloads folder for "${docData.filename}"`;
+            const successContent =
+              cleanedContent +
+              `\n\n✅ **Downloaded!** Check your downloads folder for "${docData.filename}"`;
 
             setMessages((prev) =>
               prev.map((msg) =>
-                msg.id === assistantMessageId
-                  ? { ...msg, content: successContent }
-                  : msg
+                msg.id === assistantMessageId ? { ...msg, content: successContent } : msg
               )
             );
             finalContent = successContent;
@@ -2029,7 +2072,7 @@ export function ChatClient() {
       const isNewConversation = messages.length === 0;
 
       // Check if current chat has a generic title that should be regenerated
-      const currentChat = chats.find(c => c.id === newChatId);
+      const currentChat = chats.find((c) => c.id === newChatId);
       const hasGenericTitle = currentChat && isGenericTitle(currentChat.title);
       const isMeaningfulMessage = content.length > 20; // Skip short greetings
       const shouldRegenerateTitle = hasGenericTitle && isMeaningfulMessage && messages.length > 0;
@@ -2040,7 +2083,7 @@ export function ChatClient() {
         newChatId,
         currentTitle: currentChat?.title,
         hasGenericTitle,
-        shouldRegenerateTitle
+        shouldRegenerateTitle,
       });
 
       if ((isNewConversation || shouldRegenerateTitle) && newChatId) {
@@ -2084,24 +2127,26 @@ export function ChatClient() {
       }
     } catch (error) {
       // Check if this is an abort error (user navigated away or sent new message)
-      const isAbortError = error instanceof Error && (
-        error.name === 'AbortError' ||
-        error.message.toLowerCase().includes('aborted') ||
-        error.message.toLowerCase().includes('abort')
-      );
+      const isAbortError =
+        error instanceof Error &&
+        (error.name === 'AbortError' ||
+          error.message.toLowerCase().includes('aborted') ||
+          error.message.toLowerCase().includes('abort'));
 
       // Check if this is a network error (connection lost, user navigated away)
-      const isNetworkError = error instanceof Error && (
-        error.name === 'TypeError' && error.message.toLowerCase().includes('fetch') ||
-        error.message.toLowerCase().includes('network') ||
-        error.message.toLowerCase().includes('connection') ||
-        error.message.toLowerCase().includes('failed to fetch') ||
-        error.message.toLowerCase().includes('load failed')
-      );
+      const isNetworkError =
+        error instanceof Error &&
+        ((error.name === 'TypeError' && error.message.toLowerCase().includes('fetch')) ||
+          error.message.toLowerCase().includes('network') ||
+          error.message.toLowerCase().includes('connection') ||
+          error.message.toLowerCase().includes('failed to fetch') ||
+          error.message.toLowerCase().includes('load failed'));
 
       if (isAbortError || isNetworkError) {
         // User navigated away or network issue - this is not a server error
-        log.debug('Request interrupted:', { message: error instanceof Error ? error.message : 'unknown' });
+        log.debug('Request interrupted:', {
+          message: error instanceof Error ? error.message : 'unknown',
+        });
         // Clean up abort controller to prevent memory leaks
         abortControllerRef.current = null;
         // Only update state if component is still mounted
@@ -2129,15 +2174,25 @@ export function ChatClient() {
       let errorContent = '';
 
       // Check for specific error types and provide helpful messages
-      if (errorMsg.includes('rate limit') || errorMsg.includes('429') || errorMsg.includes('too many')) {
-        errorContent = 'You\'re sending messages too quickly. Please wait a moment and try again.';
+      if (
+        errorMsg.includes('rate limit') ||
+        errorMsg.includes('429') ||
+        errorMsg.includes('too many')
+      ) {
+        errorContent = "You're sending messages too quickly. Please wait a moment and try again.";
       } else if (errorMsg.includes('token limit') || errorMsg.includes('usage limit')) {
-        errorContent = 'You\'ve reached your usage limit. Check your account for details or upgrade your plan.';
+        errorContent =
+          "You've reached your usage limit. Check your account for details or upgrade your plan.";
       } else if (errorMsg.includes('moderation') || errorMsg.includes('content policy')) {
-        errorContent = 'Your message couldn\'t be processed due to content guidelines. Please rephrase and try again.';
+        errorContent =
+          "Your message couldn't be processed due to content guidelines. Please rephrase and try again.";
       } else if (errorMsg.includes('timeout') || errorMsg.includes('timed out')) {
         errorContent = 'The request took too long. Please try again with a simpler message.';
-      } else if (errorMsg.includes('server') || errorMsg.includes('500') || errorMsg.includes('503')) {
+      } else if (
+        errorMsg.includes('server') ||
+        errorMsg.includes('500') ||
+        errorMsg.includes('503')
+      ) {
         errorContent = 'The server is temporarily unavailable. Please try again in a few moments.';
       } else if (errorMsg.includes('unauthorized') || errorMsg.includes('401')) {
         errorContent = 'Your session may have expired. Please refresh the page and try again.';
@@ -2189,178 +2244,175 @@ export function ChatClient() {
 
   return (
     <CodeExecutionProvider>
-    <div className="flex h-screen flex-col" style={{ backgroundColor: 'var(--background)' }}>
-      {/* Header */}
-      <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
-        <div className="flex items-center justify-between relative">
-          <div className="flex items-center gap-1">
+      <div className="flex h-screen flex-col" style={{ backgroundColor: 'var(--background)' }}>
+        {/* Header */}
+        <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3">
+          <div className="flex items-center justify-between relative">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="rounded-lg p-1.5 hover:bg-white/10 transition-colors"
+                aria-label="Toggle sidebar"
+              >
+                {/* Menu/Close icon */}
+                <svg
+                  className="h-5 w-5 md:h-6 md:w-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
+              {/* Only show logo/site name when a chat is active */}
+              {currentChatId &&
+                (theme === 'light' ? (
+                  // Light mode: Use text instead of logo
+                  <h1 className="text-base md:text-xl font-normal">
+                    <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
+                    <span style={{ color: 'var(--primary)' }}>ai</span>
+                  </h1>
+                ) : headerLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={headerLogo} alt="JCIL.ai" className="h-8" />
+                ) : (
+                  <h1 className="text-base md:text-xl font-semibold">
+                    <span className="text-white">JCIL</span>
+                    <span className="text-blue-500">.ai</span>
+                  </h1>
+                ))}
+            </div>
+
+            {/* New Chat Button - Mobile Only, Centered */}
             <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="rounded-lg p-1.5 hover:bg-white/10 transition-colors"
-              aria-label="Toggle sidebar"
+              onClick={handleNewChat}
+              className="absolute left-1/2 -translate-x-1/2 md:hidden rounded-full p-1.5 hover:bg-white/10 transition-colors flex items-center justify-center"
+              aria-label="New chat"
+              title="Start new chat"
             >
-              {/* Menu/Close icon */}
               <svg
-                className="h-5 w-5 md:h-6 md:w-6"
+                className="h-5 w-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                strokeWidth={2.5}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </button>
-            {/* Only show logo/site name when a chat is active */}
-            {currentChatId && (
-              theme === 'light' ? (
-                // Light mode: Use text instead of logo
-                <h1 className="text-base md:text-xl font-normal">
-                  <span style={{ color: 'var(--text-primary)' }}>jcil.</span>
-                  <span style={{ color: 'var(--primary)' }}>ai</span>
-                </h1>
-              ) : headerLogo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={headerLogo} alt="JCIL.ai" className="h-8" />
-              ) : (
-                <h1 className="text-base md:text-xl font-semibold">
-                  <span className="text-white">JCIL</span>
-                  <span className="text-blue-500">.ai</span>
-                </h1>
-              )
+
+            <div className="flex items-center gap-0.5">
+              {/* Theme Toggle - Light/Dark Mode */}
+              <ThemeToggle />
+
+              {/* Profile Button */}
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center justify-center gap-0.5 focus:outline-none"
+                aria-label="User Profile"
+              >
+                <svg
+                  className="h-3 w-3 md:h-4 md:w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                {hasProfile ? profile.name : 'Profile'}
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Main chat area */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <ChatSidebar
+            chats={chats}
+            currentChatId={currentChatId}
+            collapsed={sidebarCollapsed}
+            onNewChat={handleNewChat}
+            onSelectChat={handleSelectChat}
+            onRenameChat={handleRenameChat}
+            onDeleteChat={handleDeleteChat}
+            onPinChat={handlePinChat}
+            onMoveToFolder={handleMoveToFolder}
+          />
+
+          {/* Chat thread area */}
+          <main className="flex flex-1 flex-col overflow-hidden relative">
+            <ChatThread
+              messages={messages}
+              isStreaming={isStreaming}
+              currentChatId={currentChatId}
+              isAdmin={isAdmin}
+              documentType={pendingDocumentType}
+              onReply={(message) => setReplyingTo(message)}
+              enableCodeActions
+              lastUserMessage={messages.filter((m) => m.role === 'user').pop()?.content || ''}
+              onQuickPrompt={(prompt) => setQuickPromptText(prompt)}
+            />
+            {/* Live To-Do List - extracted from AI responses */}
+            <LiveTodoList messages={messages} conversationId={currentChatId} />
+            {/* Chat continuation banner - shown when conversation is getting long */}
+            {!continuationDismissed && messages.length >= CHAT_LENGTH_WARNING && (
+              <ChatContinuationBanner
+                messageCount={messages.length}
+                onContinue={handleChatContinuation}
+                onDismiss={() => setContinuationDismissed(true)}
+                isGenerating={isGeneratingSummary}
+              />
             )}
-          </div>
-
-          {/* New Chat Button - Mobile Only, Centered */}
-          <button
-            onClick={handleNewChat}
-            className="absolute left-1/2 -translate-x-1/2 md:hidden rounded-full p-1.5 hover:bg-white/10 transition-colors flex items-center justify-center"
-            aria-label="New chat"
-            title="Start new chat"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth={2.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-          </button>
-
-          <div className="flex items-center gap-0.5">
-            {/* Theme Toggle - Light/Dark Mode */}
-            <ThemeToggle />
-
-            {/* Profile Button */}
-            <button
-              onClick={() => setIsProfileOpen(true)}
-              className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center justify-center gap-0.5 focus:outline-none"
-              aria-label="User Profile"
-            >
-              <svg className="h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-              {hasProfile ? profile.name : 'Profile'}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main chat area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <ChatSidebar
-          chats={chats}
-          currentChatId={currentChatId}
-          collapsed={sidebarCollapsed}
-          onNewChat={handleNewChat}
-          onSelectChat={handleSelectChat}
-          onRenameChat={handleRenameChat}
-          onDeleteChat={handleDeleteChat}
-          onPinChat={handlePinChat}
-          onMoveToFolder={handleMoveToFolder}
-        />
-
-        {/* Chat thread area */}
-        <main className="flex flex-1 flex-col overflow-hidden relative">
-          <ChatThread
-                messages={messages}
-                isStreaming={isStreaming}
-                currentChatId={currentChatId}
-                isAdmin={isAdmin}
-                documentType={pendingDocumentType}
-                onReply={(message) => setReplyingTo(message)}
-                enableCodeActions
-                lastUserMessage={messages.filter(m => m.role === 'user').pop()?.content || ''}
-                onQuickPrompt={(prompt) => setQuickPromptText(prompt)}
-              />
-              {/* Live To-Do List - extracted from AI responses */}
-              <LiveTodoList
-                messages={messages}
-                conversationId={currentChatId}
-              />
-              {/* Chat continuation banner - shown when conversation is getting long */}
-              {!continuationDismissed && messages.length >= CHAT_LENGTH_WARNING && (
-                <ChatContinuationBanner
-                  messageCount={messages.length}
-                  onContinue={handleChatContinuation}
-                  onDismiss={() => setContinuationDismissed(true)}
-                  isGenerating={isGeneratingSummary}
-                />
-              )}
-              <ChatComposer
-                onSendMessage={handleSendMessage}
-                onStop={handleStop}
-                isStreaming={isStreaming}
-                disabled={isWaitingForReply}
-                showSearchButtons={true}
-                replyingTo={replyingTo}
-                onClearReply={() => setReplyingTo(null)}
-                initialText={quickPromptText}
-              />
-              {/* Voice Button - Hidden until feature is production-ready
+            <ChatComposer
+              onSendMessage={handleSendMessage}
+              onStop={handleStop}
+              isStreaming={isStreaming}
+              disabled={isWaitingForReply}
+              showSearchButtons={true}
+              replyingTo={replyingTo}
+              onClearReply={() => setReplyingTo(null)}
+              initialText={quickPromptText}
+            />
+            {/* Voice Button - Hidden until feature is production-ready
               <VoiceButton
                 onStart={startVoiceChat}
                 onUserText={addUserVoiceMessage}
                 onAssistantText={upsertAssistantStreaming}
               />
               */}
-        </main>
+          </main>
+        </div>
+
+        {/* User Profile Modal */}
+        <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+
+        {/* Passkey Setup Prompt Modal */}
+        <PasskeyPromptModal
+          isOpen={isPasskeyModalOpen}
+          onClose={() => {
+            setIsPasskeyModalOpen(false);
+            dismissPasskeyPrompt();
+          }}
+          onSuccess={() => {
+            setIsPasskeyModalOpen(false);
+            dismissPasskeyPrompt();
+          }}
+        />
+
+        {/* GitHub Repo Selector Modal - for code push to GitHub */}
+        <RepoSelectorWrapper />
       </div>
-
-      {/* User Profile Modal */}
-      <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
-
-      {/* Passkey Setup Prompt Modal */}
-      <PasskeyPromptModal
-        isOpen={isPasskeyModalOpen}
-        onClose={() => {
-          setIsPasskeyModalOpen(false);
-          dismissPasskeyPrompt();
-        }}
-        onSuccess={() => {
-          setIsPasskeyModalOpen(false);
-          dismissPasskeyPrompt();
-        }}
-      />
-
-      {/* GitHub Repo Selector Modal - for code push to GitHub */}
-      <RepoSelectorWrapper />
-    </div>
     </CodeExecutionProvider>
   );
 }
