@@ -4,7 +4,7 @@
  * PURPOSE:
  * - Provide Claude AI chat completion functionality
  * - Support streaming responses
- * - Handle tool calls (web search via Brave)
+ * - Handle tool calls (web search via Perplexity)
  *
  * FEATURES:
  * - Dual-pool round-robin API key system (same as Perplexity)
@@ -13,7 +13,7 @@
  * - Rate limit handling with automatic key rotation
  * - Streaming text responses
  * - Non-streaming for image analysis
- * - Web search integration via Brave
+ * - Web search integration via Perplexity
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -308,11 +308,11 @@ export interface AnthropicChatOptions {
   systemPrompt?: string;
   userId?: string;
   planKey?: string;
-  // Web search function (injected from Brave Search module)
-  webSearchFn?: (query: string) => Promise<BraveSearchResult>;
+  // Web search function (injected from Perplexity module)
+  webSearchFn?: (query: string) => Promise<WebSearchResult>;
 }
 
-export interface BraveSearchResult {
+export interface WebSearchResult {
   results: Array<{
     title: string;
     url: string;
@@ -639,7 +639,7 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
 
 /**
  * Create a chat completion with web search support
- * Uses Brave Search when available
+ * Uses Perplexity when available for web search
  *
  * RACE CONDITION FIX: Uses getAnthropicClientWithKey() atomically.
  */
