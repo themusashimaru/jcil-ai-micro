@@ -14,6 +14,10 @@
  * - Real-time web search with citations
  */
 
+import { logger } from '@/lib/logger';
+
+const log = logger('Perplexity');
+
 // Perplexity API endpoint
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
@@ -111,9 +115,10 @@ function initializeApiKeys(): void {
   // Log the detected configuration
   const totalKeys = primaryPool.length + fallbackPool.length;
   if (totalKeys > 0) {
-    console.log(`[Perplexity] Initialized dual-pool system (dynamic detection):`);
-    console.log(`[Perplexity]   Primary pool: ${primaryPool.length} key(s) (round-robin load distribution)`);
-    console.log(`[Perplexity]   Fallback pool: ${fallbackPool.length} key(s) (emergency reserve)`);
+    log.info('Initialized dual-pool system', {
+      primaryKeys: primaryPool.length,
+      fallbackKeys: fallbackPool.length,
+    });
   }
 }
 
@@ -154,7 +159,7 @@ function getFallbackKey(): string | null {
 
     if (keyState.rateLimitedUntil <= now) {
       fallbackKeyIndex = (keyIndex + 1) % fallbackPool.length;
-      console.log(`[Perplexity] Using FALLBACK key ${keyState.index} (primary pool exhausted)`);
+      log.info('Using fallback key', { keyIndex: keyState.index, reason: 'primary pool exhausted' });
       return keyState.key;
     }
   }
@@ -200,7 +205,12 @@ async function getApiKey(): Promise<string | null> {
 
   // If we need to wait, wait before returning the key
   if (waitTime > 0) {
-    console.log(`[Perplexity] All ${allKeys.length} keys rate limited. Waiting ${waitTime}s for ${soonestKey.pool} key ${soonestKey.index}...`);
+    log.warn('All keys rate limited, waiting', {
+      totalKeys: allKeys.length,
+      waitSeconds: waitTime,
+      pool: soonestKey.pool,
+      keyIndex: soonestKey.index,
+    });
     // Cap wait time at 30 seconds to prevent hanging forever
     const cappedWait = Math.min(waitTime, 30);
     await new Promise(resolve => setTimeout(resolve, cappedWait * 1000));
@@ -218,13 +228,22 @@ function markKeyRateLimited(apiKey: string, retryAfterSeconds: number = 60): voi
 
   if (keyState) {
     keyState.rateLimitedUntil = Date.now() + (retryAfterSeconds * 1000);
-    console.log(`[Perplexity] ${keyState.pool.toUpperCase()} key ${keyState.index} rate limited for ${retryAfterSeconds}s`);
+    log.warn('Key rate limited', {
+      pool: keyState.pool,
+      keyIndex: keyState.index,
+      retryAfterSeconds,
+    });
 
     // Log pool status
     const now = Date.now();
     const availablePrimary = primaryPool.filter(k => k.rateLimitedUntil <= now).length;
     const availableFallback = fallbackPool.filter(k => k.rateLimitedUntil <= now).length;
-    console.log(`[Perplexity] Pool status: ${availablePrimary}/${primaryPool.length} primary, ${availableFallback}/${fallbackPool.length} fallback available`);
+    log.debug('Pool status', {
+      primaryAvailable: availablePrimary,
+      primaryTotal: primaryPool.length,
+      fallbackAvailable: availableFallback,
+      fallbackTotal: fallbackPool.length,
+    });
   }
 }
 
@@ -334,7 +353,7 @@ ALWAYS:
     }
 
     try {
-      console.log(`[Perplexity] Searching for: ${options.query} (attempt ${attempt + 1}/${maxRetries})`);
+      log.debug('Searching', { query: options.query.substring(0, 100), attempt: attempt + 1, maxRetries });
 
       // Add request timeout (30 seconds)
       const controller = new AbortController();
@@ -372,14 +391,14 @@ ALWAYS:
       // Check for rate limit
       if (response.status === 429) {
         const retryAfter = parseInt(response.headers.get('retry-after') || '60', 10);
-        console.log(`[Perplexity] Rate limited (429), marking key and retrying...`);
+        log.warn('Rate limited (429), rotating key');
         markKeyRateLimited(apiKey, retryAfter);
         continue; // Try next key
       }
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[Perplexity] API error:', response.status, errorText);
+        log.error('API error', { status: response.status, error: errorText.substring(0, 200) });
 
         // For 5xx errors, try next key
         if (response.status >= 500) {
@@ -400,7 +419,7 @@ ALWAYS:
 
       // Method 1: Check data.citations (standard location)
       if (data.citations && Array.isArray(data.citations)) {
-        console.log('[Perplexity] Found citations in data.citations:', data.citations.length);
+        log.debug('Found citations in data.citations', { count: data.citations.length });
         for (const citation of data.citations) {
           if (citation.url && citation.url.startsWith('http')) {
             sources.push({
@@ -415,7 +434,7 @@ ALWAYS:
       // Method 2: Check choices[0].message.citations
       const messageCitations = data.choices?.[0]?.message?.citations;
       if (messageCitations && Array.isArray(messageCitations)) {
-        console.log('[Perplexity] Found citations in message.citations:', messageCitations.length);
+        log.debug('Found citations in message.citations', { count: messageCitations.length });
         for (const citation of messageCitations) {
           const url = typeof citation === 'string' ? citation : citation.url;
           if (url && url.startsWith('http') && !sources.some(s => s.url === url)) {
@@ -429,7 +448,7 @@ ALWAYS:
 
       // Method 3: Extract URLs from the answer text if no citations found
       if (sources.length === 0) {
-        console.log('[Perplexity] No citations array found, extracting URLs from answer text');
+        log.debug('No citations array found, extracting URLs from answer text');
         const urlRegex = /https?:\/\/[^\s\])"'<>]+/g;
         const foundUrls: string[] = answer.match(urlRegex) || [];
         const uniqueUrls: string[] = [...new Set(foundUrls)];
@@ -443,7 +462,7 @@ ALWAYS:
         }
       }
 
-      console.log(`[Perplexity] Search complete. Found ${sources.length} sources:`, sources.map(s => s.url).join(', '));
+      log.info('Search complete', { sourceCount: sources.length });
 
       return {
         answer,
@@ -457,18 +476,18 @@ ALWAYS:
       if (lastError.message.toLowerCase().includes('rate limit')) {
         markKeyRateLimited(apiKey, 60);
         if (attempt < maxRetries - 1) {
-          console.log(`[Perplexity] Rate limited on attempt ${attempt + 1}, retrying with different key...`);
+          log.warn('Rate limited, retrying with different key', { attempt: attempt + 1 });
           continue;
         }
       }
 
       // For other errors on last attempt, throw
       if (attempt === maxRetries - 1) {
-        console.error('[Perplexity] Search error (all retries exhausted):', lastError);
+        log.error('Search failed after all retries', lastError);
         throw lastError;
       }
 
-      console.error(`[Perplexity] Search error on attempt ${attempt + 1}, retrying:`, lastError.message);
+      log.warn('Search error, retrying', { attempt: attempt + 1, error: lastError.message });
     }
   }
 

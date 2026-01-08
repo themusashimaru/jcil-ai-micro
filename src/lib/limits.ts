@@ -11,6 +11,10 @@
  * - executive: $99/mo, 5,000,000 tokens/month (resets monthly)
  */
 
+import { logger } from '@/lib/logger';
+
+const log = logger('Limits');
+
 // ========================================
 // TOKEN LIMITS (Monthly)
 // ========================================
@@ -51,7 +55,7 @@ async function getRedis() {
       redis = Redis.fromEnv();
       return redis;
     } catch {
-      console.warn('[Limits] Upstash Redis not available, using in-memory fallback');
+      log.warn('Upstash Redis not available, using in-memory fallback');
     }
   }
 
@@ -162,7 +166,7 @@ export async function incrementTokenUsage(
 
     return { used, limit, remaining, warn, stop, percentage };
   } catch (error) {
-    console.error('[Limits] Error incrementing token usage:', error);
+    log.error('Error incrementing token usage', error as Error);
     // On error, allow the request
     return {
       used: 0,
@@ -199,7 +203,7 @@ export async function getTokenUsage(userId: string, planKey: string = 'free'): P
 
     return { used, limit, remaining, warn, stop, percentage };
   } catch (error) {
-    console.error('[Limits] Error getting token usage:', error);
+    log.error('Error getting token usage', error as Error);
     return {
       used: 0,
       limit,
@@ -230,7 +234,7 @@ export async function resetTokenUsage(userId: string): Promise<void> {
     const r = await getRedis();
     await r.set(key, 0);
   } catch (error) {
-    console.error('[Limits] Error resetting token usage:', error);
+    log.error('Error resetting token usage', error as Error);
   }
 }
 
@@ -298,7 +302,7 @@ export async function incrementImageUsage(
 
     return { used, limit, remaining, warn, stop, percentage };
   } catch (error) {
-    console.error('[Limits] Error incrementing image usage:', error);
+    log.error('Error incrementing image usage', error as Error);
     return {
       used: 0,
       limit,
@@ -332,7 +336,7 @@ export async function getImageUsage(
 
     return { used, limit, remaining, warn, stop, percentage };
   } catch (error) {
-    console.error('[Limits] Error getting image usage:', error);
+    log.error('Error getting image usage', error as Error);
     return {
       used: 0,
       limit,

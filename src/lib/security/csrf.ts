@@ -21,6 +21,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+
+const log = logger('CSRF');
 
 interface CSRFValidationResult {
   valid: boolean;
@@ -104,7 +107,7 @@ export function validateCSRF(
 
   // SECURITY: Reject if no origin/referer found (possible CSRF attack)
   if (!originHeader) {
-    console.warn('[CSRF] Blocked request with missing Origin/Referer header', {
+    log.warn('Blocked request with missing Origin/Referer header', {
       method,
       path: new URL(requestUrl).pathname,
     });
@@ -134,11 +137,10 @@ export function validateCSRF(
   });
 
   if (!isAllowed) {
-    console.warn('[CSRF] Blocked cross-origin request', {
+    log.warn('Blocked cross-origin request', {
       method,
       path: new URL(requestUrl).pathname,
       origin: originHeader,
-      allowedOrigins,
     });
 
     return {

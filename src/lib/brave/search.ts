@@ -11,6 +11,10 @@
  * - Returns structured search results with titles, URLs, and descriptions
  */
 
+import { logger } from '@/lib/logger';
+
+const log = logger('BraveSearch');
+
 export interface BraveSearchResult {
   results: Array<{
     title: string;
@@ -62,7 +66,7 @@ export async function braveSearch(query: string, options?: {
   const apiKey = process.env.BRAVE_SEARCH_API_KEY;
 
   if (!apiKey) {
-    console.warn('[Brave Search] API key not configured');
+    log.warn('API key not configured');
     return {
       results: [],
       query,
@@ -85,7 +89,7 @@ export async function braveSearch(query: string, options?: {
   }
 
   try {
-    console.log('[Brave Search] Searching for:', query);
+    log.debug('Searching', { query: query.substring(0, 100) });
 
     const response = await fetch(
       `https://api.search.brave.com/res/v1/web/search?${params.toString()}`,
@@ -100,7 +104,7 @@ export async function braveSearch(query: string, options?: {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Brave Search] API error:', response.status, errorText);
+      log.error('API error', { status: response.status, error: errorText.substring(0, 200) });
       return {
         results: [],
         query,
@@ -127,7 +131,7 @@ export async function braveSearch(query: string, options?: {
       publishedDate: result.published_date,
     }));
 
-    console.log('[Brave Search] Found', results.length, 'results');
+    log.info('Search complete', { resultCount: results.length });
 
     return {
       results,
@@ -135,7 +139,7 @@ export async function braveSearch(query: string, options?: {
       totalResults: data.web?.total,
     };
   } catch (error) {
-    console.error('[Brave Search] Error:', error);
+    log.error('Search error', error as Error);
     return {
       results: [],
       query,
@@ -153,7 +157,7 @@ export async function braveNewsSearch(query: string, options?: {
   const apiKey = process.env.BRAVE_SEARCH_API_KEY;
 
   if (!apiKey) {
-    console.warn('[Brave Search] API key not configured');
+    log.warn('API key not configured');
     return {
       results: [],
       query,
@@ -175,7 +179,7 @@ export async function braveNewsSearch(query: string, options?: {
   }
 
   try {
-    console.log('[Brave Search] News search for:', query);
+    log.debug('News search', { query: query.substring(0, 100) });
 
     const response = await fetch(
       `https://api.search.brave.com/res/v1/web/search?${params.toString()}`,
@@ -189,7 +193,7 @@ export async function braveNewsSearch(query: string, options?: {
     );
 
     if (!response.ok) {
-      console.error('[Brave Search] News API error:', response.status);
+      log.error('News API error', { status: response.status });
       return {
         results: [],
         query,
@@ -208,14 +212,14 @@ export async function braveNewsSearch(query: string, options?: {
       description: result.description,
     }));
 
-    console.log('[Brave Search] News found', results.length, 'results');
+    log.info('News search complete', { resultCount: results.length });
 
     return {
       results,
       query: data.query.altered || data.query.original,
     };
   } catch (error) {
-    console.error('[Brave Search] News error:', error);
+    log.error('News search error', error as Error);
     return {
       results: [],
       query,

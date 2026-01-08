@@ -14,12 +14,15 @@
  */
 
 import { Octokit } from 'octokit';
+import { logger } from '@/lib/logger';
+
+const log = logger('GitHub');
 
 // Initialize Octokit with PAT from environment
 function getOctokit(): Octokit | null {
   const token = process.env.GITHUB_PAT;
   if (!token) {
-    console.warn('[GitHub] No GITHUB_PAT configured');
+    log.warn('No GITHUB_PAT configured');
     return null;
   }
   return new Octokit({ auth: token });
@@ -68,7 +71,7 @@ export async function getAuthenticatedUser(): Promise<{ login: string; name: str
     const { data } = await octokit.rest.users.getAuthenticated();
     return { login: data.login, name: data.name };
   } catch (error) {
-    console.error('[GitHub] Error getting authenticated user:', error);
+    log.error('Error getting authenticated user', error as Error);
     return null;
   }
 }
@@ -100,7 +103,7 @@ export async function listRepositories(options?: {
       html_url: repo.html_url,
     }));
   } catch (error) {
-    console.error('[GitHub] Error listing repositories:', error);
+    log.error('Error listing repositories', error as Error);
     return [];
   }
 }
@@ -144,7 +147,7 @@ export async function listContents(
       sha: data.sha,
     }];
   } catch (error) {
-    console.error('[GitHub] Error listing contents:', error);
+    log.error('Error listing contents', error as Error);
     return [];
   }
 }
@@ -170,7 +173,7 @@ export async function getFileContent(
     });
 
     if (Array.isArray(data) || data.type !== 'file') {
-      console.error('[GitHub] Path is not a file:', path);
+      log.error('Path is not a file', { path });
       return null;
     }
 
@@ -187,7 +190,7 @@ export async function getFileContent(
       encoding: data.encoding,
     };
   } catch (error) {
-    console.error('[GitHub] Error getting file content:', error);
+    log.error('Error getting file content', error as Error);
     return null;
   }
 }
@@ -223,7 +226,7 @@ export async function createOrUpdateFile(
       commit: data.commit.sha || '',
     };
   } catch (error) {
-    console.error('[GitHub] Error creating/updating file:', error);
+    log.error('Error creating/updating file', error as Error);
     return null;
   }
 }
@@ -253,7 +256,7 @@ export async function deleteFile(
     });
     return true;
   } catch (error) {
-    console.error('[GitHub] Error deleting file:', error);
+    log.error('Error deleting file', error as Error);
     return false;
   }
 }
@@ -281,7 +284,7 @@ export async function listBranches(
       protected: branch.protected,
     }));
   } catch (error) {
-    console.error('[GitHub] Error listing branches:', error);
+    log.error('Error listing branches', error as Error);
     return [];
   }
 }
@@ -307,7 +310,7 @@ export async function createBranch(
     });
     return true;
   } catch (error) {
-    console.error('[GitHub] Error creating branch:', error);
+    log.error('Error creating branch', error as Error);
     return false;
   }
 }
@@ -341,7 +344,7 @@ export async function createPullRequest(
       html_url: data.html_url,
     };
   } catch (error) {
-    console.error('[GitHub] Error creating pull request:', error);
+    log.error('Error creating pull request', error as Error);
     return null;
   }
 }
@@ -376,7 +379,7 @@ export async function searchCode(
       html_url: item.html_url,
     }));
   } catch (error) {
-    console.error('[GitHub] Error searching code:', error);
+    log.error('Error searching code', error as Error);
     return [];
   }
 }

@@ -10,6 +10,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from './types';
+import { logger } from '@/lib/logger';
+
+const log = logger('Auth');
 
 /**
  * Create a Supabase client for server components
@@ -83,7 +86,7 @@ export async function isServerAdmin(): Promise<boolean> {
   try {
     const user = await getServerUser();
     if (!user || !user.id) {
-      console.log('[Admin Check] No user or user ID found');
+      log.debug('Admin check: No user or user ID found');
       return false;
     }
 
@@ -98,7 +101,7 @@ export async function isServerAdmin(): Promise<boolean> {
     if (error) {
       // PGRST116 means no rows returned, which is expected for non-admins
       if (error.code !== 'PGRST116') {
-        console.error('[Admin Check] Database error:', error);
+        log.error('Admin check database error', { code: error.code, message: error.message });
       }
       return false;
     }
@@ -108,14 +111,14 @@ export async function isServerAdmin(): Promise<boolean> {
     const adminData = data as { id: string; user_id: string; email: string } | null;
 
     if (!adminData || adminData.user_id !== user.id) {
-      console.log('[Admin Check] No admin record found for user:', user.id);
+      log.debug('Admin check: No admin record found');
       return false;
     }
 
-    console.log('[Admin Check] Admin access granted for user:', user.id);
+    log.debug('Admin access granted');
     return true;
   } catch (error) {
-    console.error('[Admin Check] Unexpected error:', error);
+    log.error('Admin check unexpected error', error as Error);
     return false;
   }
 }

@@ -6,6 +6,9 @@
  */
 
 import { createHash, randomUUID } from 'crypto';
+import { logger } from '@/lib/logger';
+
+const log = logger('Idempotency');
 
 // Redis client (optional - graceful fallback if not configured)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +24,7 @@ async function getRedis() {
       redis = Redis.fromEnv();
       return redis;
     } catch {
-      console.warn('[Idempotency] Upstash Redis not available, using in-memory fallback');
+      log.warn('Upstash Redis not available, using in-memory fallback');
     }
   }
 
@@ -78,7 +81,7 @@ export async function seenIdempotent(key: string): Promise<boolean> {
     const result = await r.set(`idem:${key}`, '1', { nx: true, ex: 600 });
     return result === 'OK'; // true if first time (key was set)
   } catch (error) {
-    console.error('[Idempotency] Redis error:', error);
+    log.error('Redis error during idempotency check', error as Error);
     return true; // On error, allow operation to proceed
   }
 }

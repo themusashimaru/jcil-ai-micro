@@ -1303,8 +1303,7 @@ ${JSON.stringify(options.schema, null, 2)}`;
     const data = JSON.parse(jsonText) as T;
     return { data, model: CLAUDE_SONNET };
   } catch (error) {
-    console.error('[Claude] Failed to parse structured output:', error);
-    console.error('[Claude] Raw response:', textContent.substring(0, 500));
+    log.error('Failed to parse structured output', error as Error, { responsePreview: textContent.substring(0, 200) });
     throw new Error('Failed to parse Claude structured output as JSON');
   }
 }
