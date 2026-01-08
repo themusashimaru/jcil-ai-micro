@@ -2,23 +2,38 @@
  * HTML SANITIZATION UTILITY
  *
  * Prevents XSS attacks by sanitizing HTML content.
- * Only allows safe tags and attributes.
+ * Uses DOMPurify for robust, production-grade sanitization.
  */
 
-/**
- * Allowed tags for markdown rendering:
- * p, br, strong, b, em, i, u, s, strike, h1-h6, ul, ol, li,
- * a, code, pre, blockquote, hr, span, div, table, thead, tbody, tr, th, td
- *
- * Allowed attributes:
- * - a: href, target, rel, title
- * - code/pre/span/div: class
- * - th: scope
- * - td: colspan, rowspan
- */
+import DOMPurify from 'dompurify';
 
 // Safe URL protocols for href
 const SAFE_PROTOCOLS = ['http:', 'https:', 'mailto:', 'tel:'];
+
+// DOMPurify configuration for markdown content
+const DOMPURIFY_CONFIG = {
+  // Allowed tags for markdown rendering
+  ALLOWED_TAGS: [
+    'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li',
+    'a', 'code', 'pre', 'blockquote', 'hr',
+    'span', 'div',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'img', 'sup', 'sub',
+  ],
+  // Allowed attributes
+  ALLOWED_ATTR: [
+    'href', 'target', 'rel', 'title',
+    'class', 'id',
+    'scope', 'colspan', 'rowspan',
+    'src', 'alt', 'width', 'height',
+  ],
+  // Force target="_blank" links to have rel="noopener noreferrer"
+  ADD_ATTR: ['target'],
+  // Return string instead of TrustedHTML
+  RETURN_TRUSTED_TYPE: false,
+};
 
 /**
  * Escape HTML special characters
@@ -53,56 +68,22 @@ function isSafeUrl(url: string): boolean {
 
 /**
  * Sanitize HTML content to prevent XSS
- * Only allows safe tags and attributes
+ * Uses DOMPurify for robust protection against all XSS vectors
  */
 export function sanitizeHtml(html: string): string {
-  // First, escape any potentially dangerous content that's not in proper tags
-  // Then process allowed tags
+  // Use DOMPurify for production-grade sanitization
+  const clean = DOMPurify.sanitize(html, DOMPURIFY_CONFIG) as string;
 
-  // Simple regex-based sanitization for our specific markdown output
-  // This is safe because we control the input (our formatText function)
-
-  let result = html;
-
-  // Remove script tags and their content
-  result = result.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-
-  // Remove event handlers (onclick, onerror, etc.)
-  result = result.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
-  result = result.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
-
-  // Remove javascript: and data: URLs in href/src
-  result = result.replace(/\bhref\s*=\s*["']?\s*javascript:[^"'>\s]*/gi, 'href="#"');
-  result = result.replace(/\bhref\s*=\s*["']?\s*data:[^"'>\s]*/gi, 'href="#"');
-  result = result.replace(/\bsrc\s*=\s*["']?\s*javascript:[^"'>\s]*/gi, '');
-  result = result.replace(/\bsrc\s*=\s*["']?\s*data:[^"'>\s]*/gi, '');
-
-  // Remove style attributes (can be used for CSS injection)
-  result = result.replace(/\s*style\s*=\s*["'][^"']*["']/gi, '');
-
-  // Remove form and input elements
-  result = result.replace(/<(form|input|button|select|textarea)\b[^>]*>/gi, '');
-  result = result.replace(/<\/(form|input|button|select|textarea)>/gi, '');
-
-  // Remove iframe, embed, object
-  result = result.replace(/<(iframe|embed|object|applet)\b[^>]*>.*?<\/\1>/gi, '');
-  result = result.replace(/<(iframe|embed|object|applet)\b[^>]*\/?>/gi, '');
-
-  // Remove base and meta tags
-  result = result.replace(/<(base|meta)\b[^>]*\/?>/gi, '');
-
-  // Ensure target="_blank" links have rel="noopener noreferrer"
-  result = result.replace(
+  // Add rel="noopener noreferrer" to target="_blank" links
+  return clean.replace(
     /<a\s+([^>]*target\s*=\s*["']_blank["'][^>]*)>/gi,
-    (match, attrs) => {
+    (match: string, attrs: string) => {
       if (!/rel\s*=/i.test(attrs)) {
         return `<a ${attrs} rel="noopener noreferrer">`;
       }
       return match;
     }
   );
-
-  return result;
 }
 
 /**

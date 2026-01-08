@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
-import { validateQueryLimit } from '@/lib/security/validation';
+import { validateQueryLimit, safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 
 const log = logger('TasksAPI');
@@ -93,8 +93,11 @@ export async function POST(
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { type, command } = body;
+    const jsonResult = await safeParseJSON<{ type?: string; command?: string }>(request);
+    if (!jsonResult.success) {
+      return NextResponse.json({ error: jsonResult.error }, { status: 400 });
+    }
+    const { type, command } = jsonResult.data;
 
     if (!type || !command) {
       return NextResponse.json({ error: 'Type and command are required' }, { status: 400 });
@@ -233,8 +236,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { preset } = body; // 'install', 'build', 'test', 'lint'
+    const jsonResult = await safeParseJSON<{ preset?: string }>(request);
+    if (!jsonResult.success) {
+      return NextResponse.json({ error: jsonResult.error }, { status: 400 });
+    }
+    const { preset } = jsonResult.data; // 'install', 'build', 'test', 'lint'
 
     const container = new ContainerManager();
 

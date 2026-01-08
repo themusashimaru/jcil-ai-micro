@@ -115,3 +115,30 @@ export function validateQueryLimit(
     max: maxLimit,
   });
 }
+
+/**
+ * Safely parse JSON from a Request object
+ * Returns { success: true, data } or { success: false, error }
+ *
+ * USAGE:
+ * const result = await safeParseJSON<{ name: string }>(request);
+ * if (!result.success) {
+ *   return NextResponse.json({ error: result.error }, { status: 400 });
+ * }
+ * const { name } = result.data;
+ */
+export async function safeParseJSON<T = Record<string, unknown>>(
+  request: Request
+): Promise<{ success: true; data: T } | { success: false; error: string }> {
+  try {
+    const data = await request.json() as T;
+    return { success: true, data };
+  } catch (error) {
+    // SyntaxError indicates malformed JSON
+    if (error instanceof SyntaxError) {
+      return { success: false, error: 'Invalid JSON in request body' };
+    }
+    // Other errors (e.g., body already read, network issues)
+    return { success: false, error: 'Failed to parse request body' };
+  }
+}

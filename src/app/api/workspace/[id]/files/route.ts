@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
+import { safeParseJSON } from '@/lib/security/validation';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';
 
@@ -101,8 +102,11 @@ export async function POST(
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { path: rawPath, content } = body;
+    const jsonResult = await safeParseJSON<{ path?: string; content?: string }>(request);
+    if (!jsonResult.success) {
+      return NextResponse.json({ error: jsonResult.error }, { status: 400 });
+    }
+    const { path: rawPath, content } = jsonResult.data;
 
     if (!rawPath) {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 });
@@ -157,8 +161,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const { operations } = body; // Array of { path, content, action: 'write' | 'delete' }
+    const jsonResult = await safeParseJSON<{ operations?: Array<{ path: string; content?: string; action?: string }> }>(request);
+    if (!jsonResult.success) {
+      return NextResponse.json({ error: jsonResult.error }, { status: 400 });
+    }
+    const { operations } = jsonResult.data; // Array of { path, content, action: 'write' | 'delete' }
 
     if (!Array.isArray(operations)) {
       return NextResponse.json({ error: 'Operations array is required' }, { status: 400 });
