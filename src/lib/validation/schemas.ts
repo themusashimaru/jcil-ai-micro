@@ -24,27 +24,39 @@ export const urlSchema = z.string().url('Invalid URL format').max(2048);
 /** Pagination schemas */
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(PAGINATION.MAX_PAGE_SIZE).default(PAGINATION.DEFAULT_PAGE_SIZE),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(PAGINATION.MAX_PAGE_SIZE)
+    .default(PAGINATION.DEFAULT_PAGE_SIZE),
 });
 
 export const userPaginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(PAGINATION.USER_MAX_PAGE_SIZE).default(PAGINATION.USER_DEFAULT_PAGE_SIZE),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(PAGINATION.USER_MAX_PAGE_SIZE)
+    .default(PAGINATION.USER_DEFAULT_PAGE_SIZE),
 });
 
 /** Date range schema */
-export const dateRangeSchema = z.object({
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
-}).refine(
-  (data) => {
-    if (data.startDate && data.endDate) {
-      return new Date(data.startDate) <= new Date(data.endDate);
-    }
-    return true;
-  },
-  { message: 'Start date must be before end date' }
-);
+export const dateRangeSchema = z
+  .object({
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.startDate && data.endDate) {
+        return new Date(data.startDate) <= new Date(data.endDate);
+      }
+      return true;
+    },
+    { message: 'Start date must be before end date' }
+  );
 
 // ========================================
 // MESSAGE SCHEMAS
@@ -54,9 +66,13 @@ export const dateRangeSchema = z.object({
 export const messageRoleSchema = z.enum(['user', 'assistant', 'system']);
 
 /** Message content validation */
-export const messageContentSchema = z.string()
+export const messageContentSchema = z
+  .string()
   .min(MESSAGE_LIMITS.MIN_MESSAGE_LENGTH, 'Message cannot be empty')
-  .max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH, `Message exceeds ${MESSAGE_LIMITS.MAX_MESSAGE_LENGTH} characters`);
+  .max(
+    MESSAGE_LIMITS.MAX_MESSAGE_LENGTH,
+    `Message exceeds ${MESSAGE_LIMITS.MAX_MESSAGE_LENGTH} characters`
+  );
 
 /** Create message request */
 export const createMessageSchema = z.object({
@@ -77,9 +93,13 @@ export const createMessageSchema = z.object({
 // ========================================
 
 /** Conversation title validation */
-export const conversationTitleSchema = z.string()
+export const conversationTitleSchema = z
+  .string()
   .min(1, 'Title cannot be empty')
-  .max(MESSAGE_LIMITS.MAX_TITLE_LENGTH, `Title exceeds ${MESSAGE_LIMITS.MAX_TITLE_LENGTH} characters`);
+  .max(
+    MESSAGE_LIMITS.MAX_TITLE_LENGTH,
+    `Title exceeds ${MESSAGE_LIMITS.MAX_TITLE_LENGTH} characters`
+  );
 
 /** Create conversation request */
 export const createConversationSchema = z.object({
@@ -187,12 +207,14 @@ export const adminUserUpdateSchema = z.object({
 });
 
 /** Admin search params */
-export const adminSearchSchema = z.object({
-  query: z.string().max(200).optional(),
-  status: z.string().max(50).optional(),
-  sort: z.enum(['created_at', 'updated_at', 'email', 'name']).default('created_at'),
-  order: z.enum(['asc', 'desc']).default('desc'),
-}).merge(paginationSchema);
+export const adminSearchSchema = z
+  .object({
+    query: z.string().max(200).optional(),
+    status: z.string().max(50).optional(),
+    sort: z.enum(['created_at', 'updated_at', 'email', 'name']).default('created_at'),
+    order: z.enum(['asc', 'desc']).default('desc'),
+  })
+  .merge(paginationSchema);
 
 // ========================================
 // DESIGN SETTINGS SCHEMAS
@@ -302,7 +324,7 @@ export const chatMessageSchema = z.object({
 export const chatRequestSchema = z.object({
   messages: z.array(chatMessageSchema).min(1).max(100),
   conversationId: uuidSchema.optional(),
-  searchMode: z.enum(['none', 'search', 'factcheck']).optional(),
+  searchMode: z.enum(['none', 'search', 'factcheck', 'research']).optional(),
   temperature: z.number().min(0).max(2).optional(),
   max_tokens: z.number().int().min(1).max(128000).optional(),
   model: z.string().max(100).optional(),
@@ -324,11 +346,16 @@ export const codeLabChatSchema = z.object({
   sessionId: uuidSchema,
   content: z.string().max(100000).optional(),
   repo: z.string().max(500).optional(),
-  attachments: z.array(z.object({
-    name: z.string().max(255),
-    content: z.string().max(10000000), // 10MB base64
-    type: z.string().max(100),
-  })).max(10).optional(),
+  attachments: z
+    .array(
+      z.object({
+        name: z.string().max(255),
+        content: z.string().max(10000000), // 10MB base64
+        type: z.string().max(100),
+      })
+    )
+    .max(10)
+    .optional(),
   forceSearch: z.boolean().optional(),
 });
 
@@ -368,7 +395,9 @@ export const adminUsersQuerySchema = paginationSchema.extend({
   search: z.string().max(200).optional(),
   tier: z.enum(['free', 'plus', 'pro', 'executive', 'all']).optional(),
   status: z.enum(['active', 'inactive', 'banned', 'all']).optional(),
-  sort: z.enum(['created_at', 'email', 'subscription_tier', 'last_message_date']).default('created_at'),
+  sort: z
+    .enum(['created_at', 'email', 'subscription_tier', 'last_message_date'])
+    .default('created_at'),
   order: z.enum(['asc', 'desc']).default('desc'),
 });
 
@@ -382,28 +411,41 @@ export const adminTicketsQuerySchema = paginationSchema.extend({
 });
 
 /** Admin messages send */
-export const adminMessageSchema = z.object({
-  recipient_type: z.enum(['individual', 'broadcast']),
-  recipient_user_id: uuidSchema.optional(),
-  recipient_email: emailSchema.optional(),
-  recipient_tier: z.enum(['free', 'basic', 'pro', 'executive', 'all']).optional(),
-  subject: z.string().min(1).max(200),
-  message: z.string().min(1).max(10000),
-  message_type: z.enum(['general', 'account', 'feature', 'maintenance', 'promotion', 'support_response', 'welcome', 'warning']).default('general'),
-  priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
-  expires_at: z.string().datetime().optional(),
-}).refine(
-  (data) => {
-    if (data.recipient_type === 'individual') {
-      return data.recipient_user_id || data.recipient_email;
-    }
-    if (data.recipient_type === 'broadcast') {
-      return data.recipient_tier;
-    }
-    return false;
-  },
-  { message: 'Individual messages require user ID or email, broadcast requires tier' }
-);
+export const adminMessageSchema = z
+  .object({
+    recipient_type: z.enum(['individual', 'broadcast']),
+    recipient_user_id: uuidSchema.optional(),
+    recipient_email: emailSchema.optional(),
+    recipient_tier: z.enum(['free', 'basic', 'pro', 'executive', 'all']).optional(),
+    subject: z.string().min(1).max(200),
+    message: z.string().min(1).max(10000),
+    message_type: z
+      .enum([
+        'general',
+        'account',
+        'feature',
+        'maintenance',
+        'promotion',
+        'support_response',
+        'welcome',
+        'warning',
+      ])
+      .default('general'),
+    priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+    expires_at: z.string().datetime().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.recipient_type === 'individual') {
+        return data.recipient_user_id || data.recipient_email;
+      }
+      if (data.recipient_type === 'broadcast') {
+        return data.recipient_tier;
+      }
+      return false;
+    },
+    { message: 'Individual messages require user ID or email, broadcast requires tier' }
+  );
 
 // ========================================
 // UPLOAD SCHEMAS
@@ -420,10 +462,14 @@ export const uploadStartSchema = z.object({
 /** Upload complete request */
 export const uploadCompleteSchema = z.object({
   uploadId: z.string().min(1).max(100),
-  parts: z.array(z.object({
-    partNumber: z.number().int().min(1),
-    etag: z.string().min(1),
-  })).optional(),
+  parts: z
+    .array(
+      z.object({
+        partNumber: z.number().int().min(1),
+        etag: z.string().min(1),
+      })
+    )
+    .optional(),
 });
 
 // ========================================
@@ -434,14 +480,20 @@ export const uploadCompleteSchema = z.object({
 export const createFolderSchema = z.object({
   name: z.string().min(1).max(100),
   parent_id: uuidSchema.optional().nullable(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
 });
 
 /** Update folder */
 export const updateFolderSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   parent_id: uuidSchema.optional().nullable(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
 });
 
 // ========================================
@@ -503,7 +555,9 @@ export const qrCodeGenerateSchema = z.object({
 export function validateBody<T extends z.ZodSchema>(
   schema: T,
   data: unknown
-): { success: true; data: z.infer<T> } | { success: false; error: string; details: z.ZodError['errors'] } {
+):
+  | { success: true; data: z.infer<T> }
+  | { success: false; error: string; details: z.ZodError['errors'] } {
   const result = schema.safeParse(data);
 
   if (result.success) {
@@ -523,7 +577,9 @@ export function validateBody<T extends z.ZodSchema>(
 export function validateQuery<T extends z.ZodSchema>(
   schema: T,
   searchParams: URLSearchParams
-): { success: true; data: z.infer<T> } | { success: false; error: string; details: z.ZodError['errors'] } {
+):
+  | { success: true; data: z.infer<T> }
+  | { success: false; error: string; details: z.ZodError['errors'] } {
   const params = Object.fromEntries(searchParams.entries());
   return validateBody(schema, params);
 }
@@ -536,7 +592,7 @@ export function validationErrorResponse(error: string, details: z.ZodError['erro
     error: 'Validation Error',
     message: error,
     code: 'VALIDATION_FAILED',
-    details: details.map(d => ({
+    details: details.map((d) => ({
       field: d.path.join('.'),
       message: d.message,
     })),
