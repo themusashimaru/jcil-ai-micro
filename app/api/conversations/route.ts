@@ -69,7 +69,7 @@ export async function GET() {
       .order('last_message_at', { ascending: false });
 
     if (error) {
-      log.error('Error fetching conversations', error);
+      log.error('Error fetching conversations', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
     }
 
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        log.error('Error updating conversation', error);
+        log.error('Error updating conversation', error instanceof Error ? error : { error });
         return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 });
       }
 
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        log.error('Error creating conversation', error);
+        log.error('Error creating conversation', error instanceof Error ? error : { error });
         return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 });
       }
 

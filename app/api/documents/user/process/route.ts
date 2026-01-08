@@ -10,9 +10,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
+
+const log = logger('DocumentsProcess');
 
 // Service role client for database and storage operations (bypasses RLS)
 function createServiceClient() {
@@ -84,8 +87,8 @@ async function extractText(
           : String(result.text || '');
         return { text: textContent, pageCount: result.totalPages };
       } catch (error) {
-        console.error('[Process] PDF parsing error:', error);
-        throw new Error(`Failed to parse PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        log.error('PDF parsing error', error instanceof Error ? error : { error });
+        throw new Error('Failed to parse PDF document');
       }
 
     case 'docx':
@@ -95,7 +98,7 @@ async function extractText(
         const result = await mammoth.extractRawText({ buffer });
         return { text: result.value };
       } catch (error) {
-        console.error('[Process] DOCX parsing error:', error);
+        log.error('DOCX parsing error', error instanceof Error ? error : { error });
         throw new Error('Failed to parse Word document');
       }
 
@@ -155,7 +158,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (docError || !document) {
-      console.error('[Process] Document not found:', docError);
+      log.error('Document not found', { error: docError ?? 'Unknown error' });
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
@@ -189,7 +192,7 @@ export async function POST(request: NextRequest) {
 
       // Chunk the text
       const chunks = chunkText(text);
-      console.log(`[Process] Document ${documentId}: ${chunks.length} chunks created`);
+      log.info('Chunks created', { documentId, chunkCount: chunks.length });
 
       // Delete existing chunks (in case of re-processing)
       await supabase
@@ -215,7 +218,7 @@ export async function POST(request: NextRequest) {
           .insert(batch);
 
         if (insertError) {
-          console.error('[Process] Chunk insert error:', insertError);
+          log.error('Chunk insert error', { error: insertError });
           throw new Error('Failed to insert chunks');
         }
       }
@@ -234,7 +237,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', documentId);
 
-      console.log(`[Process] Document ${documentId}: Processing complete`);
+      log.info('Processing complete', { documentId });
 
       return NextResponse.json({
         success: true,
@@ -243,7 +246,7 @@ export async function POST(request: NextRequest) {
         pageCount,
       });
     } catch (processingError) {
-      console.error('[Process] Processing error:', processingError);
+      log.error('Processing error', processingError instanceof Error ? processingError : { processingError });
 
       await supabase
         .from('user_documents')
@@ -258,7 +261,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
   } catch (error) {
-    console.error('[Process] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -18,6 +18,9 @@ import {
 } from '@/lib/pending-requests';
 import { createAnthropicCompletion } from '@/lib/anthropic/client';
 import type { CoreMessage } from 'ai';
+import { logger } from '@/lib/logger';
+
+const log = logger('CronProcessPending');
 
 // This route should only be called by Vercel Cron
 // Verify using CRON_SECRET in production
@@ -32,28 +35,28 @@ export async function GET(request: NextRequest) {
 
   // ALWAYS require authentication - don't skip if secret is not configured
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    console.log('[Cron] Unauthorized request - CRON_SECRET required');
+    log.info('[Cron] Unauthorized request - CRON_SECRET required');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log('[Cron] Starting pending requests processing');
+  log.info('[Cron] Starting pending requests processing');
 
   try {
     // Clean up old completed/failed requests first
     const cleaned = await cleanupOldRequests();
     if (cleaned > 0) {
-      console.log('[Cron] Cleaned up', cleaned, 'old requests');
+      log.info('[Cron] Cleaned up old requests', { count: cleaned });
     }
 
     // Get pending requests that need processing
     const pendingRequests = await getPendingRequestsToProcess(3); // Process up to 3 at a time
 
     if (pendingRequests.length === 0) {
-      console.log('[Cron] No pending requests to process');
+      log.info('[Cron] No pending requests to process');
       return NextResponse.json({ processed: 0 });
     }
 
-    console.log('[Cron] Found', pendingRequests.length, 'pending requests');
+    log.info('[Cron] Found pending requests', { count: pendingRequests.length });
 
     let processed = 0;
     let failed = 0;
@@ -64,11 +67,11 @@ export async function GET(request: NextRequest) {
         // Try to claim this request (prevents race conditions with other workers)
         const claimed = await markRequestProcessing(request.id);
         if (!claimed) {
-          console.log('[Cron] Request already being processed:', request.id);
+          log.info('[Cron] Request already being processed', { requestId: request.id });
           continue;
         }
 
-        console.log('[Cron] Processing request:', request.id, 'for user:', request.user_id);
+        log.info('[Cron] Processing request', { requestId: request.id, userId: request.user_id });
 
         // Call Claude to complete the request
         // Use non-streaming since there's no client to stream to
@@ -81,7 +84,7 @@ export async function GET(request: NextRequest) {
         const responseText = result.text || '';
 
         if (!responseText) {
-          console.error('[Cron] Empty response for request:', request.id);
+          log.error('[Cron] Empty response for request', { requestId: request.id });
           await failPendingRequest(request.id, 'Empty response from AI');
           failed++;
           continue;
@@ -96,10 +99,10 @@ export async function GET(request: NextRequest) {
           request.model || undefined
         );
 
-        console.log('[Cron] Successfully processed request:', request.id);
+        log.info('[Cron] Successfully processed request', { requestId: request.id });
         processed++;
       } catch (error) {
-        console.error('[Cron] Failed to process request:', request.id, error);
+        log.error('[Cron] Failed to process request', { requestId: request.id, error: error instanceof Error ? error.message : 'Unknown' });
         await failPendingRequest(
           request.id,
           'Processing failed'
@@ -108,7 +111,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log('[Cron] Completed. Processed:', processed, 'Failed:', failed);
+    log.info('[Cron] Completed', { processed, failed });
 
     return NextResponse.json({
       processed,
@@ -116,7 +119,7 @@ export async function GET(request: NextRequest) {
       total: pendingRequests.length,
     });
   } catch (error) {
-    console.error('[Cron] Error:', error);
+    log.error('[Cron] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to process pending requests' },
       { status: 500 }

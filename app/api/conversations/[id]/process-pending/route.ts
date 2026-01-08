@@ -11,6 +11,9 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createAnthropicCompletion } from '@/lib/anthropic/client';
 import type { CoreMessage } from 'ai';
+import { logger } from '@/lib/logger';
+
+const log = logger('ProcessPendingAPI');
 
 export const maxDuration = 120; // Allow up to 2 minutes for processing
 
@@ -68,7 +71,7 @@ export async function POST(
       return NextResponse.json({ status: 'no_pending_request' });
     }
 
-    console.log('[ProcessPending] Found pending request:', pendingRequest.id);
+    log.info('[ProcessPending] Found pending request:', pendingRequest.id);
 
     // Mark as processing
     await supabaseAdmin
@@ -110,7 +113,7 @@ export async function POST(
       });
 
     if (msgError) {
-      console.error('[ProcessPending] Failed to save message:', msgError);
+      log.error('[ProcessPending] Failed to save message:', { error: msgError ?? 'Unknown error' });
     }
 
     // Mark the pending request as completed and delete it
@@ -119,7 +122,7 @@ export async function POST(
       .delete()
       .eq('id', pendingRequest.id);
 
-    console.log('[ProcessPending] Successfully processed request:', pendingRequest.id);
+    log.info('[ProcessPending] Successfully processed request:', pendingRequest.id);
 
     return NextResponse.json({
       status: 'completed',
@@ -127,7 +130,7 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('[ProcessPending] Error:', error);
+    log.error('[ProcessPending] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { status: 'error', error: 'Failed to process message' },
       { status: 500 }

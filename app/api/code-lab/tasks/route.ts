@@ -12,6 +12,9 @@ import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { createClient } from '@supabase/supabase-js';
 import { createTask, executeTask, cancelTask, getTaskStatus, getUserTasks } from '@/lib/autonomous-task';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLabTasks');
 
 // Get encryption key
 function getEncryptionKey(): Buffer {
@@ -67,7 +70,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ tasks });
     }
   } catch (error) {
-    console.error('[Tasks API] GET error:', error);
+    log.error('[Tasks API] GET error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
@@ -127,7 +130,7 @@ export async function POST(request: NextRequest) {
     if (autoStart) {
       // Execute asynchronously (don't await)
       executeTask(task.id, context).catch(err => {
-        console.error(`[Tasks API] Background execution error for ${task.id}:`, err);
+        log.error(`[Tasks API] Background execution error for ${task.id}:`, err);
       });
     }
 
@@ -144,7 +147,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Tasks API] POST error:', error);
+    log.error('[Tasks API] POST error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
@@ -178,7 +181,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success });
   } catch (error) {
-    console.error('[Tasks API] DELETE error:', error);
+    log.error('[Tasks API] DELETE error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

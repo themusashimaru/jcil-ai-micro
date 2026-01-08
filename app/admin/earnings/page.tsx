@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface EarningsData {
   users: {
@@ -80,7 +80,7 @@ export default function AdminEarningsPage() {
   const [reportType, setReportType] = useState<'daily' | 'monthly' | 'quarterly' | 'half-yearly' | 'yearly'>('monthly');
   const [generatedReport, setGeneratedReport] = useState<{ reportId: string; report: string } | null>(null);
 
-  const fetchEarnings = async () => {
+  const fetchEarnings = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -100,16 +100,15 @@ export default function AdminEarningsPage() {
 
       setData(result.data);
     } catch (err) {
-      console.error('Error fetching earnings:', err);
       setError(err instanceof Error ? err.message : 'Failed to load earnings data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate]);
 
   useEffect(() => {
     fetchEarnings();
-  }, []);
+  }, [fetchEarnings]);
 
   const handleExportExcel = async () => {
     try {

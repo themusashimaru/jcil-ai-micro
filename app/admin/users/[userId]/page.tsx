@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -43,12 +43,7 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  useEffect(() => {
-    fetchUserData();
-    fetchConversations();
-  }, []);
-
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       const response = await fetch(`/api/admin/users/${params.userId}`);
       if (!response.ok) {
@@ -61,12 +56,11 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
       const data = await response.json();
       setUser(data.user);
     } catch (err) {
-      console.error('Error fetching user:', err);
       setError(err instanceof Error ? err.message : 'Failed to load user');
     }
-  };
+  }, [params.userId]);
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
       let url = `/api/admin/users/${params.userId}/conversations`;
@@ -87,12 +81,16 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
       setConversations(data.conversations || []);
       setError(null);
     } catch (err) {
-      console.error('Error fetching conversations:', err);
       setError(err instanceof Error ? err.message : 'Failed to load conversations');
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.userId, startDate, endDate]);
+
+  useEffect(() => {
+    fetchUserData();
+    fetchConversations();
+  }, [fetchUserData, fetchConversations]);
 
   const handleApplyFilters = () => {
     fetchConversations();

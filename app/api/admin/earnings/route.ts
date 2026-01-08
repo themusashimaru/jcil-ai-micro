@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true);
 
     if (usersError) {
-      log.error('Error fetching users', usersError);
+      log.error('Error fetching users', { error: usersError ?? 'Unknown error' });
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
 
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       .select('*');
 
     if (tiersError) {
-      log.error('Error fetching subscription tiers', tiersError);
+      log.error('Error fetching subscription tiers', { error: tiersError ?? 'Unknown error' });
     }
 
     // Calculate monthly revenue

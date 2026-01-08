@@ -486,7 +486,7 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (wsError) {
-          log.error('Failed to create workspace', wsError);
+          log.error('Failed to create workspace', { error: wsError ?? 'Unknown error' });
         }
 
         workspaceId = newWorkspace?.id;

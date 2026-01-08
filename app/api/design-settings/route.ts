@@ -63,7 +63,7 @@ export async function GET() {
       .single();
 
     if (error) {
-      log.error('Error fetching settings', error);
+      log.error('Error fetching settings', error instanceof Error ? error : { error });
       // Cache defaults on error to prevent repeated DB hits
       await cacheSet(CACHE_KEY, DEFAULT_SETTINGS, 60); // Short TTL for errors
       return NextResponse.json(DEFAULT_SETTINGS, {

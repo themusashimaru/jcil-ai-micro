@@ -8,6 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('DocumentsSearch');
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,7 +74,7 @@ export async function POST(request: NextRequest) {
       .limit(matchCount);
 
     if (searchError) {
-      console.error('[Search] Search error:', searchError);
+      log.error('Search error', { error: searchError ?? 'Unknown error' });
       return NextResponse.json({ error: 'Search failed' }, { status: 500 });
     }
 
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
       matchCount: formattedResults.length,
     });
   } catch (error) {
-    console.error('[Search] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -145,7 +148,7 @@ export async function GET() {
       documentCount: count || 0,
     });
   } catch (error) {
-    console.error('[Search] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

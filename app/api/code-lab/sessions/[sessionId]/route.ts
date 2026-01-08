@@ -9,6 +9,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLabSessionDetail');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
@@ -58,7 +61,7 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error('[CodeLab API] Error:', error);
+    log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Failed to get session' }, { status: 500 });
   }
 }
@@ -108,7 +111,7 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error('[CodeLab API] Error updating session:', error);
+      log.error('[CodeLab API] Error updating session:', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to update session' }, { status: 500 });
     }
 
@@ -133,7 +136,7 @@ export async function PATCH(
       }
     });
   } catch (error) {
-    console.error('[CodeLab API] Error:', error);
+    log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Failed to update session' }, { status: 500 });
   }
 }
@@ -165,13 +168,13 @@ export async function DELETE(
       .eq('user_id', user.id);
 
     if (error) {
-      console.error('[CodeLab API] Error deleting session:', error);
+      log.error('[CodeLab API] Error deleting session:', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[CodeLab API] Error:', error);
+    log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 });
   }
 }

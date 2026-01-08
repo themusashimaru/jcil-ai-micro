@@ -6,6 +6,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLabMessages');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
@@ -43,7 +46,7 @@ export async function GET(
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('[CodeLab API] Error fetching messages:', error);
+      log.error('[CodeLab API] Error fetching messages:', error instanceof Error ? error : { error });
       return NextResponse.json({ messages: [] });
     }
 
@@ -63,7 +66,7 @@ export async function GET(
 
     return NextResponse.json({ messages: formattedMessages });
   } catch (error) {
-    console.error('[CodeLab API] Error:', error);
+    log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ messages: [] });
   }
 }

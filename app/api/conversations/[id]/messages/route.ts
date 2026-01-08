@@ -98,7 +98,7 @@ export async function GET(
       .order('created_at', { ascending: true });
 
     if (error) {
-      log.error('Error fetching messages', error);
+      log.error('Error fetching messages', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to load messages' }, { status: 500 });
     }
 
@@ -154,7 +154,7 @@ export async function POST(
       try {
         formData = await request.formData();
       } catch (e) {
-        console.error('[API] FormData parse error:', e);
+        log.error('[API] FormData parse error', e instanceof Error ? e : { error: e });
         return errorResponse(400, 'BAD_FORMDATA', 'Failed to parse form data');
       }
 
@@ -187,7 +187,7 @@ export async function POST(
               const dataUrl = `data:${mimeType};base64,${base64}`;
               attachment_urls.push(dataUrl);
             } catch (fileError) {
-              console.error('[API] File processing error:', fileError);
+              log.error('[API] File processing error', fileError instanceof Error ? fileError : { error: fileError });
               // Continue with other files
             }
           }
@@ -213,7 +213,7 @@ export async function POST(
             }
           }
         } catch (jsonError) {
-          console.error('[API] attachments_json parse error:', jsonError);
+          log.error('[API] attachments_json parse error', jsonError instanceof Error ? jsonError : { error: jsonError });
           return errorResponse(400, 'BAD_ATTACHMENTS_JSON', 'attachments_json is not valid JSON');
         }
       }
@@ -223,7 +223,7 @@ export async function POST(
       try {
         body = await request.json();
       } catch (e) {
-        console.error('[API] JSON parse error:', e);
+        log.error('[API] JSON parse error', e instanceof Error ? e : { error: e });
         return errorResponse(400, 'BAD_JSON', 'Request body is not valid JSON');
       }
 
@@ -287,7 +287,7 @@ export async function POST(
         ? normalizedContent.slice(0, 50)
         : '[no text content]';
 
-    console.log('[API] Attempting to save message:', {
+    log.info('[API] Attempting to save message:', {
       conversation_id: conversationId,
       user_id: user.id,
       role,
@@ -316,7 +316,7 @@ export async function POST(
       .single();
 
     if (error) {
-      log.error('Error saving message', error);
+      log.error('Error saving message', error instanceof Error ? error : { error });
       return errorResponse(500, 'DB_ERROR', 'Failed to save message');
     }
 
@@ -333,7 +333,7 @@ export async function POST(
       .eq('id', conversationId);
 
     if (updateError) {
-      log.error('Error updating conversation timestamp', updateError);
+      log.error('Error updating conversation timestamp', { error: updateError });
       // Don't fail the request if this fails
     }
 

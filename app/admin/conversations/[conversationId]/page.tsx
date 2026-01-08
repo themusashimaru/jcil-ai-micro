@@ -44,29 +44,28 @@ export default function AdminConversationViewerPage({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchConversation();
-  }, []);
+    const fetchConversation = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/admin/conversations/${params.conversationId}`);
 
-  const fetchConversation = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/admin/conversations/${params.conversationId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch conversation (${response.status})`);
+        }
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch conversation (${response.status})`);
+        const data = await response.json();
+        setConversation(data.conversation);
+        setMessages(data.messages || []);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load conversation');
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const data = await response.json();
-      setConversation(data.conversation);
-      setMessages(data.messages || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching conversation:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load conversation');
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchConversation();
+  }, [params.conversationId]);
 
   const handleExportPDF = () => {
     window.open(`/api/admin/conversations/${params.conversationId}/export`, '_blank');

@@ -10,13 +10,16 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('AuthSignout');
 
 export async function POST(_request: NextRequest) {
   try {
     const cookieStore = await cookies();
 
-    console.log('[API] Starting logout process...');
-    console.log('[API] Current cookies:', cookieStore.getAll().map(c => c.name));
+    log.info('[API] Starting logout process...');
+    log.info('[API] Current cookies', { cookies: cookieStore.getAll().map(c => c.name) });
 
     // Create Supabase client with SSR cookie handling
     const supabase = createServerClient(
@@ -29,7 +32,7 @@ export async function POST(_request: NextRequest) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              console.log('[API] Setting cookie:', name, 'value:', value ? 'present' : 'empty');
+              log.info('[API] Setting cookie', { name, hasValue: !!value });
               cookieStore.set(name, value, options);
             });
           },
@@ -41,31 +44,31 @@ export async function POST(_request: NextRequest) {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      console.error('[API] Supabase signout error:', error);
+      log.error('[API] Supabase signout error:', error instanceof Error ? error : { error });
       throw error;
     }
 
-    console.log('[API] Supabase signOut() completed');
+    log.info('[API] Supabase signOut() completed');
 
     // MANUALLY delete ALL Supabase auth cookies to ensure they're cleared
     const allCookies = cookieStore.getAll();
-    console.log('[API] Manually deleting cookies...');
+    log.info('[API] Manually deleting cookies...');
 
     allCookies.forEach((cookie) => {
       // Delete any cookie that starts with 'sb-' (Supabase cookies)
       if (cookie.name.startsWith('sb-')) {
-        console.log('[API] Deleting cookie:', cookie.name);
+        log.info('[API] Deleting cookie', { cookie: cookie.name });
         cookieStore.delete(cookie.name);
       }
     });
 
-    console.log('[API] User signed out successfully');
-    console.log('[API] Remaining cookies:', cookieStore.getAll().map(c => c.name));
+    log.info('[API] User signed out successfully');
+    log.info('[API] Remaining cookies', { cookies: cookieStore.getAll().map(c => c.name) });
 
     // Return success - let client handle redirect
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error('[API] Signout error:', error);
+    log.error('[API] Signout error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to sign out' },
       { status: 500 }

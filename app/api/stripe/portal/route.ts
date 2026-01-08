@@ -7,6 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { createBillingPortalSession } from '@/lib/stripe/client';
+import { logger } from '@/lib/logger';
+
+const log = logger('StripePortal');
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -73,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('[Stripe Portal] Error:', error);
+    log.error('[Stripe Portal] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to create billing portal session' },
       { status: 500 }

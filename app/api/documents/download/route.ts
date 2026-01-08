@@ -15,9 +15,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+const log = logger('DocumentsDownload');
 
 // SECURITY: Validate filename to prevent path traversal attacks
 function isValidFilename(filename: string): boolean {
@@ -38,7 +41,7 @@ function decodeToken(token: string): { userId: string; filename: string; type: '
     if (data.u && data.f && data.t) {
       // SECURITY FIX: Validate filename to prevent path traversal
       if (!isValidFilename(data.f)) {
-        console.error('[Download] Invalid filename detected - possible path traversal attempt:', data.f);
+        log.error('Invalid filename detected - possible path traversal attempt', { filename: data.f });
         return null;
       }
       return { userId: data.u, filename: data.f, type: data.t };
@@ -133,7 +136,7 @@ export async function GET(request: NextRequest) {
       .download(filePath);
 
     if (downloadError || !fileData) {
-      console.error('[Download Proxy] Download error:', downloadError);
+      log.error('Download error', { error: downloadError ?? 'Unknown error' });
       return NextResponse.json({ error: 'File not found or expired' }, { status: 404 });
     }
 
@@ -167,7 +170,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Download Proxy] Error:', error);
+    log.error('Download failed', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Download failed' }, { status: 500 });
   }
 }

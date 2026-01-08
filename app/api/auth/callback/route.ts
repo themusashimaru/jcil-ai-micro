@@ -16,6 +16,9 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('AuthCallback');
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -100,10 +103,10 @@ export async function GET(request: NextRequest) {
       // Redirect to chat
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     } catch (error) {
-      // Redirect to login with specific error message
-      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      // Log error but redirect with generic message to avoid info leak
+      log.error('[Auth Callback] Error:', error instanceof Error ? error : { error });
       return NextResponse.redirect(
-        new URL(`/login?error=${encodeURIComponent(errorMessage)}`, requestUrl.origin)
+        new URL('/login?error=Authentication%20failed', requestUrl.origin)
       );
     }
   }

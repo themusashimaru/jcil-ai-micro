@@ -20,9 +20,12 @@ import {
   validateDocumentJSON,
   type DocumentData,
 } from '@/lib/documents';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
+
+const log = logger('DocumentsNative');
 
 /**
  * Get authenticated user ID from session
@@ -112,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     const docData = documentData as DocumentData;
 
-    console.log('[Native Documents API] Generating document:', {
+    log.info('Generating document', {
       type: docData.type,
       userId: userId.substring(0, 8) + '...',
     });
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
     // Generate the document
     const result = await generateDocument(docData, filename);
 
-    console.log('[Native Documents API] Document generated:', {
+    log.info('Document generated', {
       filename: result.filename,
       size: result.buffer.length,
       type: result.mimeType,
@@ -196,7 +199,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('[Native Documents API] Upload error:', uploadError);
+      log.error('Upload error', { error: uploadError ?? 'Unknown error' });
       // Fallback to base64
       const base64 = result.buffer.toString('base64');
       const dataUrl = `data:${result.mimeType};base64,${base64}`;
@@ -211,7 +214,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('[Native Documents API] Uploaded to:', filePath);
+    log.info('Uploaded to', { filePath });
 
     // Generate proxy URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
@@ -238,7 +241,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Native Documents API] Error:', error);
+    log.error('Error generating document', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to generate document' },
       { status: 500 }

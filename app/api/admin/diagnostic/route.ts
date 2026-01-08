@@ -8,6 +8,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminDiagnostic');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -75,7 +78,7 @@ export async function GET() {
 
     if (usersError) {
       // SECURITY FIX: Log detailed error server-side only, return generic status
-      console.error('[Diagnostic] Users query failed:', usersError.message, usersError.code);
+      log.error('[Diagnostic] Users query failed', { message: usersError.message, code: usersError.code });
       diagnostics.checks.error = 'Database query failed';
     } else {
       diagnostics.checks.canQueryDatabase = true;
@@ -89,7 +92,7 @@ export async function GET() {
 
     if (adminError) {
       // SECURITY FIX: Log detailed error server-side only
-      console.error('[Diagnostic] Admin users query failed:', adminError.message, adminError.code);
+      log.error('[Diagnostic] Admin users query failed', { message: adminError.message, code: adminError.code });
       diagnostics.checks.error = diagnostics.checks.error
         ? 'Multiple database queries failed'
         : 'Database query failed';
@@ -99,7 +102,7 @@ export async function GET() {
 
   } catch (error) {
     // SECURITY FIX: Don't expose internal error details to client
-    console.error('[Diagnostic] Unexpected error:', error);
+    log.error('[Diagnostic] Unexpected error:', error instanceof Error ? error : { error });
     diagnostics.checks.error = 'Diagnostic check failed';
   }
 

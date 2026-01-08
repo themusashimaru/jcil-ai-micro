@@ -65,7 +65,7 @@ export async function GET(
     const { data: conversations, error } = await query;
 
     if (error) {
-      log.error('Error fetching user conversations', error);
+      log.error('Error fetching user conversations', error instanceof Error ? error : { error });
       return NextResponse.json(
         { error: 'Failed to fetch conversations' },
         { status: 500 }

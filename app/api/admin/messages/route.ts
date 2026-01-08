@@ -7,6 +7,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminMessages');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -71,7 +74,7 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('[Admin Messages API] Error:', error);
+      log.error('[Admin Messages API] Error:', error instanceof Error ? error : { error });
       return NextResponse.json(
         { error: 'Failed to fetch messages' },
         { status: 500 }
@@ -114,7 +117,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Admin Messages API] Error:', error);
+    log.error('[Admin Messages API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -279,7 +282,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error('[Admin Messages API] Insert error:', insertError);
+      log.error('[Admin Messages API] Insert error:', { error: insertError ?? 'Unknown error' });
       return NextResponse.json(
         { error: 'Failed to send message' },
         { status: 500 }
@@ -290,7 +293,7 @@ export async function POST(request: NextRequest) {
       ? `${broadcastSentCount} users (${recipient_tier})`
       : `1 user`;
 
-    console.log(`[Admin Messages API] Message sent by ${adminEmail} to ${recipientDescription}`);
+    log.info(`[Admin Messages API] Message sent by ${adminEmail} to ${recipientDescription}`);
 
     return NextResponse.json({
       success: true,
@@ -298,7 +301,7 @@ export async function POST(request: NextRequest) {
       recipientCount: isBroadcast ? broadcastSentCount : 1,
     });
   } catch (error) {
-    console.error('[Admin Messages API] Error:', error);
+    log.error('[Admin Messages API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

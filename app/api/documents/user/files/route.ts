@@ -13,6 +13,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('DocumentsFiles');
 
 // Helper to create authenticated Supabase client (for auth & database)
 async function createSupabaseClient() {
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
     const { data: documents, error } = await query;
 
     if (error) {
-      console.error('[Documents API] Error fetching documents:', error);
+      log.error('Error fetching documents', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 });
     }
 
@@ -105,7 +108,7 @@ export async function GET(request: NextRequest) {
       stats: stats?.[0] || { total_documents: 0, total_folders: 0, total_size_bytes: 0, total_chunks: 0 }
     });
   } catch (error) {
-    console.error('[Documents API] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -175,7 +178,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('[Documents API] Upload error:', uploadError);
+      log.error('Upload error', { error: uploadError ?? 'Unknown error' });
       return NextResponse.json({ error: `Failed to upload file: ${uploadError.message}` }, { status: 500 });
     }
 
@@ -200,7 +203,7 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       // Clean up uploaded file
       await storageClient.storage.from('user-documents').remove([storagePath]);
-      console.error('[Documents API] Insert error:', insertError);
+      log.error('Insert error', { error: insertError ?? 'Unknown error' });
       return NextResponse.json({ error: `Failed to create document record: ${insertError.message}` }, { status: 500 });
     }
 
@@ -209,7 +212,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ document }, { status: 201 });
   } catch (error) {
-    console.error('[Documents API] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -243,13 +246,13 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[Documents API] Update error:', error);
+      log.error('Update error', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to update document' }, { status: 500 });
     }
 
     return NextResponse.json({ document });
   } catch (error) {
-    console.error('[Documents API] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -303,13 +306,13 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('[Documents API] Delete error:', error);
+      log.error('Delete error', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Documents API] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

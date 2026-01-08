@@ -9,6 +9,9 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('SupportTickets');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -255,14 +258,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[Support API] Error creating ticket:', error);
+      log.error('[Support API] Error creating ticket:', error instanceof Error ? error : { error });
       return NextResponse.json(
         { error: 'Failed to create support ticket' },
         { status: 500 }
       );
     }
 
-    console.log(`[Support API] Ticket created: ${ticket.id} (${source})`);
+    log.info(`[Support API] Ticket created: ${ticket.id} (${source})`);
 
     return NextResponse.json({
       success: true,
@@ -270,7 +273,7 @@ export async function POST(request: NextRequest) {
       message: 'Your message has been received. We will respond within 24-48 hours.',
     });
   } catch (error) {
-    console.error('[Support API] Error:', error);
+    log.error('[Support API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -308,7 +311,7 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[Support API] Error fetching tickets:', error);
+      log.error('[Support API] Error fetching tickets:', error instanceof Error ? error : { error });
       return NextResponse.json(
         { error: 'Failed to fetch tickets' },
         { status: 500 }
@@ -341,7 +344,7 @@ export async function GET() {
 
     return NextResponse.json({ tickets: ticketsWithCounts || [] });
   } catch (error) {
-    console.error('[Support API] Error:', error);
+    log.error('[Support API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -12,6 +12,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+
+const log = logger('LeadsSubmit');
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -170,7 +173,7 @@ export async function POST(request: NextRequest) {
     // Get Supabase admin client
     const supabase = getSupabaseAdmin();
     if (!supabase) {
-      console.error('[Leads API] Supabase not configured');
+      log.error('[Leads API] Supabase not configured');
       return NextResponse.json(
         { error: 'Service temporarily unavailable' },
         { status: 503, headers: corsHeaders }
@@ -185,7 +188,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (sessionError || !session) {
-      console.error('[Leads API] Session not found:', sessionId, sessionError);
+      log.error('[Leads API] Session not found', { sessionId, error: sessionError?.message });
       return NextResponse.json(
         { error: 'Invalid website reference' },
         { status: 400, headers: corsHeaders }
@@ -211,11 +214,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error('[Leads API] Insert error:', insertError);
+      log.error('[Leads API] Insert error:', { error: insertError ?? 'Unknown error' });
 
       // If table doesn't exist, create it (first-time setup)
       if (insertError.code === '42P01') { // Table doesn't exist
-        console.log('[Leads API] Creating website_leads table...');
+        log.info('[Leads API] Creating website_leads table...');
 
         // Create the table
         const { error: createError } = await supabase.rpc('exec_sql', {
@@ -255,7 +258,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (createError) {
-          console.error('[Leads API] Failed to create table:', createError);
+          log.error('[Leads API] Failed to create table:', createError);
           // Fall back to storing in a simple way
         }
 
@@ -276,7 +279,7 @@ export async function POST(request: NextRequest) {
           });
 
         if (retryError) {
-          console.error('[Leads API] Retry insert failed:', retryError);
+          log.error('[Leads API] Retry insert failed:', retryError);
           return NextResponse.json(
             { error: 'Failed to save your message. Please try again.' },
             { status: 500, headers: corsHeaders }
@@ -290,7 +293,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[Leads API] Lead saved for ${session.business_name}: ${sanitize(name)} <${sanitize(email)}>`);
+    log.info(`[Leads API] Lead saved for ${session.business_name}: ${sanitize(name)} <${sanitize(email)}>`);
 
     // Return success
     return NextResponse.json(
@@ -303,7 +306,7 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('[Leads API] Unexpected error:', error);
+    log.error('[Leads API] Unexpected error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Something went wrong. Please try again.' },
       { status: 500, headers: corsHeaders }
