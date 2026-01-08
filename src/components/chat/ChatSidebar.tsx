@@ -26,23 +26,36 @@ interface ChatSidebarProps {
   chats: Chat[];
   currentChatId: string | null;
   collapsed: boolean;
+  loadError?: string | null;
   onNewChat: () => void;
   onSelectChat: (chatId: string) => void;
   onRenameChat: (chatId: string, newTitle: string) => void;
   onDeleteChat: (chatId: string) => void;
   onPinChat: (chatId: string) => void;
-  onMoveToFolder: (chatId: string, folderId: string | null, folderData?: { id: string; name: string; color: string | null }) => void;
+  onMoveToFolder: (
+    chatId: string,
+    folderId: string | null,
+    folderData?: { id: string; name: string; color: string | null }
+  ) => void;
 }
 
 const FOLDER_COLORS = [
-  '#ef4444', '#f97316', '#eab308', '#22c55e',
-  '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280',
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#14b8a6',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+  '#6b7280',
 ];
 
 export function ChatSidebar({
   chats,
   currentChatId,
   collapsed,
+  loadError,
   onNewChat,
   onSelectChat,
   onRenameChat,
@@ -137,15 +150,17 @@ export function ChatSidebar({
 
     // Group by folder
     const groups: Record<string, { folder: ChatFolder; chats: Chat[] }> = {};
-    folders.forEach(folder => {
+    folders.forEach((folder) => {
       groups[folder.id] = { folder, chats: [] };
     });
 
-    filteredChats.filter((c) => !c.isPinned && c.folder).forEach(chat => {
-      if (chat.folder && groups[chat.folder.id]) {
-        groups[chat.folder.id].chats.push(chat);
-      }
-    });
+    filteredChats
+      .filter((c) => !c.isPinned && c.folder)
+      .forEach((chat) => {
+        if (chat.folder && groups[chat.folder.id]) {
+          groups[chat.folder.id].chats.push(chat);
+        }
+      });
 
     return {
       pinnedChats: pinned,
@@ -174,7 +189,7 @@ export function ChatSidebar({
   };
 
   const toggleFolderCollapse = (folderId: string) => {
-    setCollapsedFolders(prev => {
+    setCollapsedFolders((prev) => {
       const next = new Set(prev);
       if (next.has(folderId)) {
         next.delete(folderId);
@@ -272,24 +287,34 @@ export function ChatSidebar({
               }}
               onBlur={handleSaveEdit}
               className="w-full rounded px-2 py-1 text-sm focus:outline-none focus:ring-2"
-              style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border)',
+              }}
               autoFocus
             />
           </div>
         ) : (
           <>
-            <button
-              onClick={() => onSelectChat(chat.id)}
-              className="w-full p-3 text-left"
-            >
+            <button onClick={() => onSelectChat(chat.id)} className="w-full p-3 text-left">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-1 overflow-hidden">
                   {chat.isPinned && (
-                    <svg className="h-3 w-3 flex-shrink-0 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <svg
+                      className="h-3 w-3 flex-shrink-0 text-yellow-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <path d="M10 3l2.5 6.5L19 10l-6.5 .5L10 17l-2.5-6.5L1 10l6.5-.5L10 3z" />
                     </svg>
                   )}
-                  <span className="truncate text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{chat.title}</span>
+                  <span
+                    className="truncate text-sm font-medium"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {chat.title}
+                  </span>
                 </div>
                 <button
                   onClick={(e) => {
@@ -301,12 +326,19 @@ export function ChatSidebar({
                   style={{ color: 'var(--text-muted)' }}
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                    />
                   </svg>
                 </button>
               </div>
               {chat.summary && (
-                <p className="mt-1 truncate text-xs" style={{ color: 'var(--text-muted)' }}>{chat.summary}</p>
+                <p className="mt-1 truncate text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {chat.summary}
+                </p>
               )}
             </button>
 
@@ -324,7 +356,10 @@ export function ChatSidebar({
                   Rename
                 </button>
                 <button
-                  onClick={() => { onPinChat(chat.id); setActiveMenu(null); }}
+                  onClick={() => {
+                    onPinChat(chat.id);
+                    setActiveMenu(null);
+                  }}
                   className="w-full px-4 py-2 text-left text-sm"
                   style={{ color: 'var(--text-primary)' }}
                 >
@@ -339,13 +374,26 @@ export function ChatSidebar({
                   style={{ color: 'var(--text-primary)' }}
                 >
                   <span>Move to folder</span>
-                  <svg className={`h-4 w-4 transition-transform ${moveMenuOpen ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <svg
+                    className={`h-4 w-4 transition-transform ${moveMenuOpen ? 'rotate-90' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                 </button>
                 {/* Move to folder - inline expanded */}
                 {moveMenuOpen && (
-                  <div className="py-1" style={{ borderTop: '1px solid var(--border)', marginTop: '4px' }}>
+                  <div
+                    className="py-1"
+                    style={{ borderTop: '1px solid var(--border)', marginTop: '4px' }}
+                  >
                     {chat.folder && (
                       <button
                         onClick={() => {
@@ -359,11 +407,15 @@ export function ChatSidebar({
                         Remove from folder
                       </button>
                     )}
-                    {folders.map(folder => (
+                    {folders.map((folder) => (
                       <button
                         key={folder.id}
                         onClick={() => {
-                          onMoveToFolder(chat.id, folder.id, { id: folder.id, name: folder.name, color: folder.color });
+                          onMoveToFolder(chat.id, folder.id, {
+                            id: folder.id,
+                            name: folder.name,
+                            color: folder.color,
+                          });
                           setActiveMenu(null);
                           setShowMoveMenu(null);
                         }}
@@ -371,13 +423,19 @@ export function ChatSidebar({
                         style={{ color: 'var(--text-primary)' }}
                       >
                         {folder.color && (
-                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: folder.color }} />
+                          <span
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: folder.color }}
+                          />
                         )}
                         <span className="truncate">{folder.name}</span>
                       </button>
                     ))}
                     {folders.length === 0 && (
-                      <div className="px-4 py-2 text-sm pl-6" style={{ color: 'var(--text-muted)' }}>
+                      <div
+                        className="px-4 py-2 text-sm pl-6"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
                         No folders yet
                       </div>
                     )}
@@ -385,7 +443,12 @@ export function ChatSidebar({
                 )}
                 <hr style={{ borderColor: 'var(--border)', margin: '4px 0' }} />
                 <button
-                  onClick={() => { if (confirm('Delete this chat?')) { onDeleteChat(chat.id); } setActiveMenu(null); }}
+                  onClick={() => {
+                    if (confirm('Delete this chat?')) {
+                      onDeleteChat(chat.id);
+                    }
+                    setActiveMenu(null);
+                  }}
                   className="w-full px-4 py-2 text-left text-sm text-red-500"
                 >
                   Delete
@@ -422,12 +485,20 @@ export function ChatSidebar({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
             {folder.color && (
-              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: folder.color }} />
+              <span
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: folder.color }}
+              />
             )}
-            <span className="text-xs font-semibold uppercase truncate" style={{ color: 'var(--text-muted)' }}>
+            <span
+              className="text-xs font-semibold uppercase truncate"
+              style={{ color: 'var(--text-muted)' }}
+            >
               {folder.name}
             </span>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>({folderChats.length})</span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              ({folderChats.length})
+            </span>
           </button>
           <button
             onClick={(e) => {
@@ -438,7 +509,12 @@ export function ChatSidebar({
             style={{ color: 'var(--text-muted)' }}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 5v.01M12 12v.01M12 19v.01"
+              />
             </svg>
           </button>
 
@@ -495,13 +571,21 @@ export function ChatSidebar({
         `}
         style={{ borderRight: collapsed ? 'none' : '1px solid var(--border)' }}
       >
-        <div className={`flex h-full flex-col ${collapsed ? 'md:hidden' : ''}`} style={{ minWidth: '288px' }}>
+        <div
+          className={`flex h-full flex-col ${collapsed ? 'md:hidden' : ''}`}
+          style={{ minWidth: '288px' }}
+        >
           {/* My Files - Available to all users */}
           <MyFilesPanel />
 
           {/* Header */}
-          <div className="p-3 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Chats</h2>
+          <div
+            className="p-3 flex items-center justify-between"
+            style={{ borderBottom: '1px solid var(--border)' }}
+          >
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Chats
+            </h2>
             <div className="flex items-center gap-2">
               <InboxButton />
               <button
@@ -510,7 +594,12 @@ export function ChatSidebar({
                 style={{ color: 'var(--text-primary)' }}
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -526,13 +615,26 @@ export function ChatSidebar({
               + New Chat
             </button>
             <button
-              onClick={() => { setEditingFolder(null); setFolderForm({ name: '', color: '' }); setShowFolderModal(true); }}
+              onClick={() => {
+                setEditingFolder(null);
+                setFolderForm({ name: '', color: '' });
+                setShowFolderModal(true);
+              }}
               className="rounded-lg px-3 py-2.5 text-sm transition"
-              style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border)',
+              }}
               title="New Folder"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                />
               </svg>
             </button>
           </div>
@@ -540,8 +642,19 @@ export function ChatSidebar({
           {/* Search */}
           <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <div className="relative">
-              <svg className="absolute left-3 top-2.5 h-4 w-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                className="absolute left-3 top-2.5 h-4 w-4"
+                style={{ color: 'var(--text-muted)' }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
               <input
                 type="text"
@@ -549,7 +662,11 @@ export function ChatSidebar({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2"
-                style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--primary)', color: 'var(--text-primary)' }}
+                style={{
+                  backgroundColor: 'var(--glass-bg)',
+                  border: '1px solid var(--primary)',
+                  color: 'var(--text-primary)',
+                }}
               />
             </div>
           </div>
@@ -558,9 +675,16 @@ export function ChatSidebar({
           <div className="flex-1 overflow-y-auto p-2">
             {pinnedChats.length > 0 && (
               <div className="mb-4">
-                <h3 className="mb-2 px-2 text-xs font-semibold uppercase" style={{ color: 'var(--text-muted)' }}>Pinned</h3>
+                <h3
+                  className="mb-2 px-2 text-xs font-semibold uppercase"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Pinned
+                </h3>
                 <div className="space-y-1">
-                  {pinnedChats.map((chat) => <ChatItem key={chat.id} chat={chat} />)}
+                  {pinnedChats.map((chat) => (
+                    <ChatItem key={chat.id} chat={chat} />
+                  ))}
                 </div>
               </div>
             )}
@@ -575,18 +699,54 @@ export function ChatSidebar({
 
             {unorganizedChats.length > 0 && (
               <div>
-                <h3 className="mb-2 px-2 text-xs font-semibold uppercase" style={{ color: 'var(--text-muted)' }}>Recent</h3>
+                <h3
+                  className="mb-2 px-2 text-xs font-semibold uppercase"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  Recent
+                </h3>
                 <div className="space-y-1">
-                  {unorganizedChats.map((chat) => <ChatItem key={chat.id} chat={chat} />)}
+                  {unorganizedChats.map((chat) => (
+                    <ChatItem key={chat.id} chat={chat} />
+                  ))}
                 </div>
               </div>
             )}
 
             {filteredChats.length === 0 && (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  {searchQuery ? 'No chats found' : 'No chats yet'}
-                </p>
+              <div className="flex h-full items-center justify-center p-4">
+                {loadError ? (
+                  <div className="text-center">
+                    <svg
+                      className="w-8 h-8 mx-auto mb-2"
+                      style={{ color: 'var(--text-muted)' }}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      {loadError}
+                    </p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="mt-2 text-xs underline hover:opacity-80"
+                      style={{ color: 'var(--primary)' }}
+                    >
+                      Refresh page
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    {searchQuery ? 'No chats found' : 'No chats yet'}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -595,16 +755,21 @@ export function ChatSidebar({
           <div className="p-3 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
             {/* Code Lab - Developer Workspace */}
             <button
-              onClick={() => window.location.href = '/code-lab'}
+              onClick={() => (window.location.href = '/code-lab')}
               className="w-full rounded-lg px-3 py-2.5 text-sm text-left flex items-center gap-3 transition-colors hover:opacity-90"
               style={{
                 background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                 color: '#ffffff',
-                fontWeight: 500
+                fontWeight: 500,
               }}
             >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
               <div className="flex flex-col">
                 <span>Code Lab</span>
@@ -614,24 +779,39 @@ export function ChatSidebar({
 
             {isAdmin && (
               <button
-                onClick={() => window.location.href = '/admin'}
+                onClick={() => (window.location.href = '/admin')}
                 className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2"
                 style={{ color: 'var(--text-primary)' }}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
                 </svg>
                 <span>Admin Panel</span>
               </button>
             )}
             <button
-              onClick={() => window.location.href = '/settings'}
+              onClick={() => (window.location.href = '/settings')}
               className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2"
               style={{ color: 'var(--text-primary)' }}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               <span>Settings</span>
             </button>
@@ -641,7 +821,12 @@ export function ChatSidebar({
               className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-red-500 disabled:opacity-50"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
               </svg>
               <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
             </button>
@@ -652,7 +837,11 @@ export function ChatSidebar({
       {/* Folder Modal */}
       {showFolderModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} onClick={() => setShowFolderModal(false)} />
+          <div
+            className="absolute inset-0"
+            style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+            onClick={() => setShowFolderModal(false)}
+          />
           <div
             className="relative w-full max-w-sm rounded-2xl p-6"
             style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)' }}
@@ -667,11 +856,17 @@ export function ChatSidebar({
               onChange={(e) => setFolderForm({ ...folderForm, name: e.target.value })}
               maxLength={50}
               className="w-full rounded-lg px-4 py-3 mb-4 text-sm focus:outline-none focus:ring-2"
-              style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+              }}
               autoFocus
             />
             <div className="mb-4">
-              <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>Color (optional)</label>
+              <label className="block text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Color (optional)
+              </label>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -679,9 +874,24 @@ export function ChatSidebar({
                   className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${!folderForm.color ? 'border-white ring-2 ring-white/50' : 'border-transparent hover:border-gray-400'}`}
                   style={{ backgroundColor: 'var(--glass-bg)' }}
                 >
-                  {!folderForm.color && <svg className="w-4 h-4" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>}
+                  {!folderForm.color && (
+                    <svg
+                      className="w-4 h-4"
+                      style={{ color: 'var(--text-muted)' }}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  )}
                 </button>
-                {FOLDER_COLORS.map(color => (
+                {FOLDER_COLORS.map((color) => (
                   <button
                     type="button"
                     key={color}
@@ -697,7 +907,11 @@ export function ChatSidebar({
                 type="button"
                 onClick={() => setShowFolderModal(false)}
                 className="flex-1 rounded-lg px-4 py-2.5 text-sm"
-                style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                style={{
+                  backgroundColor: 'var(--glass-bg)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border)',
+                }}
               >
                 Cancel
               </button>
