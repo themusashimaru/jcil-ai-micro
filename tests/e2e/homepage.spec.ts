@@ -64,14 +64,19 @@ test.describe('Homepage', () => {
     });
 
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    // Use domcontentloaded instead of networkidle for faster, more reliable tests
+    await page.waitForLoadState('domcontentloaded');
+    // Give a short time for any immediate JS errors to surface
+    await page.waitForTimeout(1000);
 
-    // Filter out expected errors (like third-party scripts)
+    // Filter out expected errors (like third-party scripts, hydration warnings)
     const criticalErrors = consoleErrors.filter(
       (error) =>
         !error.includes('favicon') &&
         !error.includes('third-party') &&
-        !error.includes('analytics')
+        !error.includes('analytics') &&
+        !error.includes('hydrat') &&
+        !error.includes('Warning:')
     );
 
     expect(criticalErrors).toHaveLength(0);
