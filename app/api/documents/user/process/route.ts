@@ -102,17 +102,33 @@ async function extractText(
     case 'xlsx':
     case 'xls':
       try {
-        const XLSX = await import('xlsx');
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
-        let text = '';
-        for (const sheetName of workbook.SheetNames) {
-          const sheet = workbook.Sheets[sheetName];
-          const csv = XLSX.utils.sheet_to_csv(sheet);
-          text += `\n=== Sheet: ${sheetName} ===\n${csv}\n`;
-        }
-        return { text };
-      } catch (error) {
-        console.error('[Process] Excel parsing error:', error);
+        const ExcelJS = await import('exceljs');
+        const workbook = new ExcelJS.Workbook();
+        // Convert Buffer to ArrayBuffer for ExcelJS compatibility
+        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        await workbook.xlsx.load(arrayBuffer);
+
+        const textParts: string[] = [];
+        workbook.eachSheet((worksheet) => {
+          if (!worksheet.name) return;
+          textParts.push(`\n=== Sheet: ${worksheet.name} ===`);
+
+          worksheet.eachRow((row) => {
+            const values = row.values as (string | number | boolean | Date | null | undefined)[];
+            const cells = values.slice(1); // ExcelJS is 1-indexed
+            if (cells.length > 0) {
+              const rowText = cells.map(cell => {
+                if (cell === null || cell === undefined) return '';
+                if (cell instanceof Date) return cell.toISOString();
+                return String(cell);
+              }).join(',');
+              textParts.push(rowText);
+            }
+          });
+        });
+
+        return { text: textParts.join('\n') };
+      } catch {
         throw new Error('Failed to parse Excel file');
       }
 

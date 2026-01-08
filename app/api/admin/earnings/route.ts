@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminEarningsAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true);
 
     if (usersError) {
-      console.error('Error fetching users:', usersError);
+      log.error('Error fetching users', usersError);
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
 
@@ -66,7 +69,7 @@ export async function GET(request: NextRequest) {
       .select('*');
 
     if (tiersError) {
-      console.error('Error fetching subscription tiers:', tiersError);
+      log.error('Error fetching subscription tiers', tiersError);
     }
 
     // Calculate monthly revenue
@@ -258,9 +261,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error calculating earnings:', error);
+    log.error('Error calculating earnings', error as Error);
     return NextResponse.json(
-      { error: 'Failed to calculate earnings', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to calculate earnings' },
       { status: 500 }
     );
   }

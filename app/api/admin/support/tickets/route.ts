@@ -1,11 +1,18 @@
 /**
  * ADMIN SUPPORT TICKETS API
- * GET - List all support tickets with filters
+ *
+ * Provides admin access to support ticket management.
+ *
+ * @module api/admin/support/tickets
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+import { sanitizePostgrestInput } from '@/lib/security/postgrest';
+
+const log = logger('AdminSupportAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -60,9 +67,12 @@ export async function GET(request: NextRequest) {
       query = query.eq('is_archived', false);
     }
 
-    // Search by subject or email
+    // Search by subject or email (sanitized to prevent filter injection)
     if (search) {
-      query = query.or(`subject.ilike.%${search}%,sender_email.ilike.%${search}%,sender_name.ilike.%${search}%`);
+      const sanitized = sanitizePostgrestInput(search);
+      if (sanitized.length > 0) {
+        query = query.or(`subject.ilike.%${sanitized}%,sender_email.ilike.%${sanitized}%,sender_name.ilike.%${sanitized}%`);
+      }
     }
 
     // Order by newest first
@@ -74,7 +84,7 @@ export async function GET(request: NextRequest) {
     const { data: tickets, error, count } = await query;
 
     if (error) {
-      console.error('[Admin Support API] Error fetching tickets:', error);
+      log.error('Error fetching tickets', error);
       return NextResponse.json(
         { error: 'Failed to fetch tickets' },
         { status: 500 }
@@ -126,7 +136,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[Admin Support API] Error:', error);
+    log.error('Unexpected error', error as Error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

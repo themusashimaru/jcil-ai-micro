@@ -9,6 +9,9 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('ConversationsAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -49,7 +52,6 @@ export async function GET() {
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.error('[API] GET /api/conversations - No authenticated user:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -67,15 +69,15 @@ export async function GET() {
       .order('last_message_at', { ascending: false });
 
     if (error) {
-      console.error('[API] Error fetching conversations:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      log.error('Error fetching conversations', error);
+      return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
     }
 
     // Successfully fetched conversations
 
     return NextResponse.json({ conversations });
   } catch (error) {
-    console.error('[API] Error in GET /api/conversations:', error);
+    log.error('Unexpected error in GET', error as Error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -98,7 +100,6 @@ export async function POST(request: NextRequest) {
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.error('[API] POST /api/conversations - No authenticated user:', authError);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -128,8 +129,8 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('[API] Error updating conversation:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        log.error('Error updating conversation', error);
+        return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 });
       }
 
       // Conversation updated successfully
@@ -153,22 +154,15 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error('[API] Error creating conversation:', {
-          error,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          user_id: user.id,
-        });
-        return NextResponse.json({ error: error.message, details: error.details }, { status: 500 });
+        log.error('Error creating conversation', error);
+        return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 });
       }
 
       // Conversation created successfully
       return NextResponse.json({ conversation });
     }
   } catch (error) {
-    console.error('[API] Error in POST /api/conversations:', error);
+    log.error('Unexpected error in POST', error as Error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
