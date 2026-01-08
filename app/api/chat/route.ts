@@ -35,6 +35,7 @@ import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
+import { detectIntent, shouldAutoRoute, logIntentDetection } from '@/lib/intent-detection';
 
 const log = logger('ChatAPI');
 
@@ -491,19 +492,84 @@ export async function POST(request: NextRequest) {
     log.debug('Processing request', { contentPreview: lastUserContent.substring(0, 50) });
 
     // ========================================
-    // ROUTE 1: PERPLEXITY SEARCH (Search/Fact-check buttons)
+    // INTENT DETECTION & AUTO-ROUTING
     // ========================================
-    if (searchMode && searchMode !== 'none' && isPerplexityConfigured()) {
-      log.info('Search mode activated', { searchMode });
+    // Determine effective search mode: use explicit selection or auto-detect
+    let effectiveSearchMode: 'none' | 'search' | 'factcheck' | 'research' = searchMode || 'none';
+
+    // Auto-detect intent when no explicit mode selected
+    if (effectiveSearchMode === 'none') {
+      const intentResult = detectIntent(lastUserContent);
+      logIntentDetection(intentResult, lastUserContent.length);
+
+      // Only auto-route on high confidence matches
+      if (shouldAutoRoute(intentResult, false)) {
+        effectiveSearchMode = intentResult.intent as typeof effectiveSearchMode;
+        log.info('Auto-detected intent', {
+          intent: intentResult.intent,
+          confidence: intentResult.confidence,
+        });
+      }
+    }
+
+    // ========================================
+    // ROUTE 1: RESEARCH AGENT (Research button OR auto-detected research)
+    // ========================================
+    if (effectiveSearchMode === 'research' && isResearchAgentEnabled()) {
+      log.info('Research mode activated - routing to Research Agent');
+
+      const researchStream = await executeResearchAgent(lastUserContent, {
+        userId: isAuthenticated ? rateLimitIdentifier : undefined,
+        depth: 'standard',
+        previousMessages: messages.slice(-5).map((m) => ({
+          role: String(m.role),
+          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        })),
+      });
+
+      // Wrap stream to release slot when done
+      const wrappedResearchStream = new TransformStream<Uint8Array, Uint8Array>({
+        transform(chunk, controller) {
+          controller.enqueue(chunk);
+        },
+        flush() {
+          if (slotAcquired) {
+            releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
+            slotAcquired = false;
+          }
+        },
+      });
+
+      isStreamingResponse = true;
+
+      return new Response(researchStream.pipeThrough(wrappedResearchStream), {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Transfer-Encoding': 'chunked',
+          'X-Provider': 'anthropic',
+          'X-Agent': 'research',
+          'X-Search-Mode': 'research',
+        },
+      });
+    }
+
+    // ========================================
+    // ROUTE 2: PERPLEXITY SEARCH (Search/Fact-check buttons OR auto-detected)
+    // ========================================
+    if (
+      (effectiveSearchMode === 'search' || effectiveSearchMode === 'factcheck') &&
+      isPerplexityConfigured()
+    ) {
+      log.info('Search mode activated', { searchMode: effectiveSearchMode });
 
       try {
         const systemPrompt =
-          searchMode === 'factcheck'
+          effectiveSearchMode === 'factcheck'
             ? 'Verify the claim. Return TRUE, FALSE, PARTIALLY TRUE, or UNVERIFIABLE with evidence.'
             : 'Search the web and provide accurate, up-to-date information with sources.';
 
         const query =
-          searchMode === 'factcheck' ? `Fact check: ${lastUserContent}` : lastUserContent;
+          effectiveSearchMode === 'factcheck' ? `Fact check: ${lastUserContent}` : lastUserContent;
 
         const result = await perplexitySearch({ query, systemPrompt });
 
@@ -518,7 +584,10 @@ export async function POST(request: NextRequest) {
           JSON.stringify({ type: 'text', content: synthesis.text, model: synthesis.model }),
           {
             status: 200,
-            headers: { 'Content-Type': 'application/json', 'X-Search-Mode': searchMode },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Search-Mode': effectiveSearchMode,
+            },
           }
         );
       } catch (error) {
@@ -528,7 +597,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // ROUTE 2: RESEARCH AGENT (Deep research requests)
+    // ROUTE 3: RESEARCH AGENT (Auto-detection fallback for research patterns)
     // ========================================
     if (isResearchAgentEnabled() && shouldUseResearchAgent(lastUserContent)) {
       log.info('Routing to Research Agent');

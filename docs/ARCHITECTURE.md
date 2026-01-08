@@ -89,6 +89,7 @@ export function middleware(request: NextRequest) {
 ```
 
 **Responsibilities:**
+
 - Add security headers (X-Frame-Options, CSP, etc.)
 - Validate request sizes before processing
 - Route-specific size limits
@@ -222,6 +223,7 @@ The multi-agent architecture enables autonomous task execution:
 ```
 
 **Research Agent Flow:**
+
 ```
 User Query
     │
@@ -253,6 +255,73 @@ User Query
 └──────────────┘
 ```
 
+### 7. Intent Detection & Auto-Routing
+
+The system automatically detects user intent and routes to appropriate tools:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    INTENT DETECTION ARCHITECTURE                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  User Message                                                        │
+│       │                                                              │
+│       ▼                                                              │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                 INTENT DETECTION UTILITY                     │   │
+│  │                                                               │   │
+│  │  Input Validation & Sanitization                             │   │
+│  │       │                                                       │   │
+│  │       ▼                                                       │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │   │
+│  │  │   SEARCH     │  │  FACTCHECK   │  │   RESEARCH   │       │   │
+│  │  │   Patterns   │  │   Patterns   │  │   Patterns   │       │   │
+│  │  │              │  │              │  │              │       │   │
+│  │  │ • Explicit   │  │ • Fact check │  │ • Research   │       │   │
+│  │  │   search     │  │ • Verify     │  │ • Investigate│       │   │
+│  │  │ • Time/date  │  │ • True/false │  │ • Analyze    │       │   │
+│  │  │ • News       │  │ • Debunk     │  │ • Compare    │       │   │
+│  │  │ • Weather    │  │ • Hoax       │  │ • History    │       │   │
+│  │  │ • Prices     │  │ • Myth       │  │ • Pros/cons  │       │   │
+│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │   │
+│  │         │                 │                 │                 │   │
+│  │         └─────────────────┴─────────────────┘                 │   │
+│  │                          │                                     │   │
+│  │                          ▼                                     │   │
+│  │              ┌─────────────────────┐                          │   │
+│  │              │ Confidence Level    │                          │   │
+│  │              │ HIGH | MEDIUM | LOW │                          │   │
+│  │              └─────────────────────┘                          │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                          │                                          │
+│                          ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                     AUTO-ROUTING DECISION                    │   │
+│  │                                                               │   │
+│  │  • HIGH confidence → Auto-route to detected tool             │   │
+│  │  • MEDIUM confidence → Optional (configurable)               │   │
+│  │  • LOW confidence → Regular chat mode                        │   │
+│  │  • Manual override → User explicitly selects tool            │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Tool Selection UI:**
+The chat composer provides three tool buttons:
+
+- 🔍 **Search** - Web search for current information
+- ✓ **Fact Check** - Verify claims and statements
+- 💡 **Research** - Deep research on complex topics
+
+**Intent Detection Patterns:**
+
+| Intent     | High Confidence Examples                              | Medium Confidence Examples            |
+| ---------- | ----------------------------------------------------- | ------------------------------------- |
+| Search     | "search for", "google", "news about", "weather in"    | "where can I find", "how do I get to" |
+| Fact Check | "fact check", "verify if", "is it true", "debunk"     | "did X really", "is it correct that"  |
+| Research   | "research", "investigate", "analyze", "pros and cons" | "how does X work", "impact of X"      |
+
 ### 5. Queue System
 
 The queue system prevents API overload in serverless environments:
@@ -274,6 +343,7 @@ Request ───► acquireSlot() ───► Process ───► releaseSlot
 ```
 
 **Implementation:**
+
 - Redis-backed for distributed state
 - In-memory fallback for single instances
 - Automatic cleanup of stale requests
@@ -475,21 +545,21 @@ if (!isFirstTime) {
 
 ### Latency Targets
 
-| Operation | Target | Actual |
-|-----------|--------|--------|
-| API Response (cached) | < 100ms | ~50ms |
+| Operation               | Target  | Actual |
+| ----------------------- | ------- | ------ |
+| API Response (cached)   | < 100ms | ~50ms  |
 | API Response (uncached) | < 500ms | ~300ms |
-| AI Streaming Start | < 2s | ~1.5s |
-| Code Execution | < 30s | Varies |
+| AI Streaming Start      | < 2s    | ~1.5s  |
+| Code Execution          | < 30s   | Varies |
 
 ### Scalability Limits
 
-| Resource | Limit | Configurable |
-|----------|-------|--------------|
-| Concurrent Requests | 50 | Yes (QUEUE_MAX_CONCURRENT) |
-| Request Size | 1-10 MB | Yes (by route) |
-| Rate Limit (auth) | 120/hour | Yes (RATE_LIMIT_AUTH) |
-| Rate Limit (anon) | 30/hour | Yes (RATE_LIMIT_ANON) |
+| Resource            | Limit    | Configurable               |
+| ------------------- | -------- | -------------------------- |
+| Concurrent Requests | 50       | Yes (QUEUE_MAX_CONCURRENT) |
+| Request Size        | 1-10 MB  | Yes (by route)             |
+| Rate Limit (auth)   | 120/hour | Yes (RATE_LIMIT_AUTH)      |
+| Rate Limit (anon)   | 30/hour  | Yes (RATE_LIMIT_ANON)      |
 
 ---
 
@@ -514,5 +584,5 @@ if (!isFirstTime) {
 
 ---
 
-*Last Updated: January 2025*
-*Version: 1.0*
+_Last Updated: January 2026_
+_Version: 2.0_
