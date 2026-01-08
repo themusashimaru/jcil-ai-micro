@@ -195,6 +195,18 @@ export default function HomePage() {
             color="blue"
           />
         </div>
+
+        {/* Philosophy Statement */}
+        <div className="mt-12 max-w-3xl mx-auto">
+          <div className="bg-slate-900/50 rounded-2xl p-6 lg:p-8 border border-amber-500/20 text-center">
+            <p className="text-slate-300 leading-relaxed">
+              <span className="text-amber-400 font-semibold">AI is a tool, not a replacement.</span>{' '}
+              JCIL does not replace God, pastors, teachers, or mentors. We build technology that
+              supplements your work—helping you stay ahead without compromising your values or your
+              relationships.
+            </p>
+          </div>
+        </div>
       </Section>
 
       {/* Products Section */}
@@ -202,7 +214,7 @@ export default function HomePage() {
         <SectionHeader
           badge="Our Products"
           badgeColor="purple"
-          title="Two ways to serve the Kingdom"
+          title="Pick your platform"
           description="Whether you need everyday AI assistance or full autonomous development capabilities, we have you covered."
         />
 
