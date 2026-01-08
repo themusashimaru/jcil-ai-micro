@@ -10,6 +10,9 @@
 
 import { createHash } from 'crypto';
 import { createAnthropicCompletion, CLAUDE_HAIKU } from '@/lib/anthropic/client';
+import { logger } from '@/lib/logger';
+
+const log = logger('Chunking');
 
 // Redis client (optional - graceful fallback if not configured)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,7 +27,7 @@ async function getRedis() {
       redis = Redis.fromEnv();
       return redis;
     } catch {
-      console.warn('[Chunking] Redis not available, using in-memory fallback');
+      log.warn('Redis not available, using in-memory fallback');
     }
   }
 
@@ -81,12 +84,12 @@ export async function makeDocProfile(id: string, rawText: string): Promise<DocPr
     if (r) {
       const hit = await r.get(cacheKey);
       if (hit) {
-        console.log('[Chunking] Cache hit for doc profile:', id);
+        log.debug('Cache hit for doc profile', { id });
         return typeof hit === 'string' ? JSON.parse(hit) : hit;
       }
     }
   } catch (error) {
-    console.error('[Chunking] Cache read error:', error);
+    log.error('Cache read error', error as Error);
   }
 
   // Parse sections by heading detection
@@ -138,7 +141,7 @@ If needed, add "...(more sections not shown)".`
     });
     synopsis = result.text || 'Synopsis unavailable.';
   } catch (error) {
-    console.error('[Chunking] Synopsis generation error:', error);
+    log.error('Synopsis generation error', error as Error);
   }
 
   const profile: DocProfile = {
@@ -157,10 +160,10 @@ If needed, add "...(more sections not shown)".`
       await r.set(cacheKey, JSON.stringify(profile), { ex: 60 * 60 * 24 });
     }
   } catch (error) {
-    console.error('[Chunking] Cache write error:', error);
+    log.error('Cache write error', error as Error);
   }
 
-  console.log('[Chunking] Created profile for doc:', id, 'sections:', sections.length);
+  log.info('Created profile for doc', { id, sectionCount: sections.length });
   return profile;
 }
 

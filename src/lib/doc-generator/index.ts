@@ -14,6 +14,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('DocGenerator');
 
 // ============================================
 // TYPES
@@ -128,7 +131,7 @@ export class AIDocGenerator {
     projectName: string,
     options: DocGenerationOptions
   ): Promise<GeneratedDoc> {
-    console.log(`[DocGenerator] Generating ${options.type} documentation for ${projectName}`);
+    log.info('Generating documentation', { type: options.type, projectName });
 
     const generators: Record<DocType, () => Promise<GeneratedDoc>> = {
       readme: () => this.generateReadme(files, projectName, options),
@@ -226,7 +229,7 @@ ${files.slice(0, 10).map(f => f.path).join('\n')}`,
         },
       };
     } catch (error) {
-      console.error('[DocGenerator] README generation error:', error);
+      log.error('README generation error', error as Error);
       throw error;
     }
   }
@@ -442,7 +445,7 @@ ${files.slice(0, 20).map(f => `${f.path}:\n${f.content.substring(0, 500)}`).join
         },
       };
     } catch (error) {
-      console.error('[DocGenerator] Architecture doc error:', error);
+      log.error('Architecture doc error', error as Error);
       throw error;
     }
   }
@@ -506,7 +509,7 @@ Be specific and user-friendly in descriptions.`,
         },
       };
     } catch (error) {
-      console.error('[DocGenerator] Changelog error:', error);
+      log.error('Changelog error', error as Error);
       throw error;
     }
   }
@@ -567,7 +570,7 @@ Use clear, simple language. Include screenshots placeholders where helpful.`,
         },
       };
     } catch (error) {
-      console.error('[DocGenerator] User guide error:', error);
+      log.error('User guide error', error as Error);
       throw error;
     }
   }
@@ -632,7 +635,7 @@ Ensure the YAML is valid and complete.`,
         },
       };
     } catch (error) {
-      console.error('[DocGenerator] OpenAPI error:', error);
+      log.error('OpenAPI error', error as Error);
       throw error;
     }
   }

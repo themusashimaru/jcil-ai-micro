@@ -13,6 +13,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('MergeResolver');
 
 // ============================================
 // TYPES
@@ -102,7 +105,7 @@ export class SmartMergeResolver {
    * Resolve a merge conflict intelligently
    */
   async resolveConflict(conflict: MergeConflict): Promise<MergeResolution> {
-    console.log(`[MergeResolver] Resolving conflicts in ${conflict.filePath}`);
+    log.info('Resolving conflicts', { filePath: conflict.filePath });
 
     // Parse conflict markers if not already parsed
     const markers = conflict.conflictMarkers.length > 0
@@ -269,7 +272,7 @@ ${context.baseContent.substring(0, 2000)}...
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[MergeResolver] Analysis error:', error);
+      log.error('Analysis error', error as Error);
       return this.getDefaultAnalysis();
     }
   }
@@ -367,7 +370,7 @@ File context: ${context.filePath}`,
           }
         }
       } catch (error) {
-        console.error('[MergeResolver] Merge generation error:', error);
+        log.error('Merge generation error', error as Error);
       }
     }
 

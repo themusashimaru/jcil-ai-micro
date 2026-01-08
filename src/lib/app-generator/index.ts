@@ -14,6 +14,9 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logger } from '@/lib/logger';
+
+const log = logger('AppGenerator');
 
 // ============================================
 // TYPES
@@ -147,7 +150,7 @@ export class AppGenerator {
    * Generate a complete application from natural language description
    */
   async generateApp(input: AppDescription): Promise<GeneratedApp> {
-    console.log(`[AppGenerator] Starting app generation for: "${input.description.substring(0, 50)}..."`);
+    log.info('Starting app generation', { descriptionPreview: input.description.substring(0, 50) });
 
     // Step 1: Analyze requirements and plan architecture
     const architecture = await this.planArchitecture(input);
@@ -251,7 +254,7 @@ Tech preferences: ${JSON.stringify(input.techPreferences || {})}`,
         additionalLibraries: parsed.additionalLibraries || [],
       };
     } catch (error) {
-      console.error('[AppGenerator] Architecture planning error:', error);
+      log.error('Architecture planning error', error as Error);
       return this.getDefaultStack();
     }
   }
@@ -323,7 +326,7 @@ Features: ${input.features?.join(', ') || 'Standard features'}`,
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[AppGenerator] Schema generation error:', error);
+      log.error('Schema generation error', error as Error);
       return this.getDefaultSchema();
     }
   }
@@ -382,7 +385,7 @@ ${JSON.stringify(schema.tables.map(t => t.name), null, 2)}`,
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[AppGenerator] API generation error:', error);
+      log.error('API generation error', error as Error);
       return [];
     }
   }
@@ -439,7 +442,7 @@ Features: ${input.features?.join(', ') || 'Standard features'}`,
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error('[AppGenerator] Component generation error:', error);
+      log.error('Component generation error', error as Error);
       return [];
     }
   }

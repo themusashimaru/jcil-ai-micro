@@ -9,6 +9,9 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
 import { AutonomousTask, TaskContext, TaskPlan, TaskResult, TaskStep, TaskStatus } from './types';
 import { executeAgent } from '@/lib/multi-agent/orchestrator';
+import { logger } from '@/lib/logger';
+
+const log = logger('AutonomousTask');
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -36,7 +39,7 @@ export async function planTask(
   request: string,
   context: TaskContext
 ): Promise<TaskPlan> {
-  console.log('[AutonomousTask] Planning task:', request.substring(0, 50));
+  log.debug('Planning task', { requestPreview: request.substring(0, 50) });
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -165,7 +168,7 @@ export async function createTask(
     estimated_duration: task.estimatedDuration,
   });
 
-  console.log(`[AutonomousTask] Created task ${taskId} with ${steps.length} steps`);
+  log.info('Created task', { taskId, stepCount: steps.length });
 
   return task;
 }
@@ -215,7 +218,7 @@ export async function executeTask(
     .update({ started_at: new Date().toISOString() })
     .eq('id', taskId);
 
-  console.log(`[AutonomousTask] Starting execution of task ${taskId}`);
+  log.info('Starting execution of task', { taskId });
 
   let fullOutput = '';
   const allFiles: Array<{ path: string; content: string; action: 'create' | 'update' | 'delete' }> = [];
@@ -228,7 +231,7 @@ export async function executeTask(
       // Update current step
       await updateTaskStep(taskId, i, 'running');
 
-      console.log(`[AutonomousTask] Executing step ${i + 1}/${task.steps.length}: ${step.name}`);
+      log.debug('Executing step', { step: i + 1, total: task.steps.length, name: step.name });
 
       // Execute the step using the appropriate agent
       const agentType = getAgentForStepType(step);
@@ -289,7 +292,7 @@ export async function executeTask(
       })
       .eq('id', taskId);
 
-    console.log(`[AutonomousTask] Task ${taskId} completed successfully`);
+    log.info('Task completed successfully', { taskId });
 
     return {
       success: true,
@@ -303,7 +306,7 @@ export async function executeTask(
     // Update task with error
     await updateTaskStatus(taskId, 'failed', undefined, errorMessage);
 
-    console.error(`[AutonomousTask] Task ${taskId} failed:`, errorMessage);
+    log.error('Task failed', new Error(errorMessage), { taskId });
 
     return {
       success: false,
