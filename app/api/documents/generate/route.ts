@@ -18,9 +18,12 @@ import { cookies } from 'next/headers';
 import QRCode from 'qrcode';
 import { generateSpreadsheetXlsx } from '@/lib/documents/spreadsheetGenerator';
 import type { SpreadsheetDocument } from '@/lib/documents/types';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
+
+const log = logger('DocumentsGenerate');
 
 interface DocumentRequest {
   content: string;
@@ -125,7 +128,7 @@ function parseInvoiceContent(content: string): InvoiceData {
   const lines = cleanContent.split('\n').map(l => l.trim()).filter(l => l);
 
   // Debug: Log first 20 lines to see what we're parsing
-  console.log('[Invoice Parser] Parsing content, first 20 lines:', lines.slice(0, 20));
+  log.info('Invoice Parser: Parsing content', { firstLines: lines.slice(0, 20) });
 
   const data: InvoiceData = {
     companyName: '[Your Company Name]',
@@ -169,7 +172,7 @@ function parseInvoiceContent(content: string): InvoiceData {
     // Pattern 1: "# Company Name" (markdown header)
     if (line.startsWith('# ') && data.companyName.includes('[')) {
       data.companyName = line.slice(2).trim();
-      console.log('[Invoice Parser] Found company name (header):', data.companyName);
+      log.info('Invoice Parser: Found company name (header)', { companyName: data.companyName });
       continue;
     }
 
@@ -177,7 +180,7 @@ function parseInvoiceContent(content: string): InvoiceData {
     const businessMatch = line.match(/^(?:business|from|company)[:\s]+(.+)/i);
     if (businessMatch && data.companyName.includes('[')) {
       data.companyName = businessMatch[1].trim();
-      console.log('[Invoice Parser] Found company name (business/from):', data.companyName);
+      log.info('Invoice Parser: Found company name (business/from)', { companyName: data.companyName });
       continue;
     }
 
@@ -185,7 +188,7 @@ function parseInvoiceContent(content: string): InvoiceData {
     const invoiceCompanyMatch = line.match(/^invoice[:\s]+([A-Za-z].+)/i);
     if (invoiceCompanyMatch && data.companyName.includes('[') && !/\d/.test(invoiceCompanyMatch[1])) {
       data.companyName = invoiceCompanyMatch[1].trim();
-      console.log('[Invoice Parser] Found company name (invoice:):', data.companyName);
+      log.info('Invoice Parser: Found company name (invoice:)', { companyName: data.companyName });
       continue;
     }
 
@@ -218,7 +221,7 @@ function parseInvoiceContent(content: string): InvoiceData {
         if (parts[1]) {
           data.companyAddress = [parts[1].trim()];
         }
-        console.log('[Invoice Parser] Found company name (first line):', data.companyName);
+        log.info('Invoice Parser: Found company name (first line)', { companyName: data.companyName });
         continue;
       }
     }
@@ -228,7 +231,7 @@ function parseInvoiceContent(content: string): InvoiceData {
       const cityStateMatch = line.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s*([A-Z]{2})?$/);
       if (cityStateMatch && !lowerLine.includes(':')) {
         data.companyAddress = [line];
-        console.log('[Invoice Parser] Found company address:', line);
+        log.info('Invoice Parser: Found company address', { line });
         continue;
       }
     }
@@ -310,7 +313,7 @@ function parseInvoiceContent(content: string): InvoiceData {
         lowerLine.includes('charges:') ||
         lowerLine === 'charges') {
       currentSection = 'items';
-      console.log('[Invoice Parser] Entering items section at:', line);
+      log.info('Invoice Parser: Entering items section', { line });
       continue;
     }
 
@@ -473,7 +476,7 @@ function parseInvoiceContent(content: string): InvoiceData {
       const desc = qtyFirstMatch[2].trim();
       const unitPrice = parseFloat(qtyFirstMatch[3].replace(/,/g, ''));
       const total = qtyFirstMatch[4] ? parseFloat(qtyFirstMatch[4].replace(/,/g, '')) : qty * unitPrice;
-      console.log('[Invoice Parser] Matched qty-first format:', desc, qty, unitPrice, total);
+      log.info('Invoice Parser: Matched qty-first format', { desc, qty, unitPrice, total });
       data.items.push({
         itemNumber: '',
         description: desc,
@@ -571,7 +574,7 @@ function parseInvoiceContent(content: string): InvoiceData {
           !lowerLine.includes('shipping') &&
           !lowerLine.includes('amount due') &&
           desc.length > 2) {
-        console.log('[Invoice Parser] Catch-all item:', desc, amount);
+        log.info('Invoice Parser: Catch-all item', { desc, amount });
         data.items.push({
           itemNumber: '',
           description: desc,
@@ -599,7 +602,7 @@ function parseInvoiceContent(content: string): InvoiceData {
   data.payableTo = data.companyName;
 
   // Debug: Log final parsed data
-  console.log('[Invoice Parser] Final parsed data:', {
+  log.info('Invoice Parser: Final parsed data', {
     companyName: data.companyName,
     invoiceNumber: data.invoiceNumber,
     itemCount: data.items.length,
@@ -2228,7 +2231,7 @@ export async function POST(request: NextRequest) {
 
     // === XLSX: Excel spreadsheet generation ===
     if (body.format === 'xlsx') {
-      console.log('[Documents API] Generating Excel spreadsheet:', title);
+      log.info('Generating Excel spreadsheet', { title });
 
       try {
         // Parse markdown tables into spreadsheet format
@@ -2265,7 +2268,7 @@ export async function POST(request: NextRequest) {
           });
 
         if (uploadError) {
-          console.error('[Documents API] Excel upload error:', uploadError);
+          log.error('Excel upload error', { error: uploadError ?? 'Unknown error' });
           // Fallback to data URL
           const base64 = xlsxBuffer.toString('base64');
           const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
@@ -2285,7 +2288,7 @@ export async function POST(request: NextRequest) {
           .createSignedUrl(storagePath, 3600);
 
         if (signedError || !signedData?.signedUrl) {
-          console.error('[Documents API] Excel signed URL error:', signedError);
+          log.error('Excel signed URL error', { error: signedError ?? 'Unknown error' });
           const base64 = xlsxBuffer.toString('base64');
           const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
           return NextResponse.json({
@@ -2298,7 +2301,7 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        console.log('[Documents API] Excel generated and uploaded successfully');
+        log.info('Excel generated and uploaded successfully');
         return NextResponse.json({
           success: true,
           downloadUrl: signedData.signedUrl,
@@ -2308,7 +2311,7 @@ export async function POST(request: NextRequest) {
           storage: 'supabase',
         });
       } catch (xlsxError) {
-        console.error('[Documents API] Excel generation error:', xlsxError);
+        log.error('Excel generation error', xlsxError instanceof Error ? xlsxError : { xlsxError });
         return NextResponse.json(
           { error: 'Failed to generate Excel file', details: xlsxError instanceof Error ? xlsxError.message : 'Unknown error' },
           { status: 500 }
@@ -2349,7 +2352,7 @@ export async function POST(request: NextRequest) {
                            (lowerContent.includes('business') && lowerContent.includes('strategy'));
 
     // Log detected document type for debugging
-    console.log('[Documents API] Document type detection:', {
+    log.info('Document type detection', {
       title,
       isResume,
       isInvoice,
@@ -2366,18 +2369,18 @@ export async function POST(request: NextRequest) {
 
     // === INVOICE: Use dedicated professional template ===
     if (isInvoice) {
-      console.log('[Documents API] Generating professional invoice PDF');
+      log.info('Generating professional invoice PDF');
 
       let invoiceData: InvoiceData;
       try {
         invoiceData = parseInvoiceContent(content);
-        console.log('[Documents API] Invoice parsed:', {
+        log.info('Invoice parsed', {
           companyName: invoiceData.companyName,
           invoiceNumber: invoiceData.invoiceNumber,
           itemCount: invoiceData.items.length
         });
       } catch (parseError) {
-        console.error('[Documents API] Invoice parse error:', parseError);
+        log.error('Invoice parse error', parseError instanceof Error ? parseError : { parseError });
         return NextResponse.json(
           { error: 'Failed to parse invoice content', details: parseError instanceof Error ? parseError.message : 'Unknown parse error' },
           { status: 500 }
@@ -2386,9 +2389,9 @@ export async function POST(request: NextRequest) {
 
       try {
         generateInvoicePDF(doc, invoiceData);
-        console.log('[Documents API] Invoice PDF generated successfully');
+        log.info('Invoice PDF generated successfully');
       } catch (pdfError) {
-        console.error('[Documents API] Invoice PDF generation error:', pdfError);
+        log.error('Invoice PDF generation error', pdfError instanceof Error ? pdfError : { pdfError });
         return NextResponse.json(
           { error: 'Failed to generate invoice PDF', details: pdfError instanceof Error ? pdfError.message : 'Unknown PDF error' },
           { status: 500 }
@@ -2426,7 +2429,7 @@ export async function POST(request: NextRequest) {
           });
 
         if (pdfUploadError) {
-          console.error('[Documents API] Invoice PDF upload error:', pdfUploadError);
+          log.error('Invoice PDF upload error', { error: pdfUploadError ?? 'Unknown error' });
           const pdfBase64 = doc.output('datauristring');
           return NextResponse.json({
             success: true,
@@ -2438,7 +2441,7 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        console.log('[Documents API] Invoice PDF uploaded:', pdfPath);
+        log.info('Invoice PDF uploaded', { pdfPath });
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
                         request.headers.get('origin') ||
@@ -2473,18 +2476,18 @@ export async function POST(request: NextRequest) {
     // === BUSINESS PLAN: Use dedicated professional template ===
     // IMPORTANT: Only if NOT a resume (resumes often contain business/strategy keywords)
     if (isBusinessPlan && !isResume) {
-      console.log('[Documents API] Generating professional business plan PDF');
+      log.info('Generating professional business plan PDF');
 
       let businessPlanData: BusinessPlanData;
       try {
         businessPlanData = parseBusinessPlanContent(content);
-        console.log('[Documents API] Business plan parsed:', {
+        log.info('Business plan parsed', {
           companyName: businessPlanData.companyName,
           hasSummary: !!businessPlanData.executiveSummary.missionStatement,
           hasDescription: !!businessPlanData.companyDescription.overview
         });
       } catch (parseError) {
-        console.error('[Documents API] Business plan parse error:', parseError);
+        log.error('Business plan parse error', parseError instanceof Error ? parseError : { parseError });
         return NextResponse.json(
           { error: 'Failed to parse business plan content', details: parseError instanceof Error ? parseError.message : 'Unknown parse error' },
           { status: 500 }
@@ -2493,9 +2496,9 @@ export async function POST(request: NextRequest) {
 
       try {
         generateBusinessPlanPDF(doc, businessPlanData);
-        console.log('[Documents API] Business plan PDF generated successfully');
+        log.info('Business plan PDF generated successfully');
       } catch (pdfError) {
-        console.error('[Documents API] Business plan PDF generation error:', pdfError);
+        log.error('Business plan PDF generation error', pdfError instanceof Error ? pdfError : { pdfError });
         return NextResponse.json(
           { error: 'Failed to generate business plan PDF', details: pdfError instanceof Error ? pdfError.message : 'Unknown PDF error' },
           { status: 500 }
@@ -2532,7 +2535,7 @@ export async function POST(request: NextRequest) {
           });
 
         if (pdfUploadError) {
-          console.error('[Documents API] Business plan PDF upload error:', pdfUploadError);
+          log.error('Business plan PDF upload error', { error: pdfUploadError ?? 'Unknown error' });
           const pdfBase64 = doc.output('datauristring');
           return NextResponse.json({
             success: true,
@@ -2544,7 +2547,7 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        console.log('[Documents API] Business plan PDF uploaded:', pdfPath);
+        log.info('Business plan PDF uploaded', { pdfPath });
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
                         request.headers.get('origin') ||
@@ -2616,7 +2619,7 @@ export async function POST(request: NextRequest) {
         const isGenericTitle = genericTitlePatterns.some(p => p.test(firstText));
 
         if (isGenericTitle) {
-          console.log('[Documents API] Filtering out generic resume title:', elements[0].text);
+          log.info('Filtering out generic resume title', { title: elements[0].text });
           elements = elements.slice(1); // Remove the generic title
         } else {
           break; // Found the real name, stop filtering
@@ -2627,7 +2630,7 @@ export async function POST(request: NextRequest) {
       if (elements.length > 0 && elements[0].type === 'h1') {
         const firstH1 = elements[0].text.toLowerCase();
         if (firstH1.includes('template') || firstH1.includes('ats') || firstH1.includes('friendly') || firstH1.length > 50) {
-          console.log('[Documents API] Filtering out likely template title:', elements[0].text);
+          log.info('Filtering out likely template title', { title: elements[0].text });
           elements = elements.slice(1);
         }
       }
@@ -3225,7 +3228,7 @@ export async function POST(request: NextRequest) {
 
               y += gridHeight + 15;
             } catch (qrError) {
-              console.error('[Documents API] QR generation error:', qrError);
+              log.error('QR generation error', qrError instanceof Error ? qrError : { qrError });
               // Fallback: show text placeholder
               doc.setFontSize(10);
               doc.setTextColor(150, 150, 150);
@@ -3286,7 +3289,7 @@ export async function POST(request: NextRequest) {
         });
 
       if (pdfUploadError) {
-        console.error('[Documents API] PDF upload error:', pdfUploadError);
+        log.error('PDF upload error', { error: pdfUploadError ?? 'Unknown error' });
         // Fallback to data URL
         const pdfBase64 = doc.output('datauristring');
         return NextResponse.json({
@@ -3299,7 +3302,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      console.log('[Documents API] PDF uploaded successfully:', pdfPath);
+      log.info('PDF uploaded successfully', { pdfPath });
 
       // Generate clean proxy URL that hides Supabase details
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
@@ -3332,7 +3335,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Documents API] Error generating document:', error);
+    log.error('Error generating document', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to generate document' },
       { status: 500 }

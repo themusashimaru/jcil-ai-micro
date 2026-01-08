@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     const { data: tickets, error, count } = await query;
 
     if (error) {
-      log.error('Error fetching tickets', error);
+      log.error('Error fetching tickets', error instanceof Error ? error : { error });
       return NextResponse.json(
         { error: 'Failed to fetch tickets' },
         { status: 500 }

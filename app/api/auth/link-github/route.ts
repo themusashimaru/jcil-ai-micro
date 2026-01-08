@@ -9,6 +9,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('AuthLinkGitHub');
 
 export const runtime = 'nodejs';
 
@@ -68,7 +71,7 @@ export async function GET(request: NextRequest) {
   });
 
   if (error) {
-    console.error('[Link GitHub] OAuth Error:', error);
+    log.error('[Link GitHub] OAuth Error:', error instanceof Error ? error : { error });
     return NextResponse.redirect(new URL(`${redirectTo}?error=oauth_failed`, origin));
   }
 

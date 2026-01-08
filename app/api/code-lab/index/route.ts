@@ -7,6 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLabIndex');
 
 /**
  * GET - Check index status for a repo
@@ -34,7 +37,7 @@ export async function GET(request: NextRequest) {
       message: 'Semantic indexing disabled. Use Code Lab grep/find tools for code search.',
     });
   } catch (error) {
-    console.error('[Codebase Index API] GET error:', error);
+    log.error('[Codebase Index API] GET error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
       message: 'Semantic indexing disabled. Use Code Lab grep/find tools for code search.',
     });
   } catch (error) {
-    console.error('[Codebase Index API] POST error:', error);
+    log.error('[Codebase Index API] POST error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
@@ -95,7 +98,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Semantic indexing disabled. Nothing to delete.',
     });
   } catch (error) {
-    console.error('[Codebase Index API] DELETE error:', error);
+    log.error('[Codebase Index API] DELETE error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

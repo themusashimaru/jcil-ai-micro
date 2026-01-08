@@ -12,6 +12,9 @@ import {
   type StoredPasskey,
   type AuthenticationResponseJSON,
 } from '@/lib/auth/webauthn';
+import { logger } from '@/lib/logger';
+
+const log = logger('WebAuthnAuthenticate');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -83,7 +86,7 @@ export async function POST(request: NextRequest) {
       challengeKey, // Return this so client can send it back
     });
   } catch (error) {
-    console.error('Passkey auth options error:', error);
+    log.error('Passkey auth options error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to generate authentication options' },
       { status: 500 }
@@ -175,7 +178,7 @@ export async function PUT(request: NextRequest) {
     });
 
     if (authError || !authData) {
-      console.error('Failed to generate auth link:', authError);
+      log.error('Failed to generate auth link', { error: authError ?? 'Unknown error' });
       return NextResponse.json(
         { error: 'Failed to create session' },
         { status: 500 }
@@ -222,7 +225,7 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Passkey authentication error:', error);
+    log.error('Passkey authentication error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to authenticate' },
       { status: 500 }

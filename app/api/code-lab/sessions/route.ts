@@ -9,6 +9,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { randomUUID } from 'crypto';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLabSessions');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
@@ -36,7 +39,7 @@ export async function GET() {
       .order('updated_at', { ascending: false });
 
     if (error) {
-      console.error('[CodeLab API] Error fetching sessions:', error);
+      log.error('[CodeLab API] Error fetching sessions:', error instanceof Error ? error : { error });
       // Return empty array if table doesn't exist yet
       return NextResponse.json({ sessions: [] });
     }
@@ -65,7 +68,7 @@ export async function GET() {
 
     return NextResponse.json({ sessions: formattedSessions });
   } catch (error) {
-    console.error('[CodeLab API] Error:', error);
+    log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ sessions: [] });
   }
 }
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[CodeLab API] Error creating session:', error);
+      log.error('[CodeLab API] Error creating session:', error instanceof Error ? error : { error });
       // Return a mock session if table doesn't exist
       return NextResponse.json({
         session: {
@@ -143,7 +146,7 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('[CodeLab API] Error:', error);
+    log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
   }
 }

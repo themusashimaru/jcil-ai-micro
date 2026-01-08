@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('UserSettings');
 
 async function getSupabase() {
   const cookieStore = await cookies();
@@ -41,7 +44,7 @@ export async function GET() {
     .single();
 
   if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-    console.error('[User Settings] Error fetching settings:', error);
+    log.error('[User Settings] Error fetching settings:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
   }
 
@@ -109,7 +112,7 @@ export async function PUT(request: NextRequest) {
     .single();
 
   if (error) {
-    console.error('[User Settings] Error updating settings:', error);
+    log.error('[User Settings] Error updating settings:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
   }
 

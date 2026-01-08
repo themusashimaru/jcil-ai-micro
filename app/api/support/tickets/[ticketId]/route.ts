@@ -7,6 +7,9 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('SupportTicketDetail');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -90,7 +93,7 @@ export async function GET(
       replies: replies || [],
     });
   } catch (error) {
-    console.error('[Support API] Error:', error);
+    log.error('[Support API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

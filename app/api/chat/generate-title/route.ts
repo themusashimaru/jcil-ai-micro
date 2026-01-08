@@ -11,6 +11,9 @@
 
 import { createClaudeChat } from '@/lib/anthropic/client';
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
+
+const log = logger('GenerateTitleAPI');
 
 interface GenerateTitleRequest {
   userMessage: string;
@@ -23,20 +26,20 @@ export async function POST(request: NextRequest) {
     const userMessage = body?.userMessage || '';
     const assistantMessage = body?.assistantMessage || '';
 
-    console.log('[API] Generate title request:', {
+    log.info('[API] Generate title request:', {
       userMessage: userMessage.slice(0, 100),
       assistantMessage: assistantMessage.slice(0, 100),
     });
 
     if (!userMessage.trim()) {
-      console.log('[API] No user message provided, returning fallback title');
+      log.info('[API] No user message provided, returning fallback title');
       return new Response(
         JSON.stringify({ title: 'New Conversation' }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('[API] Calling Claude to generate title');
+    log.info('[API] Calling Claude to generate title');
 
     const systemPrompt = `You are a chat title generator. Based on the user's message and assistant's response, create a short, descriptive title for this conversation.
 
@@ -62,7 +65,7 @@ Rules:
       });
       titleText = result.text || '';
     } catch (aiError) {
-      console.error('[API] Claude call failed:', aiError);
+      log.error('[API] Claude call failed', aiError instanceof Error ? aiError : { error: aiError });
       // Return a generated fallback title based on the user message
       const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
       return new Response(
@@ -73,7 +76,7 @@ Rules:
 
     // Extract the title and clean it up
     if (!titleText) {
-      console.log('[API] No text returned from AI, using fallback title');
+      log.info('[API] No text returned from AI, using fallback title');
       const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
       return new Response(
         JSON.stringify({ title: fallbackTitle }),
@@ -81,7 +84,7 @@ Rules:
       );
     }
     let title = titleText.trim();
-    console.log('[API] Raw AI-generated title:', title);
+    log.info('[API] Raw AI-generated title', { title });
 
     // Remove quotes if present
     title = title.replace(/^["']|["']$/g, '');
@@ -94,7 +97,7 @@ Rules:
       title = title.slice(0, 47) + '...';
     }
 
-    console.log('[API] Final cleaned title:', title);
+    log.info('[API] Final cleaned title', { title });
 
     return new Response(
       JSON.stringify({ title }),
@@ -104,7 +107,7 @@ Rules:
       }
     );
   } catch (error) {
-    console.error('[API] Title generation error:', error);
+    log.error('[API] Title generation error:', error instanceof Error ? error : { error });
 
     return new Response(
       JSON.stringify({ error: 'Failed to generate title' }),

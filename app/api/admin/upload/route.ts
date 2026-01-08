@@ -8,6 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminUpload');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     if (!supabase) {
       // Fallback to base64 if Supabase not configured
-      console.warn('[Upload] Supabase not configured, falling back to base64');
+      log.warn('[Upload] Supabase not configured, falling back to base64');
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const base64 = buffer.toString('base64');
@@ -107,7 +110,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      console.error('[Upload] Supabase Storage error:', error);
+      log.error('[Upload] Supabase Storage error:', error instanceof Error ? error : { error });
 
       // If bucket doesn't exist, try to create it
       if (error.message.includes('Bucket not found') || error.message.includes('bucket')) {
@@ -118,7 +121,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (bucketError && !bucketError.message.includes('already exists')) {
-          console.error('[Upload] Failed to create bucket:', bucketError);
+          log.error('[Upload] Failed to create bucket:', bucketError);
           return NextResponse.json(
             { error: 'Storage not available. Please create "branding" bucket in Supabase.' },
             { status: 500 }
@@ -135,7 +138,7 @@ export async function POST(request: NextRequest) {
           });
 
         if (retryResult.error) {
-          console.error('[Upload] Retry failed:', retryResult.error);
+          log.error('[Upload] Retry failed:', retryResult.error);
           return NextResponse.json(
             { error: 'Failed to upload file to storage' },
             { status: 500 }
@@ -156,7 +159,7 @@ export async function POST(request: NextRequest) {
 
     const publicUrl = urlData.publicUrl;
 
-    console.log('[Upload] File uploaded successfully:', publicUrl);
+    log.info('[Upload] File uploaded successfully', { publicUrl });
 
     return NextResponse.json({
       success: true,
@@ -167,7 +170,7 @@ export async function POST(request: NextRequest) {
       storage: 'supabase', // Indicate this is a CDN URL
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    log.error('Upload error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to upload file' },
       { status: 500 }

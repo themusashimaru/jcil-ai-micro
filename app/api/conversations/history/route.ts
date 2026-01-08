@@ -8,6 +8,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('ConversationHistoryAPI');
 
 // Get authenticated Supabase client
 async function getSupabaseClient() {
@@ -73,7 +76,7 @@ export async function GET(request: Request) {
     const { data: conversations, error: convError } = await query;
 
     if (convError) {
-      console.error('Error fetching conversations:', convError);
+      log.error('Error fetching conversations:', { error: convError ?? 'Unknown error' });
       return NextResponse.json({ error: convError.message }, { status: 500 });
     }
 
@@ -89,7 +92,7 @@ export async function GET(request: Request) {
           .limit(10);
 
         if (msgError) {
-          console.error('Error fetching messages for conversation:', msgError);
+          log.error('Error fetching messages for conversation:', { error: msgError ?? 'Unknown error' });
           return {
             ...conv,
             messages: [],
@@ -108,7 +111,7 @@ export async function GET(request: Request) {
       count: conversationsWithMessages.length
     });
   } catch (error) {
-    console.error('Error in GET /api/conversations/history:', error);
+    log.error('Error in GET /api/conversations/history:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

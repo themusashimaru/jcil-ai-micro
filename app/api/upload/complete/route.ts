@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('UploadComplete');
 
 export async function POST(request: NextRequest) {
   // CSRF Protection
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
       userId: user.id
     });
   } catch (error) {
-    console.error('[Upload Complete] Error:', error);
+    log.error('[Upload Complete] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

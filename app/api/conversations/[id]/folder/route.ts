@@ -6,6 +6,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('ConversationFolderAPI');
 
 export const dynamic = 'force-dynamic';
 
@@ -85,13 +88,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (updateError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
       }
-      console.error('[Conversation Folder API] Error:', updateError);
+      log.error('[Conversation Folder API] Error:', { error: updateError ?? 'Unknown error' });
       return NextResponse.json({ error: 'Failed to move conversation' }, { status: 500 });
     }
 
     return NextResponse.json({ conversation });
   } catch (error) {
-    console.error('[Conversation Folder API] Error:', error);
+    log.error('[Conversation Folder API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

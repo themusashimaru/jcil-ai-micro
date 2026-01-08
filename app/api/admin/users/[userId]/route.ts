@@ -63,7 +63,7 @@ export async function GET(
       .single();
 
     if (error) {
-      log.error('Error fetching user', error);
+      log.error('Error fetching user', error instanceof Error ? error : { error });
 
       if (error.code === 'PGRST116') {
         return NextResponse.json(

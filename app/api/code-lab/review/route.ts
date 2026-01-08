@@ -8,10 +8,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;
 import { createClient } from '@supabase/supabase-js';
+
+const log = logger('CodeLabReview');
 import {
   fetchPRInfo,
   fetchPRDiff,
@@ -98,7 +101,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ pr: prInfo });
   } catch (error) {
-    console.error('[Review API] GET error:', error);
+    log.error('[Review API] GET error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
@@ -150,7 +153,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid GitHub token' }, { status: 400 });
     }
 
-    console.log(`[Review API] Reviewing PR #${prNumber} in ${owner}/${repo}`);
+    log.info(`[Review API] Reviewing PR #${prNumber} in ${owner}/${repo}`);
 
     // Fetch PR info
     const prInfo = await fetchPRInfo(owner, repo, prNumber, githubToken);
@@ -183,7 +186,7 @@ export async function POST(request: NextRequest) {
       postedToGitHub,
     });
   } catch (error) {
-    console.error('[Review API] POST error:', error);
+    log.error('[Review API] POST error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

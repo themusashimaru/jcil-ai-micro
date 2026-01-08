@@ -7,6 +7,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminConversationExport');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -89,7 +92,7 @@ export async function GET(
     }
 
     // Log admin export for audit trail
-    console.log(`[Admin Audit] Admin exported conversation ${conversationId} as PDF (User: ${conversation.user_id})`);
+    log.info(`[Admin Audit] Admin exported conversation ${conversationId} as PDF (User: ${conversation.user_id})`);
 
     // Generate HTML content for PDF
     const user = Array.isArray(conversation.users) ? conversation.users[0] : conversation.users;
@@ -103,7 +106,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[Admin API] Error:', error);
+    log.error('[Admin API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

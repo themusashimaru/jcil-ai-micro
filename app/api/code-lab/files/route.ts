@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeLabFiles');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
@@ -72,7 +75,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ files });
     }
   } catch (error) {
-    console.error('[Files API] Error:', error);
+    log.error('[Files API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to access files' },
       { status: 500 }
@@ -119,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, path: safePath });
   } catch (error) {
-    console.error('[Files API] Error creating file:', error);
+    log.error('[Files API] Error creating file:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to create file' },
       { status: 500 }
@@ -166,7 +169,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, path: safePath });
   } catch (error) {
-    console.error('[Files API] Error updating file:', error);
+    log.error('[Files API] Error updating file:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to update file' },
       { status: 500 }
@@ -215,7 +218,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Files API] Error deleting file:', error);
+    log.error('[Files API] Error deleting file:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to delete file' },
       { status: 500 }

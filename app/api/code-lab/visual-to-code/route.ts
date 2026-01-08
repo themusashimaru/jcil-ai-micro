@@ -7,10 +7,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 import { convertVisualToCode, quickConvert } from '@/lib/visual-to-code';
+
+const log = logger('CodeLabVisualToCode');
 
 /**
  * POST - Convert visual design to code
@@ -35,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing image data' }, { status: 400 });
     }
 
-    console.log(`[Visual-to-Code API] Processing image (quick: ${quick})`);
+    log.info(`[Visual-to-Code API] Processing image (quick: ${quick})`);
 
     if (quick) {
       // Quick conversion - just the code
@@ -60,7 +63,7 @@ export async function POST(request: NextRequest) {
       previewHtml: result.previewHtml,
     });
   } catch (error) {
-    console.error('[Visual-to-Code API] Error:', error);
+    log.error('[Visual-to-Code API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

@@ -7,6 +7,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from '@/lib/supabase/server-auth';
+import { logger } from '@/lib/logger';
+
+const log = logger('WebAuthnPasskeys');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -41,7 +44,7 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to fetch passkeys:', error);
+      log.error('Failed to fetch passkeys:', error instanceof Error ? error : { error });
       return NextResponse.json(
         { error: 'Failed to fetch passkeys' },
         { status: 500 }
@@ -50,7 +53,7 @@ export async function GET() {
 
     return NextResponse.json({ passkeys: passkeys || [] });
   } catch (error) {
-    console.error('Passkey list error:', error);
+    log.error('Passkey list error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to fetch passkeys' },
       { status: 500 }
@@ -87,7 +90,7 @@ export async function DELETE(request: NextRequest) {
       .eq('user_id', session.user.id);
 
     if (error) {
-      console.error('Failed to delete passkey:', error);
+      log.error('Failed to delete passkey:', error instanceof Error ? error : { error });
       return NextResponse.json(
         { error: 'Failed to delete passkey' },
         { status: 500 }
@@ -96,7 +99,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Passkey delete error:', error);
+    log.error('Passkey delete error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to delete passkey' },
       { status: 500 }

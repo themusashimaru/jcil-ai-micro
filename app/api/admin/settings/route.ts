@@ -6,6 +6,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+
+const log = logger('AdminSettings');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -61,7 +64,7 @@ export async function POST(request: NextRequest) {
       settings,
     });
   } catch (error) {
-    console.error('Error validating settings:', error);
+    log.error('Error validating settings:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to validate settings' },
       { status: 500 }

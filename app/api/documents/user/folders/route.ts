@@ -13,6 +13,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('DocumentsFolders');
 
 // Helper to create authenticated Supabase client (for auth)
 async function createSupabaseClient() {
@@ -65,13 +68,13 @@ export async function GET() {
       .order('name', { ascending: true });
 
     if (error) {
-      console.error('[Folders API] Error fetching folders:', error);
+      log.error('Error fetching folders', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to fetch folders' }, { status: 500 });
     }
 
     return NextResponse.json({ folders });
   } catch (error) {
-    console.error('[Folders API] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -124,13 +127,13 @@ export async function POST(request: NextRequest) {
       if (error.code === '23505') { // Unique constraint violation
         return NextResponse.json({ error: 'A folder with this name already exists' }, { status: 409 });
       }
-      console.error('[Folders API] Error creating folder:', error);
+      log.error('Error creating folder', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to create folder' }, { status: 500 });
     }
 
     return NextResponse.json({ folder }, { status: 201 });
   } catch (error) {
-    console.error('[Folders API] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -181,13 +184,13 @@ export async function PUT(request: NextRequest) {
       if (error.code === '23505') {
         return NextResponse.json({ error: 'A folder with this name already exists' }, { status: 409 });
       }
-      console.error('[Folders API] Error updating folder:', error);
+      log.error('Error updating folder', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to update folder' }, { status: 500 });
     }
 
     return NextResponse.json({ folder });
   } catch (error) {
-    console.error('[Folders API] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -240,13 +243,13 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      console.error('[Folders API] Error deleting folder:', error);
+      log.error('Error deleting folder', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to delete folder' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Folders API] Unexpected error:', error);
+    log.error('Unexpected error', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

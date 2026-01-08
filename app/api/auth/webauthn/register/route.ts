@@ -15,6 +15,9 @@ import {
   type StoredPasskey,
   type RegistrationResponseJSON,
 } from '@/lib/auth/webauthn';
+import { logger } from '@/lib/logger';
+
+const log = logger('WebAuthnRegister');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -87,7 +90,7 @@ export async function POST(_request: NextRequest) {
 
     return NextResponse.json(options);
   } catch (error) {
-    console.error('Passkey registration options error:', error);
+    log.error('Passkey registration options error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to generate registration options' },
       { status: 500 }
@@ -156,7 +159,7 @@ export async function PUT(request: NextRequest) {
     });
 
     if (insertError) {
-      console.error('Failed to save passkey:', insertError);
+      log.error('Failed to save passkey:', { error: insertError ?? 'Unknown error' });
       return NextResponse.json(
         { error: 'Failed to save passkey' },
         { status: 500 }
@@ -173,7 +176,7 @@ export async function PUT(request: NextRequest) {
       backedUp: credentialBackedUp,
     });
   } catch (error) {
-    console.error('Passkey registration error:', error);
+    log.error('Passkey registration error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to register passkey' },
       { status: 500 }
