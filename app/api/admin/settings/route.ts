@@ -4,9 +4,10 @@
  * This API exists for compatibility but actual storage is client-side
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('AdminSettings');
 
@@ -37,7 +38,11 @@ export async function GET() {
   const auth = await requireAdmin();
   if (!auth.authorized) return auth.response;
 
-  return NextResponse.json(DEFAULT_SETTINGS);
+  // Rate limit by admin
+  const rateLimitResult = checkRequestRateLimit(`admin:settings:get:${auth.user.id}`, rateLimits.admin);
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
+
+  return successResponse(DEFAULT_SETTINGS);
 }
 
 // POST - Acknowledge save (actual save happens in localStorage on client)
@@ -46,6 +51,10 @@ export async function POST(request: NextRequest) {
     // Require admin authentication with CSRF check
     const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
+
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:settings:post:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const body = await request.json();
 
@@ -59,15 +68,12 @@ export async function POST(request: NextRequest) {
       subtitle: body.subtitle || DEFAULT_SETTINGS.subtitle,
     };
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       settings,
     });
   } catch (error) {
     log.error('Error validating settings:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to validate settings' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

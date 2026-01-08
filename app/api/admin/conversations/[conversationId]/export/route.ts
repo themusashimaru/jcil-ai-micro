@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('AdminConversationExport');
 
@@ -59,6 +60,10 @@ export async function GET(
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
 
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:export:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
     const { conversationId } = params;
     const supabase = getSupabaseAdmin();
 
@@ -70,10 +75,7 @@ export async function GET(
       .single();
 
     if (convError || !conversation) {
-      return NextResponse.json(
-        { error: 'Conversation not found' },
-        { status: 404 }
-      );
+      return errors.notFound('Conversation');
     }
 
     // Fetch all messages
@@ -85,10 +87,7 @@ export async function GET(
       .order('created_at', { ascending: true });
 
     if (msgError) {
-      return NextResponse.json(
-        { error: 'Failed to fetch messages' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Log admin export for audit trail
@@ -107,10 +106,7 @@ export async function GET(
     });
   } catch (error) {
     log.error('[Admin API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 

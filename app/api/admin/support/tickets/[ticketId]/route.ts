@@ -6,8 +6,12 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
+import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+
+const log = logger('AdminTicketAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -34,6 +38,10 @@ export async function GET(
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
 
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:ticket:get:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
     const { ticketId } = params;
     const supabase = getSupabaseAdmin();
 
@@ -45,10 +53,7 @@ export async function GET(
       .single();
 
     if (ticketError || !ticket) {
-      return NextResponse.json(
-        { error: 'Ticket not found' },
-        { status: 404 }
-      );
+      return errors.notFound('Ticket');
     }
 
     // Mark as read if not already
@@ -80,13 +85,13 @@ export async function GET(
       .order('created_at', { ascending: true });
 
     if (repliesError) {
-      console.error('[Admin Support API] Error fetching replies:', repliesError);
+      log.error('[Admin Support API] Error fetching replies:', repliesError instanceof Error ? repliesError : { repliesError });
     }
 
     // Log admin access
-    console.log(`[Admin Audit] Admin viewed ticket: ${ticketId}`);
+    log.info(`[Admin Audit] Admin viewed ticket: ${ticketId}`);
 
-    return NextResponse.json({
+    return successResponse({
       ticket: {
         ...ticket,
         user,
@@ -95,11 +100,8 @@ export async function GET(
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('[Admin Support API] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    log.error('[Admin Support API] Error:', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }
 
@@ -114,6 +116,10 @@ export async function PATCH(
     // Include request for CSRF validation on state-changing operation
     const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
+
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:ticket:patch:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { ticketId } = params;
     const body = await request.json();
@@ -133,10 +139,7 @@ export async function PATCH(
     }
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { error: 'No valid fields to update' },
-        { status: 400 }
-      );
+      return errors.badRequest('No valid fields to update');
     }
 
     const supabase = getSupabaseAdmin();
@@ -148,22 +151,16 @@ export async function PATCH(
       .single();
 
     if (error) {
-      console.error('[Admin Support API] Error updating ticket:', error);
-      return NextResponse.json(
-        { error: 'Failed to update ticket' },
-        { status: 500 }
-      );
+      log.error('[Admin Support API] Error updating ticket:', error instanceof Error ? error : { error });
+      return errors.serverError();
     }
 
-    console.log(`[Admin Audit] Ticket ${ticketId} updated:`, updates);
+    log.info(`[Admin Audit] Ticket ${ticketId} updated:`, updates);
 
-    return NextResponse.json({ ticket, success: true });
+    return successResponse({ ticket, success: true });
   } catch (error) {
-    console.error('[Admin Support API] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    log.error('[Admin Support API] Error:', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }
 
@@ -179,15 +176,16 @@ export async function POST(
     const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
 
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:ticket:reply:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
     const { ticketId } = params;
     const body = await request.json();
     const { message, isInternalNote, deliveryMethod } = body;
 
     if (!message?.trim()) {
-      return NextResponse.json(
-        { error: 'Message is required' },
-        { status: 400 }
-      );
+      return errors.badRequest('Message is required');
     }
 
     const supabase = getSupabaseAdmin();
@@ -221,11 +219,8 @@ export async function POST(
       .single();
 
     if (error) {
-      console.error('[Admin Support API] Error creating reply:', error);
-      return NextResponse.json(
-        { error: 'Failed to create reply' },
-        { status: 500 }
-      );
+      log.error('[Admin Support API] Error creating reply:', error instanceof Error ? error : { error });
+      return errors.serverError();
     }
 
     // Update ticket status to awaiting_reply if not an internal note
@@ -251,22 +246,19 @@ export async function POST(
           });
 
         if (messageError) {
-          console.error('[Admin Support API] Error sending to user inbox:', messageError);
+          log.error('[Admin Support API] Error sending to user inbox:', messageError instanceof Error ? messageError : { messageError });
           // Don't fail the request - reply was still saved
         } else {
-          console.log(`[Admin Audit] Reply also sent to user inbox: ${ticket.user_id}`);
+          log.info(`[Admin Audit] Reply also sent to user inbox: ${ticket.user_id}`);
         }
       }
     }
 
-    console.log(`[Admin Audit] Reply added to ticket ${ticketId}`);
+    log.info(`[Admin Audit] Reply added to ticket ${ticketId}`);
 
-    return NextResponse.json({ reply, success: true });
+    return successResponse({ reply, success: true });
   } catch (error) {
-    console.error('[Admin Support API] Error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    log.error('[Admin Support API] Error:', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }

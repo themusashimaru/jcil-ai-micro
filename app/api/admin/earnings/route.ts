@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('AdminEarningsAPI');
 
@@ -31,6 +32,10 @@ export async function GET(request: NextRequest) {
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
 
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:earnings:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
     const supabase = getSupabaseAdmin();
 
     // Parse query parameters
@@ -46,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     if (usersError) {
       log.error('Error fetching users', { error: usersError ?? 'Unknown error' });
-      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+      return errors.serverError();
     }
 
     const tierCounts = {
@@ -113,7 +118,7 @@ export async function GET(request: NextRequest) {
     const { data: usageData, error: usageError } = await usageQuery;
 
     if (usageError) {
-      console.error('Error fetching usage data:', usageError);
+      log.error('Error fetching usage data:', usageError instanceof Error ? usageError : { usageError });
     }
 
     // Calculate costs by model
@@ -189,7 +194,7 @@ export async function GET(request: NextRequest) {
     const { data: newsData, error: newsError } = await newsQuery;
 
     if (newsError) {
-      console.error('Error fetching news costs:', newsError);
+      log.error('Error fetching news costs:', newsError instanceof Error ? newsError : { newsError });
     }
 
     const newsCosts = {
@@ -226,8 +231,7 @@ export async function GET(request: NextRequest) {
       profit: profitByTier.total / daysInRange,
     };
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       data: {
         users: {
           byTier: tierCounts,
@@ -261,10 +265,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    log.error('Error calculating earnings', error as Error);
-    return NextResponse.json(
-      { error: 'Failed to calculate earnings' },
-      { status: 500 }
-    );
+    log.error('Error calculating earnings', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }

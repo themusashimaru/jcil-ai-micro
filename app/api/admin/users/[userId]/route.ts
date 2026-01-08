@@ -5,9 +5,10 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('AdminUserAPI');
 
@@ -33,6 +34,10 @@ export async function GET(
     // Require admin authentication
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
+
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:user:get:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { userId } = params;
     const supabase = getSupabaseAdmin();
@@ -66,16 +71,10 @@ export async function GET(
       log.error('Error fetching user', error instanceof Error ? error : { error });
 
       if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
+        return errors.notFound('User');
       }
 
-      return NextResponse.json(
-        { error: 'Failed to fetch user' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Get conversation count for this user
@@ -95,7 +94,7 @@ export async function GET(
     // Log admin access for audit trail
     log.info(`Admin viewed user: ${userId}`);
 
-    return NextResponse.json({
+    return successResponse({
       user: {
         ...user,
         conversation_count: conversationCount || 0,
@@ -104,10 +103,7 @@ export async function GET(
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    log.error('Unexpected error', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    log.error('Unexpected error', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }

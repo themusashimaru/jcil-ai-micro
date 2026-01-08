@@ -5,10 +5,11 @@
  * Supports images (PNG, JPEG, ICO, GIF) and videos (MP4, WebM) for animated logos
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('AdminUpload');
 
@@ -37,15 +38,16 @@ export async function POST(request: NextRequest) {
     const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
 
+    // Rate limit by admin - strict for uploads
+    const rateLimitResult = checkRequestRateLimit(`admin:upload:${auth.user.id}`, rateLimits.strict);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const fileType = formData.get('type') as string; // e.g., 'main_logo', 'favicon', etc.
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+      return errors.badRequest('No file provided');
     }
 
     // Validate file type first
@@ -53,10 +55,7 @@ export async function POST(request: NextRequest) {
     const isImage = IMAGE_TYPES.includes(file.type);
 
     if (!isVideo && !isImage) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Please upload PNG, JPEG, GIF, ICO, MP4, or WebM files.' },
-        { status: 400 }
-      );
+      return errors.badRequest('Invalid file type. Please upload PNG, JPEG, GIF, ICO, MP4, or WebM files.');
     }
 
     // Validate file size - 5MB for images, 15MB for videos
@@ -64,10 +63,7 @@ export async function POST(request: NextRequest) {
     const maxSizeLabel = isVideo ? '15MB' : '5MB';
 
     if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: `File size must be less than ${maxSizeLabel}` },
-        { status: 400 }
-      );
+      return errors.badRequest(`File size must be less than ${maxSizeLabel}`);
     }
 
     // Get Supabase admin client
@@ -81,8 +77,7 @@ export async function POST(request: NextRequest) {
       const base64 = buffer.toString('base64');
       const dataUrl = `data:${file.type};base64,${base64}`;
 
-      return NextResponse.json({
-        success: true,
+      return successResponse({
         url: dataUrl,
         type: file.type,
         size: file.size,
@@ -122,10 +117,7 @@ export async function POST(request: NextRequest) {
 
         if (bucketError && !bucketError.message.includes('already exists')) {
           log.error('[Upload] Failed to create bucket:', bucketError);
-          return NextResponse.json(
-            { error: 'Storage not available. Please create "branding" bucket in Supabase.' },
-            { status: 500 }
-          );
+          return errors.serverError();
         }
 
         // Retry upload
@@ -139,16 +131,10 @@ export async function POST(request: NextRequest) {
 
         if (retryResult.error) {
           log.error('[Upload] Retry failed:', retryResult.error);
-          return NextResponse.json(
-            { error: 'Failed to upload file to storage' },
-            { status: 500 }
-          );
+          return errors.serverError();
         }
       } else {
-        return NextResponse.json(
-          { error: 'Failed to upload file to storage' },
-          { status: 500 }
-        );
+        return errors.serverError();
       }
     }
 
@@ -161,8 +147,7 @@ export async function POST(request: NextRequest) {
 
     log.info('[Upload] File uploaded successfully', { publicUrl });
 
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       url: publicUrl,
       type: file.type,
       size: file.size,
@@ -171,9 +156,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     log.error('Upload error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to upload file' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

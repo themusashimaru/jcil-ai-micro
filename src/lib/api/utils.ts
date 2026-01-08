@@ -258,6 +258,9 @@ export const rateLimits = {
   /** Upload rate limit: 10 req/min */
   upload: { limit: 10, windowMs: 60_000 },
 
+  /** Admin rate limit: 60 req/min (same as standard, but explicit for admin routes) */
+  admin: { limit: 60, windowMs: 60_000 },
+
   /** AI/Chat rate limit: 20 req/min */
   ai: { limit: 20, windowMs: 60_000 },
 };
