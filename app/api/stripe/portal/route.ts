@@ -9,6 +9,8 @@ import { cookies } from 'next/headers';
 import { createBillingPortalSession } from '@/lib/stripe/client';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { stripePortalSchema } from '@/lib/validation/schemas';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('StripePortal');
 
@@ -39,6 +41,10 @@ async function getSupabaseClient() {
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF Protection
+    const csrfCheck = validateCSRF(request);
+    if (!csrfCheck.valid) return csrfCheck.response!;
+
     const supabase = await getSupabaseClient();
 
     // Check authentication
@@ -66,9 +72,16 @@ export async function POST(request: NextRequest) {
       return errors.notFound('Subscription');
     }
 
-    // Get return URL from request body (optional)
-    const body = await request.json().catch(() => ({}));
-    const returnUrl = body.returnUrl;
+    // Parse and validate return URL from request body
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
+      rawBody = {};
+    }
+
+    const validation = stripePortalSchema.safeParse(rawBody);
+    const returnUrl = validation.success ? validation.data.returnUrl : undefined;
 
     // Create billing portal session
     const session = await createBillingPortalSession(

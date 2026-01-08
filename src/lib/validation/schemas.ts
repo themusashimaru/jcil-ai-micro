@@ -235,6 +235,263 @@ export const checkoutSchema = z.object({
   cancelUrl: urlSchema.optional(),
 });
 
+/** Stripe portal request */
+export const stripePortalSchema = z.object({
+  returnUrl: urlSchema.optional(),
+});
+
+// ========================================
+// WEBAUTHN/PASSKEY SCHEMAS
+// ========================================
+
+/** WebAuthn registration options request */
+export const webAuthnRegisterOptionsSchema = z.object({
+  deviceName: z.string().min(1).max(100).optional(),
+});
+
+/** WebAuthn registration verification */
+export const webAuthnRegisterVerifySchema = z.object({
+  response: z.object({
+    id: z.string(),
+    rawId: z.string(),
+    response: z.object({
+      clientDataJSON: z.string(),
+      attestationObject: z.string(),
+      transports: z.array(z.string()).optional(),
+    }),
+    type: z.literal('public-key'),
+    clientExtensionResults: z.record(z.unknown()).optional(),
+  }),
+  challengeKey: z.string().min(1),
+  deviceName: z.string().max(100).optional(),
+});
+
+/** WebAuthn authentication options request */
+export const webAuthnAuthOptionsSchema = z.object({
+  email: emailSchema.optional(),
+});
+
+/** WebAuthn authentication verification */
+export const webAuthnAuthVerifySchema = z.object({
+  response: z.object({
+    id: z.string(),
+    rawId: z.string(),
+    response: z.object({
+      clientDataJSON: z.string(),
+      authenticatorData: z.string(),
+      signature: z.string(),
+      userHandle: z.string().optional(),
+    }),
+    type: z.literal('public-key'),
+    clientExtensionResults: z.record(z.unknown()).optional(),
+  }),
+  challengeKey: z.string().min(1),
+});
+
+// ========================================
+// CHAT SCHEMAS
+// ========================================
+
+/** Chat message in conversation */
+export const chatMessageSchema = z.object({
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.string().max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH),
+});
+
+/** Main chat request */
+export const chatRequestSchema = z.object({
+  messages: z.array(chatMessageSchema).min(1).max(100),
+  conversationId: uuidSchema.optional(),
+  searchMode: z.enum(['none', 'search', 'factcheck']).optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  max_tokens: z.number().int().min(1).max(128000).optional(),
+  model: z.string().max(100).optional(),
+  tool_context: z.string().max(50).optional(),
+});
+
+/** Generate title request */
+export const generateTitleSchema = z.object({
+  userMessage: z.string().min(1).max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH),
+  assistantMessage: z.string().max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH).optional(),
+});
+
+// ========================================
+// CODE LAB EXTENDED SCHEMAS
+// ========================================
+
+/** Code lab chat request */
+export const codeLabChatSchema = z.object({
+  sessionId: uuidSchema,
+  content: z.string().max(100000).optional(),
+  repo: z.string().max(500).optional(),
+  attachments: z.array(z.object({
+    name: z.string().max(255),
+    content: z.string().max(10000000), // 10MB base64
+    type: z.string().max(100),
+  })).max(10).optional(),
+  forceSearch: z.boolean().optional(),
+});
+
+/** Code lab session create */
+export const codeLabSessionCreateSchema = z.object({
+  title: z.string().min(1).max(200).default('New Session'),
+  repo: z.string().max(500).optional(),
+  language: z.string().max(50).optional(),
+  framework: z.string().max(50).optional(),
+});
+
+/** Code lab file operation */
+export const codeLabFileSchema = z.object({
+  path: z.string().min(1).max(1000),
+  content: z.string().max(10000000).optional(), // 10MB max
+  operation: z.enum(['read', 'write', 'delete', 'create']).optional(),
+});
+
+/** Code lab deploy request */
+export const codeLabDeploySchema = z.object({
+  sessionId: uuidSchema,
+  platform: z.enum(['vercel', 'netlify', 'cloudflare', 'railway']),
+  config: z.object({
+    projectName: z.string().min(1).max(100).optional(),
+    environmentVariables: z.record(z.string()).optional(),
+    buildCommand: z.string().max(500).optional(),
+    outputDirectory: z.string().max(255).optional(),
+  }),
+});
+
+// ========================================
+// ADMIN EXTENDED SCHEMAS
+// ========================================
+
+/** Admin users query params */
+export const adminUsersQuerySchema = paginationSchema.extend({
+  search: z.string().max(200).optional(),
+  tier: z.enum(['free', 'plus', 'pro', 'executive', 'all']).optional(),
+  status: z.enum(['active', 'inactive', 'banned', 'all']).optional(),
+  sort: z.enum(['created_at', 'email', 'subscription_tier', 'last_message_date']).default('created_at'),
+  order: z.enum(['asc', 'desc']).default('desc'),
+});
+
+/** Admin tickets query params */
+export const adminTicketsQuerySchema = paginationSchema.extend({
+  search: z.string().max(200).optional(),
+  status: ticketStatusSchema.optional(),
+  priority: ticketPrioritySchema.optional(),
+  category: z.string().max(50).optional(),
+  assignedTo: uuidSchema.optional(),
+});
+
+/** Admin messages send */
+export const adminMessageSchema = z.object({
+  recipient_type: z.enum(['individual', 'broadcast']),
+  recipient_user_id: uuidSchema.optional(),
+  recipient_email: emailSchema.optional(),
+  recipient_tier: z.enum(['free', 'basic', 'pro', 'executive', 'all']).optional(),
+  subject: z.string().min(1).max(200),
+  message: z.string().min(1).max(10000),
+  message_type: z.enum(['general', 'account', 'feature', 'maintenance', 'promotion', 'support_response', 'welcome', 'warning']).default('general'),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+  expires_at: z.string().datetime().optional(),
+}).refine(
+  (data) => {
+    if (data.recipient_type === 'individual') {
+      return data.recipient_user_id || data.recipient_email;
+    }
+    if (data.recipient_type === 'broadcast') {
+      return data.recipient_tier;
+    }
+    return false;
+  },
+  { message: 'Individual messages require user ID or email, broadcast requires tier' }
+);
+
+// ========================================
+// UPLOAD SCHEMAS
+// ========================================
+
+/** Upload start request */
+export const uploadStartSchema = z.object({
+  filename: z.string().min(1).max(255),
+  contentType: z.string().min(1).max(100),
+  size: z.number().int().min(1).max(FILE_LIMITS.MAX_TOTAL_UPLOAD_SIZE),
+  folder: z.string().max(255).optional(),
+});
+
+/** Upload complete request */
+export const uploadCompleteSchema = z.object({
+  uploadId: z.string().min(1).max(100),
+  parts: z.array(z.object({
+    partNumber: z.number().int().min(1),
+    etag: z.string().min(1),
+  })).optional(),
+});
+
+// ========================================
+// FOLDER SCHEMAS
+// ========================================
+
+/** Create folder */
+export const createFolderSchema = z.object({
+  name: z.string().min(1).max(100),
+  parent_id: uuidSchema.optional().nullable(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+});
+
+/** Update folder */
+export const updateFolderSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  parent_id: uuidSchema.optional().nullable(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+});
+
+// ========================================
+// DOCUMENT GENERATION SCHEMAS
+// ========================================
+
+/** Document generate request */
+export const documentGenerateSchema = z.object({
+  type: z.enum(['invoice', 'resume', 'letter', 'report', 'spreadsheet', 'presentation']),
+  format: z.enum(['pdf', 'docx', 'xlsx', 'pptx']).default('pdf'),
+  data: z.record(z.unknown()),
+  template: z.string().max(100).optional(),
+});
+
+// ========================================
+// IMAGE GENERATION SCHEMAS
+// ========================================
+
+/** Image generate request */
+export const imageGenerateSchema = z.object({
+  prompt: z.string().min(1).max(4000),
+  size: z.enum(['256x256', '512x512', '1024x1024', '1024x1792', '1792x1024']).default('1024x1024'),
+  quality: z.enum(['standard', 'hd']).default('standard'),
+  style: z.enum(['vivid', 'natural']).default('vivid'),
+  n: z.number().int().min(1).max(4).default(1),
+});
+
+// ========================================
+// CONNECTOR SCHEMAS
+// ========================================
+
+/** Connector configuration */
+export const connectorConfigSchema = z.object({
+  type: z.enum(['github', 'slack', 'notion', 'google', 'stripe']),
+  credentials: z.record(z.string()).optional(),
+  settings: z.record(z.unknown()).optional(),
+});
+
+// ========================================
+// QR CODE SCHEMAS
+// ========================================
+
+/** QR code generate request */
+export const qrCodeGenerateSchema = z.object({
+  data: z.string().min(1).max(4000),
+  size: z.number().int().min(100).max(1000).default(256),
+  format: z.enum(['png', 'svg']).default('png'),
+  errorCorrection: z.enum(['L', 'M', 'Q', 'H']).default('M'),
+});
+
 // ========================================
 // HELPER FUNCTIONS
 // ========================================

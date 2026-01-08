@@ -25,6 +25,20 @@ import {
   validateBody,
   validateQuery,
   validationErrorResponse,
+  // New security schemas
+  chatMessageSchema,
+  chatRequestSchema,
+  generateTitleSchema,
+  webAuthnRegisterVerifySchema,
+  webAuthnAuthVerifySchema,
+  codeLabChatSchema,
+  codeLabDeploySchema,
+  adminUsersQuerySchema,
+  adminMessageSchema,
+  uploadStartSchema,
+  createFolderSchema,
+  imageGenerateSchema,
+  qrCodeGenerateSchema,
 } from './schemas';
 
 describe('Validation Schemas', () => {
@@ -436,6 +450,367 @@ describe('Validation Schemas', () => {
       expect(response.error).toBe('Validation Error');
       expect(response.code).toBe('VALIDATION_FAILED');
       expect(response.details[0].field).toBe('email');
+    });
+  });
+});
+
+// ========================================
+// NEW SECURITY SCHEMAS TESTS
+// ========================================
+
+describe('Chat Schemas', () => {
+  describe('chatMessageSchema', () => {
+    it('should accept valid chat message', () => {
+      
+      const result = chatMessageSchema.safeParse({
+        role: 'user',
+        content: 'Hello, how are you?',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid role', () => {
+      
+      const result = chatMessageSchema.safeParse({
+        role: 'admin',
+        content: 'Hello',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('chatRequestSchema', () => {
+    it('should accept valid chat request', () => {
+      
+      const result = chatRequestSchema.safeParse({
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject empty messages array', () => {
+      
+      const result = chatRequestSchema.safeParse({
+        messages: [],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept valid searchMode', () => {
+      
+      const result = chatRequestSchema.safeParse({
+        messages: [{ role: 'user', content: 'Search for AI news' }],
+        searchMode: 'search',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept temperature within range', () => {
+      
+      const result = chatRequestSchema.safeParse({
+        messages: [{ role: 'user', content: 'Hello' }],
+        temperature: 0.7,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject temperature out of range', () => {
+      
+      const result = chatRequestSchema.safeParse({
+        messages: [{ role: 'user', content: 'Hello' }],
+        temperature: 3.0,
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('generateTitleSchema', () => {
+    it('should accept valid title generation request', () => {
+      
+      const result = generateTitleSchema.safeParse({
+        userMessage: 'How do I learn Python?',
+        assistantMessage: 'Python is a great language to learn...',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should require userMessage', () => {
+      
+      const result = generateTitleSchema.safeParse({
+        assistantMessage: 'Response without question',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+describe('WebAuthn Schemas', () => {
+  describe('webAuthnRegisterVerifySchema', () => {
+    it('should accept valid registration response', () => {
+      
+      const result = webAuthnRegisterVerifySchema.safeParse({
+        response: {
+          id: 'credential-id',
+          rawId: 'raw-id-base64',
+          response: {
+            clientDataJSON: 'client-data-base64',
+            attestationObject: 'attestation-base64',
+          },
+          type: 'public-key',
+        },
+        challengeKey: 'challenge-key-123',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject missing challengeKey', () => {
+      
+      const result = webAuthnRegisterVerifySchema.safeParse({
+        response: {
+          id: 'credential-id',
+          rawId: 'raw-id-base64',
+          response: {
+            clientDataJSON: 'client-data-base64',
+            attestationObject: 'attestation-base64',
+          },
+          type: 'public-key',
+        },
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('webAuthnAuthVerifySchema', () => {
+    it('should accept valid authentication response', () => {
+      
+      const result = webAuthnAuthVerifySchema.safeParse({
+        response: {
+          id: 'credential-id',
+          rawId: 'raw-id-base64',
+          response: {
+            clientDataJSON: 'client-data-base64',
+            authenticatorData: 'auth-data-base64',
+            signature: 'signature-base64',
+          },
+          type: 'public-key',
+        },
+        challengeKey: 'challenge-key-123',
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+});
+
+describe('Code Lab Schemas', () => {
+  describe('codeLabChatSchema', () => {
+    it('should accept valid code lab chat request', () => {
+      
+      const result = codeLabChatSchema.safeParse({
+        sessionId: '550e8400-e29b-41d4-a716-446655440000',
+        content: 'Help me write a function',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid sessionId', () => {
+      
+      const result = codeLabChatSchema.safeParse({
+        sessionId: 'not-a-uuid',
+        content: 'Help me',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('codeLabDeploySchema', () => {
+    it('should accept valid deploy request', () => {
+      
+      const result = codeLabDeploySchema.safeParse({
+        sessionId: '550e8400-e29b-41d4-a716-446655440000',
+        platform: 'vercel',
+        config: {
+          projectName: 'my-app',
+        },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid platform', () => {
+      
+      const result = codeLabDeploySchema.safeParse({
+        sessionId: '550e8400-e29b-41d4-a716-446655440000',
+        platform: 'aws',
+        config: {},
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+describe('Admin Schemas', () => {
+  describe('adminUsersQuerySchema', () => {
+    it('should accept valid admin query', () => {
+      
+      const result = adminUsersQuerySchema.safeParse({
+        page: 1,
+        limit: 50,
+        search: 'test@example.com',
+        tier: 'pro',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should apply defaults', () => {
+      
+      const result = adminUsersQuerySchema.safeParse({});
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.page).toBe(1);
+        expect(result.data.sort).toBe('created_at');
+        expect(result.data.order).toBe('desc');
+      }
+    });
+  });
+
+  describe('adminMessageSchema', () => {
+    it('should accept valid individual message', () => {
+      
+      const result = adminMessageSchema.safeParse({
+        recipient_type: 'individual',
+        recipient_email: 'user@example.com',
+        subject: 'Welcome!',
+        message: 'Welcome to our platform.',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept valid broadcast message', () => {
+      
+      const result = adminMessageSchema.safeParse({
+        recipient_type: 'broadcast',
+        recipient_tier: 'all',
+        subject: 'Announcement',
+        message: 'Important update for all users.',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject individual message without recipient', () => {
+      
+      const result = adminMessageSchema.safeParse({
+        recipient_type: 'individual',
+        subject: 'Hello',
+        message: 'No recipient specified.',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+describe('Upload Schemas', () => {
+  describe('uploadStartSchema', () => {
+    it('should accept valid upload start request', () => {
+      
+      const result = uploadStartSchema.safeParse({
+        filename: 'document.pdf',
+        contentType: 'application/pdf',
+        size: 1024000,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject file exceeding size limit', () => {
+      
+      const result = uploadStartSchema.safeParse({
+        filename: 'huge.zip',
+        contentType: 'application/zip',
+        size: 100 * 1024 * 1024 * 1024, // 100GB
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+describe('Folder Schemas', () => {
+  describe('createFolderSchema', () => {
+    it('should accept valid folder creation', () => {
+      
+      const result = createFolderSchema.safeParse({
+        name: 'My Folder',
+        color: '#FF5733',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid color format', () => {
+      
+      const result = createFolderSchema.safeParse({
+        name: 'My Folder',
+        color: 'red',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+describe('Image Generation Schema', () => {
+  describe('imageGenerateSchema', () => {
+    it('should accept valid image generation request', () => {
+      
+      const result = imageGenerateSchema.safeParse({
+        prompt: 'A beautiful sunset over mountains',
+        size: '1024x1024',
+        quality: 'hd',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should apply defaults', () => {
+      
+      const result = imageGenerateSchema.safeParse({
+        prompt: 'A cat',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.size).toBe('1024x1024');
+        expect(result.data.quality).toBe('standard');
+        expect(result.data.n).toBe(1);
+      }
+    });
+
+    it('should reject empty prompt', () => {
+      
+      const result = imageGenerateSchema.safeParse({
+        prompt: '',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+});
+
+describe('QR Code Schema', () => {
+  describe('qrCodeGenerateSchema', () => {
+    it('should accept valid QR code request', () => {
+      
+      const result = qrCodeGenerateSchema.safeParse({
+        data: 'https://example.com',
+        size: 512,
+        format: 'svg',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should apply defaults', () => {
+      
+      const result = qrCodeGenerateSchema.safeParse({
+        data: 'https://example.com',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.size).toBe(256);
+        expect(result.data.format).toBe('png');
+        expect(result.data.errorCorrection).toBe('M');
+      }
     });
   });
 });
