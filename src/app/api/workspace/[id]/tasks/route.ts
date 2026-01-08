@@ -7,6 +7,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
+import { validateCSRF } from '@/lib/security/csrf';
+import { validateQueryLimit } from '@/lib/security/validation';
+import { logger } from '@/lib/logger';
+
+const log = logger('TasksAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -29,7 +34,8 @@ export async function GET(
 
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
-    const limit = parseInt(url.searchParams.get('limit') || '20');
+    // SECURITY: Validate limit parameter
+    const limit = validateQueryLimit(url.searchParams.get('limit'), { default: 20, max: 100 });
 
     let query = supabase
       .from('background_tasks')
@@ -50,7 +56,7 @@ export async function GET(
     return NextResponse.json({ tasks });
 
   } catch (error) {
-    console.error('Failed to list tasks:', error);
+    log.error('Failed to list tasks', error as Error);
     return NextResponse.json({ error: 'Failed to list tasks' }, { status: 500 });
   }
 }
@@ -62,6 +68,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -120,7 +130,7 @@ export async function POST(
     }, { status: 202 }); // 202 Accepted
 
   } catch (error) {
-    console.error('Failed to start task:', error);
+    log.error('Failed to start task', error as Error);
     return NextResponse.json({ error: 'Failed to start task' }, { status: 500 });
   }
 }
@@ -198,6 +208,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -250,7 +264,7 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('Task execution failed:', error);
+    log.error('Task execution failed', error as Error);
     return NextResponse.json({ error: 'Task execution failed' }, { status: 500 });
   }
 }

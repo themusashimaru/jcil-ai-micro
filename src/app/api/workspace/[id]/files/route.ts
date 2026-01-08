@@ -7,6 +7,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
+import { validateCSRF } from '@/lib/security/csrf';
+import { sanitizeFilePath } from '@/lib/workspace/security';
+import { logger } from '@/lib/logger';
+
+const log = logger('FilesAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -40,7 +45,9 @@ export async function GET(
     }
 
     const url = new URL(request.url);
-    const path = url.searchParams.get('path') || '/workspace';
+    // SECURITY: Sanitize path to prevent traversal attacks
+    const rawPath = url.searchParams.get('path') || '/workspace';
+    const path = sanitizeFilePath(rawPath, '/workspace');
     const action = url.searchParams.get('action') || 'read'; // 'read' or 'list'
 
     const container = new ContainerManager();
@@ -54,9 +61,9 @@ export async function GET(
     }
 
   } catch (error) {
-    console.error('File operation failed:', error);
+    log.error('File operation failed', error as Error);
     return NextResponse.json(
-      { error: 'File operation failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'File operation failed' },
       { status: 500 }
     );
   }
@@ -69,6 +76,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -91,11 +102,14 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { path, content } = body;
+    const { path: rawPath, content } = body;
 
-    if (!path) {
+    if (!rawPath) {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 });
     }
+
+    // SECURITY: Sanitize path
+    const path = sanitizeFilePath(rawPath, '/workspace');
 
     const container = new ContainerManager();
     await container.writeFile(workspaceId, path, content || '');
@@ -103,9 +117,9 @@ export async function POST(
     return NextResponse.json({ success: true, path });
 
   } catch (error) {
-    console.error('File write failed:', error);
+    log.error('File write failed', error as Error);
     return NextResponse.json(
-      { error: 'File write failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'File write failed' },
       { status: 500 }
     );
   }
@@ -118,6 +132,10 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -151,12 +169,14 @@ export async function PUT(
 
     for (const op of operations) {
       try {
+        // SECURITY: Sanitize each path
+        const safePath = sanitizeFilePath(op.path, '/workspace');
         if (op.action === 'delete') {
-          await container.deleteFile(workspaceId, op.path);
+          await container.deleteFile(workspaceId, safePath);
         } else {
-          await container.writeFile(workspaceId, op.path, op.content || '');
+          await container.writeFile(workspaceId, safePath, op.content || '');
         }
-        results.push({ path: op.path, success: true });
+        results.push({ path: safePath, success: true });
       } catch (error) {
         results.push({
           path: op.path,
@@ -174,9 +194,9 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('Batch file operation failed:', error);
+    log.error('Batch file operation failed', error as Error);
     return NextResponse.json(
-      { error: 'Batch operation failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Batch operation failed' },
       { status: 500 }
     );
   }
@@ -189,6 +209,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -211,11 +235,14 @@ export async function DELETE(
     }
 
     const url = new URL(request.url);
-    const path = url.searchParams.get('path');
+    const rawPath = url.searchParams.get('path');
 
-    if (!path) {
+    if (!rawPath) {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 });
     }
+
+    // SECURITY: Sanitize path
+    const path = sanitizeFilePath(rawPath, '/workspace');
 
     const container = new ContainerManager();
     await container.deleteFile(workspaceId, path);
@@ -223,9 +250,9 @@ export async function DELETE(
     return NextResponse.json({ success: true, path });
 
   } catch (error) {
-    console.error('File delete failed:', error);
+    log.error('File delete failed', error as Error);
     return NextResponse.json(
-      { error: 'File delete failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'File delete failed' },
       { status: 500 }
     );
   }

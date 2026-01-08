@@ -7,6 +7,10 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
+import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('StreamAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -18,6 +22,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -119,10 +127,9 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Streaming error:', error);
+    log.error('Streaming error', error as Error);
     return new Response(JSON.stringify({
       error: 'Streaming failed',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -172,6 +179,14 @@ export async function GET(
     // Keep connection alive and send periodic updates
     let isOpen = true;
 
+    // MEMORY LEAK FIX: Use AbortController for cleanup
+    const abortHandler = () => {
+      isOpen = false;
+    };
+
+    // Handle client disconnect with proper cleanup
+    request.signal.addEventListener('abort', abortHandler);
+
     const sendHeartbeat = async () => {
       while (isOpen) {
         try {
@@ -196,15 +211,24 @@ export async function GET(
           break;
         }
       }
+
+      // MEMORY LEAK FIX: Clean up event listener when done
+      try {
+        request.signal.removeEventListener('abort', abortHandler);
+      } catch {
+        // Signal may already be aborted, ignore
+      }
+
+      // Close the writer
+      try {
+        await writer.close();
+      } catch {
+        // Writer may already be closed, ignore
+      }
     };
 
-    // Start heartbeat
+    // Start heartbeat (runs async, cleans up on completion)
     sendHeartbeat();
-
-    // Handle client disconnect
-    request.signal.addEventListener('abort', () => {
-      isOpen = false;
-    });
 
     return new Response(stream.readable, {
       headers: {
@@ -215,7 +239,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Event stream error:', error);
+    log.error('Event stream error', error as Error);
     return new Response(JSON.stringify({ error: 'Event stream failed' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

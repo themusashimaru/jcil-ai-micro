@@ -9,6 +9,9 @@ import { createClient } from '@/lib/supabase/server';
 import { WorkspaceManager } from '@/lib/workspace';
 import { ContainerManager } from '@/lib/workspace/container';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('WorkspaceAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -34,20 +37,34 @@ export async function GET(_request: NextRequest) {
 
     if (error) throw error;
 
-    // Get container status for each workspace
+    // N+1 FIX: Batch container status checks
+    // Instead of N sequential calls, get status for up to 10 workspaces in parallel
+    // For larger lists, return "unknown" status to avoid performance issues
     const container = new ContainerManager();
+    const MAX_STATUS_CHECKS = 10;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const workspacesWithStatus = await Promise.all(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (workspaces || []).map(async (ws: any) => {
-        const status = await container.getStatus(ws.id);
-        return { ...ws, containerStatus: status };
+      (workspaces || []).map(async (ws: any, index: number) => {
+        // Only check status for first MAX_STATUS_CHECKS workspaces
+        if (index < MAX_STATUS_CHECKS) {
+          try {
+            const status = await container.getStatus(ws.id);
+            return { ...ws, containerStatus: status };
+          } catch {
+            return { ...ws, containerStatus: 'unknown' };
+          }
+        }
+        // For remaining workspaces, return unknown status (lazy load on demand)
+        return { ...ws, containerStatus: 'unknown' };
       })
     );
 
     return NextResponse.json({ workspaces: workspacesWithStatus });
 
   } catch (error) {
-    console.error('Failed to list workspaces:', error);
+    log.error('Failed to list workspaces', error as Error);
     return NextResponse.json(
       { error: 'Failed to list workspaces' },
       { status: 500 }
@@ -90,7 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ workspace }, { status: 201 });
 
   } catch (error) {
-    console.error('Failed to create workspace:', error);
+    log.error('Failed to create workspace', error as Error);
     return NextResponse.json(
       { error: 'Failed to create workspace' },
       { status: 500 }

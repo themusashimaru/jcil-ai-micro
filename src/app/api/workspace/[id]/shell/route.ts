@@ -7,6 +7,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
+import { validateCSRF } from '@/lib/security/csrf';
+import { validateQueryLimit } from '@/lib/security/validation';
+import { logger } from '@/lib/logger';
+
+const log = logger('ShellAPI');
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for long-running commands
@@ -18,6 +23,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { id: workspaceId } = await params;
     const supabase = await createClient();
@@ -72,9 +81,9 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Shell execution failed:', error);
+    log.error('Shell execution failed', error as Error);
     return NextResponse.json(
-      { error: 'Command execution failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Command execution failed' },
       { status: 500 }
     );
   }
@@ -97,7 +106,8 @@ export async function GET(
     }
 
     const url = new URL(request.url);
-    const limit = parseInt(url.searchParams.get('limit') || '50');
+    // SECURITY: Validate limit parameter
+    const limit = validateQueryLimit(url.searchParams.get('limit'), { default: 50, max: 200 });
 
     const { data: commands, error } = await supabase
       .from('shell_commands')
@@ -111,7 +121,7 @@ export async function GET(
     return NextResponse.json({ commands });
 
   } catch (error) {
-    console.error('Failed to get command history:', error);
+    log.error('Failed to get command history', error as Error);
     return NextResponse.json({ error: 'Failed to get command history' }, { status: 500 });
   }
 }
