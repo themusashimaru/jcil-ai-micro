@@ -88,7 +88,7 @@ async function checkCache(): Promise<ComponentHealth> {
     await redis.ping();
 
     return { status: 'up', latency: Date.now() - start };
-  } catch (error) {
+  } catch {
     return {
       status: 'degraded',
       latency: Date.now() - start,
