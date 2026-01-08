@@ -4,7 +4,7 @@
  * Tests for DoS protection via request size limits
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { validateRequestSize, SIZE_LIMITS, checkContentLength } from './request-size';
 
 // Mock logger
