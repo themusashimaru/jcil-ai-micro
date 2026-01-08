@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
 import {
   uuidSchema,
   emailSchema,
@@ -426,8 +427,12 @@ describe('Validation Schemas', () => {
 
   describe('validationErrorResponse', () => {
     it('should create error response object', () => {
-      const errors = [{ path: ['email'], message: 'Invalid email', code: 'invalid_string' as const }];
-      const response = validationErrorResponse('Validation failed', errors);
+      // Create a real ZodError by parsing invalid data
+      const schema = z.object({ email: z.string().email() });
+      const result = schema.safeParse({ email: 'invalid' });
+      if (result.success) throw new Error('Expected validation to fail');
+
+      const response = validationErrorResponse('Validation failed', result.error.errors);
       expect(response.error).toBe('Validation Error');
       expect(response.code).toBe('VALIDATION_FAILED');
       expect(response.details[0].field).toBe('email');

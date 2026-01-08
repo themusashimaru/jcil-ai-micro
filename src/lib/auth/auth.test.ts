@@ -40,7 +40,7 @@ describe('Auth Module Types', () => {
         authorized: true as const,
         user: {
           id: 'user-123',
-        },
+        } as { id: string; email?: string },
         supabase: {} as unknown,
       };
 

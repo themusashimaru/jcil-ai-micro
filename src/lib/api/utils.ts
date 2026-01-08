@@ -49,7 +49,7 @@ export type RateLimitCheckResult = {
 /**
  * Create a successful API response
  */
-export function successResponse<T>(data: T, status = HTTP_STATUS.OK): NextResponse<APIResponse<T>> {
+export function successResponse<T>(data: T, status: number = HTTP_STATUS.OK): NextResponse<APIResponse<T>> {
   return NextResponse.json({ ok: true, data }, { status });
 }
 
