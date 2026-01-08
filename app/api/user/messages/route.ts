@@ -7,6 +7,9 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('UserMessagesAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -90,7 +93,7 @@ export async function GET() {
       .order('created_at', { ascending: false });
 
     if (messagesError) {
-      console.error('[Messages API] Error fetching messages:', messagesError);
+      log.error('[Messages API] Error fetching messages:', messagesError instanceof Error ? messagesError : { messagesError });
       return NextResponse.json(
         { error: 'Failed to fetch messages' },
         { status: 500 }
@@ -143,7 +146,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('[Messages API] Error:', error);
+    log.error('[Messages API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

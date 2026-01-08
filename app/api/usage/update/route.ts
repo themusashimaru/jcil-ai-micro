@@ -18,6 +18,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('UsageAPI');
 
 export const runtime = 'nodejs';
 
@@ -133,7 +136,7 @@ export async function POST(request: NextRequest) {
         .eq('id', targetUserId);
 
       if (updateError) {
-        console.error('[Usage API] Reset error:', updateError);
+        log.error('[Usage API] Reset error:', updateError instanceof Error ? updateError : { updateError });
         return NextResponse.json(
           { error: 'Failed to reset usage' },
           { status: 500 }
@@ -155,7 +158,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (rpcError) {
-      console.error('[Usage API] Increment error:', rpcError);
+      log.error('[Usage API] Increment error:', rpcError instanceof Error ? rpcError : { rpcError });
 
       // Fallback: manual update
       const updateField = type === 'chat' ? 'messages_used_today' : 'images_generated_today';
@@ -198,7 +201,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Usage API] Error:', error);
+    log.error('[Usage API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Failed to update usage' },
       { status: 500 }

@@ -8,6 +8,9 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('FoldersAPI');
 
 export const dynamic = 'force-dynamic';
 
@@ -70,7 +73,7 @@ export async function GET() {
       .order('position', { ascending: true });
 
     if (error) {
-      console.error('[Folders API] Error fetching folders:', error);
+      log.error('[Folders API] Error fetching folders:', error instanceof Error ? error : { error });
       return NextResponse.json({ error: 'Failed to fetch folders' }, { status: 500 });
     }
 
@@ -80,7 +83,7 @@ export async function GET() {
       availableColors: FOLDER_COLORS,
     });
   } catch (error) {
-    console.error('[Folders API] Error:', error);
+    log.error('[Folders API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -159,13 +162,13 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      console.error('[Folders API] Error creating folder:', insertError);
+      log.error('[Folders API] Error creating folder:', insertError instanceof Error ? insertError : { insertError });
       return NextResponse.json({ error: 'Failed to create folder' }, { status: 500 });
     }
 
     return NextResponse.json({ folder }, { status: 201 });
   } catch (error) {
-    console.error('[Folders API] Error:', error);
+    log.error('[Folders API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
