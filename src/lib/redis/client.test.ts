@@ -39,7 +39,7 @@ describe('Redis Client', () => {
     it('should check for Redis environment variables', () => {
       // The module checks for UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
       const requiredEnvVars = ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'];
-      requiredEnvVars.forEach(envVar => {
+      requiredEnvVars.forEach((envVar) => {
         expect(typeof envVar).toBe('string');
       });
     });
@@ -103,13 +103,13 @@ describe('Redis Client', () => {
       expect(checkRateLimit.length).toBe(3);
     });
 
-    it('should return true when Redis is not configured (allow requests)', async () => {
-      // When Redis is not configured, checkRateLimit should return true
-      // This is the graceful fallback behavior
+    it('should return false when Redis is not configured (fail-closed security)', async () => {
+      // When Redis is not configured, checkRateLimit should return false
+      // This is the fail-closed security behavior - deny requests when rate limiting unavailable
       const { checkRateLimit, isRedisAvailable } = await import('./client');
       if (!isRedisAvailable()) {
         const result = await checkRateLimit('test-key', 10, 60);
-        expect(result).toBe(true);
+        expect(result).toBe(false);
       }
     });
   });
@@ -152,7 +152,7 @@ describe('Redis Rate Limiting', () => {
       // The implementation uses ZREMRANGEBYSCORE, ZADD, ZCARD, and EXPIRE
       // This is a standard sliding window rate limiting pattern
       const expectedOperations = ['zremrangebyscore', 'zadd', 'zcard', 'expire'];
-      expectedOperations.forEach(op => {
+      expectedOperations.forEach((op) => {
         expect(typeof op).toBe('string');
       });
     });
