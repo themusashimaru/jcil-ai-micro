@@ -25,9 +25,7 @@ test.describe('Authentication', () => {
       );
 
       // Check for password input
-      const passwordInput = page.locator(
-        'input[type="password"], input[name="password"]'
-      );
+      const passwordInput = page.locator('input[type="password"], input[name="password"]');
 
       // Check for submit button
       const submitButton = page.locator(
@@ -79,9 +77,7 @@ test.describe('Authentication', () => {
     test('password field masks input', async ({ page }) => {
       await page.goto('/login');
 
-      const passwordInput = page.locator(
-        'input[type="password"], input[name="password"]'
-      );
+      const passwordInput = page.locator('input[type="password"], input[name="password"]');
 
       if ((await passwordInput.count()) > 0) {
         const inputType = await passwordInput.first().getAttribute('type');
@@ -119,9 +115,7 @@ test.describe('Authentication', () => {
       );
 
       // Check for password input
-      const passwordInput = page.locator(
-        'input[type="password"], input[name="password"]'
-      );
+      const passwordInput = page.locator('input[type="password"], input[name="password"]');
 
       if ((await emailInput.count()) > 0) {
         await expect(emailInput.first()).toBeVisible();
@@ -150,7 +144,7 @@ test.describe('Authentication', () => {
       await page.goto('/dashboard');
 
       // Should redirect to login or show unauthorized
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const currentUrl = page.url();
       const isRedirected =
@@ -174,7 +168,7 @@ test.describe('Authentication', () => {
     test('chat page handles unauthenticated access', async ({ page }) => {
       await page.goto('/chat');
 
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should either redirect or show auth requirement
       const response = page.url();

@@ -17,7 +17,7 @@ test.describe('Navigation', () => {
 
     if ((await loginLink.count()) > 0) {
       await loginLink.first().click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should be on login page
       expect(page.url()).toMatch(/login|signin|auth/i);
@@ -34,7 +34,7 @@ test.describe('Navigation', () => {
 
     if ((await signupLink.count()) > 0) {
       await signupLink.first().click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should be on signup page
       expect(page.url()).toMatch(/signup|register|auth/i);
@@ -49,7 +49,7 @@ test.describe('Navigation', () => {
 
     if ((await logoLink.count()) > 0) {
       await logoLink.first().click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should be on homepage
       expect(page.url()).toMatch(/\/$/);
