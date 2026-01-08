@@ -9,6 +9,9 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
+
+const log = logger('MessageDetailAPI');
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -132,7 +135,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error('[Message Detail API] Error:', error);
+    log.error('[Message Detail API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -186,7 +189,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       });
 
     if (updateError) {
-      console.error('[Message Detail API] Update error:', updateError);
+      log.error('[Message Detail API] Update error:', updateError instanceof Error ? updateError : { updateError });
       return NextResponse.json(
         { error: 'Failed to update message' },
         { status: 500 }
@@ -195,7 +198,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Message Detail API] Error:', error);
+    log.error('[Message Detail API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -232,7 +235,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       });
 
     if (deleteError) {
-      console.error('[Message Detail API] Delete error:', deleteError);
+      log.error('[Message Detail API] Delete error:', deleteError instanceof Error ? deleteError : { deleteError });
       return NextResponse.json(
         { error: 'Failed to delete message' },
         { status: 500 }
@@ -241,7 +244,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Message Detail API] Error:', error);
+    log.error('[Message Detail API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

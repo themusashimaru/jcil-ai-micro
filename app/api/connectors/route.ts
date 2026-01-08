@@ -12,6 +12,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 import {
   listUserRepos,
   createRepository,
@@ -28,6 +29,8 @@ import {
   compareBranches,
   parseGitHubUrl,
 } from '@/lib/connectors';
+
+const log = logger('ConnectorsAPI');
 
 export const runtime = 'nodejs';
 
@@ -58,7 +61,7 @@ function decryptToken(encryptedData: string): string {
 
     return decrypted;
   } catch (error) {
-    console.error('[Connectors] Decryption error:', error);
+    log.error('[Connectors] Decryption error:', error instanceof Error ? error : { error });
     throw new Error('Failed to decrypt token');
   }
 }
@@ -190,7 +193,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (err) {
-    console.error('[Connectors API] Error:', err);
+    log.error('[Connectors API] Error:', err instanceof Error ? err : { err });
     return NextResponse.json({ error: 'Connector operation failed' }, { status: 500 });
   }
 }
@@ -476,7 +479,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (err) {
-    console.error('[Connectors API] Error:', err);
+    log.error('[Connectors API] Error:', err instanceof Error ? err : { err });
     return NextResponse.json({ error: 'Connector operation failed' }, { status: 500 });
   }
 }

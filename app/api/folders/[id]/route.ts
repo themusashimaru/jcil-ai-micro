@@ -8,6 +8,9 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
+
+const log = logger('FolderDetailAPI');
 
 export const dynamic = 'force-dynamic';
 
@@ -103,13 +106,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (updateError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
       }
-      console.error('[Folders API] Error updating folder:', updateError);
+      log.error('[Folders API] Error updating folder:', updateError instanceof Error ? updateError : { updateError });
       return NextResponse.json({ error: 'Failed to update folder' }, { status: 500 });
     }
 
     return NextResponse.json({ folder });
   } catch (error) {
-    console.error('[Folders API] Error:', error);
+    log.error('[Folders API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -140,13 +143,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .eq('user_id', user.id);
 
     if (deleteError) {
-      console.error('[Folders API] Error deleting folder:', deleteError);
+      log.error('[Folders API] Error deleting folder:', deleteError instanceof Error ? deleteError : { deleteError });
       return NextResponse.json({ error: 'Failed to delete folder' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Folders API] Error:', error);
+    log.error('[Folders API] Error:', error instanceof Error ? error : { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
