@@ -10,22 +10,9 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { sanitizePostgrestInput } from '@/lib/security/postgrest';
 
 const log = logger('AdminSupportAPI');
-
-/**
- * Sanitize search input to prevent PostgREST filter injection
- * Escapes special characters that could manipulate the filter
- */
-function sanitizeSearchInput(input: string): string {
-  // Remove or escape characters that could be used for filter injection
-  // PostgREST special chars: . , ( ) : ; % _ * & | ! = < > ~ @
-  return input
-    .replace(/[.,():;%_*&|!=<>~@\\]/g, '') // Remove special filter chars
-    .replace(/'/g, "''") // Escape single quotes
-    .slice(0, 100) // Limit length
-    .trim();
-}
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -82,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     // Search by subject or email (sanitized to prevent filter injection)
     if (search) {
-      const sanitized = sanitizeSearchInput(search);
+      const sanitized = sanitizePostgrestInput(search);
       if (sanitized.length > 0) {
         query = query.or(`subject.ilike.%${sanitized}%,sender_email.ilike.%${sanitized}%,sender_name.ilike.%${sanitized}%`);
       }
