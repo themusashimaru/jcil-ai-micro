@@ -5,9 +5,10 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('AdminConversation');
 
@@ -34,6 +35,10 @@ export async function GET(
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
 
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:conversation:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
     const { conversationId } = params;
     const supabase = getSupabaseAdmin();
 
@@ -45,14 +50,7 @@ export async function GET(
       .single();
 
     if (convError || !conversation) {
-      return NextResponse.json(
-        {
-          error: 'Conversation not found',
-          message: 'The requested conversation does not exist',
-          code: 'NOT_FOUND'
-        },
-        { status: 404 }
-      );
+      return errors.notFound('Conversation');
     }
 
     // Fetch all messages in chronological order
@@ -65,21 +63,13 @@ export async function GET(
 
     if (msgError) {
       log.error('[Admin API] Error fetching messages:', { error: msgError ?? 'Unknown error' });
-      return NextResponse.json(
-        {
-          error: 'Failed to fetch messages',
-          message: 'Unable to load conversation messages',
-          code: 'DATABASE_ERROR',
-          details: msgError.message
-        },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Log admin access for audit trail
     log.info(`[Admin Audit] Admin viewed conversation: ${conversationId} (User: ${conversation.user_id})`);
 
-    return NextResponse.json({
+    return successResponse({
       conversation: {
         id: conversation.id,
         title: conversation.title,
@@ -94,9 +84,6 @@ export async function GET(
     });
   } catch (error) {
     log.error('[Admin API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error', code: 'INTERNAL_ERROR' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }

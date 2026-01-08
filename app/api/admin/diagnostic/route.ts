@@ -6,9 +6,9 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { successResponse, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('AdminDiagnostic');
 
@@ -20,6 +20,10 @@ export async function GET() {
   // Require admin authentication
   const auth = await requireAdmin();
   if (!auth.authorized) return auth.response;
+
+  // Rate limit by admin
+  const rateLimitResult = checkRequestRateLimit(`admin:diagnostic:${auth.user.id}`, rateLimits.admin);
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   const diagnostics = {
     timestamp: new Date().toISOString(),
@@ -62,7 +66,7 @@ export async function GET() {
     // Check if we can create a Supabase client
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       diagnostics.checks.error = 'Missing required environment variables';
-      return NextResponse.json(diagnostics, { status: 200 });
+      return successResponse(diagnostics);
     }
 
     const supabase = createClient(
@@ -106,5 +110,5 @@ export async function GET() {
     diagnostics.checks.error = 'Diagnostic check failed';
   }
 
-  return NextResponse.json(diagnostics, { status: 200 });
+  return successResponse(diagnostics);
 }

@@ -7,10 +7,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
 import { sanitizePostgrestInput } from '@/lib/security/postgrest';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('AdminSupportAPI');
 
@@ -33,6 +34,10 @@ export async function GET(request: NextRequest) {
     // Require admin authentication
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
+
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:tickets:get:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
     const { searchParams } = new URL(request.url);
@@ -85,10 +90,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       log.error('Error fetching tickets', error instanceof Error ? error : { error });
-      return NextResponse.json(
-        { error: 'Failed to fetch tickets' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // Get counts for sidebar
@@ -122,7 +124,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    return successResponse({
       tickets: tickets || [],
       counts,
       pagination: {
@@ -136,10 +138,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    log.error('Unexpected error', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    log.error('Unexpected error', error instanceof Error ? error : { error });
+    return errors.serverError();
   }
 }

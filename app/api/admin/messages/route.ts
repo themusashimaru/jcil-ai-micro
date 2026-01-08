@@ -5,9 +5,10 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('AdminMessages');
 
@@ -47,6 +48,10 @@ export async function GET(request: NextRequest) {
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
 
+    // Rate limit by admin
+    const rateLimitResult = checkRequestRateLimit(`admin:messages:get:${auth.user.id}`, rateLimits.admin);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
     const supabase = getSupabaseAdmin();
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
@@ -75,10 +80,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       log.error('[Admin Messages API] Error:', error instanceof Error ? error : { error });
-      return NextResponse.json(
-        { error: 'Failed to fetch messages' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     // For individual messages, get recipient info
@@ -107,7 +109,7 @@ export async function GET(request: NextRequest) {
         : { tier: m.recipient_tier },
     }));
 
-    return NextResponse.json({
+    return successResponse({
       messages: messagesWithRecipients || [],
       pagination: {
         page,
@@ -118,10 +120,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('[Admin Messages API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
 
@@ -132,6 +131,10 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
+
+    // Rate limit by admin - strict for sending messages
+    const rateLimitResult = checkRequestRateLimit(`admin:messages:post:${auth.user.id}`, rateLimits.strict);
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
 
@@ -160,24 +163,15 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!subject?.trim() || !message?.trim()) {
-      return NextResponse.json(
-        { error: 'Subject and message are required' },
-        { status: 400 }
-      );
+      return errors.badRequest('Subject and message are required');
     }
 
     if (!VALID_MESSAGE_TYPES.includes(message_type)) {
-      return NextResponse.json(
-        { error: 'Invalid message type' },
-        { status: 400 }
-      );
+      return errors.badRequest('Invalid message type');
     }
 
     if (!VALID_PRIORITIES.includes(priority)) {
-      return NextResponse.json(
-        { error: 'Invalid priority' },
-        { status: 400 }
-      );
+      return errors.badRequest('Invalid priority');
     }
 
     let finalRecipientUserId: string | null = null;
@@ -196,10 +190,7 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (!targetUser) {
-          return NextResponse.json(
-            { error: 'User not found' },
-            { status: 404 }
-          );
+          return errors.notFound('User');
         }
         finalRecipientUserId = recipient_user_id;
       } else if (recipient_email) {
@@ -211,25 +202,16 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (!targetUser) {
-          return NextResponse.json(
-            { error: 'User not found with that email' },
-            { status: 404 }
-          );
+          return errors.notFound('User with that email');
         }
         finalRecipientUserId = targetUser.id;
       } else {
-        return NextResponse.json(
-          { error: 'Recipient user ID or email required for individual messages' },
-          { status: 400 }
-        );
+        return errors.badRequest('Recipient user ID or email required for individual messages');
       }
     } else if (recipient_type === 'broadcast') {
       // Broadcast message
       if (!recipient_tier || !VALID_TIERS.includes(recipient_tier)) {
-        return NextResponse.json(
-          { error: 'Valid recipient tier required for broadcasts' },
-          { status: 400 }
-        );
+        return errors.badRequest('Valid recipient tier required for broadcasts');
       }
 
       isBroadcast = true;
@@ -250,16 +232,10 @@ export async function POST(request: NextRequest) {
       broadcastSentCount = count || 0;
 
       if (broadcastSentCount === 0) {
-        return NextResponse.json(
-          { error: 'No users found matching the selected tier' },
-          { status: 400 }
-        );
+        return errors.badRequest('No users found matching the selected tier');
       }
     } else {
-      return NextResponse.json(
-        { error: 'Invalid recipient type. Use "individual" or "broadcast"' },
-        { status: 400 }
-      );
+      return errors.badRequest('Invalid recipient type. Use "individual" or "broadcast"');
     }
 
     // Create the message
@@ -283,10 +259,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       log.error('[Admin Messages API] Insert error:', { error: insertError ?? 'Unknown error' });
-      return NextResponse.json(
-        { error: 'Failed to send message' },
-        { status: 500 }
-      );
+      return errors.serverError();
     }
 
     const recipientDescription = isBroadcast
@@ -295,16 +268,13 @@ export async function POST(request: NextRequest) {
 
     log.info(`[Admin Messages API] Message sent by ${adminEmail} to ${recipientDescription}`);
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: newMessage,
       recipientCount: isBroadcast ? broadcastSentCount : 1,
     });
   } catch (error) {
     log.error('[Admin Messages API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return errors.serverError();
   }
 }
