@@ -428,6 +428,7 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                   className="group relative overflow-hidden rounded-lg border border-white/10"
                 >
                   {attachment.thumbnail && isImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={attachment.thumbnail}
                       alt={attachment.name}
@@ -483,6 +484,7 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
         {/* Generated Image */}
         {message.imageUrl && (
           <div className="mb-2 overflow-hidden rounded-lg border border-white/10 max-w-sm relative group">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={message.imageUrl}
               alt="AI-generated image"
@@ -708,6 +710,7 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                   {/* Product Image */}
                   {product.image && (
                     <div className="h-48 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={product.image}
                         alt={product.title}

@@ -289,6 +289,7 @@ Example response:
                             {/* Product Image */}
                             {product.image ? (
                               <div className="relative h-56 overflow-hidden bg-black/40">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                   src={product.image}
                                   alt={product.title}

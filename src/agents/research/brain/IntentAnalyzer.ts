@@ -12,6 +12,9 @@
 
 import { createClaudeStructuredOutput } from '@/lib/anthropic/client';
 import { ResearchIntent, AgentContext } from '../../core/types';
+import { logger } from '@/lib/logger';
+
+const log = logger('IntentAnalyzer');
 
 export class IntentAnalyzer {
 
@@ -81,10 +84,10 @@ OUTPUT ONLY THE JSON OBJECT, NO OTHER TEXT.`;
         throw new Error('Invalid intent structure');
       }
 
-      console.log(`[IntentAnalyzer] Using Claude Sonnet for intent analysis`);
+      log.info(`Using Claude Sonnet for intent analysis`);
       return parsed;
     } catch (error) {
-      console.error('[IntentAnalyzer] Error analyzing intent (Claude Sonnet):', error);
+      log.error('Error analyzing intent (Claude Sonnet)', error as Error);
 
       // Fallback: create a basic intent from the query
       return this.createFallbackIntent(query);

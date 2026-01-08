@@ -256,6 +256,7 @@ export default function DesignSettings() {
                       className="h-24 w-auto"
                     />
                   ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={mainLogo}
                       alt="Main Logo"
@@ -307,6 +308,7 @@ export default function DesignSettings() {
               <p className="text-xs text-gray-500 mb-2">Current Header Logo Preview:</p>
               <div className="bg-black border border-white/10 rounded-lg p-8 flex items-center justify-center min-h-[120px]">
                 {headerLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={headerLogo}
                     alt="Header Logo"
@@ -357,6 +359,7 @@ export default function DesignSettings() {
               <p className="text-xs text-gray-500 mb-2">Current Login Logo Preview:</p>
               <div className="bg-black border border-white/10 rounded-lg p-8 flex items-center justify-center min-h-[200px]">
                 {loginLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={loginLogo}
                     alt="Login Logo"
@@ -407,6 +410,7 @@ export default function DesignSettings() {
               <p className="text-xs text-gray-500 mb-2">Current Light Mode Logo Preview:</p>
               <div className="bg-white border border-gray-200 rounded-lg p-8 flex items-center justify-center min-h-[200px]">
                 {lightModeLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={lightModeLogo}
                     alt="Light Mode Logo"
@@ -471,6 +475,7 @@ export default function DesignSettings() {
               <p className="text-xs text-gray-500 mb-2">Current Favicon Preview:</p>
               <div className="bg-black border border-white/10 rounded-lg p-8 flex items-center justify-center min-h-[120px]">
                 {favicon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={favicon}
                     alt="Favicon"

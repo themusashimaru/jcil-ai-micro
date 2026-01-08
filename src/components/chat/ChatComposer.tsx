@@ -432,6 +432,7 @@ export function ChatComposer({ onSendMessage, onStop, isStreaming, disabled, sho
                   aria-label={`Remove ${attachment.name}`}
                 >
                   {attachment.thumbnail && isImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={attachment.thumbnail}
                       alt={attachment.name}

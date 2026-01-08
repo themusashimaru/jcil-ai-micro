@@ -176,6 +176,7 @@ export function CodeLabVisualToCode({
             </div>
           ) : (
             <div className="image-preview">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={image} alt="Uploaded design" />
               <button className="remove-image" onClick={handleClear}>
                 ×

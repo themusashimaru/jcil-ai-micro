@@ -13,6 +13,9 @@
 'use client';
 
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
+
+const log = logger('CodeBlockWithActions');
 
 interface CodeBlockWithActionsProps {
   code: string;
@@ -65,9 +68,9 @@ export function CodeBlockWithActions({
   };
 
   const handleTest = async () => {
-    console.log('[CodeBlock] handleTest called', { hasOnTest: !!onTest, language, codeLength: code.length, hasExternalState: externalTesting !== undefined });
+    log.debug('handleTest called', { hasOnTest: !!onTest, language, codeLength: code.length, hasExternalState: externalTesting !== undefined });
     if (!onTest) {
-      console.log('[CodeBlock] No onTest function provided!');
+      log.debug('No onTest function provided!');
       return;
     }
 
@@ -79,14 +82,14 @@ export function CodeBlockWithActions({
     }
 
     try {
-      console.log('[CodeBlock] Calling onTest...');
+      log.debug('Calling onTest...');
       const result = await onTest(code, language);
-      console.log('[CodeBlock] onTest result:', result);
+      log.debug('onTest result:', result);
       if (useInternalState) {
         setInternalTestResult(result);
       }
     } catch (error) {
-      console.error('[CodeBlock] onTest error:', error);
+      log.error('onTest error', error as Error);
       if (useInternalState) {
         setInternalTestResult({
           success: false,
@@ -105,7 +108,7 @@ export function CodeBlockWithActions({
     try {
       await onPush(code, language);
     } catch (error) {
-      console.error('Push failed:', error);
+      log.error('Push failed', error as Error);
     }
   };
 
@@ -146,7 +149,7 @@ export function CodeBlockWithActions({
           {showTestButton && canTest && onTest && (
             <button
               onClick={() => {
-                console.log('[CodeBlock] TEST BUTTON CLICKED!');
+                log.debug('TEST BUTTON CLICKED!');
                 handleTest();
               }}
               disabled={testing}

@@ -19,6 +19,9 @@ import {
   SourceCitation,
   EvaluatedResults,
 } from '../../core/types';
+import { logger } from '@/lib/logger';
+
+const log = logger('Synthesizer');
 
 export class Synthesizer {
 
@@ -164,7 +167,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
         schema,
       });
 
-      console.log(`[Synthesizer] Using Claude Sonnet for research synthesis`);
+      log.info(`Using Claude Sonnet for research synthesis`);
 
       // Build the output with proper typing
       const output: ResearchOutput = {
@@ -185,7 +188,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
 
       return output;
     } catch (error) {
-      console.error('[Synthesizer] Error synthesizing results (Claude Sonnet):', error);
+      log.error('Error synthesizing results (Claude Sonnet)', error as Error);
       return this.createFallbackOutput(results, intent, metadata);
     }
   }

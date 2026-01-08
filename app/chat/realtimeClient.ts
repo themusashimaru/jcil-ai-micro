@@ -1,5 +1,8 @@
 'use client';
 
+import { logger } from '@/lib/logger';
+const log = logger('RealtimeClient');
+
 // Common Whisper hallucinations to filter out
 const HALLUCINATION_PATTERNS = [
   /^thanks?(\s+for\s+watching)?\.?$/i,
@@ -76,7 +79,7 @@ export class RealtimeClient {
 
   private status(msg: string) {
     this.options.onStatus?.(msg);
-    if (process.env.NODE_ENV !== 'production') console.log('[realtime]', msg);
+    if (process.env.NODE_ENV !== 'production') log.debug('[realtime]', { msg });
   }
 
   async start() {
@@ -184,7 +187,7 @@ CONTENT:
       this.status('session config sent');
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {
-        console.error('[realtime] Failed to configure session:', e);
+        log.error('[realtime] Failed to configure session:', e as Error);
       }
     }
   }
@@ -212,7 +215,7 @@ CONTENT:
       const type = msg?.type;
 
       if (process.env.NODE_ENV !== 'production') {
-        console.log('[realtime event]', type, msg);
+        log.debug('[realtime event]', { type, msg });
       }
 
       // Session is ready - now trigger greeting
@@ -272,13 +275,13 @@ CONTENT:
 
       // Error handling
       if (type === 'error') {
-        console.error('[realtime] Error from OpenAI:', msg?.error);
+        log.error('[realtime] Error from OpenAI:', msg?.error);
         this.status('error: ' + (msg?.error?.message || 'unknown'));
       }
 
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {
-        console.error('[realtime] Failed to parse event:', e);
+        log.error('[realtime] Failed to parse event:', e as Error);
       }
     }
   }
