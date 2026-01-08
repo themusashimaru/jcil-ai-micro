@@ -222,8 +222,8 @@ export default function CodeLabAboutPage() {
             {/* Stats */}
             <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-12">
               <StatCard value="30+" label="Dev Tools" color="fuchsia" />
-              <StatCard value="90%" label="Claude Code Parity" color="fuchsia" />
-              <StatCard value="E2B" label="Sandboxed" color="fuchsia" />
+              <StatCard value="E2B" label="Cloud Sandbox" color="fuchsia" />
+              <StatCard value="Git" label="Integration" color="fuchsia" />
               <StatCard value="∞" label="Persistence" color="fuchsia" />
             </div>
           </div>
@@ -474,10 +474,10 @@ Pushed to origin/feature/ui ✓`}
       {/* Comparison Section */}
       <Section background="gradient" padding="lg" className="border-t border-white/5">
         <SectionHeader
-          badge="Comparison"
+          badge="Features"
           badgeColor="green"
-          title="Claude Code Parity"
-          description="We've implemented most of Claude Code's features, plus some unique advantages."
+          title="Full-Featured Development"
+          description="Everything you need for serious development work, plus unique advantages for the browser."
         />
 
         <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
@@ -520,13 +520,13 @@ Pushed to origin/feature/ui ✓`}
             <h3 className="text-xl font-semibold text-fuchsia-300 mb-6">Code Lab Advantages</h3>
             <div className="space-y-4">
               {[
-                'Sandboxed cloud execution (safer than local)',
+                'Sandboxed cloud execution (safe & isolated)',
                 'Persistent workspace snapshots',
                 'Native GitHub PAT encryption',
                 'Code statistics tracking',
-                'Web-based (any device)',
+                'Works on any device with a browser',
                 'Voice input support',
-                'Dedicated Git tools (not shell wrappers)',
+                'Dedicated Git tools built for reliability',
               ].map((advantage, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <svg

@@ -71,8 +71,15 @@ export default function LandingFooter() {
                 <span className="text-xl font-bold text-white">JCIL.AI</span>
               </Link>
               <p className="mt-4 text-sm text-slate-400 leading-relaxed max-w-xs">
-                Enterprise AI assistant built on Anthropic Claude. Autonomous coding, intelligent
-                chat, and Biblical wisdom.
+                The first enterprise AI platform built for Christians. Claude&apos;s intelligence,
+                grounded in Scripture. For those who refuse to compromise.
+              </p>
+
+              {/* Scripture */}
+              <p className="mt-4 text-xs text-amber-500/60 italic max-w-xs">
+                &ldquo;Whatever you do, work at it with all your heart, as working for the
+                Lord.&rdquo;
+                <span className="not-italic block mt-1 text-amber-500/40">— Colossians 3:23</span>
               </p>
 
               {/* Social Links */}
