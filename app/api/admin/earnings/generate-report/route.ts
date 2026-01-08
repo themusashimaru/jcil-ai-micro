@@ -261,7 +261,7 @@ Format the report professionally with clear sections, bullet points where approp
   } catch (error) {
     console.error('Error generating report:', error);
     return NextResponse.json(
-      { error: 'Failed to generate report', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to generate report' },
       { status: 500 }
     );
   }

@@ -200,10 +200,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Usage API] Error:', error);
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Failed to update usage' },
       { status: 500 }
     );
   }

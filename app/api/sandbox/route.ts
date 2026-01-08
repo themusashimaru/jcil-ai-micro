@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Sandbox execution error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Execution failed' },
+      { error: 'Code execution failed' },
       { status: 500 }
     );
   }

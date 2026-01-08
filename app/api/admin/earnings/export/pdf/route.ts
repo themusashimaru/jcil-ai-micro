@@ -380,7 +380,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error generating PDF:', error);
     return NextResponse.json(
-      { error: 'Failed to generate PDF', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to generate PDF' },
       { status: 500 }
     );
   }

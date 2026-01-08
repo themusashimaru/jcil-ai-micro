@@ -133,8 +133,7 @@ async function deployToNetlify(
   });
 
   if (!siteResponse.ok) {
-    const error = await siteResponse.json();
-    throw new Error(error.message || 'Failed to create Netlify site');
+    throw new Error('Failed to create Netlify site');
   }
 
   const site = await siteResponse.json();
@@ -197,8 +196,7 @@ async function deployToNetlify(
     });
 
     if (!deployResponse.ok) {
-      const error = await deployResponse.json();
-      throw new Error(error.message || 'Failed to deploy to Netlify');
+      throw new Error('Failed to deploy to Netlify');
     }
   }
 
@@ -275,7 +273,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Deploy API] Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Deployment failed' },
+      { error: 'Deployment failed' },
       { status: 500 }
     );
   }

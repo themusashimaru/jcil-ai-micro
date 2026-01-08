@@ -107,10 +107,7 @@ Rules:
     console.error('[API] Title generation error:', error);
 
     return new Response(
-      JSON.stringify({
-        error: 'Failed to generate title',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      }),
+      JSON.stringify({ error: 'Failed to generate title' }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },

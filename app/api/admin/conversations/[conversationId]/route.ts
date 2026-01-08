@@ -92,11 +92,7 @@ export async function GET(
   } catch (error) {
     console.error('[Admin API] Error:', error);
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred',
-        code: 'INTERNAL_ERROR'
-      },
+      { error: 'Internal server error', code: 'INTERNAL_ERROR' },
       { status: 500 }
     );
   }

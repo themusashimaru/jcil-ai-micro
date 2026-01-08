@@ -129,7 +129,7 @@ export async function POST(
   } catch (error) {
     console.error('[ProcessPending] Error:', error);
     return NextResponse.json(
-      { status: 'error', error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 'error', error: 'Failed to process message' },
       { status: 500 }
     );
   }

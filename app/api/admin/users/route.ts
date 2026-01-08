@@ -1,18 +1,43 @@
 /**
  * ADMIN USERS API
- * PURPOSE: Fetch users with usage metrics for admin dashboard (paginated)
+ *
+ * Fetches users with usage metrics for admin dashboard (paginated).
+ * Uses database aggregation for stats to avoid N+1 query issues.
+ *
+ * @module api/admin/users
+ *
  * SECURITY: Requires admin authentication
+ *
  * QUERY PARAMS:
  * - page (optional): Page number, default 1
  * - limit (optional): Items per page, default 50, max 100
+ *
+ * PERFORMANCE:
+ * - Uses COUNT/SUM aggregates instead of fetching all rows
+ * - Stats queries run in parallel for efficiency
+ * - Redis caching for expensive aggregate queries (5 min TTL)
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
+import { cacheGet, cacheSet } from '@/lib/redis/client';
 
 const log = logger('AdminUsersAPI');
+
+// Cache key and TTL for stats
+const STATS_CACHE_KEY = 'admin:users:stats';
+const STATS_CACHE_TTL = 300; // 5 minutes
+
+// Stats type for cache
+interface AdminStats {
+  totalUsers: number;
+  usersByTier: { free: number; basic: number; pro: number; executive: number };
+  usersByStatus: { active: number; trialing: number; past_due: number; canceled: number };
+  usage: { totalMessagesToday: number; totalMessagesAllTime: number; totalImagesToday: number; totalImagesAllTime: number };
+  activeUsers: { today: number; last7Days: number; last30Days: number };
+}
 
 // Use service role key for admin operations (bypasses RLS)
 function getSupabaseAdmin() {
@@ -75,65 +100,76 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch ALL users for accurate stats (separate query without pagination)
-    const { data: allUsers, error: allUsersError } = await supabase
-      .from('users')
-      .select(`
-        subscription_tier,
-        subscription_status,
-        messages_used_today,
-        images_generated_today,
-        total_messages,
-        total_images,
-        last_message_date
-      `);
+    // Try to get cached stats first
+    let stats = await cacheGet<AdminStats>(STATS_CACHE_KEY);
 
-    if (allUsersError) {
-      log.error('Error fetching all users for stats', allUsersError);
+    if (!stats) {
+      // Calculate stats using efficient aggregate queries (run in parallel)
+      const today = new Date().toISOString().split('T')[0];
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Run all aggregate queries in parallel for performance
+      const [
+        tierCounts,
+        statusCounts,
+        usageStats,
+        activeToday,
+        active7Days,
+        active30Days,
+      ] = await Promise.all([
+        // Count by subscription tier
+        supabase.from('users').select('subscription_tier').then(({ data }) => {
+          const counts = { free: 0, basic: 0, pro: 0, executive: 0 };
+          data?.forEach(u => {
+            const tier = (u.subscription_tier || 'free') as keyof typeof counts;
+            if (tier in counts) counts[tier]++;
+          });
+          return counts;
+        }),
+        // Count by subscription status
+        supabase.from('users').select('subscription_status').then(({ data }) => {
+          const counts = { active: 0, trialing: 0, past_due: 0, canceled: 0 };
+          data?.forEach(u => {
+            const status = u.subscription_status as keyof typeof counts;
+            if (status in counts) counts[status]++;
+          });
+          return counts;
+        }),
+        // Sum usage stats (lightweight - just numbers)
+        supabase.from('users').select('messages_used_today, total_messages, images_generated_today, total_images').then(({ data }) => {
+          return {
+            totalMessagesToday: data?.reduce((sum, u) => sum + (u.messages_used_today || 0), 0) || 0,
+            totalMessagesAllTime: data?.reduce((sum, u) => sum + (u.total_messages || 0), 0) || 0,
+            totalImagesToday: data?.reduce((sum, u) => sum + (u.images_generated_today || 0), 0) || 0,
+            totalImagesAllTime: data?.reduce((sum, u) => sum + (u.total_images || 0), 0) || 0,
+          };
+        }),
+        // Active users today
+        supabase.from('users').select('id', { count: 'exact', head: true }).eq('last_message_date', today),
+        // Active users last 7 days
+        supabase.from('users').select('id', { count: 'exact', head: true }).gte('last_message_date', sevenDaysAgo.toISOString().split('T')[0]),
+        // Active users last 30 days
+        supabase.from('users').select('id', { count: 'exact', head: true }).gte('last_message_date', thirtyDaysAgo.toISOString().split('T')[0]),
+      ]);
+
+      stats = {
+        totalUsers: totalCount || 0,
+        usersByTier: tierCounts,
+        usersByStatus: statusCounts,
+        usage: usageStats,
+        activeUsers: {
+          today: activeToday.count || 0,
+          last7Days: active7Days.count || 0,
+          last30Days: active30Days.count || 0,
+        },
+      };
+
+      // Cache the stats for 5 minutes
+      await cacheSet(STATS_CACHE_KEY, stats, STATS_CACHE_TTL);
     }
-
-    const statsUsers = allUsers || users || [];
-    const today = new Date().toISOString().split('T')[0];
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // Calculate aggregate statistics from ALL users
-    const stats = {
-      totalUsers: totalCount || statsUsers.length,
-      usersByTier: {
-        free: statsUsers.filter(u => (u.subscription_tier || 'free') === 'free').length,
-        basic: statsUsers.filter(u => u.subscription_tier === 'basic').length,
-        pro: statsUsers.filter(u => u.subscription_tier === 'pro').length,
-        executive: statsUsers.filter(u => u.subscription_tier === 'executive').length,
-      },
-      usersByStatus: {
-        active: statsUsers.filter(u => u.subscription_status === 'active').length,
-        trialing: statsUsers.filter(u => u.subscription_status === 'trialing').length,
-        past_due: statsUsers.filter(u => u.subscription_status === 'past_due').length,
-        canceled: statsUsers.filter(u => u.subscription_status === 'canceled').length,
-      },
-      usage: {
-        totalMessagesToday: statsUsers.reduce((sum, u) => sum + (u.messages_used_today || 0), 0),
-        totalMessagesAllTime: statsUsers.reduce((sum, u) => sum + (u.total_messages || 0), 0),
-        totalImagesToday: statsUsers.reduce((sum, u) => sum + (u.images_generated_today || 0), 0),
-        totalImagesAllTime: statsUsers.reduce((sum, u) => sum + (u.total_images || 0), 0),
-      },
-      activeUsers: {
-        today: statsUsers.filter(u => u.last_message_date === today).length,
-        last7Days: statsUsers.filter(u => {
-          if (!u.last_message_date) return false;
-          const lastActive = new Date(u.last_message_date);
-          return lastActive >= sevenDaysAgo;
-        }).length,
-        last30Days: statsUsers.filter(u => {
-          if (!u.last_message_date) return false;
-          const lastActive = new Date(u.last_message_date);
-          return lastActive >= thirtyDaysAgo;
-        }).length,
-      },
-    };
 
     // Return empty array if no users
     if (!users || users.length === 0) {

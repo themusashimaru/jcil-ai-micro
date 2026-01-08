@@ -56,7 +56,7 @@ function decryptToken(encryptedData: string): string {
       throw error;
     }
     throw new TokenDecryptionError(
-      `Token decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      'Token decryption failed',
       'DECRYPTION_FAILED'
     );
   }
@@ -292,7 +292,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Git API] Error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Git operation failed' },
+      { error: 'Git operation failed' },
       { status: 500 }
     );
   }
