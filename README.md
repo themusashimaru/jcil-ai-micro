@@ -15,13 +15,13 @@
 
 JCIL.AI is built **exclusively** on [Anthropic's Claude](https://anthropic.com/) models. This is a deliberate choice rooted in our core values:
 
-| Principle | Why Anthropic |
-|-----------|---------------|
-| **Safety First** | Anthropic leads the industry in AI safety research with Constitutional AI |
-| **Privacy by Design** | No training on user data, enterprise-grade data handling |
-| **Security** | SOC 2 Type II certified, HIPAA eligible infrastructure |
-| **Transparency** | Published safety research, clear model documentation |
-| **Alignment** | Constitutional AI ensures responses align with human values |
+| Principle             | Why Anthropic                                                             |
+| --------------------- | ------------------------------------------------------------------------- |
+| **Safety First**      | Anthropic leads the industry in AI safety research with Constitutional AI |
+| **Privacy by Design** | No training on user data, enterprise-grade data handling                  |
+| **Security**          | SOC 2 Type II certified, HIPAA eligible infrastructure                    |
+| **Transparency**      | Published safety research, clear model documentation                      |
+| **Alignment**         | Constitutional AI ensures responses align with human values               |
 
 We believe the future of AI must be built on a foundation of trust. Anthropic shares our commitment to developing AI that is helpful, harmless, and honest.
 
@@ -53,12 +53,13 @@ JCIL.AI is a comprehensive AI platform featuring **agentic AI capabilities** tha
 
 ### Key Products
 
-| Product | Description | Capabilities |
-|---------|-------------|--------------|
-| **AI Chat** | Intelligent assistant with Claude 4 | Context-aware, faith-grounded, document generation |
-| **Code Lab** | Agentic IDE with sandboxed execution | 30+ tools, GitHub integration, persistent workspaces |
-| **Research Agent** | Multi-source research synthesis | Dynamic queries, source evaluation, citations |
-| **Document Generator** | Professional document creation | PDF invoices, Word docs, Excel spreadsheets |
+| Product                | Description                          | Capabilities                                          |
+| ---------------------- | ------------------------------------ | ----------------------------------------------------- |
+| **AI Chat**            | Intelligent assistant with Claude 4  | Context-aware, faith-grounded, document generation    |
+| **Code Lab**           | Agentic IDE with sandboxed execution | 30+ tools, GitHub integration, persistent workspaces  |
+| **Research Agent**     | Multi-source research synthesis      | Dynamic queries, source evaluation, citations         |
+| **Document Generator** | Professional document creation       | PDF invoices, Word docs, Excel spreadsheets           |
+| **Memory Agent**       | Persistent personalization           | Learns preferences, remembers context across sessions |
 
 ---
 
@@ -90,6 +91,10 @@ Our platform is built on a sophisticated **multi-agent architecture** that enabl
 │  │  │ Research │  │   Code   │  │ Document │       │                │
 │  │  │  Agent   │  │  Agent   │  │  Agent   │       │                │
 │  │  └──────────┘  └──────────┘  └──────────┘       │                │
+│  │               ┌──────────┐                       │                │
+│  │               │  Memory  │ ◄── Persistent       │                │
+│  │               │  Agent   │     context across   │                │
+│  │               └──────────┘     conversations    │                │
 │  └────────┬────────────────────────────────────────┘                │
 │           │                                                          │
 │           ▼                                                          │
@@ -102,11 +107,12 @@ Our platform is built on a sophisticated **multi-agent architecture** that enabl
 
 ### Agent Capabilities
 
-| Agent | Capabilities | Use Cases |
-|-------|-------------|-----------|
-| **Research Agent** | Multi-source search, fact verification, citation generation | Market research, fact-checking, academic research |
-| **Code Agent** | Code analysis, generation, refactoring, security scanning | Software development, code review, debugging |
-| **Document Agent** | Template-based generation, formatting, export | Invoices, reports, contracts, presentations |
+| Agent              | Capabilities                                                     | Use Cases                                                     |
+| ------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Research Agent** | Multi-source search, fact verification, citation generation      | Market research, fact-checking, academic research             |
+| **Code Agent**     | Code analysis, generation, refactoring, security scanning        | Software development, code review, debugging                  |
+| **Document Agent** | Template-based generation, formatting, export                    | Invoices, reports, contracts, presentations                   |
+| **Memory Agent**   | Cross-conversation context, preference learning, personalization | Personalized assistance, context continuity, user preferences |
 
 ---
 
@@ -149,28 +155,28 @@ We implement defense-in-depth security across all layers:
 
 ### Security Features
 
-| Feature | Implementation | Status |
-|---------|---------------|--------|
-| CSRF Protection | Origin/Referer validation | ✅ Complete |
-| Input Validation | 50+ Zod schemas | ✅ Complete |
-| Rate Limiting | Redis + database-backed | ✅ Complete |
-| Request Size Limits | Middleware + route-specific | ✅ Complete |
-| SQL Injection Prevention | Parameterized queries + RLS | ✅ Complete |
-| XSS Prevention | Content sanitization + CSP | ✅ Complete |
-| Encryption | AES-256-GCM for tokens | ✅ Complete |
-| Audit Logging | Structured logging with PII redaction | ✅ Complete |
+| Feature                  | Implementation                        | Status      |
+| ------------------------ | ------------------------------------- | ----------- |
+| CSRF Protection          | Origin/Referer validation             | ✅ Complete |
+| Input Validation         | 50+ Zod schemas                       | ✅ Complete |
+| Rate Limiting            | Redis + database-backed               | ✅ Complete |
+| Request Size Limits      | Middleware + route-specific           | ✅ Complete |
+| SQL Injection Prevention | Parameterized queries + RLS           | ✅ Complete |
+| XSS Prevention           | Content sanitization + CSP            | ✅ Complete |
+| Encryption               | AES-256-GCM for tokens                | ✅ Complete |
+| Audit Logging            | Structured logging with PII redaction | ✅ Complete |
 
 ### SOC 2 Readiness
 
 We are actively working toward SOC 2 Type II certification:
 
-| Control Area | Status | Details |
-|--------------|--------|---------|
-| Security | 🟢 Ready | Comprehensive security controls implemented |
-| Availability | 🟢 Ready | Queue management, failover, monitoring |
-| Processing Integrity | 🟢 Ready | Input validation, idempotency |
-| Confidentiality | 🟢 Ready | Encryption, access controls |
-| Privacy | 🟢 Ready | PII handling, data minimization |
+| Control Area         | Status   | Details                                     |
+| -------------------- | -------- | ------------------------------------------- |
+| Security             | 🟢 Ready | Comprehensive security controls implemented |
+| Availability         | 🟢 Ready | Queue management, failover, monitoring      |
+| Processing Integrity | 🟢 Ready | Input validation, idempotency               |
+| Confidentiality      | 🟢 Ready | Encryption, access controls                 |
+| Privacy              | 🟢 Ready | PII handling, data minimization             |
 
 See [SOC2_READINESS.md](./docs/SOC2_READINESS.md) for detailed compliance documentation.
 
@@ -180,16 +186,16 @@ See [SOC2_READINESS.md](./docs/SOC2_READINESS.md) for detailed compliance docume
 
 ### Technology Stack
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| **Frontend** | Next.js 14, React 18, TypeScript 5.4 | Server-side rendering, type safety |
-| **AI Provider** | Anthropic Claude (Haiku 4.5 + Sonnet 4) | Chat, reasoning, code generation |
-| **Database** | Supabase PostgreSQL | User data, conversations, sessions |
-| **Cache** | Upstash Redis | Rate limiting, queue, idempotency |
-| **Auth** | Supabase Auth + WebAuthn | OAuth, passkey authentication |
-| **Payments** | Stripe | Subscriptions, billing |
-| **Sandboxing** | E2B | Isolated code execution |
-| **Search** | Perplexity | Web search, fact verification |
+| Layer           | Technology                              | Purpose                            |
+| --------------- | --------------------------------------- | ---------------------------------- |
+| **Frontend**    | Next.js 14, React 18, TypeScript 5.4    | Server-side rendering, type safety |
+| **AI Provider** | Anthropic Claude (Haiku 4.5 + Sonnet 4) | Chat, reasoning, code generation   |
+| **Database**    | Supabase PostgreSQL                     | User data, conversations, sessions |
+| **Cache**       | Upstash Redis                           | Rate limiting, queue, idempotency  |
+| **Auth**        | Supabase Auth + WebAuthn                | OAuth, passkey authentication      |
+| **Payments**    | Stripe                                  | Subscriptions, billing             |
+| **Sandboxing**  | E2B                                     | Isolated code execution            |
+| **Search**      | Perplexity                              | Web search, fact verification      |
 
 ### Reliability & Performance
 
@@ -210,13 +216,13 @@ Complex queries → Claude Sonnet 4 (deep reasoning)
 
 ### Quality Metrics
 
-| Metric | Value | Target |
-|--------|-------|--------|
-| TypeScript Errors | 0 | 0 |
-| ESLint Warnings | 0 | 0 |
-| Test Coverage | 685 tests | 700+ |
-| Build Warnings | 0 | 0 |
-| Uptime Target | 99.9% | 99.9% |
+| Metric            | Value     | Target |
+| ----------------- | --------- | ------ |
+| TypeScript Errors | 0         | 0      |
+| ESLint Warnings   | 0         | 0      |
+| Test Coverage     | 685 tests | 700+   |
+| Build Warnings    | 0         | 0      |
+| Uptime Target     | 99.9%     | 99.9%  |
 
 ---
 
@@ -226,20 +232,20 @@ A Claude Code-inspired development environment with 30+ agentic tools:
 
 ### Feature Comparison
 
-| Feature | Claude Code | JCIL Code Lab |
-|---------|-------------|---------------|
-| Shell execution | ✅ | ✅ |
-| File operations | ✅ | ✅ |
-| Git integration | ✅ | ✅ |
-| GitHub PRs | ✅ | ✅ |
-| Planning mode | ✅ | ✅ |
-| MCP servers | ✅ | ✅ |
-| Hooks system | ✅ | ✅ |
-| Project memory | ✅ | ✅ |
-| Background tasks | ✅ | ✅ |
-| Sandboxed execution | Local | ✅ Cloud (E2B) |
-| Web-based | ❌ | ✅ |
-| Persistent workspaces | Local | ✅ Cloud |
+| Feature               | Claude Code | JCIL Code Lab  |
+| --------------------- | ----------- | -------------- |
+| Shell execution       | ✅          | ✅             |
+| File operations       | ✅          | ✅             |
+| Git integration       | ✅          | ✅             |
+| GitHub PRs            | ✅          | ✅             |
+| Planning mode         | ✅          | ✅             |
+| MCP servers           | ✅          | ✅             |
+| Hooks system          | ✅          | ✅             |
+| Project memory        | ✅          | ✅             |
+| Background tasks      | ✅          | ✅             |
+| Sandboxed execution   | Local       | ✅ Cloud (E2B) |
+| Web-based             | ❌          | ✅             |
+| Persistent workspaces | Local       | ✅ Cloud       |
 
 ### Available Tools (30+)
 
@@ -307,12 +313,14 @@ pnpm build
 See [.env.example](./.env.example) for all required and optional environment variables.
 
 **Required:**
+
 - `ANTHROPIC_API_KEY` - Claude API access
 - `NEXT_PUBLIC_SUPABASE_URL` - Database URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Database public key
 - `SUPABASE_SERVICE_ROLE_KEY` - Database admin key
 
 **Recommended:**
+
 - `UPSTASH_REDIS_REST_URL` - Redis for caching/rate limiting
 - `E2B_API_KEY` - Sandboxed code execution
 - `PERPLEXITY_API_KEY` - Web search capabilities
@@ -321,43 +329,49 @@ See [.env.example](./.env.example) for all required and optional environment var
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System design and component overview |
-| [SECURITY.md](./docs/SECURITY.md) | Security policies and implementation |
-| [SOC2_READINESS.md](./docs/SOC2_READINESS.md) | Compliance checklist and status |
-| [CONTRIBUTING.md](./CONTRIBUTING.md) | Development guidelines |
-| [API.md](./docs/API.md) | API documentation (coming soon) |
+| Document                                      | Description                            |
+| --------------------------------------------- | -------------------------------------- |
+| [ARCHITECTURE.md](./docs/ARCHITECTURE.md)     | System design and component overview   |
+| [MEMORY_SYSTEM.md](./docs/MEMORY_SYSTEM.md)   | Persistent Memory Agent technical spec |
+| [SECURITY.md](./docs/SECURITY.md)             | Security policies and implementation   |
+| [SOC2_READINESS.md](./docs/SOC2_READINESS.md) | Compliance checklist and status        |
+| [CONTRIBUTING.md](./CONTRIBUTING.md)          | Development guidelines                 |
+| [API.md](./docs/API.md)                       | API documentation                      |
 
 ---
 
 ## Subscription Plans
 
-| Plan | Tokens/Month | Features | Price |
-|------|-------------|----------|-------|
-| **Free** | 10,000 (one-time) | Basic chat, web search | $0 |
-| **Plus** | 1,000,000 | All features, Code Lab | $18/mo |
-| **Pro** | 3,000,000 | Priority support, higher limits | $30/mo |
-| **Executive** | 5,000,000 | Enterprise features, dedicated support | $99/mo |
+| Plan          | Tokens/Month      | Features                               | Price  |
+| ------------- | ----------------- | -------------------------------------- | ------ |
+| **Free**      | 10,000 (one-time) | Basic chat, web search                 | $0     |
+| **Plus**      | 1,000,000         | All features, Code Lab                 | $18/mo |
+| **Pro**       | 3,000,000         | Priority support, higher limits        | $30/mo |
+| **Executive** | 5,000,000         | Enterprise features, dedicated support | $99/mo |
 
 ---
 
 ## Roadmap
 
 ### Completed
-- [x] Multi-agent architecture (Research, Code)
+
+- [x] Multi-agent architecture (Research, Code, Document, Memory)
+- [x] **Persistent Memory Agent** - Cross-conversation personalization
 - [x] Code Lab with 30+ tools and Claude Code parity
 - [x] Enterprise security (CSRF, validation, rate limiting)
-- [x] 685 automated tests
+- [x] 685+ automated tests
 - [x] Document generation (PDF, DOCX, XLSX)
 - [x] WebAuthn/Passkey authentication
+- [x] GDPR-compliant memory management (right to erasure)
 
 ### In Progress
+
 - [ ] SOC 2 Type II certification
 - [ ] API access for developers
 - [ ] Team workspaces with RBAC
 
 ### Planned
+
 - [ ] Enterprise SSO (SAML, OIDC)
 - [ ] On-premise deployment option
 - [ ] Mobile applications

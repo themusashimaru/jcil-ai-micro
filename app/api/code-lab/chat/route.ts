@@ -12,15 +12,23 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
-import { executeCodeAgent, shouldUseCodeAgent as checkCodeAgentIntent } from '@/agents/code/integration';
+import {
+  executeCodeAgent,
+  shouldUseCodeAgent as checkCodeAgentIntent,
+} from '@/agents/code/integration';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { orchestrateStream, shouldUseMultiAgent, getSuggestedAgents } from '@/lib/multi-agent';
 import { executeWorkspaceAgent } from '@/lib/workspace/chat-integration';
-import { processSlashCommand, isSlashCommand, parseSlashCommand } from '@/lib/workspace/slash-commands';
+import {
+  processSlashCommand,
+  isSlashCommand,
+  parseSlashCommand,
+} from '@/lib/workspace/slash-commands';
 import { detectCodeLabIntent } from '@/lib/workspace/intent-detector';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('CodeLabChat');
 
@@ -84,10 +92,10 @@ const RECENT_MESSAGES_AFTER_SUMMARY = 5; // Keep this many recent messages after
  * Called when message count exceeds threshold
  */
 async function generateConversationSummary(
-  messages: Array<{ role: string; content: string }>,
+  messages: Array<{ role: string; content: string }>
 ): Promise<string> {
   const conversationText = messages
-    .map(m => `${m.role.toUpperCase()}: ${m.content}`)
+    .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
     .join('\n\n');
 
   const response = await anthropic.messages.create({
@@ -150,7 +158,7 @@ function shouldUseSearch(message: string): boolean {
     /\b(error|issue|problem|bug)\b.*\b(fix|solve|resolve|solution)\b/i,
     /\bwhy (does|is|am|do)\b.*\b(not working|failing|broken|error)/i,
   ];
-  return searchPatterns.some(p => p.test(message));
+  return searchPatterns.some((p) => p.test(message));
 }
 
 // In-memory rate limit store (per user, resets every minute)
@@ -177,9 +185,15 @@ function checkRateLimit(userId: string): { allowed: boolean; remaining: number }
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return new Response('Unauthorized', { status: 401 });
@@ -189,17 +203,20 @@ export async function POST(request: NextRequest) {
     const { allowed } = checkRateLimit(user.id);
     if (!allowed) {
       log.warn('Rate limit exceeded', { userId: user.id });
-      return new Response(JSON.stringify({
-        error: 'Rate limit exceeded. Please wait a moment before sending more messages.',
-        code: 'RATE_LIMIT_EXCEEDED'
-      }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + 60)
+      return new Response(
+        JSON.stringify({
+          error: 'Rate limit exceeded. Please wait a moment before sending more messages.',
+          code: 'RATE_LIMIT_EXCEEDED',
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + 60),
+          },
         }
-      });
+      );
     }
 
     const body = await request.json();
@@ -215,18 +232,20 @@ export async function POST(request: NextRequest) {
       type: string;
       data: string;
     }
-    const imageAttachments = (attachments as AttachmentData[] || []).filter(
-      (a: AttachmentData) => a.type.startsWith('image/')
+    const imageAttachments = ((attachments as AttachmentData[]) || []).filter((a: AttachmentData) =>
+      a.type.startsWith('image/')
     );
-    const documentAttachments = (attachments as AttachmentData[] || []).filter(
+    const documentAttachments = ((attachments as AttachmentData[]) || []).filter(
       (a: AttachmentData) => !a.type.startsWith('image/')
     );
 
     // Build content with document info
     let enhancedContent = content || '';
     if (documentAttachments.length > 0) {
-      enhancedContent += '\n\n[Attached documents: ' +
-        documentAttachments.map((d: AttachmentData) => d.name).join(', ') + ']';
+      enhancedContent +=
+        '\n\n[Attached documents: ' +
+        documentAttachments.map((d: AttachmentData) => d.name).join(', ') +
+        ']';
     }
 
     // Process slash commands - convert /fix, /test, etc. to enhanced prompts
@@ -238,11 +257,13 @@ export async function POST(request: NextRequest) {
         const processedPrompt = processSlashCommand(enhancedContent, {
           userId: user.id,
           sessionId,
-          repo: repo ? {
-            owner: repo.owner,
-            name: repo.name,
-            branch: repo.branch || 'main',
-          } : undefined,
+          repo: repo
+            ? {
+                owner: repo.owner,
+                name: repo.name,
+                branch: repo.branch || 'main',
+              }
+            : undefined,
         });
         if (processedPrompt) {
           log.debug('Slash command detected', { command: content?.substring(0, 50) });
@@ -262,7 +283,7 @@ export async function POST(request: NextRequest) {
     log.debug('Intent detected', {
       type: intentResult.type,
       confidence: intentResult.confidence,
-      workspace: intentResult.shouldUseWorkspace
+      workspace: intentResult.shouldUseWorkspace,
     });
 
     // Save user message
@@ -281,8 +302,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current session to increment message count
-    const { data: currentSession, error: sessionError } = await (supabase
-      .from('code_lab_sessions') as AnySupabase)
+    const { data: currentSession, error: sessionError } = await (
+      supabase.from('code_lab_sessions') as AnySupabase
+    )
       .select('message_count')
       .eq('id', sessionId)
       .single();
@@ -292,8 +314,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update session timestamp and message count
-    const { error: updateError } = await (supabase
-      .from('code_lab_sessions') as AnySupabase)
+    const { error: updateError } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .update({
         updated_at: new Date().toISOString(),
         message_count: (currentSession?.message_count || 0) + 1,
@@ -305,16 +326,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get conversation history with auto-summarization
-    const { data: allMessages } = await (supabase
-      .from('code_lab_messages') as AnySupabase)
+    const { data: allMessages } = await (supabase.from('code_lab_messages') as AnySupabase)
       .select('id, role, content, type')
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true });
 
     // Check for existing summary
-    const existingSummary = (allMessages || []).find(
-      (m: { type: string }) => m.type === 'summary'
-    );
+    const existingSummary = (allMessages || []).find((m: { type: string }) => m.type === 'summary');
 
     // Build effective history for context
     let history: Array<{ role: string; content: string }> = [];
@@ -366,12 +384,10 @@ export async function POST(request: NextRequest) {
         } catch (err) {
           log.error('Summary generation failed', err as Error);
           // Fall back to recent messages only
-          history = (allMessages || [])
-            .slice(-20)
-            .map((m: { role: string; content: string }) => ({
-              role: m.role,
-              content: m.content,
-            }));
+          history = (allMessages || []).slice(-20).map((m: { role: string; content: string }) => ({
+            role: m.role,
+            content: m.content,
+          }));
         }
       }
     } else if (existingSummary) {
@@ -390,12 +406,10 @@ export async function POST(request: NextRequest) {
       ];
     } else {
       // No summarization needed, use all messages
-      history = (allMessages || [])
-        .slice(-20)
-        .map((m: { role: string; content: string }) => ({
-          role: m.role,
-          content: m.content,
-        }));
+      history = (allMessages || []).slice(-20).map((m: { role: string; content: string }) => ({
+        role: m.role,
+        content: m.content,
+      }));
     }
 
     // Handle slash command failures by returning error response
@@ -418,7 +432,7 @@ export async function POST(request: NextRequest) {
           start(controller) {
             controller.enqueue(encoder.encode(errorContent));
             controller.close();
-          }
+          },
         }),
         {
           headers: {
@@ -440,8 +454,7 @@ export async function POST(request: NextRequest) {
     // WORKSPACE AGENT - E2B Sandbox Execution (Claude Code-like)
     // ========================================
     // Check if user has an active workspace for this session
-    const { data: workspaceData } = await (supabase
-      .from('code_lab_workspaces') as AnySupabase)
+    const { data: workspaceData } = await (supabase.from('code_lab_workspaces') as AnySupabase)
       .select('id, sandbox_id, status')
       .eq('user_id', user.id)
       .eq('status', 'active')
@@ -451,13 +464,15 @@ export async function POST(request: NextRequest) {
 
     // Use workspace agent if: has active workspace AND request is agentic (high confidence)
     // OR if user explicitly asks for workspace mode with keywords
-    const forceWorkspace = body.useWorkspace === true ||
+    const forceWorkspace =
+      body.useWorkspace === true ||
       enhancedContent.toLowerCase().includes('/workspace') ||
       enhancedContent.toLowerCase().includes('/sandbox') ||
       enhancedContent.toLowerCase().includes('/execute');
 
     // Only use workspace for high-confidence agentic requests
-    const shouldActivateWorkspace = (workspaceData?.id && useWorkspaceAgent && intentResult.confidence >= 50) || forceWorkspace;
+    const shouldActivateWorkspace =
+      (workspaceData?.id && useWorkspaceAgent && intentResult.confidence >= 50) || forceWorkspace;
 
     if (shouldActivateWorkspace) {
       log.info('Using Workspace Agent (E2B sandbox mode)');
@@ -471,8 +486,9 @@ export async function POST(request: NextRequest) {
         sandboxId = `sandbox-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
         // Create a new workspace for this user
-        const { data: newWorkspace, error: wsError } = await (supabase
-          .from('code_lab_workspaces') as AnySupabase)
+        const { data: newWorkspace, error: wsError } = await (
+          supabase.from('code_lab_workspaces') as AnySupabase
+        )
           .insert({
             user_id: user.id,
             session_id: sessionId,
@@ -544,7 +560,11 @@ export async function POST(request: NextRequest) {
               controller.close();
             } catch (error) {
               log.error('Workspace Agent error', error as Error);
-              controller.enqueue(encoder.encode('\n\n`✕ Error:` I encountered an error during workspace execution. Please try again.'));
+              controller.enqueue(
+                encoder.encode(
+                  '\n\n`✕ Error:` I encountered an error during workspace execution. Please try again.'
+                )
+              );
               controller.close();
             }
           },
@@ -554,7 +574,7 @@ export async function POST(request: NextRequest) {
           headers: {
             'Content-Type': 'text/plain; charset=utf-8',
             'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
+            Connection: 'keep-alive',
           },
         });
       }
@@ -596,14 +616,17 @@ export async function POST(request: NextRequest) {
           content: m.content,
         })),
         githubToken,
-        selectedRepo: repo ? {
-          owner: repo.owner,
-          repo: repo.name,
-          fullName: repo.fullName,
-        } : undefined,
-        skipClarification: content.toLowerCase().includes('just build') ||
-                          content.toLowerCase().includes('proceed') ||
-                          content.toLowerCase().includes('go ahead'),
+        selectedRepo: repo
+          ? {
+              owner: repo.owner,
+              repo: repo.name,
+              fullName: repo.fullName,
+            }
+          : undefined,
+        skipClarification:
+          content.toLowerCase().includes('just build') ||
+          content.toLowerCase().includes('proceed') ||
+          content.toLowerCase().includes('go ahead'),
       });
 
       // Collect the stream and save to database
@@ -637,7 +660,9 @@ export async function POST(request: NextRequest) {
             controller.close();
           } catch (error) {
             log.error('Code Agent error', error as Error);
-            controller.enqueue(encoder.encode('\n\nI encountered an error during code generation. Please try again.'));
+            controller.enqueue(
+              encoder.encode('\n\nI encountered an error during code generation. Please try again.')
+            );
             controller.close();
           }
         },
@@ -647,7 +672,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          Connection: 'keep-alive',
         },
       });
     }
@@ -669,12 +694,14 @@ export async function POST(request: NextRequest) {
             const agentStream = orchestrateStream(enhancedContent, {
               userId: user.id,
               sessionId,
-              repo: repo ? {
-                owner: repo.owner,
-                name: repo.name,
-                branch: repo.branch || 'main',
-                fullName: repo.fullName,
-              } : undefined,
+              repo: repo
+                ? {
+                    owner: repo.owner,
+                    name: repo.name,
+                    branch: repo.branch || 'main',
+                    fullName: repo.fullName,
+                  }
+                : undefined,
               previousMessages: (history || []).map((m: { role: string; content: string }) => ({
                 role: m.role,
                 content: m.content,
@@ -699,7 +726,11 @@ export async function POST(request: NextRequest) {
             controller.close();
           } catch (error) {
             log.error('Multi-Agent error', error as Error);
-            controller.enqueue(encoder.encode('\n\nI encountered an error with the multi-agent system. Please try again.'));
+            controller.enqueue(
+              encoder.encode(
+                '\n\nI encountered an error with the multi-agent system. Please try again.'
+              )
+            );
             controller.close();
           }
         },
@@ -709,7 +740,7 @@ export async function POST(request: NextRequest) {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          Connection: 'keep-alive',
         },
       });
     }
@@ -813,7 +844,7 @@ Be honest about knowledge cutoff limitations when relevant.`,
         headers: {
           'Content-Type': 'text/plain; charset=utf-8',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          Connection: 'keep-alive',
         },
       });
     }
@@ -823,10 +854,12 @@ Be honest about knowledge cutoff limitations when relevant.`,
     // ========================================
     // Note: Codebase RAG removed (used Google embeddings)
     // Use Code Lab grep/find tools for code search instead
-    const messages: Anthropic.MessageParam[] = (history || []).map((m: { role: string; content: string }) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    }));
+    const messages: Anthropic.MessageParam[] = (history || []).map(
+      (m: { role: string; content: string }) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })
+    );
 
     // Build the current user message content (with vision support)
     type MessageContent = Anthropic.TextBlockParam | Anthropic.ImageBlockParam;
@@ -947,10 +980,7 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
             });
 
             try {
-              const result = await Promise.race([
-                iterator.next(),
-                timeoutPromise,
-              ]);
+              const result = await Promise.race([iterator.next(), timeoutPromise]);
 
               if (result.done) break;
 
@@ -967,7 +997,11 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
             } catch (error) {
               if (error instanceof Error && error.message === 'Stream chunk timeout') {
                 log.error('Stream chunk timeout - no data for 60s');
-                controller.enqueue(encoder.encode('\n\n*[Response interrupted: Connection timed out. Please try again.]*'));
+                controller.enqueue(
+                  encoder.encode(
+                    '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
+                  )
+                );
               }
               throw error;
             }
@@ -1003,7 +1037,7 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       },
     });
   } catch (error) {

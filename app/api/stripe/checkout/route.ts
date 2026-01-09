@@ -9,7 +9,14 @@ import { cookies } from 'next/headers';
 import { createCheckoutSession, STRIPE_PRICE_IDS } from '@/lib/stripe/client';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  validateBody,
+  checkRequestRateLimit,
+  rateLimits,
+} from '@/lib/api/utils';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('StripeCheckout');
 
@@ -43,6 +50,10 @@ async function getSupabaseClient() {
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF Protection - Critical for payment operations
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await getSupabaseClient();
 
@@ -69,7 +80,9 @@ export async function POST(request: NextRequest) {
     // Get price ID for the tier
     const priceId = STRIPE_PRICE_IDS[tier as keyof typeof STRIPE_PRICE_IDS];
     log.info(`[Stripe Checkout] Tier: ${tier}, Price ID: ${priceId || 'NOT FOUND'}`);
-    log.info(`[Stripe Checkout] Env vars - PLUS: ${process.env.STRIPE_PRICE_ID_PLUS ? 'SET' : 'MISSING'}, PRO: ${process.env.STRIPE_PRICE_ID_PRO ? 'SET' : 'MISSING'}, EXECUTIVE: ${process.env.STRIPE_PRICE_ID_EXECUTIVE ? 'SET' : 'MISSING'}`);
+    log.info(
+      `[Stripe Checkout] Env vars - PLUS: ${process.env.STRIPE_PRICE_ID_PLUS ? 'SET' : 'MISSING'}, PRO: ${process.env.STRIPE_PRICE_ID_PRO ? 'SET' : 'MISSING'}, EXECUTIVE: ${process.env.STRIPE_PRICE_ID_EXECUTIVE ? 'SET' : 'MISSING'}`
+    );
 
     if (!priceId) {
       log.error(`[Stripe Checkout] Price ID not configured for tier: ${tier}`);
