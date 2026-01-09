@@ -137,14 +137,17 @@ export default function LandingHeader({
           />
 
           {/* Drawer */}
-          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-slate-950 border-l border-white/10 shadow-2xl">
-            <div className="flex flex-col h-full">
+          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-black/95 backdrop-blur-xl border-l border-white/10 shadow-2xl">
+            {/* Subtle gradient overlay for depth */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+
+            <div className="relative flex flex-col h-full">
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-white/10">
                 <LandingLogo />
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+                  className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
                   aria-label="Close menu"
                 >
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,10 +169,10 @@ export default function LandingHeader({
                       key={item.href}
                       href={item.href}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center px-4 py-3 text-base font-medium rounded-lg transition-colors ${
+                      className={`flex items-center px-4 py-3.5 text-base font-medium rounded-xl transition-all ${
                         item.highlight
-                          ? 'text-fuchsia-400 hover:bg-fuchsia-500/10'
-                          : 'text-slate-300 hover:text-white hover:bg-white/5'
+                          ? 'text-fuchsia-400 hover:bg-fuchsia-500/10 hover:text-fuchsia-300'
+                          : 'text-slate-200 hover:text-white hover:bg-white/10'
                       }`}
                     >
                       {item.label}
@@ -179,18 +182,18 @@ export default function LandingHeader({
               </nav>
 
               {/* Footer CTAs */}
-              <div className="p-4 border-t border-white/10 space-y-3">
+              <div className="p-4 border-t border-white/10 space-y-3 bg-white/[0.02]">
                 <Link
                   href="/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center w-full px-4 py-3 text-base font-medium text-slate-300 hover:text-white rounded-lg border border-white/20 hover:bg-white/5 transition-colors"
+                  className="flex items-center justify-center w-full px-4 py-3.5 text-base font-medium text-slate-200 hover:text-white rounded-xl border border-white/20 hover:bg-white/10 hover:border-white/30 transition-all"
                 >
                   Sign in
                 </Link>
                 <Link
                   href={ctaHref}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center w-full px-4 py-3 text-base font-semibold text-black bg-white rounded-lg hover:bg-slate-100 transition-colors"
+                  className="flex items-center justify-center w-full px-4 py-3.5 text-base font-semibold text-black bg-white rounded-xl hover:bg-slate-100 transition-all shadow-lg"
                 >
                   {ctaText}
                 </Link>
