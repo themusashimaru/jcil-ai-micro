@@ -407,6 +407,84 @@ User Deletion Request
 
 ---
 
+## Scaling Security (100K+ Users)
+
+### Enterprise Infrastructure Security
+
+The platform implements security controls designed for 100,000+ concurrent users:
+
+#### Queue System Security
+
+| Control            | Implementation           | Purpose                         |
+| ------------------ | ------------------------ | ------------------------------- |
+| Job Authentication | User ID embedded in jobs | Prevent unauthorized processing |
+| Priority Isolation | Separate queues by tier  | Prevent priority manipulation   |
+| Rate Limiting      | Per-user, per-IP limits  | Prevent resource exhaustion     |
+| Circuit Breakers   | Auto-trip on failures    | Prevent cascade failures        |
+
+#### Cron Job Security
+
+All cron jobs require CRON_SECRET authentication:
+
+```typescript
+// Required header for cron endpoints
+Authorization: Bearer ${CRON_SECRET}
+```
+
+Protected cron endpoints:
+
+- `/api/cron/cleanup-rate-limits` - Hourly cleanup
+- `/api/cron/cleanup-stale-queue` - 5-minute cleanup
+- `/api/cron/health-check` - 10-minute health monitoring
+
+#### Database Connection Security
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    CONNECTION POOLING SECURITY                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  • pgBouncer transaction mode (prevents connection hijacking)       │
+│  • 30-second connection timeouts                                    │
+│  • Singleton pattern prevents connection exhaustion                 │
+│  • Row-Level Security enforced on all pooled connections            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### Redis Security
+
+- TLS encryption for all Redis connections
+- Password authentication required
+- Key expiration prevents data accumulation
+- Rate limit keys auto-expire after 2 hours
+
+#### Circuit Breaker Protection
+
+Prevents cascade failures when services are unhealthy:
+
+| Service       | Timeout | Error Threshold | Recovery Time |
+| ------------- | ------- | --------------- | ------------- |
+| Anthropic API | 120s    | 50%             | 30s           |
+| Database      | 30s     | 60%             | 10s           |
+| Redis         | 5s      | 70%             | 5s            |
+
+### Monitoring & Alerting
+
+Security events at scale are monitored via:
+
+- **Health Check Cron**: Every 10 minutes
+- **Queue Status API**: Real-time monitoring
+- **Circuit Breaker Events**: Logged and alerted
+- **Rate Limit Violations**: Tracked per user/IP
+
+Alert webhook integration for critical events:
+
+- Circuit breaker state changes
+- High queue utilization (>80%)
+- API key exhaustion
+- Database connection issues
+
+---
+
 ## Security Checklist
 
 ### For Developers

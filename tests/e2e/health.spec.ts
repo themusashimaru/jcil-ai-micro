@@ -29,10 +29,16 @@ test.describe('Health Check', () => {
     expect(body).toHaveProperty('checks');
 
     if (body.checks) {
-      // Check that component statuses exist
+      // Check that component statuses exist and have valid status values
       expect(body.checks).toHaveProperty('database');
       expect(body.checks).toHaveProperty('cache');
       expect(body.checks).toHaveProperty('ai');
+
+      // Verify each component has a valid status (up/down/degraded)
+      for (const check of Object.values(body.checks)) {
+        const componentCheck = check as { status: string };
+        expect(['up', 'down', 'degraded']).toContain(componentCheck.status);
+      }
     }
   });
 

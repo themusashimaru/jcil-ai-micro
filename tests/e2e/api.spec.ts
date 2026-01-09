@@ -39,11 +39,10 @@ test.describe('API Endpoints', () => {
 
       if (body.checks) {
         // Verify structure of component checks
-        for (const [_key, check] of Object.entries(body.checks)) {
+        for (const check of Object.values(body.checks)) {
           const componentCheck = check as { status: string };
-          expect(['healthy', 'degraded', 'unhealthy']).toContain(
-            componentCheck.status
-          );
+          // Component health uses up/down/degraded, not healthy/unhealthy
+          expect(['up', 'down', 'degraded']).toContain(componentCheck.status);
         }
       }
     });
@@ -79,9 +78,7 @@ test.describe('API Endpoints', () => {
   test.describe('Rate Limiting', () => {
     test('API handles rapid requests', async ({ request }) => {
       // Send 10 rapid requests
-      const requests = Array.from({ length: 10 }, () =>
-        request.get('/api/health')
-      );
+      const requests = Array.from({ length: 10 }, () => request.get('/api/health'));
 
       const responses = await Promise.all(requests);
 
@@ -113,9 +110,7 @@ test.describe('API Endpoints', () => {
       if (contentType?.includes('application/json')) {
         const body = await response.json();
         // Error responses typically have message or error field
-        expect(
-          body.message || body.error || body.statusCode || true
-        ).toBeTruthy();
+        expect(body.message || body.error || body.statusCode || true).toBeTruthy();
       }
     });
   });

@@ -8,6 +8,20 @@
       "main": true
     }
   },
+  "functions": {
+    "app/api/chat/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 300
+    },
+    "app/api/code-lab/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 300
+    },
+    "app/api/cron/**/*.ts": {
+      "memory": 512,
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
       "path": "/api/devotional/daily",
@@ -16,6 +30,18 @@
     {
       "path": "/api/cron/process-pending",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-rate-limits",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-stale-queue",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/health-check",
+      "schedule": "*/10 * * * *"
     }
   ]
 }
