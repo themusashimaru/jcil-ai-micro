@@ -576,7 +576,7 @@ export async function forgetFromMemory(
     }
 
     // Remove specified preference keys
-    let updatedPrefs = { ...memory.user_preferences };
+    const updatedPrefs = { ...memory.user_preferences };
     if (options.preferenceKeys && options.preferenceKeys.length > 0) {
       for (const key of options.preferenceKeys) {
         if (key in updatedPrefs) {
