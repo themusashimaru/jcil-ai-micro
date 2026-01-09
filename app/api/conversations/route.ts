@@ -10,7 +10,13 @@ import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  validateBody,
+  checkRequestRateLimit,
+  rateLimits,
+} from '@/lib/api/utils';
 import { createConversationSchema } from '@/lib/validation/schemas';
 import { z } from 'zod';
 
@@ -59,10 +65,19 @@ export async function GET() {
     const supabase = await getSupabaseClient();
 
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError) {
+      log.error('Auth error getting user', { error: authError.message, code: authError.code });
       return errors.unauthorized();
     }
+    if (!user) {
+      log.warn('No user in session - not authenticated');
+      return errors.unauthorized();
+    }
+    log.debug('User authenticated for conversation list', { userId: user.id.slice(0, 8) + '...' });
 
     // Rate limiting
     const rateLimitResult = checkRequestRateLimit(`conv-list:${user.id}`, rateLimits.standard);
@@ -73,20 +88,27 @@ export async function GET() {
     // Fetch conversations with folder info
     const { data: conversations, error } = await supabase
       .from('conversations')
-      .select(`
+      .select(
+        `
         *,
         folder:chat_folders(id, name, color)
-      `)
+      `
+      )
       .eq('user_id', user.id)
       .is('deleted_at', null)
       .order('last_message_at', { ascending: false });
 
     if (error) {
-      log.error('Error fetching conversations', error instanceof Error ? error : { error });
+      log.error('Error fetching conversations', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
       return errors.serverError();
     }
 
-    // Successfully fetched conversations
+    log.debug('Fetched conversations successfully', { count: conversations?.length || 0 });
 
     return successResponse({ conversations });
   } catch (error) {
@@ -108,7 +130,10 @@ export async function POST(request: NextRequest) {
     const supabase = await getSupabaseClient();
 
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return errors.unauthorized();
     }
