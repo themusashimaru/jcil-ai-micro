@@ -97,7 +97,10 @@ async function getGitHubToken(): Promise<{
     }
   );
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
   if (userError || !user) {
     return { token: null, userId: null, username: null, error: 'Not authenticated' };
@@ -117,7 +120,12 @@ async function getGitHubToken(): Promise<{
     .single();
 
   if (!userData?.github_token) {
-    return { token: null, userId: user.id, username: null, error: 'GitHub not connected. Add your Personal Access Token in Connectors.' };
+    return {
+      token: null,
+      userId: user.id,
+      username: null,
+      error: 'GitHub not connected. Add your Personal Access Token in Connectors.',
+    };
   }
 
   try {
@@ -128,7 +136,19 @@ async function getGitHubToken(): Promise<{
       username: userData.github_username,
     };
   } catch {
-    return { token: null, userId: user.id, username: null, error: 'Failed to decrypt GitHub token' };
+    // Decryption failed - token was encrypted with different key
+    // Clear the invalid token so user can reconnect
+    log.warn('[Connectors] Clearing invalid GitHub token due to decryption failure');
+    await adminClient
+      .from('users')
+      .update({ github_token: null, github_username: null })
+      .eq('id', user.id);
+    return {
+      token: null,
+      userId: user.id,
+      username: null,
+      error: 'GitHub token encryption changed, please reconnect',
+    };
   }
 }
 
@@ -213,9 +233,12 @@ export async function POST(request: NextRequest) {
   }
 
   if (!token) {
-    return NextResponse.json({
-      error: error || 'GitHub not connected. Add your Personal Access Token in Connectors.',
-    }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: error || 'GitHub not connected. Add your Personal Access Token in Connectors.',
+      },
+      { status: 400 }
+    );
   }
 
   try {
@@ -233,9 +256,12 @@ export async function POST(request: NextRequest) {
         const { owner, repo, branch, message, files } = body;
 
         if (!owner || !repo || !message || !files || files.length === 0) {
-          return NextResponse.json({
-            error: 'owner, repo, message, and files required',
-          }, { status: 400 });
+          return NextResponse.json(
+            {
+              error: 'owner, repo, message, and files required',
+            },
+            { status: 400 }
+          );
         }
 
         const result = await pushFiles(token, {
@@ -423,12 +449,18 @@ export async function POST(request: NextRequest) {
         const { owner, repo, branchName, fromBranch } = body;
 
         if (!owner || !repo || !branchName) {
-          return NextResponse.json({ error: 'owner, repo, and branchName required' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'owner, repo, and branchName required' },
+            { status: 400 }
+          );
         }
 
         const branchResult = await createBranch(token, owner, repo, branchName, fromBranch);
         if (!branchResult.success) {
-          return NextResponse.json({ error: branchResult.error || 'Failed to create branch' }, { status: 500 });
+          return NextResponse.json(
+            { error: branchResult.error || 'Failed to create branch' },
+            { status: 500 }
+          );
         }
 
         return NextResponse.json(branchResult);
@@ -439,7 +471,10 @@ export async function POST(request: NextRequest) {
         const { owner, repo, title, body: prBody, head, base, draft } = body;
 
         if (!owner || !repo || !title || !head || !base) {
-          return NextResponse.json({ error: 'owner, repo, title, head, and base required' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'owner, repo, title, head, and base required' },
+            { status: 400 }
+          );
         }
 
         const prResult = await createPullRequest(token, {
@@ -453,7 +488,10 @@ export async function POST(request: NextRequest) {
         });
 
         if (!prResult.success) {
-          return NextResponse.json({ error: prResult.error || 'Failed to create pull request' }, { status: 500 });
+          return NextResponse.json(
+            { error: prResult.error || 'Failed to create pull request' },
+            { status: 500 }
+          );
         }
 
         return NextResponse.json(prResult);
@@ -464,7 +502,10 @@ export async function POST(request: NextRequest) {
         const { owner, repo, base, head } = body;
 
         if (!owner || !repo || !base || !head) {
-          return NextResponse.json({ error: 'owner, repo, base, and head required' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'owner, repo, base, and head required' },
+            { status: 400 }
+          );
         }
 
         const comparison = await compareBranches(token, owner, repo, base, head);

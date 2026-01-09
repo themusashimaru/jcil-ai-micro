@@ -41,7 +41,10 @@ async function getUser() {
     }
   );
 
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
   return { user, error };
 }
 
@@ -74,7 +77,25 @@ export async function GET() {
 
   if (userData?.github_token) {
     // Verify the token is still valid by making a test request
-    const token = decryptToken(userData.github_token);
+    let token: string;
+    try {
+      token = decryptToken(userData.github_token);
+    } catch (decryptError) {
+      // Decryption failed - token was encrypted with a different key
+      // Clear the invalid token and return disconnected state
+      log.warn('[GitHub Token] Decryption failed, clearing invalid token', {
+        error: decryptError instanceof Error ? decryptError.message : 'Unknown error',
+      });
+      await adminClient
+        .from('users')
+        .update({ github_token: null, github_username: null })
+        .eq('id', user.id);
+      return successResponse({
+        connected: false,
+        error: 'Token encryption changed, please reconnect',
+      });
+    }
+
     try {
       const response = await fetch('https://api.github.com/user', {
         headers: {
@@ -174,7 +195,10 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      log.error('[GitHub Token] Save error:', updateError instanceof Error ? updateError : { updateError });
+      log.error(
+        '[GitHub Token] Save error:',
+        updateError instanceof Error ? updateError : { updateError }
+      );
       return errors.serverError();
     }
 
@@ -183,7 +207,6 @@ export async function POST(request: NextRequest) {
       username: ghUser.login,
       avatarUrl: ghUser.avatar_url,
     });
-
   } catch (err) {
     log.error('[GitHub Token] Error:', err instanceof Error ? err : { err });
     return errors.serverError();
@@ -201,7 +224,10 @@ export async function DELETE() {
   }
 
   // Rate limit by user
-  const rateLimitResult = checkRequestRateLimit(`github:token:delete:${user.id}`, rateLimits.strict);
+  const rateLimitResult = checkRequestRateLimit(
+    `github:token:delete:${user.id}`,
+    rateLimits.strict
+  );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   const adminClient = createClient(
