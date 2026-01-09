@@ -2,17 +2,18 @@
 -- FIX: CONVERSATIONS TABLE RLS POLICIES
 -- ============================================================
 -- Purpose: Ensure users can access their own conversations
--- Issue: RLS policies were missing or misconfigured
+-- Issue: Policies were using current_user_id() instead of auth.uid()
 -- ============================================================
 
 -- Ensure RLS is enabled
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if any (to avoid conflicts)
+-- Drop existing policies (including old ones with wrong function)
 DROP POLICY IF EXISTS "Users can view own conversations" ON public.conversations;
 DROP POLICY IF EXISTS "Users can insert own conversations" ON public.conversations;
 DROP POLICY IF EXISTS "Users can update own conversations" ON public.conversations;
 DROP POLICY IF EXISTS "Users can delete own conversations" ON public.conversations;
+DROP POLICY IF EXISTS "Users can create conversations" ON public.conversations;
 DROP POLICY IF EXISTS "Service role full access to conversations" ON public.conversations;
 
 -- Users can view their own conversations
