@@ -59,6 +59,7 @@ JCIL.AI is a comprehensive AI platform featuring **agentic AI capabilities** tha
 | **Code Lab** | Agentic IDE with sandboxed execution | 30+ tools, GitHub integration, persistent workspaces |
 | **Research Agent** | Multi-source research synthesis | Dynamic queries, source evaluation, citations |
 | **Document Generator** | Professional document creation | PDF invoices, Word docs, Excel spreadsheets |
+| **Memory Agent** | Persistent personalization | Learns preferences, remembers context across sessions |
 
 ---
 
@@ -90,6 +91,10 @@ Our platform is built on a sophisticated **multi-agent architecture** that enabl
 │  │  │ Research │  │   Code   │  │ Document │       │                │
 │  │  │  Agent   │  │  Agent   │  │  Agent   │       │                │
 │  │  └──────────┘  └──────────┘  └──────────┘       │                │
+│  │               ┌──────────┐                       │                │
+│  │               │  Memory  │ ◄── Persistent       │                │
+│  │               │  Agent   │     context across   │                │
+│  │               └──────────┘     conversations    │                │
 │  └────────┬────────────────────────────────────────┘                │
 │           │                                                          │
 │           ▼                                                          │
@@ -107,6 +112,7 @@ Our platform is built on a sophisticated **multi-agent architecture** that enabl
 | **Research Agent** | Multi-source search, fact verification, citation generation | Market research, fact-checking, academic research |
 | **Code Agent** | Code analysis, generation, refactoring, security scanning | Software development, code review, debugging |
 | **Document Agent** | Template-based generation, formatting, export | Invoices, reports, contracts, presentations |
+| **Memory Agent** | Cross-conversation context, preference learning, personalization | Personalized assistance, context continuity, user preferences |
 
 ---
 
@@ -324,10 +330,11 @@ See [.env.example](./.env.example) for all required and optional environment var
 | Document | Description |
 |----------|-------------|
 | [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System design and component overview |
+| [MEMORY_SYSTEM.md](./docs/MEMORY_SYSTEM.md) | Persistent Memory Agent technical spec |
 | [SECURITY.md](./docs/SECURITY.md) | Security policies and implementation |
 | [SOC2_READINESS.md](./docs/SOC2_READINESS.md) | Compliance checklist and status |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | Development guidelines |
-| [API.md](./docs/API.md) | API documentation (coming soon) |
+| [API.md](./docs/API.md) | API documentation |
 
 ---
 
@@ -345,12 +352,14 @@ See [.env.example](./.env.example) for all required and optional environment var
 ## Roadmap
 
 ### Completed
-- [x] Multi-agent architecture (Research, Code)
+- [x] Multi-agent architecture (Research, Code, Document, Memory)
+- [x] **Persistent Memory Agent** - Cross-conversation personalization
 - [x] Code Lab with 30+ tools and Claude Code parity
 - [x] Enterprise security (CSRF, validation, rate limiting)
-- [x] 685 automated tests
+- [x] 685+ automated tests
 - [x] Document generation (PDF, DOCX, XLSX)
 - [x] WebAuthn/Passkey authentication
+- [x] GDPR-compliant memory management (right to erasure)
 
 ### In Progress
 - [ ] SOC 2 Type II certification
