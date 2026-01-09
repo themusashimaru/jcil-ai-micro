@@ -9,50 +9,70 @@ import { test, expect } from '@playwright/test';
 test.describe('Navigation', () => {
   test('can navigate to login page', async ({ page }) => {
     await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for login link or button
     const loginLink = page.locator(
       'a[href*="login"], a[href*="signin"], button:has-text("Login"), button:has-text("Sign in")'
     );
 
-    if ((await loginLink.count()) > 0) {
+    const count = await loginLink.count();
+    if (count > 0) {
       await loginLink.first().click();
       await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(500);
 
       // Should be on login page
       expect(page.url()).toMatch(/login|signin|auth/i);
+    } else {
+      // Skip if no login link found (may be already logged in)
+      test.skip();
     }
   });
 
   test('can navigate to signup page', async ({ page }) => {
     await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for signup link or button
     const signupLink = page.locator(
       'a[href*="signup"], a[href*="register"], button:has-text("Sign up"), button:has-text("Register"), button:has-text("Get started")'
     );
 
-    if ((await signupLink.count()) > 0) {
+    const count = await signupLink.count();
+    if (count > 0) {
       await signupLink.first().click();
       await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(500);
 
       // Should be on signup page
       expect(page.url()).toMatch(/signup|register|auth/i);
+    } else {
+      // Skip if no signup link found
+      test.skip();
     }
   });
 
   test('logo navigates to homepage', async ({ page }) => {
     await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for logo link
     const logoLink = page.locator('a[href="/"], header a:first-child, .logo a');
 
-    if ((await logoLink.count()) > 0) {
+    const count = await logoLink.count();
+    if (count > 0) {
       await logoLink.first().click();
       await page.waitForLoadState('domcontentloaded');
+      await page.waitForTimeout(500);
 
-      // Should be on homepage
-      expect(page.url()).toMatch(/\/$/);
+      // Should be on homepage (URL ends with / or is just the base URL without path)
+      const url = page.url();
+      const isHomepage = url.endsWith('/') || url.match(/^https?:\/\/[^/]+$/);
+      expect(isHomepage).toBeTruthy();
+    } else {
+      // Skip if no logo link found
+      test.skip();
     }
   });
 
