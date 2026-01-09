@@ -559,12 +559,15 @@ export function ChatClient() {
         log.debug('API response status:', { status: response.status });
 
         if (response.ok) {
-          const data = await response.json();
+          const responseData = await response.json();
+          // API returns { ok: true, data: { conversations: [...] } }
+          const conversations =
+            responseData.data?.conversations || responseData.conversations || [];
           log.debug('Loaded conversations from DB:', {
-            count: data.conversations?.length || 0,
+            count: conversations.length,
           });
 
-          const formattedChats: Chat[] = data.conversations.map(
+          const formattedChats: Chat[] = conversations.map(
             (conv: {
               id: string;
               title: string;
