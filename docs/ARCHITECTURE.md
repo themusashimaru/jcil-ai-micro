@@ -53,10 +53,10 @@ JCIL.AI is a modern, cloud-native AI platform built on Next.js 14 with a multi-a
 │  │                                │                                      │  │
 │  │  ┌─────────────────────────────┴─────────────────────────────────┐   │  │
 │  │  │                      AGENT SYSTEM                              │   │  │
-│  │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐                    │   │  │
-│  │  │  │ Research │  │   Code   │  │ Document │                    │   │  │
-│  │  │  │  Agent   │  │  Agent   │  │  Agent   │                    │   │  │
-│  │  │  └──────────┘  └──────────┘  └──────────┘                    │   │  │
+│  │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐     │   │  │
+│  │  │  │ Research │  │   Code   │  │ Document │  │  Memory  │     │   │  │
+│  │  │  │  Agent   │  │  Agent   │  │  Agent   │  │  Agent   │     │   │  │
+│  │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘     │   │  │
 │  │  └───────────────────────────────────────────────────────────────┘   │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
 │                                                                              │
@@ -255,7 +255,133 @@ User Query
 └──────────────┘
 ```
 
-### 7. Intent Detection & Auto-Routing
+### 5. Persistent Memory Agent
+
+The Memory Agent provides cross-conversation context for personalized AI experiences:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                   PERSISTENT MEMORY ARCHITECTURE                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    MEMORY FLOW                               │   │
+│  │                                                               │   │
+│  │  User Message                                                 │   │
+│  │       │                                                       │   │
+│  │       ▼                                                       │   │
+│  │  ┌──────────────────────────────────────────────────────┐   │   │
+│  │  │              MEMORY LOADING (Pre-Chat)                │   │   │
+│  │  │                                                        │   │   │
+│  │  │  1. Load from conversation_memory table               │   │   │
+│  │  │  2. Format for system prompt injection                │   │   │
+│  │  │  3. Include: preferences, topics, context             │   │   │
+│  │  └──────────────────────────────────────────────────────┘   │   │
+│  │       │                                                       │   │
+│  │       ▼                                                       │   │
+│  │  ┌──────────────────────────────────────────────────────┐   │   │
+│  │  │              AI RESPONSE (With Context)               │   │   │
+│  │  │                                                        │   │   │
+│  │  │  System Prompt + User Memory Context                  │   │   │
+│  │  │       │                                                │   │   │
+│  │  │       ▼                                                │   │   │
+│  │  │  Personalized, context-aware response                 │   │   │
+│  │  └──────────────────────────────────────────────────────┘   │   │
+│  │       │                                                       │   │
+│  │       ▼                                                       │   │
+│  │  ┌──────────────────────────────────────────────────────┐   │   │
+│  │  │           MEMORY EXTRACTION (Post-Chat)               │   │   │
+│  │  │                                                        │   │   │
+│  │  │  1. shouldExtractMemory() - Quick regex check         │   │   │
+│  │  │  2. extractMemoryFromConversation() - Haiku AI        │   │   │
+│  │  │  3. updateUserMemory() - Merge and persist            │   │   │
+│  │  └──────────────────────────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    MEMORY STRUCTURE                          │   │
+│  │                                                               │   │
+│  │  UserMemory {                                                │   │
+│  │    id: uuid                                                  │   │
+│  │    user_id: uuid                                             │   │
+│  │    summary: string              // Overall context summary   │   │
+│  │    key_topics: string[]         // Discussion topics         │   │
+│  │    user_preferences: {                                       │   │
+│  │      name: string               // User's name               │   │
+│  │      occupation: string         // Job/role                  │   │
+│  │      location: string           // Where they live           │   │
+│  │      communication_style: enum  // formal|casual|technical   │   │
+│  │      interests: string[]        // Topics of interest        │   │
+│  │      family_members: []         // Family context            │   │
+│  │      goals: string[]            // Aspirations               │   │
+│  │    }                                                         │   │
+│  │    conversation_ids: uuid[]     // Contributing chats        │   │
+│  │    last_conversations: string[] // Recent summaries          │   │
+│  │  }                                                           │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    EXTRACTION PIPELINE                       │   │
+│  │                                                               │   │
+│  │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │   │
+│  │  │  Regex      │    │  Claude     │    │   Merge     │     │   │
+│  │  │  Pre-check  │───▶│  Haiku 4.5  │───▶│  & Persist  │     │   │
+│  │  │             │    │             │    │             │     │   │
+│  │  │ Fast filter │    │ Extract:    │    │ Dedupe      │     │   │
+│  │  │ for personal│    │ • Facts     │    │ topics,     │     │   │
+│  │  │ indicators  │    │ • Topics    │    │ update      │     │   │
+│  │  │             │    │ • Summary   │    │ preferences │     │   │
+│  │  └─────────────┘    └─────────────┘    └─────────────┘     │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    API ENDPOINTS                             │   │
+│  │                                                               │   │
+│  │  GET    /api/memory         - Retrieve user memory           │   │
+│  │  PUT    /api/memory         - Update preferences             │   │
+│  │  DELETE /api/memory         - Clear all memory (GDPR)        │   │
+│  │  POST   /api/memory/forget  - Targeted deletion (GDPR)       │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Memory Context Injection:**
+
+The memory context is injected into the system prompt for personalized responses:
+
+```typescript
+// System prompt receives user context
+const fullSystemPrompt = memoryContext ? `${systemPrompt}\n\n${memoryContext}` : systemPrompt;
+
+// Example memory context:
+// ---
+// USER MEMORY (Persistent Context):
+//
+// **About This User:**
+// - Name: John
+// - Occupation: Software Engineer
+// - Prefers technical communication style
+// - Interests: AI, theology, family
+//
+// **Topics Previously Discussed:** programming, faith, parenting
+//
+// Use this context to personalize responses...
+// ---
+```
+
+**GDPR Compliance:**
+
+The memory system is fully GDPR-compliant:
+
+| Right                  | Implementation                     |
+| ---------------------- | ---------------------------------- |
+| Right to Access        | GET /api/memory returns all data   |
+| Right to Rectification | PUT /api/memory updates data       |
+| Right to Erasure       | DELETE /api/memory clears all      |
+| Right to be Forgotten  | POST /api/memory/forget (targeted) |
+
+### 6. Intent Detection & Auto-Routing
 
 The system automatically detects user intent and routes to appropriate tools:
 
@@ -396,6 +522,7 @@ users                 -- User accounts
 conversations        -- Chat conversations
 messages             -- Individual messages
 code_lab_sessions    -- Code Lab workspaces
+conversation_memory  -- Persistent user memory (Memory Agent)
 
 -- Security Tables
 rate_limits          -- Rate limiting records

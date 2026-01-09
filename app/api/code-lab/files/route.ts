@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('CodeLabFiles');
 
@@ -22,8 +23,7 @@ async function verifySessionOwnership(
   sessionId: string,
   userId: string
 ): Promise<boolean> {
-  const { data, error } = await (supabase
-    .from('code_lab_sessions') as AnySupabase)
+  const { data, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
     .select('id')
     .eq('id', sessionId)
     .eq('user_id', userId)
@@ -55,10 +55,7 @@ export async function GET(request: NextRequest) {
   // Verify session ownership
   const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
   if (!hasAccess) {
-    return NextResponse.json(
-      { error: 'Session not found or access denied' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
   }
 
   try {
@@ -76,15 +73,16 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     log.error('[Files API] Error:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to access files' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to access files' }, { status: 500 });
   }
 }
 
 // POST - Create new file
 export async function POST(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const supabase = await createClient();
 
   const {
@@ -99,19 +97,13 @@ export async function POST(request: NextRequest) {
     const { sessionId, path, content = '' } = await request.json();
 
     if (!sessionId || !path) {
-      return NextResponse.json(
-        { error: 'Session ID and path required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Session ID and path required' }, { status: 400 });
     }
 
     // Verify session ownership
     const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
     if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Session not found or access denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
     }
 
     // Sanitize path
@@ -123,15 +115,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, path: safePath });
   } catch (error) {
     log.error('[Files API] Error creating file:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to create file' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create file' }, { status: 500 });
   }
 }
 
 // PUT - Update existing file
 export async function PUT(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const supabase = await createClient();
 
   const {
@@ -146,19 +139,13 @@ export async function PUT(request: NextRequest) {
     const { sessionId, path, content } = await request.json();
 
     if (!sessionId || !path) {
-      return NextResponse.json(
-        { error: 'Session ID and path required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Session ID and path required' }, { status: 400 });
     }
 
     // Verify session ownership
     const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
     if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Session not found or access denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
     }
 
     // Sanitize path
@@ -170,15 +157,16 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true, path: safePath });
   } catch (error) {
     log.error('[Files API] Error updating file:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to update file' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update file' }, { status: 500 });
   }
 }
 
 // DELETE - Delete file
 export async function DELETE(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const supabase = await createClient();
 
   const {
@@ -194,19 +182,13 @@ export async function DELETE(request: NextRequest) {
   const path = searchParams.get('path');
 
   if (!sessionId || !path) {
-    return NextResponse.json(
-      { error: 'Session ID and path required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Session ID and path required' }, { status: 400 });
   }
 
   // Verify session ownership
   const hasAccess = await verifySessionOwnership(supabase, sessionId, user.id);
   if (!hasAccess) {
-    return NextResponse.json(
-      { error: 'Session not found or access denied' },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
   }
 
   try {
@@ -219,9 +201,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     log.error('[Files API] Error deleting file:', error instanceof Error ? error : { error });
-    return NextResponse.json(
-      { error: 'Failed to delete file' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete file' }, { status: 500 });
   }
 }

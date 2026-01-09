@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('CodeLabSessions');
 
@@ -25,21 +26,25 @@ function generateId(): string {
 export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Fetch sessions for user
-    const { data: sessions, error } = await (supabase
-      .from('code_lab_sessions') as AnySupabase)
+    const { data: sessions, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .select('*')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
 
     if (error) {
-      log.error('[CodeLab API] Error fetching sessions:', error instanceof Error ? error : { error });
+      log.error(
+        '[CodeLab API] Error fetching sessions:',
+        error instanceof Error ? error : { error }
+      );
       // Return empty array if table doesn't exist yet
       return NextResponse.json({ sessions: [] });
     }
@@ -52,12 +57,14 @@ export async function GET() {
       createdAt: s.created_at,
       updatedAt: s.updated_at,
       // Construct repo object from separate columns
-      repo: s.repo_owner ? {
-        owner: s.repo_owner,
-        name: s.repo_name,
-        branch: s.repo_branch || 'main',
-        fullName: `${s.repo_owner}/${s.repo_name}`,
-      } : null,
+      repo: s.repo_owner
+        ? {
+            owner: s.repo_owner,
+            name: s.repo_name,
+            branch: s.repo_branch || 'main',
+            fullName: `${s.repo_owner}/${s.repo_name}`,
+          }
+        : null,
       isActive: true,
       messageCount: s.message_count || 0,
       hasSummary: s.has_summary || false,
@@ -74,9 +81,15 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -90,14 +103,15 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
 
     // Prepare repo fields from repo object
-    const repoFields = repo ? {
-      repo_owner: repo.owner,
-      repo_name: repo.name,
-      repo_branch: repo.branch || 'main',
-    } : {};
+    const repoFields = repo
+      ? {
+          repo_owner: repo.owner,
+          repo_name: repo.name,
+          repo_branch: repo.branch || 'main',
+        }
+      : {};
 
-    const { data: session, error } = await (supabase
-      .from('code_lab_sessions') as AnySupabase)
+    const { data: session, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .insert({
         id: sessionId,
         user_id: user.id,
@@ -112,7 +126,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      log.error('[CodeLab API] Error creating session:', error instanceof Error ? error : { error });
+      log.error(
+        '[CodeLab API] Error creating session:',
+        error instanceof Error ? error : { error }
+      );
       // Return a mock session if table doesn't exist
       return NextResponse.json({
         session: {
@@ -124,7 +141,7 @@ export async function POST(request: NextRequest) {
           isActive: true,
           messageCount: 0,
           hasSummary: false,
-        }
+        },
       });
     }
 
@@ -134,16 +151,18 @@ export async function POST(request: NextRequest) {
         title: session.title,
         createdAt: session.created_at,
         updatedAt: session.updated_at,
-        repo: session.repo_owner ? {
-          owner: session.repo_owner,
-          name: session.repo_name,
-          branch: session.repo_branch || 'main',
-          fullName: `${session.repo_owner}/${session.repo_name}`,
-        } : null,
+        repo: session.repo_owner
+          ? {
+              owner: session.repo_owner,
+              name: session.repo_name,
+              branch: session.repo_branch || 'main',
+              fullName: `${session.repo_owner}/${session.repo_name}`,
+            }
+          : null,
         isActive: true,
         messageCount: 0,
         hasSummary: false,
-      }
+      },
     });
   } catch (error) {
     log.error('[CodeLab API] Error:', error instanceof Error ? error : { error });

@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('WebAuthnPasskeys');
 
@@ -38,7 +39,10 @@ export async function GET() {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`passkeys:get:${session.user.id}`, rateLimits.standard);
+    const rateLimitResult = checkRequestRateLimit(
+      `passkeys:get:${session.user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
@@ -64,6 +68,10 @@ export async function GET() {
  * DELETE - Remove a passkey
  */
 export async function DELETE(request: NextRequest) {
+  // CSRF Protection - Critical for credential deletion
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const session = await getServerSession();
     if (!session?.user) {
@@ -71,7 +79,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`passkeys:delete:${session.user.id}`, rateLimits.strict);
+    const rateLimitResult = checkRequestRateLimit(
+      `passkeys:delete:${session.user.id}`,
+      rateLimits.strict
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { searchParams } = new URL(request.url);
