@@ -1,0 +1,86 @@
+/**
+ * STALE QUEUE CLEANUP CRON JOB
+ *
+ * Runs every 5 minutes to clean up stale queue entries.
+ * Removes stuck requests that exceeded TTL and frees up queue slots.
+ *
+ * SCHEDULE: *\/5 * * * * (every 5 minutes)
+ * SECURITY: Requires CRON_SECRET in Authorization header
+ */
+
+import { NextResponse } from 'next/server';
+import { cleanupStaleRequests, getQueueStatus } from '@/lib/queue';
+import { logger } from '@/lib/logger';
+
+const log = logger('CronCleanupQueue');
+
+// Verify cron secret to prevent unauthorized access
+function verifyCronSecret(request: Request): boolean {
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (!cronSecret) {
+    log.warn('CRON_SECRET not configured');
+    return false;
+  }
+
+  return authHeader === `Bearer ${cronSecret}`;
+}
+
+export async function GET(request: Request) {
+  const startTime = Date.now();
+
+  // Security check
+  if (!verifyCronSecret(request)) {
+    log.warn('Unauthorized cron access attempt');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    // Get queue status before cleanup
+    const statusBefore = await getQueueStatus();
+
+    // Clean up stale requests
+    const cleanedCount = await cleanupStaleRequests();
+
+    // Get queue status after cleanup
+    const statusAfter = await getQueueStatus();
+
+    const duration = Date.now() - startTime;
+
+    log.info('Queue cleanup completed', {
+      cleanedCount,
+      activeBeforeCleanup: statusBefore.activeRequests,
+      activeAfterCleanup: statusAfter.activeRequests,
+      availableSlots: statusAfter.available,
+      maxConcurrent: statusAfter.maxConcurrent,
+      durationMs: duration,
+    });
+
+    return NextResponse.json({
+      success: true,
+      cleaned: cleanedCount,
+      queue: {
+        active: statusAfter.activeRequests,
+        available: statusAfter.available,
+        max: statusAfter.maxConcurrent,
+        utilizationPercent: Math.round(
+          (statusAfter.activeRequests / statusAfter.maxConcurrent) * 100
+        ),
+      },
+      durationMs: duration,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    log.error('Queue cleanup cron error', error as Error);
+    return NextResponse.json(
+      { error: 'Internal error', message: (error as Error).message },
+      { status: 500 }
+    );
+  }
+}
+
+// Also support POST for manual triggers
+export async function POST(request: Request) {
+  return GET(request);
+}
