@@ -102,7 +102,9 @@ export default function MembershipSection() {
         throw new Error('Failed to fetch subscription');
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { ... } }
+      const data = responseData.data || responseData;
       setSubscription(data);
     } catch (err) {
       console.error('[Membership] Error fetching subscription:', err);
@@ -146,14 +148,24 @@ export default function MembershipSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
+          style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}
+        ></div>
       </div>
     );
   }
 
   if (error && !subscription) {
     return (
-      <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
+      <div
+        className="rounded-xl p-4"
+        style={{
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgb(239, 68, 68)',
+          color: 'rgb(248, 113, 113)',
+        }}
+      >
         {error}
       </div>
     );
@@ -170,7 +182,13 @@ export default function MembershipSection() {
     <div className="space-y-6">
       {/* Status Alert */}
       {isPastDue && (
-        <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgb(234, 179, 8)' }}>
+        <div
+          className="rounded-xl p-4"
+          style={{
+            backgroundColor: 'rgba(234, 179, 8, 0.1)',
+            border: '1px solid rgb(234, 179, 8)',
+          }}
+        >
           <div className="flex items-start gap-3">
             <svg
               className="h-6 w-6 flex-shrink-0"
@@ -187,9 +205,12 @@ export default function MembershipSection() {
               />
             </svg>
             <div>
-              <h3 className="font-semibold" style={{ color: 'rgb(250, 204, 21)' }}>Payment Issue</h3>
+              <h3 className="font-semibold" style={{ color: 'rgb(250, 204, 21)' }}>
+                Payment Issue
+              </h3>
               <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                Your payment failed. Please update your payment method to continue your subscription.
+                Your payment failed. Please update your payment method to continue your
+                subscription.
               </p>
               <button
                 onClick={handleManageSubscription}
@@ -204,7 +225,10 @@ export default function MembershipSection() {
       )}
 
       {isCanceled && (
-        <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}>
+        <div
+          className="rounded-xl p-4"
+          style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
+        >
           <div className="flex items-start gap-3">
             <svg
               className="h-6 w-6 flex-shrink-0"
@@ -221,9 +245,12 @@ export default function MembershipSection() {
               />
             </svg>
             <div>
-              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Subscription Canceled</h3>
+              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Subscription Canceled
+              </h3>
               <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                Your subscription has been canceled. You can continue using your current plan until the end of the billing period.
+                Your subscription has been canceled. You can continue using your current plan until
+                the end of the billing period.
               </p>
             </div>
           </div>
@@ -231,26 +258,46 @@ export default function MembershipSection() {
       )}
 
       {/* Current Plan Card */}
-      <div className="glass-morphism rounded-2xl p-6" style={{ border: '2px solid var(--primary)' }}>
+      <div
+        className="glass-morphism rounded-2xl p-6"
+        style={{ border: '2px solid var(--primary)' }}
+      >
         <div className="flex items-start justify-between mb-6">
           <div>
             <div className="flex items-center gap-3">
-              <h3 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{currentTier.name}</h3>
-              <span className="px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: 'var(--primary-hover)', color: 'var(--primary)', border: '1px solid var(--primary)' }}>
+              <h3 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                {currentTier.name}
+              </h3>
+              <span
+                className="px-3 py-1 rounded-full text-xs font-semibold"
+                style={{
+                  backgroundColor: 'var(--primary-hover)',
+                  color: 'var(--primary)',
+                  border: '1px solid var(--primary)',
+                }}
+              >
                 Current Plan
               </span>
             </div>
-            <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>{currentTier.description}</p>
+            <p className="mt-2" style={{ color: 'var(--text-secondary)' }}>
+              {currentTier.description}
+            </p>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>${currentTier.price}</div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>/month</div>
+            <div className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              ${currentTier.price}
+            </div>
+            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              /month
+            </div>
           </div>
         </div>
 
         {/* Features */}
         <div className="mb-6">
-          <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>What&apos;s included:</h4>
+          <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
+            What&apos;s included:
+          </h4>
           <ul className="space-y-2">
             {currentTier.features.map((feature, index) => (
               <li key={index} className="flex items-start gap-2 text-sm">
@@ -280,7 +327,11 @@ export default function MembershipSection() {
               onClick={handleManageSubscription}
               disabled={actionLoading}
               className="flex-1 rounded-lg px-4 py-3 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              style={{
+                backgroundColor: 'var(--glass-bg)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+              }}
             >
               {actionLoading ? 'Loading...' : 'Manage Subscription'}
             </button>
@@ -308,9 +359,11 @@ export default function MembershipSection() {
 
       {/* Other Available Plans */}
       <div>
-        <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Other Available Plans</h3>
+        <h3 className="text-xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+          Other Available Plans
+        </h3>
         <div className="grid gap-4 md:grid-cols-2">
-          {(Object.entries(TIER_INFO) as [SubscriptionTier, typeof TIER_INFO[SubscriptionTier]][])
+          {(Object.entries(TIER_INFO) as [SubscriptionTier, (typeof TIER_INFO)[SubscriptionTier]][])
             .filter(([tier]) => {
               // Don't show current tier or free tier
               if (tier === subscription.tier || tier === 'free') return false;
@@ -328,12 +381,20 @@ export default function MembershipSection() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h4 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{info.name}</h4>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{info.description}</p>
+                    <h4 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                      {info.name}
+                    </h4>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                      {info.description}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>${info.price}</div>
-                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>/mo</div>
+                    <div className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                      ${info.price}
+                    </div>
+                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      /mo
+                    </div>
                   </div>
                 </div>
                 <ul className="space-y-1 mb-4">
@@ -356,7 +417,14 @@ export default function MembershipSection() {
 
       {/* Error Display */}
       {error && (
-        <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
+        <div
+          className="rounded-xl p-4"
+          style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgb(239, 68, 68)',
+            color: 'rgb(248, 113, 113)',
+          }}
+        >
           {error}
         </div>
       )}

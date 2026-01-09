@@ -302,7 +302,9 @@ export function ChatClient() {
       try {
         const response = await fetch('/api/user/is-admin');
         if (response.ok) {
-          const data = await response.json();
+          const responseData = await response.json();
+          // API returns { ok: true, data: { isAdmin: ... } }
+          const data = responseData.data || responseData;
           setIsAdmin(data.isAdmin === true);
         }
       } catch (error) {
@@ -382,8 +384,10 @@ export function ChatClient() {
     try {
       const response = await fetch(`/api/conversations/${chatId}/messages`);
       if (response.ok) {
-        const data = await response.json();
-        return data.messages.map(
+        const responseData = await response.json();
+        // API returns { ok: true, data: { messages: [...] } }
+        const data = responseData.data || responseData;
+        return (data.messages || []).map(
           (msg: {
             id: string;
             role: 'user' | 'assistant' | 'system';
@@ -657,8 +661,10 @@ export function ChatClient() {
     try {
       const response = await fetch(`/api/conversations/${chatId}/messages`);
       if (response.ok) {
-        const data = await response.json();
-        const formattedMessages: Message[] = data.messages.map(
+        const responseData = await response.json();
+        // API returns { ok: true, data: { messages: [...] } }
+        const data = responseData.data || responseData;
+        const formattedMessages: Message[] = (data.messages || []).map(
           (msg: {
             id: string;
             role: 'user' | 'assistant' | 'system';

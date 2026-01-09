@@ -79,7 +79,9 @@ export default function UsageMetricsSection() {
         throw new Error('Failed to fetch usage data');
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { ... } }
+      const data = responseData.data || responseData;
       setUsage(data);
     } catch (err) {
       console.error('[UsageMetrics] Error fetching usage:', err);
@@ -92,14 +94,24 @@ export default function UsageMetricsSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}></div>
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-4 border-t-transparent"
+          style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}
+        ></div>
       </div>
     );
   }
 
   if (error || !usage) {
     return (
-      <div className="rounded-xl p-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgb(239, 68, 68)', color: 'rgb(248, 113, 113)' }}>
+      <div
+        className="rounded-xl p-6"
+        style={{
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgb(239, 68, 68)',
+          color: 'rgb(248, 113, 113)',
+        }}
+      >
         {error || 'Failed to load usage data'}
       </div>
     );
@@ -124,13 +136,15 @@ export default function UsageMetricsSection() {
       <div className="glass-morphism rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{TIER_NAMES[usage.tier]} Plan</h3>
+            <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              {TIER_NAMES[usage.tier]} Plan
+            </h3>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
               ${TIER_PRICES[usage.tier]}/month • Monthly usage limits
             </p>
           </div>
           <button
-            onClick={() => window.location.href = '/settings?tab=membership'}
+            onClick={() => (window.location.href = '/settings?tab=membership')}
             className="text-sm font-medium transition"
             style={{ color: 'var(--primary)' }}
           >
@@ -141,25 +155,37 @@ export default function UsageMetricsSection() {
         {/* Token Usage */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>Token Usage This Month</span>
-            <span className="text-sm font-bold" style={{
-              color: isTokenAtLimit ? 'rgb(239, 68, 68)' :
-                     isTokenNearLimit ? 'rgb(234, 179, 8)' :
-                     'var(--text-primary)'
-            }}>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+              Token Usage This Month
+            </span>
+            <span
+              className="text-sm font-bold"
+              style={{
+                color: isTokenAtLimit
+                  ? 'rgb(239, 68, 68)'
+                  : isTokenNearLimit
+                    ? 'rgb(234, 179, 8)'
+                    : 'var(--text-primary)',
+              }}
+            >
               {usage.tokens.usedFormatted} / {usage.tokens.limitFormatted}
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="h-3 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--glass-bg)' }}>
+          <div
+            className="h-3 overflow-hidden rounded-full"
+            style={{ backgroundColor: 'var(--glass-bg)' }}
+          >
             <div
               className="h-full transition-all duration-300"
               style={{
                 width: `${Math.min(tokenPercentage, 100)}%`,
-                backgroundColor: isTokenAtLimit ? 'rgb(239, 68, 68)' :
-                                 isTokenNearLimit ? 'rgb(234, 179, 8)' :
-                                 'var(--primary)'
+                backgroundColor: isTokenAtLimit
+                  ? 'rgb(239, 68, 68)'
+                  : isTokenNearLimit
+                    ? 'rgb(234, 179, 8)'
+                    : 'var(--primary)',
               }}
             />
           </div>
@@ -176,7 +202,10 @@ export default function UsageMetricsSection() {
 
       {/* Upgrade Prompt */}
       {(isTokenNearLimit || isTokenAtLimit) && usage.planInfo.nextTier && (
-        <div className="glass-morphism rounded-xl p-6" style={{ borderLeft: '4px solid rgb(234, 179, 8)' }}>
+        <div
+          className="glass-morphism rounded-xl p-6"
+          style={{ borderLeft: '4px solid rgb(234, 179, 8)' }}
+        >
           <div className="flex items-start gap-4">
             <svg
               className="h-6 w-6 flex-shrink-0 mt-0.5"
@@ -197,10 +226,12 @@ export default function UsageMetricsSection() {
                 {isTokenAtLimit ? 'Monthly Limit Reached' : 'Approaching Monthly Limit'}
               </h4>
               <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-                Upgrade to {TIER_NAMES[usage.planInfo.nextTier as keyof typeof TIER_NAMES]} for {formatTokenLimit(usage.planInfo.nextTierTokenLimit)} tokens per month and enhanced features.
+                Upgrade to {TIER_NAMES[usage.planInfo.nextTier as keyof typeof TIER_NAMES]} for{' '}
+                {formatTokenLimit(usage.planInfo.nextTierTokenLimit)} tokens per month and enhanced
+                features.
               </p>
               <button
-                onClick={() => window.location.href = '/#pricing'}
+                onClick={() => (window.location.href = '/#pricing')}
                 className="rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90"
                 style={{ backgroundColor: 'rgb(234, 179, 8)', color: '#000' }}
               >
@@ -214,26 +245,47 @@ export default function UsageMetricsSection() {
       {/* Usage Stats Grid */}
       <div className="grid gap-4 md:grid-cols-3">
         <div className="glass-morphism rounded-xl p-4">
-          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Tokens Used</div>
-          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.tokens.usedFormatted}</div>
-          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>This Month</div>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
+            Tokens Used
+          </div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            {usage.tokens.usedFormatted}
+          </div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            This Month
+          </div>
         </div>
 
         <div className="glass-morphism rounded-xl p-4">
-          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Tokens Remaining</div>
-          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.tokens.remainingFormatted}</div>
-          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>This Month</div>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
+            Tokens Remaining
+          </div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            {usage.tokens.remainingFormatted}
+          </div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            This Month
+          </div>
         </div>
 
         <div className="glass-morphism rounded-xl p-4">
-          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Usage Level</div>
-          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{usage.tokens.percentage}%</div>
-          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Of Monthly Limit</div>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
+            Usage Level
+          </div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            {usage.tokens.percentage}%
+          </div>
+          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            Of Monthly Limit
+          </div>
         </div>
       </div>
 
       {/* Reset Info */}
-      <div className="rounded-xl p-4" style={{ backgroundColor: 'var(--primary-hover)', border: '1px solid var(--primary)' }}>
+      <div
+        className="rounded-xl p-4"
+        style={{ backgroundColor: 'var(--primary-hover)', border: '1px solid var(--primary)' }}
+      >
         <div className="flex items-start gap-3">
           <svg
             className="h-5 w-5 flex-shrink-0 mt-0.5"
@@ -251,7 +303,9 @@ export default function UsageMetricsSection() {
           </svg>
           <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
             <p className="font-medium mb-1">Monthly Usage Resets</p>
-            <p style={{ color: 'var(--text-secondary)' }}>Your token limits automatically reset at the beginning of each month.</p>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              Your token limits automatically reset at the beginning of each month.
+            </p>
           </div>
         </div>
       </div>
