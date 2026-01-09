@@ -66,7 +66,8 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
   }, []);
 
   // Check if this is HTML code (for inline preview)
-  const isHtml = language.toLowerCase() === 'html' || code.includes('<!DOCTYPE html>') || code.includes('<html');
+  const isHtml =
+    language.toLowerCase() === 'html' || code.includes('<!DOCTYPE html>') || code.includes('<html');
 
   return (
     <div className="mb-3 rounded-xl border border-white/10 bg-white/5 overflow-hidden max-w-2xl">
@@ -99,8 +100,18 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               Live Preview
             </span>
-            <svg className={`w-4 h-4 transition-transform ${inlineExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <svg
+              className={`w-4 h-4 transition-transform ${inlineExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </button>
           {inlineExpanded && (
@@ -131,7 +142,12 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
               <div className="absolute inset-0 z-20 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                 <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur rounded-lg text-white text-sm font-medium">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                    />
                   </svg>
                   Click to expand
                 </div>
@@ -148,7 +164,12 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-500 text-white text-sm font-medium hover:from-violet-600 hover:to-cyan-600 transition-all shadow-lg shadow-violet-500/25"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+            />
           </svg>
           Full Screen
         </button>
@@ -159,15 +180,30 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
         >
           {copied ? (
             <>
-              <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <svg
+                className="w-4 h-4 text-green-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               Copied!
             </>
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
               </svg>
               Copy
             </>
@@ -179,7 +215,12 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-all"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+            />
           </svg>
           {showCode ? 'Hide Code' : 'Code'}
         </button>
@@ -213,7 +254,12 @@ function CodePreviewBlock({ code, language, title, description }: CodePreviewBlo
                 className="p-2 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-white"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -241,7 +287,13 @@ interface MessageBubbleProps {
   enableCodeActions?: boolean;
 }
 
-export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enableCodeActions }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  isLast: _isLast,
+  isAdmin,
+  onReply,
+  enableCodeActions,
+}: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
   // Track save status per file (by index)
@@ -260,7 +312,7 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
 
   // Save generated file to My Files
   const handleSaveToMyFiles = async (fileIndex: number, downloadUrl: string, filename: string) => {
-    setSavingFiles(prev => ({ ...prev, [fileIndex]: 'saving' }));
+    setSavingFiles((prev) => ({ ...prev, [fileIndex]: 'saving' }));
 
     try {
       // Fetch the file content
@@ -292,11 +344,11 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
         body: JSON.stringify({ documentId: document.id }),
       });
 
-      setSavingFiles(prev => ({ ...prev, [fileIndex]: 'saved' }));
+      setSavingFiles((prev) => ({ ...prev, [fileIndex]: 'saved' }));
 
       // Reset after 3 seconds
       setTimeout(() => {
-        setSavingFiles(prev => {
+        setSavingFiles((prev) => {
           const updated = { ...prev };
           delete updated[fileIndex];
           return updated;
@@ -304,11 +356,11 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
       }, 3000);
     } catch (error) {
       console.error('Failed to save to My Files:', error);
-      setSavingFiles(prev => ({ ...prev, [fileIndex]: 'error' }));
+      setSavingFiles((prev) => ({ ...prev, [fileIndex]: 'error' }));
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        setSavingFiles(prev => {
+        setSavingFiles((prev) => {
           const updated = { ...prev };
           delete updated[fileIndex];
           return updated;
@@ -343,22 +395,6 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
 
   return (
     <div className={`flex items-start gap-2 mb-2 ${isUser ? 'justify-end' : ''}`}>
-      {/* AI Avatar - Assistant messages on left */}
-      {!isUser && (
-        <div
-          className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full"
-          style={{
-            background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent-hover) 100%)',
-            color: 'white',
-          }}
-        >
-          {/* AI spark icon */}
-          <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-          </svg>
-        </div>
-      )}
-
       {/* User Avatar - User messages on left side of their bubble */}
       {isUser && (
         <div
@@ -370,7 +406,11 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
         >
           {/* User icon */}
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+              clipRule="evenodd"
+            />
           </svg>
         </div>
       )}
@@ -418,7 +458,11 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
             {message.attachments.map((attachment) => {
               const isImage = attachment.type?.startsWith('image/');
               const isPdf = attachment.type === 'application/pdf';
-              const isExcel = attachment.type?.includes('spreadsheet') || attachment.type?.includes('excel') || attachment.name?.endsWith('.xlsx') || attachment.name?.endsWith('.xls');
+              const isExcel =
+                attachment.type?.includes('spreadsheet') ||
+                attachment.type?.includes('excel') ||
+                attachment.name?.endsWith('.xlsx') ||
+                attachment.name?.endsWith('.xls');
               const isCsv = attachment.type === 'text/csv' || attachment.name?.endsWith('.csv');
               const isText = attachment.type === 'text/plain' || attachment.name?.endsWith('.txt');
 
@@ -438,22 +482,69 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                     <div className="flex h-16 min-w-[80px] max-w-[120px] flex-col items-center justify-center gap-1 bg-white/5 px-2 py-1">
                       {/* File type icon */}
                       {isPdf ? (
-                        <svg className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9l-5-5H7a2 2 0 00-2 2v13a2 2 0 002 2z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14 3v6h6" />
-                          <text x="7" y="17" fontSize="6" fill="currentColor" fontWeight="bold">PDF</text>
+                        <svg
+                          className="h-6 w-6 text-red-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M7 21h10a2 2 0 002-2V9l-5-5H7a2 2 0 00-2 2v13a2 2 0 002 2z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M14 3v6h6"
+                          />
+                          <text x="7" y="17" fontSize="6" fill="currentColor" fontWeight="bold">
+                            PDF
+                          </text>
                         </svg>
                       ) : isExcel || isCsv ? (
-                        <svg className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18M9 4v16M15 4v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" />
+                        <svg
+                          className="h-6 w-6 text-green-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M3 10h18M3 14h18M9 4v16M15 4v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"
+                          />
                         </svg>
                       ) : isText ? (
-                        <svg className="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <svg
+                          className="h-6 w-6 text-blue-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
                         </svg>
                       ) : (
-                        <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        <svg
+                          className="h-6 w-6 text-gray-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                          />
                         </svg>
                       )}
                       {/* File name */}
@@ -465,9 +556,7 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                   {/* Hover overlay for images */}
                   {isImage && attachment.thumbnail && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100">
-                      <span className="truncate px-2 text-xs text-white">
-                        {attachment.name}
-                      </span>
+                      <span className="truncate px-2 text-xs text-white">{attachment.name}</span>
                     </div>
                   )}
                 </div>
@@ -497,7 +586,12 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
               className="absolute bottom-2 right-2 rounded-full bg-black/70 p-2 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity hover:bg-black/90"
               title="Download image"
             >
-              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className="h-5 w-5 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -521,25 +615,31 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
 
         {/* Multi-Page Website Preview */}
         {message.multiPageWebsite && (
-          <Suspense fallback={
-            <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-4 animate-pulse">
-              <div className="h-4 bg-white/10 rounded w-1/3 mb-2"></div>
-              <div className="h-8 bg-white/10 rounded w-full"></div>
-            </div>
-          }>
+          <Suspense
+            fallback={
+              <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-4 animate-pulse">
+                <div className="h-4 bg-white/10 rounded w-1/3 mb-2"></div>
+                <div className="h-8 bg-white/10 rounded w-full"></div>
+              </div>
+            }
+          >
             <MultiPagePreview
               website={message.multiPageWebsite}
               onPushToGitHub={() => {
                 // Trigger GitHub push via chat
-                window.dispatchEvent(new CustomEvent('forge-action', {
-                  detail: { action: 'push-to-github', website: message.multiPageWebsite }
-                }));
+                window.dispatchEvent(
+                  new CustomEvent('forge-action', {
+                    detail: { action: 'push-to-github', website: message.multiPageWebsite },
+                  })
+                );
               }}
               onDeploy={() => {
                 // Trigger Vercel deploy via chat
-                window.dispatchEvent(new CustomEvent('forge-action', {
-                  detail: { action: 'deploy-vercel', website: message.multiPageWebsite }
-                }));
+                window.dispatchEvent(
+                  new CustomEvent('forge-action', {
+                    detail: { action: 'deploy-vercel', website: message.multiPageWebsite },
+                  })
+                );
               }}
             />
           </Suspense>
@@ -561,7 +661,12 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
               className="absolute bottom-12 right-2 rounded-full bg-black/70 p-2 opacity-0 group-hover:opacity-100 md:opacity-100 transition-opacity hover:bg-black/90"
               title="Download video"
             >
-              <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className="h-5 w-5 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -598,7 +703,8 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
             </div>
 
             {/* Progress bar */}
-            {(message.videoJob.status === 'queued' || message.videoJob.status === 'in_progress') && (
+            {(message.videoJob.status === 'queued' ||
+              message.videoJob.status === 'in_progress') && (
               <div className="mb-3">
                 <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
                   <div
@@ -610,7 +716,10 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                   {message.videoJob.progress}%
                   {message.videoJob.segment && (
                     <span className="ml-2">
-                      ({message.videoJob.segment.total_seconds - message.videoJob.segment.seconds_remaining}s / {message.videoJob.segment.total_seconds}s total)
+                      (
+                      {message.videoJob.segment.total_seconds -
+                        message.videoJob.segment.seconds_remaining}
+                      s / {message.videoJob.segment.total_seconds}s total)
                     </span>
                   )}
                 </div>
@@ -618,30 +727,39 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
             )}
 
             {/* Completed segments list */}
-            {message.videoJob.completed_segments && message.videoJob.completed_segments.length > 0 && (
-              <div className="mb-3 space-y-2">
-                <div className="text-xs text-gray-400">Completed segments:</div>
-                {message.videoJob.completed_segments.map((url, idx) => (
-                  <a
-                    key={idx}
-                    href={url}
-                    download={`segment-${idx + 1}.mp4`}
-                    className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300"
-                  >
-                    <span>✓ Segment {idx + 1}</span>
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </a>
-                ))}
-              </div>
-            )}
+            {message.videoJob.completed_segments &&
+              message.videoJob.completed_segments.length > 0 && (
+                <div className="mb-3 space-y-2">
+                  <div className="text-xs text-gray-400">Completed segments:</div>
+                  {message.videoJob.completed_segments.map((url, idx) => (
+                    <a
+                      key={idx}
+                      href={url}
+                      download={`segment-${idx + 1}.mp4`}
+                      className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      <span>✓ Segment {idx + 1}</span>
+                      <svg
+                        className="h-3 w-3"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        />
+                      </svg>
+                    </a>
+                  ))}
+                </div>
+              )}
 
             {/* Error message */}
             {message.videoJob.status === 'failed' && message.videoJob.error && (
-              <div className="text-sm text-red-400 mb-2">
-                {message.videoJob.error.message}
-              </div>
+              <div className="text-sm text-red-400 mb-2">{message.videoJob.error.message}</div>
             )}
 
             {/* Status-specific UI */}
@@ -662,7 +780,8 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
               </a>
             )}
 
-            {(message.videoJob.status === 'queued' || message.videoJob.status === 'in_progress') && (
+            {(message.videoJob.status === 'queued' ||
+              message.videoJob.status === 'in_progress') && (
               <div className="text-xs text-gray-400 flex items-center gap-2">
                 <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24">
                   <circle
@@ -682,7 +801,8 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                 </svg>
                 {message.videoJob.segment ? (
                   <span>
-                    Generating segment {message.videoJob.segment.current} of {message.videoJob.segment.total}...
+                    Generating segment {message.videoJob.segment.current} of{' '}
+                    {message.videoJob.segment.total}...
                   </span>
                 ) : (
                   <span>Video generation typically takes 1-3 minutes</span>
@@ -727,9 +847,7 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                     {product.price && (
                       <p className="text-lg font-bold text-green-400">{product.price}</p>
                     )}
-                    {product.rating && (
-                      <p className="text-xs text-gray-400">⭐ {product.rating}</p>
-                    )}
+                    {product.rating && <p className="text-xs text-gray-400">⭐ {product.rating}</p>}
                   </div>
 
                   {/* External Link Icon */}
@@ -752,9 +870,7 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
         {/* Message Bubble - User gets bubble styling, AI flows into background */}
         <div
           className={`${
-            isUser
-              ? 'chat-bubble chat-bubble-tail right user-bubble'
-              : 'ai-message-clean'
+            isUser ? 'chat-bubble chat-bubble-tail right user-bubble' : 'ai-message-clean'
           }`}
           style={{
             userSelect: 'text',
@@ -768,19 +884,24 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
               <div className="whitespace-pre-wrap">{linkifyToReact(message.content)}</div>
             ) : (
               // AI messages: full markdown rendering with optional code actions
-              <MarkdownRenderer
-                content={message.content}
-                enableCodeActions={enableCodeActions}
-              />
+              <MarkdownRenderer content={message.content} enableCodeActions={enableCodeActions} />
             )}
           </div>
 
           {/* Citations/Sources from Live Search */}
           {!isUser && message.citations && message.citations.length > 0 && (
             <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-1 text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+              <div
+                className="flex items-center gap-1 text-xs mb-2"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                  />
                 </svg>
                 <span>Sources ({message.citations.length})</span>
               </div>
@@ -833,8 +954,18 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                       }}
                     >
                       <span className="truncate max-w-[150px]">{title}</span>
-                      <svg className="h-3 w-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      <svg
+                        className="h-3 w-3 flex-shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
                       </svg>
                     </a>
                   );
@@ -858,13 +989,25 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                 {message.files.map((file, index) => {
                   // Get icon and label based on file type
                   const getFileInfo = (mimeType: string, filename: string) => {
-                    if (mimeType.includes('spreadsheet') || mimeType.includes('xlsx') || filename.endsWith('.xlsx')) {
+                    if (
+                      mimeType.includes('spreadsheet') ||
+                      mimeType.includes('xlsx') ||
+                      filename.endsWith('.xlsx')
+                    ) {
                       return { icon: '📊', label: 'Excel Spreadsheet' };
                     }
-                    if (mimeType.includes('presentation') || mimeType.includes('pptx') || filename.endsWith('.pptx')) {
+                    if (
+                      mimeType.includes('presentation') ||
+                      mimeType.includes('pptx') ||
+                      filename.endsWith('.pptx')
+                    ) {
                       return { icon: '📽️', label: 'PowerPoint' };
                     }
-                    if (mimeType.includes('document') || mimeType.includes('docx') || filename.endsWith('.docx')) {
+                    if (
+                      mimeType.includes('document') ||
+                      mimeType.includes('docx') ||
+                      filename.endsWith('.docx')
+                    ) {
                       return { icon: '📄', label: 'Word Document' };
                     }
                     if (mimeType.includes('pdf') || filename.endsWith('.pdf')) {
@@ -908,10 +1051,22 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                         <span className="text-lg">{icon}</span>
                         <div className="flex-1">
                           <div className="font-semibold">Download {label}</div>
-                          <div className="text-xs opacity-80 truncate max-w-[200px]">{file.filename}</div>
+                          <div className="text-xs opacity-80 truncate max-w-[200px]">
+                            {file.filename}
+                          </div>
                         </div>
-                        <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        <svg
+                          className="h-5 w-5 flex-shrink-0"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
                         </svg>
                       </button>
 
@@ -930,29 +1085,70 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                         {savingFiles[index] === 'saving' ? (
                           <>
                             <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                              />
                             </svg>
                             <span>Saving...</span>
                           </>
                         ) : savingFiles[index] === 'saved' ? (
                           <>
-                            <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            <svg
+                              className="h-4 w-4 text-green-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
                             </svg>
                             <span className="text-green-500">Saved to My Files!</span>
                           </>
                         ) : savingFiles[index] === 'error' ? (
                           <>
-                            <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <svg
+                              className="h-4 w-4 text-red-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
                             </svg>
                             <span className="text-red-500">Failed to save</span>
                           </>
                         ) : (
                           <>
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"
+                              />
                             </svg>
                             <span>Save to My Files</span>
                             <span className="text-[10px] opacity-60">(for AI recall)</span>
@@ -967,7 +1163,13 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
           )}
 
           {/* Timestamp, Copy Button, and Admin Model Badge */}
-          <div className={`mt-1 flex items-center gap-2 text-xs ${isUser ? 'light-mode-timestamp' : ''}`} style={{ color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--text-muted)', opacity: isUser ? 0.7 : 1 }}>
+          <div
+            className={`mt-1 flex items-center gap-2 text-xs ${isUser ? 'light-mode-timestamp' : ''}`}
+            style={{
+              color: isUser ? 'var(--chat-user-bubble-text)' : 'var(--text-muted)',
+              opacity: isUser ? 0.7 : 1,
+            }}
+          >
             <span>
               {new Date(message.timestamp).toLocaleTimeString([], {
                 hour: '2-digit',
@@ -982,12 +1184,33 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                 title={copied ? 'Copied!' : 'Copy message'}
               >
                 {copied ? (
-                  <svg className="h-3.5 w-3.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="h-3.5 w-3.5 text-green-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 ) : (
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--text-muted)' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
                   </svg>
                 )}
               </button>
@@ -999,8 +1222,19 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                 className="p-1 rounded hover:bg-white/10 transition-colors"
                 title="Reply to this message"
               >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--text-muted)' }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+                  />
                 </svg>
               </button>
             )}
@@ -1011,12 +1245,12 @@ export function MessageBubble({ message, isLast: _isLast, isAdmin, onReply, enab
                   message.model.includes('haiku')
                     ? 'bg-cyan-500/20 text-cyan-400'
                     : message.model.includes('sonnet')
-                    ? 'bg-violet-500/20 text-violet-400'
-                    : message.model.includes('opus')
-                    ? 'bg-amber-500/20 text-amber-400'
-                    : message.model.includes('sonar')
-                    ? 'bg-orange-500/20 text-orange-400'
-                    : 'bg-purple-500/20 text-purple-400'
+                      ? 'bg-violet-500/20 text-violet-400'
+                      : message.model.includes('opus')
+                        ? 'bg-amber-500/20 text-amber-400'
+                        : message.model.includes('sonar')
+                          ? 'bg-orange-500/20 text-orange-400'
+                          : 'bg-purple-500/20 text-purple-400'
                 }`}
               >
                 {message.model}
