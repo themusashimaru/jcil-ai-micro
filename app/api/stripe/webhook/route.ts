@@ -38,11 +38,7 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
     log.error('Signature verification failed', err as Error);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
@@ -220,19 +216,23 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     ? subscription.items.data[0].price.unit_amount / 100
     : 0;
 
-  const { error: historyError } = await supabase
-    .from('subscription_history')
-    .insert({
-      user_id: userId,
-      tier: tier,
-      status: status,
-      stripe_subscription_id: subscription.id,
-      stripe_price_id: priceId,
-      amount: amount,
-      currency: subscription.currency?.toUpperCase() || 'USD',
-      billing_cycle_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      billing_cycle_end: new Date(subscription.current_period_end * 1000).toISOString(),
-    });
+  const { error: historyError } = await supabase.from('subscription_history').insert({
+    user_id: userId,
+    tier: tier,
+    status: status,
+    stripe_subscription_id: subscription.id,
+    stripe_price_id: priceId,
+    amount: amount,
+    currency: subscription.currency?.toUpperCase() || 'USD',
+    billing_cycle_start: new Date(
+      ((subscription as unknown as { current_period_start?: number }).current_period_start ||
+        Date.now() / 1000) * 1000
+    ).toISOString(),
+    billing_cycle_end: new Date(
+      ((subscription as unknown as { current_period_end?: number }).current_period_end ||
+        Date.now() / 1000) * 1000
+    ).toISOString(),
+  });
 
   if (historyError) {
     log.warn('Error logging subscription history', { error: historyError.message });

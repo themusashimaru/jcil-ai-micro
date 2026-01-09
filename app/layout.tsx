@@ -26,9 +26,9 @@
  * TODO:
  * - [ ] Implement Supabase auth provider wrapper
  * - [ ] Add global error boundary
- * - [ ] Configure PWA metadata
- * - [ ] Add theme provider for black theme + glassmorphism
- * - [ ] Add global analytics/monitoring
+ * - [x] Configure PWA metadata
+ * - [x] Add theme provider for black theme + glassmorphism
+ * - [x] Add global analytics/monitoring (Vercel Analytics + Speed Insights)
  *
  * TEST PLAN:
  * - Verify auth state persists across page navigation
@@ -44,6 +44,8 @@ import { OfflineIndicator } from '@/components/pwa/OfflineIndicator';
 import { UserProfileProvider } from '@/contexts/UserProfileContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { FaviconUpdater } from '@/components/admin/FaviconUpdater';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 // Viewport configuration (separate export per Next.js 14 spec)
 export const viewport: Viewport = {
@@ -56,14 +58,23 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'JCIL.AI | AI-Powered Tools for People of Faith',
-  description: 'Intelligent AI assistance built on your values. Chat, research, Bible study, writing tools, and more. Safe for families. Enterprise-grade security.',
+  description:
+    'Intelligent AI assistance built on your values. Chat, research, Bible study, writing tools, and more. Safe for families. Enterprise-grade security.',
   manifest: '/api/manifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'JCIL.AI',
   },
-  keywords: ['AI', 'Christian', 'faith', 'Bible study', 'AI chat', 'family safe AI', 'values-based AI'],
+  keywords: [
+    'AI',
+    'Christian',
+    'faith',
+    'Bible study',
+    'AI chat',
+    'family safe AI',
+    'values-based AI',
+  ],
   authors: [{ name: 'JCIL.AI' }],
   creator: 'JCIL.AI',
   publisher: 'JCIL.AI',
@@ -73,7 +84,8 @@ export const metadata: Metadata = {
     url: 'https://jcil.ai',
     siteName: 'JCIL.AI',
     title: 'JCIL.AI | AI-Powered Tools for People of Faith',
-    description: 'Intelligent AI assistance built on your values. Chat, research, Bible study, writing tools, and more. Safe for families.',
+    description:
+      'Intelligent AI assistance built on your values. Chat, research, Bible study, writing tools, and more. Safe for families.',
     images: [
       {
         url: 'https://jcil.ai/api/og-image',
@@ -86,7 +98,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary',
     title: 'JCIL.AI | AI-Powered Tools for People of Faith',
-    description: 'Intelligent AI assistance built on your values. Safe for families. Enterprise-grade security.',
+    description:
+      'Intelligent AI assistance built on your values. Safe for families. Enterprise-grade security.',
     images: ['https://jcil.ai/api/og-image'],
   },
   robots: {
@@ -106,9 +119,15 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="google-site-verification" content="suQkOhSeAz8m1aB0yup8Ct1P7fzTMCzKta8HnI_Ez3s" />
+        <meta
+          name="google-site-verification"
+          content="suQkOhSeAz8m1aB0yup8Ct1P7fzTMCzKta8HnI_Ez3s"
+        />
       </head>
-      <body className="antialiased" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
+      <body
+        className="antialiased"
+        style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
+      >
         <ThemeProvider>
           <UserProfileProvider>
             <FaviconUpdater />
@@ -117,6 +136,8 @@ export default function RootLayout({
             <PWAInstaller />
           </UserProfileProvider>
         </ThemeProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
