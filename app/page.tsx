@@ -538,14 +538,16 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Coming Soon Agents */}
+          {/* Other Available Agents */}
           <div className="mt-8 grid sm:grid-cols-3 gap-4">
-            <div className="bg-slate-900/50 rounded-xl p-5 border border-white/10">
+            <div className="bg-blue-950/50 rounded-xl p-5 border border-blue-500/20">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
                   <GlobeIcon className="w-4 h-4 text-blue-400" />
                 </div>
-                <span className="text-xs text-slate-500 uppercase tracking-wide">Coming Soon</span>
+                <span className="text-xs text-blue-400 uppercase tracking-wide font-semibold">
+                  Available
+                </span>
               </div>
               <h4 className="text-white font-semibold mb-1">Research Agent</h4>
               <p className="text-slate-400 text-xs">
