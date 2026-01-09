@@ -17,7 +17,7 @@ function getStripe(): Stripe {
       throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-12-15.clover',
       typescript: true,
     });
   }
@@ -45,9 +45,15 @@ export function getPriceIdForTier(tier: string): string {
 
 // Legacy export for backwards compatibility
 export const STRIPE_PRICE_IDS = {
-  get plus() { return process.env.STRIPE_PRICE_ID_PLUS || ''; },
-  get pro() { return process.env.STRIPE_PRICE_ID_PRO || ''; },
-  get executive() { return process.env.STRIPE_PRICE_ID_EXECUTIVE || ''; },
+  get plus() {
+    return process.env.STRIPE_PRICE_ID_PLUS || '';
+  },
+  get pro() {
+    return process.env.STRIPE_PRICE_ID_PRO || '';
+  },
+  get executive() {
+    return process.env.STRIPE_PRICE_ID_EXECUTIVE || '';
+  },
 } as const;
 
 export type SubscriptionTier = keyof typeof STRIPE_PRICE_IDS | 'free';
@@ -124,7 +130,8 @@ export async function createBillingPortalSession(customerId: string, returnUrl?:
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: returnUrl || `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/chat`,
+      return_url:
+        returnUrl || `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/chat`,
     });
 
     return session;

@@ -8,8 +8,15 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     exclude: ['node_modules', '.next'],
     coverage: {
-      reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules', '.next', '**/*.d.ts'],
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      exclude: ['node_modules', '.next', '**/*.d.ts', '**/*.test.ts', '**/*.test.tsx', 'tests/**'],
+      thresholds: {
+        statements: 2,
+        branches: 50,
+        functions: 25,
+        lines: 2,
+      },
     },
   },
   resolve: {
