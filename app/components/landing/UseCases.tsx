@@ -25,7 +25,7 @@ const useCases: UseCase[] = [
     title: 'Pastors & Ministry Leaders',
     audience: 'Sermon prep, counseling support, Bible study',
     description:
-      'Research Scripture with AI that understands theological context. Generate sermon outlines, find cross-references, and prepare Bible studies—all grounded in Biblical truth.',
+      'Research Scripture with AI that understands theological context. Generate sermon outlines, find cross-references, and prepare Bible studies, all grounded in Biblical truth.',
     features: [
       'Scripture cross-referencing',
       'Sermon outline generation',
@@ -84,7 +84,7 @@ const useCases: UseCase[] = [
     title: 'Christian Schools & Seminaries',
     audience: 'Curriculum development, research, administration',
     description:
-      'Educational institutions trust JCIL for curriculum planning, theological research, and administrative tasks—with confidence that AI responses align with Biblical standards.',
+      'Educational institutions trust JCIL for curriculum planning, theological research, and administrative tasks, with confidence that AI responses align with Biblical standards.',
     features: [
       'Curriculum planning',
       'Research assistance',
@@ -229,7 +229,7 @@ export default function UseCases() {
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             Whether you&apos;re preaching on Sunday, coding on Monday, or leading a Bible study on
-            Wednesday—JCIL is your faith-aligned AI companion.
+            Wednesday, JCIL is your faith-aligned AI companion.
           </p>
         </div>
 

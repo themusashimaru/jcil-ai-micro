@@ -79,7 +79,7 @@ export default function LandingFooter() {
               <p className="mt-4 text-xs text-amber-500/60 italic max-w-xs">
                 &ldquo;Whatever you do, work at it with all your heart, as working for the
                 Lord.&rdquo;
-                <span className="not-italic block mt-1 text-amber-500/40">— Colossians 3:23</span>
+                <span className="not-italic block mt-1 text-amber-500/40">(Colossians 3:23)</span>
               </p>
 
               {/* Social Links */}
