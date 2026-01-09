@@ -60,6 +60,18 @@ const config = {
     'ssn',
     'credit_card',
     'creditCard',
+    // Memory system fields (PII protection)
+    'memory',
+    'user_preferences',
+    'preferences',
+    'summary',
+    'key_topics',
+    'family_members',
+    'interests',
+    'goals',
+    'occupation',
+    'location',
+    'faith_context',
   ],
 };
 

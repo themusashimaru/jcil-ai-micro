@@ -21,6 +21,7 @@ import { detectCodeLabIntent } from '@/lib/workspace/intent-detector';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('CodeLabChat');
 
@@ -177,6 +178,10 @@ function checkRateLimit(userId: string): { allowed: boolean; remaining: number }
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();

@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     // Rate limiting (moderate limit for targeted deletion)
     const rateLimitResult = checkRequestRateLimit(
       `memory-forget:${user.id}`,
-      { ...rateLimits.standard, maxRequests: 30 }
+      { ...rateLimits.standard, limit: 30 }
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 

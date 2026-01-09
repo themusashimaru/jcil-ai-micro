@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('CodeLabFiles');
 
@@ -85,6 +86,10 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new file
 export async function POST(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const supabase = await createClient();
 
   const {
@@ -132,6 +137,10 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update existing file
 export async function PUT(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const supabase = await createClient();
 
   const {
@@ -179,6 +188,10 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Delete file
 export async function DELETE(request: NextRequest) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const supabase = await createClient();
 
   const {

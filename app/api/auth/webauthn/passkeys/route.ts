@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getServerSession } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('WebAuthnPasskeys');
 
@@ -64,6 +65,10 @@ export async function GET() {
  * DELETE - Remove a passkey
  */
 export async function DELETE(request: NextRequest) {
+  // CSRF Protection - Critical for credential deletion
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const session = await getServerSession();
     if (!session?.user) {

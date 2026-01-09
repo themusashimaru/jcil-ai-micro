@@ -234,7 +234,7 @@ export async function DELETE(request: NextRequest) {
     // Rate limiting (stricter for destructive operations)
     const rateLimitResult = checkRequestRateLimit(
       `memory-delete:${user.id}`,
-      { ...rateLimits.standard, maxRequests: 5 }
+      { ...rateLimits.standard, limit: 5 }
     );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 

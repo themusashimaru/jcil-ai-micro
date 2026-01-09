@@ -10,6 +10,7 @@ import { createCheckoutSession, STRIPE_PRICE_IDS } from '@/lib/stripe/client';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('StripeCheckout');
 
@@ -43,6 +44,10 @@ async function getSupabaseClient() {
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF Protection - Critical for payment operations
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await getSupabaseClient();
 

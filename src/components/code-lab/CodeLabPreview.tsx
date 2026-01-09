@@ -631,7 +631,13 @@ function buildReactPreview(tsxFiles: GeneratedFile[], cssFiles: GeneratedFile[])
       }
     } catch (err) {
       window.parent.postMessage({ type: 'error', message: err.message }, '*');
-      document.getElementById('root').innerHTML = '<pre style="color: red; padding: 1rem;">' + err.message + '</pre>';
+      // Safe DOM manipulation to prevent XSS
+      const rootEl = document.getElementById('root');
+      const pre = document.createElement('pre');
+      pre.style.cssText = 'color: red; padding: 1rem;';
+      pre.textContent = err.message; // textContent is XSS-safe
+      rootEl.innerHTML = '';
+      rootEl.appendChild(pre);
     }
   </script>
 </body>

@@ -21,6 +21,7 @@ import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { auditLog, getAuditContext } from '@/lib/audit';
 import { checkRequestRateLimit } from '@/lib/api/utils';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const log = logger('AccountDeletion');
 
@@ -73,6 +74,10 @@ function getSupabaseAdmin() {
  * DELETE - Request account deletion (GDPR Right to Erasure)
  */
 export async function DELETE(request: NextRequest) {
+  // CSRF Protection - Critical for account deletion
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const { user, error: authError, supabase } = await getUser();
 
