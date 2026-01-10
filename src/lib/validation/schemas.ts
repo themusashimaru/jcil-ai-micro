@@ -329,8 +329,8 @@ const imageContentPartSchema = z.object({
 /** Content part union for multimodal messages */
 const contentPartSchema = z.union([textContentPartSchema, imageContentPartSchema]);
 
-/** Chat message content - either string or array of content parts */
-const messageContentSchema = z.union([
+/** Chat message content - either string or array of content parts (for multimodal) */
+const chatContentSchema = z.union([
   z.string().max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH),
   z.array(contentPartSchema).max(20), // Max 20 parts (images + text)
 ]);
@@ -338,7 +338,7 @@ const messageContentSchema = z.union([
 /** Chat message in conversation */
 export const chatMessageSchema = z.object({
   role: z.enum(['user', 'assistant', 'system']),
-  content: messageContentSchema,
+  content: chatContentSchema,
 });
 
 /** User context for personalization */
