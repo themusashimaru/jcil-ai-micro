@@ -35,7 +35,7 @@ export function shouldUseResearchAgent(request: string): boolean {
   ];
 
   // If any exclusion pattern matches, don't use research agent
-  if (exclusionPatterns.some(pattern => pattern.test(lowerRequest))) {
+  if (exclusionPatterns.some((pattern) => pattern.test(lowerRequest))) {
     return false;
   }
 
@@ -62,17 +62,31 @@ export function shouldUseResearchAgent(request: string): boolean {
   ];
 
   // Check for pattern matches
-  const hasResearchPattern = researchPatterns.some(pattern => pattern.test(lowerRequest));
+  const hasResearchPattern = researchPatterns.some((pattern) => pattern.test(lowerRequest));
 
   // Also check for keyword combinations
-  const researchKeywords = ['research', 'investigate', 'analyze', 'deep dive', 'competitor', 'market', 'industry'];
+  const researchKeywords = [
+    'research',
+    'investigate',
+    'analyze',
+    'deep dive',
+    'competitor',
+    'market',
+    'industry',
+  ];
   const actionKeywords = ['find', 'discover', 'learn', 'understand', 'explore'];
 
-  const hasResearchKeyword = researchKeywords.some(k => lowerRequest.includes(k));
-  const hasActionKeyword = actionKeywords.some(k => lowerRequest.includes(k));
-  const hasContextKeyword = ['competitor', 'market', 'industry', 'business', 'company'].some(k => lowerRequest.includes(k));
+  const hasResearchKeyword = researchKeywords.some((k) => lowerRequest.includes(k));
+  const hasActionKeyword = actionKeywords.some((k) => lowerRequest.includes(k));
+  const hasContextKeyword = ['competitor', 'market', 'industry', 'business', 'company'].some((k) =>
+    lowerRequest.includes(k)
+  );
 
-  return hasResearchPattern || (hasActionKeyword && hasContextKeyword) || (hasResearchKeyword && lowerRequest.length > 30);
+  return (
+    hasResearchPattern ||
+    (hasActionKeyword && hasContextKeyword) ||
+    (hasResearchKeyword && lowerRequest.length > 30)
+  );
 }
 
 /**
@@ -157,43 +171,38 @@ export async function executeResearchAgent(
           depth: options.depth,
         };
 
-        // Stream professional header
-        controller.enqueue(encoder.encode(`# 🔬 JCIL Research Intelligence\n\n`));
-        controller.enqueue(encoder.encode(`**Query:** ${query.substring(0, 150)}${query.length > 150 ? '...' : ''}\n\n`));
-        controller.enqueue(encoder.encode(`---\n\n`));
-        controller.enqueue(encoder.encode(`### Analysis Pipeline\n\n`));
+        // Stream clean header
+        controller.enqueue(encoder.encode(`**Research Agent**\n\n`));
 
         // Start keepalive
         startKeepalive();
 
         // Execute with streaming progress (race against timeout)
-        const executePromise = researchAgent.execute(
-          input,
-          context,
-          (event: AgentStreamEvent) => {
-            lastActivity = Date.now();
-            const progressLine = formatProgressEvent(event);
-            controller.enqueue(encoder.encode(progressLine));
-          }
-        );
+        const executePromise = researchAgent.execute(input, context, (event: AgentStreamEvent) => {
+          lastActivity = Date.now();
+          const progressLine = formatProgressEvent(event);
+          controller.enqueue(encoder.encode(progressLine));
+        });
 
         const result = await Promise.race([executePromise, timeoutPromise]);
 
         if (result.success && result.data) {
-          // Stream the final report
-          controller.enqueue(encoder.encode('\n---\n\n'));
+          // Stream the final report with clean separator
+          controller.enqueue(encoder.encode('\n'));
           const markdown = synthesizer.formatAsMarkdown(result.data);
           controller.enqueue(encoder.encode(markdown));
         } else {
-          controller.enqueue(encoder.encode(`\n\n❌ **Research Failed**\n\n${result.error || 'Unknown error'}\n`));
+          controller.enqueue(
+            encoder.encode(`\n✗ Research failed: ${result.error || 'Unknown error'}\n`)
+          );
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         log.error('Research execution error', { message: errorMessage });
 
         const userMessage = errorMessage.includes('timeout')
-          ? `\n\n⏱️ **Research Timeout**\n\nThe research is taking longer than expected. Please try:\n- A more specific query\n- Using "quick" depth for faster results\n- Breaking your question into smaller parts\n`
-          : `\n\n❌ **Research Error**\n\n${errorMessage}\n`;
+          ? `\n✗ Research timeout. Try a more specific query or use quick depth.\n`
+          : `\n✗ Research error: ${errorMessage}\n`;
 
         controller.enqueue(encoder.encode(userMessage));
       } finally {
@@ -205,35 +214,32 @@ export async function executeResearchAgent(
 }
 
 /**
- * Format a progress event for streaming output - Professional styling
+ * Format a progress event for streaming output - Clean checklist style
+ * Inspired by Claude Code's vertical checkbox approach
  */
 function formatProgressEvent(event: AgentStreamEvent): string {
-  const typeConfig: Record<string, { icon: string; prefix: string }> = {
-    thinking: { icon: '◉', prefix: 'ANALYZING' },
-    searching: { icon: '◎', prefix: 'SEARCHING' },
-    evaluating: { icon: '◈', prefix: 'EVALUATING' },
-    pivoting: { icon: '◇', prefix: 'ADAPTING' },
-    synthesizing: { icon: '◆', prefix: 'SYNTHESIZING' },
-    complete: { icon: '●', prefix: 'COMPLETE' },
-    error: { icon: '✕', prefix: 'ERROR' },
-  };
-
-  const config = typeConfig[event.type] || { icon: '○', prefix: 'PROCESSING' };
-
   // Skip heartbeat messages from cluttering the output
   const details = event.details as Record<string, unknown> | undefined;
   if (details?.heartbeat) {
     return ''; // Don't show "Still working..." messages
   }
 
-  // Format progress bar if available
-  let progressBar = '';
-  if (event.progress !== undefined && event.progress > 0) {
-    const filled = Math.round(event.progress / 10);
-    progressBar = ` [${'\u2588'.repeat(filled)}${'\u2591'.repeat(10 - filled)}]`;
-  }
+  // Checklist-style icons
+  const typeConfig: Record<string, { icon: string; style: 'active' | 'complete' | 'error' }> = {
+    thinking: { icon: '→', style: 'active' },
+    searching: { icon: '→', style: 'active' },
+    evaluating: { icon: '→', style: 'active' },
+    pivoting: { icon: '→', style: 'active' },
+    synthesizing: { icon: '→', style: 'active' },
+    complete: { icon: '✓', style: 'complete' },
+    error: { icon: '✗', style: 'error' },
+  };
 
-  return `${config.icon} **${config.prefix}**${progressBar} ${event.message}\n`;
+  const config = typeConfig[event.type] || { icon: '○', style: 'active' };
+
+  // Clean, minimal formatting - just icon and message
+  // ✓ for complete, → for in-progress, ✗ for error
+  return `${config.icon} ${event.message}\n`;
 }
 
 /**
