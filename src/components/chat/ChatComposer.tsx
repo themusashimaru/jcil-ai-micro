@@ -175,6 +175,17 @@ export function ChatComposer({
     setIsMounted(true);
   }, []);
 
+  // Auto-focus the textarea on mount so cursor blinks immediately
+  useEffect(() => {
+    // Small delay to let page render first
+    const timer = setTimeout(() => {
+      if (textareaRef.current && !disabled && !isStreaming) {
+        textareaRef.current.focus();
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Handle initial text from quick prompts
   // Uses ref to track last applied value, avoiding message dependency
   useEffect(() => {
