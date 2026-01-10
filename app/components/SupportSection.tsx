@@ -174,7 +174,8 @@ export default function SupportSection() {
       {!showForm && (
         <button
           onClick={() => setShowForm(true)}
-          className="mb-6 px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-semibold transition"
+          className="mb-6 px-6 py-3 rounded-lg font-semibold text-white hover:opacity-90 transition"
+          style={{ backgroundColor: 'var(--primary)' }}
         >
           Contact Support
         </button>
@@ -296,7 +297,8 @@ export default function SupportSection() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-lg bg-blue-500 py-3 font-semibold hover:bg-blue-600 transition disabled:opacity-50"
+                className="w-full rounded-lg py-3 font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
+                style={{ backgroundColor: 'var(--primary)' }}
               >
                 {submitting ? 'Sending...' : 'Send Message'}
               </button>
@@ -325,10 +327,11 @@ export default function SupportSection() {
               <button
                 key={ticket.id}
                 onClick={() => fetchTicketDetail(ticket.id)}
-                className={`w-full text-left p-4 rounded-lg transition ${
-                  selectedTicket?.id === ticket.id ? 'ring-2 ring-blue-500' : ''
-                }`}
-                style={{ backgroundColor: 'var(--glass-bg)' }}
+                className="w-full text-left p-4 rounded-lg transition"
+                style={{
+                  backgroundColor: 'var(--glass-bg)',
+                  boxShadow: selectedTicket?.id === ticket.id ? '0 0 0 2px var(--primary)' : 'none',
+                }}
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>
@@ -387,7 +390,13 @@ export default function SupportSection() {
               ) : (
                 <>
                   {/* Original Message */}
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                  <div
+                    className="rounded-lg p-4"
+                    style={{
+                      backgroundColor: 'var(--primary-hover)',
+                      border: '1px solid var(--primary)',
+                    }}
+                  >
                     <div className="text-xs text-gray-400 mb-2">You wrote:</div>
                     <div className="whitespace-pre-wrap">{selectedTicket.message}</div>
                   </div>

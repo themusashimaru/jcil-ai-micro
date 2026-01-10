@@ -222,7 +222,8 @@ export default function ConnectorsSection() {
                 href="https://github.com/settings/tokens/new?scopes=repo&description=JCIL%20AI%20Code%20Lab"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
+                className="hover:underline"
+                style={{ color: 'var(--primary)' }}
               >
                 GitHub Settings
               </a>{' '}
@@ -232,7 +233,8 @@ export default function ConnectorsSection() {
               <button
                 onClick={handleSaveToken}
                 disabled={saving || !token.trim()}
-                className="px-4 py-2 text-sm font-semibold rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-semibold rounded-lg text-white hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--primary)' }}
               >
                 {saving ? 'Connecting...' : 'Save Token'}
               </button>

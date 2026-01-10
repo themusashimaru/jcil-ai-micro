@@ -548,8 +548,8 @@ export function ChatComposer({
   };
 
   return (
-    <div className="glass-morphism py-0 px-1 md:p-4 pb-safe" style={{ border: 'none' }}>
-      <div className="mx-auto max-w-[98%] sm:max-w-xl md:max-w-2xl">
+    <div className="py-2 px-2 md:px-4 md:py-3 pb-safe">
+      <div className="mx-auto max-w-3xl">
         {/* Reply Preview */}
         {replyingTo && (
           <div
@@ -711,157 +711,118 @@ export function ChatComposer({
           </div>
         )}
 
-        {/* Input Area with living glow effect */}
-        <div className="relative">
-          {/* Subtle living glow aura */}
-          <div className="absolute -inset-[2px] rounded-lg blur-sm pointer-events-none living-glow-aura" />
-          <div
-            className={`relative rounded-lg transition-all chat-input-glass ${
-              isDragging ? 'opacity-80' : ''
-            }`}
-            style={{
-              backgroundColor: 'var(--chat-input-bg)',
-              border: '1px solid var(--border)',
-            }}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <div className="relative">
-              {/* Typewriter placeholder overlay - shows tool mode placeholder when active */}
-              {!isFocused && !message && !isDragging && (
-                <div
-                  className="absolute inset-0 flex items-center pointer-events-none py-1.5 px-2 md:p-4"
-                  style={{ fontSize: '16px' }}
-                >
-                  {toolMode !== 'none' ? (
-                    // Tool mode placeholder (static, no animation)
-                    <span
-                      className="font-medium"
-                      style={{ color: getToolModeInfo()?.color || 'var(--primary)' }}
-                    >
-                      {getPlaceholderForMode()}
-                    </span>
-                  ) : (
-                    // Normal typewriter animation
-                    <span className="font-medium" style={{ color: 'var(--primary)' }}>
-                      {displayedText}
-                      <span className="animate-pulse">|</span>
-                    </span>
-                  )}
-                </div>
-              )}
-              <textarea
-                ref={textareaRef}
-                value={message}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder={isDragging ? 'Drop files here...' : ''}
-                className="w-full resize-none bg-transparent py-1.5 px-2 md:p-4 text-base md:text-base focus:outline-none min-h-[40px]"
-                rows={1}
-                disabled={isStreaming || disabled}
-                style={{ fontSize: '16px', color: 'var(--text-primary)' }}
-              />
-            </div>
-
-            {/* Action Bar */}
-            <div className="flex items-center justify-between py-2 px-1 md:p-2">
-              <div className="relative flex items-center gap-1 md:gap-2 overflow-x-auto scrollbar-hide scroll-smooth">
-                {/* Hidden file inputs */}
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => handleFileSelect(e.target.files)}
-                  className="hidden"
-                />
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  multiple
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                  onChange={(e) => handleFileSelect(e.target.files)}
-                  className="hidden"
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,.txt,.csv,.xlsx,.xls"
-                  onChange={(e) => handleFileSelect(e.target.files)}
-                  className="hidden"
-                />
-
-                {/* Attachment button */}
-                <button
-                  onClick={() => setShowAttachMenu(!showAttachMenu)}
-                  disabled={isStreaming || disabled}
-                  className="rounded-lg p-1 md:p-2 disabled:opacity-50 shrink-0 flex items-center justify-center transition-colors"
-                  style={{ color: 'var(--primary)' }}
-                  title="Attach files"
-                >
-                  <svg
-                    className="h-4 w-4 md:h-5 md:w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+        {/* Input Area - Clean Claude-style design */}
+        <div
+          className={`relative rounded-3xl transition-all ${isDragging ? 'opacity-80' : ''}`}
+          style={{
+            backgroundColor: 'var(--surface)',
+            border: '1px solid var(--border)',
+          }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <div className="relative">
+            {/* Typewriter placeholder overlay - shows tool mode placeholder when active */}
+            {!isFocused && !message && !isDragging && (
+              <div
+                className="absolute inset-0 flex items-center pointer-events-none px-4 py-3"
+                style={{ fontSize: '16px' }}
+              >
+                {toolMode !== 'none' ? (
+                  // Tool mode placeholder (static, no animation)
+                  <span
+                    className="font-medium"
+                    style={{ color: getToolModeInfo()?.color || 'var(--primary)' }}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                    />
-                  </svg>
-                </button>
-
-                {/* Active tool mode indicator */}
-                {toolMode !== 'none' && getToolModeInfo() && (
-                  <div
-                    className="flex items-center gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-xs md:text-sm font-medium"
-                    style={{
-                      backgroundColor: `${getToolModeInfo()!.color}20`,
-                      color: getToolModeInfo()!.color,
-                    }}
-                  >
-                    {getToolModeInfo()!.icon}
-                    <span>{getToolModeInfo()!.label}</span>
-                    <button
-                      onClick={clearToolMode}
-                      className="ml-1 hover:opacity-70"
-                      title="Clear tool"
-                    >
-                      <svg
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
+                    {getPlaceholderForMode()}
+                  </span>
+                ) : (
+                  // Normal typewriter animation
+                  <span className="font-medium" style={{ color: 'var(--text-muted)' }}>
+                    {displayedText}
+                    <span className="animate-pulse">|</span>
+                  </span>
                 )}
+              </div>
+            )}
+            <textarea
+              ref={textareaRef}
+              value={message}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={isDragging ? 'Drop files here...' : ''}
+              className="w-full resize-none bg-transparent px-4 py-3 text-base focus:outline-none min-h-[48px]"
+              rows={1}
+              disabled={isStreaming || disabled}
+              style={{ fontSize: '16px', color: 'var(--text-primary)' }}
+            />
+          </div>
 
-                {/* Tools button - opens dropdown menu */}
-                {showSearchButtons && toolMode === 'none' && (
-                  <button
-                    onClick={() => setShowToolsMenu(!showToolsMenu)}
-                    disabled={isStreaming || disabled}
-                    className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium"
-                    style={{ color: 'var(--text-secondary)' }}
-                    title="AI Tools"
-                  >
+          {/* Action Bar */}
+          <div className="flex items-center justify-between px-2 pb-2">
+            {/* Left side - attachment and tools */}
+            <div className="flex items-center gap-1">
+              {/* Hidden file inputs */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => handleFileSelect(e.target.files)}
+                className="hidden"
+              />
+              <input
+                ref={photoInputRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={(e) => handleFileSelect(e.target.files)}
+                className="hidden"
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.txt,.csv,.xlsx,.xls"
+                onChange={(e) => handleFileSelect(e.target.files)}
+                className="hidden"
+              />
+
+              {/* Attachment button */}
+              <button
+                onClick={() => setShowAttachMenu(!showAttachMenu)}
+                disabled={isStreaming || disabled}
+                className="rounded-full p-2 disabled:opacity-50 flex items-center justify-center transition-colors hover:bg-white/10"
+                style={{ color: 'var(--text-muted)' }}
+                title="Attach files"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                  />
+                </svg>
+              </button>
+
+              {/* Active tool mode indicator */}
+              {toolMode !== 'none' && getToolModeInfo() && (
+                <div
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    backgroundColor: `${getToolModeInfo()!.color}20`,
+                    color: getToolModeInfo()!.color,
+                  }}
+                >
+                  {getToolModeInfo()!.icon}
+                  <span>{getToolModeInfo()!.label}</span>
+                  <button onClick={clearToolMode} className="ml-1 hover:opacity-70" title="Clear">
                     <svg
-                      className="h-3.5 w-3.5 md:h-4 md:w-4"
+                      className="h-3.5 w-3.5"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -870,75 +831,79 @@ export function ChatComposer({
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    <span>Tools</span>
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
+                        d="M6 18L18 6M6 6l12 12"
                       />
                     </svg>
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
-              <div className="flex items-center justify-center shrink-0">
-                {isStreaming && onStop ? (
-                  // Stop button - shown while streaming
-                  <button
-                    onClick={onStop}
-                    className="rounded-full border-2 p-0.5 md:p-2.5 transition-all shrink-0 flex items-center justify-center send-button-glow"
-                    title="Stop generating"
-                    style={{
-                      backgroundColor: 'var(--surface)',
-                      borderColor: 'var(--primary)',
-                      color: 'var(--primary)',
-                    }}
-                  >
-                    {/* Square stop icon */}
-                    <svg className="h-5 w-5 md:h-6 md:w-6" fill="currentColor" viewBox="0 0 24 24">
-                      <rect x="6" y="6" width="12" height="12" rx="2" />
-                    </svg>
-                  </button>
-                ) : (
-                  // Send button - shown when not streaming
-                  <button
-                    onClick={handleSend}
-                    disabled={
-                      (!message.trim() && attachments.length === 0) || isStreaming || disabled
-                    }
-                    className={`rounded-full border-2 p-0.5 md:p-2.5 transition-all shrink-0 flex items-center justify-center ${
+              {/* Tools button */}
+              {showSearchButtons && toolMode === 'none' && (
+                <button
+                  onClick={() => setShowToolsMenu(!showToolsMenu)}
+                  disabled={isStreaming || disabled}
+                  className="rounded-full px-3 py-1.5 disabled:opacity-50 flex items-center gap-1.5 transition-colors text-sm hover:bg-white/10"
+                  style={{ color: 'var(--text-muted)' }}
+                  title="AI Tools"
+                >
+                  <span>Tools</span>
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Right side - send button */}
+            <div className="flex items-center">
+              {isStreaming && onStop ? (
+                <button
+                  onClick={onStop}
+                  className="rounded-full p-2 transition-all flex items-center justify-center"
+                  title="Stop generating"
+                  style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+                >
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={
+                    (!message.trim() && attachments.length === 0) || isStreaming || disabled
+                  }
+                  className="rounded-full p-2 transition-all flex items-center justify-center disabled:opacity-30"
+                  title="Send message"
+                  style={{
+                    backgroundColor:
                       (!message.trim() && attachments.length === 0) || disabled
-                        ? ''
-                        : 'send-button-glow'
-                    }`}
-                    title="Send message"
-                    style={{
-                      backgroundColor: 'var(--surface)',
-                      borderColor: 'var(--primary)',
-                      color: 'var(--primary)',
-                    }}
+                        ? 'var(--text-muted)'
+                        : 'var(--primary)',
+                    color: 'white',
+                  }}
+                >
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
                   >
-                    <svg
-                      className="h-5 w-5 md:h-6 md:w-6 -rotate-90"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                    </svg>
-                  </button>
-                )}
-              </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 10l7-7m0 0l7 7m-7-7v18"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>
