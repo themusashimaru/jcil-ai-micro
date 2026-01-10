@@ -345,8 +345,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate request size
-    const sizeCheck = validateRequestSize(rawBody, SIZE_LIMITS.MEDIUM);
+    // Validate request size (XLARGE = 5MB to allow image attachments)
+    const sizeCheck = validateRequestSize(rawBody, SIZE_LIMITS.XLARGE);
     if (!sizeCheck.valid) {
       return sizeCheck.response!;
     }
