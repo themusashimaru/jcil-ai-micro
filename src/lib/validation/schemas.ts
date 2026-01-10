@@ -314,11 +314,52 @@ export const webAuthnAuthVerifySchema = z.object({
 // CHAT SCHEMAS
 // ========================================
 
+/** Text content part for multimodal messages */
+const textContentPartSchema = z.object({
+  type: z.literal('text'),
+  text: z.string().max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH),
+});
+
+/** Image content part for multimodal messages */
+const imageContentPartSchema = z.object({
+  type: z.literal('image'),
+  image: z.string().max(10000000), // Base64 data URL (up to ~7MB)
+});
+
+/** Content part union for multimodal messages */
+const contentPartSchema = z.union([textContentPartSchema, imageContentPartSchema]);
+
+/** Chat message content - either string or array of content parts */
+const messageContentSchema = z.union([
+  z.string().max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH),
+  z.array(contentPartSchema).max(20), // Max 20 parts (images + text)
+]);
+
 /** Chat message in conversation */
 export const chatMessageSchema = z.object({
   role: z.enum(['user', 'assistant', 'system']),
-  content: z.string().max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH),
+  content: messageContentSchema,
 });
+
+/** User context for personalization */
+const userContextSchema = z
+  .object({
+    name: z.string().max(100).optional(),
+    role: z.string().max(50).optional(),
+    field: z.string().max(100).optional(),
+    purpose: z.string().max(500).optional(),
+  })
+  .optional();
+
+/** Selected GitHub repo for code operations */
+const selectedRepoSchema = z
+  .object({
+    owner: z.string().max(100),
+    repo: z.string().max(100),
+    fullName: z.string().max(200),
+    defaultBranch: z.string().max(100),
+  })
+  .optional();
 
 /** Main chat request */
 export const chatRequestSchema = z.object({
@@ -326,21 +367,14 @@ export const chatRequestSchema = z.object({
   conversationId: uuidSchema.optional(),
   // Tool modes: search tools + document creation
   searchMode: z
-    .enum([
-      'none',
-      'search',
-      'factcheck',
-      'research',
-      'doc_word',
-      'doc_excel',
-      'doc_pdf',
-      'doc_pptx',
-    ])
+    .enum(['none', 'search', 'factcheck', 'research', 'doc_word', 'doc_excel', 'doc_pdf'])
     .optional(),
   temperature: z.number().min(0).max(2).optional(),
   max_tokens: z.number().int().min(1).max(128000).optional(),
   model: z.string().max(100).optional(),
   tool_context: z.string().max(50).optional(),
+  userContext: userContextSchema,
+  selectedRepo: selectedRepoSchema,
 });
 
 /** Generate title request */
