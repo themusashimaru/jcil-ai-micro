@@ -4,8 +4,8 @@
  * Compresses images on the client side to reduce payload size
  * and avoid HTTP 413 errors when uploading to the API.
  *
- * Target: Keep compressed images under 2MB base64 (~1.5MB raw)
- * This ensures the total request payload stays under Vercel's limits.
+ * Target: Keep compressed images under ~1MB base64 (~800KB raw)
+ * This ensures the total request payload stays well under Vercel's 4.5MB limit.
  */
 
 export interface CompressedImage {
@@ -16,17 +16,17 @@ export interface CompressedImage {
   height: number;
 }
 
-// Maximum dimensions for uploaded images
-const MAX_DIMENSION = 2048;
+// Maximum dimensions for uploaded images (reduced for faster uploads)
+const MAX_DIMENSION = 1600;
 
 // Target maximum size for compressed image (in bytes)
-// 1.5MB raw = ~2MB base64, leaving room for message text
-const TARGET_MAX_SIZE = 1.5 * 1024 * 1024;
+// 800KB raw = ~1.1MB base64, staying well under Vercel's 4.5MB limit
+const TARGET_MAX_SIZE = 800 * 1024;
 
 // JPEG quality settings (0.0 to 1.0)
-const QUALITY_HIGH = 0.85;
-const QUALITY_MEDIUM = 0.7;
-const QUALITY_LOW = 0.5;
+const QUALITY_HIGH = 0.8;
+const QUALITY_MEDIUM = 0.6;
+const QUALITY_LOW = 0.4;
 
 /**
  * Compress an image file to reduce its size
