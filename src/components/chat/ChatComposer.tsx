@@ -27,6 +27,7 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 // import { ConnectorsButton } from './ConnectorsButton';
 // import { RepoDropdown } from './RepoDropdown';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 // Tool mode types - includes search tools and document creation
 export type ToolMode =
@@ -141,6 +142,9 @@ export function ChatComposer({
   // Get selected repo from context (optional - may not be in provider)
   const codeExecution = useCodeExecutionOptional();
   const selectedRepo = codeExecution?.selectedRepo;
+
+  // Get theme for button styling
+  const { theme } = useTheme();
 
   const suggestions = PLACEHOLDER_SUGGESTIONS;
   const [message, setMessage] = useState('');
@@ -886,7 +890,11 @@ export function ChatComposer({
                         ? 'var(--text-muted)'
                         : 'var(--primary)',
                     color:
-                      (!message.trim() && attachments.length === 0) || disabled ? 'white' : 'black',
+                      (!message.trim() && attachments.length === 0) || disabled
+                        ? 'white'
+                        : theme === 'light'
+                          ? 'white'
+                          : 'black',
                   }}
                 >
                   <svg
