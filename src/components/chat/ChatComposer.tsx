@@ -28,8 +28,19 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 // import { RepoDropdown } from './RepoDropdown';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 
-// Search mode types for Anthropic provider
-export type SearchMode = 'none' | 'search' | 'factcheck' | 'research';
+// Tool mode types - includes search tools and document creation
+export type ToolMode =
+  | 'none'
+  | 'search'
+  | 'factcheck'
+  | 'research'
+  | 'doc_word'
+  | 'doc_excel'
+  | 'doc_pdf'
+  | 'doc_pptx';
+
+// Legacy alias for backwards compatibility
+export type SearchMode = ToolMode;
 
 // Selected repo info passed to API
 export interface SelectedRepoInfo {
@@ -138,8 +149,10 @@ export function ChatComposer({
   const [fileError, setFileError] = useState<string | null>(null);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
-  // Search mode state (for Anthropic provider)
-  const [searchMode, setSearchMode] = useState<SearchMode>('none');
+  // Tool mode state (search, research, document creation)
+  const [toolMode, setToolMode] = useState<ToolMode>('none');
+  // Tools menu visibility
+  const [showToolsMenu, setShowToolsMenu] = useState(false);
   // Typewriter animation state
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
@@ -251,11 +264,11 @@ export function ChatComposer({
         }
       : null;
 
-    onSendMessage(message.trim(), attachments, searchMode, repoInfo);
+    onSendMessage(message.trim(), attachments, toolMode, repoInfo);
     setMessage('');
     setAttachments([]);
-    // Reset search mode after sending
-    setSearchMode('none');
+    // Reset tool mode after sending
+    setToolMode('none');
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -268,22 +281,150 @@ export function ChatComposer({
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
-  // Toggle search mode (click to activate, click again to deactivate)
-  const toggleSearchMode = (mode: SearchMode) => {
-    setSearchMode(searchMode === mode ? 'none' : mode);
+  // Select a tool mode (closes menu)
+  const selectToolMode = (mode: ToolMode) => {
+    setToolMode(mode);
+    setShowToolsMenu(false);
   };
 
-  // Get placeholder text based on search mode
+  // Clear tool mode
+  const clearToolMode = () => {
+    setToolMode('none');
+  };
+
+  // Get placeholder text based on tool mode
   const getPlaceholderForMode = (): string => {
-    switch (searchMode) {
+    switch (toolMode) {
       case 'search':
         return 'Search the web...';
       case 'factcheck':
         return 'What do you want to fact check?';
       case 'research':
         return 'What would you like to research?';
+      case 'doc_word':
+        return 'Describe the Word document you need...';
+      case 'doc_excel':
+        return 'Describe the spreadsheet you need...';
+      case 'doc_pdf':
+        return 'Describe the PDF/invoice you need...';
+      case 'doc_pptx':
+        return 'Describe the presentation you need...';
       default:
         return '';
+    }
+  };
+
+  // Get tool mode display info
+  const getToolModeInfo = (): { label: string; color: string; icon: JSX.Element } | null => {
+    switch (toolMode) {
+      case 'search':
+        return {
+          label: 'Web Search',
+          color: '#3b82f6',
+          icon: (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+              />
+            </svg>
+          ),
+        };
+      case 'factcheck':
+        return {
+          label: 'Fact Check',
+          color: '#10b981',
+          icon: (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          ),
+        };
+      case 'research':
+        return {
+          label: 'Deep Research',
+          color: '#8b5cf6',
+          icon: (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              />
+            </svg>
+          ),
+        };
+      case 'doc_word':
+        return {
+          label: 'Word Document',
+          color: '#2563eb',
+          icon: (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+          ),
+        };
+      case 'doc_excel':
+        return {
+          label: 'Excel Spreadsheet',
+          color: '#16a34a',
+          icon: (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 10h18M3 14h18M9 4v16M15 4v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"
+              />
+            </svg>
+          ),
+        };
+      case 'doc_pdf':
+        return {
+          label: 'PDF Invoice',
+          color: '#dc2626',
+          icon: (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 21h10a2 2 0 002-2V9l-5-5H7a2 2 0 00-2 2v13a2 2 0 002 2z"
+              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 3v6h6" />
+            </svg>
+          ),
+        };
+      case 'doc_pptx':
+        return {
+          label: 'PowerPoint',
+          color: '#ea580c',
+          icon: (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+              />
+            </svg>
+          ),
+        };
+      default:
+        return null;
     }
   };
 
@@ -587,24 +728,17 @@ export function ChatComposer({
             onDrop={handleDrop}
           >
             <div className="relative">
-              {/* Typewriter placeholder overlay - shows search mode placeholder when active */}
+              {/* Typewriter placeholder overlay - shows tool mode placeholder when active */}
               {!isFocused && !message && !isDragging && (
                 <div
                   className="absolute inset-0 flex items-center pointer-events-none py-1.5 px-2 md:p-4"
                   style={{ fontSize: '16px' }}
                 >
-                  {searchMode !== 'none' ? (
-                    // Search mode placeholder (static, no animation)
+                  {toolMode !== 'none' ? (
+                    // Tool mode placeholder (static, no animation)
                     <span
                       className="font-medium"
-                      style={{
-                        color:
-                          searchMode === 'search'
-                            ? '#3b82f6'
-                            : searchMode === 'research'
-                              ? '#8b5cf6'
-                              : '#10b981',
-                      }}
+                      style={{ color: getToolModeInfo()?.color || 'var(--primary)' }}
                     >
                       {getPlaceholderForMode()}
                     </span>
@@ -684,24 +818,24 @@ export function ChatComposer({
                   </svg>
                 </button>
 
-                {/* Connectors and RepoDropdown moved to Code Lab */}
-
-                {/* Search and Fact Check buttons (Anthropic only) */}
-                {showSearchButtons && (
-                  <>
-                    {/* Search button - toggle */}
+                {/* Active tool mode indicator */}
+                {toolMode !== 'none' && getToolModeInfo() && (
+                  <div
+                    className="flex items-center gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-xs md:text-sm font-medium"
+                    style={{
+                      backgroundColor: `${getToolModeInfo()!.color}20`,
+                      color: getToolModeInfo()!.color,
+                    }}
+                  >
+                    {getToolModeInfo()!.icon}
+                    <span>{getToolModeInfo()!.label}</span>
                     <button
-                      onClick={() => toggleSearchMode('search')}
-                      disabled={isStreaming || disabled}
-                      className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium"
-                      style={{
-                        color: searchMode === 'search' ? '#3b82f6' : 'var(--text-secondary)',
-                      }}
-                      title="Search the web"
+                      onClick={clearToolMode}
+                      className="ml-1 hover:opacity-70"
+                      title="Clear tool"
                     >
-                      {/* Globe icon */}
                       <svg
-                        className="h-3.5 w-3.5 md:h-4 md:w-4"
+                        className="h-3.5 w-3.5"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -710,66 +844,51 @@ export function ChatComposer({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                          d="M6 18L18 6M6 6l12 12"
                         />
                       </svg>
-                      <span>Search</span>
                     </button>
+                  </div>
+                )}
 
-                    {/* Fact Check button - toggle */}
-                    <button
-                      onClick={() => toggleSearchMode('factcheck')}
-                      disabled={isStreaming || disabled}
-                      className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium"
-                      style={{
-                        color: searchMode === 'factcheck' ? '#10b981' : 'var(--text-secondary)',
-                      }}
-                      title="Fact check information"
+                {/* Tools button - opens dropdown menu */}
+                {showSearchButtons && toolMode === 'none' && (
+                  <button
+                    onClick={() => setShowToolsMenu(!showToolsMenu)}
+                    disabled={isStreaming || disabled}
+                    className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium"
+                    style={{ color: 'var(--text-secondary)' }}
+                    title="AI Tools"
+                  >
+                    <svg
+                      className="h-3.5 w-3.5 md:h-4 md:w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      {/* Checkmark icon */}
-                      <svg
-                        className="h-3.5 w-3.5 md:h-4 md:w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span>Fact Check</span>
-                    </button>
-
-                    {/* Research button - toggle (uses Research Agent with Perplexity) */}
-                    <button
-                      onClick={() => toggleSearchMode('research')}
-                      disabled={isStreaming || disabled}
-                      className="rounded-lg px-2 py-1 md:px-3 md:py-1.5 disabled:opacity-50 shrink-0 flex items-center gap-1.5 transition-all text-xs md:text-sm font-medium"
-                      style={{
-                        color: searchMode === 'research' ? '#8b5cf6' : 'var(--text-secondary)',
-                      }}
-                      title="Deep research with AI"
-                    >
-                      {/* Magnifying glass with sparkle icon */}
-                      <svg
-                        className="h-3.5 w-3.5 md:h-4 md:w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                        />
-                      </svg>
-                      <span>Research</span>
-                    </button>
-                  </>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <span>Tools</span>
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
                 )}
               </div>
 
@@ -898,6 +1017,195 @@ export function ChatComposer({
                   />
                 </svg>
                 Upload File
+              </button>
+            </div>
+          </>,
+          document.body
+        )}
+
+      {/* Tools menu - rendered via Portal */}
+      {showToolsMenu &&
+        isMounted &&
+        createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm"
+              onClick={() => setShowToolsMenu(false)}
+              aria-hidden="true"
+            />
+            {/* Menu */}
+            <div className="fixed bottom-24 left-4 z-[9999] w-64 rounded-lg border border-white/10 bg-zinc-900 shadow-xl overflow-hidden">
+              {/* Search Tools Section */}
+              <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-white/10">
+                Search Tools
+              </div>
+              <button
+                onClick={() => selectToolMode('search')}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+              >
+                <svg
+                  className="h-5 w-5 text-blue-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                  />
+                </svg>
+                <div>
+                  <div className="font-medium">Web Search</div>
+                  <div className="text-xs text-slate-400">Search the internet</div>
+                </div>
+              </button>
+              <button
+                onClick={() => selectToolMode('factcheck')}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5"
+              >
+                <svg
+                  className="h-5 w-5 text-green-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div>
+                  <div className="font-medium">Fact Check</div>
+                  <div className="text-xs text-slate-400">Verify claims with sources</div>
+                </div>
+              </button>
+              <button
+                onClick={() => selectToolMode('research')}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5"
+              >
+                <svg
+                  className="h-5 w-5 text-purple-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+                <div>
+                  <div className="font-medium">Deep Research</div>
+                  <div className="text-xs text-slate-400">
+                    Comprehensive research with citations
+                  </div>
+                </div>
+              </button>
+
+              {/* Document Creation Section */}
+              <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide border-t border-white/10">
+                Create Documents
+              </div>
+              <button
+                onClick={() => selectToolMode('doc_word')}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+              >
+                <svg
+                  className="h-5 w-5 text-blue-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <div>
+                  <div className="font-medium">Word Document</div>
+                  <div className="text-xs text-slate-400">Letters, reports, resumes</div>
+                </div>
+              </button>
+              <button
+                onClick={() => selectToolMode('doc_excel')}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5"
+              >
+                <svg
+                  className="h-5 w-5 text-green-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h18M3 14h18M9 4v16M15 4v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"
+                  />
+                </svg>
+                <div>
+                  <div className="font-medium">Excel Spreadsheet</div>
+                  <div className="text-xs text-slate-400">Budgets, trackers, data</div>
+                </div>
+              </button>
+              <button
+                onClick={() => selectToolMode('doc_pdf')}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5"
+              >
+                <svg
+                  className="h-5 w-5 text-red-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 21h10a2 2 0 002-2V9l-5-5H7a2 2 0 00-2 2v13a2 2 0 002 2z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14 3v6h6"
+                  />
+                </svg>
+                <div>
+                  <div className="font-medium">PDF Invoice</div>
+                  <div className="text-xs text-slate-400">Professional invoices</div>
+                </div>
+              </button>
+              <button
+                onClick={() => selectToolMode('doc_pptx')}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5 rounded-b-lg"
+              >
+                <svg
+                  className="h-5 w-5 text-orange-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                  />
+                </svg>
+                <div>
+                  <div className="font-medium">PowerPoint</div>
+                  <div className="text-xs text-slate-400">Presentations, slides</div>
+                </div>
               </button>
             </div>
           </>,

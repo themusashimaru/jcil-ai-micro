@@ -17,11 +17,8 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import {
-  createClaudeStreamingChat,
-  createClaudeChat,
-  detectDocumentRequest,
-} from '@/lib/anthropic/client';
+import { createClaudeStreamingChat, createClaudeChat } from '@/lib/anthropic/client';
+// detectDocumentRequest removed - document creation is now button-only via Tools menu
 import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
@@ -506,15 +503,33 @@ export async function POST(request: NextRequest) {
     log.debug('Processing request', { contentPreview: lastUserContent.substring(0, 50) });
 
     // ========================================
-    // SEARCH MODE - Button-only (no auto-detection)
+    // TOOL MODE - Button-only (no auto-detection)
     // ========================================
-    // Research agent only runs when user explicitly clicks the Research button
-    const effectiveSearchMode: 'none' | 'search' | 'factcheck' | 'research' = searchMode || 'none';
+    // All tools only run when user explicitly selects from Tools menu
+    type ToolMode =
+      | 'none'
+      | 'search'
+      | 'factcheck'
+      | 'research'
+      | 'doc_word'
+      | 'doc_excel'
+      | 'doc_pdf'
+      | 'doc_pptx';
+    const effectiveToolMode: ToolMode = (searchMode as ToolMode) || 'none';
+
+    // Map document modes to document types
+    const docModeToType: Record<string, 'xlsx' | 'docx' | 'pdf' | 'pptx' | null> = {
+      doc_word: 'docx',
+      doc_excel: 'xlsx',
+      doc_pdf: 'pdf',
+      doc_pptx: 'pptx',
+    };
+    const explicitDocType = docModeToType[effectiveToolMode] || null;
 
     // ========================================
     // ROUTE 1: RESEARCH AGENT (Button-only - user must click Research)
     // ========================================
-    if (effectiveSearchMode === 'research' && isResearchAgentEnabled()) {
+    if (effectiveToolMode === 'research' && isResearchAgentEnabled()) {
       log.info('Research mode activated - routing to Research Agent');
 
       const researchStream = await executeResearchAgent(lastUserContent, {
@@ -556,19 +571,19 @@ export async function POST(request: NextRequest) {
     // ROUTE 2: PERPLEXITY SEARCH (Button-only - user must click Search/Fact-check)
     // ========================================
     if (
-      (effectiveSearchMode === 'search' || effectiveSearchMode === 'factcheck') &&
+      (effectiveToolMode === 'search' || effectiveToolMode === 'factcheck') &&
       isPerplexityConfigured()
     ) {
-      log.info('Search mode activated', { searchMode: effectiveSearchMode });
+      log.info('Search mode activated', { toolMode: effectiveToolMode });
 
       try {
         const systemPrompt =
-          effectiveSearchMode === 'factcheck'
+          effectiveToolMode === 'factcheck'
             ? 'Verify the claim. Return TRUE, FALSE, PARTIALLY TRUE, or UNVERIFIABLE with evidence.'
             : 'Search the web and provide accurate, up-to-date information with sources.';
 
         const query =
-          effectiveSearchMode === 'factcheck' ? `Fact check: ${lastUserContent}` : lastUserContent;
+          effectiveToolMode === 'factcheck' ? `Fact check: ${lastUserContent}` : lastUserContent;
 
         const result = await perplexitySearch({ query, systemPrompt });
 
@@ -585,7 +600,7 @@ export async function POST(request: NextRequest) {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'X-Search-Mode': effectiveSearchMode,
+              'X-Search-Mode': effectiveToolMode,
             },
           }
         );
@@ -596,12 +611,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // ROUTE 3: DOCUMENT GENERATION (Excel, Word, PDF)
+    // ROUTE 3: DOCUMENT GENERATION (Button-only - user must select from Tools menu)
     // ========================================
-    const documentType = detectDocumentRequest(lastUserContent);
-
-    // CRITICAL FIX: Provide clear feedback if document generation is requested but user isn't authenticated
-    if (documentType && !isAuthenticated) {
+    // Only generate documents when explicitly requested via Tools menu
+    if (explicitDocType && !isAuthenticated) {
       log.debug('Document generation requested but user not authenticated');
       return Response.json(
         {
@@ -613,12 +626,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (documentType && isAuthenticated) {
-      log.info('Document generation request', { documentType });
+    if (explicitDocType && isAuthenticated) {
+      log.info('Document generation request (explicit)', { documentType: explicitDocType });
 
       try {
         // Get the appropriate JSON schema prompt based on document type
-        const schemaPrompt = getDocumentSchemaPrompt(documentType);
+        const schemaPrompt = getDocumentSchemaPrompt(explicitDocType);
 
         // Have Claude generate the structured JSON
         const result = await createClaudeChat({
@@ -654,20 +667,20 @@ export async function POST(request: NextRequest) {
 
         // Return document info with download data
         const responseText =
-          `I've created your ${getDocumentTypeName(documentType)} document: **${fileResult.filename}**\n\n` +
+          `I've created your ${getDocumentTypeName(explicitDocType)} document: **${fileResult.filename}**\n\n` +
           `Click the download button below to save it.\n\n` +
           `[DOCUMENT_DOWNLOAD:${JSON.stringify({
             filename: fileResult.filename,
             mimeType: fileResult.mimeType,
             dataUrl: dataUrl,
-            type: documentType,
+            type: explicitDocType,
           })}]`;
 
         return new Response(responseText, {
           headers: {
             'Content-Type': 'text/plain; charset=utf-8',
             'X-Document-Generated': 'true',
-            'X-Document-Type': documentType,
+            'X-Document-Type': explicitDocType,
           },
         });
       } catch (error) {
