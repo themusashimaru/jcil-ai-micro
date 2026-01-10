@@ -1034,178 +1034,58 @@ export function ChatComposer({
               onClick={() => setShowToolsMenu(false)}
               aria-hidden="true"
             />
-            {/* Menu */}
-            <div className="fixed bottom-24 left-4 z-[9999] w-64 rounded-lg border border-white/10 bg-zinc-900 shadow-xl overflow-hidden">
-              {/* Search Tools Section */}
-              <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-white/10">
-                Search Tools
+            {/* Menu - Clean text-only style */}
+            <div className="fixed bottom-24 left-4 z-[9999] w-52 rounded-lg border border-white/10 bg-zinc-900 shadow-xl overflow-hidden">
+              {/* Search Tools */}
+              <div className="px-3 py-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                Search
               </div>
               <button
                 onClick={() => selectToolMode('search')}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
               >
-                <svg
-                  className="h-5 w-5 text-blue-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                  />
-                </svg>
-                <div>
-                  <div className="font-medium">Web Search</div>
-                  <div className="text-xs text-slate-400">Search the internet</div>
-                </div>
+                Web Search
               </button>
               <button
                 onClick={() => selectToolMode('factcheck')}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5"
+                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
               >
-                <svg
-                  className="h-5 w-5 text-green-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div>
-                  <div className="font-medium">Fact Check</div>
-                  <div className="text-xs text-slate-400">Verify claims with sources</div>
-                </div>
+                Fact Check
               </button>
               <button
                 onClick={() => selectToolMode('research')}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5"
+                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
               >
-                <svg
-                  className="h-5 w-5 text-purple-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                  />
-                </svg>
-                <div>
-                  <div className="font-medium">Deep Research</div>
-                  <div className="text-xs text-slate-400">
-                    Comprehensive research with citations
-                  </div>
-                </div>
+                Deep Research
               </button>
 
-              {/* Document Creation Section */}
-              <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide border-t border-white/10">
-                Create Documents
+              {/* Documents */}
+              <div className="px-3 py-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-wider border-t border-white/10 mt-1">
+                Create Document
               </div>
               <button
                 onClick={() => selectToolMode('doc_word')}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors"
+                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
               >
-                <svg
-                  className="h-5 w-5 text-blue-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                <div>
-                  <div className="font-medium">Word Document</div>
-                  <div className="text-xs text-slate-400">Letters, reports, resumes</div>
-                </div>
+                Word Document
               </button>
               <button
                 onClick={() => selectToolMode('doc_excel')}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5"
+                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
               >
-                <svg
-                  className="h-5 w-5 text-green-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 10h18M3 14h18M9 4v16M15 4v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"
-                  />
-                </svg>
-                <div>
-                  <div className="font-medium">Excel Spreadsheet</div>
-                  <div className="text-xs text-slate-400">Budgets, trackers, data</div>
-                </div>
+                Excel Spreadsheet
               </button>
               <button
                 onClick={() => selectToolMode('doc_pdf')}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5"
+                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
               >
-                <svg
-                  className="h-5 w-5 text-red-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 21h10a2 2 0 002-2V9l-5-5H7a2 2 0 00-2 2v13a2 2 0 002 2z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M14 3v6h6"
-                  />
-                </svg>
-                <div>
-                  <div className="font-medium">PDF Invoice</div>
-                  <div className="text-xs text-slate-400">Professional invoices</div>
-                </div>
+                PDF Invoice
               </button>
               <button
                 onClick={() => selectToolMode('doc_pptx')}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors border-t border-white/5 rounded-b-lg"
+                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors rounded-b-lg"
               >
-                <svg
-                  className="h-5 w-5 text-orange-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-                  />
-                </svg>
-                <div>
-                  <div className="font-medium">PowerPoint</div>
-                  <div className="text-xs text-slate-400">Presentations, slides</div>
-                </div>
+                PowerPoint
               </button>
             </div>
           </>,
