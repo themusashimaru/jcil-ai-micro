@@ -80,7 +80,7 @@
   --border: rgba(80, 160, 255, 0.15);
 
   /* Chat-specific ocean mode colors - Deep Sea Glassmorphism */
-  --chat-input-bg: rgba(15, 30, 55, 0.85);
+  --chat-input-bg: #030810; /* Matches background for seamless blend */
   --chat-user-bubble-bg: transparent; /* No bubble for user messages */
   --chat-user-bubble-text: #e8f4ff; /* Light blue-white text */
   --chat-ai-bubble-bg: rgba(12, 28, 50, 0.75);
