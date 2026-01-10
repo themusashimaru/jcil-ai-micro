@@ -11,9 +11,9 @@
   --glass-shadow: rgba(0, 0, 0, 0.5);
 
   /* Theme colors */
-  --primary: #4dffff; /* Electric blue */
-  --primary-hover: rgba(77, 255, 255, 0.1);
-  --primary-glow: rgba(77, 255, 255, 0.4);
+  --primary: #38bdf8; /* Softer sky blue */
+  --primary-hover: rgba(56, 189, 248, 0.1);
+  --primary-glow: rgba(56, 189, 248, 0.4);
   --text-primary: #ffffff;
   --text-secondary: #9ca3af; /* Gray-400 */
   --text-muted: #6b7280; /* Gray-500 */
@@ -27,7 +27,7 @@
   --chat-user-bubble-text: #ffffff;
   --chat-ai-bubble-bg: transparent;
   --chat-ai-bubble-text: #ffffff;
-  --chat-ai-bubble-border: #4dffff;
+  --chat-ai-bubble-border: #38bdf8;
 }
 
 /* Light theme (admin only) */
