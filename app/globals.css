@@ -11,9 +11,9 @@
   --glass-shadow: rgba(0, 0, 0, 0.5);
 
   /* Theme colors */
-  --primary: #4DFFFF; /* Electric blue */
-  --primary-hover: rgba(77, 255, 255, 0.1);
-  --primary-glow: rgba(77, 255, 255, 0.4);
+  --primary: #38bdf8; /* Softer sky blue */
+  --primary-hover: rgba(56, 189, 248, 0.1);
+  --primary-glow: rgba(56, 189, 248, 0.4);
   --text-primary: #ffffff;
   --text-secondary: #9ca3af; /* Gray-400 */
   --text-muted: #6b7280; /* Gray-500 */
@@ -27,7 +27,7 @@
   --chat-user-bubble-text: #ffffff;
   --chat-ai-bubble-bg: transparent;
   --chat-ai-bubble-text: #ffffff;
-  --chat-ai-bubble-border: #4DFFFF;
+  --chat-ai-bubble-border: #38bdf8;
 }
 
 /* Light theme (admin only) */
@@ -80,7 +80,7 @@
   --border: rgba(80, 160, 255, 0.15);
 
   /* Chat-specific ocean mode colors - Deep Sea Glassmorphism */
-  --chat-input-bg: rgba(15, 30, 55, 0.85);
+  --chat-input-bg: #030810; /* Matches background for seamless blend */
   --chat-user-bubble-bg: transparent; /* No bubble for user messages */
   --chat-user-bubble-text: #e8f4ff; /* Light blue-white text */
   --chat-ai-bubble-bg: rgba(12, 28, 50, 0.75);
@@ -104,43 +104,43 @@
  * ======================================== */
 :root.pro-mode {
   /* Charcoal background - like Claude's interface */
-  --background: #2F2F2F;
-  --foreground: #FFFFFF;
+  --background: #2f2f2f;
+  --foreground: #ffffff;
   --glass-bg: rgba(47, 47, 47, 0.98);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: rgba(0, 0, 0, 0.3);
 
   /* Forest green accent - unique identity */
-  --primary: #2D5A27; /* Dark forest green */
+  --primary: #2d5a27; /* Dark forest green */
   --primary-hover: rgba(45, 90, 39, 0.15);
   --primary-glow: rgba(45, 90, 39, 0.3);
-  --text-primary: #FFFFFF;
-  --text-secondary: #B4B4B4; /* Light gray */
-  --text-muted: #8A8A8A; /* Medium gray */
-  --surface: #2F2F2F;
-  --surface-elevated: #3A3A3A; /* Slightly lighter charcoal */
+  --text-primary: #ffffff;
+  --text-secondary: #b4b4b4; /* Light gray */
+  --text-muted: #8a8a8a; /* Medium gray */
+  --surface: #2f2f2f;
+  --surface-elevated: #3a3a3a; /* Slightly lighter charcoal */
   --border: rgba(255, 255, 255, 0.1);
 
   /* Chat styling - clean, dark */
-  --chat-input-bg: #1A1A1A;
-  --chat-user-bubble-bg: #1A1A1A;
-  --chat-user-bubble-text: #FFFFFF;
+  --chat-input-bg: #1a1a1a;
+  --chat-user-bubble-bg: #1a1a1a;
+  --chat-user-bubble-text: #ffffff;
   --chat-ai-bubble-bg: transparent;
-  --chat-ai-bubble-text: #FFFFFF;
+  --chat-ai-bubble-text: #ffffff;
   --chat-ai-bubble-border: transparent;
   --chat-ai-bubble-shadow: none;
   --chat-user-bubble-shadow: none;
 
   /* Pro-specific styling */
-  --pro-code-bg: #1A1A1A;
+  --pro-code-bg: #1a1a1a;
   --pro-code-border: rgba(255, 255, 255, 0.1);
-  --pro-accent: #2D5A27;
-  --pro-accent-light: #3D7A37; /* Lighter green for hover states */
+  --pro-accent: #2d5a27;
+  --pro-accent-light: #3d7a37; /* Lighter green for hover states */
   --pro-highlight: rgba(45, 90, 39, 0.15);
 
   /* Sidebar styling */
-  --sidebar-bg: #2F2F2F;
-  --sidebar-hover: #3A3A3A;
+  --sidebar-bg: #2f2f2f;
+  --sidebar-hover: #3a3a3a;
 }
 
 @layer base {
@@ -163,7 +163,9 @@
     @apply rounded-2xl p-3 md:p-4 text-base leading-relaxed;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
     font-size: 15px;
     line-height: 1.6;
   }
@@ -201,11 +203,7 @@
     left: 0;
     right: 0;
     height: 50%;
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.15),
-      transparent
-    );
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent);
     border-radius: inherit;
     pointer-events: none;
   }
@@ -237,11 +235,7 @@
     left: 0;
     right: 0;
     height: 40%;
-    background: linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.25),
-      transparent
-    );
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent);
     border-radius: inherit;
     pointer-events: none;
   }
@@ -329,11 +323,7 @@
 
   /* Ocean mode - AI bubble: Premium deep navy frosted glass */
   :root.ocean-mode .chat-bubble.ai-bubble {
-    background: linear-gradient(
-      135deg,
-      rgba(10, 25, 50, 0.85) 0%,
-      rgba(8, 20, 40, 0.75) 100%
-    );
+    background: linear-gradient(135deg, rgba(10, 25, 50, 0.85) 0%, rgba(8, 20, 40, 0.75) 100%);
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
     border: 1px solid rgba(77, 200, 255, 0.15);
@@ -353,11 +343,7 @@
     left: 0;
     right: 0;
     height: 40%;
-    background: linear-gradient(
-      to bottom,
-      rgba(77, 200, 255, 0.06),
-      transparent
-    );
+    background: linear-gradient(to bottom, rgba(77, 200, 255, 0.06), transparent);
     border-radius: inherit;
     pointer-events: none;
   }
@@ -370,11 +356,7 @@
   /* Ocean mode hover effects */
   :root.ocean-mode .chat-bubble.ai-bubble:hover {
     transform: translateY(-2px);
-    background: linear-gradient(
-      135deg,
-      rgba(15, 35, 65, 0.9) 0%,
-      rgba(12, 28, 55, 0.8) 100%
-    );
+    background: linear-gradient(135deg, rgba(15, 35, 65, 0.9) 0%, rgba(12, 28, 55, 0.8) 100%);
     box-shadow:
       0 16px 48px rgba(0, 20, 50, 0.6),
       0 0 50px rgba(77, 200, 255, 0.08),
@@ -402,13 +384,13 @@
 
   /* Pro mode - User bubble: Clean black container */
   :root.pro-mode .chat-bubble.user-bubble {
-    background: #1A1A1A !important;
+    background: #1a1a1a !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     border: none !important;
     border-radius: 1.25rem !important;
     box-shadow: none !important;
-    color: #FFFFFF !important;
+    color: #ffffff !important;
     overflow: hidden;
   }
 
@@ -420,7 +402,7 @@
   /* Pro mode - no hover effects for clean look */
   :root.pro-mode .chat-bubble.user-bubble:hover {
     transform: none !important;
-    background: #1A1A1A !important;
+    background: #1a1a1a !important;
     box-shadow: none !important;
   }
 
@@ -447,16 +429,16 @@
   /* Pro mode AI message - clean flow on charcoal */
   :root.pro-mode .ai-message-clean {
     background: transparent;
-    color: #FFFFFF;
+    color: #ffffff;
     line-height: 1.6;
   }
 
   /* Pro mode code blocks - dark styling */
   :root.pro-mode pre,
   :root.pro-mode code {
-    background: #1A1A1A !important;
+    background: #1a1a1a !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: #E0E0E0 !important;
+    color: #e0e0e0 !important;
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
   }
 
@@ -476,19 +458,19 @@
   :root.pro-mode p code,
   :root.pro-mode li code {
     background: rgba(45, 90, 39, 0.2) !important;
-    color: #7CB374 !important;
+    color: #7cb374 !important;
     border: none !important;
   }
 
   /* Pro mode links - forest green accent */
   :root.pro-mode a {
-    color: #5DA355;
+    color: #5da355;
     text-decoration: none;
     transition: all 0.2s ease;
   }
 
   :root.pro-mode a:hover {
-    color: #7CB374;
+    color: #7cb374;
   }
 
   /* Pro mode headings - white on charcoal */
@@ -496,16 +478,16 @@
   :root.pro-mode h2,
   :root.pro-mode h3,
   :root.pro-mode h4 {
-    color: #FFFFFF;
+    color: #ffffff;
     font-weight: 500;
   }
 
   /* Pro mode blockquotes - forest green left border */
   :root.pro-mode blockquote {
-    border-left: 3px solid #2D5A27;
+    border-left: 3px solid #2d5a27;
     padding-left: 1rem;
     margin-left: 0;
-    color: #B4B4B4;
+    color: #b4b4b4;
     font-style: italic;
   }
 
@@ -520,7 +502,7 @@
   }
 
   :root.pro-mode li::marker {
-    color: #5DA355;
+    color: #5da355;
   }
 
   /* Pro mode horizontal rules - subtle divider */
@@ -534,12 +516,12 @@
   /* Pro mode selection - green highlight */
   :root.pro-mode ::selection {
     background: rgba(45, 90, 39, 0.4);
-    color: #FFFFFF;
+    color: #ffffff;
   }
 
   /* Pro mode chat input - clean dark styling */
   :root.pro-mode .chat-input-glass {
-    background: #1A1A1A !important;
+    background: #1a1a1a !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 1.5rem !important;
     box-shadow: none !important;
@@ -552,7 +534,7 @@
 
   /* Pro mode glass-morphism - charcoal */
   :root.pro-mode .glass-morphism {
-    background: #2F2F2F !important;
+    background: #2f2f2f !important;
     border: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -566,45 +548,46 @@
   }
 
   :root.pro-mode ::-webkit-scrollbar-track {
-    background: #1A1A1A;
+    background: #1a1a1a;
     border-radius: 4px;
   }
 
   :root.pro-mode ::-webkit-scrollbar-thumb {
-    background: #3A3A3A;
+    background: #3a3a3a;
     border-radius: 4px;
   }
 
   :root.pro-mode ::-webkit-scrollbar-thumb:hover {
-    background: #4A4A4A;
+    background: #4a4a4a;
   }
 
   /* Pro mode page background - solid charcoal */
   :root.pro-mode body {
-    background: #2F2F2F !important;
+    background: #2f2f2f !important;
   }
 
   /* Pro mode header/nav styling - charcoal */
   :root.pro-mode header,
   :root.pro-mode nav {
-    background: #2F2F2F !important;
+    background: #2f2f2f !important;
     border-color: rgba(255, 255, 255, 0.08) !important;
   }
 
   /* Pro mode avatar styling - forest green accent */
-  :root.pro-mode .rounded-full[style*="--primary"] {
+  :root.pro-mode .rounded-full[style*='--primary'] {
     background: rgba(45, 90, 39, 0.2) !important;
-    color: #5DA355 !important;
+    color: #5da355 !important;
   }
 
   /* Pro mode loading dots - forest green */
   :root.pro-mode .animate-bounce {
-    background-color: #2D5A27 !important;
+    background-color: #2d5a27 !important;
   }
 
-  /* Pro mode focus rings - green accent */
-  :root.pro-mode *:focus-visible {
-    outline-color: rgba(45, 90, 39, 0.6) !important;
+  /* Pro mode focus - no visible outline for clean look */
+  :root.pro-mode textarea:focus-visible,
+  :root.pro-mode input:focus-visible {
+    outline: none !important;
   }
 
   /* Pro mode tables - dark styling */
@@ -617,8 +600,8 @@
   }
 
   :root.pro-mode th {
-    background: #3A3A3A;
-    color: #FFFFFF;
+    background: #3a3a3a;
+    color: #ffffff;
     font-weight: 500;
     text-transform: uppercase;
     font-size: 0.75rem;
@@ -630,7 +613,7 @@
   :root.pro-mode td {
     padding: 0.75rem 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    color: #E0E0E0;
+    color: #e0e0e0;
   }
 
   :root.pro-mode tr:last-child td {
@@ -644,52 +627,52 @@
   /* Pro mode buttons - forest green styling */
   :root.pro-mode button.bg-blue-500,
   :root.pro-mode button.bg-blue-600,
-  :root.pro-mode [class*="bg-blue-"] {
-    background-color: #2D5A27 !important;
+  :root.pro-mode [class*='bg-blue-'] {
+    background-color: #2d5a27 !important;
   }
 
   :root.pro-mode button.bg-blue-500:hover,
   :root.pro-mode button.bg-blue-600:hover,
-  :root.pro-mode [class*="bg-blue-"]:hover {
-    background-color: #3D7A37 !important;
+  :root.pro-mode [class*='bg-blue-']:hover {
+    background-color: #3d7a37 !important;
   }
 
   /* Pro mode primary colored elements */
-  :root.pro-mode [style*="--primary"] {
-    color: #5DA355 !important;
+  :root.pro-mode [style*='--primary'] {
+    color: #5da355 !important;
   }
 
   /* Pro mode sidebar - ensure text is visible */
   :root.pro-mode aside,
-  :root.pro-mode [class*="sidebar"] {
-    background: #2F2F2F !important;
-    color: #FFFFFF !important;
+  :root.pro-mode [class*='sidebar'] {
+    background: #2f2f2f !important;
+    color: #ffffff !important;
   }
 
   :root.pro-mode aside button,
-  :root.pro-mode [class*="sidebar"] button {
-    color: #FFFFFF !important;
+  :root.pro-mode [class*='sidebar'] button {
+    color: #ffffff !important;
   }
 
   :root.pro-mode aside a,
-  :root.pro-mode [class*="sidebar"] a {
-    color: #FFFFFF !important;
+  :root.pro-mode [class*='sidebar'] a {
+    color: #ffffff !important;
   }
 
   /* Pro mode New Chat button - white text on green */
-  :root.pro-mode button[style*="--primary"][style*="--background"] {
-    color: #FFFFFF !important;
-    background-color: #2D5A27 !important;
+  :root.pro-mode button[style*='--primary'][style*='--background'] {
+    color: #ffffff !important;
+    background-color: #2d5a27 !important;
   }
 
-  :root.pro-mode button[style*="--primary"][style*="--background"]:hover {
-    background-color: #3D7A37 !important;
+  :root.pro-mode button[style*='--primary'][style*='--background']:hover {
+    background-color: #3d7a37 !important;
   }
 
   /* Pro mode - ensure primary buttons have white text */
   :root.pro-mode button[style*="backgroundColor: 'var(--primary)"],
-  :root.pro-mode button[style*="background-color: var(--primary)"] {
-    color: #FFFFFF !important;
+  :root.pro-mode button[style*='background-color: var(--primary)'] {
+    color: #ffffff !important;
   }
 
   /* New Chat button - theme-aware text color */
@@ -698,7 +681,7 @@
   }
 
   :root.pro-mode .new-chat-btn {
-    color: #FFFFFF !important;
+    color: #ffffff !important;
   }
 
   :root.ocean-mode .new-chat-btn {
@@ -803,7 +786,12 @@
   :root.light-mode .chat-bg-orbs::before {
     width: 500px;
     height: 500px;
-    background: radial-gradient(circle, rgba(30, 58, 95, 0.15) 0%, rgba(30, 58, 95, 0.05) 50%, transparent 70%);
+    background: radial-gradient(
+      circle,
+      rgba(30, 58, 95, 0.15) 0%,
+      rgba(30, 58, 95, 0.05) 50%,
+      transparent 70%
+    );
     top: -10%;
     right: -15%;
     opacity: 1;
@@ -814,7 +802,12 @@
   :root.light-mode .chat-bg-orbs::after {
     width: 600px;
     height: 600px;
-    background: radial-gradient(circle, rgba(77, 200, 255, 0.12) 0%, rgba(100, 180, 255, 0.04) 50%, transparent 70%);
+    background: radial-gradient(
+      circle,
+      rgba(77, 200, 255, 0.12) 0%,
+      rgba(100, 180, 255, 0.04) 50%,
+      transparent 70%
+    );
     bottom: -20%;
     left: -20%;
     opacity: 1;
@@ -827,7 +820,12 @@
     width: 400px;
     height: 400px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(147, 51, 234, 0.08) 0%, rgba(139, 92, 246, 0.03) 50%, transparent 70%);
+    background: radial-gradient(
+      circle,
+      rgba(147, 51, 234, 0.08) 0%,
+      rgba(139, 92, 246, 0.03) 50%,
+      transparent 70%
+    );
     top: 40%;
     right: 10%;
     opacity: 0;
@@ -842,7 +840,8 @@
   }
 
   @keyframes float-orb-1 {
-    0%, 100% {
+    0%,
+    100% {
       transform: translate(0, 0) scale(1);
     }
     25% {
@@ -857,7 +856,8 @@
   }
 
   @keyframes float-orb-2 {
-    0%, 100% {
+    0%,
+    100% {
       transform: translate(0, 0) scale(1);
     }
     33% {
@@ -869,7 +869,8 @@
   }
 
   @keyframes float-orb-3 {
-    0%, 100% {
+    0%,
+    100% {
       transform: translate(0, 0) scale(1) rotate(0deg);
     }
     25% {
@@ -907,7 +908,7 @@
     border: 1.5px solid rgba(77, 255, 255, 0.3) !important;
     border-top-color: rgba(77, 255, 255, 0.5);
     border-left-color: rgba(77, 255, 255, 0.4);
-    color: #4DFFFF !important;
+    color: #4dffff !important;
     box-shadow:
       0 4px 20px rgba(77, 255, 255, 0.2),
       0 0 15px rgba(77, 255, 255, 0.1),
@@ -1110,16 +1111,23 @@
 
   /* Send button glow animation */
   .send-button-glow {
-    box-shadow: 0 0 8px var(--primary), 0 0 15px var(--primary-glow);
+    box-shadow:
+      0 0 8px var(--primary),
+      0 0 15px var(--primary-glow);
     animation: pulse-glow 2s ease-in-out infinite;
   }
 
   @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 8px var(--primary), 0 0 15px var(--primary-glow);
+    0%,
+    100% {
+      box-shadow:
+        0 0 8px var(--primary),
+        0 0 15px var(--primary-glow);
     }
     50% {
-      box-shadow: 0 0 20px var(--primary), 0 0 30px var(--primary-glow);
+      box-shadow:
+        0 0 20px var(--primary),
+        0 0 30px var(--primary-glow);
     }
   }
 
@@ -1131,7 +1139,8 @@
   }
 
   @keyframes living-glow {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0.3;
       background-position: 0% 50%;
     }
@@ -1182,7 +1191,7 @@
   @media (hover: none) and (pointer: coarse) {
     /* Larger touch targets on mobile - only for nav/button-like links, NOT inline text links */
     button,
-    a[role="button"],
+    a[role='button'],
     nav a,
     .touch-target {
       min-height: 44px;
@@ -1190,7 +1199,8 @@
     }
 
     /* Disable tap highlight on buttons (but keep links clickable) */
-    button, [role="button"] {
+    button,
+    [role='button'] {
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
       outline: none;
@@ -1211,7 +1221,10 @@
   }
 
   /* Disable tap highlight globally for interactive elements */
-  button, a, [role="button"], .tap-none {
+  button,
+  a,
+  [role='button'],
+  .tap-none {
     -webkit-tap-highlight-color: transparent;
   }
 

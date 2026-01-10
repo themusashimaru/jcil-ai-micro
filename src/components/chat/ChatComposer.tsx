@@ -885,7 +885,8 @@ export function ChatComposer({
                       (!message.trim() && attachments.length === 0) || disabled
                         ? 'var(--text-muted)'
                         : 'var(--primary)',
-                    color: 'white',
+                    color:
+                      (!message.trim() && attachments.length === 0) || disabled ? 'white' : 'black',
                   }}
                 >
                   <svg
