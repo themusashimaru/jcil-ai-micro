@@ -92,7 +92,9 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
           style={{ borderBottom: '1px solid var(--border)' }}
         >
           <div>
-            <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>User Profile</h2>
+            <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+              User Profile
+            </h2>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
               Personalize your AI experience
             </p>
@@ -153,11 +155,19 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                   }
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 rounded-full peer-checked:bg-blue-500 transition-colors" style={{ backgroundColor: 'var(--glass-bg)' }}></div>
+                <div
+                  className="w-11 h-6 rounded-full transition-colors"
+                  style={{
+                    backgroundColor: formData.isStudent ? 'var(--primary)' : 'var(--glass-bg)',
+                  }}
+                ></div>
                 <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
               </div>
               <div>
-                <span className="text-sm font-medium transition" style={{ color: 'var(--text-secondary)' }}>
+                <span
+                  className="text-sm font-medium transition"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   I&apos;m a Student
                 </span>
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -170,7 +180,10 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
           {/* Job Title / Field of Study */}
           {!formData.isStudent && (
             <div className="space-y-2">
-              <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+              <label
+                className="block text-sm font-medium"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 Job Title / Profession
               </label>
               <input
@@ -190,7 +203,10 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
 
           {formData.isStudent && (
             <div className="space-y-2">
-              <label className="block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+              <label
+                className="block text-sm font-medium"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 Field of Study
               </label>
               <input
@@ -252,12 +268,15 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
               }}
             />
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Use **text** for bold and *text* for italic. Example: **John Smith** makes &quot;John Smith&quot; bold.
+              Use **text** for bold and *text* for italic. Example: **John Smith** makes &quot;John
+              Smith&quot; bold.
             </p>
 
             {/* Signature Color Picker */}
             <div className="flex items-center gap-3">
-              <label className="text-sm" style={{ color: 'var(--text-secondary)' }}>Signature Color:</label>
+              <label className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Signature Color:
+              </label>
               <input
                 type="color"
                 value={formData.signatureColor || defaultSignatureColor}
@@ -265,13 +284,20 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                 className="w-12 h-10 rounded cursor-pointer"
                 style={{ border: '1px solid var(--border)', backgroundColor: 'transparent' }}
               />
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{formData.signatureColor || defaultSignatureColor}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {formData.signatureColor || defaultSignatureColor}
+              </span>
             </div>
 
             {/* Signature Preview */}
             {formData.emailSignature && (
-              <div className="rounded-xl p-3" style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}>
-                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>PREVIEW</p>
+              <div
+                className="rounded-xl p-3"
+                style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
+              >
+                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+                  PREVIEW
+                </p>
                 <div
                   className="whitespace-pre-wrap text-sm"
                   style={{ color: formData.signatureColor || defaultSignatureColor }}
@@ -300,11 +326,17 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
           </div>
 
           {/* Info Box */}
-          <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
+          <div
+            className="rounded-xl p-4"
+            style={{
+              backgroundColor: 'var(--primary-hover)',
+              border: '1px solid var(--primary)',
+            }}
+          >
             <div className="flex gap-3">
               <svg
                 className="h-5 w-5 flex-shrink-0 mt-0.5"
-                style={{ color: theme === 'light' ? '#1e3a5f' : '#60a5fa' }}
+                style={{ color: 'var(--primary)' }}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -316,15 +348,17 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <div className="text-xs" style={{ color: theme === 'light' ? '#1e3a5f' : '#bfdbfe' }}>
-                <p className="font-medium mb-1">Why we need this information:</p>
+              <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <p className="font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                  Why we need this information:
+                </p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>Personalize AI responses to your background and goals</li>
                   <li>Adjust complexity and terminology to your level</li>
                   <li>Provide relevant examples from your field</li>
                   <li>Better understand your use cases and preferences</li>
                 </ul>
-                <p className="mt-2" style={{ color: theme === 'light' ? '#1e40af' : '#93c5fd' }}>
+                <p className="mt-2" style={{ color: 'var(--primary)' }}>
                   Your data is stored locally and never shared.
                 </p>
               </div>
@@ -361,7 +395,8 @@ export function UserProfileModal({ isOpen, onClose }: UserProfileModalProps) {
             <button
               onClick={handleSave}
               disabled={!formData.name.trim() || isSaving}
-              className="rounded-xl bg-blue-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              style={{ backgroundColor: 'var(--primary)' }}
             >
               {isSaving ? 'Saving...' : 'Save Profile'}
             </button>
