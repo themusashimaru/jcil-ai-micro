@@ -4,8 +4,8 @@
  * Compresses images on the client side to reduce payload size
  * and avoid HTTP 413 errors when uploading to the API.
  *
- * Target: Keep compressed images under ~1MB base64 (~800KB raw)
- * This ensures the total request payload stays well under Vercel's 4.5MB limit.
+ * Target: Keep compressed images under ~700KB base64 (~500KB raw)
+ * Vercel has a hard 4.5MB request limit, so we need to be aggressive.
  */
 
 export interface CompressedImage {
@@ -16,17 +16,18 @@ export interface CompressedImage {
   height: number;
 }
 
-// Maximum dimensions for uploaded images (reduced for faster uploads)
-const MAX_DIMENSION = 1600;
+// Maximum dimensions for uploaded images (aggressive for mobile uploads)
+const MAX_DIMENSION = 1200;
 
 // Target maximum size for compressed image (in bytes)
-// 800KB raw = ~1.1MB base64, staying well under Vercel's 4.5MB limit
-const TARGET_MAX_SIZE = 800 * 1024;
+// 500KB raw = ~700KB base64, leaving room for message text and history
+const TARGET_MAX_SIZE = 500 * 1024;
 
-// JPEG quality settings (0.0 to 1.0)
-const QUALITY_HIGH = 0.8;
-const QUALITY_MEDIUM = 0.6;
-const QUALITY_LOW = 0.4;
+// JPEG quality settings (0.0 to 1.0) - more aggressive
+const QUALITY_HIGH = 0.7;
+const QUALITY_MEDIUM = 0.5;
+const QUALITY_LOW = 0.3;
+const QUALITY_MINIMUM = 0.2;
 
 /**
  * Compress an image file to reduce its size
@@ -78,23 +79,18 @@ export async function compressImage(file: File): Promise<CompressedImage> {
       let dataUrl = canvas.toDataURL('image/jpeg', quality);
       let compressedSize = Math.round((dataUrl.length * 3) / 4); // Approximate raw size from base64
 
-      // If still too large, reduce quality
-      if (compressedSize > TARGET_MAX_SIZE) {
-        quality = QUALITY_MEDIUM;
+      // Progressively reduce quality until under target
+      const qualities = [QUALITY_MEDIUM, QUALITY_LOW, QUALITY_MINIMUM];
+      for (const q of qualities) {
+        if (compressedSize <= TARGET_MAX_SIZE) break;
+        quality = q;
         dataUrl = canvas.toDataURL('image/jpeg', quality);
         compressedSize = Math.round((dataUrl.length * 3) / 4);
       }
 
-      // If still too large, reduce quality further
+      // If still too large after all quality reductions, reduce dimensions
       if (compressedSize > TARGET_MAX_SIZE) {
-        quality = QUALITY_LOW;
-        dataUrl = canvas.toDataURL('image/jpeg', quality);
-        compressedSize = Math.round((dataUrl.length * 3) / 4);
-      }
-
-      // If still too large, reduce dimensions
-      if (compressedSize > TARGET_MAX_SIZE) {
-        const scaleFactor = Math.sqrt(TARGET_MAX_SIZE / compressedSize);
+        const scaleFactor = Math.sqrt(TARGET_MAX_SIZE / compressedSize) * 0.9; // 10% extra margin
         width = Math.round(width * scaleFactor);
         height = Math.round(height * scaleFactor);
 
@@ -102,7 +98,7 @@ export async function compressImage(file: File): Promise<CompressedImage> {
         canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
 
-        dataUrl = canvas.toDataURL('image/jpeg', quality);
+        dataUrl = canvas.toDataURL('image/jpeg', QUALITY_LOW);
         compressedSize = Math.round((dataUrl.length * 3) / 4);
       }
 
