@@ -98,11 +98,29 @@ We validate all user input using Zod schemas before processing:
 const chatRequestSchema = z.object({
   messages: z.array(chatMessageSchema).min(1).max(100),
   conversationId: uuidSchema.optional(),
-  searchMode: z.enum(['none', 'search', 'factcheck', 'research']).optional(),
+  // Tool modes: search, research, and document creation (all button-only, no auto-detection)
+  searchMode: z
+    .enum([
+      'none',
+      'search',
+      'factcheck',
+      'research',
+      'doc_word',
+      'doc_excel',
+      'doc_pdf',
+      'doc_pptx',
+    ])
+    .optional(),
   temperature: z.number().min(0).max(2).optional(),
   max_tokens: z.number().int().min(1).max(128000).optional(),
 });
 ```
+
+**Button-Only Tool Activation:**
+
+- All tools (search, research, document creation) require explicit user action via the Tools menu
+- No auto-detection of intent prevents surprise behaviors (e.g., unexpected document generation)
+- Users maintain full control over which tools are invoked
 
 **Validation Coverage:**
 

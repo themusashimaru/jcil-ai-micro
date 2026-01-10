@@ -324,7 +324,19 @@ export const chatMessageSchema = z.object({
 export const chatRequestSchema = z.object({
   messages: z.array(chatMessageSchema).min(1).max(100),
   conversationId: uuidSchema.optional(),
-  searchMode: z.enum(['none', 'search', 'factcheck', 'research']).optional(),
+  // Tool modes: search tools + document creation
+  searchMode: z
+    .enum([
+      'none',
+      'search',
+      'factcheck',
+      'research',
+      'doc_word',
+      'doc_excel',
+      'doc_pdf',
+      'doc_pptx',
+    ])
+    .optional(),
   temperature: z.number().min(0).max(2).optional(),
   max_tokens: z.number().int().min(1).max(128000).optional(),
   model: z.string().max(100).optional(),

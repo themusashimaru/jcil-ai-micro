@@ -17,16 +17,9 @@ import { CoreMessage } from 'ai';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import {
-  createClaudeStreamingChat,
-  createClaudeChat,
-  detectDocumentRequest,
-} from '@/lib/anthropic/client';
-import {
-  shouldUseResearchAgent,
-  executeResearchAgent,
-  isResearchAgentEnabled,
-} from '@/agents/research';
+import { createClaudeStreamingChat, createClaudeChat } from '@/lib/anthropic/client';
+// detectDocumentRequest removed - document creation is now button-only via Tools menu
+import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research';
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
@@ -35,7 +28,7 @@ import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
 import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
-import { detectIntent, shouldAutoRoute, logIntentDetection } from '@/lib/intent-detection';
+// Intent detection removed - research agent is now button-only
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 
 const log = logger('ChatAPI');
@@ -510,30 +503,33 @@ export async function POST(request: NextRequest) {
     log.debug('Processing request', { contentPreview: lastUserContent.substring(0, 50) });
 
     // ========================================
-    // INTENT DETECTION & AUTO-ROUTING
+    // TOOL MODE - Button-only (no auto-detection)
     // ========================================
-    // Determine effective search mode: use explicit selection or auto-detect
-    let effectiveSearchMode: 'none' | 'search' | 'factcheck' | 'research' = searchMode || 'none';
+    // All tools only run when user explicitly selects from Tools menu
+    type ToolMode =
+      | 'none'
+      | 'search'
+      | 'factcheck'
+      | 'research'
+      | 'doc_word'
+      | 'doc_excel'
+      | 'doc_pdf'
+      | 'doc_pptx';
+    const effectiveToolMode: ToolMode = (searchMode as ToolMode) || 'none';
 
-    // Auto-detect intent when no explicit mode selected
-    if (effectiveSearchMode === 'none') {
-      const intentResult = detectIntent(lastUserContent);
-      logIntentDetection(intentResult, lastUserContent.length);
-
-      // Only auto-route on high confidence matches
-      if (shouldAutoRoute(intentResult, false)) {
-        effectiveSearchMode = intentResult.intent as typeof effectiveSearchMode;
-        log.info('Auto-detected intent', {
-          intent: intentResult.intent,
-          confidence: intentResult.confidence,
-        });
-      }
-    }
+    // Map document modes to document types
+    const docModeToType: Record<string, 'xlsx' | 'docx' | 'pdf' | 'pptx' | null> = {
+      doc_word: 'docx',
+      doc_excel: 'xlsx',
+      doc_pdf: 'pdf',
+      doc_pptx: 'pptx',
+    };
+    const explicitDocType = docModeToType[effectiveToolMode] || null;
 
     // ========================================
-    // ROUTE 1: RESEARCH AGENT (Research button OR auto-detected research)
+    // ROUTE 1: RESEARCH AGENT (Button-only - user must click Research)
     // ========================================
-    if (effectiveSearchMode === 'research' && isResearchAgentEnabled()) {
+    if (effectiveToolMode === 'research' && isResearchAgentEnabled()) {
       log.info('Research mode activated - routing to Research Agent');
 
       const researchStream = await executeResearchAgent(lastUserContent, {
@@ -572,22 +568,22 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // ROUTE 2: PERPLEXITY SEARCH (Search/Fact-check buttons OR auto-detected)
+    // ROUTE 2: PERPLEXITY SEARCH (Button-only - user must click Search/Fact-check)
     // ========================================
     if (
-      (effectiveSearchMode === 'search' || effectiveSearchMode === 'factcheck') &&
+      (effectiveToolMode === 'search' || effectiveToolMode === 'factcheck') &&
       isPerplexityConfigured()
     ) {
-      log.info('Search mode activated', { searchMode: effectiveSearchMode });
+      log.info('Search mode activated', { toolMode: effectiveToolMode });
 
       try {
         const systemPrompt =
-          effectiveSearchMode === 'factcheck'
+          effectiveToolMode === 'factcheck'
             ? 'Verify the claim. Return TRUE, FALSE, PARTIALLY TRUE, or UNVERIFIABLE with evidence.'
             : 'Search the web and provide accurate, up-to-date information with sources.';
 
         const query =
-          effectiveSearchMode === 'factcheck' ? `Fact check: ${lastUserContent}` : lastUserContent;
+          effectiveToolMode === 'factcheck' ? `Fact check: ${lastUserContent}` : lastUserContent;
 
         const result = await perplexitySearch({ query, systemPrompt });
 
@@ -604,7 +600,7 @@ export async function POST(request: NextRequest) {
             status: 200,
             headers: {
               'Content-Type': 'application/json',
-              'X-Search-Mode': effectiveSearchMode,
+              'X-Search-Mode': effectiveToolMode,
             },
           }
         );
@@ -615,52 +611,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ========================================
-    // ROUTE 3: RESEARCH AGENT (Auto-detection fallback for research patterns)
+    // ROUTE 3: DOCUMENT GENERATION (Button-only - user must select from Tools menu)
     // ========================================
-    if (isResearchAgentEnabled() && shouldUseResearchAgent(lastUserContent)) {
-      log.info('Routing to Research Agent');
-
-      const researchStream = await executeResearchAgent(lastUserContent, {
-        userId: isAuthenticated ? rateLimitIdentifier : undefined,
-        depth: 'standard',
-        previousMessages: messages.slice(-5).map((m) => ({
-          role: String(m.role),
-          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-        })),
-      });
-
-      // Wrap stream to release slot when done
-      const wrappedResearchStream = new TransformStream<Uint8Array, Uint8Array>({
-        transform(chunk, controller) {
-          controller.enqueue(chunk);
-        },
-        flush() {
-          if (slotAcquired) {
-            releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
-            slotAcquired = false;
-          }
-        },
-      });
-
-      isStreamingResponse = true;
-
-      return new Response(researchStream.pipeThrough(wrappedResearchStream), {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Transfer-Encoding': 'chunked',
-          'X-Provider': 'anthropic',
-          'X-Agent': 'research',
-        },
-      });
-    }
-
-    // ========================================
-    // ROUTE 3: DOCUMENT GENERATION (Excel, Word, PDF)
-    // ========================================
-    const documentType = detectDocumentRequest(lastUserContent);
-
-    // CRITICAL FIX: Provide clear feedback if document generation is requested but user isn't authenticated
-    if (documentType && !isAuthenticated) {
+    // Only generate documents when explicitly requested via Tools menu
+    if (explicitDocType && !isAuthenticated) {
       log.debug('Document generation requested but user not authenticated');
       return Response.json(
         {
@@ -672,12 +626,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (documentType && isAuthenticated) {
-      log.info('Document generation request', { documentType });
+    if (explicitDocType && isAuthenticated) {
+      log.info('Document generation request (explicit)', { documentType: explicitDocType });
 
       try {
         // Get the appropriate JSON schema prompt based on document type
-        const schemaPrompt = getDocumentSchemaPrompt(documentType);
+        const schemaPrompt = getDocumentSchemaPrompt(explicitDocType);
 
         // Have Claude generate the structured JSON
         const result = await createClaudeChat({
@@ -713,20 +667,20 @@ export async function POST(request: NextRequest) {
 
         // Return document info with download data
         const responseText =
-          `I've created your ${getDocumentTypeName(documentType)} document: **${fileResult.filename}**\n\n` +
+          `I've created your ${getDocumentTypeName(explicitDocType)} document: **${fileResult.filename}**\n\n` +
           `Click the download button below to save it.\n\n` +
           `[DOCUMENT_DOWNLOAD:${JSON.stringify({
             filename: fileResult.filename,
             mimeType: fileResult.mimeType,
             dataUrl: dataUrl,
-            type: documentType,
+            type: explicitDocType,
           })}]`;
 
         return new Response(responseText, {
           headers: {
             'Content-Type': 'text/plain; charset=utf-8',
             'X-Document-Generated': 'true',
-            'X-Document-Type': documentType,
+            'X-Document-Type': explicitDocType,
           },
         });
       } catch (error) {
