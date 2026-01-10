@@ -37,8 +37,7 @@ export type ToolMode =
   | 'research'
   | 'doc_word'
   | 'doc_excel'
-  | 'doc_pdf'
-  | 'doc_pptx';
+  | 'doc_pdf';
 
 // Legacy alias for backwards compatibility
 export type SearchMode = ToolMode;
@@ -311,8 +310,6 @@ export function ChatComposer({
         return 'Describe the spreadsheet you need...';
       case 'doc_pdf':
         return 'Describe the PDF/invoice you need...';
-      case 'doc_pptx':
-        return 'Describe the presentation you need...';
       default:
         return '';
     }
@@ -409,21 +406,6 @@ export function ChatComposer({
                 d="M7 21h10a2 2 0 002-2V9l-5-5H7a2 2 0 00-2 2v13a2 2 0 002 2z"
               />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 3v6h6" />
-            </svg>
-          ),
-        };
-      case 'doc_pptx':
-        return {
-          label: 'PowerPoint',
-          color: '#ea580c',
-          icon: (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-              />
             </svg>
           ),
         };
@@ -1050,15 +1032,9 @@ export function ChatComposer({
               </button>
               <button
                 onClick={() => selectToolMode('doc_pdf')}
-                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-              >
-                PDF Invoice
-              </button>
-              <button
-                onClick={() => selectToolMode('doc_pptx')}
                 className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors rounded-b-lg"
               >
-                PowerPoint
+                PDF Invoice
               </button>
             </div>
           </>,
