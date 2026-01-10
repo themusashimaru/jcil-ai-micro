@@ -715,8 +715,7 @@ export function ChatComposer({
         <div
           className={`relative rounded-3xl transition-all ${isDragging ? 'opacity-80' : ''}`}
           style={{
-            backgroundColor: 'var(--surface)',
-            border: '1px solid var(--border)',
+            backgroundColor: 'var(--chat-input-bg)',
           }}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -838,16 +837,16 @@ export function ChatComposer({
                 </div>
               )}
 
-              {/* Tools button */}
+              {/* Agents button */}
               {showSearchButtons && toolMode === 'none' && (
                 <button
                   onClick={() => setShowToolsMenu(!showToolsMenu)}
                   disabled={isStreaming || disabled}
-                  className="rounded-full px-3 py-1.5 disabled:opacity-50 flex items-center gap-1.5 transition-colors text-sm hover:bg-white/10"
+                  className="rounded-full px-3 py-1.5 disabled:opacity-50 flex items-center gap-1.5 transition-colors text-sm"
                   style={{ color: 'var(--text-muted)' }}
-                  title="AI Tools"
+                  title="AI Agents"
                 >
-                  <span>Tools</span>
+                  <span>Agents</span>
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
@@ -988,7 +987,7 @@ export function ChatComposer({
           document.body
         )}
 
-      {/* Tools menu - rendered via Portal */}
+      {/* Agents menu - rendered via Portal */}
       {showToolsMenu &&
         isMounted &&
         createPortal(
@@ -1001,7 +1000,7 @@ export function ChatComposer({
             />
             {/* Menu - Clean text-only style */}
             <div className="fixed bottom-24 left-4 z-[9999] w-52 rounded-lg border border-white/10 bg-zinc-900 shadow-xl overflow-hidden">
-              {/* Search Tools */}
+              {/* Search Agents */}
               <div className="px-3 py-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
                 Search
               </div>
