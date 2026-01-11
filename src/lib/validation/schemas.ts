@@ -365,9 +365,18 @@ const selectedRepoSchema = z
 export const chatRequestSchema = z.object({
   messages: z.array(chatMessageSchema).min(1).max(100),
   conversationId: uuidSchema.optional(),
-  // Tool modes: search tools + document creation
+  // Tool modes: search tools + document creation + resume generator
   searchMode: z
-    .enum(['none', 'search', 'factcheck', 'research', 'doc_word', 'doc_excel', 'doc_pdf'])
+    .enum([
+      'none',
+      'search',
+      'factcheck',
+      'research',
+      'doc_word',
+      'doc_excel',
+      'doc_pdf',
+      'resume_generator',
+    ])
     .optional(),
   temperature: z.number().min(0).max(2).optional(),
   max_tokens: z.number().int().min(1).max(128000).optional(),
