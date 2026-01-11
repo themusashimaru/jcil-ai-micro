@@ -29,7 +29,7 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { useTheme } from '@/contexts/ThemeContext';
 
-// Tool mode types - includes search tools and document creation
+// Tool mode types - includes search tools, document creation, and resume generator
 export type ToolMode =
   | 'none'
   | 'search'
@@ -37,7 +37,8 @@ export type ToolMode =
   | 'research'
   | 'doc_word'
   | 'doc_excel'
-  | 'doc_pdf';
+  | 'doc_pdf'
+  | 'resume_generator';
 
 // Legacy alias for backwards compatibility
 export type SearchMode = ToolMode;
@@ -321,6 +322,8 @@ export function ChatComposer({
         return 'Describe the spreadsheet you need...';
       case 'doc_pdf':
         return 'Describe the PDF/invoice you need...';
+      case 'resume_generator':
+        return "Let's build your perfect resume...";
       default:
         return '';
     }
@@ -417,6 +420,21 @@ export function ChatComposer({
                 d="M7 21h10a2 2 0 002-2V9l-5-5H7a2 2 0 00-2 2v13a2 2 0 002 2z"
               />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 3v6h6" />
+            </svg>
+          ),
+        };
+      case 'resume_generator':
+        return {
+          label: 'Resume Generator',
+          color: '#7c3aed',
+          icon: (
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
             </svg>
           ),
         };
@@ -1002,6 +1020,30 @@ export function ChatComposer({
             />
             {/* Menu - Clean text-only style */}
             <div className="fixed bottom-24 left-4 z-[9999] w-52 rounded-lg border border-white/10 bg-zinc-900 shadow-xl overflow-hidden">
+              {/* Featured - Resume Generator */}
+              <button
+                onClick={() => selectToolMode('resume_generator')}
+                className="w-full text-left px-3 py-2.5 text-sm font-medium text-white hover:bg-violet-600/20 transition-colors flex items-center gap-2 bg-violet-600/10 border-b border-white/10"
+              >
+                <svg
+                  className="h-4 w-4 text-violet-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <span className="text-violet-300">Resume Generator</span>
+                <span className="ml-auto text-[10px] bg-violet-500/30 text-violet-300 px-1.5 py-0.5 rounded">
+                  ATS
+                </span>
+              </button>
+
               {/* Search Agents */}
               <div className="px-3 py-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
                 Search
