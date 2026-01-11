@@ -23,6 +23,12 @@ import { executeResearchAgent, isResearchAgentEnabled } from '@/agents/research'
 import { perplexitySearch, isPerplexityConfigured } from '@/lib/perplexity/client';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
+import {
+  generateResumeDocuments,
+  getResumeSystemPrompt,
+  type ResumeData,
+  MODERN_PRESET,
+} from '@/lib/documents/resume';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
@@ -514,7 +520,8 @@ export async function POST(request: NextRequest) {
       | 'doc_word'
       | 'doc_excel'
       | 'doc_pdf'
-      | 'doc_pptx';
+      | 'doc_pptx'
+      | 'resume_generator';
     const effectiveToolMode: ToolMode = (searchMode as ToolMode) || 'none';
 
     // Map document modes to document types
@@ -689,6 +696,252 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         log.error('Document generation error', error as Error);
         // Fall through to regular chat with an explanation
+      }
+    }
+
+    // ========================================
+    // ROUTE 3.5: RESUME GENERATOR (Button-only)
+    // ========================================
+    if (effectiveToolMode === 'resume_generator') {
+      log.info('Resume generator mode activated');
+
+      if (!isAuthenticated) {
+        return Response.json(
+          {
+            error:
+              'Resume generation requires authentication. Please sign in to create your resume.',
+            code: 'AUTH_REQUIRED',
+          },
+          { status: 401 }
+        );
+      }
+
+      try {
+        // Check if user is requesting document generation
+        const isGenerateRequest =
+          lastUserContent.toLowerCase().includes('generate') ||
+          lastUserContent.toLowerCase().includes('create my resume') ||
+          lastUserContent.toLowerCase().includes('make my resume') ||
+          lastUserContent.toLowerCase().includes('done') ||
+          lastUserContent.toLowerCase().includes('looks good') ||
+          lastUserContent.toLowerCase().includes("that's correct") ||
+          lastUserContent.toLowerCase().includes('yes') ||
+          lastUserContent.toLowerCase().includes('perfect');
+
+        // Check if we have enough conversation context to generate
+        const conversationLength = messages.length;
+        const hasEnoughContext = conversationLength >= 6; // At least 3 back-and-forths
+
+        if (isGenerateRequest && hasEnoughContext) {
+          // Extract resume data from conversation using Claude
+          const extractionPrompt = `You are a resume data extractor. Analyze this conversation and extract all resume information into a JSON object.
+
+IMPORTANT: Return ONLY valid JSON, no markdown, no explanation.
+
+Required JSON structure:
+{
+  "contact": {
+    "fullName": "string",
+    "email": "string",
+    "phone": "string (optional)",
+    "location": "string (optional)",
+    "linkedin": "string (optional)"
+  },
+  "summary": "string - professional summary paragraph (optional)",
+  "experience": [
+    {
+      "company": "string",
+      "title": "string",
+      "location": "string (optional)",
+      "startDate": "string (e.g., Jan 2019)",
+      "endDate": "string or null for current",
+      "bullets": ["achievement 1", "achievement 2", ...]
+    }
+  ],
+  "education": [
+    {
+      "institution": "string",
+      "degree": "string",
+      "field": "string (optional)",
+      "graduationDate": "string (optional)",
+      "gpa": "string (optional)",
+      "honors": ["string"] (optional)
+    }
+  ],
+  "skills": [
+    {
+      "category": "string (optional)",
+      "items": ["skill1", "skill2", ...]
+    }
+  ],
+  "certifications": [
+    {
+      "name": "string",
+      "issuer": "string (optional)",
+      "date": "string (optional)"
+    }
+  ]
+}
+
+For work experience bullets, write professional achievement-focused statements:
+- Start with strong action verbs (Led, Developed, Increased, Managed, etc.)
+- Include metrics when possible
+- Focus on results and impact
+
+If information is missing, make reasonable professional assumptions or leave optional fields empty.`;
+
+          // Get all messages for context
+          const conversationContext = messages
+            .map(
+              (m) =>
+                `${m.role}: ${typeof m.content === 'string' ? m.content : JSON.stringify(m.content)}`
+            )
+            .join('\n\n');
+
+          const extractionResult = await createClaudeChat({
+            messages: [
+              {
+                role: 'user',
+                content: `${extractionPrompt}\n\n---\nCONVERSATION:\n${conversationContext}`,
+              },
+            ],
+            maxTokens: 4096,
+            temperature: 0.1,
+            forceModel: 'sonnet',
+          });
+
+          // Parse the extracted data
+          let jsonText = extractionResult.text.trim();
+          if (jsonText.startsWith('```json')) {
+            jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+          } else if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+          }
+
+          const extractedData = JSON.parse(jsonText);
+
+          // Build the ResumeData object
+          const resumeData: ResumeData = {
+            contact: {
+              fullName: extractedData.contact?.fullName || 'Name Required',
+              email: extractedData.contact?.email || '',
+              phone: extractedData.contact?.phone,
+              location: extractedData.contact?.location,
+              linkedin: extractedData.contact?.linkedin,
+            },
+            summary: extractedData.summary,
+            experience: extractedData.experience || [],
+            education: extractedData.education || [],
+            skills: extractedData.skills || [],
+            certifications: extractedData.certifications,
+            formatting: MODERN_PRESET,
+          };
+
+          log.info('Generating resume documents', { name: resumeData.contact.fullName });
+
+          // Generate both Word and PDF
+          const documents = await generateResumeDocuments(resumeData);
+
+          // Convert to base64
+          const docxBase64 = documents.docx.toString('base64');
+          const pdfBase64 = documents.pdf.toString('base64');
+
+          const docxDataUrl = `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${docxBase64}`;
+          const pdfDataUrl = `data:application/pdf;base64,${pdfBase64}`;
+
+          // Return both documents
+          const responseText =
+            `I've created your professional resume! Here are your documents:\n\n` +
+            `**Word Document** (easy to edit):\n` +
+            `[DOCUMENT_DOWNLOAD:${JSON.stringify({
+              filename: documents.docxFilename,
+              mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              dataUrl: docxDataUrl,
+              type: 'docx',
+            })}]\n\n` +
+            `**PDF Version** (ready to submit):\n` +
+            `[DOCUMENT_DOWNLOAD:${JSON.stringify({
+              filename: documents.pdfFilename,
+              mimeType: 'application/pdf',
+              dataUrl: pdfDataUrl,
+              type: 'pdf',
+            })}]\n\n` +
+            `Your resume includes:\n` +
+            `- ${resumeData.experience.length} work experience${resumeData.experience.length !== 1 ? 's' : ''}\n` +
+            `- ${resumeData.education.length} education entr${resumeData.education.length !== 1 ? 'ies' : 'y'}\n` +
+            `- ${resumeData.skills.reduce((acc, s) => acc + s.items.length, 0)} skills\n` +
+            (resumeData.certifications
+              ? `- ${resumeData.certifications.length} certification${resumeData.certifications.length !== 1 ? 's' : ''}\n`
+              : '') +
+            `\nWould you like me to make any changes? I can adjust:\n` +
+            `- Margins (wider/narrower)\n` +
+            `- Fonts (modern, classic, or minimal style)\n` +
+            `- Section order\n` +
+            `- Content wording`;
+
+          return new Response(responseText, {
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Document-Generated': 'true',
+              'X-Document-Type': 'resume',
+            },
+          });
+        }
+
+        // Not ready to generate yet - continue conversation with resume-focused prompt
+        const resumeSystemPrompt =
+          getResumeSystemPrompt() +
+          `
+
+CURRENT CONVERSATION CONTEXT:
+You are helping the user build their resume. Based on the conversation so far, continue gathering information or confirm details.
+
+When you have ALL of the following information, tell the user you're ready to generate their resume:
+- Full name and contact info (email, phone, location)
+- Work experience (company, title, dates, achievements)
+- Education (school, degree, graduation date)
+- Skills (technical and soft skills)
+
+If the user confirms the information is correct or says something like "generate", "create my resume", "looks good", or "done", respond that you're now generating their Word and PDF documents.
+
+Keep responses focused and concise. Ask ONE question at a time.`;
+
+        const truncatedMessages = truncateMessages(messages as CoreMessage[]);
+
+        const streamResult = await createClaudeStreamingChat({
+          messages: truncatedMessages,
+          systemPrompt: resumeSystemPrompt,
+          maxTokens: 1024,
+          temperature: 0.7,
+          forceModel: 'sonnet',
+        });
+
+        isStreamingResponse = true;
+
+        const wrappedStream = new TransformStream<Uint8Array, Uint8Array>({
+          transform(chunk, controller) {
+            controller.enqueue(chunk);
+          },
+          flush() {
+            if (slotAcquired) {
+              releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
+              slotAcquired = false;
+            }
+          },
+        });
+
+        return new Response(streamResult.stream.pipeThrough(wrappedStream), {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Transfer-Encoding': 'chunked',
+            'X-Provider': 'anthropic',
+            'X-Model': streamResult.model,
+            'X-Search-Mode': 'resume_generator',
+          },
+        });
+      } catch (error) {
+        log.error('Resume generator error', error as Error);
+        // Fall through to regular chat
       }
     }
 
