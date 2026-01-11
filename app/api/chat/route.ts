@@ -718,21 +718,58 @@ export async function POST(request: NextRequest) {
 
       try {
         // Check if user is requesting document generation
-        const isGenerateRequest =
-          lastUserContent.toLowerCase().includes('generate') ||
-          lastUserContent.toLowerCase().includes('create my resume') ||
-          lastUserContent.toLowerCase().includes('make my resume') ||
-          lastUserContent.toLowerCase().includes('done') ||
-          lastUserContent.toLowerCase().includes('looks good') ||
-          lastUserContent.toLowerCase().includes("that's correct") ||
-          lastUserContent.toLowerCase().includes('yes') ||
-          lastUserContent.toLowerCase().includes('perfect');
+        const userMessageLower = lastUserContent.toLowerCase();
+        const isUserConfirming =
+          userMessageLower.includes('generate') ||
+          userMessageLower.includes('create my resume') ||
+          userMessageLower.includes('make my resume') ||
+          userMessageLower.includes('make it') ||
+          userMessageLower.includes('create it') ||
+          userMessageLower.includes('done') ||
+          userMessageLower.includes('looks good') ||
+          userMessageLower.includes("that's correct") ||
+          userMessageLower.includes('thats correct') ||
+          userMessageLower.includes('yes') ||
+          userMessageLower.includes('perfect') ||
+          userMessageLower.includes('sounds good') ||
+          userMessageLower.includes('go ahead') ||
+          userMessageLower.includes('please') ||
+          userMessageLower.includes('ready') ||
+          userMessageLower.includes("let's do it") ||
+          userMessageLower.includes('lets do it');
+
+        // Check if the PREVIOUS assistant message indicated readiness to generate
+        const lastAssistantMessage = messages.filter((m) => m.role === 'assistant').pop();
+        const assistantContent =
+          typeof lastAssistantMessage?.content === 'string'
+            ? lastAssistantMessage.content.toLowerCase()
+            : '';
+        const assistantIndicatedReady =
+          assistantContent.includes('creating your resume') ||
+          assistantContent.includes('generate your resume') ||
+          assistantContent.includes('i have all the details') ||
+          assistantContent.includes('ready to generate') ||
+          assistantContent.includes('ready to create') ||
+          assistantContent.includes('just take a moment') ||
+          assistantContent.includes('let me create') ||
+          assistantContent.includes('confirm the timeline') ||
+          assistantContent.includes('once i have these');
 
         // Check if we have enough conversation context to generate
         const conversationLength = messages.length;
-        const hasEnoughContext = conversationLength >= 6; // At least 3 back-and-forths
+        const hasEnoughContext = conversationLength >= 4; // At least 2 back-and-forths
 
-        if (isGenerateRequest && hasEnoughContext) {
+        // Trigger generation if: user confirms OR assistant indicated ready and user responded
+        const shouldGenerate =
+          (isUserConfirming && hasEnoughContext) ||
+          (assistantIndicatedReady && hasEnoughContext && messages.length >= 6);
+
+        if (shouldGenerate) {
+          log.info('Resume generation triggered', {
+            userConfirming: isUserConfirming,
+            assistantReady: assistantIndicatedReady,
+            messageCount: conversationLength,
+          });
           // Extract resume data from conversation using Claude
           const extractionPrompt = `You are a resume data extractor. Analyze this conversation and extract all resume information into a JSON object.
 
@@ -896,15 +933,20 @@ If information is missing, make reasonable professional assumptions or leave opt
 CURRENT CONVERSATION CONTEXT:
 You are helping the user build their resume. Based on the conversation so far, continue gathering information or confirm details.
 
-When you have ALL of the following information, tell the user you're ready to generate their resume:
+REQUIRED INFORMATION:
 - Full name and contact info (email, phone, location)
 - Work experience (company, title, dates, achievements)
 - Education (school, degree, graduation date)
 - Skills (technical and soft skills)
 
-If the user confirms the information is correct or says something like "generate", "create my resume", "looks good", or "done", respond that you're now generating their Word and PDF documents.
+IMPORTANT - WHEN YOU HAVE ALL REQUIRED INFO:
+1. Summarize what you've collected in a clear list
+2. Ask: "Does this look correct? Say 'yes' or 'generate' when you're ready and I'll create your Word and PDF documents!"
+3. Do NOT say you're "creating" or "generating" until the user confirms - just ask them to confirm
 
-Keep responses focused and concise. Ask ONE question at a time.`;
+When the user says "yes", "done", "generate", "looks good", "perfect", or similar confirmation, the system will automatically generate the documents.
+
+Keep responses focused and concise. Ask ONE question at a time when gathering info.`;
 
         const truncatedMessages = truncateMessages(messages as CoreMessage[]);
 
