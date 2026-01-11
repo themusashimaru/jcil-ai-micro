@@ -1,13 +1,25 @@
 # 🚀 JCIL-AI-MICRO PROJECT STATUS
 
-**Last Updated:** 2025-11-12
-**Branch:** `claude/av-feature-011CV4YWd51hPwYtKGkSn7j6`
+**Last Updated:** 2026-01-11
+**Branch:** `claude/review-security-changes-BUct7`
 
 ---
 
 ## ✅ COMPLETED FEATURES
 
+### 0. **Resume Generator** ✅ (NEW - January 2026)
+
+- **Conversational resume building** via Agents menu
+- **Guided data collection**: Contact, Experience, Education, Skills, Certifications
+- **Dual document output**: Word (.docx) and PDF with identical formatting
+- **ATS optimization**: Single-column layout, standard fonts, keyword analysis
+- **Template presets**: Modern (Calibri), Classic (Times New Roman), Minimal (Arial)
+- **Real-time revision support**: Margins, fonts, section order, content adjustments
+- **Progress tracking**: Visual checklist showing completion status
+- Location: `src/lib/documents/resume/`
+
 ### 1. **Database Schema** ✅
+
 - **12 tables created** in Supabase PostgreSQL
 - Users, conversations, messages, uploads, tool_usage
 - Admin users, activity logs, export logs, moderation logs
@@ -15,6 +27,7 @@
 - Conversation memory (for recall feature)
 
 ### 2. **Row Level Security (RLS)** ✅
+
 - Users can only see their own data
 - Admin (m.moser338@gmail.com) has full access
 - Subscription limits enforced at database level
@@ -22,12 +35,14 @@
 - Storage bucket policies (users can only access own files)
 
 ### 3. **Data Retention Policy** ✅
+
 - **3 months:** Soft delete (hidden, recoverable)
 - **6 months:** Hard delete (permanently removed)
 - Automated cron job runs daily at 2 AM UTC
 - Recovery function available for admin
 
 ### 4. **Authentication System** ✅
+
 - **Google OAuth** sign-in/sign-up
 - **Email/password** authentication
 - Forgot password flow
@@ -39,12 +54,14 @@
 - User records automatically created in database
 
 ### 5. **Storage Bucket** ✅
+
 - `user-uploads` bucket created
 - Private (not public)
 - Users can only access their own files
 - Admin can view all files
 
 ### 6. **Environment Configuration** ✅
+
 - Supabase keys configured
 - Stripe keys configured (live keys)
 - All secrets in `.env.local` (not committed to git)
@@ -54,6 +71,7 @@
 ## 🔧 READY BUT NOT IMPLEMENTED
 
 ### Stripe Integration (Keys Ready)
+
 - ✅ Stripe live keys configured
 - ✅ Price IDs for Basic, Pro, Executive tiers
 - ⏳ Webhook handler needed
@@ -62,6 +80,7 @@
 - ⏳ Subscription sync with database needed
 
 ### Chat Persistence
+
 - ✅ Database tables ready (conversations, messages)
 - ⏳ Save conversations to database
 - ⏳ Load chat history
@@ -69,6 +88,7 @@
 - ⏳ 3-month retention automatic
 
 ### Chat Memory (Recall Feature)
+
 - ✅ Database table ready (conversation_memory)
 - ⏳ Summarize conversations
 - ⏳ Store memory when user asks
@@ -76,12 +96,14 @@
 - ⏳ No automatic injection (prevents hallucinations)
 
 ### Activity Tracking
+
 - ✅ Database tables ready (tool_usage, moderation_logs)
 - ⏳ Track email, study, research, code, image tool usage
 - ⏳ Log moderation events
 - ⏳ 3-month retention automatic
 
 ### Admin Panel
+
 - ✅ Database structure ready
 - ✅ Admin access control (m.moser338@gmail.com)
 - ⏳ User search and management UI
@@ -93,6 +115,7 @@
 - ⏳ Dashboard with stats
 
 ### Export Functionality
+
 - ✅ Database logging ready (export_logs)
 - ⏳ PDF export for conversations
 - ⏳ Excel export for conversations
@@ -100,6 +123,7 @@
 - ⏳ Audit trail for all exports
 
 ### Rate Limiting
+
 - ✅ Subscription limits in database
 - ✅ Limits enforced by RLS triggers
 - ⏳ Upstash Redis integration (keys not provided yet)
@@ -110,18 +134,19 @@
 
 ## 📊 SUBSCRIPTION TIERS
 
-| Tier | Messages/Day | Images/Day | Price ID |
-|------|--------------|------------|----------|
-| **Free** | 10 | 0 | - |
-| **Basic** | 100 | 0 | `price_1SQMllAzsKRnKFXSMk95XaNJ` |
-| **Pro** | 200 | 5 | `price_1SQMnIAzsKRnKFXSTMwRPRy5` |
-| **Executive** | 1000 | 10 | `price_1SQMpUAzsKRnKFXSZaiRLpOz` |
+| Tier          | Messages/Day | Images/Day | Price ID                         |
+| ------------- | ------------ | ---------- | -------------------------------- |
+| **Free**      | 10           | 0          | -                                |
+| **Basic**     | 100          | 0          | `price_1SQMllAzsKRnKFXSMk95XaNJ` |
+| **Pro**       | 200          | 5          | `price_1SQMnIAzsKRnKFXSTMwRPRy5` |
+| **Executive** | 1000         | 10         | `price_1SQMpUAzsKRnKFXSZaiRLpOz` |
 
 ---
 
 ## 🔐 SECURITY FEATURES
 
 ✅ **Implemented:**
+
 - Row Level Security (RLS) on all tables
 - SQL injection prevention
 - Admin action logging
@@ -131,6 +156,7 @@
 - Subscription limit enforcement
 
 ⏳ **Pending:**
+
 - Prompt injection detection
 - XSS protection
 - CSRF tokens
@@ -174,16 +200,19 @@
 ## 🎯 RECOMMENDED NEXT STEPS
 
 ### Priority 1: Core Functionality
+
 1. **Chat Persistence** - Save/load conversations from database
 2. **Stripe Webhooks** - Sync subscriptions with database
 3. **Rate Limiting** - Enforce subscription limits
 
 ### Priority 2: User Experience
+
 4. **Admin Panel** - Connect existing UI to database
 5. **Export Functionality** - PDF/Excel conversation exports
 6. **Chat Memory** - Conversation recall feature
 
 ### Priority 3: Polish
+
 7. **Error Handling** - Better error messages
 8. **Loading States** - Improve UX
 9. **Testing** - E2E tests
@@ -213,6 +242,7 @@
 ## 📞 SUPPORT
 
 For issues or questions:
+
 1. Check database logs in Supabase
 2. Check browser console for client errors
 3. Check Next.js server logs

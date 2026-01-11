@@ -109,6 +109,7 @@ const chatRequestSchema = z.object({
       'doc_excel',
       'doc_pdf',
       'doc_pptx',
+      'resume_generator', // Guided resume building with Word + PDF output
     ])
     .optional(),
   temperature: z.number().min(0).max(2).optional(),
