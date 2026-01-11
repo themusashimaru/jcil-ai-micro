@@ -499,7 +499,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const lastUserContent = getLastUserContent(messages);
+    const lastUserContent = getLastUserContent(messages as CoreMessage[]);
     log.debug('Processing request', { contentPreview: lastUserContent.substring(0, 50) });
 
     // ========================================
@@ -635,7 +635,10 @@ export async function POST(request: NextRequest) {
 
         // Have Claude generate the structured JSON
         const result = await createClaudeChat({
-          messages: [...messages.slice(-5), { role: 'user', content: lastUserContent }],
+          messages: [
+            ...(messages as CoreMessage[]).slice(-5),
+            { role: 'user', content: lastUserContent },
+          ],
           systemPrompt: schemaPrompt,
           maxTokens: 4096,
           temperature: 0.3, // Lower temp for structured output
@@ -692,7 +695,7 @@ export async function POST(request: NextRequest) {
     // ========================================
     // ROUTE 4: CLAUDE CHAT (Haiku/Sonnet auto-routing)
     // ========================================
-    const truncatedMessages = truncateMessages(messages);
+    const truncatedMessages = truncateMessages(messages as CoreMessage[]);
     const clampedMaxTokens = clampMaxTokens(max_tokens);
 
     const systemPrompt = `You are JCIL AI, an intelligent American AI assistant.
