@@ -53,7 +53,9 @@ export default function AdminConversationViewerPage({
           throw new Error(`Failed to fetch conversation (${response.status})`);
         }
 
-        const data = await response.json();
+        const responseData = await response.json();
+        // API returns { ok: true, data: { conversation, messages, ... } }
+        const data = responseData.data || responseData;
         setConversation(data.conversation);
         setMessages(data.messages || []);
         setError(null);
@@ -135,7 +137,9 @@ export default function AdminConversationViewerPage({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
             <div className="text-gray-400 mb-1">User</div>
-            <div className="font-medium">{conversation.user.full_name || conversation.user.email}</div>
+            <div className="font-medium">
+              {conversation.user.full_name || conversation.user.email}
+            </div>
           </div>
           <div>
             <div className="text-gray-400 mb-1">Context</div>
@@ -143,7 +147,9 @@ export default function AdminConversationViewerPage({
           </div>
           <div>
             <div className="text-gray-400 mb-1">Created</div>
-            <div className="font-medium">{new Date(conversation.created_at).toLocaleDateString()}</div>
+            <div className="font-medium">
+              {new Date(conversation.created_at).toLocaleDateString()}
+            </div>
           </div>
           <div>
             <div className="text-gray-400 mb-1">Messages</div>
@@ -154,8 +160,8 @@ export default function AdminConversationViewerPage({
         {/* Privacy Warning */}
         <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
           <div className="text-sm">
-            <strong className="text-yellow-400">⚠️ Privacy Notice:</strong> You are viewing private user data.
-            Access is logged for audit purposes. Handle according to privacy policy.
+            <strong className="text-yellow-400">⚠️ Privacy Notice:</strong> You are viewing private
+            user data. Access is logged for audit purposes. Handle according to privacy policy.
           </div>
         </div>
       </div>
@@ -169,11 +175,16 @@ export default function AdminConversationViewerPage({
         ) : (
           <div className="space-y-6">
             {messages.map((message) => (
-              <div key={message.id} className="border-b border-white/5 pb-6 last:border-0 last:pb-0">
+              <div
+                key={message.id}
+                className="border-b border-white/5 pb-6 last:border-0 last:pb-0"
+              >
                 {/* Message Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getRoleBadgeColor(message.role)}`}>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${getRoleBadgeColor(message.role)}`}
+                    >
                       {message.role.toUpperCase()}
                     </span>
                     {message.moderation_flagged && (
@@ -188,11 +199,15 @@ export default function AdminConversationViewerPage({
                 </div>
 
                 {/* Message Content */}
-                <div className={`rounded-lg p-4 ${
-                  message.role === 'user' ? 'bg-blue-500/10 border border-blue-500/20' :
-                  message.role === 'assistant' ? 'bg-green-500/10 border border-green-500/20' :
-                  'bg-red-500/10 border border-red-500/20'
-                }`}>
+                <div
+                  className={`rounded-lg p-4 ${
+                    message.role === 'user'
+                      ? 'bg-blue-500/10 border border-blue-500/20'
+                      : message.role === 'assistant'
+                        ? 'bg-green-500/10 border border-green-500/20'
+                        : 'bg-red-500/10 border border-red-500/20'
+                  }`}
+                >
                   <div className="whitespace-pre-wrap break-words">{message.content}</div>
                 </div>
 
