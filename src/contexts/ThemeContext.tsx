@@ -9,23 +9,55 @@ interface ThemeContextType {
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   isLoading: boolean;
+  isAdmin: boolean;
+  availableThemes: Theme[];
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark');
-  const [isLoading, setIsLoading] = useState(true);
+// Themes available to all users
+const USER_THEMES: Theme[] = ['pro', 'light']; // pro = green/refined, light = light mode
+// Additional themes for admins only
+const ADMIN_ONLY_THEMES: Theme[] = ['dark', 'ocean'];
 
-  // Load theme from API on mount
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>('pro'); // Default to green/refined for users
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Load theme and admin status on mount
   useEffect(() => {
-    const loadTheme = async () => {
+    const loadThemeAndAdmin = async () => {
       try {
-        const response = await fetch('/api/user/settings');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.settings?.theme) {
-            setThemeState(data.settings.theme);
+        // Fetch both in parallel
+        const [settingsRes, adminRes] = await Promise.all([
+          fetch('/api/user/settings'),
+          fetch('/api/user/is-admin'),
+        ]);
+
+        let adminStatus = false;
+        if (adminRes.ok) {
+          const adminData = await adminRes.json();
+          adminStatus = adminData.data?.isAdmin || false;
+          setIsAdmin(adminStatus);
+        }
+
+        if (settingsRes.ok) {
+          const data = await settingsRes.json();
+          const savedTheme = data.settings?.theme as Theme;
+
+          if (savedTheme) {
+            // Check if user can use this theme
+            const allAllowedThemes = adminStatus
+              ? [...USER_THEMES, ...ADMIN_ONLY_THEMES]
+              : USER_THEMES;
+
+            if (allAllowedThemes.includes(savedTheme)) {
+              setThemeState(savedTheme);
+            } else {
+              // User has an admin-only theme but is not admin - reset to default
+              setThemeState('pro');
+            }
           }
         }
       } catch (error) {
@@ -35,7 +67,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    loadTheme();
+    loadThemeAndAdmin();
   }, []);
 
   // Apply theme to document
@@ -53,29 +85,49 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme]);
 
-  const setTheme = useCallback(async (newTheme: Theme) => {
-    setThemeState(newTheme);
+  const availableThemes = isAdmin ? [...USER_THEMES, ...ADMIN_ONLY_THEMES] : USER_THEMES;
 
-    // Save to API
-    try {
-      await fetch('/api/user/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: newTheme }),
-      });
-    } catch (error) {
-      console.error('[Theme] Error saving theme:', error);
-    }
-  }, []);
+  const setTheme = useCallback(
+    async (newTheme: Theme) => {
+      // Check if theme is allowed
+      const allowedThemes = isAdmin ? [...USER_THEMES, ...ADMIN_ONLY_THEMES] : USER_THEMES;
 
-  // Cycle: dark → light → ocean → pro → dark
+      if (!allowedThemes.includes(newTheme)) {
+        console.warn(`[Theme] Theme "${newTheme}" is not available for this user`);
+        return;
+      }
+
+      setThemeState(newTheme);
+
+      // Save to API
+      try {
+        await fetch('/api/user/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme: newTheme }),
+        });
+      } catch (error) {
+        console.error('[Theme] Error saving theme:', error);
+      }
+    },
+    [isAdmin]
+  );
+
+  // Cycle through available themes only
   const toggleTheme = useCallback(() => {
-    const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'ocean' : theme === 'ocean' ? 'pro' : 'dark';
-    setTheme(nextTheme);
-  }, [theme, setTheme]);
+    const themes = isAdmin
+      ? (['pro', 'light', 'dark', 'ocean'] as Theme[]) // Admin cycle
+      : (['pro', 'light'] as Theme[]); // User cycle: green → light → green
+
+    const currentIndex = themes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    setTheme(themes[nextIndex]);
+  }, [theme, setTheme, isAdmin]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, isLoading }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, toggleTheme, isLoading, isAdmin, availableThemes }}
+    >
       {children}
     </ThemeContext.Provider>
   );

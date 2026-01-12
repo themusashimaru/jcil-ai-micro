@@ -19,7 +19,7 @@ export interface ContactInfo {
 }
 
 export interface WorkExperience {
-  id: string;
+  id?: string; // Optional - used for state management
   company: string;
   title: string;
   location?: string;
@@ -29,10 +29,10 @@ export interface WorkExperience {
 }
 
 export interface Education {
-  id: string;
+  id?: string; // Optional - used for state management
   institution: string;
   degree: string; // "Bachelor of Science"
-  field: string; // "Computer Science"
+  field?: string; // "Computer Science"
   graduationDate?: string;
   gpa?: string;
   honors?: string[];

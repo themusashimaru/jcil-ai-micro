@@ -11,7 +11,13 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { getTokenUsage, getImageUsage, getTokenLimit, getImageLimit, formatTokenCount } from '@/lib/limits';
+import {
+  getTokenUsage,
+  getImageUsage,
+  getTokenLimit,
+  getImageLimit,
+  formatTokenCount,
+} from '@/lib/limits';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
@@ -45,7 +51,8 @@ async function getSupabaseClient() {
 // Plan features (not limits - those come from limits.ts)
 const TIER_FEATURES = {
   free: { realtime_voice: false, image_generation: false },
-  basic: { realtime_voice: true, image_generation: true },
+  plus: { realtime_voice: true, image_generation: true },
+  basic: { realtime_voice: true, image_generation: true }, // Legacy alias for plus
   pro: { realtime_voice: true, image_generation: true },
   executive: { realtime_voice: true, image_generation: true },
 } as const;
@@ -120,8 +127,22 @@ export async function GET() {
       planInfo: {
         tokenLimit: getTokenLimit(tier),
         imageLimit: getImageLimit(tier),
-        nextTier: tier === 'free' ? 'basic' : tier === 'basic' ? 'pro' : tier === 'pro' ? 'executive' : null,
-        nextTierTokenLimit: tier === 'free' ? getTokenLimit('basic') : tier === 'basic' ? getTokenLimit('pro') : tier === 'pro' ? getTokenLimit('executive') : null,
+        nextTier:
+          tier === 'free'
+            ? 'basic'
+            : tier === 'basic'
+              ? 'pro'
+              : tier === 'pro'
+                ? 'executive'
+                : null,
+        nextTierTokenLimit:
+          tier === 'free'
+            ? getTokenLimit('basic')
+            : tier === 'basic'
+              ? getTokenLimit('pro')
+              : tier === 'pro'
+                ? getTokenLimit('executive')
+                : null,
       },
     });
   } catch (error) {

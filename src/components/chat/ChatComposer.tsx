@@ -728,7 +728,7 @@ export function ChatComposer({
 
         {/* Input Area - Clean Claude-style design */}
         <div
-          className={`relative rounded-3xl transition-all ${isDragging ? 'opacity-80' : ''}`}
+          className={`chat-input-glass relative rounded-3xl transition-all ${isDragging ? 'opacity-80' : ''}`}
           style={{
             backgroundColor: 'var(--chat-input-bg)',
           }}

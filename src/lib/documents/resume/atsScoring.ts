@@ -177,7 +177,8 @@ function extractResumeText(data: ResumeData): string {
   });
 
   data.education.forEach((edu) => {
-    parts.push(edu.degree, edu.field, edu.institution);
+    parts.push(edu.degree, edu.institution);
+    if (edu.field) parts.push(edu.field);
     if (edu.honors) parts.push(...edu.honors);
   });
 
