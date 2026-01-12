@@ -16,7 +16,7 @@ import { getAllCommands } from '@/lib/workspace/slash-commands';
 
 interface CodeLabSlashAutocompleteProps {
   inputValue: string;
-  cursorPosition: number;  // Reserved for future cursor-aware positioning
+  cursorPosition: number; // Reserved for future cursor-aware positioning
   onSelect: (command: string) => void;
   onClose: () => void;
   inputElement: HTMLTextAreaElement | null;
@@ -42,10 +42,11 @@ export function CodeLabSlashAutocomplete({
   const query = shouldShow ? inputValue.slice(1).toLowerCase() : '';
 
   // Filter commands based on query
-  const filteredCommands = allCommands.filter(cmd =>
-    cmd.name.toLowerCase().startsWith(query) ||
-    cmd.aliases.some(a => a.toLowerCase().startsWith(query)) ||
-    cmd.description.toLowerCase().includes(query)
+  const filteredCommands = allCommands.filter(
+    (cmd) =>
+      cmd.name.toLowerCase().startsWith(query) ||
+      cmd.aliases.some((a) => a.toLowerCase().startsWith(query)) ||
+      cmd.description.toLowerCase().includes(query)
   );
 
   // Calculate position relative to input
@@ -66,34 +67,37 @@ export function CodeLabSlashAutocomplete({
   }, [shouldShow, inputElement, inputValue]);
 
   // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!isVisible || filteredCommands.length === 0) return;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!isVisible || filteredCommands.length === 0) return;
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        e.stopPropagation();
-        setSelectedIndex(i => Math.min(i + 1, filteredCommands.length - 1));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        e.stopPropagation();
-        setSelectedIndex(i => Math.max(i - 1, 0));
-        break;
-      case 'Tab':
-      case 'Enter':
-        if (filteredCommands[selectedIndex]) {
+      switch (e.key) {
+        case 'ArrowDown':
           e.preventDefault();
           e.stopPropagation();
-          onSelect(`/${filteredCommands[selectedIndex].name} `);
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        onClose();
-        break;
-    }
-  }, [isVisible, filteredCommands, selectedIndex, onSelect, onClose]);
+          setSelectedIndex((i) => Math.min(i + 1, filteredCommands.length - 1));
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          e.stopPropagation();
+          setSelectedIndex((i) => Math.max(i - 1, 0));
+          break;
+        case 'Tab':
+        case 'Enter':
+          if (filteredCommands[selectedIndex]) {
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect(`/${filteredCommands[selectedIndex].name} `);
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          onClose();
+          break;
+      }
+    },
+    [isVisible, filteredCommands, selectedIndex, onSelect, onClose]
+  );
 
   // Attach keyboard listener
   useEffect(() => {
@@ -146,7 +150,7 @@ export function CodeLabSlashAutocomplete({
             <div className="item-main">
               <span className="item-name">/{cmd.name}</span>
               <span className="item-aliases">
-                {cmd.aliases.length > 0 && `(${cmd.aliases.map(a => '/' + a).join(', ')})`}
+                {cmd.aliases.length > 0 && `(${cmd.aliases.map((a) => '/' + a).join(', ')})`}
               </span>
             </div>
             <span className="item-desc">{cmd.description}</span>
@@ -238,7 +242,7 @@ export function CodeLabSlashAutocomplete({
           font-family: 'SF Mono', 'Menlo', monospace;
           font-size: 0.8125rem;
           font-weight: 600;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .item-aliases {

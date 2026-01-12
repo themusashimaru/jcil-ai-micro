@@ -66,27 +66,30 @@ export function CodeLabSidebar({
 
   // Fetch GitHub repos when selector opens
   // Always refetch if not connected (user might have just connected via Settings)
-  const fetchRepos = useCallback(async (forceRefresh = false) => {
-    if (repos.length > 0 && githubConnected && !forceRefresh) return; // Use cache only if connected
+  const fetchRepos = useCallback(
+    async (forceRefresh = false) => {
+      if (repos.length > 0 && githubConnected && !forceRefresh) return; // Use cache only if connected
 
-    setLoadingRepos(true);
-    try {
-      const response = await fetch('/api/connectors?action=github-repos');
-      if (response.ok) {
-        const data = await response.json();
-        setRepos(data.repos || []);
-        setGithubConnected(true);
-      } else if (response.status === 401 || response.status === 400) {
-        // 401 = not authenticated, 400 = GitHub not connected
-        setGithubConnected(false);
-        setRepos([]); // Clear stale repos
+      setLoadingRepos(true);
+      try {
+        const response = await fetch('/api/connectors?action=github-repos');
+        if (response.ok) {
+          const data = await response.json();
+          setRepos(data.repos || []);
+          setGithubConnected(true);
+        } else if (response.status === 401 || response.status === 400) {
+          // 401 = not authenticated, 400 = GitHub not connected
+          setGithubConnected(false);
+          setRepos([]); // Clear stale repos
+        }
+      } catch (error) {
+        console.error('[CodeLabSidebar] Error fetching repos:', error);
+      } finally {
+        setLoadingRepos(false);
       }
-    } catch (error) {
-      console.error('[CodeLabSidebar] Error fetching repos:', error);
-    } finally {
-      setLoadingRepos(false);
-    }
-  }, [repos.length, githubConnected]);
+    },
+    [repos.length, githubConnected]
+  );
 
   useEffect(() => {
     if (showRepoSelector) {
@@ -112,7 +115,7 @@ export function CodeLabSidebar({
     setShowRepoSelector(false);
   };
 
-  const filteredRepos = repos.filter(repo =>
+  const filteredRepos = repos.filter((repo) =>
     repo.full_name.toLowerCase().includes(repoSearch.toLowerCase())
   );
 
@@ -164,16 +167,28 @@ export function CodeLabSidebar({
       <div className="sidebar-header">
         <div className="sidebar-logo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"
+            />
           </svg>
           {!collapsed && <span>Code Lab</span>}
         </div>
         <button className="sidebar-toggle" onClick={onToggle}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             {collapsed ? (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+              />
             ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+              />
             )}
           </svg>
         </button>
@@ -183,10 +198,7 @@ export function CodeLabSidebar({
         <>
           {/* New Session Button */}
           <div className="sidebar-actions">
-            <button
-              className="new-session-btn"
-              onClick={() => onCreateSession()}
-            >
+            <button className="new-session-btn" onClick={() => onCreateSession()}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
@@ -195,32 +207,38 @@ export function CodeLabSidebar({
           </div>
 
           {/* Code Changes Panel */}
-          {currentSessionId && currentCodeChanges && (currentCodeChanges.linesAdded > 0 || currentCodeChanges.linesRemoved > 0) && (
-            <div className="sidebar-changes">
-              <div className="changes-label">Session Changes</div>
-              <div className="changes-stats">
-                <div className="change-stat added">
-                  <span className="change-icon">+</span>
-                  <span className="change-value">{currentCodeChanges.linesAdded}</span>
-                  <span className="change-text">lines added</span>
-                </div>
-                <div className="change-stat removed">
-                  <span className="change-icon">-</span>
-                  <span className="change-value">{currentCodeChanges.linesRemoved}</span>
-                  <span className="change-text">lines removed</span>
-                </div>
-                {currentCodeChanges.filesChanged > 0 && (
-                  <div className="change-stat files">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                    </svg>
-                    <span className="change-value">{currentCodeChanges.filesChanged}</span>
-                    <span className="change-text">files changed</span>
+          {currentSessionId &&
+            currentCodeChanges &&
+            (currentCodeChanges.linesAdded > 0 || currentCodeChanges.linesRemoved > 0) && (
+              <div className="sidebar-changes">
+                <div className="changes-label">Session Changes</div>
+                <div className="changes-stats">
+                  <div className="change-stat added">
+                    <span className="change-icon">+</span>
+                    <span className="change-value">{currentCodeChanges.linesAdded}</span>
+                    <span className="change-text">lines added</span>
                   </div>
-                )}
+                  <div className="change-stat removed">
+                    <span className="change-icon">-</span>
+                    <span className="change-value">{currentCodeChanges.linesRemoved}</span>
+                    <span className="change-text">lines removed</span>
+                  </div>
+                  {currentCodeChanges.filesChanged > 0 && (
+                    <div className="change-stat files">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                        />
+                      </svg>
+                      <span className="change-value">{currentCodeChanges.filesChanged}</span>
+                      <span className="change-text">files changed</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Current Repo */}
           {currentSessionId && (
@@ -233,8 +251,18 @@ export function CodeLabSidebar({
                   disabled={loadingRepos}
                   title="Refresh repositories"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={loadingRepos ? 'spinning' : ''}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className={loadingRepos ? 'spinning' : ''}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                    />
                   </svg>
                 </button>
               </div>
@@ -252,8 +280,18 @@ export function CodeLabSidebar({
                   </>
                 ) : (
                   <>
-                    <svg className="repo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    <svg
+                      className="repo-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 4.5v15m7.5-7.5h-15"
+                      />
                     </svg>
                     <span>Select Repository</span>
                   </>
@@ -267,7 +305,7 @@ export function CodeLabSidebar({
                     type="text"
                     placeholder="Search repositories..."
                     value={repoSearch}
-                    onChange={e => setRepoSearch(e.target.value)}
+                    onChange={(e) => setRepoSearch(e.target.value)}
                     className="repo-search"
                     autoFocus
                   />
@@ -287,13 +325,22 @@ export function CodeLabSidebar({
                     <div className="repo-list">
                       {currentRepo && (
                         <button className="repo-item clear" onClick={handleClearRepo}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                           Clear Repository
                         </button>
                       )}
-                      {filteredRepos.slice(0, 20).map(repo => (
+                      {filteredRepos.slice(0, 20).map((repo) => (
                         <button
                           key={repo.id}
                           className={`repo-item ${currentRepo?.fullName === repo.full_name ? 'active' : ''}`}
@@ -309,7 +356,11 @@ export function CodeLabSidebar({
                             )}
                           </div>
                           {repo.private && (
-                            <svg className="repo-item-private" viewBox="0 0 16 16" fill="currentColor">
+                            <svg
+                              className="repo-item-private"
+                              viewBox="0 0 16 16"
+                              fill="currentColor"
+                            >
                               <path d="M4 4a4 4 0 0 1 8 0v2h.25c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 12.25 15h-8.5A1.75 1.75 0 0 1 2 13.25v-5.5C2 6.784 2.784 6 3.75 6H4Zm8.25 3.5h-8.5a.25.25 0 0 0-.25.25v5.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25ZM10.5 6V4a2.5 2.5 0 1 0-5 0v2Z" />
                             </svg>
                           )}
@@ -340,11 +391,9 @@ export function CodeLabSidebar({
             <div className="sessions-label">Sessions</div>
             <div className="sessions-list">
               {sessions.length === 0 ? (
-                <div className="sessions-empty">
-                  No sessions yet. Create one to get started.
-                </div>
+                <div className="sessions-empty">No sessions yet. Create one to get started.</div>
               ) : (
-                sessions.map(session => (
+                sessions.map((session) => (
                   <div
                     key={session.id}
                     className={`session-item ${session.id === currentSessionId ? 'active' : ''}`}
@@ -355,11 +404,11 @@ export function CodeLabSidebar({
                         ref={editInputRef}
                         type="text"
                         value={editTitle}
-                        onChange={e => setEditTitle(e.target.value)}
+                        onChange={(e) => setEditTitle(e.target.value)}
                         onBlur={handleSaveEdit}
                         onKeyDown={handleKeyDown}
                         className="session-edit-input"
-                        onClick={e => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
                       />
                     ) : (
                       <>
@@ -372,7 +421,7 @@ export function CodeLabSidebar({
                         </div>
                         <button
                           className="session-menu-btn"
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
                             setMenuOpenId(menuOpenId === session.id ? null : session.id);
                           }}
@@ -386,8 +435,17 @@ export function CodeLabSidebar({
                         {menuOpenId === session.id && (
                           <div className="session-menu">
                             <button onClick={() => handleStartEdit(session)}>
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"
+                                />
                               </svg>
                               Rename
                             </button>
@@ -398,8 +456,17 @@ export function CodeLabSidebar({
                                   onExportSession(session.id);
                                 }}
                               >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                                  />
                                 </svg>
                                 Export
                               </button>
@@ -411,8 +478,17 @@ export function CodeLabSidebar({
                                 onDeleteSession(session.id);
                               }}
                             >
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                              <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                />
                               </svg>
                               Delete
                             </button>
@@ -428,9 +504,7 @@ export function CodeLabSidebar({
 
           {/* Footer */}
           <div className="sidebar-footer">
-            <div className="powered-by">
-              Powered by Claude Opus 4.5
-            </div>
+            <div className="powered-by">Powered by Claude Opus 4.5</div>
           </div>
         </>
       )}
@@ -443,7 +517,9 @@ export function CodeLabSidebar({
           border-right: 1px solid #e5e7eb;
           display: flex;
           flex-direction: column;
-          transition: width 0.2s, min-width 0.2s;
+          transition:
+            width 0.2s,
+            min-width 0.2s;
         }
 
         .code-lab-sidebar.collapsed {
@@ -470,7 +546,7 @@ export function CodeLabSidebar({
         .sidebar-logo svg {
           width: 24px;
           height: 24px;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .sidebar-toggle {
@@ -580,7 +656,7 @@ export function CodeLabSidebar({
         }
 
         .change-stat.files {
-          color: #6366f1;
+          color: #1e3a5f;
           flex-basis: 100%;
           margin-top: 0.25rem;
           padding-top: 0.5rem;
@@ -617,7 +693,7 @@ export function CodeLabSidebar({
         }
 
         .repo-refresh-btn:hover:not(:disabled) {
-          color: #6366f1;
+          color: #1e3a5f;
           background: #eef2ff;
         }
 
@@ -712,7 +788,7 @@ export function CodeLabSidebar({
         }
 
         .repo-search:focus {
-          border-bottom-color: #6366f1;
+          border-bottom-color: #1e3a5f;
         }
 
         .repo-loading,
@@ -727,7 +803,7 @@ export function CodeLabSidebar({
         .repo-not-connected a {
           display: inline-block;
           margin-top: 0.5rem;
-          color: #6366f1;
+          color: #1e3a5f;
           text-decoration: none;
           font-weight: 500;
         }
@@ -875,7 +951,7 @@ export function CodeLabSidebar({
         }
 
         .session-item.active .session-indicator {
-          background: #6366f1;
+          background: #1e3a5f;
         }
 
         .session-info {
@@ -906,7 +982,9 @@ export function CodeLabSidebar({
           color: #9ca3af;
           border-radius: 4px;
           opacity: 0;
-          transition: opacity 0.2s, background 0.2s;
+          transition:
+            opacity 0.2s,
+            background 0.2s;
         }
 
         .session-item:hover .session-menu-btn {
@@ -970,7 +1048,7 @@ export function CodeLabSidebar({
         .session-edit-input {
           width: 100%;
           padding: 0.25rem 0.5rem;
-          border: 1px solid #6366f1;
+          border: 1px solid #1e3a5f;
           border-radius: 4px;
           font-size: 0.875rem;
           outline: none;

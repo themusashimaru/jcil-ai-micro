@@ -67,13 +67,17 @@ export function CodeLabThread({
           <div className="thread-welcome">
             <div className="welcome-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"
+                />
               </svg>
             </div>
             <h2>What would you like to build?</h2>
             <p>
-              I can help you write code, search documentation, debug issues,
-              or just discuss your project.
+              I can help you write code, search documentation, debug issues, or just discuss your
+              project.
             </p>
             <div className="welcome-suggestions">
               <button>Build a REST API</button>
@@ -168,13 +172,15 @@ export function CodeLabThread({
           width: 24px;
           height: 24px;
           border: 2px solid #e5e7eb;
-          border-top-color: #6366f1;
+          border-top-color: #1e3a5f;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .thread-welcome {
@@ -187,7 +193,7 @@ export function CodeLabThread({
           width: 64px;
           height: 64px;
           margin: 0 auto 1.5rem;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .welcome-icon svg {
@@ -228,8 +234,8 @@ export function CodeLabThread({
 
         .welcome-suggestions button:hover {
           background: #f9fafb;
-          border-color: #6366f1;
-          color: #6366f1;
+          border-color: #1e3a5f;
+          color: #1e3a5f;
         }
 
         .stream-indicator {
@@ -242,7 +248,7 @@ export function CodeLabThread({
         .stream-dot {
           width: 6px;
           height: 6px;
-          background: #6366f1;
+          background: #1e3a5f;
           border-radius: 50%;
           animation: pulse 1.4s ease-in-out infinite;
         }
@@ -256,7 +262,9 @@ export function CodeLabThread({
         }
 
         @keyframes pulse {
-          0%, 80%, 100% {
+          0%,
+          80%,
+          100% {
             opacity: 0.3;
             transform: scale(0.8);
           }

@@ -65,15 +65,17 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
       }
 
       const data = await response.json();
-      const files = (data.tree || []).map((item: { path: string; type: string; size?: number; sha?: string }) => ({
-        path: item.path,
-        name: item.path.split('/').pop() || item.path,
-        type: item.type === 'tree' ? 'dir' : 'file',
-        size: item.size,
-        sha: item.sha,
-        children: item.type === 'tree' ? [] : undefined,
-        isExpanded: false,
-      }));
+      const files = (data.tree || []).map(
+        (item: { path: string; type: string; size?: number; sha?: string }) => ({
+          path: item.path,
+          name: item.path.split('/').pop() || item.path,
+          type: item.type === 'tree' ? 'dir' : 'file',
+          size: item.size,
+          sha: item.sha,
+          children: item.type === 'tree' ? [] : undefined,
+          isExpanded: false,
+        })
+      );
 
       // Sort: directories first, then files
       files.sort((a: FileNode, b: FileNode) => {
@@ -93,102 +95,115 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
   }, [repo, isLoaded, isLoading]);
 
   // Load directory contents
-  const loadDirectory = useCallback(async (dirPath: string) => {
-    try {
-      const response = await fetch('/api/connectors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'get-tree',
-          owner: repo.owner,
-          repo: repo.name,
-          branch: repo.branch,
-          recursive: true,
-        }),
-      });
-
-      if (!response.ok) return [];
-
-      const data = await response.json();
-      const allFiles = data.tree || [];
-
-      // Filter files in this directory
-      const children = allFiles
-        .filter((item: { path: string }) => {
-          const parentPath = item.path.split('/').slice(0, -1).join('/');
-          return parentPath === dirPath;
-        })
-        .map((item: { path: string; type: string; size?: number; sha?: string }) => ({
-          path: item.path,
-          name: item.path.split('/').pop() || item.path,
-          type: item.type === 'tree' ? 'dir' : 'file',
-          size: item.size,
-          sha: item.sha,
-          children: item.type === 'tree' ? [] : undefined,
-          isExpanded: false,
-        }));
-
-      // Sort
-      children.sort((a: FileNode, b: FileNode) => {
-        if (a.type === 'dir' && b.type === 'file') return -1;
-        if (a.type === 'file' && b.type === 'dir') return 1;
-        return a.name.localeCompare(b.name);
-      });
-
-      return children;
-    } catch (err) {
-      console.error('[FileBrowser] Error loading directory:', err);
-      return [];
-    }
-  }, [repo]);
-
-  // Toggle directory expansion
-  const toggleDirectory = useCallback(async (path: string) => {
-    setTree(prev => updateNode(prev, path, node => ({
-      ...node,
-      isLoading: !node.isExpanded && node.children?.length === 0,
-      isExpanded: !node.isExpanded,
-    })));
-
-    // Load children if needed
-    const node = findNode(tree, path);
-    if (node && !node.isExpanded && (!node.children || node.children.length === 0)) {
-      const children = await loadDirectory(path);
-      setTree(prev => updateNode(prev, path, n => ({
-        ...n,
-        children,
-        isLoading: false,
-      })));
-    }
-  }, [tree, loadDirectory]);
-
-  // Handle file click
-  const handleFileClick = useCallback(async (filePath: string) => {
-    setSelectedFile(filePath);
-
-    if (onFileSelect) {
+  const loadDirectory = useCallback(
+    async (dirPath: string) => {
       try {
         const response = await fetch('/api/connectors', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'get-file',
+            action: 'get-tree',
             owner: repo.owner,
             repo: repo.name,
-            path: filePath,
             branch: repo.branch,
+            recursive: true,
           }),
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          onFileSelect(filePath, data.content || '');
-        }
+        if (!response.ok) return [];
+
+        const data = await response.json();
+        const allFiles = data.tree || [];
+
+        // Filter files in this directory
+        const children = allFiles
+          .filter((item: { path: string }) => {
+            const parentPath = item.path.split('/').slice(0, -1).join('/');
+            return parentPath === dirPath;
+          })
+          .map((item: { path: string; type: string; size?: number; sha?: string }) => ({
+            path: item.path,
+            name: item.path.split('/').pop() || item.path,
+            type: item.type === 'tree' ? 'dir' : 'file',
+            size: item.size,
+            sha: item.sha,
+            children: item.type === 'tree' ? [] : undefined,
+            isExpanded: false,
+          }));
+
+        // Sort
+        children.sort((a: FileNode, b: FileNode) => {
+          if (a.type === 'dir' && b.type === 'file') return -1;
+          if (a.type === 'file' && b.type === 'dir') return 1;
+          return a.name.localeCompare(b.name);
+        });
+
+        return children;
       } catch (err) {
-        console.error('[FileBrowser] Error loading file:', err);
+        console.error('[FileBrowser] Error loading directory:', err);
+        return [];
       }
-    }
-  }, [repo, onFileSelect]);
+    },
+    [repo]
+  );
+
+  // Toggle directory expansion
+  const toggleDirectory = useCallback(
+    async (path: string) => {
+      setTree((prev) =>
+        updateNode(prev, path, (node) => ({
+          ...node,
+          isLoading: !node.isExpanded && node.children?.length === 0,
+          isExpanded: !node.isExpanded,
+        }))
+      );
+
+      // Load children if needed
+      const node = findNode(tree, path);
+      if (node && !node.isExpanded && (!node.children || node.children.length === 0)) {
+        const children = await loadDirectory(path);
+        setTree((prev) =>
+          updateNode(prev, path, (n) => ({
+            ...n,
+            children,
+            isLoading: false,
+          }))
+        );
+      }
+    },
+    [tree, loadDirectory]
+  );
+
+  // Handle file click
+  const handleFileClick = useCallback(
+    async (filePath: string) => {
+      setSelectedFile(filePath);
+
+      if (onFileSelect) {
+        try {
+          const response = await fetch('/api/connectors', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'get-file',
+              owner: repo.owner,
+              repo: repo.name,
+              path: filePath,
+              branch: repo.branch,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            onFileSelect(filePath, data.content || '');
+          }
+        } catch (err) {
+          console.error('[FileBrowser] Error loading file:', err);
+        }
+      }
+    },
+    [repo, onFileSelect]
+  );
 
   // Render tree recursively
   const renderNode = (node: FileNode, depth = 0) => {
@@ -199,13 +214,23 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
         <button
           className={`file-item ${selectedFile === node.path ? 'selected' : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
-          onClick={() => isDir ? toggleDirectory(node.path) : handleFileClick(node.path)}
+          onClick={() => (isDir ? toggleDirectory(node.path) : handleFileClick(node.path))}
         >
           {isDir ? (
             <span className={`folder-icon ${node.isExpanded ? 'expanded' : ''}`}>
               {node.isLoading ? (
-                <svg className="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                <svg
+                  className="spinner"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                  />
                 </svg>
               ) : node.isExpanded ? (
                 <svg viewBox="0 0 24 24" fill="currentColor">
@@ -218,15 +243,13 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
               )}
             </span>
           ) : (
-            <span className="file-icon">
-              {getFileIcon(node.name)}
-            </span>
+            <span className="file-icon">{getFileIcon(node.name)}</span>
           )}
           <span className="file-name">{node.name}</span>
         </button>
         {isDir && node.isExpanded && node.children && (
           <div className="file-children">
-            {node.children.map(child => renderNode(child, depth + 1))}
+            {node.children.map((child) => renderNode(child, depth + 1))}
           </div>
         )}
       </div>
@@ -247,7 +270,11 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
           title="Refresh"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+            />
           </svg>
         </button>
       </div>
@@ -255,25 +282,21 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
       {!isLoaded && !isLoading && (
         <button className="file-browser-load" onClick={loadRoot}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776"
+            />
           </svg>
           Browse Files
         </button>
       )}
 
-      {isLoading && !tree.length && (
-        <div className="file-browser-loading">Loading files...</div>
-      )}
+      {isLoading && !tree.length && <div className="file-browser-loading">Loading files...</div>}
 
-      {error && (
-        <div className="file-browser-error">{error}</div>
-      )}
+      {error && <div className="file-browser-error">{error}</div>}
 
-      {tree.length > 0 && (
-        <div className="file-tree">
-          {tree.map(node => renderNode(node))}
-        </div>
-      )}
+      {tree.length > 0 && <div className="file-tree">{tree.map((node) => renderNode(node))}</div>}
 
       <style jsx>{`
         .file-browser {
@@ -307,7 +330,7 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
         }
 
         .file-browser-refresh:hover {
-          color: #6366f1;
+          color: #1e3a5f;
           background: #eef2ff;
         }
 
@@ -330,7 +353,7 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
         }
 
         .file-browser-load:hover {
-          color: #6366f1;
+          color: #1e3a5f;
           background: #f9fafb;
         }
 
@@ -401,7 +424,7 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
         }
 
         .folder-icon.expanded {
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .spinner {
@@ -409,8 +432,12 @@ export function CodeLabFileBrowser({ repo, onFileSelect }: CodeLabFileBrowserPro
         }
 
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .file-name {
@@ -440,8 +467,12 @@ function findNode(tree: FileNode[], path: string): FileNode | null {
   return null;
 }
 
-function updateNode(tree: FileNode[], path: string, updater: (node: FileNode) => FileNode): FileNode[] {
-  return tree.map(node => {
+function updateNode(
+  tree: FileNode[],
+  path: string,
+  updater: (node: FileNode) => FileNode
+): FileNode[] {
+  return tree.map((node) => {
     if (node.path === path) {
       return updater(node);
     }
@@ -460,7 +491,9 @@ function getFileIcon(filename: string): React.ReactNode {
     return (
       <svg viewBox="0 0 24 24" fill="#f7df1e">
         <rect x="3" y="3" width="18" height="18" rx="2" />
-        <text x="12" y="16" fontSize="10" fill="#000" textAnchor="middle" fontWeight="bold">JS</text>
+        <text x="12" y="16" fontSize="10" fill="#000" textAnchor="middle" fontWeight="bold">
+          JS
+        </text>
       </svg>
     );
   }
@@ -470,7 +503,9 @@ function getFileIcon(filename: string): React.ReactNode {
     return (
       <svg viewBox="0 0 24 24" fill="#3776ab">
         <rect x="3" y="3" width="18" height="18" rx="2" />
-        <text x="12" y="16" fontSize="8" fill="#fff" textAnchor="middle" fontWeight="bold">PY</text>
+        <text x="12" y="16" fontSize="8" fill="#fff" textAnchor="middle" fontWeight="bold">
+          PY
+        </text>
       </svg>
     );
   }
@@ -480,7 +515,9 @@ function getFileIcon(filename: string): React.ReactNode {
     return (
       <svg viewBox="0 0 24 24" fill="#6b7280">
         <rect x="3" y="3" width="18" height="18" rx="2" />
-        <text x="12" y="16" fontSize="6" fill="#fff" textAnchor="middle">{'{}'}</text>
+        <text x="12" y="16" fontSize="6" fill="#fff" textAnchor="middle">
+          {'{}'}
+        </text>
       </svg>
     );
   }

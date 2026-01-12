@@ -27,14 +27,12 @@ interface ShortcutCategory {
   shortcuts: Shortcut[];
 }
 
-export function CodeLabKeyboardShortcuts({
-  isOpen,
-  onClose,
-}: CodeLabKeyboardShortcutsProps) {
+export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardShortcutsProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Detect Mac vs other platforms
-  const isMac = typeof window !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const isMac =
+    typeof window !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   const cmdKey = isMac ? '⌘' : 'Ctrl';
   // optKey available for future use: const optKey = isMac ? '⌥' : 'Alt';
 
@@ -178,8 +176,12 @@ export function CodeLabKeyboardShortcuts({
         }
 
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         .shortcuts-panel {
@@ -262,7 +264,7 @@ export function CodeLabKeyboardShortcuts({
           margin: 0 0 0.75rem;
           font-size: 0.8125rem;
           font-weight: 600;
-          color: #6366f1;
+          color: #1e3a5f;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -307,7 +309,7 @@ export function CodeLabKeyboardShortcuts({
         .shortcut-keys kbd.command {
           background: #eef2ff;
           border-color: #c7d2fe;
-          color: #6366f1;
+          color: #1e3a5f;
           font-family: 'SF Mono', 'Menlo', monospace;
         }
 

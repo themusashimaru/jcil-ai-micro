@@ -281,7 +281,7 @@ export function CodeLabPreview({ files, onClose }: CodeLabPreviewProps) {
         .preview-title svg {
           width: 18px;
           height: 18px;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .preview-controls {
@@ -313,7 +313,7 @@ export function CodeLabPreview({ files, onClose }: CodeLabPreviewProps) {
 
         .device-selector button.active {
           background: #334155;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .device-selector button svg {
@@ -347,7 +347,7 @@ export function CodeLabPreview({ files, onClose }: CodeLabPreviewProps) {
 
         .preview-btn.active {
           background: #334155;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .preview-btn.close:hover {
@@ -379,7 +379,7 @@ export function CodeLabPreview({ files, onClose }: CodeLabPreviewProps) {
           min-width: 14px;
           height: 14px;
           padding: 0 4px;
-          background: #6366f1;
+          background: #1e3a5f;
           color: white;
           font-size: 0.625rem;
           font-weight: 600;

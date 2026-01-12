@@ -24,10 +24,10 @@ interface DiffLine {
 interface CodeLabDiffViewProps {
   oldCode?: string;
   newCode?: string;
-  unifiedDiff?: string;  // Pre-computed unified diff
+  unifiedDiff?: string; // Pre-computed unified diff
   filename?: string;
   language?: string;
-  maxUnchangedLines?: number;  // Collapse if more unchanged lines than this
+  maxUnchangedLines?: number; // Collapse if more unchanged lines than this
 }
 
 export function CodeLabDiffView({
@@ -143,7 +143,7 @@ export function CodeLabDiffView({
   const stats = useMemo(() => {
     let added = 0;
     let removed = 0;
-    diffLines.forEach(line => {
+    diffLines.forEach((line) => {
       if (line.type === 'added') added++;
       if (line.type === 'removed') removed++;
     });
@@ -151,7 +151,7 @@ export function CodeLabDiffView({
   }, [diffLines]);
 
   const toggleSection = (index: number) => {
-    setExpandedSections(prev => {
+    setExpandedSections((prev) => {
       const next = new Set(prev);
       if (next.has(index)) {
         next.delete(index);
@@ -176,7 +176,11 @@ export function CodeLabDiffView({
       <div className="diff-header">
         <div className="diff-filename">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+            />
           </svg>
           <span>{filename || 'Changes'}</span>
           {language && <span className="diff-lang">{language}</span>}
@@ -206,10 +210,7 @@ export function CodeLabDiffView({
           }
 
           return group.lines.map((line, lineIndex) => (
-            <div
-              key={`${groupIndex}-${lineIndex}`}
-              className={`diff-line diff-line-${line.type}`}
-            >
+            <div key={`${groupIndex}-${lineIndex}`} className={`diff-line diff-line-${line.type}`}>
               <span className="diff-line-numbers">
                 <span className="old-num">{line.oldLineNumber || ''}</span>
                 <span className="new-num">{line.newLineNumber || ''}</span>
@@ -310,7 +311,7 @@ export function CodeLabDiffView({
 
         .diff-line-header {
           background: rgba(99, 102, 241, 0.1);
-          color: #818cf8;
+          color: #2d4a6f;
           font-style: italic;
         }
 
@@ -571,7 +572,9 @@ function computeLCS(oldLines: string[], newLines: string[]): LCSMatch[] {
   const n = newLines.length;
 
   // Build DP table
-  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+  const dp: number[][] = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(0));
 
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
@@ -606,12 +609,15 @@ function computeLCS(oldLines: string[], newLines: string[]): LCSMatch[] {
 /**
  * Export diff stats calculation for use in other components
  */
-export function calculateDiffStats(oldCode: string, newCode: string): { added: number; removed: number } {
+export function calculateDiffStats(
+  oldCode: string,
+  newCode: string
+): { added: number; removed: number } {
   const diff = computeSimpleDiff(oldCode, newCode);
   let added = 0;
   let removed = 0;
 
-  diff.forEach(line => {
+  diff.forEach((line) => {
     if (line.type === 'added') added++;
     if (line.type === 'removed') removed++;
   });

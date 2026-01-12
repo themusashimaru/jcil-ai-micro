@@ -136,8 +136,8 @@ function SettingsContent() {
             </Link>
             <Link
               href="/chat"
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
-              style={{ backgroundColor: 'var(--primary)' }}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base btn-primary"
+              style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path

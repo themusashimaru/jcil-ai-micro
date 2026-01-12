@@ -74,9 +74,9 @@ export function CodeLabWorkspacePanel({
   const [newTaskInput, setNewTaskInput] = useState('');
 
   // Count tasks by status
-  const pendingTasks = tasks.filter(t => t.status === 'pending').length;
-  const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
-  const completedTasks = tasks.filter(t => t.status === 'completed').length;
+  const pendingTasks = tasks.filter((t) => t.status === 'pending').length;
+  const inProgressTasks = tasks.filter((t) => t.status === 'in_progress').length;
+  const completedTasks = tasks.filter((t) => t.status === 'completed').length;
 
   // Handle task add
   const handleAddTask = () => {
@@ -92,13 +92,15 @@ export function CodeLabWorkspacePanel({
       <div className="panel-header">
         <div className="panel-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+            />
           </svg>
           <span>Workspace</span>
           {workspace && (
-            <span className={`status-badge ${workspace.status}`}>
-              {workspace.status}
-            </span>
+            <span className={`status-badge ${workspace.status}`}>{workspace.status}</span>
           )}
         </div>
       </div>
@@ -110,7 +112,7 @@ export function CodeLabWorkspacePanel({
           onClick={() => setActiveTab('tasks')}
         >
           Tasks
-          {(pendingTasks + inProgressTasks) > 0 && (
+          {pendingTasks + inProgressTasks > 0 && (
             <span className="tab-badge">{pendingTasks + inProgressTasks}</span>
           )}
         </button>
@@ -119,9 +121,7 @@ export function CodeLabWorkspacePanel({
           onClick={() => setActiveTab('git')}
         >
           Git
-          {gitStatus && !gitStatus.isClean && (
-            <span className="tab-badge warning">!</span>
-          )}
+          {gitStatus && !gitStatus.isClean && <span className="tab-badge warning">!</span>}
         </button>
         <button
           className={`tab ${activeTab === 'info' ? 'active' : ''}`}
@@ -160,7 +160,7 @@ export function CodeLabWorkspacePanel({
                   <p className="hint">Tasks will appear when the AI is working</p>
                 </div>
               ) : (
-                tasks.map(task => (
+                tasks.map((task) => (
                   <div
                     key={task.id}
                     className={`task-item ${task.status}`}
@@ -168,9 +168,7 @@ export function CodeLabWorkspacePanel({
                   >
                     <span className="task-status">
                       {task.status === 'pending' && '○'}
-                      {task.status === 'in_progress' && (
-                        <span className="spinner" />
-                      )}
+                      {task.status === 'in_progress' && <span className="spinner" />}
                       {task.status === 'completed' && '✓'}
                     </span>
                     <span className="task-content">{task.content}</span>
@@ -205,7 +203,11 @@ export function CodeLabWorkspacePanel({
                 {/* Branch Info */}
                 <div className="git-branch">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h10M7 12h10M7 17h10" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M7 7h10M7 12h10M7 17h10"
+                    />
                   </svg>
                   <span className="branch-name">{gitStatus.branch}</span>
                   {(gitStatus.ahead > 0 || gitStatus.behind > 0) && (
@@ -217,7 +219,11 @@ export function CodeLabWorkspacePanel({
                   {onRefreshGit && (
                     <button className="refresh-btn" onClick={onRefreshGit} title="Refresh">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
                       </svg>
                     </button>
                   )}
@@ -236,7 +242,9 @@ export function CodeLabWorkspacePanel({
                       <div className="change-section">
                         <h4>Staged ({gitStatus.staged.length})</h4>
                         {gitStatus.staged.slice(0, 5).map((file, i) => (
-                          <div key={i} className="change-file staged">{file}</div>
+                          <div key={i} className="change-file staged">
+                            {file}
+                          </div>
                         ))}
                         {gitStatus.staged.length > 5 && (
                           <div className="more">+{gitStatus.staged.length - 5} more</div>
@@ -248,7 +256,9 @@ export function CodeLabWorkspacePanel({
                       <div className="change-section">
                         <h4>Modified ({gitStatus.modified.length})</h4>
                         {gitStatus.modified.slice(0, 5).map((file, i) => (
-                          <div key={i} className="change-file modified">{file}</div>
+                          <div key={i} className="change-file modified">
+                            {file}
+                          </div>
                         ))}
                         {gitStatus.modified.length > 5 && (
                           <div className="more">+{gitStatus.modified.length - 5} more</div>
@@ -260,7 +270,9 @@ export function CodeLabWorkspacePanel({
                       <div className="change-section">
                         <h4>Untracked ({gitStatus.untracked.length})</h4>
                         {gitStatus.untracked.slice(0, 5).map((file, i) => (
-                          <div key={i} className="change-file untracked">{file}</div>
+                          <div key={i} className="change-file untracked">
+                            {file}
+                          </div>
                         ))}
                         {gitStatus.untracked.length > 5 && (
                           <div className="more">+{gitStatus.untracked.length - 5} more</div>
@@ -305,9 +317,7 @@ export function CodeLabWorkspacePanel({
                 {workspace.lastAccessed && (
                   <div className="info-item">
                     <span className="info-label">Last accessed</span>
-                    <span className="info-value">
-                      {workspace.lastAccessed.toLocaleString()}
-                    </span>
+                    <span className="info-value">{workspace.lastAccessed.toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -353,7 +363,7 @@ export function CodeLabWorkspacePanel({
         .panel-title svg {
           width: 16px;
           height: 16px;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .status-badge {
@@ -455,9 +465,15 @@ export function CodeLabWorkspacePanel({
           font-size: 0.75rem;
         }
 
-        .stat-icon.pending { color: #9ca3af; }
-        .stat-icon.in-progress { color: #3b82f6; }
-        .stat-icon.completed { color: #16a34a; }
+        .stat-icon.pending {
+          color: #9ca3af;
+        }
+        .stat-icon.in-progress {
+          color: #3b82f6;
+        }
+        .stat-icon.completed {
+          color: #16a34a;
+        }
 
         .task-list {
           display: flex;
@@ -493,9 +509,15 @@ export function CodeLabWorkspacePanel({
           font-size: 0.875rem;
         }
 
-        .task-item.pending .task-status { color: #9ca3af; }
-        .task-item.in_progress .task-status { color: #3b82f6; }
-        .task-item.completed .task-status { color: #16a34a; }
+        .task-item.pending .task-status {
+          color: #9ca3af;
+        }
+        .task-item.in_progress .task-status {
+          color: #3b82f6;
+        }
+        .task-item.completed .task-status {
+          color: #16a34a;
+        }
 
         .task-item .spinner {
           width: 12px;
@@ -507,7 +529,9 @@ export function CodeLabWorkspacePanel({
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .task-content {
@@ -572,8 +596,12 @@ export function CodeLabWorkspacePanel({
           gap: 0.25rem;
         }
 
-        .ahead { color: #16a34a; }
-        .behind { color: #dc2626; }
+        .ahead {
+          color: #16a34a;
+        }
+        .behind {
+          color: #dc2626;
+        }
 
         .refresh-btn {
           margin-left: auto;
@@ -630,9 +658,18 @@ export function CodeLabWorkspacePanel({
           margin-bottom: 0.125rem;
         }
 
-        .change-file.staged { background: #dcfce7; color: #16a34a; }
-        .change-file.modified { background: #fef3c7; color: #d97706; }
-        .change-file.untracked { background: #f3f4f6; color: #6b7280; }
+        .change-file.staged {
+          background: #dcfce7;
+          color: #16a34a;
+        }
+        .change-file.modified {
+          background: #fef3c7;
+          color: #d97706;
+        }
+        .change-file.untracked {
+          background: #f3f4f6;
+          color: #6b7280;
+        }
 
         .more {
           font-size: 0.625rem;

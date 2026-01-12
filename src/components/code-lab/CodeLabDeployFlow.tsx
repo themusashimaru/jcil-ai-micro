@@ -128,14 +128,14 @@ export function CodeLabDeployFlow({
 
   const addEnvVar = () => {
     if (newEnvKey.trim()) {
-      setEnvVars(prev => ({ ...prev, [newEnvKey.trim()]: newEnvValue }));
+      setEnvVars((prev) => ({ ...prev, [newEnvKey.trim()]: newEnvValue }));
       setNewEnvKey('');
       setNewEnvValue('');
     }
   };
 
   const removeEnvVar = (key: string) => {
-    setEnvVars(prev => {
+    setEnvVars((prev) => {
       const next = { ...prev };
       delete next[key];
       return next;
@@ -178,7 +178,7 @@ export function CodeLabDeployFlow({
     }
   };
 
-  const platformInfo = PLATFORMS.find(p => p.id === platform);
+  const platformInfo = PLATFORMS.find((p) => p.id === platform);
 
   return (
     <div className={`deploy-flow ${className}`}>
@@ -199,9 +199,7 @@ export function CodeLabDeployFlow({
         {/* Step 1: Platform selection */}
         {step === 'platform' && (
           <div className="platform-step">
-            <p className="step-description">
-              Choose a deployment platform for your project
-            </p>
+            <p className="step-description">Choose a deployment platform for your project</p>
             <div className="platform-grid">
               {PLATFORMS.map((p) => (
                 <button
@@ -297,11 +295,7 @@ export function CodeLabDeployFlow({
               </div>
             </div>
 
-            <button
-              className="deploy-btn"
-              onClick={handleDeploy}
-              disabled={!projectName.trim()}
-            >
+            <button className="deploy-btn" onClick={handleDeploy} disabled={!projectName.trim()}>
               🚀 Deploy to {platformInfo?.name}
             </button>
           </div>
@@ -315,11 +309,15 @@ export function CodeLabDeployFlow({
                 <div className="step-dot" />
                 <span>Connecting</span>
               </div>
-              <div className={`progress-step ${['building', 'deploying', 'success'].includes(deployment.status) ? 'active' : ''}`}>
+              <div
+                className={`progress-step ${['building', 'deploying', 'success'].includes(deployment.status) ? 'active' : ''}`}
+              >
                 <div className="step-dot" />
                 <span>Building</span>
               </div>
-              <div className={`progress-step ${['deploying', 'success'].includes(deployment.status) ? 'active' : ''}`}>
+              <div
+                className={`progress-step ${['deploying', 'success'].includes(deployment.status) ? 'active' : ''}`}
+              >
                 <div className="step-dot" />
                 <span>Deploying</span>
               </div>
@@ -339,17 +337,10 @@ export function CodeLabDeployFlow({
 
             {deployment.buildLogs.length > 0 && (
               <div className="build-logs">
-                <button
-                  className="logs-toggle"
-                  onClick={() => setShowLogs(!showLogs)}
-                >
+                <button className="logs-toggle" onClick={() => setShowLogs(!showLogs)}>
                   {showLogs ? '▼' : '▶'} Build Logs
                 </button>
-                {showLogs && (
-                  <pre className="logs-content">
-                    {deployment.buildLogs.join('\n')}
-                  </pre>
-                )}
+                {showLogs && <pre className="logs-content">{deployment.buildLogs.join('\n')}</pre>}
               </div>
             )}
           </div>
@@ -371,12 +362,8 @@ export function CodeLabDeployFlow({
               </a>
             )}
             <div className="success-actions">
-              <button onClick={() => setStep('platform')}>
-                Deploy Another
-              </button>
-              <button onClick={() => window.open(deployment.url, '_blank')}>
-                Open Site →
-              </button>
+              <button onClick={() => setStep('platform')}>Deploy Another</button>
+              <button onClick={() => window.open(deployment.url, '_blank')}>Open Site →</button>
             </div>
           </div>
         )}
@@ -391,15 +378,10 @@ export function CodeLabDeployFlow({
                   <div className="deployment-info">
                     <span className={`status-dot ${d.status}`} />
                     <span className="deployment-url">{d.url || 'Building...'}</span>
-                    <span className="deployment-time">
-                      {d.createdAt.toLocaleDateString()}
-                    </span>
+                    <span className="deployment-time">{d.createdAt.toLocaleDateString()}</span>
                   </div>
                   {onRollback && d.status === 'success' && (
-                    <button
-                      className="rollback-btn"
-                      onClick={() => handleRollback(d.id)}
-                    >
+                    <button className="rollback-btn" onClick={() => handleRollback(d.id)}>
                       Rollback
                     </button>
                   )}
@@ -581,7 +563,7 @@ export function CodeLabDeployFlow({
 
         .add-env button {
           padding: 0.5rem 0.75rem;
-          background: var(--cl-accent-primary, #6366f1);
+          background: var(--cl-accent-primary, #1e3a5f);
           color: white;
           border: none;
           border-radius: 6px;
@@ -621,7 +603,7 @@ export function CodeLabDeployFlow({
         }
 
         .progress-step.active {
-          color: var(--cl-accent-primary, #6366f1);
+          color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .step-dot {
@@ -710,7 +692,7 @@ export function CodeLabDeployFlow({
         }
 
         .success-actions button:last-child {
-          background: var(--cl-accent-primary, #6366f1);
+          background: var(--cl-accent-primary, #1e3a5f);
           color: white;
           border: none;
         }
@@ -754,9 +736,15 @@ export function CodeLabDeployFlow({
           border-radius: 50%;
         }
 
-        .status-dot.success { background: #22c55e; }
-        .status-dot.error { background: #ef4444; }
-        .status-dot.building { background: #f59e0b; }
+        .status-dot.success {
+          background: #22c55e;
+        }
+        .status-dot.error {
+          background: #ef4444;
+        }
+        .status-dot.building {
+          background: #f59e0b;
+        }
 
         .rollback-btn {
           padding: 0.25rem 0.5rem;

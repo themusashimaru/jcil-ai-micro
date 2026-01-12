@@ -63,21 +63,15 @@ export function CodeLabVoiceCoding({
 
   const feedbackTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const {
-    isRecording,
-    isProcessing,
-    audioLevel,
-    isSupported,
-    toggleRecording,
-    cancelRecording,
-  } = useVoiceInput({
-    onTranscript: handleTranscript,
-    onError: (error) => {
-      showFeedback(`Error: ${error}`, 'error');
-    },
-    silenceTimeout: 3000,
-    maxDuration: 60000,
-  });
+  const { isRecording, isProcessing, audioLevel, isSupported, toggleRecording, cancelRecording } =
+    useVoiceInput({
+      onTranscript: handleTranscript,
+      onError: (error) => {
+        showFeedback(`Error: ${error}`, 'error');
+      },
+      silenceTimeout: 3000,
+      maxDuration: 60000,
+    });
 
   // Handle transcript from voice input
   function handleTranscript(text: string) {
@@ -88,7 +82,7 @@ export function CodeLabVoiceCoding({
 
     if (command) {
       executeCommand(command.action, command.payload);
-      setCommandHistory(prev => [...prev.slice(-9), text]);
+      setCommandHistory((prev) => [...prev.slice(-9), text]);
     } else {
       // Treat as dictation
       onDictation(text);
@@ -234,26 +228,16 @@ export function CodeLabVoiceCoding({
             {mode === 'processing' && 'Processing...'}
             {mode === 'speaking' && 'Speaking...'}
           </span>
-          {transcript && (
-            <span className="transcript">&quot;{transcript}&quot;</span>
-          )}
+          {transcript && <span className="transcript">&quot;{transcript}&quot;</span>}
         </div>
 
-        <button
-          className="help-btn"
-          onClick={() => setShowHelp(!showHelp)}
-          title="Voice commands"
-        >
+        <button className="help-btn" onClick={() => setShowHelp(!showHelp)} title="Voice commands">
           ❓
         </button>
       </div>
 
       {/* Feedback toast */}
-      {feedback && (
-        <div className="voice-feedback">
-          {feedback}
-        </div>
-      )}
+      {feedback && <div className="voice-feedback">{feedback}</div>}
 
       {/* Help panel */}
       {showHelp && (
@@ -272,9 +256,14 @@ export function CodeLabVoiceCoding({
             <>
               <h4>Recent Commands</h4>
               <div className="history-list">
-                {commandHistory.slice().reverse().map((cmd, idx) => (
-                  <div key={idx} className="history-item">{cmd}</div>
-                ))}
+                {commandHistory
+                  .slice()
+                  .reverse()
+                  .map((cmd, idx) => (
+                    <div key={idx} className="history-item">
+                      {cmd}
+                    </div>
+                  ))}
               </div>
             </>
           )}
@@ -415,8 +404,14 @@ export function CodeLabVoiceCoding({
         }
 
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
         }
 
         .voice-help {
@@ -459,7 +454,7 @@ export function CodeLabVoiceCoding({
           background: var(--cl-bg-secondary, #f9fafb);
           border-radius: 4px;
           font-size: 0.75rem;
-          color: var(--cl-accent-primary, #6366f1);
+          color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .command-item span {

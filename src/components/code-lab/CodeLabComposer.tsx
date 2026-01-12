@@ -70,15 +70,15 @@ export function CodeLabComposer({
   } = useVoiceInput({
     onTranscript: (text) => {
       // Append transcribed text to current content
-      setContent(prev => prev ? `${prev} ${text}` : text);
+      setContent((prev) => (prev ? `${prev} ${text}` : text));
       // Focus the textarea after transcription
       textareaRef.current?.focus();
     },
     onError: (error) => {
       console.error('[Voice Input] Error:', error);
     },
-    silenceTimeout: 4000,  // Stop after 4s of silence (comfortable pause)
-    maxDuration: 120000,   // 2 minute max recording
+    silenceTimeout: 4000, // Stop after 4s of silence (comfortable pause)
+    maxDuration: 120000, // 2 minute max recording
   });
 
   // Auto-resize textarea
@@ -93,15 +93,15 @@ export function CodeLabComposer({
   // Focus on mount - only on desktop to avoid annoying keyboard popup on mobile
   useEffect(() => {
     // Check if device is mobile using various methods
-    const isMobile = typeof window !== 'undefined' && (
+    const isMobile =
+      typeof window !== 'undefined' &&
       // Check screen width
-      window.innerWidth < 768 ||
-      // Check for touch capability
-      'ontouchstart' in window ||
-      navigator.maxTouchPoints > 0 ||
-      // Check user agent (fallback)
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    );
+      (window.innerWidth < 768 ||
+        // Check for touch capability
+        'ontouchstart' in window ||
+        navigator.maxTouchPoints > 0 ||
+        // Check user agent (fallback)
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
 
     // Only auto-focus on desktop
     if (!isMobile) {
@@ -115,7 +115,7 @@ export function CodeLabComposer({
 
     const newAttachments: CodeLabAttachment[] = [];
 
-    Array.from(files).forEach(file => {
+    Array.from(files).forEach((file) => {
       // Validate type
       if (!ACCEPTED_TYPES.includes(file.type)) {
         console.warn(`[CodeLabComposer] Unsupported file type: ${file.type}`);
@@ -150,15 +150,15 @@ export function CodeLabComposer({
       newAttachments.push(attachment);
     });
 
-    setAttachments(prev => [...prev, ...newAttachments]);
+    setAttachments((prev) => [...prev, ...newAttachments]);
   }, []);
 
   // Remove attachment
   const removeAttachment = useCallback((id: string) => {
-    setAttachments(prev => {
-      const updated = prev.filter(a => a.id !== id);
+    setAttachments((prev) => {
+      const updated = prev.filter((a) => a.id !== id);
       // Revoke preview URL
-      const removed = prev.find(a => a.id === id);
+      const removed = prev.find((a) => a.id === id);
       if (removed?.preview) {
         URL.revokeObjectURL(removed.preview);
       }
@@ -200,15 +200,18 @@ export function CodeLabComposer({
     // Toggle search mode with Cmd/Ctrl+K
     if (cmdKey && e.key === 'k') {
       e.preventDefault();
-      setSearchMode(prev => !prev);
+      setSearchMode((prev) => !prev);
     }
   };
 
   // Handle drag and drop
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    handleFileSelect(e.dataTransfer.files);
-  }, [handleFileSelect]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      handleFileSelect(e.dataTransfer.files);
+    },
+    [handleFileSelect]
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -228,15 +231,11 @@ export function CodeLabComposer({
   }, []);
 
   return (
-    <div
-      className="code-lab-composer"
-      onDrop={handleDrop}
-      onDragOver={handleDragOver}
-    >
+    <div className="code-lab-composer" onDrop={handleDrop} onDragOver={handleDragOver}>
       {/* Attachment previews */}
       {attachments.length > 0 && (
         <div className="attachment-previews">
-          {attachments.map(attachment => (
+          {attachments.map((attachment) => (
             <div key={attachment.id} className="attachment-item">
               {attachment.type === 'image' && attachment.preview ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -245,20 +244,17 @@ export function CodeLabComposer({
                 <div className="attachment-icon">
                   {attachment.type === 'pdf' ? (
                     <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM8.5 18a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 1 0v1a.5.5 0 0 1-.5.5zm2 0a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 1 1 0v2a.5.5 0 0 1-.5.5zm2 0a.5.5 0 0 1-.5-.5v-1.5a.5.5 0 0 1 1 0v1.5a.5.5 0 0 1-.5.5z"/>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM8.5 18a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 1 0v1a.5.5 0 0 1-.5.5zm2 0a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 1 1 0v2a.5.5 0 0 1-.5.5zm2 0a.5.5 0 0 1-.5-.5v-1.5a.5.5 0 0 1 1 0v1.5a.5.5 0 0 1-.5.5z" />
                     </svg>
                   ) : (
                     <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM8 15h8v1H8v-1zm0-2h8v1H8v-1z"/>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2l5 5h-5V4zM8 15h8v1H8v-1zm0-2h8v1H8v-1z" />
                     </svg>
                   )}
                 </div>
               )}
               <span className="attachment-name">{attachment.file.name}</span>
-              <button
-                className="attachment-remove"
-                onClick={() => removeAttachment(attachment.id)}
-              >
+              <button className="attachment-remove" onClick={() => removeAttachment(attachment.id)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -284,14 +280,8 @@ export function CodeLabComposer({
       {(isRecording || isProcessing) && (
         <div className={`recording-indicator ${isRecording ? 'active' : 'processing'}`}>
           <div className="recording-dot" />
-          <span>
-            {isProcessing
-              ? 'Transcribing...'
-              : `Recording... ${recordingDuration}s`}
-          </span>
-          {isRecording && (
-            <div className="audio-level" style={{ width: `${audioLevel}%` }} />
-          )}
+          <span>{isProcessing ? 'Transcribing...' : `Recording... ${recordingDuration}s`}</span>
+          {isRecording && <div className="audio-level" style={{ width: `${audioLevel}%` }} />}
           <button onClick={cancelRecording}>×</button>
         </div>
       )}
@@ -336,7 +326,11 @@ export function CodeLabComposer({
             title="Attach files (images, PDFs)"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"
+              />
             </svg>
           </button>
 
@@ -348,7 +342,11 @@ export function CodeLabComposer({
             title={searchMode ? 'Disable web search' : 'Enable web search'}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+              />
             </svg>
           </button>
 
@@ -358,12 +356,28 @@ export function CodeLabComposer({
               className={`composer-btn voice ${isRecording ? 'recording' : ''} ${isProcessing ? 'processing' : ''}`}
               onClick={isRecording ? cancelRecording : toggleRecording}
               disabled={disabled || isStreaming || isProcessing}
-              title={isRecording ? 'Stop recording' : isProcessing ? 'Processing...' : 'Voice input'}
-              style={isRecording ? { '--audio-level': `${audioLevel}%` } as React.CSSProperties : undefined}
+              title={
+                isRecording ? 'Stop recording' : isProcessing ? 'Processing...' : 'Voice input'
+              }
+              style={
+                isRecording
+                  ? ({ '--audio-level': `${audioLevel}%` } as React.CSSProperties)
+                  : undefined
+              }
             >
               {isProcessing ? (
-                <svg className="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                <svg
+                  className="spinner"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                  />
                 </svg>
               ) : isRecording ? (
                 <svg viewBox="0 0 24 24" fill="currentColor">
@@ -371,7 +385,11 @@ export function CodeLabComposer({
                 </svg>
               ) : (
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+                  />
                 </svg>
               )}
             </button>
@@ -379,10 +397,7 @@ export function CodeLabComposer({
 
           {/* Send/Stop button */}
           {isStreaming ? (
-            <button
-              className="composer-btn stop"
-              onClick={onCancel}
-            >
+            <button className="composer-btn stop" onClick={onCancel}>
               <svg viewBox="0 0 24 24" fill="currentColor">
                 <rect x="6" y="6" width="12" height="12" rx="2" />
               </svg>
@@ -395,7 +410,11 @@ export function CodeLabComposer({
               disabled={(!content.trim() && attachments.length === 0) || disabled}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                />
               </svg>
             </button>
           )}
@@ -513,7 +532,7 @@ export function CodeLabComposer({
           background: none;
           border: none;
           font-size: 1.25rem;
-          color: #6366f1;
+          color: #1e3a5f;
           cursor: pointer;
           padding: 0;
           line-height: 1;
@@ -554,8 +573,15 @@ export function CodeLabComposer({
         }
 
         @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.8); }
+          0%,
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.5;
+            transform: scale(0.8);
+          }
         }
 
         .audio-level {
@@ -590,11 +616,13 @@ export function CodeLabComposer({
           background: #f8fafc;
           border: 1px solid #e2e8f0;
           border-radius: 12px;
-          transition: border-color 0.2s, box-shadow 0.2s;
+          transition:
+            border-color 0.2s,
+            box-shadow 0.2s;
         }
 
         .composer-container:focus-within {
-          border-color: #6366f1;
+          border-color: #1e3a5f;
           box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
@@ -659,7 +687,7 @@ export function CodeLabComposer({
 
         .composer-btn.search.active {
           background: #eef2ff;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .composer-btn.voice {
@@ -683,13 +711,24 @@ export function CodeLabComposer({
         }
 
         @keyframes voice-pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
+          0%,
+          100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
         }
 
         @keyframes voice-ring {
-          0% { transform: scale(0.8); opacity: 0.5; }
-          100% { transform: scale(1.2); opacity: 0; }
+          0% {
+            transform: scale(0.8);
+            opacity: 0.5;
+          }
+          100% {
+            transform: scale(1.2);
+            opacity: 0;
+          }
         }
 
         .composer-btn.voice.processing {
@@ -702,8 +741,12 @@ export function CodeLabComposer({
         }
 
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .composer-btn.send {

@@ -53,7 +53,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
   // Workspace panel state
   const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'files' | 'diff' | 'deploy' | 'visual'>('files');
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
+    'files' | 'diff' | 'deploy' | 'visual'
+  >('files');
   const [workspaceFiles, setWorkspaceFiles] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [diffFiles, setDiffFiles] = useState<FileDiff[]>([]);
@@ -62,7 +64,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Current session helper
-  const currentSession = sessions.find(s => s.id === currentSessionId);
+  const currentSession = sessions.find((s) => s.id === currentSessionId);
 
   // ========================================
   // SESSION MANAGEMENT
@@ -102,7 +104,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
       if (response.ok) {
         const data = await response.json();
-        setSessions(prev => [data.session, ...prev]);
+        setSessions((prev) => [data.session, ...prev]);
         setCurrentSessionId(data.session.id);
         setMessages([]);
         return data.session;
@@ -134,10 +136,10 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const deleteSession = async (sessionId: string) => {
     try {
       await fetch(`/api/code-lab/sessions/${sessionId}`, { method: 'DELETE' });
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
 
       if (currentSessionId === sessionId) {
-        const remaining = sessions.filter(s => s.id !== sessionId);
+        const remaining = sessions.filter((s) => s.id !== sessionId);
         if (remaining.length > 0) {
           selectSession(remaining[0].id);
         } else {
@@ -152,7 +154,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
   // Export session as markdown
   const exportSession = async (sessionId: string) => {
-    const session = sessions.find(s => s.id === sessionId);
+    const session = sessions.find((s) => s.id === sessionId);
     if (!session) return;
 
     // Get messages for this session
@@ -197,7 +199,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     lines.push('## Conversation');
     lines.push('');
 
-    exportMessages.forEach(msg => {
+    exportMessages.forEach((msg) => {
       if (msg.role === 'user') {
         lines.push(`### User`);
       } else if (msg.role === 'assistant') {
@@ -231,18 +233,13 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         body: JSON.stringify({ title }),
       });
 
-      setSessions(prev =>
-        prev.map(s => (s.id === sessionId ? { ...s, title } : s))
-      );
+      setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, title } : s)));
     } catch (err) {
       log.error('Error renaming session', err as Error);
     }
   };
 
-  const setSessionRepo = async (
-    sessionId: string,
-    repo: CodeLabSession['repo']
-  ) => {
+  const setSessionRepo = async (sessionId: string, repo: CodeLabSession['repo']) => {
     try {
       await fetch(`/api/code-lab/sessions/${sessionId}`, {
         method: 'PATCH',
@@ -250,9 +247,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         body: JSON.stringify({ repo }),
       });
 
-      setSessions(prev =>
-        prev.map(s => (s.id === sessionId ? { ...s, repo } : s))
-      );
+      setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, repo } : s)));
 
       // When repo is set, load workspace files
       if (repo) {
@@ -301,9 +296,12 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const handleFileDelete = async (path: string) => {
     if (!currentSessionId) return;
     try {
-      await fetch(`/api/code-lab/files?sessionId=${currentSessionId}&path=${encodeURIComponent(path)}`, {
-        method: 'DELETE',
-      });
+      await fetch(
+        `/api/code-lab/files?sessionId=${currentSessionId}&path=${encodeURIComponent(path)}`,
+        {
+          method: 'DELETE',
+        }
+      );
       loadWorkspaceFiles(currentSessionId);
     } catch (err) {
       log.error('Error deleting file', err as Error);
@@ -355,7 +353,11 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   };
 
   // Visual to code handler
-  const handleVisualToCode = async (imageBase64: string, framework: string, instructions?: string) => {
+  const handleVisualToCode = async (
+    imageBase64: string,
+    framework: string,
+    instructions?: string
+  ) => {
     const response = await fetch('/api/code-lab/visual-to-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -405,7 +407,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
     return {
       id: result.projectId || `deploy-${Date.now()}`,
-      status: result.success ? 'success' as const : 'error' as const,
+      status: result.success ? ('success' as const) : ('error' as const),
       url: result.url,
       createdAt: new Date(),
       buildLogs: [],
@@ -417,192 +419,183 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // MESSAGING
   // ========================================
 
-  const sendMessage = useCallback(async (
-    content: string,
-    attachments?: CodeLabAttachment[],
-    forceSearch?: boolean
-  ) => {
-    if (!currentSessionId || isStreaming) return;
+  const sendMessage = useCallback(
+    async (content: string, attachments?: CodeLabAttachment[], forceSearch?: boolean) => {
+      if (!currentSessionId || isStreaming) return;
 
-    // Capture session info at the start (before any async operations)
-    const sessionAtStart = sessions.find(s => s.id === currentSessionId);
-    const isFirstMessage = sessionAtStart?.title === 'New Session' || sessionAtStart?.messageCount === 0;
+      // Capture session info at the start (before any async operations)
+      const sessionAtStart = sessions.find((s) => s.id === currentSessionId);
+      const isFirstMessage =
+        sessionAtStart?.title === 'New Session' || sessionAtStart?.messageCount === 0;
 
-    // Convert attachments to base64 for API
-    let attachmentData: Array<{ name: string; type: string; data: string }> | undefined;
-    if (attachments && attachments.length > 0) {
-      attachmentData = await Promise.all(
-        attachments.map(async (att) => {
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(att.file);
-          });
-          return {
-            name: att.file.name,
-            type: att.file.type,
-            data: base64,
-          };
-        })
-      );
-    }
-
-    // Create display content for user message
-    const displayContent = attachments && attachments.length > 0
-      ? `${content}\n\n[Attached: ${attachments.map(a => a.file.name).join(', ')}]`
-      : content;
-
-    // Create user message
-    const userMessage: CodeLabMessage = {
-      id: `temp-${Date.now()}`,
-      sessionId: currentSessionId,
-      role: 'user',
-      content: displayContent,
-      createdAt: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setIsStreaming(true);
-    setError(null);
-
-    // Create placeholder for assistant response
-    const assistantId = `assistant-${Date.now()}`;
-    const assistantMessage: CodeLabMessage = {
-      id: assistantId,
-      sessionId: currentSessionId,
-      role: 'assistant',
-      content: '',
-      createdAt: new Date(),
-      isStreaming: true,
-    };
-
-    setMessages(prev => [...prev, assistantMessage]);
-
-    // Create AbortController for this request
-    abortControllerRef.current = new AbortController();
-
-    try {
-      const response = await fetch('/api/code-lab/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: currentSessionId,
-          content,
-          repo: currentSession?.repo,
-          attachments: attachmentData,
-          forceSearch,
-        }),
-        signal: abortControllerRef.current.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
+      // Convert attachments to base64 for API
+      let attachmentData: Array<{ name: string; type: string; data: string }> | undefined;
+      if (attachments && attachments.length > 0) {
+        attachmentData = await Promise.all(
+          attachments.map(async (att) => {
+            const base64 = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(att.file);
+            });
+            return {
+              name: att.file.name,
+              type: att.file.type,
+              data: base64,
+            };
+          })
+        );
       }
 
-      // Stream the response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      // Create display content for user message
+      const displayContent =
+        attachments && attachments.length > 0
+          ? `${content}\n\n[Attached: ${attachments.map((a) => a.file.name).join(', ')}]`
+          : content;
 
-      if (reader) {
-        let fullContent = '';
+      // Create user message
+      const userMessage: CodeLabMessage = {
+        id: `temp-${Date.now()}`,
+        sessionId: currentSessionId,
+        role: 'user',
+        content: displayContent,
+        createdAt: new Date(),
+      };
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      setMessages((prev) => [...prev, userMessage]);
+      setIsStreaming(true);
+      setError(null);
 
-          const chunk = decoder.decode(value);
-          fullContent += chunk;
+      // Create placeholder for assistant response
+      const assistantId = `assistant-${Date.now()}`;
+      const assistantMessage: CodeLabMessage = {
+        id: assistantId,
+        sessionId: currentSessionId,
+        role: 'assistant',
+        content: '',
+        createdAt: new Date(),
+        isStreaming: true,
+      };
 
-          // Update the assistant message with streamed content
-          setMessages(prev =>
-            prev.map(m =>
+      setMessages((prev) => [...prev, assistantMessage]);
+
+      // Create AbortController for this request
+      abortControllerRef.current = new AbortController();
+
+      try {
+        const response = await fetch('/api/code-lab/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: currentSessionId,
+            content,
+            repo: currentSession?.repo,
+            attachments: attachmentData,
+            forceSearch,
+          }),
+          signal: abortControllerRef.current.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to send message');
+        }
+
+        // Stream the response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (reader) {
+          let fullContent = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            fullContent += chunk;
+
+            // Update the assistant message with streamed content
+            setMessages((prev) =>
+              prev.map((m) => (m.id === assistantId ? { ...m, content: fullContent } : m))
+            );
+          }
+
+          // Mark streaming as complete
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m))
+          );
+
+          // Update session in sidebar (increment message count, update timestamp)
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.id === currentSessionId
+                ? {
+                    ...s,
+                    messageCount: s.messageCount + 2, // user + assistant
+                    updatedAt: new Date(),
+                  }
+                : s
+            )
+          );
+
+          // Generate title if this is the first message exchange (title is still default)
+          if (isFirstMessage) {
+            try {
+              const titleResponse = await fetch('/api/chat/generate-title', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userMessage: content,
+                  assistantMessage: fullContent.slice(0, 500),
+                }),
+              });
+
+              if (titleResponse.ok) {
+                const { title } = await titleResponse.json();
+                if (title && title !== 'New Conversation') {
+                  // Update local state immediately
+                  setSessions((prev) =>
+                    prev.map((s) => (s.id === currentSessionId ? { ...s, title } : s))
+                  );
+
+                  // Persist to database
+                  await fetch(`/api/code-lab/sessions/${currentSessionId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title }),
+                  });
+                }
+              }
+            } catch (titleErr) {
+              log.error('Error generating title', titleErr as Error);
+            }
+          }
+        }
+      } catch (err) {
+        // Don't show error for user-initiated cancellations
+        if (err instanceof Error && err.name === 'AbortError') {
+          log.info('Stream cancelled by user');
+          // Mark the partial message as complete (not streaming)
+          setMessages((prev) =>
+            prev.map((m) =>
               m.id === assistantId
-                ? { ...m, content: fullContent }
+                ? { ...m, isStreaming: false, content: m.content + '\n\n*[Cancelled]*' }
                 : m
             )
           );
+        } else {
+          log.error('Error sending message', err as Error);
+          setError('Failed to send message');
+          // Remove the failed assistant message
+          setMessages((prev) => prev.filter((m) => m.id !== assistantId));
         }
-
-        // Mark streaming as complete
-        setMessages(prev =>
-          prev.map(m =>
-            m.id === assistantId
-              ? { ...m, isStreaming: false }
-              : m
-          )
-        );
-
-        // Update session in sidebar (increment message count, update timestamp)
-        setSessions(prev =>
-          prev.map(s =>
-            s.id === currentSessionId
-              ? {
-                  ...s,
-                  messageCount: s.messageCount + 2, // user + assistant
-                  updatedAt: new Date(),
-                }
-              : s
-          )
-        );
-
-        // Generate title if this is the first message exchange (title is still default)
-        if (isFirstMessage) {
-          try {
-            const titleResponse = await fetch('/api/chat/generate-title', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userMessage: content,
-                assistantMessage: fullContent.slice(0, 500),
-              }),
-            });
-
-            if (titleResponse.ok) {
-              const { title } = await titleResponse.json();
-              if (title && title !== 'New Conversation') {
-                // Update local state immediately
-                setSessions(prev =>
-                  prev.map(s =>
-                    s.id === currentSessionId ? { ...s, title } : s
-                  )
-                );
-
-                // Persist to database
-                await fetch(`/api/code-lab/sessions/${currentSessionId}`, {
-                  method: 'PATCH',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ title }),
-                });
-              }
-            }
-          } catch (titleErr) {
-            log.error('Error generating title', titleErr as Error);
-          }
-        }
+      } finally {
+        abortControllerRef.current = null;
+        setIsStreaming(false);
       }
-    } catch (err) {
-      // Don't show error for user-initiated cancellations
-      if (err instanceof Error && err.name === 'AbortError') {
-        log.info('Stream cancelled by user');
-        // Mark the partial message as complete (not streaming)
-        setMessages(prev =>
-          prev.map(m =>
-            m.id === assistantId
-              ? { ...m, isStreaming: false, content: m.content + '\n\n*[Cancelled]*' }
-              : m
-          )
-        );
-      } else {
-        log.error('Error sending message', err as Error);
-        setError('Failed to send message');
-        // Remove the failed assistant message
-        setMessages(prev => prev.filter(m => m.id !== assistantId));
-      }
-    } finally {
-      abortControllerRef.current = null;
-      setIsStreaming(false);
-    }
-  }, [currentSessionId, currentSession?.repo, isStreaming, sessions]);
+    },
+    [currentSessionId, currentSession?.repo, isStreaming, sessions]
+  );
 
   const cancelStream = useCallback(() => {
     if (abortControllerRef.current) {
@@ -613,32 +606,38 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   }, []);
 
   // Handler for slash commands from command palette
-  const handleSlashCommand = useCallback((command: string) => {
-    if (!currentSessionId) {
-      createSession().then((session) => {
-        if (session) {
-          sendMessage(command);
-        }
-      });
-    } else {
-      sendMessage(command);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
-  }, [currentSessionId, createSession, sendMessage]);
+  const handleSlashCommand = useCallback(
+    (command: string) => {
+      if (!currentSessionId) {
+        createSession().then((session) => {
+          if (session) {
+            sendMessage(command);
+          }
+        });
+      } else {
+        sendMessage(command);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
+    },
+    [currentSessionId, createSession, sendMessage]
+  );
 
   // Handler for direct messages from command palette
-  const handlePaletteMessage = useCallback((message: string) => {
-    if (!currentSessionId) {
-      createSession().then((session) => {
-        if (session) {
-          sendMessage(message);
-        }
-      });
-    } else {
-      sendMessage(message);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
-  }, [currentSessionId, createSession, sendMessage]);
+  const handlePaletteMessage = useCallback(
+    (message: string) => {
+      if (!currentSessionId) {
+        createSession().then((session) => {
+          if (session) {
+            sendMessage(message);
+          }
+        });
+      } else {
+        sendMessage(message);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
+    },
+    [currentSessionId, createSession, sendMessage]
+  );
 
   // ========================================
   // KEYBOARD SHORTCUTS
@@ -667,7 +666,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       // Cmd/Ctrl+B - Toggle sidebar
       if (cmdKey && e.key === 'b') {
         e.preventDefault();
-        setSidebarCollapsed(prev => !prev);
+        setSidebarCollapsed((prev) => !prev);
       }
 
       // Cmd/Ctrl+K - Open command palette
@@ -691,7 +690,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       // Cmd/Ctrl+E - Toggle workspace panel
       if (cmdKey && e.key === 'e') {
         e.preventDefault();
-        setWorkspacePanelOpen(prev => !prev);
+        setWorkspacePanelOpen((prev) => !prev);
       }
 
       // Cmd/Ctrl+1,2,3,4 - Switch workspace tabs
@@ -715,12 +714,11 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setActiveWorkspaceTab('visual');
         setWorkspacePanelOpen(true);
       }
-
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- createSession is intentionally not memoized
   }, [isStreaming, cancelStream, sidebarCollapsed, createSession]);
 
   // ========================================
@@ -731,10 +729,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     <div className="code-lab">
       {/* Mobile backdrop when sidebar open */}
       {!sidebarCollapsed && (
-        <div
-          className="mobile-backdrop"
-          onClick={() => setSidebarCollapsed(true)}
-        />
+        <div className="mobile-backdrop" onClick={() => setSidebarCollapsed(true)} />
       )}
 
       {/* Sidebar - Sessions & Repo */}
@@ -757,12 +752,13 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       <main className="code-lab-main">
         {/* Mobile header with menu button */}
         <div className="mobile-header">
-          <button
-            className="mobile-menu-btn"
-            onClick={() => setSidebarCollapsed(false)}
-          >
+          <button className="mobile-menu-btn" onClick={() => setSidebarCollapsed(false)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+              />
             </svg>
           </button>
           <span className="mobile-title">{currentSession?.title || 'Code Lab'}</span>
@@ -773,7 +769,11 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
               title="Workspace Panel (Cmd+E)"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+                />
               </svg>
             </button>
           </div>
@@ -837,7 +837,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                       onFileSelect={handleFileSelect}
                       onFileCreate={(path) => handleFileCreate(path)}
                       onFileDelete={handleFileDelete}
-                      onRefresh={() => { if (currentSessionId) loadWorkspaceFiles(currentSessionId); }}
+                      onRefresh={() => {
+                        if (currentSessionId) loadWorkspaceFiles(currentSessionId);
+                      }}
                     />
                   )}
                   {activeWorkspaceTab === 'diff' && (
@@ -852,22 +854,24 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                           <CodeLabDiffViewer
                             key={`${fileDiff.oldPath || fileDiff.newPath}-${index}`}
                             diff={fileDiff}
-                            onAcceptHunk={(hunkIndex) => log.debug('Accept hunk', { hunkIndex, file: fileDiff.newPath })}
-                            onRejectHunk={(hunkIndex) => log.debug('Reject hunk', { hunkIndex, file: fileDiff.newPath })}
+                            onAcceptHunk={(hunkIndex) =>
+                              log.debug('Accept hunk', { hunkIndex, file: fileDiff.newPath })
+                            }
+                            onRejectHunk={(hunkIndex) =>
+                              log.debug('Reject hunk', { hunkIndex, file: fileDiff.newPath })
+                            }
                           />
                         ))
                       )}
                     </div>
                   )}
-                  {activeWorkspaceTab === 'deploy' && (
-                    <CodeLabDeployFlow
-                      onDeploy={handleDeploy}
-                    />
-                  )}
+                  {activeWorkspaceTab === 'deploy' && <CodeLabDeployFlow onDeploy={handleDeploy} />}
                   {activeWorkspaceTab === 'visual' && (
                     <CodeLabVisualToCode
                       onGenerate={handleVisualToCode}
-                      onInsertCode={(code) => sendMessage(`/create file with this code:\n\`\`\`\n${code}\n\`\`\``)}
+                      onInsertCode={(code) =>
+                        sendMessage(`/create file with this code:\n\`\`\`\n${code}\n\`\`\``)
+                      }
                     />
                   )}
                 </div>
@@ -875,13 +879,21 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                   <div className="workspace-git-actions">
                     <button onClick={handleGitPull} className="git-btn pull">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                        />
                       </svg>
                       Pull
                     </button>
                     <button onClick={handleGitPush} className="git-btn push">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                        />
                       </svg>
                       Push
                     </button>
@@ -896,15 +908,16 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             <div className="code-lab-empty-content">
               <div className="code-lab-empty-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"
+                  />
                 </svg>
               </div>
               <h2>Code Lab</h2>
               <p>Your professional coding workspace</p>
-              <button
-                onClick={() => createSession()}
-                className="code-lab-empty-btn"
-              >
+              <button onClick={() => createSession()} className="code-lab-empty-btn">
                 Start New Session
               </button>
             </div>
@@ -929,10 +942,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       />
 
       {/* Keyboard Shortcuts Help */}
-      <CodeLabKeyboardShortcuts
-        isOpen={shortcutsOpen}
-        onClose={() => setShortcutsOpen(false)}
-      />
+      <CodeLabKeyboardShortcuts isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {/* Voice Coding Mode - Disabled to prevent double messages with composer voice button */}
       {/* The composer has its own voice input button which is cleaner UX */}
@@ -1036,7 +1046,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           width: 64px;
           height: 64px;
           margin: 0 auto 1.5rem;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .code-lab-empty-icon svg {
@@ -1121,7 +1131,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
 
         .header-btn.active {
-          background: #6366f1;
+          background: #1e3a5f;
           color: white;
         }
 
@@ -1198,8 +1208,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
 
         .workspace-tabs button.active {
-          color: #6366f1;
-          border-bottom-color: #6366f1;
+          color: #1e3a5f;
+          border-bottom-color: #1e3a5f;
         }
 
         .workspace-content {
