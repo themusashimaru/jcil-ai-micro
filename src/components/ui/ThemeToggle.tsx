@@ -7,14 +7,26 @@ interface ThemeToggleProps {
 }
 
 /**
- * Theme toggle button for switching between dark, light, and ocean modes.
- * Available to all authenticated users.
+ * Theme toggle button for switching between themes.
+ * Non-admin users: pro (Refined) ↔ light
+ * Admin users: pro → light → dark → ocean → pro
  */
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
-  const { theme, toggleTheme, isLoading } = useTheme();
+  const { theme, toggleTheme, isLoading, isAdmin } = useTheme();
 
-  // Get next theme name for aria-label (pro is displayed as "refined")
-  const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'ocean' : theme === 'ocean' ? 'refined' : 'dark';
+  // Get next theme name for aria-label based on available themes
+  const getNextTheme = () => {
+    const themes = isAdmin ? ['pro', 'light', 'dark', 'ocean'] : ['pro', 'light'];
+    const currentIndex = themes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    const next = themes[nextIndex];
+    // Display names
+    if (next === 'pro') return 'Refined';
+    if (next === 'ocean') return 'Ocean';
+    return next.charAt(0).toUpperCase() + next.slice(1);
+  };
+
+  const nextTheme = getNextTheme();
 
   return (
     <button
@@ -26,7 +38,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       title={`Switch to ${nextTheme} mode`}
     >
       {theme === 'dark' ? (
-        // Moon icon - currently dark, will switch to light
+        // Moon icon - currently dark (admin only)
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -37,7 +49,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
         </svg>
       ) : theme === 'light' ? (
-        // Sun icon - currently light, will switch to ocean
+        // Sun icon - currently light
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -49,7 +61,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
       ) : theme === 'ocean' ? (
-        // Wave icon - currently ocean, will switch to pro
+        // Wave icon - currently ocean (admin only)
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -62,7 +74,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           <path d="M2 7c2-2 4-3 6-3s4 1 6 3 4 3 6 3 4-1 6-3" />
         </svg>
       ) : (
-        // Leaf icon - currently pro (Refined), will switch to dark
+        // Leaf icon - currently pro (Refined)
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
