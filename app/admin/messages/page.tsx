@@ -80,7 +80,9 @@ export default function AdminMessagesPage() {
     try {
       const response = await fetch('/api/admin/messages');
       if (!response.ok) throw new Error('Failed to fetch messages');
-      const data = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { messages } }
+      const data = responseData.data || responseData;
       setSentMessages(data.messages || []);
     } catch (err) {
       console.error('Error fetching messages:', err);
@@ -122,14 +124,18 @@ export default function AdminMessagesPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send message');
+        throw new Error(responseData.error || 'Failed to send message');
       }
 
+      // API returns { ok: true, data: { recipientCount, messageId } }
+      const data = responseData.data || responseData;
       const recipientCount = data.recipientCount || 1;
-      setSuccess(`Message sent successfully to ${recipientCount} user${recipientCount > 1 ? 's' : ''}!`);
+      setSuccess(
+        `Message sent successfully to ${recipientCount} user${recipientCount > 1 ? 's' : ''}!`
+      );
 
       // Reset form
       setRecipientEmail('');
@@ -168,7 +174,8 @@ export default function AdminMessagesPage() {
           className="px-4 py-2 text-sm font-medium transition"
           style={{
             color: activeTab === 'compose' ? 'var(--primary)' : 'var(--text-secondary)',
-            borderBottom: activeTab === 'compose' ? '2px solid var(--primary)' : '2px solid transparent',
+            borderBottom:
+              activeTab === 'compose' ? '2px solid var(--primary)' : '2px solid transparent',
           }}
         >
           Compose Message
@@ -178,7 +185,8 @@ export default function AdminMessagesPage() {
           className="px-4 py-2 text-sm font-medium transition"
           style={{
             color: activeTab === 'sent' ? 'var(--primary)' : 'var(--text-secondary)',
-            borderBottom: activeTab === 'sent' ? '2px solid var(--primary)' : '2px solid transparent',
+            borderBottom:
+              activeTab === 'sent' ? '2px solid var(--primary)' : '2px solid transparent',
           }}
         >
           Sent Messages
@@ -206,7 +214,10 @@ export default function AdminMessagesPage() {
 
             {/* Recipient Type Selection */}
             <div>
-              <label className="block text-sm font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
+              <label
+                className="block text-sm font-medium mb-3"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 Send To
               </label>
               <div className="flex gap-4">
@@ -240,7 +251,10 @@ export default function AdminMessagesPage() {
             {/* Individual Recipient */}
             {recipientType === 'individual' && (
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   User Email
                 </label>
                 <input
@@ -262,7 +276,10 @@ export default function AdminMessagesPage() {
             {/* Broadcast Tier Selection */}
             {recipientType === 'broadcast' && (
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   Target Tier
                 </label>
                 <select
@@ -275,8 +292,12 @@ export default function AdminMessagesPage() {
                     color: 'var(--text-primary)',
                   }}
                 >
-                  {TIERS.map(tier => (
-                    <option key={tier.value} value={tier.value} style={{ backgroundColor: 'var(--surface)' }}>
+                  {TIERS.map((tier) => (
+                    <option
+                      key={tier.value}
+                      value={tier.value}
+                      style={{ backgroundColor: 'var(--surface)' }}
+                    >
                       {tier.label}
                     </option>
                   ))}
@@ -287,7 +308,10 @@ export default function AdminMessagesPage() {
             {/* Message Type & Priority */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   Message Type
                 </label>
                 <select
@@ -300,8 +324,12 @@ export default function AdminMessagesPage() {
                     color: 'var(--text-primary)',
                   }}
                 >
-                  {MESSAGE_TYPES.map(type => (
-                    <option key={type.value} value={type.value} style={{ backgroundColor: 'var(--surface)' }}>
+                  {MESSAGE_TYPES.map((type) => (
+                    <option
+                      key={type.value}
+                      value={type.value}
+                      style={{ backgroundColor: 'var(--surface)' }}
+                    >
                       {type.label}
                     </option>
                   ))}
@@ -309,7 +337,10 @@ export default function AdminMessagesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   Priority
                 </label>
                 <select
@@ -322,8 +353,12 @@ export default function AdminMessagesPage() {
                     color: 'var(--text-primary)',
                   }}
                 >
-                  {PRIORITIES.map(p => (
-                    <option key={p.value} value={p.value} style={{ backgroundColor: 'var(--surface)' }}>
+                  {PRIORITIES.map((p) => (
+                    <option
+                      key={p.value}
+                      value={p.value}
+                      style={{ backgroundColor: 'var(--surface)' }}
+                    >
                       {p.label}
                     </option>
                   ))}
@@ -333,7 +368,10 @@ export default function AdminMessagesPage() {
 
             {/* Subject */}
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 Subject
               </label>
               <input
@@ -353,7 +391,10 @@ export default function AdminMessagesPage() {
 
             {/* Message */}
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--text-secondary)' }}
+              >
                 Message
               </label>
               <textarea
@@ -379,7 +420,11 @@ export default function AdminMessagesPage() {
                 className="px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50"
                 style={{ backgroundColor: 'var(--primary)', color: 'var(--surface)' }}
               >
-                {sending ? 'Sending...' : recipientType === 'broadcast' ? 'Send Broadcast' : 'Send Message'}
+                {sending
+                  ? 'Sending...'
+                  : recipientType === 'broadcast'
+                    ? 'Send Broadcast'
+                    : 'Send Message'}
               </button>
             </div>
           </form>
@@ -409,22 +454,33 @@ export default function AdminMessagesPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span
                           className="text-xs px-2 py-0.5 rounded"
-                          style={{ backgroundColor: 'var(--primary-hover)', color: 'var(--primary)' }}
+                          style={{
+                            backgroundColor: 'var(--primary-hover)',
+                            color: 'var(--primary)',
+                          }}
                         >
                           {msg.is_broadcast ? `Broadcast: ${msg.recipient_tier}` : 'Individual'}
                         </span>
                         <span
                           className="text-xs px-2 py-0.5 rounded"
-                          style={{ backgroundColor: 'var(--glass-bg)', color: 'var(--text-secondary)' }}
+                          style={{
+                            backgroundColor: 'var(--glass-bg)',
+                            color: 'var(--text-secondary)',
+                          }}
                         >
-                          {MESSAGE_TYPES.find(t => t.value === msg.message_type)?.label || msg.message_type}
+                          {MESSAGE_TYPES.find((t) => t.value === msg.message_type)?.label ||
+                            msg.message_type}
                         </span>
                         {msg.priority !== 'normal' && (
-                          <span className={`text-xs px-2 py-0.5 rounded ${
-                            msg.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
-                            msg.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                            'bg-gray-500/20 text-gray-400'
-                          }`}>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded ${
+                              msg.priority === 'urgent'
+                                ? 'bg-red-500/20 text-red-400'
+                                : msg.priority === 'high'
+                                  ? 'bg-orange-500/20 text-orange-400'
+                                  : 'bg-gray-500/20 text-gray-400'
+                            }`}
+                          >
                             {msg.priority}
                           </span>
                         )}
@@ -432,14 +488,18 @@ export default function AdminMessagesPage() {
                       <h3 className="font-medium" style={{ color: 'var(--text-primary)' }}>
                         {msg.subject}
                       </h3>
-                      <p className="text-sm mt-1 line-clamp-2" style={{ color: 'var(--text-muted)' }}>
+                      <p
+                        className="text-sm mt-1 line-clamp-2"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
                         {msg.message}
                       </p>
                       <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
                         {msg.is_broadcast
                           ? `Sent to ${msg.broadcast_sent_count} users`
                           : `Sent to ${msg.recipient?.email || 'Unknown'}`}
-                        {' • '}{formatDate(msg.created_at)}
+                        {' • '}
+                        {formatDate(msg.created_at)}
                       </p>
                     </div>
                   </div>

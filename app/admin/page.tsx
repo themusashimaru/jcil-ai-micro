@@ -70,7 +70,9 @@ export default function AdminDashboard() {
         throw new Error(`Failed to fetch dashboard data (${response.status})`);
       }
 
-      const dashboardData = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { users, stats, ... } }
+      const dashboardData = responseData.data || responseData;
       setData(dashboardData);
       setError(null);
     } catch (err) {
@@ -86,11 +88,7 @@ export default function AdminDashboard() {
     if (!data) return 0;
     const { usersByTier } = data.stats;
     // Rough estimates based on typical pricing
-    return (
-      usersByTier.basic * 10 +
-      usersByTier.pro * 25 +
-      usersByTier.executive * 100
-    );
+    return usersByTier.basic * 10 + usersByTier.pro * 25 + usersByTier.executive * 100;
   };
 
   // Get recent signups (last 7 days)
@@ -100,7 +98,7 @@ export default function AdminDashboard() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     return data.users
-      .filter(u => new Date(u.created_at) >= sevenDaysAgo)
+      .filter((u) => new Date(u.created_at) >= sevenDaysAgo)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 5);
   };
@@ -203,7 +201,8 @@ export default function AdminDashboard() {
           </div>
           <p className="text-3xl font-bold">${mrr.toLocaleString()}</p>
           <p className="text-xs text-green-400 mt-1">
-            {stats.usersByTier.basic + stats.usersByTier.pro + stats.usersByTier.executive} paid users
+            {stats.usersByTier.basic + stats.usersByTier.pro + stats.usersByTier.executive} paid
+            users
           </p>
         </div>
       </div>
@@ -322,11 +321,15 @@ export default function AdminDashboard() {
           {recentSignups.length > 0 ? (
             <div className="space-y-3">
               {recentSignups.map((user) => (
-                <div key={user.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
+                >
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{user.full_name || user.email}</div>
                     <div className="text-xs text-gray-400">
-                      {new Date(user.created_at).toLocaleDateString()} • {user.subscription_tier || 'free'}
+                      {new Date(user.created_at).toLocaleDateString()} •{' '}
+                      {user.subscription_tier || 'free'}
                     </div>
                   </div>
                 </div>
@@ -343,7 +346,10 @@ export default function AdminDashboard() {
           {topUsers.length > 0 ? (
             <div className="space-y-3">
               {topUsers.map((user, index) => (
-                <div key={user.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
+                >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <span className="text-lg font-bold text-gray-500">#{index + 1}</span>
                     <div className="flex-1 min-w-0">
@@ -372,7 +378,9 @@ export default function AdminDashboard() {
           >
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">👥</span>
-              <h4 className="text-lg font-medium group-hover:text-blue-400 transition">Manage Users</h4>
+              <h4 className="text-lg font-medium group-hover:text-blue-400 transition">
+                Manage Users
+              </h4>
             </div>
             <p className="text-sm text-gray-400">View and manage all user accounts</p>
           </Link>
@@ -383,7 +391,9 @@ export default function AdminDashboard() {
           >
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">🎨</span>
-              <h4 className="text-lg font-medium group-hover:text-blue-400 transition">Design Settings</h4>
+              <h4 className="text-lg font-medium group-hover:text-blue-400 transition">
+                Design Settings
+              </h4>
             </div>
             <p className="text-sm text-gray-400">Upload logos, customize branding</p>
           </Link>
@@ -394,7 +404,9 @@ export default function AdminDashboard() {
           >
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">🔄</span>
-              <h4 className="text-lg font-medium group-hover:text-blue-400 transition">Refresh Data</h4>
+              <h4 className="text-lg font-medium group-hover:text-blue-400 transition">
+                Refresh Data
+              </h4>
             </div>
             <p className="text-sm text-gray-400">Update dashboard with latest metrics</p>
           </button>

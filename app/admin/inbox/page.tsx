@@ -119,7 +119,9 @@ export default function AdminInboxPage() {
       const response = await fetch(`/api/admin/support/tickets?${params}`);
       if (!response.ok) throw new Error('Failed to fetch tickets');
 
-      const data = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { tickets, counts } }
+      const data = responseData.data || responseData;
       setTickets(data.tickets || []);
       setCounts(data.counts);
     } catch (error) {
@@ -139,14 +141,14 @@ export default function AdminInboxPage() {
       const response = await fetch(`/api/admin/support/tickets/${ticketId}`);
       if (!response.ok) throw new Error('Failed to fetch ticket');
 
-      const data = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { ticket, replies } }
+      const data = responseData.data || responseData;
       setSelectedTicket(data.ticket);
       setReplies(data.replies || []);
 
       // Update the ticket in the list as read
-      setTickets((prev) =>
-        prev.map((t) => (t.id === ticketId ? { ...t, is_read: true } : t))
-      );
+      setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, is_read: true } : t)));
     } catch (error) {
       console.error('Error fetching ticket:', error);
     } finally {
@@ -164,11 +166,11 @@ export default function AdminInboxPage() {
 
       if (!response.ok) throw new Error('Failed to update ticket');
 
-      const data = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { ticket, success } }
+      const data = responseData.data || responseData;
 
-      setTickets((prev) =>
-        prev.map((t) => (t.id === ticketId ? { ...t, ...data.ticket } : t))
-      );
+      setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, ...data.ticket } : t)));
 
       if (selectedTicket?.id === ticketId) {
         setSelectedTicket((prev) => (prev ? { ...prev, ...data.ticket } : null));
@@ -186,22 +188,21 @@ export default function AdminInboxPage() {
 
     try {
       setReplySending(true);
-      const response = await fetch(
-        `/api/admin/support/tickets/${selectedTicket.id}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: replyText,
-            isInternalNote,
-            deliveryMethod: selectedTicket.source === 'external' ? 'mailto' : 'in_app',
-          }),
-        }
-      );
+      const response = await fetch(`/api/admin/support/tickets/${selectedTicket.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: replyText,
+          isInternalNote,
+          deliveryMethod: selectedTicket.source === 'external' ? 'mailto' : 'in_app',
+        }),
+      });
 
       if (!response.ok) throw new Error('Failed to send reply');
 
-      const data = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { reply, success } }
+      const data = responseData.data || responseData;
       setReplies((prev) => [...prev, data.reply]);
       setReplyText('');
       setIsInternalNote(false);
@@ -224,9 +225,9 @@ export default function AdminInboxPage() {
     const originalDate = new Date(selectedTicket.created_at).toLocaleString();
     const body = encodeURIComponent(
       `${replyText}\n\n` +
-      `---\n` +
-      `On ${originalDate}, ${selectedTicket.sender_name || selectedTicket.sender_email} wrote:\n\n` +
-      `> ${selectedTicket.message.split('\n').join('\n> ')}`
+        `---\n` +
+        `On ${originalDate}, ${selectedTicket.sender_name || selectedTicket.sender_email} wrote:\n\n` +
+        `> ${selectedTicket.message.split('\n').join('\n> ')}`
     );
 
     window.open(`mailto:${selectedTicket.sender_email}?subject=${subject}&body=${body}`, '_blank');
@@ -291,7 +292,10 @@ export default function AdminInboxPage() {
       >
         <div className="lg:hidden flex justify-between items-center mb-4">
           <h2 className="font-bold">Filters</h2>
-          <button onClick={() => setShowMobileSidebar(false)} style={{ color: 'var(--text-muted)' }}>
+          <button
+            onClick={() => setShowMobileSidebar(false)}
+            style={{ color: 'var(--text-muted)' }}
+          >
             X
           </button>
         </div>
@@ -302,16 +306,20 @@ export default function AdminInboxPage() {
             onClick={() => setFilter('all')}
             className="w-full flex justify-between items-center px-3 py-2 rounded-lg text-left transition"
             style={{
-              backgroundColor: currentFilter === 'all' && !currentCategory && !currentStatus && !currentSource
-                ? 'var(--primary)'
-                : 'transparent',
-              color: currentFilter === 'all' && !currentCategory && !currentStatus && !currentSource
-                ? 'white'
-                : 'var(--text-primary)',
+              backgroundColor:
+                currentFilter === 'all' && !currentCategory && !currentStatus && !currentSource
+                  ? 'var(--primary)'
+                  : 'transparent',
+              color:
+                currentFilter === 'all' && !currentCategory && !currentStatus && !currentSource
+                  ? 'white'
+                  : 'var(--text-primary)',
             }}
           >
             <span>All Messages</span>
-            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{counts?.all || 0}</span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              {counts?.all || 0}
+            </span>
           </button>
           <button
             onClick={() => setFilter('unread')}
@@ -322,7 +330,9 @@ export default function AdminInboxPage() {
             }}
           >
             <span>Unread</span>
-            <span className="text-sm bg-red-500 text-white px-2 rounded-full">{counts?.unread || 0}</span>
+            <span className="text-sm bg-red-500 text-white px-2 rounded-full">
+              {counts?.unread || 0}
+            </span>
           </button>
           <button
             onClick={() => setFilter('starred')}
@@ -333,13 +343,20 @@ export default function AdminInboxPage() {
             }}
           >
             <span>Starred</span>
-            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{counts?.starred || 0}</span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              {counts?.starred || 0}
+            </span>
           </button>
         </div>
 
         {/* By Source */}
         <div className="mb-6">
-          <h3 className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-muted)' }}>Source</h3>
+          <h3
+            className="text-xs font-semibold uppercase mb-2"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Source
+          </h3>
           <div className="space-y-1">
             <button
               onClick={() => setFilter('source', 'internal')}
@@ -368,7 +385,12 @@ export default function AdminInboxPage() {
 
         {/* By Category */}
         <div className="mb-6">
-          <h3 className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-muted)' }}>Category</h3>
+          <h3
+            className="text-xs font-semibold uppercase mb-2"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Category
+          </h3>
           <div className="space-y-1">
             {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
               <button
@@ -389,7 +411,12 @@ export default function AdminInboxPage() {
 
         {/* By Status */}
         <div className="mb-6">
-          <h3 className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-muted)' }}>Status</h3>
+          <h3
+            className="text-xs font-semibold uppercase mb-2"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Status
+          </h3>
           <div className="space-y-1">
             {Object.entries(STATUS_LABELS).map(([key, label]) => (
               <button
@@ -418,7 +445,9 @@ export default function AdminInboxPage() {
           }}
         >
           <span>Archived</span>
-          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{counts?.archived || 0}</span>
+          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+            {counts?.archived || 0}
+          </span>
         </button>
       </div>
 
@@ -432,26 +461,30 @@ export default function AdminInboxPage() {
             {currentFilter === 'all' && !currentCategory && !currentStatus && !currentSource
               ? 'All Messages'
               : currentFilter === 'unread'
-              ? 'Unread'
-              : currentFilter === 'starred'
-              ? 'Starred'
-              : currentFilter === 'archived'
-              ? 'Archived'
-              : currentCategory
-              ? CATEGORY_LABELS[currentCategory]
-              : currentStatus
-              ? STATUS_LABELS[currentStatus]
-              : currentSource === 'internal'
-              ? 'Internal (Users)'
-              : 'External (Contact)'}
+                ? 'Unread'
+                : currentFilter === 'starred'
+                  ? 'Starred'
+                  : currentFilter === 'archived'
+                    ? 'Archived'
+                    : currentCategory
+                      ? CATEGORY_LABELS[currentCategory]
+                      : currentStatus
+                        ? STATUS_LABELS[currentStatus]
+                        : currentSource === 'internal'
+                          ? 'Internal (Users)'
+                          : 'External (Contact)'}
           </h2>
         </div>
 
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>Loading...</div>
+            <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>
+              Loading...
+            </div>
           ) : tickets.length === 0 ? (
-            <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>No tickets found</div>
+            <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>
+              No tickets found
+            </div>
           ) : (
             <div>
               {tickets.map((ticket, index) => (
@@ -460,9 +493,13 @@ export default function AdminInboxPage() {
                   onClick={() => fetchTicketDetail(ticket.id)}
                   className="w-full p-4 text-left transition"
                   style={{
-                    backgroundColor: selectedTicket?.id === ticket.id ? 'var(--primary-hover)' : 'transparent',
-                    borderBottom: index < tickets.length - 1 ? '1px solid var(--border)' : undefined,
-                    borderLeft: !ticket.is_read ? '3px solid var(--primary)' : '3px solid transparent',
+                    backgroundColor:
+                      selectedTicket?.id === ticket.id ? 'var(--primary-hover)' : 'transparent',
+                    borderBottom:
+                      index < tickets.length - 1 ? '1px solid var(--border)' : undefined,
+                    borderLeft: !ticket.is_read
+                      ? '3px solid var(--primary)'
+                      : '3px solid transparent',
                   }}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -470,25 +507,36 @@ export default function AdminInboxPage() {
                       {ticket.is_starred && <span className="text-yellow-500">*</span>}
                       <span
                         className="font-medium truncate"
-                        style={{ color: !ticket.is_read ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                        style={{
+                          color: !ticket.is_read ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        }}
                       >
                         {ticket.sender_name || ticket.sender_email}
                       </span>
                     </div>
-                    <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
+                    <span
+                      className="text-xs whitespace-nowrap"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
                       {formatDate(ticket.created_at)}
                     </span>
                   </div>
                   <div
                     className="text-sm truncate"
-                    style={{ color: !ticket.is_read ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                    style={{
+                      color: !ticket.is_read ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    }}
                   >
                     {ticket.subject}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      ticket.source === 'internal' ? 'bg-green-500/20 text-green-600' : 'bg-purple-500/20 text-purple-600'
-                    }`}>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        ticket.source === 'internal'
+                          ? 'bg-green-500/20 text-green-600'
+                          : 'bg-purple-500/20 text-purple-600'
+                      }`}
+                    >
                       {ticket.source === 'internal' ? 'User' : 'Contact'}
                     </span>
                     <span
@@ -514,11 +562,17 @@ export default function AdminInboxPage() {
         style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)' }}
       >
         {!selectedTicket ? (
-          <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
+          <div
+            className="flex-1 flex items-center justify-center"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Select a ticket to view details
           </div>
         ) : detailLoading ? (
-          <div className="flex-1 flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>
+          <div
+            className="flex-1 flex items-center justify-center"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Loading...
           </div>
         ) : (
@@ -529,7 +583,9 @@ export default function AdminInboxPage() {
                 <h2 className="text-lg font-semibold">{selectedTicket.subject}</h2>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => updateTicket(selectedTicket.id, { is_starred: !selectedTicket.is_starred })}
+                    onClick={() =>
+                      updateTicket(selectedTicket.id, { is_starred: !selectedTicket.is_starred })
+                    }
                     className="p-2 rounded transition"
                     style={{ color: selectedTicket.is_starred ? '#eab308' : 'var(--text-muted)' }}
                   >
@@ -548,14 +604,21 @@ export default function AdminInboxPage() {
                 <span style={{ color: 'var(--text-secondary)' }}>
                   From: {selectedTicket.sender_name || selectedTicket.sender_email}
                   {selectedTicket.sender_name && (
-                    <span style={{ color: 'var(--text-muted)' }}> ({selectedTicket.sender_email})</span>
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      {' '}
+                      ({selectedTicket.sender_email})
+                    </span>
                   )}
                 </span>
                 <select
                   value={selectedTicket.status}
                   onChange={(e) => updateTicket(selectedTicket.id, { status: e.target.value })}
                   className="rounded px-2 py-1 text-sm"
-                  style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  style={{
+                    backgroundColor: 'var(--glass-bg)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                  }}
                 >
                   {Object.entries(STATUS_LABELS).map(([key, label]) => (
                     <option key={key} value={key}>
@@ -567,7 +630,11 @@ export default function AdminInboxPage() {
                   value={selectedTicket.priority}
                   onChange={(e) => updateTicket(selectedTicket.id, { priority: e.target.value })}
                   className="rounded px-2 py-1 text-sm"
-                  style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  style={{
+                    backgroundColor: 'var(--glass-bg)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                  }}
                 >
                   <option value="low">Low</option>
                   <option value="normal">Normal</option>
@@ -576,10 +643,16 @@ export default function AdminInboxPage() {
                 </select>
               </div>
               {selectedTicket.user && (
-                <div className="mt-2 p-2 rounded text-xs" style={{ backgroundColor: 'var(--primary-hover)' }}>
+                <div
+                  className="mt-2 p-2 rounded text-xs"
+                  style={{ backgroundColor: 'var(--primary-hover)' }}
+                >
                   <span style={{ color: 'var(--text-secondary)' }}>User: </span>
                   <span>{selectedTicket.user.full_name || selectedTicket.user.email}</span>
-                  <span style={{ color: 'var(--text-muted)' }}> ({selectedTicket.user.subscription_tier})</span>
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    {' '}
+                    ({selectedTicket.user.subscription_tier})
+                  </span>
                 </div>
               )}
             </div>
@@ -588,7 +661,10 @@ export default function AdminInboxPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Original Message */}
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <div
+                  className="flex justify-between items-center mb-2 text-sm"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
                   <span>{selectedTicket.sender_name || selectedTicket.sender_email}</span>
                   <span>{new Date(selectedTicket.created_at).toLocaleString()}</span>
                 </div>
@@ -605,10 +681,15 @@ export default function AdminInboxPage() {
                       : 'bg-green-500/10 border border-green-500/20'
                   }`}
                 >
-                  <div className="flex justify-between items-center mb-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <div
+                    className="flex justify-between items-center mb-2 text-sm"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
                     <span>
                       {reply.admin_email}
-                      {reply.is_internal_note && <span className="ml-2 text-yellow-600">(Internal Note)</span>}
+                      {reply.is_internal_note && (
+                        <span className="ml-2 text-yellow-600">(Internal Note)</span>
+                      )}
                     </span>
                     <span>{new Date(reply.created_at).toLocaleString()}</span>
                   </div>
@@ -636,7 +717,11 @@ export default function AdminInboxPage() {
                 placeholder={isInternalNote ? 'Add an internal note...' : 'Type your reply...'}
                 rows={3}
                 className="w-full rounded-lg p-3 resize-none focus:outline-none"
-                style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                style={{
+                  backgroundColor: 'var(--glass-bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                }}
               />
               <div className="flex justify-between items-center mt-2">
                 {selectedTicket.source === 'external' && !isInternalNote ? (
@@ -645,7 +730,9 @@ export default function AdminInboxPage() {
                   </p>
                 ) : (
                   <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {isInternalNote ? 'Note will be saved but not sent to user' : 'Reply will be sent in-app'}
+                    {isInternalNote
+                      ? 'Note will be saved but not sent to user'
+                      : 'Reply will be sent in-app'}
                   </p>
                 )}
                 <button
@@ -657,8 +744,8 @@ export default function AdminInboxPage() {
                   {replySending
                     ? 'Sending...'
                     : selectedTicket.source === 'external' && !isInternalNote
-                    ? 'Open Email'
-                    : 'Send Reply'}
+                      ? 'Open Email'
+                      : 'Send Reply'}
                 </button>
               </div>
             </div>
@@ -682,7 +769,9 @@ export default function AdminInboxPage() {
             </button>
 
             {detailLoading ? (
-              <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>Loading...</div>
+              <div className="text-center py-8" style={{ color: 'var(--text-muted)' }}>
+                Loading...
+              </div>
             ) : (
               <>
                 <h2 className="text-xl font-semibold mb-2">{selectedTicket.subject}</h2>
@@ -695,7 +784,11 @@ export default function AdminInboxPage() {
                     value={selectedTicket.status}
                     onChange={(e) => updateTicket(selectedTicket.id, { status: e.target.value })}
                     className="rounded px-3 py-2 text-sm flex-1"
-                    style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    style={{
+                      backgroundColor: 'var(--glass-bg)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text-primary)',
+                    }}
                   >
                     {Object.entries(STATUS_LABELS).map(([key, label]) => (
                       <option key={key} value={key}>
@@ -704,7 +797,9 @@ export default function AdminInboxPage() {
                     ))}
                   </select>
                   <button
-                    onClick={() => updateTicket(selectedTicket.id, { is_starred: !selectedTicket.is_starred })}
+                    onClick={() =>
+                      updateTicket(selectedTicket.id, { is_starred: !selectedTicket.is_starred })
+                    }
                     className="px-4 py-2 rounded"
                     style={{
                       backgroundColor: selectedTicket.is_starred ? '#eab308' : 'var(--glass-bg)',
@@ -736,7 +831,9 @@ export default function AdminInboxPage() {
                     >
                       <div className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>
                         {reply.admin_email} - {new Date(reply.created_at).toLocaleString()}
-                        {reply.is_internal_note && <span className="ml-2 text-yellow-600">(Internal)</span>}
+                        {reply.is_internal_note && (
+                          <span className="ml-2 text-yellow-600">(Internal)</span>
+                        )}
                       </div>
                       <div className="whitespace-pre-wrap">{reply.message}</div>
                     </div>
@@ -744,7 +841,10 @@ export default function AdminInboxPage() {
                 </div>
 
                 {/* Reply */}
-                <div className="sticky bottom-0 pt-4" style={{ backgroundColor: 'var(--background)' }}>
+                <div
+                  className="sticky bottom-0 pt-4"
+                  style={{ backgroundColor: 'var(--background)' }}
+                >
                   <label className="flex items-center gap-2 text-sm mb-2">
                     <input
                       type="checkbox"
@@ -759,7 +859,11 @@ export default function AdminInboxPage() {
                     placeholder="Type your reply..."
                     rows={3}
                     className="w-full rounded-lg p-3 resize-none"
-                    style={{ backgroundColor: 'var(--glass-bg)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    style={{
+                      backgroundColor: 'var(--glass-bg)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text-primary)',
+                    }}
                   />
                   <button
                     onClick={sendReply}
@@ -770,8 +874,8 @@ export default function AdminInboxPage() {
                     {replySending
                       ? 'Sending...'
                       : selectedTicket.source === 'external' && !isInternalNote
-                      ? 'Open Email to Reply'
-                      : 'Send Reply'}
+                        ? 'Open Email to Reply'
+                        : 'Send Reply'}
                   </button>
                 </div>
               </>
