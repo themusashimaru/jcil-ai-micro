@@ -103,7 +103,8 @@ export function ChatSidebar({
         const response = await fetch('/api/user/is-admin');
         if (response.ok) {
           const data = await response.json();
-          setIsAdmin(data.isAdmin === true);
+          // API returns { ok: true, data: { isAdmin: boolean } }
+          setIsAdmin(data.data?.isAdmin === true);
         }
       } catch (error) {
         console.error('[ChatSidebar] Error checking admin status:', error);

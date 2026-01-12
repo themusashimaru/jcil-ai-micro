@@ -175,10 +175,13 @@ export async function getPasskeys(): Promise<{
 
     if (!res.ok) {
       const error = await res.json();
-      return { passkeys: [], error: error.error };
+      return { passkeys: [], error: error.error || 'Failed to fetch passkeys' };
     }
 
-    return await res.json();
+    // API returns { ok: true, data: { passkeys: [...] } }
+    const responseData = await res.json();
+    const passkeys = responseData.data?.passkeys || responseData.passkeys || [];
+    return { passkeys };
   } catch {
     return { passkeys: [], error: 'Failed to fetch passkeys' };
   }
