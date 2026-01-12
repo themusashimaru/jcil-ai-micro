@@ -115,12 +115,18 @@ function getFileIcon(name: string, type: 'file' | 'directory', isOpen?: boolean)
 
 function getGitStatusColor(status?: FileNode['gitStatus']): string | undefined {
   switch (status) {
-    case 'modified': return '#f59e0b';
-    case 'added': return '#22c55e';
-    case 'deleted': return '#ef4444';
-    case 'untracked': return '#8b5cf6';
-    case 'ignored': return '#6b7280';
-    default: return undefined;
+    case 'modified':
+      return '#f59e0b';
+    case 'added':
+      return '#22c55e';
+    case 'deleted':
+      return '#ef4444';
+    case 'untracked':
+      return '#8b5cf6';
+    case 'ignored':
+      return '#6b7280';
+    default:
+      return undefined;
   }
 }
 
@@ -145,7 +151,7 @@ export function CodeLabLiveFileTree({
 
   // Toggle directory expansion
   const toggleExpand = useCallback((path: string) => {
-    setExpandedPaths(prev => {
+    setExpandedPaths((prev) => {
       const next = new Set(prev);
       if (next.has(path)) {
         next.delete(path);
@@ -168,7 +174,7 @@ export function CodeLabLiveFileTree({
       }
 
       const filteredChildren = node.children
-        ?.map(child => filterNode(child))
+        ?.map((child) => filterNode(child))
         .filter(Boolean) as FileNode[];
 
       if (filteredChildren && filteredChildren.length > 0) {
@@ -178,7 +184,7 @@ export function CodeLabLiveFileTree({
       return node.name.toLowerCase().includes(query) ? node : null;
     }
 
-    return files.map(f => filterNode(f)).filter(Boolean) as FileNode[];
+    return files.map((f) => filterNode(f)).filter(Boolean) as FileNode[];
   }, [files, searchQuery]);
 
   // Handle right-click
@@ -215,25 +221,23 @@ export function CodeLabLiveFileTree({
           onContextMenu={(e) => handleContextMenu(e, node)}
         >
           {node.type === 'directory' && (
-            <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>
-              ▶
-            </span>
+            <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▶</span>
           )}
-          <span className="file-icon">
-            {getFileIcon(node.name, node.type, isExpanded)}
-          </span>
-          <span
-            className="file-name"
-            style={gitColor ? { color: gitColor } : undefined}
-          >
+          <span className="file-icon">{getFileIcon(node.name, node.type, isExpanded)}</span>
+          <span className="file-name" style={gitColor ? { color: gitColor } : undefined}>
             {node.name}
           </span>
           {node.gitStatus && (
             <span className="git-badge" style={{ color: gitColor }}>
-              {node.gitStatus === 'modified' ? 'M' :
-               node.gitStatus === 'added' ? 'A' :
-               node.gitStatus === 'deleted' ? 'D' :
-               node.gitStatus === 'untracked' ? 'U' : ''}
+              {node.gitStatus === 'modified'
+                ? 'M'
+                : node.gitStatus === 'added'
+                  ? 'A'
+                  : node.gitStatus === 'deleted'
+                    ? 'D'
+                    : node.gitStatus === 'untracked'
+                      ? 'U'
+                      : ''}
             </span>
           )}
         </div>
@@ -248,7 +252,7 @@ export function CodeLabLiveFileTree({
                 }
                 return a.name.localeCompare(b.name);
               })
-              .map(child => renderNode(child, depth + 1))}
+              .map((child) => renderNode(child, depth + 1))}
           </div>
         )}
       </div>
@@ -262,11 +266,7 @@ export function CodeLabLiveFileTree({
         <span className="tree-title">Files</span>
         <div className="tree-actions">
           {onFileCreate && (
-            <button
-              className="tree-btn"
-              onClick={() => onFileCreate('/')}
-              title="New file"
-            >
+            <button className="tree-btn" onClick={() => onFileCreate('/')} title="New file">
               +
             </button>
           )}
@@ -307,31 +307,25 @@ export function CodeLabLiveFileTree({
             {searchQuery ? 'No matching files' : 'No files in workspace'}
           </div>
         ) : (
-          filteredFiles.map(node => renderNode(node))
+          filteredFiles.map((node) => renderNode(node))
         )}
       </div>
 
       {/* Context menu */}
       {contextMenu && (
-        <div
-          className="context-menu"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-        >
-          <button onClick={() => onFileSelect(contextMenu.node.path)}>
-            Open
-          </button>
+        <div className="context-menu" style={{ left: contextMenu.x, top: contextMenu.y }}>
+          <button onClick={() => onFileSelect(contextMenu.node.path)}>Open</button>
           {onFileRename && (
-            <button onClick={() => {
-              const newName = prompt('New name:', contextMenu.node.name);
-              if (newName && newName !== contextMenu.node.name) {
-                const newPath = contextMenu.node.path.replace(
-                  contextMenu.node.name,
-                  newName
-                );
-                onFileRename(contextMenu.node.path, newPath);
-              }
-              setContextMenu(null);
-            }}>
+            <button
+              onClick={() => {
+                const newName = prompt('New name:', contextMenu.node.name);
+                if (newName && newName !== contextMenu.node.name) {
+                  const newPath = contextMenu.node.path.replace(contextMenu.node.name, newName);
+                  onFileRename(contextMenu.node.path, newPath);
+                }
+                setContextMenu(null);
+              }}
+            >
               Rename
             </button>
           )}
@@ -406,8 +400,12 @@ export function CodeLabLiveFileTree({
         }
 
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .tree-search {
@@ -427,7 +425,7 @@ export function CodeLabLiveFileTree({
 
         .tree-search input:focus {
           outline: none;
-          border-color: var(--cl-accent-primary, #6366f1);
+          border-color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .clear-search {

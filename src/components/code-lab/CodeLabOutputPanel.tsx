@@ -20,7 +20,7 @@ interface GeneratedFile {
   content: string;
   language?: string;
   isNew?: boolean;
-  oldContent?: string;  // For diff view
+  oldContent?: string; // For diff view
 }
 
 interface CodeLabOutputPanelProps {
@@ -46,7 +46,7 @@ export function CodeLabOutputPanel({
 
   // Get selected file data
   const selectedFileData = useMemo(() => {
-    return files.find(f => f.path === selectedFile);
+    return files.find((f) => f.path === selectedFile);
   }, [files, selectedFile]);
 
   // Calculate stats
@@ -55,7 +55,7 @@ export function CodeLabOutputPanel({
     let newFiles = 0;
     let modifiedFiles = 0;
 
-    files.forEach(file => {
+    files.forEach((file) => {
       totalLines += file.content.split('\n').length;
       if (file.isNew) {
         newFiles++;
@@ -69,7 +69,7 @@ export function CodeLabOutputPanel({
 
   // Copy file content
   const handleCopyFile = async (filePath: string) => {
-    const file = files.find(f => f.path === filePath);
+    const file = files.find((f) => f.path === filePath);
     if (!file) return;
 
     try {
@@ -85,9 +85,9 @@ export function CodeLabOutputPanel({
   const handleDownloadAll = async () => {
     // Create a simple tar-like format or use client-side zip library
     // For now, create a combined text file
-    const combined = files.map(f =>
-      `${'='.repeat(60)}\n// FILE: ${f.path}\n${'='.repeat(60)}\n${f.content}`
-    ).join('\n\n');
+    const combined = files
+      .map((f) => `${'='.repeat(60)}\n// FILE: ${f.path}\n${'='.repeat(60)}\n${f.content}`)
+      .join('\n\n');
 
     const blob = new Blob([combined], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -104,27 +104,27 @@ export function CodeLabOutputPanel({
   const getLanguage = (path: string): string => {
     const ext = path.split('.').pop()?.toLowerCase();
     const langMap: Record<string, string> = {
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'py': 'python',
-      'rb': 'ruby',
-      'go': 'go',
-      'rs': 'rust',
-      'java': 'java',
-      'kt': 'kotlin',
-      'swift': 'swift',
-      'css': 'css',
-      'scss': 'scss',
-      'html': 'html',
-      'json': 'json',
-      'yaml': 'yaml',
-      'yml': 'yaml',
-      'md': 'markdown',
-      'sql': 'sql',
-      'sh': 'bash',
-      'bash': 'bash',
+      js: 'javascript',
+      jsx: 'javascript',
+      ts: 'typescript',
+      tsx: 'typescript',
+      py: 'python',
+      rb: 'ruby',
+      go: 'go',
+      rs: 'rust',
+      java: 'java',
+      kt: 'kotlin',
+      swift: 'swift',
+      css: 'css',
+      scss: 'scss',
+      html: 'html',
+      json: 'json',
+      yaml: 'yaml',
+      yml: 'yaml',
+      md: 'markdown',
+      sql: 'sql',
+      sh: 'bash',
+      bash: 'bash',
     };
     return langMap[ext || ''] || ext || 'text';
   };
@@ -139,22 +139,32 @@ export function CodeLabOutputPanel({
       <div className="output-header">
         <div className="output-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"
+            />
           </svg>
           <span>{projectName}</span>
           <span className="output-badge">{stats.totalFiles} files</span>
         </div>
         <div className="output-actions">
           {onPushToGitHub && (
-            <button
-              className="output-btn push"
-              onClick={onPushToGitHub}
-              disabled={isPushing}
-            >
+            <button className="output-btn push" onClick={onPushToGitHub} disabled={isPushing}>
               {isPushing ? (
                 <>
-                  <svg className="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  <svg
+                    className="spinner"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                    />
                   </svg>
                   Pushing...
                 </>
@@ -170,7 +180,11 @@ export function CodeLabOutputPanel({
           )}
           <button className="output-btn" onClick={handleDownloadAll}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+              />
             </svg>
             Download
           </button>
@@ -205,15 +219,13 @@ export function CodeLabOutputPanel({
       <div className="output-content">
         {/* File List */}
         <div className="output-files">
-          {files.map(file => (
+          {files.map((file) => (
             <button
               key={file.path}
               className={`file-item ${selectedFile === file.path ? 'selected' : ''}`}
               onClick={() => setSelectedFile(file.path)}
             >
-              <span className="file-icon">
-                {getFileIcon(file.path)}
-              </span>
+              <span className="file-icon">{getFileIcon(file.path)}</span>
               <span className="file-path">{file.path}</span>
               {file.isNew && <span className="file-badge new">new</span>}
               {file.oldContent && <span className="file-badge modified">modified</span>}
@@ -230,7 +242,11 @@ export function CodeLabOutputPanel({
                   </svg>
                 ) : (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
                   </svg>
                 )}
               </button>
@@ -270,9 +286,7 @@ export function CodeLabOutputPanel({
               ) : (
                 <div className="code-preview">
                   <div className="code-header">
-                    <span className="code-lang">
-                      {getLanguage(selectedFileData.path)}
-                    </span>
+                    <span className="code-lang">{getLanguage(selectedFileData.path)}</span>
                     <span className="code-lines">
                       {selectedFileData.content.split('\n').length} lines
                     </span>
@@ -318,7 +332,7 @@ export function CodeLabOutputPanel({
         .output-title svg {
           width: 18px;
           height: 18px;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .output-badge {
@@ -384,8 +398,12 @@ export function CodeLabOutputPanel({
         }
 
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .output-stats {
@@ -498,7 +516,7 @@ export function CodeLabOutputPanel({
         }
 
         .file-copy:hover {
-          color: #6366f1;
+          color: #1e3a5f;
           background: #eef2ff;
         }
 
@@ -631,7 +649,9 @@ function getFileIcon(path: string): React.ReactNode {
     return (
       <svg viewBox="0 0 24 24" fill="#3776ab">
         <rect x="3" y="3" width="18" height="18" rx="2" />
-        <text x="12" y="16" fontSize="8" fill="#fff" textAnchor="middle" fontWeight="bold">PY</text>
+        <text x="12" y="16" fontSize="8" fill="#fff" textAnchor="middle" fontWeight="bold">
+          PY
+        </text>
       </svg>
     );
   }
@@ -640,7 +660,9 @@ function getFileIcon(path: string): React.ReactNode {
     return (
       <svg viewBox="0 0 24 24" fill="#6b7280">
         <rect x="3" y="3" width="18" height="18" rx="2" />
-        <text x="12" y="16" fontSize="7" fill="#fff" textAnchor="middle">{'{}'}</text>
+        <text x="12" y="16" fontSize="7" fill="#fff" textAnchor="middle">
+          {'{}'}
+        </text>
       </svg>
     );
   }
@@ -649,7 +671,9 @@ function getFileIcon(path: string): React.ReactNode {
     return (
       <svg viewBox="0 0 24 24" fill="#264de4">
         <rect x="3" y="3" width="18" height="18" rx="2" />
-        <text x="12" y="16" fontSize="7" fill="#fff" textAnchor="middle" fontWeight="bold">CSS</text>
+        <text x="12" y="16" fontSize="7" fill="#fff" textAnchor="middle" fontWeight="bold">
+          CSS
+        </text>
       </svg>
     );
   }
@@ -658,7 +682,9 @@ function getFileIcon(path: string): React.ReactNode {
     return (
       <svg viewBox="0 0 24 24" fill="#e34c26">
         <rect x="3" y="3" width="18" height="18" rx="2" />
-        <text x="12" y="16" fontSize="6" fill="#fff" textAnchor="middle" fontWeight="bold">HTML</text>
+        <text x="12" y="16" fontSize="6" fill="#fff" textAnchor="middle" fontWeight="bold">
+          HTML
+        </text>
       </svg>
     );
   }

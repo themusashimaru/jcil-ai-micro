@@ -140,7 +140,6 @@ export function CodeLabDeploy({
       setDeployUrl(data.url);
       setDeployState('success');
       onDeployComplete?.(data.url);
-
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Deployment failed');
       setDeployState('error');
@@ -167,7 +166,7 @@ export function CodeLabDeploy({
           disabled={deployState === 'deploying'}
         >
           <svg viewBox="0 0 128 128" fill="currentColor">
-            <path d="M79.2 59.2l-11.6 5.8c-.1.1-.3.1-.4.2l-1.2 1.2 4 4c2 2.1 2 5.4 0 7.5l-5.7 5.7c-2.1 2-5.4 2-7.5 0l-4-4-1.2 1.2c-.1.1-.1.3-.2.4l-5.8 11.6c-.4.9-.2 2 .6 2.7.5.5 1.2.8 1.9.8h.6l14.9-3.7c.2-.1.5-.2.7-.3.2-.2.4-.4.5-.6L90 65.7l-5.7-5.7c-.8-.8-3.3-.8-5.1-.8zm30.3-1.8L96.4 44.3c-1.9-1.9-5-1.9-6.9 0L75.2 58.6c.7.1 1.3.4 1.8.9l5.7 5.7c.5.5.8 1.1.9 1.8l14.3-14.3c1.9-1.9 1.9-5 0-6.9l5.6 5.6zm-8.1-37.6L71.5 49.7l5.7 5.7L107.1 25.5c.9-.9 2.3-.9 3.1 0l5.9 5.9c.9.9.9 2.3 0 3.1l-3.1 3.1.7.7c1.9 1.9 1.9 5 0 6.9l-5.7 5.7c-1.9 1.9-5 1.9-6.9 0l-.7-.7-18 18c-.2.2-.4.4-.6.5-.1.2-.2.5-.3.7l-3.7 14.9c-.3 1.1.5 2.2 1.6 2.5.3.1.6.1.9 0l14.9-3.7c.2-.1.5-.2.7-.3.2-.2.4-.4.5-.6l36-36.1c.9-.9.9-2.3 0-3.1l-5.9-5.9c-.8-.8-2.2-.8-3 0zM44.2 77.5l-5.7 5.7c-.5.5-.8 1.1-.9 1.8L23.3 69.7c-1.9-1.9-1.9-5 0-6.9l5.6-5.6-5.7-5.7L9.2 65.6c-.9.9-.9 2.3 0 3.1l5.9 5.9c.9.9 2.3.9 3.1 0l3.1-3.1.7.7c1.9 1.9 5 1.9 6.9 0l5.7-5.7c1.9-1.9 1.9-5 0-6.9l-.7-.7 18-18c.2-.2.4-.4.6-.5.1-.2.2-.5.3-.7L56.5 25c.3-1.1-.5-2.2-1.6-2.5-.3-.1-.6-.1-.9 0l-14.9 3.7c-.2.1-.5.2-.7.3-.2.2-.4.4-.5.6l-36 36.1c-.9.9-.9 2.3 0 3.1l5.9 5.9c.8.8 2.2.8 3 0l29.9-29.9-5.7-5.7L5.2 66.4c-1.9 1.9-1.9 5 0 6.9L18.3 86.4c1.9 1.9 5 1.9 6.9 0l14.3-14.3c-.1-.7-.4-1.3-.9-1.8l-5.7-5.7c-.5-.5-1.1-.8-1.8-.9l14.3-14.3c.9-.9.9-2.3 0-3.1l-5.9-5.9c-.8-.8-2.2-.8-3 0l-3.1 3.1-.7-.7c-1.9-1.9-5-1.9-6.9 0l-5.7 5.7c-1.9 1.9-1.9 5 0 6.9l.7.7-18 18c-.2.2-.4.4-.5.6-.2.1-.2.5-.3.7l-3.7 14.9c-.3 1.1.5 2.2 1.6 2.5.3.1.6.1.9 0l14.9-3.7c.2-.1.5-.2.7-.3.2-.2.4-.4.5-.6z"/>
+            <path d="M79.2 59.2l-11.6 5.8c-.1.1-.3.1-.4.2l-1.2 1.2 4 4c2 2.1 2 5.4 0 7.5l-5.7 5.7c-2.1 2-5.4 2-7.5 0l-4-4-1.2 1.2c-.1.1-.1.3-.2.4l-5.8 11.6c-.4.9-.2 2 .6 2.7.5.5 1.2.8 1.9.8h.6l14.9-3.7c.2-.1.5-.2.7-.3.2-.2.4-.4.5-.6L90 65.7l-5.7-5.7c-.8-.8-3.3-.8-5.1-.8zm30.3-1.8L96.4 44.3c-1.9-1.9-5-1.9-6.9 0L75.2 58.6c.7.1 1.3.4 1.8.9l5.7 5.7c.5.5.8 1.1.9 1.8l14.3-14.3c1.9-1.9 1.9-5 0-6.9l5.6 5.6zm-8.1-37.6L71.5 49.7l5.7 5.7L107.1 25.5c.9-.9 2.3-.9 3.1 0l5.9 5.9c.9.9.9 2.3 0 3.1l-3.1 3.1.7.7c1.9 1.9 1.9 5 0 6.9l-5.7 5.7c-1.9 1.9-5 1.9-6.9 0l-.7-.7-18 18c-.2.2-.4.4-.6.5-.1.2-.2.5-.3.7l-3.7 14.9c-.3 1.1.5 2.2 1.6 2.5.3.1.6.1.9 0l14.9-3.7c.2-.1.5-.2.7-.3.2-.2.4-.4.5-.6l36-36.1c.9-.9.9-2.3 0-3.1l-5.9-5.9c-.8-.8-2.2-.8-3 0zM44.2 77.5l-5.7 5.7c-.5.5-.8 1.1-.9 1.8L23.3 69.7c-1.9-1.9-1.9-5 0-6.9l5.6-5.6-5.7-5.7L9.2 65.6c-.9.9-.9 2.3 0 3.1l5.9 5.9c.9.9 2.3.9 3.1 0l3.1-3.1.7.7c1.9 1.9 5 1.9 6.9 0l5.7-5.7c1.9-1.9 1.9-5 0-6.9l-.7-.7 18-18c.2-.2.4-.4.6-.5.1-.2.2-.5.3-.7L56.5 25c.3-1.1-.5-2.2-1.6-2.5-.3-.1-.6-.1-.9 0l-14.9 3.7c-.2.1-.5.2-.7.3-.2.2-.4.4-.5.6l-36 36.1c-.9.9-.9 2.3 0 3.1l5.9 5.9c.8.8 2.2.8 3 0l29.9-29.9-5.7-5.7L5.2 66.4c-1.9 1.9-1.9 5 0 6.9L18.3 86.4c1.9 1.9 5 1.9 6.9 0l14.3-14.3c-.1-.7-.4-1.3-.9-1.8l-5.7-5.7c-.5-.5-1.1-.8-1.8-.9l14.3-14.3c.9-.9.9-2.3 0-3.1l-5.9-5.9c-.8-.8-2.2-.8-3 0l-3.1 3.1-.7-.7c-1.9-1.9-5-1.9-6.9 0l-5.7 5.7c-1.9 1.9-1.9 5 0 6.9l.7.7-18 18c-.2.2-.4.4-.5.6-.2.1-.2.5-.3.7l-3.7 14.9c-.3 1.1.5 2.2 1.6 2.5.3.1.6.1.9 0l14.9-3.7c.2-.1.5-.2.7-.3.2-.2.4-.4.5-.6z" />
           </svg>
           Netlify
         </button>
@@ -190,8 +189,8 @@ export function CodeLabDeploy({
                 type="password"
                 placeholder="Enter Vercel Token"
                 value={tokenInput}
-                onChange={e => setTokenInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && saveVercelToken()}
+                onChange={(e) => setTokenInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveVercelToken()}
               />
               <button
                 className="save-token-btn"
@@ -236,8 +235,18 @@ export function CodeLabDeploy({
       >
         {deployState === 'deploying' ? (
           <>
-            <svg className="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            <svg
+              className="spinner"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+              />
             </svg>
             Deploying...
           </>
@@ -251,7 +260,11 @@ export function CodeLabDeploy({
         ) : (
           <>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+              />
             </svg>
             Deploy to {platform === 'vercel' ? 'Vercel' : 'Netlify'}
           </>
@@ -263,7 +276,11 @@ export function CodeLabDeploy({
         <div className="deploy-success">
           <a href={deployUrl} target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+              />
             </svg>
             {deployUrl.replace('https://', '')}
           </a>
@@ -274,7 +291,11 @@ export function CodeLabDeploy({
       {error && (
         <div className="deploy-error">
           <svg viewBox="0 0 24 24" fill="currentColor">
-            <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
+              clipRule="evenodd"
+            />
           </svg>
           <span>{error}</span>
           <button onClick={() => setError(null)}>×</button>
@@ -341,7 +362,8 @@ export function CodeLabDeploy({
           border-radius: 8px;
         }
 
-        .connected, .not-connected {
+        .connected,
+        .not-connected {
           display: flex;
           align-items: center;
           gap: 0.5rem;
@@ -359,7 +381,8 @@ export function CodeLabDeploy({
           background: #d1d5db;
         }
 
-        .disconnect-btn, .connect-btn {
+        .disconnect-btn,
+        .connect-btn {
           margin-left: auto;
           padding: 0.25rem 0.5rem;
           background: none;
@@ -375,8 +398,8 @@ export function CodeLabDeploy({
         }
 
         .connect-btn {
-          background: #6366f1;
-          border-color: #6366f1;
+          background: #1e3a5f;
+          border-color: #1e3a5f;
           color: white;
         }
 
@@ -399,12 +422,12 @@ export function CodeLabDeploy({
 
         .token-input-container input:focus {
           outline: none;
-          border-color: #6366f1;
+          border-color: #1e3a5f;
         }
 
         .save-token-btn {
           padding: 0.5rem 0.75rem;
-          background: #6366f1;
+          background: #1e3a5f;
           border: none;
           border-radius: 6px;
           color: white;
@@ -430,7 +453,7 @@ export function CodeLabDeploy({
           display: block;
           margin-top: 0.5rem;
           font-size: 0.6875rem;
-          color: #6366f1;
+          color: #1e3a5f;
           text-decoration: none;
         }
 
@@ -482,8 +505,12 @@ export function CodeLabDeploy({
         }
 
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .deploy-success {
@@ -568,17 +595,17 @@ export function CodeLabDeploy({
  * Detect framework from files
  */
 function detectFramework(files: GeneratedFile[]): string {
-  const filenames = files.map(f => f.path.toLowerCase());
+  const filenames = files.map((f) => f.path.toLowerCase());
 
-  if (filenames.some(f => f.includes('next.config'))) return 'nextjs';
-  if (filenames.some(f => f.includes('vite.config'))) return 'vite';
-  if (filenames.some(f => f.includes('nuxt.config'))) return 'nuxtjs';
-  if (filenames.some(f => f.includes('svelte.config'))) return 'sveltekit';
-  if (filenames.some(f => f.includes('astro.config'))) return 'astro';
-  if (filenames.some(f => f.endsWith('.tsx') || f.endsWith('.jsx'))) return 'react';
+  if (filenames.some((f) => f.includes('next.config'))) return 'nextjs';
+  if (filenames.some((f) => f.includes('vite.config'))) return 'vite';
+  if (filenames.some((f) => f.includes('nuxt.config'))) return 'nuxtjs';
+  if (filenames.some((f) => f.includes('svelte.config'))) return 'sveltekit';
+  if (filenames.some((f) => f.includes('astro.config'))) return 'astro';
+  if (filenames.some((f) => f.endsWith('.tsx') || f.endsWith('.jsx'))) return 'react';
 
   // Check package.json for clues
-  const packageJson = files.find(f => f.path === 'package.json' || f.path === '/package.json');
+  const packageJson = files.find((f) => f.path === 'package.json' || f.path === '/package.json');
   if (packageJson) {
     try {
       const pkg = JSON.parse(packageJson.content);

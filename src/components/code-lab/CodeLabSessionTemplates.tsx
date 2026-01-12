@@ -116,7 +116,8 @@ const SESSION_TEMPLATES: SessionTemplate[] = [
     description: 'Learn about the project structure and design patterns',
     icon: '🏗️',
     category: 'learn',
-    prompt: 'Explain the architecture of this codebase, including the main components and how they interact.',
+    prompt:
+      'Explain the architecture of this codebase, including the main components and how they interact.',
   },
   {
     id: 'best-practices',
@@ -175,7 +176,8 @@ const SESSION_TEMPLATES: SessionTemplate[] = [
     description: 'Remove dead code, fix linting, organize imports',
     icon: '🧹',
     category: 'refactor',
-    prompt: 'Clean up this codebase by removing dead code, fixing linting issues, and organizing imports.',
+    prompt:
+      'Clean up this codebase by removing dead code, fixing linting issues, and organizing imports.',
   },
 
   // Deploy category
@@ -231,11 +233,11 @@ export function CodeLabSessionTemplates({
   onSelectTemplate,
   className = '',
 }: CodeLabSessionTemplatesProps) {
-  const popularTemplates = SESSION_TEMPLATES.filter(t => t.popular);
+  const popularTemplates = SESSION_TEMPLATES.filter((t) => t.popular);
 
   // Group by category
   const byCategory: Record<string, SessionTemplate[]> = {};
-  SESSION_TEMPLATES.forEach(t => {
+  SESSION_TEMPLATES.forEach((t) => {
     if (!byCategory[t.category]) {
       byCategory[t.category] = [];
     }
@@ -251,7 +253,7 @@ export function CodeLabSessionTemplates({
           Popular
         </h3>
         <div className="templates-grid popular">
-          {popularTemplates.map(template => (
+          {popularTemplates.map((template) => (
             <button
               key={template.id}
               className="template-card popular"
@@ -284,7 +286,7 @@ export function CodeLabSessionTemplates({
             {CATEGORY_INFO[category].label}
           </h3>
           <div className="templates-grid">
-            {templates.map(template => (
+            {templates.map((template) => (
               <button
                 key={template.id}
                 className="template-card"
@@ -357,7 +359,7 @@ export function CodeLabSessionTemplates({
         }
 
         .template-card:hover {
-          border-color: var(--cl-accent-primary, #6366f1);
+          border-color: var(--cl-accent-primary, #1e3a5f);
           box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
           transform: translateY(-2px);
         }

@@ -59,7 +59,7 @@ export function CodeLabDiffViewer({
   const [expandedHunks, setExpandedHunks] = useState<Set<number>>(new Set([0]));
 
   const toggleHunk = (index: number) => {
-    setExpandedHunks(prev => {
+    setExpandedHunks((prev) => {
       const next = new Set(prev);
       if (next.has(index)) {
         next.delete(index);
@@ -74,7 +74,7 @@ export function CodeLabDiffViewer({
     added: { bg: '#dcfce7', text: '#166534', badge: '#22c55e' },
     modified: { bg: '#fef3c7', text: '#92400e', badge: '#f59e0b' },
     deleted: { bg: '#fee2e2', text: '#991b1b', badge: '#ef4444' },
-    renamed: { bg: '#e0e7ff', text: '#3730a3', badge: '#6366f1' },
+    renamed: { bg: '#e0e7ff', text: '#3730a3', badge: '#1e3a5f' },
   };
 
   const colors = statusColors[diff.status];
@@ -99,17 +99,10 @@ export function CodeLabDiffViewer({
         </div>
 
         <div className="diff-stats">
-          {diff.additions > 0 && (
-            <span className="stat additions">+{diff.additions}</span>
-          )}
-          {diff.deletions > 0 && (
-            <span className="stat deletions">-{diff.deletions}</span>
-          )}
+          {diff.additions > 0 && <span className="stat additions">+{diff.additions}</span>}
+          {diff.deletions > 0 && <span className="stat deletions">-{diff.deletions}</span>}
           <div className="view-toggle">
-            <button
-              className={mode === 'split' ? 'active' : ''}
-              onClick={() => setMode('split')}
-            >
+            <button className={mode === 'split' ? 'active' : ''} onClick={() => setMode('split')}>
               Split
             </button>
             <button
@@ -123,11 +116,7 @@ export function CodeLabDiffViewer({
       </div>
 
       {/* Binary file indicator */}
-      {diff.binary && (
-        <div className="diff-binary">
-          Binary file - cannot display diff
-        </div>
-      )}
+      {diff.binary && <div className="diff-binary">Binary file - cannot display diff</div>}
 
       {/* Hunks */}
       {!diff.binary && (
@@ -135,13 +124,8 @@ export function CodeLabDiffViewer({
           {diff.hunks.map((hunk, hunkIndex) => (
             <div key={hunkIndex} className="diff-hunk">
               {/* Hunk header */}
-              <div
-                className="hunk-header"
-                onClick={() => toggleHunk(hunkIndex)}
-              >
-                <span className="hunk-toggle">
-                  {expandedHunks.has(hunkIndex) ? '▼' : '▶'}
-                </span>
+              <div className="hunk-header" onClick={() => toggleHunk(hunkIndex)}>
+                <span className="hunk-toggle">{expandedHunks.has(hunkIndex) ? '▼' : '▶'}</span>
                 <span className="hunk-info">
                   @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
                 </span>
@@ -174,13 +158,12 @@ export function CodeLabDiffViewer({
               </div>
 
               {/* Hunk content */}
-              {expandedHunks.has(hunkIndex) && (
-                mode === 'split' ? (
+              {expandedHunks.has(hunkIndex) &&
+                (mode === 'split' ? (
                   <SplitView lines={hunk.lines} />
                 ) : (
                   <UnifiedView lines={hunk.lines} />
-                )
-              )}
+                ))}
             </div>
           ))}
         </div>
@@ -266,7 +249,7 @@ export function CodeLabDiffViewer({
         }
 
         .view-toggle button.active {
-          background: var(--cl-accent-primary, #6366f1);
+          background: var(--cl-accent-primary, #1e3a5f);
           color: white;
         }
 
@@ -400,10 +383,7 @@ function SplitView({ lines }: { lines: DiffLine[] }) {
     <div className="split-view">
       <div className="split-side left">
         {leftLines.map((line, idx) => (
-          <div
-            key={idx}
-            className={`diff-line ${line?.type || 'empty'}`}
-          >
+          <div key={idx} className={`diff-line ${line?.type || 'empty'}`}>
             <span className="line-num">{line?.oldLineNum || ''}</span>
             <span className="line-content">{line?.content || ''}</span>
           </div>
@@ -411,10 +391,7 @@ function SplitView({ lines }: { lines: DiffLine[] }) {
       </div>
       <div className="split-side right">
         {rightLines.map((line, idx) => (
-          <div
-            key={idx}
-            className={`diff-line ${line?.type || 'empty'}`}
-          >
+          <div key={idx} className={`diff-line ${line?.type || 'empty'}`}>
             <span className="line-num">{line?.newLineNum || ''}</span>
             <span className="line-content">{line?.content || ''}</span>
           </div>

@@ -670,10 +670,18 @@
     background-color: #9dd4ec !important;
   }
 
-  /* Pro mode - ensure primary buttons have white text */
-  :root.pro-mode button[style*="backgroundColor: 'var(--primary)"],
-  :root.pro-mode button[style*='background-color: var(--primary)'] {
-    color: #ffffff !important;
+  /* Pro mode - buttons with primary background need dark text for contrast */
+  /* Target buttons with text-white class that use primary background */
+  :root.pro-mode button.text-white[style*='--primary'],
+  :root.pro-mode a.text-white[style*='--primary'],
+  :root.pro-mode .btn-primary {
+    color: #1a1a1a !important;
+  }
+
+  /* Pro mode - all buttons/links using var(--primary) background should have dark text */
+  :root.pro-mode [style*='backgroundColor'][style*='--primary'],
+  :root.pro-mode [style*='background-color'][style*='--primary'] {
+    color: #1a1a1a !important;
   }
 
   /* New Chat button - theme-aware text color */

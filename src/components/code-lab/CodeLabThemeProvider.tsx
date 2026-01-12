@@ -39,12 +39,15 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Resolve theme based on setting
-  const resolveTheme = useCallback((t: Theme): ResolvedTheme => {
-    if (t === 'system') {
-      return getSystemTheme();
-    }
-    return t;
-  }, [getSystemTheme]);
+  const resolveTheme = useCallback(
+    (t: Theme): ResolvedTheme => {
+      if (t === 'system') {
+        return getSystemTheme();
+      }
+      return t;
+    },
+    [getSystemTheme]
+  );
 
   // Initialize theme from localStorage or system
   useEffect(() => {
@@ -82,11 +85,14 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
   }, [resolvedTheme, mounted]);
 
   // Set theme with persistence
-  const setTheme = useCallback((newTheme: Theme) => {
-    setThemeState(newTheme);
-    setResolvedTheme(resolveTheme(newTheme));
-    localStorage.setItem(STORAGE_KEY, newTheme);
-  }, [resolveTheme]);
+  const setTheme = useCallback(
+    (newTheme: Theme) => {
+      setThemeState(newTheme);
+      setResolvedTheme(resolveTheme(newTheme));
+      localStorage.setItem(STORAGE_KEY, newTheme);
+    },
+    [resolveTheme]
+  );
 
   // Toggle between light and dark
   const toggleTheme = useCallback(() => {
@@ -96,11 +102,7 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
 
   // Prevent flash of wrong theme
   if (!mounted) {
-    return (
-      <div style={{ visibility: 'hidden' }}>
-        {children}
-      </div>
-    );
+    return <div style={{ visibility: 'hidden' }}>{children}</div>;
   }
 
   return (
@@ -109,10 +111,12 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
       <style jsx global>{`
         /* Theme transition */
         :root {
-          transition: background-color 0.3s ease, color 0.3s ease;
+          transition:
+            background-color 0.3s ease,
+            color 0.3s ease;
         }
 
-        /* Light theme (default) */
+        /* Light theme (default) - Navy blue professional style */
         :root,
         :root.theme-light {
           --cl-bg-primary: #ffffff;
@@ -120,7 +124,7 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-bg-tertiary: #f3f4f6;
           --cl-bg-input: #f8fafc;
           --cl-bg-hover: #f3f4f6;
-          --cl-bg-selected: #e0e7ff;
+          --cl-bg-selected: #e8eef5;
           --cl-bg-code: #1e1e1e;
 
           --cl-border-primary: #e5e7eb;
@@ -131,9 +135,10 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-text-tertiary: #6b7280;
           --cl-text-muted: #9ca3af;
 
-          --cl-accent-primary: #6366f1;
-          --cl-accent-secondary: #818cf8;
-          --cl-accent-bg: #eef2ff;
+          /* Navy blue accents - professional, trustworthy */
+          --cl-accent-primary: #1e3a5f;
+          --cl-accent-secondary: #2d4a6f;
+          --cl-accent-bg: #eef3f8;
 
           --cl-success: #22c55e;
           --cl-warning: #f59e0b;
@@ -146,27 +151,28 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
         }
 
-        /* Dark theme */
+        /* Dark theme - Navy-inspired professional dark */
         :root.theme-dark {
-          --cl-bg-primary: #0f0f0f;
-          --cl-bg-secondary: #171717;
-          --cl-bg-tertiary: #262626;
-          --cl-bg-input: #1a1a1a;
-          --cl-bg-hover: #2a2a2a;
-          --cl-bg-selected: #3730a3;
-          --cl-bg-code: #0d0d0d;
+          --cl-bg-primary: #0f1419;
+          --cl-bg-secondary: #161b22;
+          --cl-bg-tertiary: #21262d;
+          --cl-bg-input: #161b22;
+          --cl-bg-hover: #262c36;
+          --cl-bg-selected: #1e3a5f;
+          --cl-bg-code: #0d1117;
 
-          --cl-border-primary: #2a2a2a;
-          --cl-border-secondary: #404040;
+          --cl-border-primary: #30363d;
+          --cl-border-secondary: #484f58;
 
-          --cl-text-primary: #fafafa;
-          --cl-text-secondary: #a3a3a3;
-          --cl-text-tertiary: #737373;
-          --cl-text-muted: #525252;
+          --cl-text-primary: #e6edf3;
+          --cl-text-secondary: #8b949e;
+          --cl-text-tertiary: #6e7681;
+          --cl-text-muted: #484f58;
 
-          --cl-accent-primary: #818cf8;
-          --cl-accent-secondary: #a5b4fc;
-          --cl-accent-bg: #1e1b4b;
+          /* Navy blue accents - lighter for dark mode visibility */
+          --cl-accent-primary: #5b8dc9;
+          --cl-accent-secondary: #79a3d6;
+          --cl-accent-bg: #152238;
 
           --cl-success: #4ade80;
           --cl-warning: #fbbf24;

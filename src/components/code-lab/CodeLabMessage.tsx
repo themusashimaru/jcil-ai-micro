@@ -32,8 +32,8 @@ interface AgentType {
 
 const AGENT_TYPES: Record<string, AgentType> = {
   workspace: { name: 'Workspace Agent', icon: '>', color: '#22c55e', bgColor: '#dcfce7' },
-  standard: { name: 'Claude Opus 4.5', icon: '', color: '#6366f1', bgColor: '#e0e7ff' },
-  code: { name: 'Code Generator', icon: '', color: '#8b5cf6', bgColor: '#ede9fe' },
+  standard: { name: 'Claude Opus 4.5', icon: '', color: '#1e3a5f', bgColor: '#e8eef5' },
+  code: { name: 'Code Generator', icon: '', color: '#2d4a6f', bgColor: '#eef3f8' },
 };
 
 export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps) {
@@ -46,10 +46,12 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
   const agentType = useMemo(() => {
     if (isUser || isSystem) return null;
     // Check for workspace agent patterns in content
-    if (message.content?.includes('`> ') ||
-        message.content?.includes('`Running ') ||
-        message.content?.includes('execute_shell') ||
-        message.content?.includes('/workspace')) {
+    if (
+      message.content?.includes('`> ') ||
+      message.content?.includes('`Running ') ||
+      message.content?.includes('execute_shell') ||
+      message.content?.includes('/workspace')
+    ) {
       return AGENT_TYPES.workspace;
     }
     return AGENT_TYPES.standard;
@@ -99,9 +101,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
           </svg>
         </div>
-        <div className="user-content">
-          {message.content}
-        </div>
+        <div className="user-content">{message.content}</div>
         <style jsx>{`
           .message-user {
             display: flex;
@@ -144,7 +144,10 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
     <div className={`message message-assistant ${message.isStreaming ? 'streaming' : ''}`}>
       {/* Agent Type Indicator */}
       {agentType && (
-        <div className="agent-indicator" style={{ color: agentType.color, background: agentType.bgColor }}>
+        <div
+          className="agent-indicator"
+          style={{ color: agentType.color, background: agentType.bgColor }}
+        >
           <span className="agent-icon">{agentType.icon}</span>
           <span className="agent-name">{agentType.name}</span>
         </div>
@@ -156,10 +159,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
             <div key={index} className="code-block">
               <div className="code-header">
                 <span className="code-lang">{block.language || 'code'}</span>
-                <button
-                  className="code-copy"
-                  onClick={() => handleCopyCode(block.content, index)}
-                >
+                <button className="code-copy" onClick={() => handleCopyCode(block.content, index)}>
                   {copiedBlock === index ? (
                     <>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -170,7 +170,11 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
                   ) : (
                     <>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
                       </svg>
                       Copy
                     </>
@@ -178,7 +182,11 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
                 </button>
               </div>
               <pre className="code-content">
-                <code dangerouslySetInnerHTML={{ __html: highlightCode(escapeHtml(block.content), block.language) }} />
+                <code
+                  dangerouslySetInnerHTML={{
+                    __html: highlightCode(escapeHtml(block.content), block.language),
+                  }}
+                />
               </pre>
             </div>
           );
@@ -202,13 +210,15 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
 
         // Regular text - SANITIZED to prevent XSS
         return (
-          <div key={index} className="text-block" dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }} />
+          <div
+            key={index}
+            className="text-block"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
+          />
         );
       })}
 
-      {message.isStreaming && (
-        <span className="cursor" />
-      )}
+      {message.isStreaming && <span className="cursor" />}
 
       <style jsx>{`
         .message-assistant {
@@ -245,11 +255,11 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           border-radius: 4px;
           font-family: 'SF Mono', 'Menlo', monospace;
           font-size: 0.875em;
-          color: #6366f1;
+          color: #1e3a5f;
         }
 
         .text-block :global(a) {
-          color: #6366f1;
+          color: #1e3a5f;
           text-decoration: none;
         }
 
@@ -257,7 +267,8 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           text-decoration: underline;
         }
 
-        .text-block :global(ul), .text-block :global(ol) {
+        .text-block :global(ul),
+        .text-block :global(ol) {
           margin: 0 0 1rem;
           padding-left: 1.5rem;
         }
@@ -266,15 +277,23 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           margin-bottom: 0.375rem;
         }
 
-        .text-block :global(h1), .text-block :global(h2), .text-block :global(h3) {
+        .text-block :global(h1),
+        .text-block :global(h2),
+        .text-block :global(h3) {
           font-weight: 600;
           color: #0f172a;
           margin: 1.5rem 0 0.75rem;
         }
 
-        .text-block :global(h1) { font-size: 1.25rem; }
-        .text-block :global(h2) { font-size: 1.125rem; }
-        .text-block :global(h3) { font-size: 1rem; }
+        .text-block :global(h1) {
+          font-size: 1.25rem;
+        }
+        .text-block :global(h2) {
+          font-size: 1.125rem;
+        }
+        .text-block :global(h3) {
+          font-size: 1rem;
+        }
 
         .code-block {
           margin: 1rem 0;
@@ -365,9 +384,15 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           background: #475569;
         }
 
-        .terminal-dots span:first-child { background: #ef4444; }
-        .terminal-dots span:nth-child(2) { background: #f59e0b; }
-        .terminal-dots span:last-child { background: #22c55e; }
+        .terminal-dots span:first-child {
+          background: #ef4444;
+        }
+        .terminal-dots span:nth-child(2) {
+          background: #f59e0b;
+        }
+        .terminal-dots span:last-child {
+          background: #22c55e;
+        }
 
         .terminal-title {
           font-size: 0.75rem;
@@ -389,14 +414,20 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           display: inline-block;
           width: 8px;
           height: 18px;
-          background: #6366f1;
+          background: #1e3a5f;
           margin-left: 2px;
           animation: blink 1s infinite;
         }
 
         @keyframes blink {
-          0%, 50% { opacity: 1; }
-          51%, 100% { opacity: 0; }
+          0%,
+          50% {
+            opacity: 1;
+          }
+          51%,
+          100% {
+            opacity: 0;
+          }
         }
 
         /* Agent Type Indicator */
@@ -423,20 +454,49 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
         }
 
         /* Syntax Highlighting */
-        .code-content :global(.token-keyword) { color: #c792ea; }
-        .code-content :global(.token-string) { color: #c3e88d; }
-        .code-content :global(.token-number) { color: #f78c6c; }
-        .code-content :global(.token-comment) { color: #676e95; font-style: italic; }
-        .code-content :global(.token-function) { color: #82aaff; }
-        .code-content :global(.token-operator) { color: #89ddff; }
-        .code-content :global(.token-punctuation) { color: #89ddff; }
-        .code-content :global(.token-class) { color: #ffcb6b; }
-        .code-content :global(.token-variable) { color: #f07178; }
-        .code-content :global(.token-type) { color: #ffcb6b; }
-        .code-content :global(.token-property) { color: #80cbc4; }
-        .code-content :global(.token-tag) { color: #f07178; }
-        .code-content :global(.token-attr) { color: #c792ea; }
-        .code-content :global(.token-value) { color: #c3e88d; }
+        .code-content :global(.token-keyword) {
+          color: #c792ea;
+        }
+        .code-content :global(.token-string) {
+          color: #c3e88d;
+        }
+        .code-content :global(.token-number) {
+          color: #f78c6c;
+        }
+        .code-content :global(.token-comment) {
+          color: #676e95;
+          font-style: italic;
+        }
+        .code-content :global(.token-function) {
+          color: #82aaff;
+        }
+        .code-content :global(.token-operator) {
+          color: #89ddff;
+        }
+        .code-content :global(.token-punctuation) {
+          color: #89ddff;
+        }
+        .code-content :global(.token-class) {
+          color: #ffcb6b;
+        }
+        .code-content :global(.token-variable) {
+          color: #f07178;
+        }
+        .code-content :global(.token-type) {
+          color: #ffcb6b;
+        }
+        .code-content :global(.token-property) {
+          color: #80cbc4;
+        }
+        .code-content :global(.token-tag) {
+          color: #f07178;
+        }
+        .code-content :global(.token-attr) {
+          color: #c792ea;
+        }
+        .code-content :global(.token-value) {
+          color: #c3e88d;
+        }
       `}</style>
     </div>
   );
@@ -500,37 +560,39 @@ function parseMarkdown(content: string): ContentBlock[] {
 
 function formatText(text: string): string {
   // SECURITY FIX: Convert markdown to HTML with URL sanitization
-  return text
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // Links - SECURITY FIX: Sanitize URLs to prevent javascript: and data: protocols
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, linkText, url) => {
-      const safeUrl = sanitizeUrl(url);
-      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(linkText)}</a>`;
-    })
-    // Unordered lists
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-    // Ordered lists
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    // Paragraphs
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^(.+)$/gm, (match) => {
-      if (match.startsWith('<')) return match;
-      return `<p>${match}</p>`;
-    })
-    // Clean up
-    .replace(/<p><\/p>/g, '')
-    .replace(/<p>(<[hul])/g, '$1')
-    .replace(/(<\/[hul][^>]*>)<\/p>/g, '$1');
+  return (
+    text
+      // Headers
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      // Bold
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // Italic
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // Inline code
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      // Links - SECURITY FIX: Sanitize URLs to prevent javascript: and data: protocols
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, linkText, url) => {
+        const safeUrl = sanitizeUrl(url);
+        return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(linkText)}</a>`;
+      })
+      // Unordered lists
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+      // Ordered lists
+      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      // Paragraphs
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^(.+)$/gm, (match) => {
+        if (match.startsWith('<')) return match;
+        return `<p>${match}</p>`;
+      })
+      // Clean up
+      .replace(/<p><\/p>/g, '')
+      .replace(/<p>(<[hul])/g, '$1')
+      .replace(/(<\/[hul][^>]*>)<\/p>/g, '$1')
+  );
 }
 
 // ============================================================================
@@ -548,9 +610,12 @@ function highlightCode(code: string, language?: string): string {
 
   // Language-specific keywords
   const keywordPatterns: Record<string, RegExp> = {
-    typescript: /\b(const|let|var|function|return|if|else|for|while|class|extends|implements|import|export|from|async|await|try|catch|throw|new|typeof|instanceof|interface|type|enum|public|private|protected|static|readonly|as|is|keyof|infer|never|unknown|any|void|null|undefined|true|false)\b/g,
-    javascript: /\b(const|let|var|function|return|if|else|for|while|class|extends|import|export|from|async|await|try|catch|throw|new|typeof|instanceof|true|false|null|undefined)\b/g,
-    python: /\b(def|class|return|if|elif|else|for|while|import|from|as|try|except|finally|raise|with|yield|lambda|pass|break|continue|and|or|not|in|is|True|False|None|self|async|await)\b/g,
+    typescript:
+      /\b(const|let|var|function|return|if|else|for|while|class|extends|implements|import|export|from|async|await|try|catch|throw|new|typeof|instanceof|interface|type|enum|public|private|protected|static|readonly|as|is|keyof|infer|never|unknown|any|void|null|undefined|true|false)\b/g,
+    javascript:
+      /\b(const|let|var|function|return|if|else|for|while|class|extends|import|export|from|async|await|try|catch|throw|new|typeof|instanceof|true|false|null|undefined)\b/g,
+    python:
+      /\b(def|class|return|if|elif|else|for|while|import|from|as|try|except|finally|raise|with|yield|lambda|pass|break|continue|and|or|not|in|is|True|False|None|self|async|await)\b/g,
     rust: /\b(fn|let|mut|const|struct|enum|impl|trait|pub|use|mod|match|if|else|for|while|loop|return|break|continue|async|await|self|Self|true|false|None|Some|Ok|Err)\b/g,
     go: /\b(func|var|const|type|struct|interface|package|import|return|if|else|for|range|switch|case|default|break|continue|go|chan|select|defer|map|make|new|true|false|nil)\b/g,
     java: /\b(public|private|protected|class|interface|extends|implements|static|final|void|int|long|double|float|boolean|String|return|if|else|for|while|try|catch|throw|new|import|package|true|false|null|this|super)\b/g,

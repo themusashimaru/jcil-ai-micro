@@ -27,14 +27,28 @@ interface GenerationResult {
 }
 
 interface CodeLabVisualToCodeProps {
-  onGenerate: (imageBase64: string, framework: Framework, instructions?: string) => Promise<GenerationResult>;
+  onGenerate: (
+    imageBase64: string,
+    framework: Framework,
+    instructions?: string
+  ) => Promise<GenerationResult>;
   onInsertCode?: (code: string) => void;
   className?: string;
 }
 
 const FRAMEWORKS: { id: Framework; name: string; icon: string; description: string }[] = [
-  { id: 'react-tailwind', name: 'React + Tailwind', icon: '⚛️', description: 'React components with Tailwind CSS' },
-  { id: 'react-css', name: 'React + CSS', icon: '⚛️', description: 'React components with CSS modules' },
+  {
+    id: 'react-tailwind',
+    name: 'React + Tailwind',
+    icon: '⚛️',
+    description: 'React components with Tailwind CSS',
+  },
+  {
+    id: 'react-css',
+    name: 'React + CSS',
+    icon: '⚛️',
+    description: 'React components with CSS modules',
+  },
   { id: 'nextjs', name: 'Next.js', icon: '▲', description: 'Next.js App Router components' },
   { id: 'vue', name: 'Vue 3', icon: '💚', description: 'Vue 3 Composition API' },
   { id: 'html-css', name: 'HTML + CSS', icon: '🌐', description: 'Plain HTML with CSS' },
@@ -94,11 +108,14 @@ export function CodeLabVisualToCode({
   }, [handleFileSelect]);
 
   // Handle drag & drop
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
-  }, [handleFileSelect]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file) handleFileSelect(file);
+    },
+    [handleFileSelect]
+  );
 
   // Generate code
   const handleGenerate = async () => {
@@ -147,9 +164,7 @@ export function CodeLabVisualToCode({
           <span className="vtc-icon">🎨</span>
           <h3>Visual to Code</h3>
         </div>
-        <p className="vtc-subtitle">
-          Upload a screenshot or design and get production-ready code
-        </p>
+        <p className="vtc-subtitle">Upload a screenshot or design and get production-ready code</p>
       </div>
 
       <div className="vtc-content">
@@ -241,8 +256,8 @@ export function CodeLabVisualToCode({
               <div className="result-header">
                 <div className="result-info">
                   <span className="result-framework">
-                    {FRAMEWORKS.find(f => f.id === result.framework)?.icon}
-                    {FRAMEWORKS.find(f => f.id === result.framework)?.name}
+                    {FRAMEWORKS.find((f) => f.id === result.framework)?.icon}
+                    {FRAMEWORKS.find((f) => f.id === result.framework)?.name}
                   </span>
                   <span className="result-lang">{result.language}</span>
                 </div>
@@ -261,11 +276,7 @@ export function CodeLabVisualToCode({
 
               <div className="result-content">
                 {showPreview && result.preview ? (
-                  <iframe
-                    srcDoc={result.preview}
-                    title="Preview"
-                    className="preview-frame"
-                  />
+                  <iframe srcDoc={result.preview} title="Preview" className="preview-frame" />
                 ) : (
                   <pre className="code-output">
                     <code>{result.code}</code>
@@ -277,9 +288,7 @@ export function CodeLabVisualToCode({
             <div className="result-placeholder">
               <div className="placeholder-icon">💻</div>
               <p>Generated code will appear here</p>
-              <p className="placeholder-hint">
-                Upload an image and click Generate to start
-              </p>
+              <p className="placeholder-hint">Upload an image and click Generate to start</p>
             </div>
           )}
         </div>
@@ -351,7 +360,7 @@ export function CodeLabVisualToCode({
         }
 
         .drop-zone:hover {
-          border-color: var(--cl-accent-primary, #6366f1);
+          border-color: var(--cl-accent-primary, #1e3a5f);
           background: #f8f9ff;
         }
 
@@ -433,11 +442,11 @@ export function CodeLabVisualToCode({
         }
 
         .framework-option:hover {
-          border-color: var(--cl-accent-primary, #6366f1);
+          border-color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .framework-option.selected {
-          border-color: var(--cl-accent-primary, #6366f1);
+          border-color: var(--cl-accent-primary, #1e3a5f);
           background: #eef2ff;
         }
 
@@ -463,7 +472,7 @@ export function CodeLabVisualToCode({
 
         .instructions-input textarea:focus {
           outline: none;
-          border-color: var(--cl-accent-primary, #6366f1);
+          border-color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .generate-btn {
@@ -472,7 +481,7 @@ export function CodeLabVisualToCode({
           justify-content: center;
           gap: 0.5rem;
           padding: 0.875rem 1.5rem;
-          background: var(--cl-accent-primary, #6366f1);
+          background: var(--cl-accent-primary, #1e3a5f);
           color: white;
           border: none;
           border-radius: 10px;
@@ -502,7 +511,9 @@ export function CodeLabVisualToCode({
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .error-message {
@@ -571,7 +582,7 @@ export function CodeLabVisualToCode({
         }
 
         .result-actions button.primary {
-          background: var(--cl-accent-primary, #6366f1);
+          background: var(--cl-accent-primary, #1e3a5f);
           color: white;
         }
 

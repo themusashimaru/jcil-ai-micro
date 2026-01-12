@@ -93,8 +93,8 @@ export function CodeLabToolProgress({ tools, className = '' }: CodeLabToolProgre
 
   if (tools.length === 0) return null;
 
-  const runningTools = tools.filter(t => t.status === 'running');
-  const completedTools = tools.filter(t => t.status === 'success' || t.status === 'error');
+  const runningTools = tools.filter((t) => t.status === 'running');
+  const completedTools = tools.filter((t) => t.status === 'success' || t.status === 'error');
 
   return (
     <div className={`tool-progress ${className}`}>
@@ -110,14 +110,12 @@ export function CodeLabToolProgress({ tools, className = '' }: CodeLabToolProgre
           </div>
 
           <div className="tool-list">
-            {runningTools.map(tool => (
+            {runningTools.map((tool) => (
               <div key={tool.id} className="tool-item running">
                 <span className="tool-icon">{getToolIcon(tool.name)}</span>
                 <div className="tool-info">
                   <span className="tool-name">{tool.name}</span>
-                  {tool.description && (
-                    <span className="tool-desc">{tool.description}</span>
-                  )}
+                  {tool.description && <span className="tool-desc">{tool.description}</span>}
                 </div>
                 <div className="tool-status">
                   <div className="spinner" />
@@ -138,7 +136,7 @@ export function CodeLabToolProgress({ tools, className = '' }: CodeLabToolProgre
           </div>
 
           <div className="tool-list">
-            {completedTools.map(tool => (
+            {completedTools.map((tool) => (
               <div
                 key={tool.id}
                 className={`tool-item ${tool.status}`}
@@ -147,17 +145,13 @@ export function CodeLabToolProgress({ tools, className = '' }: CodeLabToolProgre
                 <span className="tool-icon">{getToolIcon(tool.name)}</span>
                 <div className="tool-info">
                   <span className="tool-name">{tool.name}</span>
-                  {tool.description && (
-                    <span className="tool-desc">{tool.description}</span>
-                  )}
+                  {tool.description && <span className="tool-desc">{tool.description}</span>}
                 </div>
                 <div className="tool-status">
                   <span className={`status-badge ${tool.status}`}>
                     {tool.status === 'success' ? '✓' : '✗'}
                   </span>
-                  <span className="duration">
-                    {formatDuration(tool.startTime, tool.endTime)}
-                  </span>
+                  <span className="duration">{formatDuration(tool.startTime, tool.endTime)}</span>
                 </div>
 
                 {/* Expandable output */}
@@ -208,20 +202,27 @@ export function CodeLabToolProgress({ tools, className = '' }: CodeLabToolProgre
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          color: var(--cl-accent-primary, #6366f1);
+          color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .pulse-dot {
           width: 8px;
           height: 8px;
-          background: var(--cl-accent-primary, #6366f1);
+          background: var(--cl-accent-primary, #1e3a5f);
           border-radius: 50%;
           animation: pulse 1.5s ease-in-out infinite;
         }
 
         @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.8); }
+          0%,
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.5;
+            transform: scale(0.8);
+          }
         }
 
         .count {
@@ -254,7 +255,7 @@ export function CodeLabToolProgress({ tools, className = '' }: CodeLabToolProgre
         }
 
         .tool-item.running {
-          border-left: 3px solid var(--cl-accent-primary, #6366f1);
+          border-left: 3px solid var(--cl-accent-primary, #1e3a5f);
         }
 
         .tool-item.success {
@@ -302,14 +303,18 @@ export function CodeLabToolProgress({ tools, className = '' }: CodeLabToolProgre
           width: 14px;
           height: 14px;
           border: 2px solid var(--cl-border-primary, #e5e7eb);
-          border-top-color: var(--cl-accent-primary, #6366f1);
+          border-top-color: var(--cl-accent-primary, #1e3a5f);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .status-badge {
@@ -399,8 +404,8 @@ export function CodeLabMiniProgress({ running, progress, className = '' }: MiniP
           height: 100%;
           background: linear-gradient(
             90deg,
-            var(--cl-accent-primary, #6366f1),
-            var(--cl-accent-secondary, #818cf8)
+            var(--cl-accent-primary, #1e3a5f),
+            var(--cl-accent-secondary, #2d4a6f)
           );
           border-radius: 999px;
           transition: width 0.3s ease;
@@ -412,8 +417,12 @@ export function CodeLabMiniProgress({ running, progress, className = '' }: MiniP
         }
 
         @keyframes indeterminate {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(400%); }
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(400%);
+          }
         }
       `}</style>
     </div>

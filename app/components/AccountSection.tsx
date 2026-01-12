@@ -234,8 +234,8 @@ export default function AccountSection() {
           <button
             type="submit"
             disabled={emailLoading}
-            className="w-full rounded-lg px-4 py-3 font-semibold text-white hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: 'var(--primary)' }}
+            className="w-full rounded-lg px-4 py-3 font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed btn-primary"
+            style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
           >
             {emailLoading ? 'Sending Confirmation...' : 'Change Email'}
           </button>
@@ -350,8 +350,8 @@ export default function AccountSection() {
           <button
             type="submit"
             disabled={passwordLoading}
-            className="w-full rounded-lg px-4 py-3 font-semibold text-white hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: 'var(--primary)' }}
+            className="w-full rounded-lg px-4 py-3 font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed btn-primary"
+            style={{ backgroundColor: 'var(--primary)', color: 'var(--background)' }}
           >
             {passwordLoading ? 'Updating...' : 'Change Password'}
           </button>
