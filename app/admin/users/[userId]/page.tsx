@@ -53,7 +53,9 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
         throw new Error('Failed to fetch user');
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { user, ... } }
+      const data = responseData.data || responseData;
       setUser(data.user);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load user');
@@ -77,7 +79,9 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch conversations');
 
-      const data = await response.json();
+      const responseData = await response.json();
+      // API returns { ok: true, data: { conversations, ... } }
+      const data = responseData.data || responseData;
       setConversations(data.conversations || []);
       setError(null);
     } catch (err) {
@@ -161,12 +165,17 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
             <p className="text-gray-400">{user.email}</p>
           </div>
           <div className="text-right">
-            <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
-              user.subscription_tier === 'executive' ? 'bg-amber-500/20 text-amber-300' :
-              user.subscription_tier === 'pro' ? 'bg-purple-500/20 text-purple-300' :
-              user.subscription_tier === 'basic' ? 'bg-blue-500/20 text-blue-300' :
-              'bg-gray-500/20 text-gray-300'
-            }`}>
+            <span
+              className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+                user.subscription_tier === 'executive'
+                  ? 'bg-amber-500/20 text-amber-300'
+                  : user.subscription_tier === 'pro'
+                    ? 'bg-purple-500/20 text-purple-300'
+                    : user.subscription_tier === 'basic'
+                      ? 'bg-blue-500/20 text-blue-300'
+                      : 'bg-gray-500/20 text-gray-300'
+              }`}
+            >
               {(user.subscription_tier || 'free').toUpperCase()}
             </span>
           </div>
@@ -175,11 +184,15 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div>
             <div className="text-sm text-gray-400">Conversations</div>
-            <div className="text-xl font-bold">{(user.conversation_count || 0).toLocaleString()}</div>
+            <div className="text-xl font-bold">
+              {(user.conversation_count || 0).toLocaleString()}
+            </div>
           </div>
           <div>
             <div className="text-sm text-gray-400">Total Messages</div>
-            <div className="text-xl font-bold">{(user.actual_message_count || user.total_messages || 0).toLocaleString()}</div>
+            <div className="text-xl font-bold">
+              {(user.actual_message_count || user.total_messages || 0).toLocaleString()}
+            </div>
           </div>
           <div>
             <div className="text-sm text-gray-400">Total Images</div>
@@ -192,13 +205,18 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
           <div>
             <div className="text-sm text-gray-400">Last Active</div>
             <div className="text-sm">
-              {user.last_message_date ? new Date(user.last_message_date).toLocaleDateString() : 'Never'}
+              {user.last_message_date
+                ? new Date(user.last_message_date).toLocaleDateString()
+                : 'Never'}
             </div>
           </div>
           <div>
             <div className="text-sm text-gray-400">Status</div>
             <div className="text-sm">
-              {user.subscription_status ? user.subscription_status.charAt(0).toUpperCase() + user.subscription_status.slice(1) : 'None'}
+              {user.subscription_status
+                ? user.subscription_status.charAt(0).toUpperCase() +
+                  user.subscription_status.slice(1)
+                : 'None'}
             </div>
           </div>
         </div>
@@ -251,9 +269,7 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
       {/* Conversations List */}
       <div className="glass-morphism rounded-2xl p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">
-            Conversation History ({conversations.length})
-          </h3>
+          <h3 className="text-lg font-bold">Conversation History ({conversations.length})</h3>
           <button
             onClick={fetchConversations}
             className="text-sm text-blue-400 hover:text-blue-300"
@@ -282,7 +298,9 @@ export default function AdminUserDetailPage({ params }: { params: { userId: stri
                   <div className="flex-1 min-w-0">
                     <div className="font-medium mb-2 truncate">{conv.title}</div>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                      <span className={`px-2 py-1 rounded ${getContextBadgeColor(conv.tool_context)}`}>
+                      <span
+                        className={`px-2 py-1 rounded ${getContextBadgeColor(conv.tool_context)}`}
+                      >
                         {conv.tool_context || 'general'}
                       </span>
                       <span>{conv.message_count} messages</span>
