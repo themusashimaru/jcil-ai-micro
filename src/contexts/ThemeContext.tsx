@@ -27,47 +27,67 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Load theme and admin status on mount
   useEffect(() => {
+    let isMounted = true;
+
     const loadThemeAndAdmin = async () => {
       try {
-        // Fetch both in parallel
-        const [settingsRes, adminRes] = await Promise.all([
+        // Fetch both in parallel with individual error handling
+        const [settingsRes, adminRes] = await Promise.allSettled([
           fetch('/api/user/settings'),
           fetch('/api/user/is-admin'),
         ]);
 
+        // Check if component is still mounted
+        if (!isMounted) return;
+
+        // Process admin status
         let adminStatus = false;
-        if (adminRes.ok) {
-          const adminData = await adminRes.json();
-          adminStatus = adminData.data?.isAdmin || false;
-          setIsAdmin(adminStatus);
+        if (adminRes.status === 'fulfilled' && adminRes.value.ok) {
+          try {
+            const adminData = await adminRes.value.json();
+            adminStatus = adminData.data?.isAdmin || false;
+            if (isMounted) setIsAdmin(adminStatus);
+          } catch (parseError) {
+            console.error('[Theme] Error parsing admin response:', parseError);
+          }
         }
 
-        if (settingsRes.ok) {
-          const data = await settingsRes.json();
-          const savedTheme = data.settings?.theme as Theme;
+        // Process settings
+        if (settingsRes.status === 'fulfilled' && settingsRes.value.ok) {
+          try {
+            const data = await settingsRes.value.json();
+            const savedTheme = data.settings?.theme as Theme;
 
-          if (savedTheme) {
-            // Check if user can use this theme
-            const allAllowedThemes = adminStatus
-              ? [...USER_THEMES, ...ADMIN_ONLY_THEMES]
-              : USER_THEMES;
+            if (savedTheme && isMounted) {
+              // Check if user can use this theme
+              const allAllowedThemes = adminStatus
+                ? [...USER_THEMES, ...ADMIN_ONLY_THEMES]
+                : USER_THEMES;
 
-            if (allAllowedThemes.includes(savedTheme)) {
-              setThemeState(savedTheme);
-            } else {
-              // User has an admin-only theme but is not admin - reset to default
-              setThemeState('pro');
+              if (allAllowedThemes.includes(savedTheme)) {
+                setThemeState(savedTheme);
+              } else {
+                // User has an admin-only theme but is not admin - reset to default
+                setThemeState('pro');
+              }
             }
+          } catch (parseError) {
+            console.error('[Theme] Error parsing settings response:', parseError);
           }
         }
       } catch (error) {
         console.error('[Theme] Error loading theme:', error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     loadThemeAndAdmin();
+
+    // Cleanup function to prevent state updates on unmounted component
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Apply theme to document
