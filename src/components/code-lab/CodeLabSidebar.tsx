@@ -11,6 +11,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import type { CodeLabSession } from './types';
 import { CodeLabFileBrowser } from './CodeLabFileBrowser';
 
@@ -504,6 +505,16 @@ export function CodeLabSidebar({
 
           {/* Footer */}
           <div className="sidebar-footer">
+            <Link href="/chat" className="back-to-chat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
+                />
+              </svg>
+              Back to Chat
+            </Link>
             <div className="powered-by">Powered by Claude Opus 4.5</div>
           </div>
         </>
@@ -513,8 +524,8 @@ export function CodeLabSidebar({
         .code-lab-sidebar {
           width: 280px;
           min-width: 280px;
-          background: #ffffff;
-          border-right: 1px solid #e5e7eb;
+          background: var(--cl-bg-secondary, #f9fafb);
+          border-right: 1px solid var(--cl-border-primary, #e5e7eb);
           display: flex;
           flex-direction: column;
           transition:
@@ -532,7 +543,7 @@ export function CodeLabSidebar({
           align-items: center;
           justify-content: space-between;
           padding: 1rem;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid var(--cl-border-primary, #e5e7eb);
         }
 
         .sidebar-logo {
@@ -540,13 +551,13 @@ export function CodeLabSidebar({
           align-items: center;
           gap: 0.5rem;
           font-weight: 600;
-          color: #1a1f36;
+          color: var(--cl-text-primary, #1a1f36);
         }
 
         .sidebar-logo svg {
           width: 24px;
           height: 24px;
-          color: #1e3a5f;
+          color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .sidebar-toggle {
@@ -554,13 +565,13 @@ export function CodeLabSidebar({
           border: none;
           padding: 0.375rem;
           cursor: pointer;
-          color: #6b7280;
+          color: var(--cl-text-tertiary, #6b7280);
           border-radius: 6px;
           transition: background 0.2s;
         }
 
         .sidebar-toggle:hover {
-          background: #f3f4f6;
+          background: var(--cl-bg-hover, #f3f4f6);
         }
 
         .sidebar-toggle svg {
@@ -579,7 +590,7 @@ export function CodeLabSidebar({
           justify-content: center;
           gap: 0.5rem;
           padding: 0.625rem 1rem;
-          background: #1a1f36;
+          background: var(--cl-accent-primary, #1e3a5f);
           color: white;
           border: none;
           border-radius: 8px;
@@ -590,7 +601,7 @@ export function CodeLabSidebar({
         }
 
         .new-session-btn:hover {
-          background: #2d3348;
+          background: var(--cl-accent-secondary, #2d4a6f);
         }
 
         .new-session-btn svg {
@@ -605,7 +616,7 @@ export function CodeLabSidebar({
         .changes-label {
           font-size: 0.75rem;
           font-weight: 500;
-          color: #6b7280;
+          color: var(--cl-text-tertiary, #6b7280);
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin-bottom: 0.5rem;
@@ -616,8 +627,8 @@ export function CodeLabSidebar({
           flex-wrap: wrap;
           gap: 0.5rem;
           padding: 0.75rem;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
+          background: var(--cl-bg-tertiary, #f9fafb);
+          border: 1px solid var(--cl-border-primary, #e5e7eb);
           border-radius: 8px;
         }
 
@@ -644,23 +655,23 @@ export function CodeLabSidebar({
         }
 
         .change-text {
-          color: #6b7280;
+          color: var(--cl-text-tertiary, #6b7280);
         }
 
         .change-stat.added {
-          color: #16a34a;
+          color: var(--cl-success, #16a34a);
         }
 
         .change-stat.removed {
-          color: #dc2626;
+          color: var(--cl-error, #dc2626);
         }
 
         .change-stat.files {
-          color: #1e3a5f;
+          color: var(--cl-accent-primary, #1e3a5f);
           flex-basis: 100%;
           margin-top: 0.25rem;
           padding-top: 0.5rem;
-          border-top: 1px solid #e5e7eb;
+          border-top: 1px solid var(--cl-border-primary, #e5e7eb);
         }
 
         .sidebar-repo {
@@ -677,7 +688,7 @@ export function CodeLabSidebar({
         .repo-label {
           font-size: 0.75rem;
           font-weight: 500;
-          color: #6b7280;
+          color: var(--cl-text-tertiary, #6b7280);
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -687,14 +698,14 @@ export function CodeLabSidebar({
           border: none;
           padding: 0.25rem;
           cursor: pointer;
-          color: #9ca3af;
+          color: var(--cl-text-muted, #9ca3af);
           border-radius: 4px;
           transition: all 0.2s;
         }
 
         .repo-refresh-btn:hover:not(:disabled) {
-          color: #1e3a5f;
-          background: #eef2ff;
+          color: var(--cl-accent-primary, #1e3a5f);
+          background: var(--cl-accent-bg, #eef2ff);
         }
 
         .repo-refresh-btn:disabled {
@@ -725,24 +736,24 @@ export function CodeLabSidebar({
           align-items: center;
           gap: 0.5rem;
           padding: 0.5rem 0.75rem;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
+          background: var(--cl-bg-primary, #ffffff);
+          border: 1px solid var(--cl-border-primary, #e5e7eb);
           border-radius: 6px;
           font-size: 0.8125rem;
-          color: #374151;
+          color: var(--cl-text-primary, #374151);
           cursor: pointer;
           transition: border-color 0.2s;
           text-align: left;
         }
 
         .repo-selector:hover {
-          border-color: #d1d5db;
+          border-color: var(--cl-border-secondary, #d1d5db);
         }
 
         .repo-icon {
           width: 16px;
           height: 16px;
-          color: #6b7280;
+          color: var(--cl-text-tertiary, #6b7280);
         }
 
         .repo-name {
@@ -755,7 +766,7 @@ export function CodeLabSidebar({
 
         .repo-branch {
           font-size: 0.75rem;
-          color: #9ca3af;
+          color: var(--cl-text-muted, #9ca3af);
         }
 
         .repo-dropdown {
@@ -763,10 +774,10 @@ export function CodeLabSidebar({
           top: calc(100% + 4px);
           left: 0;
           right: 0;
-          background: white;
-          border: 1px solid #e5e7eb;
+          background: var(--cl-bg-primary, #ffffff);
+          border: 1px solid var(--cl-border-primary, #e5e7eb);
           border-radius: 8px;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+          box-shadow: var(--cl-shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.12));
           z-index: 100;
           max-height: 320px;
           overflow: hidden;
@@ -782,13 +793,15 @@ export function CodeLabSidebar({
           width: 100%;
           padding: 0.625rem 0.75rem;
           border: none;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid var(--cl-border-primary, #e5e7eb);
+          background: var(--cl-bg-primary, #ffffff);
+          color: var(--cl-text-primary, #374151);
           font-size: 0.8125rem;
           outline: none;
         }
 
         .repo-search:focus {
-          border-bottom-color: #1e3a5f;
+          border-bottom-color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .repo-loading,
@@ -796,14 +809,14 @@ export function CodeLabSidebar({
         .repo-not-connected {
           padding: 1rem;
           text-align: center;
-          color: #6b7280;
+          color: var(--cl-text-tertiary, #6b7280);
           font-size: 0.8125rem;
         }
 
         .repo-not-connected a {
           display: inline-block;
           margin-top: 0.5rem;
-          color: #1e3a5f;
+          color: var(--cl-accent-primary, #1e3a5f);
           text-decoration: none;
           font-weight: 500;
         }
@@ -828,25 +841,25 @@ export function CodeLabSidebar({
           border: none;
           border-radius: 6px;
           font-size: 0.8125rem;
-          color: #374151;
+          color: var(--cl-text-primary, #374151);
           cursor: pointer;
           text-align: left;
         }
 
         .repo-item:hover {
-          background: #f3f4f6;
+          background: var(--cl-bg-hover, #f3f4f6);
         }
 
         .repo-item.active {
-          background: #eef2ff;
+          background: var(--cl-bg-selected, #eef2ff);
         }
 
         .repo-item.clear {
-          color: #dc2626;
+          color: var(--cl-error, #dc2626);
         }
 
         .repo-item.clear:hover {
-          background: #fef2f2;
+          background: rgba(239, 68, 68, 0.1);
         }
 
         .repo-item svg {
@@ -856,7 +869,7 @@ export function CodeLabSidebar({
         }
 
         .repo-item-icon {
-          color: #6b7280;
+          color: var(--cl-text-tertiary, #6b7280);
         }
 
         .repo-item-info {
@@ -875,14 +888,14 @@ export function CodeLabSidebar({
 
         .repo-item-desc {
           font-size: 0.75rem;
-          color: #9ca3af;
+          color: var(--cl-text-muted, #9ca3af);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
         .repo-item-private {
-          color: #f59e0b;
+          color: var(--cl-warning, #f59e0b);
           width: 14px;
           height: 14px;
         }
@@ -890,8 +903,8 @@ export function CodeLabSidebar({
         .sidebar-file-browser {
           max-height: 200px;
           overflow-y: auto;
-          border-top: 1px solid #e5e7eb;
-          border-bottom: 1px solid #e5e7eb;
+          border-top: 1px solid var(--cl-border-primary, #e5e7eb);
+          border-bottom: 1px solid var(--cl-border-primary, #e5e7eb);
         }
 
         .sidebar-sessions {
@@ -904,7 +917,7 @@ export function CodeLabSidebar({
         .sessions-label {
           font-size: 0.75rem;
           font-weight: 500;
-          color: #6b7280;
+          color: var(--cl-text-tertiary, #6b7280);
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 0 1rem;
@@ -920,7 +933,7 @@ export function CodeLabSidebar({
         .sessions-empty {
           padding: 1rem;
           text-align: center;
-          color: #9ca3af;
+          color: var(--cl-text-muted, #9ca3af);
           font-size: 0.8125rem;
         }
 
@@ -936,22 +949,22 @@ export function CodeLabSidebar({
         }
 
         .session-item:hover {
-          background: #f3f4f6;
+          background: var(--cl-bg-hover, #f3f4f6);
         }
 
         .session-item.active {
-          background: #eef2ff;
+          background: var(--cl-bg-selected, #eef2ff);
         }
 
         .session-indicator {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: #d1d5db;
+          background: var(--cl-text-muted, #d1d5db);
         }
 
         .session-item.active .session-indicator {
-          background: #1e3a5f;
+          background: var(--cl-accent-primary, #1e3a5f);
         }
 
         .session-info {
@@ -962,7 +975,7 @@ export function CodeLabSidebar({
         .session-title {
           font-size: 0.875rem;
           font-weight: 500;
-          color: #1a1f36;
+          color: var(--cl-text-primary, #1a1f36);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -970,7 +983,7 @@ export function CodeLabSidebar({
 
         .session-meta {
           font-size: 0.75rem;
-          color: #9ca3af;
+          color: var(--cl-text-muted, #9ca3af);
           margin-top: 0.125rem;
         }
 
@@ -979,7 +992,7 @@ export function CodeLabSidebar({
           border: none;
           padding: 0.25rem;
           cursor: pointer;
-          color: #9ca3af;
+          color: var(--cl-text-muted, #9ca3af);
           border-radius: 4px;
           opacity: 0;
           transition:
@@ -992,8 +1005,8 @@ export function CodeLabSidebar({
         }
 
         .session-menu-btn:hover {
-          background: #e5e7eb;
-          color: #374151;
+          background: var(--cl-bg-hover, #e5e7eb);
+          color: var(--cl-text-primary, #374151);
         }
 
         .session-menu-btn svg {
@@ -1005,10 +1018,10 @@ export function CodeLabSidebar({
           position: absolute;
           right: 0.5rem;
           top: 100%;
-          background: white;
-          border: 1px solid #e5e7eb;
+          background: var(--cl-bg-primary, #ffffff);
+          border: 1px solid var(--cl-border-primary, #e5e7eb);
           border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          box-shadow: var(--cl-shadow-md, 0 4px 12px rgba(0, 0, 0, 0.1));
           z-index: 10;
           min-width: 140px;
           overflow: hidden;
@@ -1023,21 +1036,21 @@ export function CodeLabSidebar({
           background: none;
           border: none;
           font-size: 0.8125rem;
-          color: #374151;
+          color: var(--cl-text-primary, #374151);
           cursor: pointer;
           text-align: left;
         }
 
         .session-menu button:hover {
-          background: #f3f4f6;
+          background: var(--cl-bg-hover, #f3f4f6);
         }
 
         .session-menu button.danger {
-          color: #ef4444;
+          color: var(--cl-error, #ef4444);
         }
 
         .session-menu button.danger:hover {
-          background: #fef2f2;
+          background: rgba(239, 68, 68, 0.1);
         }
 
         .session-menu button svg {
@@ -1048,20 +1061,52 @@ export function CodeLabSidebar({
         .session-edit-input {
           width: 100%;
           padding: 0.25rem 0.5rem;
-          border: 1px solid #1e3a5f;
+          border: 1px solid var(--cl-accent-primary, #1e3a5f);
           border-radius: 4px;
           font-size: 0.875rem;
+          background: var(--cl-bg-primary, #ffffff);
+          color: var(--cl-text-primary, #1a1f36);
           outline: none;
         }
 
         .sidebar-footer {
           padding: 1rem;
-          border-top: 1px solid #e5e7eb;
+          border-top: 1px solid var(--cl-border-primary, #e5e7eb);
+          margin-top: auto;
+        }
+
+        .back-to-chat {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          width: 100%;
+          padding: 0.625rem 1rem;
+          margin-bottom: 0.75rem;
+          background: var(--cl-bg-hover, #f3f4f6);
+          border: 1px solid var(--cl-border-primary, #e5e7eb);
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: var(--cl-text-primary, #1a1f36);
+          text-decoration: none;
+          transition: all 0.2s;
+        }
+
+        .back-to-chat:hover {
+          background: var(--cl-bg-selected, #eef2ff);
+          border-color: var(--cl-accent-primary, #1e3a5f);
+          color: var(--cl-accent-primary, #1e3a5f);
+        }
+
+        .back-to-chat svg {
+          width: 18px;
+          height: 18px;
         }
 
         .powered-by {
           font-size: 0.75rem;
-          color: #9ca3af;
+          color: var(--cl-text-muted, #9ca3af);
           text-align: center;
         }
 
