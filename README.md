@@ -209,9 +209,9 @@ MAX_CONCURRENT_REQUESTS = 50
 QUEUE_TIMEOUT_MS = 30000
 REQUEST_TTL_SECONDS = 120
 
-// Intelligent model routing
-Simple queries → Claude Haiku 4.5 (fast, cost-effective)
-Complex queries → Claude Sonnet 4 (deep reasoning)
+// Cost-optimized model routing
+Regular chat → Claude Haiku 4.5 (fast, cost-effective)
+Document creation → Claude Sonnet 4 (quality JSON output)
 ```
 
 ### Quality Metrics

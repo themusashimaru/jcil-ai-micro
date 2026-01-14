@@ -255,7 +255,7 @@ Message Content
 ┌─────────────────────────────────────────────────────────────┐
 │  STAGE 2: Claude Haiku Extraction                            │
 │                                                              │
-│  Model: claude-sonnet-4-5-20250514 (or haiku for cost)      │
+│  Model: claude-haiku-4-5-20251001 (cost-optimized)          │
 │  Max tokens: 500                                             │
 │                                                              │
 │  Extracts:                                                   │
