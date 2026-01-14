@@ -1149,6 +1149,26 @@
       0 0 0 4px rgba(77, 200, 255, 0.08) !important;
   }
 
+  /* Default dark mode chat input - ghostly outline for visibility */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-input-glass {
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.25) !important; /* Soft sky blue outline */
+    border-radius: 1.5rem !important;
+    box-shadow:
+      0 0 20px rgba(56, 189, 248, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  }
+
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-input-glass:focus-within {
+    border-color: rgba(56, 189, 248, 0.4) !important;
+    box-shadow:
+      0 0 30px rgba(56, 189, 248, 0.15),
+      0 0 0 3px rgba(56, 189, 248, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  }
+
   /* Send button glow animation */
   .send-button-glow {
     box-shadow:
