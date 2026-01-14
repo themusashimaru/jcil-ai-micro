@@ -218,22 +218,18 @@ describe('Anthropic Client', () => {
   });
 
   describe('selectClaudeModel', () => {
-    it('should return Haiku for simple greetings', async () => {
+    it('should return Haiku by default for all regular chat (cost optimization)', async () => {
       const { selectClaudeModel, CLAUDE_HAIKU } = await import('./client');
+      // Simple messages
       expect(selectClaudeModel('hi')).toBe(CLAUDE_HAIKU);
       expect(selectClaudeModel('hello')).toBe(CLAUDE_HAIKU);
       expect(selectClaudeModel('thanks')).toBe(CLAUDE_HAIKU);
-    });
-
-    it('should return Sonnet for complex requests', async () => {
-      const { selectClaudeModel, CLAUDE_SONNET } = await import('./client');
-      expect(selectClaudeModel('explain the theory of relativity in depth')).toBe(CLAUDE_SONNET);
-      expect(selectClaudeModel('analyze this code and refactor it')).toBe(CLAUDE_SONNET);
-    });
-
-    it('should return Sonnet for research queries', async () => {
-      const { selectClaudeModel, CLAUDE_SONNET } = await import('./client');
-      expect(selectClaudeModel('research', { isResearch: true })).toBe(CLAUDE_SONNET);
+      // Complex messages - still Haiku for cost savings
+      expect(selectClaudeModel('explain the theory of relativity in depth')).toBe(CLAUDE_HAIKU);
+      expect(selectClaudeModel('analyze this code and refactor it')).toBe(CLAUDE_HAIKU);
+      // Long content - still Haiku
+      const longContent = 'a'.repeat(250);
+      expect(selectClaudeModel(longContent)).toBe(CLAUDE_HAIKU);
     });
 
     it('should return Sonnet for document generation', async () => {
@@ -241,33 +237,10 @@ describe('Anthropic Client', () => {
       expect(selectClaudeModel('doc', { isDocumentGeneration: true })).toBe(CLAUDE_SONNET);
     });
 
-    it('should return Sonnet for faith topics', async () => {
-      const { selectClaudeModel, CLAUDE_SONNET } = await import('./client');
-      expect(selectClaudeModel('faith', { isFaithTopic: true })).toBe(CLAUDE_SONNET);
-    });
-
     it('should respect forceModel option', async () => {
       const { selectClaudeModel, CLAUDE_HAIKU, CLAUDE_SONNET } = await import('./client');
       expect(selectClaudeModel('complex query', { forceModel: 'haiku' })).toBe(CLAUDE_HAIKU);
       expect(selectClaudeModel('simple hi', { forceModel: 'sonnet' })).toBe(CLAUDE_SONNET);
-    });
-
-    it('should return Sonnet for long content', async () => {
-      const { selectClaudeModel, CLAUDE_SONNET } = await import('./client');
-      const longContent = 'a'.repeat(250);
-      expect(selectClaudeModel(longContent)).toBe(CLAUDE_SONNET);
-    });
-
-    it('should return Sonnet for code requests', async () => {
-      const { selectClaudeModel, CLAUDE_SONNET } = await import('./client');
-      expect(selectClaudeModel('write a typescript function')).toBe(CLAUDE_SONNET);
-      expect(selectClaudeModel('debug this python code')).toBe(CLAUDE_SONNET);
-    });
-
-    it('should return Sonnet for bible/faith content', async () => {
-      const { selectClaudeModel, CLAUDE_SONNET } = await import('./client');
-      expect(selectClaudeModel('what does the bible say about love')).toBe(CLAUDE_SONNET);
-      expect(selectClaudeModel('explain Romans 8:28')).toBe(CLAUDE_SONNET);
     });
   });
 });

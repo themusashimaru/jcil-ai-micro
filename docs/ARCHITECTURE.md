@@ -156,18 +156,18 @@ The AI client implements enterprise-grade reliability:
 │  ┌─────────────────────────────────────────────────────────────┐   │
 │  │                    MODEL ROUTING                             │   │
 │  │                                                               │   │
-│  │  User Query ───► Intent Analysis ───► Model Selection        │   │
+│  │  User Query ───► Is Document Creation? ───► Model Selection  │   │
 │  │                                              │                │   │
 │  │                         ┌────────────────────┴────────────┐  │   │
-│  │                         │                                  │  │   │
+│  │                         │ No                          Yes │  │   │
 │  │                         ▼                                  ▼  │   │
 │  │                  ┌───────────┐                    ┌───────────┐│   │
 │  │                  │  HAIKU    │                    │  SONNET   ││   │
 │  │                  │  4.5      │                    │    4      ││   │
 │  │                  │           │                    │           ││   │
-│  │                  │ • Simple  │                    │ • Complex ││   │
-│  │                  │ • Fast    │                    │ • Deep    ││   │
-│  │                  │ • Cheap   │                    │ • Research││   │
+│  │                  │ • Chat    │                    │ • Resumes ││   │
+│  │                  │ • Fast    │                    │ • PDFs    ││   │
+│  │                  │ • Cheap   │                    │ • Documents│   │
 │  │                  └───────────┘                    └───────────┘│   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                      │

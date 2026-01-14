@@ -894,12 +894,12 @@ export function ChatComposer({
                     </svg>
                   </button>
                 ) : (
-                  // Regular users: Show 2 individual buttons (Search, Fact Check)
-                  <div className="flex items-center gap-1">
+                  // Regular users: Show 2 individual buttons (Search, Fact Check) - text only, no backgrounds
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => selectToolMode('search')}
                       disabled={isStreaming || disabled}
-                      className="rounded-full px-2.5 py-1.5 disabled:opacity-50 flex items-center gap-1 transition-colors text-xs hover:bg-blue-500/20"
+                      className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
                       style={{ color: '#3b82f6' }}
                       title="Web Search"
                     >
@@ -921,7 +921,7 @@ export function ChatComposer({
                     <button
                       onClick={() => selectToolMode('factcheck')}
                       disabled={isStreaming || disabled}
-                      className="rounded-full px-2.5 py-1.5 disabled:opacity-50 flex items-center gap-1 transition-colors text-xs hover:bg-green-500/20"
+                      className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
                       style={{ color: '#10b981' }}
                       title="Fact Check"
                     >

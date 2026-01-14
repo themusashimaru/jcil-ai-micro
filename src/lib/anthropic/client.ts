@@ -107,7 +107,7 @@ function initializeApiKeys(): void {
   if (totalKeys > 0) {
     log.info('Initialized dual-pool system', {
       primaryKeys: primaryPool.length,
-      fallbackKeys: fallbackPool.length
+      fallbackKeys: fallbackPool.length,
     });
   }
 }
@@ -121,7 +121,7 @@ function getPrimaryKeyState(): ApiKeyState | null {
   const now = Date.now();
 
   // Get all available (non-rate-limited) keys
-  const availableKeys = primaryPool.filter(k => k.rateLimitedUntil <= now);
+  const availableKeys = primaryPool.filter((k) => k.rateLimitedUntil <= now);
 
   if (availableKeys.length === 0) {
     return null; // All primary keys are rate limited
@@ -142,7 +142,7 @@ function getFallbackKeyState(): ApiKeyState | null {
   const now = Date.now();
 
   // Get all available (non-rate-limited) fallback keys
-  const availableKeys = fallbackPool.filter(k => k.rateLimitedUntil <= now);
+  const availableKeys = fallbackPool.filter((k) => k.rateLimitedUntil <= now);
 
   if (availableKeys.length === 0) {
     return null; // All fallback keys are also rate limited
@@ -190,7 +190,11 @@ function getApiKeyState(): ApiKeyState | null {
   }
 
   const waitTime = Math.ceil((soonestKey.rateLimitedUntil - Date.now()) / 1000);
-  log.warn('All keys rate limited', { totalKeys: allKeys.length, pool: soonestKey.pool, waitSeconds: waitTime });
+  log.warn('All keys rate limited', {
+    totalKeys: allKeys.length,
+    pool: soonestKey.pool,
+    waitSeconds: waitTime,
+  });
 
   return soonestKey;
 }
@@ -200,20 +204,20 @@ function getApiKeyState(): ApiKeyState | null {
  */
 function markKeyRateLimited(apiKey: string, retryAfterSeconds: number = 60): void {
   const allKeys = [...primaryPool, ...fallbackPool];
-  const keyState = allKeys.find(k => k.key === apiKey);
+  const keyState = allKeys.find((k) => k.key === apiKey);
 
   if (keyState) {
-    keyState.rateLimitedUntil = Date.now() + (retryAfterSeconds * 1000);
+    keyState.rateLimitedUntil = Date.now() + retryAfterSeconds * 1000;
 
     // Log pool status
     const now = Date.now();
-    const availablePrimary = primaryPool.filter(k => k.rateLimitedUntil <= now).length;
-    const availableFallback = fallbackPool.filter(k => k.rateLimitedUntil <= now).length;
+    const availablePrimary = primaryPool.filter((k) => k.rateLimitedUntil <= now).length;
+    const availableFallback = fallbackPool.filter((k) => k.rateLimitedUntil <= now).length;
     log.warn('Key rate limited', {
       pool: keyState.pool,
       retryAfterSeconds,
       availablePrimary,
-      availableFallback
+      availableFallback,
     });
   }
 }
@@ -248,8 +252,8 @@ export function getAnthropicKeyStats(): {
   initializeApiKeys();
   const now = Date.now();
 
-  const primaryAvailable = primaryPool.filter(k => k.rateLimitedUntil <= now).length;
-  const fallbackAvailable = fallbackPool.filter(k => k.rateLimitedUntil <= now).length;
+  const primaryAvailable = primaryPool.filter((k) => k.rateLimitedUntil <= now).length;
+  const fallbackAvailable = fallbackPool.filter((k) => k.rateLimitedUntil <= now).length;
 
   return {
     primaryKeys: primaryPool.length,
@@ -284,7 +288,9 @@ function getAnthropicClientWithKey(): ClientWithKey {
   const keyState = getApiKeyState();
 
   if (!keyState) {
-    throw new Error('ANTHROPIC_API_KEY is not configured. Set ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_1, _2, etc.');
+    throw new Error(
+      'ANTHROPIC_API_KEY is not configured. Set ANTHROPIC_API_KEY or ANTHROPIC_API_KEY_1, _2, etc.'
+    );
   }
 
   // Cache the client instance for this key
@@ -295,7 +301,7 @@ function getAnthropicClientWithKey(): ClientWithKey {
   return {
     client: keyState.client,
     key: keyState.key,
-    keyIndex: keyState.index
+    keyIndex: keyState.index,
   };
 }
 
@@ -326,15 +332,20 @@ export interface WebSearchResult {
 type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp';
 
 // Anthropic message content types
-type AnthropicMessageContent = string | Array<
-  { type: 'text'; text: string } |
-  { type: 'image'; source: { type: 'base64'; media_type: ImageMediaType; data: string } }
->;
+type AnthropicMessageContent =
+  | string
+  | Array<
+      | { type: 'text'; text: string }
+      | { type: 'image'; source: { type: 'base64'; media_type: ImageMediaType; data: string } }
+    >;
 
 /**
  * Convert CoreMessage format to Anthropic message format
  */
-function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
+function convertMessages(
+  messages: CoreMessage[],
+  systemPrompt?: string
+): {
   system: string;
   messages: Array<{
     role: 'user' | 'assistant';
@@ -369,8 +380,8 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
       } else if (Array.isArray(msg.content)) {
         // Handle multimodal content (text + images)
         const parts: Array<
-          { type: 'text'; text: string } |
-          { type: 'image'; source: { type: 'base64'; media_type: ImageMediaType; data: string } }
+          | { type: 'text'; text: string }
+          | { type: 'image'; source: { type: 'base64'; media_type: ImageMediaType; data: string } }
         > = [];
 
         for (const part of msg.content) {
@@ -386,7 +397,12 @@ function convertMessages(messages: CoreMessage[], systemPrompt?: string): {
             if (matches) {
               const [, mediaType, data] = matches;
               // Validate and cast media type to allowed values
-              const validMediaTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
+              const validMediaTypes = [
+                'image/png',
+                'image/jpeg',
+                'image/gif',
+                'image/webp',
+              ] as const;
               const typedMediaType = validMediaTypes.includes(mediaType as ImageMediaType)
                 ? (mediaType as ImageMediaType)
                 : 'image/png'; // Default to PNG if unknown
@@ -462,7 +478,7 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
       // Extract text from response
       const textContent = response.content
         .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-        .map(block => block.text)
+        .map((block) => block.text)
         .join('\n');
 
       return {
@@ -473,9 +489,10 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
       lastError = error instanceof Error ? error : new Error(String(error));
 
       // Check for rate limit error
-      const isRateLimit = lastError.message.includes('rate_limit') ||
-                          lastError.message.includes('429') ||
-                          lastError.message.toLowerCase().includes('too many requests');
+      const isRateLimit =
+        lastError.message.includes('rate_limit') ||
+        lastError.message.includes('429') ||
+        lastError.message.toLowerCase().includes('too many requests');
 
       if (isRateLimit && currentKey) {
         // Extract retry-after if available, default to 60 seconds
@@ -503,7 +520,7 @@ export async function createAnthropicCompletion(options: AnthropicChatOptions): 
         backoffMs,
         error: lastError.message,
       });
-      await new Promise(resolve => setTimeout(resolve, backoffMs));
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
     }
   }
 
@@ -588,10 +605,7 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
         });
 
         try {
-          const result = await Promise.race([
-            iterator.next(),
-            timeoutPromise,
-          ]);
+          const result = await Promise.race([iterator.next(), timeoutPromise]);
 
           if (result.done) break;
 
@@ -607,7 +621,9 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
         } catch (error) {
           if (error instanceof Error && error.message === 'Stream chunk timeout') {
             log.error('Stream chunk timeout - no data for 60s');
-            await writer.write('\n\n*[Response interrupted: Connection timed out. Please try again.]*');
+            await writer.write(
+              '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
+            );
           }
           throw error;
         }
@@ -650,9 +666,7 @@ export async function createAnthropicStreamingCompletion(options: AnthropicChatO
  *
  * RACE CONDITION FIX: Uses getAnthropicClientWithKey() atomically.
  */
-export async function createAnthropicCompletionWithSearch(
-  options: AnthropicChatOptions
-): Promise<{
+export async function createAnthropicCompletionWithSearch(options: AnthropicChatOptions): Promise<{
   text: string;
   model: string;
   citations: Array<{ title: string; url: string }>;
@@ -677,7 +691,8 @@ export async function createAnthropicCompletionWithSearch(
   const tools: Anthropic.Tool[] = [
     {
       name: 'web_search',
-      description: 'Search the web for current information. Use this when the user asks about recent events, current data, or information that may have changed since your training.',
+      description:
+        'Search the web for current information. Use this when the user asks about recent events, current data, or information that may have changed since your training.',
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -703,7 +718,8 @@ export async function createAnthropicCompletionWithSearch(
       model,
       max_tokens: maxTokens,
       temperature,
-      system: system + '\n\nYou have access to web search. Use it when you need current information.',
+      system:
+        system + '\n\nYou have access to web search. Use it when you need current information.',
       messages: currentMessages,
       tools,
     });
@@ -717,7 +733,7 @@ export async function createAnthropicCompletionWithSearch(
       // No tool use, return the text response
       const textContent = response.content
         .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-        .map(block => block.text)
+        .map((block) => block.text)
         .join('\n');
 
       return {
@@ -748,7 +764,10 @@ export async function createAnthropicCompletionWithSearch(
           // Format search results for the model
           const formattedResults = searchResults.results
             .slice(0, 5)
-            .map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.description}${r.content ? '\n' + r.content.slice(0, 500) : ''}`)
+            .map(
+              (r, i) =>
+                `[${i + 1}] ${r.title}\n${r.url}\n${r.description}${r.content ? '\n' + r.content.slice(0, 500) : ''}`
+            )
             .join('\n\n');
 
           // Add the assistant's response and tool result to messages
@@ -772,11 +791,13 @@ export async function createAnthropicCompletionWithSearch(
 
           currentMessages.push({
             role: 'user',
-            content: [{
-              type: 'tool_result' as unknown as 'text',
-              tool_use_id: toolUse.id,
-              content: `Search results for "${query}":\n\n${formattedResults}`,
-            }] as unknown as Array<{ type: 'text'; text: string }>,
+            content: [
+              {
+                type: 'tool_result' as unknown as 'text',
+                tool_use_id: toolUse.id,
+                content: `Search results for "${query}":\n\n${formattedResults}`,
+              },
+            ] as unknown as Array<{ type: 'text'; text: string }>,
           });
         } catch (error) {
           log.error('Web search error', error as Error);
@@ -800,12 +821,14 @@ export async function createAnthropicCompletionWithSearch(
           });
           currentMessages.push({
             role: 'user',
-            content: [{
-              type: 'tool_result' as unknown as 'text',
-              tool_use_id: toolUse.id,
-              content: 'Web search failed. Please provide a response based on your knowledge.',
-              is_error: true,
-            }] as unknown as Array<{ type: 'text'; text: string }>,
+            content: [
+              {
+                type: 'tool_result' as unknown as 'text',
+                tool_use_id: toolUse.id,
+                content: 'Web search failed. Please provide a response based on your knowledge.',
+                is_error: true,
+              },
+            ] as unknown as Array<{ type: 'text'; text: string }>,
           });
         }
       }
@@ -834,7 +857,7 @@ export function isImageGenerationRequest(content: string): boolean {
     /\bstable diffusion\b/i,
   ];
 
-  return imagePatterns.some(pattern => pattern.test(content));
+  return imagePatterns.some((pattern) => pattern.test(content));
 }
 
 /**
@@ -845,32 +868,48 @@ export function detectDocumentRequest(content: string): 'xlsx' | 'pptx' | 'docx'
   const lowerContent = content.toLowerCase();
 
   // Excel detection - spreadsheets, budgets, financial documents, trackers
-  if (/\b(excel|spreadsheet|xlsx|xls)\b/.test(lowerContent) ||
-      /\b(budget|financial|expense|income|tracker|tracking|schedule|calendar|planner)\b.*\b(spreadsheet|sheet)\b/.test(lowerContent) ||
-      /\b(create|make|generate|build|give me|can you make|i need)\b.*\b(spreadsheet|budget|tracker|schedule)\b/.test(lowerContent) ||
-      /\b(spreadsheet|budget|financial tracker)\b.*\b(create|make|for me|for)\b/.test(lowerContent)) {
+  if (
+    /\b(excel|spreadsheet|xlsx|xls)\b/.test(lowerContent) ||
+    /\b(budget|financial|expense|income|tracker|tracking|schedule|calendar|planner)\b.*\b(spreadsheet|sheet)\b/.test(
+      lowerContent
+    ) ||
+    /\b(create|make|generate|build|give me|can you make|i need)\b.*\b(spreadsheet|budget|tracker|schedule)\b/.test(
+      lowerContent
+    ) ||
+    /\b(spreadsheet|budget|financial tracker)\b.*\b(create|make|for me|for)\b/.test(lowerContent)
+  ) {
     return 'xlsx';
   }
 
   // PowerPoint detection
-  if (/\b(powerpoint|pptx|ppt|presentation|slide deck|slides)\b/.test(lowerContent) ||
-      /\b(create|make|generate)\b.*\b(presentation|slides)\b/.test(lowerContent)) {
+  if (
+    /\b(powerpoint|pptx|ppt|presentation|slide deck|slides)\b/.test(lowerContent) ||
+    /\b(create|make|generate)\b.*\b(presentation|slides)\b/.test(lowerContent)
+  ) {
     return 'pptx';
   }
 
   // Word detection - documents, resumes, letters, contracts, reports
-  if (/\b(word document|docx|doc file|word doc)\b/.test(lowerContent) ||
-      /\b(create|make|generate|write|build|give me|can you make|i need)\b.*\b(document|resume|cv|letter|contract|proposal|report|memo|essay)\b/.test(lowerContent) ||
-      /\b(resume|cv|cover letter|business letter|contract|proposal|report|memo)\b.*\b(create|make|generate|for me|for)\b/.test(lowerContent) ||
-      /\b(professional|formal)\b.*\b(document|letter|resume)\b/.test(lowerContent)) {
+  if (
+    /\b(word document|docx|doc file|word doc)\b/.test(lowerContent) ||
+    /\b(create|make|generate|write|build|give me|can you make|i need)\b.*\b(document|resume|cv|letter|contract|proposal|report|memo|essay)\b/.test(
+      lowerContent
+    ) ||
+    /\b(resume|cv|cover letter|business letter|contract|proposal|report|memo)\b.*\b(create|make|generate|for me|for)\b/.test(
+      lowerContent
+    ) ||
+    /\b(professional|formal)\b.*\b(document|letter|resume)\b/.test(lowerContent)
+  ) {
     return 'docx';
   }
 
   // PDF detection - invoices, receipts, formal documents
-  if (/\b(pdf)\b/.test(lowerContent) ||
-      /\b(invoice|receipt|bill)\b/.test(lowerContent) ||
-      /\b(create|make|generate|build|give me)\b.*\b(invoice|receipt|bill|pdf)\b/.test(lowerContent) ||
-      /\b(invoice|receipt|bill)\b.*\b(create|make|generate|for)\b/.test(lowerContent)) {
+  if (
+    /\b(pdf)\b/.test(lowerContent) ||
+    /\b(invoice|receipt|bill)\b/.test(lowerContent) ||
+    /\b(create|make|generate|build|give me)\b.*\b(invoice|receipt|bill|pdf)\b/.test(lowerContent) ||
+    /\b(invoice|receipt|bill)\b.*\b(create|make|generate|for)\b/.test(lowerContent)
+  ) {
     return 'pdf';
   }
 
@@ -889,7 +928,9 @@ export interface AnthropicSkillsOptions extends AnthropicChatOptions {
 /**
  * Create Anthropic completion with Skills (agentic loop)
  */
-export async function createAnthropicCompletionWithSkills(options: AnthropicSkillsOptions): Promise<{
+export async function createAnthropicCompletionWithSkills(
+  options: AnthropicSkillsOptions
+): Promise<{
   text: string;
   model: string;
   files?: Array<{ file_id: string; filename: string; mime_type: string }>;
@@ -923,94 +964,32 @@ export async function downloadAnthropicFile(fileId: string): Promise<{
 
 // Model IDs - Current Claude 4 models (Claude 3.x retired July 2025)
 // See: https://docs.anthropic.com/en/docs/about-claude/models
-export const CLAUDE_HAIKU = 'claude-haiku-4-5-20251001';   // Fast, cost-effective
-export const CLAUDE_SONNET = 'claude-sonnet-4-20250514';   // Smart, balanced
+export const CLAUDE_HAIKU = 'claude-haiku-4-5-20251001'; // Fast, cost-effective
+export const CLAUDE_SONNET = 'claude-sonnet-4-20250514'; // Smart, balanced
 
 /**
- * Determine which Claude model to use based on query complexity
+ * Simple model selection: Haiku for chat, Sonnet for documents
  *
- * Returns Haiku for:
- * - Simple greetings, small talk
- * - Basic Q&A (definitions, simple facts)
- * - Short responses under 200 chars expected
- *
- * Returns Sonnet for:
- * - Research queries (multi-step reasoning)
- * - Complex analysis
- * - Code generation/review
- * - Document creation
- * - Faith/theology questions (need nuance)
- * - Long-form content
+ * Cost optimization: Use Haiku 4.5 for all regular chat
+ * Quality guarantee: Use Sonnet only for document creation (resumes, PDFs, etc.)
  */
-export function selectClaudeModel(content: string, options?: {
-  forceModel?: 'haiku' | 'sonnet';
-  isResearch?: boolean;
-  isDocumentGeneration?: boolean;
-  isFaithTopic?: boolean;
-}): string {
+export function selectClaudeModel(
+  _content: string,
+  options?: {
+    forceModel?: 'haiku' | 'sonnet';
+    isResearch?: boolean;
+    isDocumentGeneration?: boolean;
+    isFaithTopic?: boolean;
+  }
+): string {
   // Force override
   if (options?.forceModel === 'haiku') return CLAUDE_HAIKU;
   if (options?.forceModel === 'sonnet') return CLAUDE_SONNET;
 
-  // Always use Sonnet for these specialized tasks
-  if (options?.isResearch) return CLAUDE_SONNET;
+  // Sonnet only for document generation (resumes, PDFs, documents)
   if (options?.isDocumentGeneration) return CLAUDE_SONNET;
-  if (options?.isFaithTopic) return CLAUDE_SONNET;
 
-  const lowerContent = content.toLowerCase().trim();
-
-  // Simple greetings → Haiku
-  const simplePatterns = [
-    /^(hi|hello|hey|howdy|good\s*(morning|afternoon|evening)|what'?s?\s*up)\b/i,
-    /^(thanks?|thank\s*you|thx|ty)\b/i,
-    /^(ok|okay|sure|got\s*it|sounds?\s*good|perfect|great|nice)\b/i,
-    /^(bye|goodbye|see\s*you|later|cya)\b/i,
-  ];
-
-  for (const pattern of simplePatterns) {
-    if (pattern.test(lowerContent) && lowerContent.length < 50) {
-      return CLAUDE_HAIKU;
-    }
-  }
-
-  // Complex patterns → Sonnet
-  const complexPatterns = [
-    // Research indicators
-    /\b(research|investigate|analyze|compare|evaluate|assess|study)\b/i,
-    /\b(in\-depth|comprehensive|detailed|thorough)\b/i,
-
-    // Reasoning indicators
-    /\b(explain|why|how\s+does|what\s+causes?|reasoning|logic)\b/i,
-    /\b(pros?\s*(and|&)\s*cons?|advantages?|disadvantages?|trade\-?offs?)\b/i,
-
-    // Code indicators
-    /\b(code|function|implement|debug|refactor|review\s+my)\b/i,
-    /\b(typescript|javascript|python|react|next\.?js)\b/i,
-
-    // Document indicators
-    /\b(write|create|draft|generate)\s+(a|an|my)\s+(resume|report|document|essay|article)/i,
-
-    // Faith indicators
-    /\b(bible|scripture|verse|god|jesus|faith|pray|christian|church|theology)\b/i,
-    /\b(romans?|corinthians?|genesis|matthew|john|psalms?|proverbs?)\b/i,
-
-    // Long-form indicators
-    /\b(list\s+(of|all)|multiple|several|many|various)\b/i,
-    /\b(step\s*by\s*step|walkthrough|tutorial|guide)\b/i,
-  ];
-
-  for (const pattern of complexPatterns) {
-    if (pattern.test(lowerContent)) {
-      return CLAUDE_SONNET;
-    }
-  }
-
-  // Length-based: Longer queries typically need Sonnet
-  if (content.length > 200) {
-    return CLAUDE_SONNET;
-  }
-
-  // Default to Haiku for cost optimization
+  // Haiku for everything else (cost optimization)
   return CLAUDE_HAIKU;
 }
 
@@ -1036,14 +1015,12 @@ export async function createClaudeStreamingChat(options: {
   stream: ReadableStream<Uint8Array>;
   model: string;
 }> {
-  const lastUserMessage = options.messages
-    .filter(m => m.role === 'user')
-    .pop();
+  const lastUserMessage = options.messages.filter((m) => m.role === 'user').pop();
 
   const lastContent = lastUserMessage
-    ? (typeof lastUserMessage.content === 'string'
-        ? lastUserMessage.content
-        : JSON.stringify(lastUserMessage.content))
+    ? typeof lastUserMessage.content === 'string'
+      ? lastUserMessage.content
+      : JSON.stringify(lastUserMessage.content)
     : '';
 
   const model = selectClaudeModel(lastContent, {
@@ -1097,7 +1074,9 @@ export async function createClaudeStreamingChat(options: {
       };
 
       // Wrapper to read stream with timeout
-      async function* streamWithTimeout(anthropicStream: AsyncIterable<Anthropic.MessageStreamEvent>) {
+      async function* streamWithTimeout(
+        anthropicStream: AsyncIterable<Anthropic.MessageStreamEvent>
+      ) {
         const iterator = anthropicStream[Symbol.asyncIterator]();
 
         while (true) {
@@ -1108,10 +1087,7 @@ export async function createClaudeStreamingChat(options: {
 
           try {
             // Race between next chunk and timeout
-            const result = await Promise.race([
-              iterator.next(),
-              timeoutPromise,
-            ]);
+            const result = await Promise.race([iterator.next(), timeoutPromise]);
 
             if (result.done) break;
 
@@ -1165,9 +1141,10 @@ export async function createClaudeStreamingChat(options: {
           log.error('Stream error', { attempt: retryCount + 1, error: errorMessage });
 
           // Check if rate limited - mark key and potentially retry
-          const isRateLimit = errorMessage.includes('rate_limit') ||
-                              errorMessage.includes('429') ||
-                              errorMessage.toLowerCase().includes('too many requests');
+          const isRateLimit =
+            errorMessage.includes('rate_limit') ||
+            errorMessage.includes('429') ||
+            errorMessage.toLowerCase().includes('too many requests');
 
           if (isRateLimit && currentKey) {
             const retryMatch = errorMessage.match(/retry.?after[:\s]*(\d+)/i);
@@ -1176,16 +1153,17 @@ export async function createClaudeStreamingChat(options: {
           }
 
           // Check if we should retry
-          const isRetryable = isRateLimit ||
-                              errorMessage.includes('timeout') ||
-                              errorMessage.includes('ECONNRESET') ||
-                              errorMessage.includes('network');
+          const isRetryable =
+            isRateLimit ||
+            errorMessage.includes('timeout') ||
+            errorMessage.includes('ECONNRESET') ||
+            errorMessage.includes('network');
 
           if (isRetryable && retryCount < MAX_RETRIES - 1) {
             retryCount++;
             log.info('Retrying stream with different key', { attempt: retryCount + 1 });
             // Small delay before retry
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000));
             return false; // Signal to retry
           }
 
@@ -1211,7 +1189,7 @@ export async function createClaudeStreamingChat(options: {
         stopKeepalive();
         controller.close();
       }
-    }
+    },
   });
 
   return { stream, model };
@@ -1232,14 +1210,12 @@ export async function createClaudeChat(options: {
   text: string;
   model: string;
 }> {
-  const lastUserMessage = options.messages
-    .filter(m => m.role === 'user')
-    .pop();
+  const lastUserMessage = options.messages.filter((m) => m.role === 'user').pop();
 
   const lastContent = lastUserMessage
-    ? (typeof lastUserMessage.content === 'string'
-        ? lastUserMessage.content
-        : JSON.stringify(lastUserMessage.content))
+    ? typeof lastUserMessage.content === 'string'
+      ? lastUserMessage.content
+      : JSON.stringify(lastUserMessage.content)
     : '';
 
   const model = selectClaudeModel(lastContent, {
@@ -1295,7 +1271,7 @@ ${JSON.stringify(options.schema, null, 2)}`;
 
   const textContent = response.content
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-    .map(block => block.text)
+    .map((block) => block.text)
     .join('');
 
   // Parse JSON, handling potential markdown wrapper
@@ -1310,7 +1286,9 @@ ${JSON.stringify(options.schema, null, 2)}`;
     const data = JSON.parse(jsonText) as T;
     return { data, model: CLAUDE_SONNET };
   } catch (error) {
-    log.error('Failed to parse structured output', error as Error, { responsePreview: textContent.substring(0, 200) });
+    log.error('Failed to parse structured output', error as Error, {
+      responsePreview: textContent.substring(0, 200),
+    });
     throw new Error('Failed to parse Claude structured output as JSON');
   }
 }

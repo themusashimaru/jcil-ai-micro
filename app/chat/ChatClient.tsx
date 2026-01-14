@@ -372,6 +372,39 @@ export function ChatClient() {
     messagesRef.current = messages;
   }, [messages]);
 
+  // MEMORY OPTIMIZATION: Strip base64 image data from older messages to prevent memory bloat
+  // Keep image URLs for last 10 messages, clear older ones to save memory
+  const MAX_MESSAGES_WITH_IMAGES = 10;
+  useEffect(() => {
+    if (messages.length > MAX_MESSAGES_WITH_IMAGES) {
+      const cutoffIndex = messages.length - MAX_MESSAGES_WITH_IMAGES;
+      let needsUpdate = false;
+
+      // Check if any old messages have imageUrl that's a data URL (base64)
+      for (let i = 0; i < cutoffIndex; i++) {
+        if (messages[i].imageUrl?.startsWith('data:')) {
+          needsUpdate = true;
+          break;
+        }
+      }
+
+      if (needsUpdate) {
+        setMessages((prev) =>
+          prev.map((msg, index) => {
+            // Keep recent messages intact
+            if (index >= cutoffIndex) return msg;
+            // Strip base64 data URLs from older messages (keep regular URLs)
+            if (msg.imageUrl?.startsWith('data:')) {
+              return { ...msg, imageUrl: undefined };
+            }
+            return msg;
+          })
+        );
+        log.debug('Cleared base64 images from old messages to save memory');
+      }
+    }
+  }, [messages.length]); // Only run when message count changes
+
   // CRITICAL FIX: Ref to track streaming state for visibility handler
   // This prevents stale closures when the effect re-runs
   const isStreamingRef = useRef(false);
