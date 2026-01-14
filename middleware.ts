@@ -25,7 +25,7 @@ const SIZE_LIMITS = {
   DEFAULT: 1 * 1024 * 1024, // 1MB - default for most routes
   UPLOAD: 10 * 1024 * 1024, // 10MB - file uploads
   ADMIN: 5 * 1024 * 1024, // 5MB - admin operations
-  CHAT: 500 * 1024, // 500KB - chat messages
+  CHAT: 5 * 1024 * 1024, // 5MB - chat messages (supports 4-5 images)
   WEBHOOK: 5 * 1024 * 1024, // 5MB - webhook payloads
 } as const;
 
