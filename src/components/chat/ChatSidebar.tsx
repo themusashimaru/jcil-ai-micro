@@ -754,29 +754,31 @@ export function ChatSidebar({
 
           {/* Bottom Actions */}
           <div className="p-3 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
-            {/* Code Lab - Developer Workspace */}
-            <button
-              onClick={() => (window.location.href = '/code-lab')}
-              className="w-full rounded-lg px-3 py-2.5 text-sm text-left flex items-center gap-3 transition-colors hover:opacity-90"
-              style={{
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                color: '#ffffff',
-                fontWeight: 500,
-              }}
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <div className="flex flex-col">
-                <span>Code Lab</span>
-                <span className="text-xs opacity-75">Developer Workspace</span>
-              </div>
-            </button>
+            {/* Code Lab - Developer Workspace (Admin only) */}
+            {isAdmin && (
+              <button
+                onClick={() => (window.location.href = '/code-lab')}
+                className="w-full rounded-lg px-3 py-2.5 text-sm text-left flex items-center gap-3 transition-colors hover:opacity-90"
+                style={{
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  color: '#ffffff',
+                  fontWeight: 500,
+                }}
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <div className="flex flex-col">
+                  <span>Code Lab</span>
+                  <span className="text-xs opacity-75">Developer Workspace</span>
+                </div>
+              </button>
+            )}
 
             {isAdmin && (
               <button

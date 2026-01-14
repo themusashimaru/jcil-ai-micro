@@ -157,6 +157,8 @@ export function ChatComposer({
   const [toolMode, setToolMode] = useState<ToolMode>('none');
   // Tools menu visibility
   const [showToolsMenu, setShowToolsMenu] = useState(false);
+  // Admin status for showing full agents menu
+  const [isAdmin, setIsAdmin] = useState(false);
   // Typewriter animation state
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
@@ -174,6 +176,23 @@ export function ChatComposer({
   // Set mounted state on client-side (for portal rendering)
   useEffect(() => {
     setIsMounted(true);
+  }, []);
+
+  // Check admin status on mount
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const response = await fetch('/api/user/is-admin');
+        if (response.ok) {
+          const data = await response.json();
+          setIsAdmin(data.data?.isAdmin === true);
+        }
+      } catch (error) {
+        console.error('[ChatComposer] Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+    };
+    checkAdminStatus();
   }, []);
 
   // Auto-focus the textarea on mount so cursor blinks immediately
@@ -852,26 +871,99 @@ export function ChatComposer({
                 </div>
               )}
 
-              {/* Agents button */}
-              {showSearchButtons && toolMode === 'none' && (
-                <button
-                  onClick={() => setShowToolsMenu(!showToolsMenu)}
-                  disabled={isStreaming || disabled}
-                  className="rounded-full px-3 py-1.5 disabled:opacity-50 flex items-center gap-1.5 transition-colors text-sm"
-                  style={{ color: 'var(--text-muted)' }}
-                  title="AI Agents"
-                >
-                  <span>Agents</span>
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-              )}
+              {/* Agent buttons - 3 individual buttons for regular users, Agents dropdown for admin */}
+              {showSearchButtons &&
+                toolMode === 'none' &&
+                (isAdmin ? (
+                  // Admin: Show Agents dropdown with all tools
+                  <button
+                    onClick={() => setShowToolsMenu(!showToolsMenu)}
+                    disabled={isStreaming || disabled}
+                    className="rounded-full px-3 py-1.5 disabled:opacity-50 flex items-center gap-1.5 transition-colors text-sm"
+                    style={{ color: 'var(--text-muted)' }}
+                    title="AI Agents"
+                  >
+                    <span>Agents</span>
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
+                ) : (
+                  // Regular users: Show 3 individual buttons
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => selectToolMode('search')}
+                      disabled={isStreaming || disabled}
+                      className="rounded-full px-2.5 py-1.5 disabled:opacity-50 flex items-center gap-1 transition-colors text-xs hover:bg-blue-500/20"
+                      style={{ color: '#3b82f6' }}
+                      title="Web Search"
+                    >
+                      <svg
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                        />
+                      </svg>
+                      <span>Search</span>
+                    </button>
+                    <button
+                      onClick={() => selectToolMode('factcheck')}
+                      disabled={isStreaming || disabled}
+                      className="rounded-full px-2.5 py-1.5 disabled:opacity-50 flex items-center gap-1 transition-colors text-xs hover:bg-green-500/20"
+                      style={{ color: '#10b981' }}
+                      title="Fact Check"
+                    >
+                      <svg
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span>Fact Check</span>
+                    </button>
+                    <button
+                      onClick={() => selectToolMode('research')}
+                      disabled={isStreaming || disabled}
+                      className="rounded-full px-2.5 py-1.5 disabled:opacity-50 flex items-center gap-1 transition-colors text-xs hover:bg-purple-500/20"
+                      style={{ color: '#8b5cf6' }}
+                      title="Deep Research"
+                    >
+                      <svg
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                        />
+                      </svg>
+                      <span>Research</span>
+                    </button>
+                  </div>
+                ))}
             </div>
 
             {/* Right side - send button */}
