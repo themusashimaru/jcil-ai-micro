@@ -126,12 +126,40 @@ Your job is to be genuinely helpful. Not preachy. Not religious unless the topic
 
 ## WRITING STYLE
 
-- Be concise and direct
-- Use natural, conversational language
+**RESPONSE LENGTH: Be concise. Respect the user's time and attention.**
+
+- **Lead with the answer** - Don't build up to it. Give them what they asked for first.
+- **Cut filler phrases** - Skip "Great question!", "I'd be happy to help!", "Let me explain...", "Here's what I found..."
+- **Don't echo the question back** - They know what they asked. Just answer it.
+- **One explanation is enough** - Don't rephrase the same point multiple ways.
+- **Match complexity to the question** - Simple question = short answer. Complex question = detailed answer.
+- **Skip the summary unless asked** - Don't recap what you just said at the end.
+
+**GOOD example:**
+User: "What's the capital of France?"
+You: "Paris."
+
+**BAD example:**
+User: "What's the capital of France?"
+You: "Great question! The capital of France is Paris. Paris has been the capital since... [500 more words]"
+
+**For complex topics:** Be thorough but efficient. Cover what's needed, nothing extra.
+
+**IMPORTANT - Tasks vs Questions:**
+- **Questions** (asking for info): Be concise. "What's the capital of France?" → "Paris."
+- **Tasks** (asking you to create/rewrite something): Deliver the FULL output. Don't cut it short.
+  - "Rewrite this email" → Give them the complete rewritten email
+  - "Write me a cover letter" → Write the whole thing
+  - "Summarize this article" → Provide a proper summary
+
+The goal is cutting fluff, NOT cutting substance.
+
+**General style:**
+- Natural, conversational language
 - Match the user's tone (formal for business, casual for casual)
 - No excessive hedging or over-qualification
 - No emojis unless the user uses them first
-- Format responses with markdown when helpful (headers, lists, code blocks)
+- Use markdown formatting when it helps readability (headers, lists, code blocks)
 
 ---
 
@@ -316,33 +344,70 @@ export function isFaithTopic(message: string): boolean {
   // These were triggering on normal conversations like "the spirit of the project" or "should i use React"
   const faithKeywords = [
     // Core religious terms - must be explicitly religious context
-    'jesus christ', 'holy spirit', 'bible verse', 'scripture says',
-    'the bible', 'in the bible', 'biblical', 'pray for', 'prayer request',
-    'worship god', 'salvation through', 'saved by grace',
-    'heaven and hell', 'sin against', 'repentance', 'forgiveness of sins',
-    'the gospel', 'christian faith', 'christianity teaches',
+    'jesus christ',
+    'holy spirit',
+    'bible verse',
+    'scripture says',
+    'the bible',
+    'in the bible',
+    'biblical',
+    'pray for',
+    'prayer request',
+    'worship god',
+    'salvation through',
+    'saved by grace',
+    'heaven and hell',
+    'sin against',
+    'repentance',
+    'forgiveness of sins',
+    'the gospel',
+    'christian faith',
+    'christianity teaches',
 
     // Theological topics - specific enough to not false-positive
-    'holy trinity', 'water baptism', 'communion service', 'resurrection of christ',
-    'the crucifixion', 'blood atonement', 'god\'s mercy', 'redemption through',
-    'sanctification process', 'justification by faith', 'predestination doctrine',
-    'the rapture', 'great tribulation',
+    'holy trinity',
+    'water baptism',
+    'communion service',
+    'resurrection of christ',
+    'the crucifixion',
+    'blood atonement',
+    "god's mercy",
+    'redemption through',
+    'sanctification process',
+    'justification by faith',
+    'predestination doctrine',
+    'the rapture',
+    'great tribulation',
 
     // Explicit Bible/faith questions
-    'what does the bible say', 'what does scripture say',
-    'biblical view on', 'christian view on', 'god\'s will',
+    'what does the bible say',
+    'what does scripture say',
+    'biblical view on',
+    'christian view on',
+    "god's will",
 
     // Cults and false teachings
-    'mormon church', 'lds church', 'jehovah\'s witness', 'watchtower society',
-    'scientology', 'new age spirituality', 'is the bible true',
-    'prove god exists', 'atheist argument', 'atheism vs',
+    'mormon church',
+    'lds church',
+    "jehovah's witness",
+    'watchtower society',
+    'scientology',
+    'new age spirituality',
+    'is the bible true',
+    'prove god exists',
+    'atheist argument',
+    'atheism vs',
 
     // Apologetics triggers - specific phrases
-    'why does god allow', 'how can god exist', 'problem of evil',
+    'why does god allow',
+    'how can god exist',
+    'problem of evil',
     'bible contradictions',
 
     // Crisis that warrants pastoral care - keep these for safety
-    'suicidal thoughts', 'want to kill myself', 'end my life',
+    'suicidal thoughts',
+    'want to kill myself',
+    'end my life',
   ];
 
   // Check for any keyword match
@@ -390,7 +455,7 @@ export function getRelevantCategories(message: string): string[] {
   if (
     lowerMessage.includes('mormon church') ||
     lowerMessage.includes('lds church') ||
-    lowerMessage.includes('jehovah\'s witness') ||
+    lowerMessage.includes("jehovah's witness") ||
     lowerMessage.includes('watchtower society') ||
     lowerMessage.includes('scientology church') ||
     lowerMessage.includes('new age spirituality')
