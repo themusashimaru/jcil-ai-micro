@@ -36,6 +36,16 @@ interface ChatThreadProps {
   onQuickPrompt?: (prompt: string) => void;
 }
 
+/**
+ * Get time-based greeting
+ */
+function getTimeGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'this morning';
+  if (hour < 17) return 'this afternoon';
+  return 'this evening';
+}
+
 export function ChatThread({
   messages,
   isStreaming,
@@ -141,9 +151,9 @@ export function ChatThread({
             )}
           </div>
 
-          {/* Simple greeting */}
+          {/* Simple time-based greeting */}
           <p className="text-lg md:text-xl" style={{ color: 'var(--text-secondary)' }}>
-            Hey, what can I help you with?
+            How can we help you {getTimeGreeting()}?
           </p>
         </div>
       </div>
