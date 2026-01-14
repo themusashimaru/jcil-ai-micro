@@ -111,10 +111,10 @@
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: rgba(0, 0, 0, 0.3);
 
-  /* Baby blue accent - vibrant, clearly visible */
-  --primary: #6fd4ff; /* Brighter baby blue for better visibility */
-  --primary-hover: rgba(111, 212, 255, 0.2);
-  --primary-glow: rgba(111, 212, 255, 0.5);
+  /* Baby blue accent - bright and clearly visible */
+  --primary: #7de8ff;
+  --primary-hover: rgba(125, 232, 255, 0.25);
+  --primary-glow: rgba(125, 232, 255, 0.5);
   --text-primary: #ffffff;
   --text-secondary: #c4c4c4; /* Lighter gray */
   --text-muted: #a8b8c8; /* Light blue-gray - visible on charcoal */
@@ -135,9 +135,9 @@
   /* Pro-specific styling */
   --pro-code-bg: #1a1a1a;
   --pro-code-border: rgba(255, 255, 255, 0.1);
-  --pro-accent: #6fd4ff;
-  --pro-accent-light: #8de0ff; /* Lighter baby blue for hover states */
-  --pro-highlight: rgba(111, 212, 255, 0.2);
+  --pro-accent: #7de8ff;
+  --pro-accent-light: #9ef0ff; /* Lighter baby blue for hover states */
+  --pro-highlight: rgba(125, 232, 255, 0.25);
 
   /* Sidebar styling */
   --sidebar-bg: #2f2f2f;
@@ -625,22 +625,22 @@
     background: rgba(92, 200, 245, 0.1);
   }
 
-  /* Pro mode buttons - baby blue styling */
+  /* Pro mode buttons - bright baby blue for visibility */
   :root.pro-mode button.bg-blue-500,
   :root.pro-mode button.bg-blue-600,
   :root.pro-mode [class*='bg-blue-'] {
-    background-color: #5cc8f5 !important;
+    background-color: #7de8ff !important;
   }
 
   :root.pro-mode button.bg-blue-500:hover,
   :root.pro-mode button.bg-blue-600:hover,
   :root.pro-mode [class*='bg-blue-']:hover {
-    background-color: #7fd8f8 !important;
+    background-color: #9ef0ff !important;
   }
 
   /* Pro mode primary colored elements */
   :root.pro-mode [style*='--primary'] {
-    color: #5cc8f5 !important;
+    color: #7de8ff !important;
   }
 
   /* Pro mode sidebar - ensure text is visible */
@@ -660,14 +660,14 @@
     color: #ffffff !important;
   }
 
-  /* Pro mode New Chat button - black text on baby blue */
+  /* Pro mode New Chat button - black text on bright baby blue */
   :root.pro-mode button[style*='--primary'][style*='--background'] {
     color: #1a1a1a !important;
-    background-color: #5cc8f5 !important;
+    background-color: #7de8ff !important;
   }
 
   :root.pro-mode button[style*='--primary'][style*='--background']:hover {
-    background-color: #7fd8f8 !important;
+    background-color: #9ef0ff !important;
   }
 
   /* Pro mode - buttons with primary background need dark text for contrast */
@@ -958,43 +958,43 @@
       inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
   }
 
-  /* Premium sidebar buttons (pro mode - baby blue, minimal) */
+  /* Premium sidebar buttons (pro mode - bright baby blue, minimal) */
   :root.pro-mode .sidebar-btn-glass {
-    background: rgba(92, 200, 245, 0.15) !important;
+    background: rgba(125, 232, 255, 0.18) !important;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border: 1px solid rgba(92, 200, 245, 0.3) !important;
-    color: #5cc8f5 !important;
+    border: 1px solid rgba(125, 232, 255, 0.35) !important;
+    color: #7de8ff !important;
     box-shadow: none;
     transition: all 0.2s ease;
   }
 
   :root.pro-mode .sidebar-btn-glass:hover {
-    background: rgba(92, 200, 245, 0.25) !important;
-    border-color: rgba(92, 200, 245, 0.4) !important;
+    background: rgba(125, 232, 255, 0.28) !important;
+    border-color: rgba(125, 232, 255, 0.5) !important;
   }
 
-  /* Code Command button (pro mode - baby blue) */
+  /* Code Command button (pro mode - bright baby blue) */
   :root.pro-mode .code-cmd-btn-glass {
-    background: rgba(92, 200, 245, 0.15) !important;
+    background: rgba(125, 232, 255, 0.18) !important;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border: 1px solid rgba(92, 200, 245, 0.3) !important;
+    border: 1px solid rgba(125, 232, 255, 0.35) !important;
     box-shadow: none;
     transition: all 0.2s ease;
   }
 
   :root.pro-mode .code-cmd-btn-glass:hover {
-    background: rgba(92, 200, 245, 0.25) !important;
-    border-color: rgba(92, 200, 245, 0.4) !important;
+    background: rgba(125, 232, 255, 0.28) !important;
+    border-color: rgba(125, 232, 255, 0.5) !important;
   }
 
   :root.pro-mode .code-cmd-btn-glass .code-cmd-title {
-    color: #5cc8f5 !important;
+    color: #7de8ff !important;
   }
 
   :root.pro-mode .code-cmd-btn-glass .code-cmd-subtitle {
-    color: #7fd8f8 !important;
+    color: #9ef0ff !important;
   }
 
   /* Premium glassmorphic sidebar buttons (ocean mode - cyan glow) */
