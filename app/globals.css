@@ -112,12 +112,12 @@
   --glass-shadow: rgba(0, 0, 0, 0.3);
 
   /* Baby blue accent - vibrant, clearly visible */
-  --primary: #5cc8f5; /* Bright baby blue - more vibrant for visibility */
-  --primary-hover: rgba(92, 200, 245, 0.15);
-  --primary-glow: rgba(92, 200, 245, 0.4);
+  --primary: #6fd4ff; /* Brighter baby blue for better visibility */
+  --primary-hover: rgba(111, 212, 255, 0.2);
+  --primary-glow: rgba(111, 212, 255, 0.5);
   --text-primary: #ffffff;
-  --text-secondary: #b4b4b4; /* Light gray */
-  --text-muted: #8a8a8a; /* Medium gray */
+  --text-secondary: #c4c4c4; /* Lighter gray */
+  --text-muted: #a8b8c8; /* Light blue-gray - visible on charcoal */
   --surface: #2f2f2f;
   --surface-elevated: #3a3a3a; /* Slightly lighter charcoal */
   --border: rgba(255, 255, 255, 0.1);
@@ -135,9 +135,9 @@
   /* Pro-specific styling */
   --pro-code-bg: #1a1a1a;
   --pro-code-border: rgba(255, 255, 255, 0.1);
-  --pro-accent: #5cc8f5;
-  --pro-accent-light: #7fd8f8; /* Lighter baby blue for hover states */
-  --pro-highlight: rgba(92, 200, 245, 0.15);
+  --pro-accent: #6fd4ff;
+  --pro-accent-light: #8de0ff; /* Lighter baby blue for hover states */
+  --pro-highlight: rgba(111, 212, 255, 0.2);
 
   /* Sidebar styling */
   --sidebar-bg: #2f2f2f;
@@ -574,15 +574,15 @@
     border-color: rgba(255, 255, 255, 0.08) !important;
   }
 
-  /* Pro mode avatar styling - baby blue accent */
+  /* Pro mode avatar styling - baby blue accent (brightened for visibility) */
   :root.pro-mode .rounded-full[style*='--primary'] {
-    background: rgba(92, 200, 245, 0.2) !important;
-    color: #5cc8f5 !important;
+    background: rgba(92, 200, 245, 0.35) !important;
+    color: #7dd8ff !important;
   }
 
-  /* Pro mode loading dots - baby blue */
+  /* Pro mode loading dots - brighter baby blue */
   :root.pro-mode .animate-bounce {
-    background-color: #5cc8f5 !important;
+    background-color: #7dd8ff !important;
   }
 
   /* Pro mode focus - no visible outline for clean look */
