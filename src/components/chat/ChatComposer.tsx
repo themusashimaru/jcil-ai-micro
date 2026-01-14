@@ -963,7 +963,7 @@ export function ChatComposer({
                   disabled={
                     (!message.trim() && attachments.length === 0) || isStreaming || disabled
                   }
-                  className="rounded-full p-2 transition-all flex items-center justify-center disabled:opacity-30"
+                  className="rounded-full p-2 transition-all flex items-center justify-center disabled:opacity-50"
                   title="Send message"
                   style={{
                     backgroundColor:
