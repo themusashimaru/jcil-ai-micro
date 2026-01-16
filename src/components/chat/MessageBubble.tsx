@@ -400,7 +400,7 @@ export function MessageBubble({
         <div
           className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full order-first"
           style={{
-            backgroundColor: 'var(--primary-hover)',
+            backgroundColor: 'var(--avatar-bg)',
             color: 'var(--primary)',
           }}
         >

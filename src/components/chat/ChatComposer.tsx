@@ -963,12 +963,12 @@ export function ChatComposer({
                   disabled={
                     (!message.trim() && attachments.length === 0) || isStreaming || disabled
                   }
-                  className="rounded-full p-2 transition-all flex items-center justify-center disabled:opacity-50"
+                  className="rounded-full p-2 transition-all flex items-center justify-center"
                   title="Send message"
                   style={{
                     backgroundColor:
                       (!message.trim() && attachments.length === 0) || disabled
-                        ? 'var(--text-muted)'
+                        ? 'var(--button-disabled-bg)'
                         : 'var(--primary)',
                     color:
                       (!message.trim() && attachments.length === 0) || disabled
