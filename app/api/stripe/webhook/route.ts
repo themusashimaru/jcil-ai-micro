@@ -1,6 +1,7 @@
 /**
  * STRIPE WEBHOOK API
  * PURPOSE: Handle Stripe webhook events for subscription lifecycle
+ * IDEMPOTENCY: Events are tracked to prevent duplicate processing
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -25,6 +26,40 @@ function getSupabaseAdmin() {
   );
 }
 
+/**
+ * Check if a Stripe event has already been processed (idempotency)
+ * Returns true if already processed, false if new
+ */
+async function isEventAlreadyProcessed(eventId: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+
+  const { data } = await supabase
+    .from('stripe_webhook_events')
+    .select('id')
+    .eq('event_id', eventId)
+    .single();
+
+  return !!data;
+}
+
+/**
+ * Mark a Stripe event as processed
+ */
+async function markEventProcessed(eventId: string, eventType: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  const { error } = await supabase.from('stripe_webhook_events').insert({
+    event_id: eventId,
+    event_type: eventType,
+    processed_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    // Log but don't fail - the event was still processed successfully
+    log.warn('Failed to mark event as processed', { eventId, error: error.message });
+  }
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const headersList = await headers();
@@ -44,7 +79,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
-  log.info('Received event', { type: event.type });
+  // ========================================
+  // IDEMPOTENCY CHECK - Prevent duplicate processing
+  // ========================================
+  try {
+    const alreadyProcessed = await isEventAlreadyProcessed(event.id);
+    if (alreadyProcessed) {
+      log.info('Duplicate event received, skipping', { eventId: event.id, type: event.type });
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+  } catch (err) {
+    // If idempotency check fails, log but continue processing
+    // Better to risk duplicate than to lose an event
+    log.warn('Idempotency check failed, continuing', {
+      eventId: event.id,
+      error: (err as Error).message,
+    });
+  }
+
+  log.info('Received event', { type: event.type, eventId: event.id });
 
   try {
     switch (event.type) {
@@ -82,6 +135,9 @@ export async function POST(request: NextRequest) {
       default:
         log.debug('Unhandled event type', { type: event.type });
     }
+
+    // Mark event as processed for idempotency
+    await markEventProcessed(event.id, event.type);
 
     return NextResponse.json({ received: true });
   } catch (error) {
