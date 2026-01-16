@@ -1041,6 +1041,13 @@ export function ChatClient() {
   ) => {
     if (!content.trim() && attachments.length === 0) return;
 
+    // CRITICAL: Prevent double-submission by checking and setting isStreaming FIRST
+    // This check uses the ref for immediate synchronous check, avoiding React state batching delays
+    if (isStreaming) {
+      log.debug('Blocked duplicate submission - already streaming');
+      return;
+    }
+
     // Check for slash commands
     const parsed = parseSlashCommand(content);
     if (parsed.isCommand) {
@@ -1061,6 +1068,10 @@ export function ChatClient() {
         content = parsed.prompt;
       }
     }
+
+    // Set streaming state EARLY to block any further submissions during async operations
+    // This prevents race conditions where user clicks send multiple times quickly
+    setIsStreaming(true);
 
     // REMOVED: Tool-specific handling - all tools now handled naturally in chat
 
@@ -1114,6 +1125,8 @@ export function ChatClient() {
         // Remove the temporary chat from UI since we couldn't create it in database
         setChats((prevChats) => prevChats.filter((c) => c.id !== tempId));
         setCurrentChatId(null);
+        // Reset streaming state since we're returning early
+        setIsStreaming(false);
         // Show error to user
         alert('Unable to start a new conversation. Please try again.');
         return; // Don't proceed with sending message
@@ -1163,7 +1176,7 @@ export function ChatClient() {
 
       // Only show message in UI AFTER successful database save
       setMessages([...messages, userMessage]);
-      setIsStreaming(true);
+      // Note: isStreaming is already set to true at the start of handleSendMessage
 
       // Detect if this is a document generation request for UI feedback
       const detectedDocType = detectDocumentTypeFromMessage(content);

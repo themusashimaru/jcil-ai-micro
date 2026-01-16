@@ -33,7 +33,12 @@ import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
 import { validateRequestSize, SIZE_LIMITS } from '@/lib/security/request-size';
-import { canMakeRequest, getTokenUsage, getTokenLimitWarningMessage } from '@/lib/limits';
+import {
+  canMakeRequest,
+  getTokenUsage,
+  getTokenLimitWarningMessage,
+  incrementTokenUsage,
+} from '@/lib/limits';
 // Intent detection removed - research agent is now button-only
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 
@@ -42,6 +47,8 @@ const log = logger('ChatAPI');
 // Rate limits per hour
 const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
 const RATE_LIMIT_ANONYMOUS = parseInt(process.env.RATE_LIMIT_ANON || '30', 10);
+// Research agent has stricter limits (expensive Perplexity API calls)
+const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '20', 10);
 
 // Token limits
 const MAX_RESPONSE_TOKENS = 4096;
@@ -64,28 +71,88 @@ const memoryRateLimits = new Map<string, { count: number; resetAt: number }>();
 const MEMORY_RATE_LIMIT = 10;
 const MEMORY_WINDOW_MS = 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Clean up every 5 minutes
+const MAX_RATE_LIMIT_ENTRIES = 50000; // Maximum entries to prevent memory leak
 let lastCleanup = Date.now();
 
+// Research-specific rate limiting (separate from regular chat)
+const researchRateLimits = new Map<string, { count: number; resetAt: number }>();
+const RESEARCH_WINDOW_MS = 60 * 60 * 1000; // 1 hour window
+
 /**
- * Clean up expired entries from the in-memory rate limit map
+ * Clean up expired entries from the in-memory rate limit maps
  * Prevents memory leak from unbounded growth
  */
-function cleanupExpiredEntries(): void {
+function cleanupExpiredEntries(force = false): void {
   const now = Date.now();
-  // Only cleanup if enough time has passed (avoid doing it on every request)
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+  const totalSize = memoryRateLimits.size + researchRateLimits.size;
+
+  // Force cleanup if we're over the size limit, otherwise respect the interval
+  const shouldCleanup =
+    force || totalSize > MAX_RATE_LIMIT_ENTRIES || now - lastCleanup >= CLEANUP_INTERVAL_MS;
+  if (!shouldCleanup) return;
 
   lastCleanup = now;
   let cleaned = 0;
+
+  // Cleanup regular chat rate limits
   for (const [key, value] of memoryRateLimits.entries()) {
     if (value.resetAt < now) {
       memoryRateLimits.delete(key);
       cleaned++;
     }
   }
-  if (cleaned > 0) {
-    log.debug('Rate limit cleanup', { cleaned, remaining: memoryRateLimits.size });
+
+  // Cleanup research rate limits
+  for (const [key, value] of researchRateLimits.entries()) {
+    if (value.resetAt < now) {
+      researchRateLimits.delete(key);
+      cleaned++;
+    }
   }
+
+  // If still over limit after cleanup, evict oldest entries (LRU-style)
+  if (memoryRateLimits.size > MAX_RATE_LIMIT_ENTRIES / 2) {
+    const entriesToEvict = memoryRateLimits.size - MAX_RATE_LIMIT_ENTRIES / 2;
+    let evicted = 0;
+    for (const key of memoryRateLimits.keys()) {
+      if (evicted >= entriesToEvict) break;
+      memoryRateLimits.delete(key);
+      evicted++;
+      cleaned++;
+    }
+    log.warn('Force-evicted rate limit entries due to size limit', { evicted });
+  }
+
+  if (cleaned > 0) {
+    log.debug('Rate limit cleanup', {
+      cleaned,
+      remaining: memoryRateLimits.size,
+      researchRemaining: researchRateLimits.size,
+    });
+  }
+}
+
+/**
+ * Check research-specific rate limit
+ * Research agent is expensive (Perplexity API) so has stricter limits
+ */
+function checkResearchRateLimit(identifier: string): { allowed: boolean; remaining: number } {
+  cleanupExpiredEntries();
+
+  const now = Date.now();
+  const entry = researchRateLimits.get(identifier);
+
+  if (!entry || entry.resetAt < now) {
+    researchRateLimits.set(identifier, { count: 1, resetAt: now + RESEARCH_WINDOW_MS });
+    return { allowed: true, remaining: RATE_LIMIT_RESEARCH - 1 };
+  }
+
+  if (entry.count >= RATE_LIMIT_RESEARCH) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  entry.count++;
+  return { allowed: true, remaining: RATE_LIMIT_RESEARCH - entry.count };
 }
 
 function checkMemoryRateLimit(identifier: string): { allowed: boolean; remaining: number } {
@@ -537,7 +604,31 @@ export async function POST(request: NextRequest) {
     // ROUTE 1: RESEARCH AGENT (Button-only - user must click Research)
     // ========================================
     if (effectiveToolMode === 'research' && isResearchAgentEnabled()) {
-      log.info('Research mode activated - routing to Research Agent');
+      // Check research-specific rate limit (stricter than regular chat)
+      const researchRateCheck = checkResearchRateLimit(rateLimitIdentifier);
+      if (!researchRateCheck.allowed) {
+        log.warn('Research rate limit exceeded', { identifier: rateLimitIdentifier });
+        // Release slot before returning error
+        if (slotAcquired) {
+          await releaseSlot(requestId);
+          slotAcquired = false;
+        }
+        return new Response(
+          JSON.stringify({
+            error: 'Research rate limit exceeded',
+            message: `You've reached the limit of ${RATE_LIMIT_RESEARCH} research queries per hour. Please try again later or use regular chat.`,
+            code: 'RESEARCH_RATE_LIMIT',
+          }),
+          {
+            status: 429,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      log.info('Research mode activated - routing to Research Agent', {
+        remaining: researchRateCheck.remaining,
+      });
 
       const researchStream = await executeResearchAgent(lastUserContent, {
         userId: isAuthenticated ? rateLimitIdentifier : undefined,
@@ -1101,6 +1192,28 @@ SECURITY:
       flush() {
         // Release slot when stream is fully consumed (normal completion)
         ensureSlotReleased();
+
+        // ========================================
+        // TOKEN TRACKING - Increment usage after stream completes
+        // ========================================
+        if (isAuthenticated && !isAdmin) {
+          const tokenUsage = streamResult.getTokenUsage();
+          if (tokenUsage.totalTokens > 0) {
+            incrementTokenUsage(rateLimitIdentifier, userPlanKey, tokenUsage.totalTokens)
+              .then((usage) => {
+                log.debug('Token usage tracked', {
+                  userId: rateLimitIdentifier,
+                  tokens: tokenUsage.totalTokens,
+                  used: usage.used,
+                  limit: usage.limit,
+                  percentage: usage.percentage,
+                });
+              })
+              .catch((err) => {
+                log.warn('Token tracking failed (non-critical)', err);
+              });
+          }
+        }
 
         // ========================================
         // PERSISTENT MEMORY - Extract and save (async, non-blocking)

@@ -1014,6 +1014,7 @@ export async function createClaudeStreamingChat(options: {
 }): Promise<{
   stream: ReadableStream<Uint8Array>;
   model: string;
+  getTokenUsage: () => { inputTokens: number; outputTokens: number; totalTokens: number };
 }> {
   const lastUserMessage = options.messages.filter((m) => m.role === 'user').pop();
 
@@ -1039,6 +1040,10 @@ export async function createClaudeStreamingChat(options: {
   const CHUNK_TIMEOUT_MS = 60000; // 60s timeout per chunk (generous for complex reasoning)
   const KEEPALIVE_INTERVAL_MS = 15000; // Send keepalive every 15s
   const MAX_RETRIES = Math.max(1, getTotalKeyCount()); // Retry with different API keys
+
+  // Token usage tracking - captured during streaming
+  let inputTokens = 0;
+  let outputTokens = 0;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -1133,6 +1138,13 @@ export async function createClaudeStreamingChat(options: {
                 controller.enqueue(encoder.encode(delta.text));
               }
             }
+            // Capture token usage from message events
+            if (event.type === 'message_start' && event.message?.usage) {
+              inputTokens = event.message.usage.input_tokens || 0;
+            }
+            if (event.type === 'message_delta' && event.usage) {
+              outputTokens = event.usage.output_tokens || 0;
+            }
           }
 
           return true; // Success
@@ -1192,7 +1204,15 @@ export async function createClaudeStreamingChat(options: {
     },
   });
 
-  return { stream, model };
+  return {
+    stream,
+    model,
+    getTokenUsage: () => ({
+      inputTokens,
+      outputTokens,
+      totalTokens: inputTokens + outputTokens,
+    }),
+  };
 }
 
 /**
