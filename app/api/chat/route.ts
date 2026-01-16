@@ -256,6 +256,85 @@ function getDocumentTypeName(type: string): string {
   return names[type] || 'document';
 }
 
+/**
+ * Detect if user is requesting a document and what type
+ * Also detects edit/adjustment requests for recently generated documents
+ * Returns the document type if detected, null otherwise
+ */
+function detectDocumentIntent(
+  message: string,
+  conversationHistory?: Array<{ role: string; content: unknown }>
+): 'xlsx' | 'docx' | 'pdf' | 'pptx' | null {
+  const lowerMessage = message.toLowerCase();
+
+  // Excel/Spreadsheet patterns - creation
+  const spreadsheetPatterns = [
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(spreadsheet|excel|xlsx|budget|tracker|expense|financial|schedule|timesheet|inventory|roster|checklist)\b/i,
+    /\b(spreadsheet|excel|xlsx)\b.{0,20}\b(for|with|that|about)\b/i,
+    /\b(budget|expense|financial|inventory)\b.{0,20}\b(tracker|template|sheet)\b/i,
+    /\btrack(ing)?\b.{0,20}\b(expenses?|budget|inventory|time|hours)\b/i,
+  ];
+
+  // Word document patterns - creation
+  const wordPatterns = [
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(word doc|docx|document|letter|contract|proposal|report|memo|agreement)\b/i,
+    /\b(write|draft)\b.{0,20}\b(letter|contract|proposal|report|memo|agreement)\b/i,
+    /\b(formal|business|professional)\b.{0,20}\b(letter|document)\b/i,
+  ];
+
+  // PDF/Invoice patterns - creation
+  const pdfPatterns = [
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(invoice|receipt|bill|pdf)\b/i,
+    /\binvoice\b.{0,20}\b(for|with|that)\b/i,
+    /\b(bill|charge)\b.{0,20}\b(client|customer)\b/i,
+  ];
+
+  // PowerPoint patterns - creation
+  const pptxPatterns = [
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(presentation|powerpoint|pptx|slides?|slide deck)\b/i,
+    /\b(presentation|powerpoint|slides?)\b.{0,20}\b(for|about|on)\b/i,
+  ];
+
+  // Check creation patterns in priority order
+  if (spreadsheetPatterns.some((p) => p.test(lowerMessage))) return 'xlsx';
+  if (pdfPatterns.some((p) => p.test(lowerMessage))) return 'pdf';
+  if (pptxPatterns.some((p) => p.test(lowerMessage))) return 'pptx';
+  if (wordPatterns.some((p) => p.test(lowerMessage))) return 'docx';
+
+  // ========================================
+  // EDIT/ADJUSTMENT DETECTION
+  // If user is asking to modify a document, check conversation history
+  // ========================================
+  const editPatterns = [
+    /\b(add|change|update|modify|edit|adjust|remove|delete|include|insert)\b.{0,30}\b(column|row|cell|section|paragraph|line|item|field|header|footer|color|font|style|format)\b/i,
+    /\b(make it|can you|please)\b.{0,20}\b(bigger|smaller|wider|narrower|bold|italic|different|better)\b/i,
+    /\b(more|less|another|extra|additional)\b.{0,20}\b(column|row|section|item|detail|info)\b/i,
+    /\bchange\b.{0,15}\b(the|this|that|color|title|name)\b/i,
+    /\b(redo|regenerate|try again|new version|update it|fix it)\b/i,
+    /\b(actually|instead|wait)\b.{0,20}\b(can you|make|change)\b/i,
+  ];
+
+  const isEditRequest = editPatterns.some((p) => p.test(lowerMessage));
+
+  if (isEditRequest && conversationHistory && conversationHistory.length > 0) {
+    // Look through recent history for document generation
+    const recentHistory = conversationHistory.slice(-10);
+    for (const msg of recentHistory) {
+      const content = typeof msg.content === 'string' ? msg.content.toLowerCase() : '';
+
+      // Check if assistant mentioned creating a document
+      if (msg.role === 'assistant' && content.includes('[document_download:')) {
+        if (content.includes('"type":"xlsx"') || content.includes('spreadsheet')) return 'xlsx';
+        if (content.includes('"type":"docx"') || content.includes('word document')) return 'docx';
+        if (content.includes('"type":"pdf"') || content.includes('invoice')) return 'pdf';
+        if (content.includes('"type":"pptx"') || content.includes('presentation')) return 'pptx';
+      }
+    }
+  }
+
+  return null;
+}
+
 function getDocumentSchemaPrompt(documentType: string): string {
   const baseInstruction = `You are a professional document generation assistant. Based on the user's request, generate a JSON object that describes the document they want. Output ONLY valid JSON, no explanation. Create professional, well-structured content with proper formatting.`;
 
@@ -1079,6 +1158,94 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
     }
 
     // ========================================
+    // ROUTE 3.9: AUTO-DETECT DOCUMENT REQUESTS
+    // Automatically generates documents when user asks in natural language
+    // Also handles edit requests like "add another column" or "change the colors"
+    // Available to all authenticated users (not just admin)
+    // ========================================
+    const conversationForDetection = messages.map((m) => ({
+      role: String(m.role),
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+    }));
+    const detectedDocType = detectDocumentIntent(lastUserContent, conversationForDetection);
+    if (detectedDocType && isAuthenticated && !explicitDocType) {
+      log.info('Document request auto-detected', {
+        documentType: detectedDocType,
+        message: lastUserContent.substring(0, 100),
+        isEdit: lastUserContent.toLowerCase().match(/\b(add|change|update|modify|edit)\b/) !== null,
+      });
+
+      try {
+        // Get the appropriate JSON schema prompt based on document type
+        const schemaPrompt = getDocumentSchemaPrompt(detectedDocType);
+
+        // Use Sonnet for reliable JSON output
+        const result = await createClaudeChat({
+          messages: [
+            ...(messages as CoreMessage[]).slice(-5),
+            { role: 'user', content: lastUserContent },
+          ],
+          systemPrompt: schemaPrompt,
+          maxTokens: 4096,
+          temperature: 0.3, // Lower temp for structured output
+          forceModel: 'sonnet',
+        });
+
+        // Extract JSON from response
+        let jsonText = result.text.trim();
+        if (jsonText.startsWith('```json')) {
+          jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+        } else if (jsonText.startsWith('```')) {
+          jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+        }
+
+        const documentData = JSON.parse(jsonText) as DocumentData;
+
+        // Validate the document structure
+        const validation = validateDocumentJSON(documentData);
+        if (!validation.valid) {
+          throw new Error(`Invalid document structure: ${validation.error}`);
+        }
+
+        // Generate the actual file
+        const fileResult = await generateDocument(documentData);
+
+        // Convert to base64 for response
+        const base64 = fileResult.buffer.toString('base64');
+        const dataUrl = `data:${fileResult.mimeType};base64,${base64}`;
+
+        // Return document info with download data
+        const responseText =
+          `I've created your ${getDocumentTypeName(detectedDocType)} document: **${fileResult.filename}**\n\n` +
+          `Click the download button below to save it.\n\n` +
+          `[DOCUMENT_DOWNLOAD:${JSON.stringify({
+            filename: fileResult.filename,
+            mimeType: fileResult.mimeType,
+            dataUrl: dataUrl,
+            type: detectedDocType,
+          })}]`;
+
+        // Release slot before returning
+        if (slotAcquired) {
+          await releaseSlot(requestId);
+          slotAcquired = false;
+        }
+
+        return new Response(responseText, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Document-Generated': 'true',
+            'X-Document-Type': detectedDocType,
+          },
+        });
+      } catch (error) {
+        log.error('Auto-detected document generation error', error as Error);
+        // Fall through to regular chat - Claude will respond naturally
+        log.info('Falling back to regular chat after document generation failure');
+      }
+    }
+
+    // ========================================
     // ROUTE 4: CLAUDE CHAT (Haiku/Sonnet auto-routing)
     // ========================================
     const truncatedMessages = truncateMessages(messages as CoreMessage[]);
@@ -1091,18 +1258,12 @@ CAPABILITIES:
 - Deep research on complex topics
 - Code review and generation
 - Scripture and faith-based guidance
-- **DOCUMENT GENERATION**: You CAN create downloadable files:
+- **DOCUMENT GENERATION**: You can create downloadable files when users ask:
   * Excel spreadsheets (.xlsx): budgets, trackers, schedules, data tables
   * Word documents (.docx): resumes, letters, contracts, proposals, reports
   * PDF invoices: professional invoices with itemized billing
 
-  When users ask for documents, ask clarifying questions about:
-  - Content they want included
-  - Layout preferences (margins, columns, sections)
-  - Styling (fonts, colors, formatting)
-  - Any specific data or details to include
-
-  Then generate the document; a download link will appear automatically.
+  Documents are generated automatically when users request them. A download link will appear.
 
 GREETINGS:
 When a user says "hi", "hello", "hey", or any simple greeting, respond with JUST:

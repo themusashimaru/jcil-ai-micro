@@ -22,8 +22,8 @@ import { logger } from '@/lib/logger';
 
 const log = logger('Anthropic');
 
-// Default model: Claude Sonnet 4 (latest stable)
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+// Default model: Claude Haiku 4.5 (fast, cost-effective for general chat)
+const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 
 // ========================================
 // DUAL-POOL API KEY SYSTEM (DYNAMIC)
@@ -962,10 +962,10 @@ export async function downloadAnthropicFile(fileId: string): Promise<{
 // HYBRID ROUTING (Haiku + Sonnet)
 // ========================================
 
-// Model IDs - Current Claude 4 models (Claude 3.x retired July 2025)
+// Model IDs - Current Claude 4.5 models (Claude 3.x retired July 2025)
 // See: https://docs.anthropic.com/en/docs/about-claude/models
 export const CLAUDE_HAIKU = 'claude-haiku-4-5-20251001'; // Fast, cost-effective
-export const CLAUDE_SONNET = 'claude-sonnet-4-20250514'; // Smart, balanced
+export const CLAUDE_SONNET = 'claude-sonnet-4-5-20250514'; // Smart, balanced - used for document generation
 
 /**
  * Simple model selection: Haiku for chat, Sonnet for documents
