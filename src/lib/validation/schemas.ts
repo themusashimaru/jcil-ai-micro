@@ -72,7 +72,10 @@ export const messageContentSchema = z
   .max(
     MESSAGE_LIMITS.MAX_MESSAGE_LENGTH,
     `Message exceeds ${MESSAGE_LIMITS.MAX_MESSAGE_LENGTH} characters`
-  );
+  )
+  .refine((val) => val.trim().length > 0, {
+    message: 'Message cannot be empty or contain only whitespace',
+  });
 
 /** Create message request */
 export const createMessageSchema = z.object({
@@ -317,7 +320,12 @@ export const webAuthnAuthVerifySchema = z.object({
 /** Text content part for multimodal messages */
 const textContentPartSchema = z.object({
   type: z.literal('text'),
-  text: z.string().max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH),
+  text: z
+    .string()
+    .max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH)
+    .refine((val) => val.trim().length > 0, {
+      message: 'Text content cannot be empty or contain only whitespace',
+    }),
 });
 
 /** Image content part for multimodal messages */
@@ -331,8 +339,13 @@ const contentPartSchema = z.union([textContentPartSchema, imageContentPartSchema
 
 /** Chat message content - either string or array of content parts (for multimodal) */
 const chatContentSchema = z.union([
-  z.string().max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH),
-  z.array(contentPartSchema).max(20), // Max 20 parts (images + text)
+  z
+    .string()
+    .max(MESSAGE_LIMITS.MAX_MESSAGE_LENGTH)
+    .refine((val) => val.trim().length > 0, {
+      message: 'Message cannot be empty or contain only whitespace',
+    }),
+  z.array(contentPartSchema).min(1).max(20), // Max 20 parts (images + text), must have at least 1
 ]);
 
 /** Chat message in conversation */

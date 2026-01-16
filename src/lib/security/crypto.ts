@@ -17,14 +17,20 @@ const log = logger('Crypto');
 
 // Error types for better error handling
 export class EncryptionError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string
+  ) {
     super(message);
     this.name = 'EncryptionError';
   }
 }
 
 export class DecryptionError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string
+  ) {
     super(message);
     this.name = 'DecryptionError';
   }
@@ -32,16 +38,23 @@ export class DecryptionError extends Error {
 
 /**
  * Get encryption key (32 bytes for AES-256)
- * Uses ENCRYPTION_KEY from environment, falls back to SUPABASE_SERVICE_ROLE_KEY
+ * SECURITY: Requires dedicated ENCRYPTION_KEY - no fallbacks to other keys
+ * This ensures separation of concerns between database access and encryption
  */
 function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const key = process.env.ENCRYPTION_KEY;
 
   if (!key) {
     throw new EncryptionError(
-      'No encryption key configured. Set ENCRYPTION_KEY in environment.',
+      'No encryption key configured. Set ENCRYPTION_KEY in environment. ' +
+        'SECURITY: Do not use database keys for encryption.',
       'NO_KEY'
     );
+  }
+
+  // Validate key has minimum entropy (at least 32 characters recommended)
+  if (key.length < 32) {
+    log.warn('ENCRYPTION_KEY is shorter than recommended 32 characters');
   }
 
   // Hash the key to ensure it's exactly 32 bytes
