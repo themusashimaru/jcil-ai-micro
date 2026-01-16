@@ -282,11 +282,20 @@ function detectDocumentIntent(
     /\b(formal|business|professional)\b.{0,20}\b(letter|document)\b/i,
   ];
 
-  // PDF/Invoice patterns - creation
+  // PDF patterns - expanded to cover invoices, letters, reports, certificates, flyers, etc.
   const pdfPatterns = [
-    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(invoice|receipt|bill|pdf)\b/i,
+    // Invoice/billing specific
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(invoice|receipt|bill)\b/i,
     /\binvoice\b.{0,20}\b(for|with|that)\b/i,
     /\b(bill|charge)\b.{0,20}\b(client|customer)\b/i,
+    // General PDF requests
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(pdf|certificate|flyer|brochure|poster|handout|sign|badge|card|ticket|coupon|menu|program)\b/i,
+    /\b(convert|export|save|download)\b.{0,20}\b(as|to|into)\b.{0,10}\bpdf\b/i,
+    /\bpdf\b.{0,20}\b(version|format|file|document)\b/i,
+    /\b(printable|print-ready)\b.{0,20}\b(document|version|copy)\b/i,
+    // Certificate patterns
+    /\b(certificate|diploma|award)\b.{0,20}\b(of|for)\b/i,
+    /\b(achievement|completion|recognition|appreciation)\b.{0,10}\bcertificate\b/i,
   ];
 
   // PowerPoint patterns - creation
@@ -335,8 +344,13 @@ function detectDocumentIntent(
   return null;
 }
 
-function getDocumentSchemaPrompt(documentType: string): string {
+function getDocumentSchemaPrompt(documentType: string, userMessage?: string): string {
   const baseInstruction = `You are a professional document generation assistant. Based on the user's request, generate a JSON object that describes the document they want. Output ONLY valid JSON, no explanation. Create professional, well-structured content with proper formatting.`;
+
+  // Check if this is an invoice request (for PDF type)
+  const isInvoiceRequest = userMessage
+    ? /\b(invoice|receipt|bill|billing|charge|payment)\b/i.test(userMessage)
+    : false;
 
   if (documentType === 'xlsx') {
     return `${baseInstruction}
@@ -412,9 +426,11 @@ Make the document professional with:
   }
 
   if (documentType === 'pdf') {
-    return `${baseInstruction}
+    // Invoice PDF
+    if (isInvoiceRequest) {
+      return `${baseInstruction}
 
-Generate an invoice/PDF JSON with this structure:
+Generate an invoice PDF JSON with this structure:
 {
   "type": "invoice",
   "invoiceNumber": "INV-001",
@@ -451,6 +467,46 @@ Make the invoice professional with:
 - Clear itemization with descriptions
 - Proper tax and total calculations
 - Professional formatting and branding`;
+    }
+
+    // General PDF (certificates, flyers, letters, reports, etc.)
+    return `${baseInstruction}
+
+Generate a general PDF document JSON with this structure:
+{
+  "type": "general_pdf",
+  "title": "Document Title",
+  "format": {
+    "fontFamily": "Helvetica",
+    "fontSize": 12,
+    "margins": { "top": 50, "bottom": 50, "left": 50, "right": 50 },
+    "primaryColor": "#1e3a5f",
+    "headerText": "Optional Header",
+    "footerText": "Optional Footer"
+  },
+  "sections": [
+    { "type": "paragraph", "content": { "text": "Main Title", "style": "title", "alignment": "center" } },
+    { "type": "paragraph", "content": { "text": "Subtitle or description", "style": "subtitle", "alignment": "center" } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "Section Heading", "style": "heading1" } },
+    { "type": "paragraph", "content": { "text": "Body paragraph with content.", "style": "normal" } },
+    { "type": "paragraph", "content": { "text": "Bullet point", "bulletLevel": 1 } },
+    { "type": "horizontalRule" },
+    { "type": "table", "content": { "headers": ["Column 1", "Column 2"], "rows": [["Data 1", "Data 2"]] } }
+  ]
+}
+
+Available styles: title, subtitle, heading1, heading2, heading3, normal
+Alignment: left, center, right, justify
+Bullet levels: 1, 2, 3
+Available fonts: Helvetica, Times-Roman, Courier
+
+Create professional content appropriate for:
+- Certificates (centered, elegant styling)
+- Flyers (eye-catching headings, bullet points)
+- Reports (structured with headings and tables)
+- Letters (formal formatting)
+- Menus, programs, tickets, etc.`;
   }
 
   // Default to Word document
@@ -808,7 +864,7 @@ export async function POST(request: NextRequest) {
 
       try {
         // Get the appropriate JSON schema prompt based on document type
-        const schemaPrompt = getDocumentSchemaPrompt(explicitDocType);
+        const schemaPrompt = getDocumentSchemaPrompt(explicitDocType, lastUserContent);
 
         // Have Claude generate the structured JSON
         const result = await createClaudeChat({
@@ -1177,7 +1233,7 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
 
       try {
         // Get the appropriate JSON schema prompt based on document type
-        const schemaPrompt = getDocumentSchemaPrompt(detectedDocType);
+        const schemaPrompt = getDocumentSchemaPrompt(detectedDocType, lastUserContent);
 
         // Use Sonnet for reliable JSON output
         const result = await createClaudeChat({

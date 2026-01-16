@@ -13,6 +13,7 @@ export { generateResumeDocx } from './resumeGenerator';
 export { generateSpreadsheetXlsx, createBudgetTemplate } from './spreadsheetGenerator';
 export { generateInvoicePdf } from './invoiceGenerator';
 export { generateWordDocx, createLetterTemplate } from './documentGenerator';
+export { generateGeneralPdf } from './generalPdfGenerator';
 
 // Type guards (re-exported for convenience)
 export {
@@ -20,6 +21,7 @@ export {
   isSpreadsheetDocument,
   isWordDocument,
   isInvoiceDocument,
+  isGeneralPdfDocument,
 } from './types';
 
 /**
@@ -27,11 +29,18 @@ export {
  * Automatically detects document type and uses appropriate generator
  */
 import type { DocumentData } from './types';
-import { isResumeDocument, isSpreadsheetDocument, isWordDocument, isInvoiceDocument } from './types';
+import {
+  isResumeDocument,
+  isSpreadsheetDocument,
+  isWordDocument,
+  isInvoiceDocument,
+  isGeneralPdfDocument,
+} from './types';
 import { generateResumeDocx } from './resumeGenerator';
 import { generateSpreadsheetXlsx } from './spreadsheetGenerator';
 import { generateInvoicePdf } from './invoiceGenerator';
 import { generateWordDocx } from './documentGenerator';
+import { generateGeneralPdf } from './generalPdfGenerator';
 
 export interface GeneratedDocument {
   buffer: Buffer;
@@ -44,7 +53,10 @@ export interface GeneratedDocument {
  * Generate a document from JSON data
  * Returns the file buffer, filename, and mime type
  */
-export async function generateDocument(data: DocumentData, customFilename?: string): Promise<GeneratedDocument> {
+export async function generateDocument(
+  data: DocumentData,
+  customFilename?: string
+): Promise<GeneratedDocument> {
   if (isResumeDocument(data)) {
     const buffer = await generateResumeDocx(data);
     const filename = customFilename || `${sanitizeFilename(data.name)}_Resume.docx`;
@@ -89,6 +101,17 @@ export async function generateDocument(data: DocumentData, customFilename?: stri
     };
   }
 
+  if (isGeneralPdfDocument(data)) {
+    const buffer = await generateGeneralPdf(data);
+    const filename = customFilename || `${sanitizeFilename(data.title)}.pdf`;
+    return {
+      buffer,
+      filename,
+      mimeType: 'application/pdf',
+      extension: 'pdf',
+    };
+  }
+
   throw new Error(`Unknown document type: ${(data as { type: string }).type}`);
 }
 
@@ -115,7 +138,7 @@ export function detectDocumentType(json: unknown): string | null {
     return null;
   }
 
-  const validTypes = ['resume', 'spreadsheet', 'document', 'invoice'];
+  const validTypes = ['resume', 'spreadsheet', 'document', 'invoice', 'general_pdf'];
   return validTypes.includes(obj.type) ? obj.type : null;
 }
 
@@ -247,10 +270,37 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
           return { valid: false, error: `Item[${i}] missing valid "description"` };
         }
         if (typeof item.quantity !== 'number' || item.quantity < 0) {
-          return { valid: false, error: `Item[${i}] missing valid "quantity" (must be non-negative number)` };
+          return {
+            valid: false,
+            error: `Item[${i}] missing valid "quantity" (must be non-negative number)`,
+          };
         }
         if (typeof item.unitPrice !== 'number' || item.unitPrice < 0) {
-          return { valid: false, error: `Item[${i}] missing valid "unitPrice" (must be non-negative number)` };
+          return {
+            valid: false,
+            error: `Item[${i}] missing valid "unitPrice" (must be non-negative number)`,
+          };
+        }
+      }
+      break;
+    }
+
+    case 'general_pdf': {
+      if (!obj.title || typeof obj.title !== 'string') {
+        return { valid: false, error: 'PDF missing valid "title" field' };
+      }
+      if (!obj.sections || !Array.isArray(obj.sections)) {
+        return { valid: false, error: 'PDF missing "sections" array' };
+      }
+      // Validate each section has a type
+      const validPdfSectionTypes = ['paragraph', 'table', 'pageBreak', 'horizontalRule', 'spacer'];
+      for (let i = 0; i < obj.sections.length; i++) {
+        const section = obj.sections[i] as Record<string, unknown>;
+        if (!section.type || typeof section.type !== 'string') {
+          return { valid: false, error: `PDF Section[${i}] missing valid "type"` };
+        }
+        if (!validPdfSectionTypes.includes(section.type)) {
+          return { valid: false, error: `PDF Section[${i}] has invalid type: ${section.type}` };
         }
       }
       break;

@@ -195,6 +195,55 @@ export interface InvoiceDocument {
 }
 
 // ========================================
+// GENERAL PDF DOCUMENT TYPES
+// ========================================
+
+export interface PdfParagraph {
+  text: string;
+  style?: 'normal' | 'heading1' | 'heading2' | 'heading3' | 'title' | 'subtitle';
+  bold?: boolean;
+  italic?: boolean;
+  alignment?: 'left' | 'center' | 'right' | 'justify';
+  bulletLevel?: number; // 0 = no bullet, 1+ = nested bullet level
+  color?: string; // Hex color
+}
+
+export interface PdfTable {
+  headers?: string[];
+  rows: string[][];
+  headerStyle?: {
+    bold?: boolean;
+    backgroundColor?: string;
+    textColor?: string;
+  };
+}
+
+export interface PdfSection {
+  type: 'paragraph' | 'table' | 'pageBreak' | 'horizontalRule' | 'spacer';
+  content?: PdfParagraph | PdfTable;
+}
+
+export interface GeneralPdfDocument {
+  type: 'general_pdf';
+  title: string;
+  sections: PdfSection[];
+  // Formatting preferences
+  format?: {
+    fontFamily?: 'Helvetica' | 'Times-Roman' | 'Courier';
+    fontSize?: number;
+    margins?: {
+      top?: number;
+      bottom?: number;
+      left?: number;
+      right?: number;
+    };
+    headerText?: string;
+    footerText?: string;
+    primaryColor?: string; // Hex color for headings
+  };
+}
+
+// ========================================
 // UNION TYPE FOR ALL DOCUMENTS
 // ========================================
 
@@ -202,7 +251,8 @@ export type DocumentData =
   | ResumeDocument
   | SpreadsheetDocument
   | WordDocument
-  | InvoiceDocument;
+  | InvoiceDocument
+  | GeneralPdfDocument;
 
 // Helper to detect document type from AI response
 export function isResumeDocument(doc: DocumentData): doc is ResumeDocument {
@@ -219,4 +269,8 @@ export function isWordDocument(doc: DocumentData): doc is WordDocument {
 
 export function isInvoiceDocument(doc: DocumentData): doc is InvoiceDocument {
   return doc.type === 'invoice';
+}
+
+export function isGeneralPdfDocument(doc: DocumentData): doc is GeneralPdfDocument {
+  return doc.type === 'general_pdf';
 }
