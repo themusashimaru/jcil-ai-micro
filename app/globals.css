@@ -15,7 +15,7 @@
   --primary-hover: rgba(56, 189, 248, 0.1);
   --primary-glow: rgba(56, 189, 248, 0.4);
   --avatar-bg: rgba(56, 189, 248, 0.35); /* Brighter for avatars/indicators */
-  --button-disabled-bg: rgba(56, 189, 248, 0.4); /* Visible disabled state */
+  --button-disabled-bg: #4a5568; /* Muted gray when disabled */
   --text-primary: #ffffff;
   --text-secondary: #9ca3af; /* Gray-400 */
   --text-muted: #6b7280; /* Gray-500 */
@@ -45,7 +45,7 @@
   --primary-hover: rgba(30, 58, 95, 0.1);
   --primary-glow: rgba(30, 58, 95, 0.4);
   --avatar-bg: rgba(30, 58, 95, 0.25); /* Brighter for avatars/indicators */
-  --button-disabled-bg: rgba(30, 58, 95, 0.35); /* Visible disabled state */
+  --button-disabled-bg: #9ca3af; /* Muted gray when disabled */
   --text-primary: #1a1a1a; /* Near black for text */
   --text-secondary: #4b5563; /* Gray-600 */
   --text-muted: #6b7280; /* Gray-500 */
@@ -78,7 +78,7 @@
   --primary-hover: rgba(77, 200, 255, 0.12);
   --primary-glow: rgba(77, 200, 255, 0.4);
   --avatar-bg: rgba(77, 200, 255, 0.35); /* Brighter for avatars/indicators */
-  --button-disabled-bg: rgba(77, 200, 255, 0.45); /* Visible disabled state */
+  --button-disabled-bg: #3d5a80; /* Muted blue-gray when disabled */
   --text-primary: #e8f4ff; /* Crisp white with subtle blue tint */
   --text-secondary: #8ab4d8; /* Soft blue-gray */
   --text-muted: #5a7a9a; /* Muted blue */
@@ -122,7 +122,7 @@
   --primary-hover: rgba(125, 232, 255, 0.25);
   --primary-glow: rgba(125, 232, 255, 0.5);
   --avatar-bg: rgba(125, 232, 255, 0.4); /* Brighter for avatars/indicators */
-  --button-disabled-bg: rgba(125, 232, 255, 0.5); /* Visible disabled state */
+  --button-disabled-bg: #5a6a7a; /* Muted gray-blue when disabled */
   --text-primary: #ffffff;
   --text-secondary: #c4c4c4; /* Lighter gray */
   --text-muted: #a8b8c8; /* Light blue-gray - visible on charcoal */
