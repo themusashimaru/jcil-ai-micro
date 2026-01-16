@@ -288,11 +288,14 @@ function detectDocumentIntent(
     /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(invoice|receipt|bill)\b/i,
     /\binvoice\b.{0,20}\b(for|with|that)\b/i,
     /\b(bill|charge)\b.{0,20}\b(client|customer)\b/i,
-    // General PDF requests
+    // General PDF requests - including memos, letters, notices
     /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(pdf|certificate|flyer|brochure|poster|handout|sign|badge|card|ticket|coupon|menu|program)\b/i,
+    /\b(create|make|generate|write|draft)\b.{0,10}\b(a\s+)?pdf\b/i, // "create a pdf", "make pdf"
+    /\bpdf\b.{0,20}\b(memo|letter|notice|document|report|form)\b/i, // "pdf memo", "pdf letter"
+    /\b(memo|letter|notice)\b.{0,20}\b(as\s+)?(a\s+)?pdf\b/i, // "memo as pdf", "letter as a pdf"
     /\b(convert|export|save|download)\b.{0,20}\b(as|to|into)\b.{0,10}\bpdf\b/i,
-    /\bpdf\b.{0,20}\b(version|format|file|document)\b/i,
-    /\b(printable|print-ready)\b.{0,20}\b(document|version|copy)\b/i,
+    /\bpdf\b.{0,20}\b(version|format|file)\b/i,
+    /\b(printable|print-ready)\b.{0,20}\b(document|version|copy|memo|letter)\b/i,
     // Certificate patterns
     /\b(certificate|diploma|award)\b.{0,20}\b(of|for)\b/i,
     /\b(achievement|completion|recognition|appreciation)\b.{0,10}\bcertificate\b/i,
