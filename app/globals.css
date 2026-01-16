@@ -14,6 +14,8 @@
   --primary: #38bdf8; /* Softer sky blue */
   --primary-hover: rgba(56, 189, 248, 0.1);
   --primary-glow: rgba(56, 189, 248, 0.4);
+  --avatar-bg: rgba(56, 189, 248, 0.35); /* Brighter for avatars/indicators */
+  --button-disabled-bg: rgba(56, 189, 248, 0.4); /* Visible disabled state */
   --text-primary: #ffffff;
   --text-secondary: #9ca3af; /* Gray-400 */
   --text-muted: #6b7280; /* Gray-500 */
@@ -42,6 +44,8 @@
   --primary: #1e3a5f; /* Navy blue for accents */
   --primary-hover: rgba(30, 58, 95, 0.1);
   --primary-glow: rgba(30, 58, 95, 0.4);
+  --avatar-bg: rgba(30, 58, 95, 0.25); /* Brighter for avatars/indicators */
+  --button-disabled-bg: rgba(30, 58, 95, 0.35); /* Visible disabled state */
   --text-primary: #1a1a1a; /* Near black for text */
   --text-secondary: #4b5563; /* Gray-600 */
   --text-muted: #6b7280; /* Gray-500 */
@@ -73,6 +77,8 @@
   --primary: #4dc8ff; /* Electric cyan accent */
   --primary-hover: rgba(77, 200, 255, 0.12);
   --primary-glow: rgba(77, 200, 255, 0.4);
+  --avatar-bg: rgba(77, 200, 255, 0.35); /* Brighter for avatars/indicators */
+  --button-disabled-bg: rgba(77, 200, 255, 0.45); /* Visible disabled state */
   --text-primary: #e8f4ff; /* Crisp white with subtle blue tint */
   --text-secondary: #8ab4d8; /* Soft blue-gray */
   --text-muted: #5a7a9a; /* Muted blue */
@@ -115,6 +121,8 @@
   --primary: #7de8ff;
   --primary-hover: rgba(125, 232, 255, 0.25);
   --primary-glow: rgba(125, 232, 255, 0.5);
+  --avatar-bg: rgba(125, 232, 255, 0.4); /* Brighter for avatars/indicators */
+  --button-disabled-bg: rgba(125, 232, 255, 0.5); /* Visible disabled state */
   --text-primary: #ffffff;
   --text-secondary: #c4c4c4; /* Lighter gray */
   --text-muted: #a8b8c8; /* Light blue-gray - visible on charcoal */

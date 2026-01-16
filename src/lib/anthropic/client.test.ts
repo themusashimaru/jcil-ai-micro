@@ -100,7 +100,7 @@ describe('Anthropic Client', () => {
 
     it('should export CLAUDE_SONNET constant', async () => {
       const { CLAUDE_SONNET } = await import('./client');
-      expect(CLAUDE_SONNET).toBe('claude-sonnet-4-5-20250514');
+      expect(CLAUDE_SONNET).toBe('claude-sonnet-4-5-20250929');
     });
   });
 
