@@ -258,12 +258,16 @@ function getDocumentTypeName(type: string): string {
 
 /**
  * Detect if user is requesting a document and what type
+ * Also detects edit/adjustment requests for recently generated documents
  * Returns the document type if detected, null otherwise
  */
-function detectDocumentIntent(message: string): 'xlsx' | 'docx' | 'pdf' | 'pptx' | null {
+function detectDocumentIntent(
+  message: string,
+  conversationHistory?: Array<{ role: string; content: unknown }>
+): 'xlsx' | 'docx' | 'pdf' | 'pptx' | null {
   const lowerMessage = message.toLowerCase();
 
-  // Excel/Spreadsheet patterns
+  // Excel/Spreadsheet patterns - creation
   const spreadsheetPatterns = [
     /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(spreadsheet|excel|xlsx|budget|tracker|expense|financial|schedule|timesheet|inventory|roster|checklist)\b/i,
     /\b(spreadsheet|excel|xlsx)\b.{0,20}\b(for|with|that|about)\b/i,
@@ -271,31 +275,62 @@ function detectDocumentIntent(message: string): 'xlsx' | 'docx' | 'pdf' | 'pptx'
     /\btrack(ing)?\b.{0,20}\b(expenses?|budget|inventory|time|hours)\b/i,
   ];
 
-  // Word document patterns
+  // Word document patterns - creation
   const wordPatterns = [
     /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(word doc|docx|document|letter|contract|proposal|report|memo|agreement)\b/i,
     /\b(write|draft)\b.{0,20}\b(letter|contract|proposal|report|memo|agreement)\b/i,
     /\b(formal|business|professional)\b.{0,20}\b(letter|document)\b/i,
   ];
 
-  // PDF/Invoice patterns
+  // PDF/Invoice patterns - creation
   const pdfPatterns = [
     /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(invoice|receipt|bill|pdf)\b/i,
     /\binvoice\b.{0,20}\b(for|with|that)\b/i,
     /\b(bill|charge)\b.{0,20}\b(client|customer)\b/i,
   ];
 
-  // PowerPoint patterns
+  // PowerPoint patterns - creation
   const pptxPatterns = [
     /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(presentation|powerpoint|pptx|slides?|slide deck)\b/i,
     /\b(presentation|powerpoint|slides?)\b.{0,20}\b(for|about|on)\b/i,
   ];
 
-  // Check patterns in priority order
+  // Check creation patterns in priority order
   if (spreadsheetPatterns.some((p) => p.test(lowerMessage))) return 'xlsx';
   if (pdfPatterns.some((p) => p.test(lowerMessage))) return 'pdf';
   if (pptxPatterns.some((p) => p.test(lowerMessage))) return 'pptx';
   if (wordPatterns.some((p) => p.test(lowerMessage))) return 'docx';
+
+  // ========================================
+  // EDIT/ADJUSTMENT DETECTION
+  // If user is asking to modify a document, check conversation history
+  // ========================================
+  const editPatterns = [
+    /\b(add|change|update|modify|edit|adjust|remove|delete|include|insert)\b.{0,30}\b(column|row|cell|section|paragraph|line|item|field|header|footer|color|font|style|format)\b/i,
+    /\b(make it|can you|please)\b.{0,20}\b(bigger|smaller|wider|narrower|bold|italic|different|better)\b/i,
+    /\b(more|less|another|extra|additional)\b.{0,20}\b(column|row|section|item|detail|info)\b/i,
+    /\bchange\b.{0,15}\b(the|this|that|color|title|name)\b/i,
+    /\b(redo|regenerate|try again|new version|update it|fix it)\b/i,
+    /\b(actually|instead|wait)\b.{0,20}\b(can you|make|change)\b/i,
+  ];
+
+  const isEditRequest = editPatterns.some((p) => p.test(lowerMessage));
+
+  if (isEditRequest && conversationHistory && conversationHistory.length > 0) {
+    // Look through recent history for document generation
+    const recentHistory = conversationHistory.slice(-10);
+    for (const msg of recentHistory) {
+      const content = typeof msg.content === 'string' ? msg.content.toLowerCase() : '';
+
+      // Check if assistant mentioned creating a document
+      if (msg.role === 'assistant' && content.includes('[document_download:')) {
+        if (content.includes('"type":"xlsx"') || content.includes('spreadsheet')) return 'xlsx';
+        if (content.includes('"type":"docx"') || content.includes('word document')) return 'docx';
+        if (content.includes('"type":"pdf"') || content.includes('invoice')) return 'pdf';
+        if (content.includes('"type":"pptx"') || content.includes('presentation')) return 'pptx';
+      }
+    }
+  }
 
   return null;
 }
@@ -1125,13 +1160,19 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
     // ========================================
     // ROUTE 3.9: AUTO-DETECT DOCUMENT REQUESTS
     // Automatically generates documents when user asks in natural language
+    // Also handles edit requests like "add another column" or "change the colors"
     // Available to all authenticated users (not just admin)
     // ========================================
-    const detectedDocType = detectDocumentIntent(lastUserContent);
+    const conversationForDetection = messages.map((m) => ({
+      role: String(m.role),
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+    }));
+    const detectedDocType = detectDocumentIntent(lastUserContent, conversationForDetection);
     if (detectedDocType && isAuthenticated && !explicitDocType) {
       log.info('Document request auto-detected', {
         documentType: detectedDocType,
         message: lastUserContent.substring(0, 100),
+        isEdit: lastUserContent.toLowerCase().match(/\b(add|change|update|modify|edit)\b/) !== null,
       });
 
       try {
