@@ -418,6 +418,89 @@ function detectDocumentSubtype(documentType: string, userMessage: string): strin
  * or if we should ask clarifying questions first.
  * Returns true if we should generate immediately, false if we should ask questions.
  */
+/**
+ * Extract the actual document JSON that was generated in a previous AI response
+ * This finds the JSON structure that was used to generate the document, not just the user's request
+ */
+function extractPreviousDocumentContext(messages: Array<{ role: string; content: unknown }>): {
+  originalRequest: string | null;
+  documentType: string | null;
+  documentDescription: string | null;
+} {
+  const recentHistory = messages.slice(-12);
+
+  for (let i = recentHistory.length - 1; i >= 0; i--) {
+    const msg = recentHistory[i];
+    if (msg.role === 'assistant' && typeof msg.content === 'string') {
+      // Look for DOCUMENT_DOWNLOAD marker which contains the generated doc info
+      const downloadMatch = msg.content.match(/\[DOCUMENT_DOWNLOAD:(\{[^}]+\})\]/);
+      if (downloadMatch) {
+        try {
+          const docInfo = JSON.parse(downloadMatch[1]);
+
+          // Find the user message that triggered this document
+          for (let j = i - 1; j >= 0 && j >= i - 4; j--) {
+            if (recentHistory[j].role === 'user' && typeof recentHistory[j].content === 'string') {
+              return {
+                originalRequest: recentHistory[j].content as string,
+                documentType: docInfo.type || null,
+                documentDescription: msg.content.replace(/\[DOCUMENT_DOWNLOAD:[^\]]+\]/, '').trim(),
+              };
+            }
+          }
+        } catch {
+          // Continue searching if JSON parse fails
+        }
+      }
+    }
+  }
+
+  return { originalRequest: null, documentType: null, documentDescription: null };
+}
+
+/**
+ * Build intelligent context for document generation
+ * Combines user memory, previous document context, and current request
+ */
+function buildDocumentContext(
+  userMessage: string,
+  memoryContext: string | null,
+  previousContext: {
+    originalRequest: string | null;
+    documentType: string | null;
+    documentDescription: string | null;
+  },
+  isEdit: boolean
+): string {
+  let context = '';
+
+  // Add user memory context if available (company name, preferences, etc.)
+  if (memoryContext && memoryContext.trim()) {
+    context += `\n\nUSER CONTEXT (from memory - use this information where relevant):
+${memoryContext}
+`;
+  }
+
+  // Add edit context if this is a modification request
+  if (isEdit && previousContext.originalRequest) {
+    context += `\n\nEDIT MODE - PREVIOUS DOCUMENT CONTEXT:
+Original Request: "${previousContext.originalRequest}"
+${previousContext.documentDescription ? `What was created: ${previousContext.documentDescription}` : ''}
+
+The user now wants to modify this document with: "${userMessage}"
+
+IMPORTANT EDIT RULES:
+1. Preserve ALL original content that the user did NOT ask to change
+2. Apply ONLY the specific changes requested
+3. Maintain the same document structure and formatting
+4. If adding new items, integrate them naturally with existing content
+5. If removing items, ensure remaining content still flows well
+`;
+  }
+
+  return context;
+}
+
 function hasEnoughDetailToGenerate(
   message: string,
   _documentType: string, // Reserved for future type-specific logic
@@ -618,11 +701,41 @@ Spreadsheets MUST include working formulas. Common formulas to use:
 - =B2/C2 - Divide (e.g., for percentages)
 - =SUM(B2:B20)/SUM(C2:C20) - Calculated ratios
 - =IF(B2>C2,"Over","Under") - Conditional logic
+- =ROUND(B2, 2) - Round to 2 decimal places
+- =MAX(B2:B20) - Find highest value
+- =MIN(B2:B20) - Find lowest value
+- =COUNT(B2:B20) - Count numeric cells
+- =COUNTIF(B2:B20,">100") - Conditional count
 
 For budget/financial sheets, ALWAYS include:
 - Sum formulas for totals
 - Variance calculations (Budget - Actual)
 - Percentage calculations where meaningful
+
+**MULTI-SHEET INTELLIGENCE** (for complex requests):
+When the data warrants it, create MULTIPLE SHEETS:
+{
+  "type": "spreadsheet",
+  "title": "Company Budget 2024",
+  "sheets": [
+    { "name": "Monthly Budget", "rows": [...], "freezeRow": 1 },
+    { "name": "Summary", "rows": [...] },
+    { "name": "Categories", "rows": [...] }
+  ]
+}
+
+Use multiple sheets when:
+- User needs both detailed data AND summary views
+- Data has distinct categories (e.g., income vs expenses)
+- Monthly data needs annual summary
+- Reference data (dropdowns, categories) should be separate
+
+**SMART DEFAULTS**:
+- If user mentions "monthly", create 12-month structure
+- If user mentions "quarterly", create Q1-Q4 columns
+- If user mentions "comparison", create side-by-side columns
+- If user mentions "tracking", include date column and running totals
+- Always include a TOTALS row at the bottom with SUM formulas
 
 The user expects CALCULABLE spreadsheets, not just formatted text tables.`;
 
@@ -630,11 +743,29 @@ The user expects CALCULABLE spreadsheets, not just formatted text tables.`;
     const subtypeGuidance: Record<string, string> = {
       budget: `
 
-BUDGET SPREADSHEET STRUCTURE:
-Include columns: Category, Budgeted Amount, Actual Amount, Variance, % of Budget
-Rows: Income section, Expense categories (Housing, Transportation, Food, Utilities, Entertainment, Savings, etc.), Summary row
-Formulas: Variance = Budgeted - Actual, use SUM for totals
-Include both monthly breakdown and annual summary if applicable`,
+BUDGET SPREADSHEET STRUCTURE (PROFESSIONAL):
+Create a multi-sheet workbook:
+
+Sheet 1 - "Monthly Budget":
+Columns: Category | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | Annual Total
+Sections:
+- INCOME (with subcategories: Salary, Bonuses, Other Income)
+- EXPENSES (with subcategories: Housing, Utilities, Transportation, Food, Insurance, Healthcare, Entertainment, Personal, Savings)
+- SUMMARY ROW: Net Income = Total Income - Total Expenses
+
+Sheet 2 - "Summary" (if user wants detailed):
+- Annual totals by category
+- Percentage breakdown pie chart data
+- YTD vs Budget comparison
+
+REQUIRED FORMULAS:
+- Each month total: =SUM(B3:B12) for expenses
+- Annual total: =SUM(B2:M2) for each row
+- Variance: =N2-O2 (Actual - Budget)
+- % of Budget: =N2/O2 (format as percent)
+- Net Income: =B13-B26 (Income Total - Expense Total)
+
+Make it IMMEDIATELY USABLE - user should only need to enter their actual numbers.`,
       expense_tracker: `
 
 EXPENSE TRACKER STRUCTURE:
@@ -1767,29 +1898,10 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
         });
         // Don't process here - let it fall through to regular chat
       } else {
-        // Try to find previous document JSON in conversation history for edits
-        let previousDocumentJson: string | null = null;
-        if (isEditRequest) {
-          const recentHistory = (messages as CoreMessage[]).slice(-10);
-          for (let i = recentHistory.length - 1; i >= 0; i--) {
-            const msg = recentHistory[i];
-            if (msg.role === 'assistant' && typeof msg.content === 'string') {
-              const downloadMatch = msg.content.match(/\[DOCUMENT_DOWNLOAD:(\{[^}]+\})\]/);
-              if (downloadMatch) {
-                for (let j = i - 1; j >= 0; j--) {
-                  if (recentHistory[j].role === 'user') {
-                    previousDocumentJson =
-                      typeof recentHistory[j].content === 'string'
-                        ? (recentHistory[j].content as string)
-                        : null;
-                    break;
-                  }
-                }
-                break;
-              }
-            }
-          }
-        }
+        // Extract previous document context for edits using intelligent function
+        const previousContext = extractPreviousDocumentContext(
+          messages as Array<{ role: string; content: unknown }>
+        );
 
         const subtype = detectDocumentSubtype(detectedDocType, lastUserContent);
         log.info('Document generation starting', {
@@ -1797,7 +1909,8 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           subtype,
           message: lastUserContent.substring(0, 100),
           isEdit: isEditRequest,
-          hasPreviousContext: !!previousDocumentJson,
+          hasPreviousContext: !!previousContext.originalRequest,
+          hasMemoryContext: !!memoryContext,
         });
 
         try {
@@ -1808,23 +1921,22 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           // Get the appropriate JSON schema prompt based on document type
           let schemaPrompt = getDocumentSchemaPrompt(detectedDocType, lastUserContent);
 
-          // Inject current date into the prompt
+          // Build intelligent context (user memory + edit context)
+          const intelligentContext = buildDocumentContext(
+            lastUserContent,
+            memoryContext || null,
+            previousContext,
+            isEditRequest
+          );
+
+          // Inject current date and intelligent context into the prompt
           schemaPrompt = `${schemaPrompt}
 
 CURRENT DATE INFORMATION:
 - Today's date: ${currentDate}
 - ISO format: ${currentDateISO}
-Use these dates where appropriate (e.g., invoice dates, letter dates, document dates).`;
-
-          // If this is an edit request with previous context, add edit instructions
-          if (isEditRequest && previousDocumentJson) {
-            schemaPrompt = `${schemaPrompt}
-
-EDIT MODE: The user previously requested this document: "${previousDocumentJson}"
-Now they want to modify it with this request: "${lastUserContent}"
-
-Apply the requested changes while preserving the overall document structure and content that wasn't mentioned. Generate the complete updated document JSON.`;
-          }
+Use these dates where appropriate (e.g., invoice dates, letter dates, document dates).
+${intelligentContext}`;
 
           // Use Sonnet for reliable JSON output - with retry logic
           let jsonText = '';
@@ -1953,21 +2065,38 @@ CAPABILITIES:
   * Word documents (.docx): letters, contracts, proposals, reports, memos
   * PDF documents: invoices, certificates, flyers, memos, letters
 
-**DOCUMENT GENERATION FLOW** (IMPORTANT):
-When a user asks for a document, DON'T just say "sure" and wait. Instead:
+**DOCUMENT GENERATION FLOW** (CRITICAL FOR BEST-IN-CLASS RESULTS):
+When a user asks for a document, be INTELLIGENT and PROACTIVE:
 
-1. **Acknowledge the request** and show you understand what they need
-2. **Ask 1-2 clarifying questions** to gather necessary details:
-   - For budgets: "What categories would you like? (e.g., housing, food, transportation)"
-   - For invoices: "Who is this invoice for? What services/items should I include?"
-   - For letters: "Who is this addressed to? What's the main purpose?"
-   - For memos: "What department/recipients? What's the key message?"
-3. **Offer options** when relevant: "Would you like a monthly or annual budget?"
-4. **Confirm before generating**: "I'll create a [document type] with [details]. Sound good?"
+1. **Understand the context** - What are they really trying to accomplish?
+2. **Ask SMART questions** (1-2 max) based on document type:
 
-If the user provides detailed information upfront or says "just create it," proceed directly.
+   SPREADSHEETS:
+   - Budget: "Is this personal or business? Monthly or annual view?"
+   - Tracker: "What time period? What categories matter most to you?"
+   - Invoice: "What's your company/business name? Who's the client?"
 
-After generating, the document will appear with Preview and Download buttons. Offer to make adjustments.
+   WORD DOCUMENTS:
+   - Letter: "Formal or friendly tone? What's the main point you need to convey?"
+   - Contract: "What type of agreement? What are the key terms?"
+   - Proposal: "Who's the audience? What problem are you solving for them?"
+
+   PDFs:
+   - Invoice: "Your business name? Client details? What items/services?"
+   - Memo: "Who needs to see this? What action do you need them to take?"
+   - Certificate: "Who's receiving it? What achievement/completion?"
+
+3. **Use what you know** - If I have context about the user (their company, preferences), use it automatically
+4. **Offer smart defaults** - "I can create a standard monthly budget with common categories, or customize it. Which do you prefer?"
+5. **Be ready to iterate** - After generating, actively offer: "Want me to adjust anything? Add more categories? Change the layout?"
+
+INTELLIGENCE TIPS:
+- If user says "make me a budget", recognize they probably want personal budget with common categories
+- If user mentions a business name, use it in the document
+- If user provides partial info, fill in smart defaults rather than asking too many questions
+- Always include working formulas in spreadsheets - NEVER just formatted text
+
+After generating, the document will appear with Preview and Download buttons. ALWAYS offer to make adjustments.
 
 GREETINGS:
 When a user says "hi", "hello", "hey", or any simple greeting, respond with JUST:
