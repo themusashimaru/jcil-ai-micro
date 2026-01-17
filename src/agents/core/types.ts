@@ -170,11 +170,14 @@ export interface EvaluatedResults {
 // =============================================================================
 
 export interface ResearchOutput {
+  bottomLine: string;        // Single sentence key takeaway
   executiveSummary: string;
   keyFindings: KeyFinding[];
   detailedSections: ResearchSection[];
+  comparisonTable?: ComparisonTable;  // For competitor/comparison research
   gaps: string[];           // What couldn't be found
   suggestions: string[];    // What user should research next
+  followUpQuestions: string[];  // Suggested follow-up questions
   sources: SourceCitation[];
   metadata: {
     totalQueries: number;
@@ -182,10 +185,23 @@ export interface ResearchOutput {
     sourcesUsed: string[];
     confidenceScore: number;
     executionTime: number;
+    depth: 'quick' | 'standard' | 'deep';
+    completedAt: number;    // Timestamp
   };
 }
 
+export interface ComparisonTable {
+  headers: string[];
+  rows: ComparisonRow[];
+}
+
+export interface ComparisonRow {
+  entity: string;           // Company/product name
+  values: string[];         // Values for each header column
+}
+
 export interface KeyFinding {
+  title?: string;           // Short title for scannability
   finding: string;
   confidence: 'high' | 'medium' | 'low';
   sources: string[];
