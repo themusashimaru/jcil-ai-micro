@@ -29,16 +29,9 @@ import { compressImage, isImageFile } from '@/lib/utils/imageCompression';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { useTheme } from '@/contexts/ThemeContext';
 
-// Tool mode types - includes search tools, document creation, and resume generator
-export type ToolMode =
-  | 'none'
-  | 'search'
-  | 'factcheck'
-  | 'research'
-  | 'doc_word'
-  | 'doc_excel'
-  | 'doc_pdf'
-  | 'resume_generator';
+// Tool mode types - search and research tools only
+// Document generation is now integrated into regular chat for all users
+export type ToolMode = 'none' | 'search' | 'factcheck' | 'research';
 
 // Legacy alias for backwards compatibility
 export type SearchMode = ToolMode;
@@ -335,14 +328,6 @@ export function ChatComposer({
         return 'What do you want to fact check?';
       case 'research':
         return 'What would you like to research?';
-      case 'doc_word':
-        return 'Describe the Word document you need...';
-      case 'doc_excel':
-        return 'Describe the spreadsheet you need...';
-      case 'doc_pdf':
-        return 'Describe the PDF/invoice you need...';
-      case 'resume_generator':
-        return "Let's build your perfect resume...";
       default:
         return '';
     }
@@ -392,67 +377,6 @@ export function ChatComposer({
                 strokeLinejoin="round"
                 strokeWidth={2}
                 d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-              />
-            </svg>
-          ),
-        };
-      case 'doc_word':
-        return {
-          label: 'Word Document',
-          color: '#2563eb',
-          icon: (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          ),
-        };
-      case 'doc_excel':
-        return {
-          label: 'Excel Spreadsheet',
-          color: '#16a34a',
-          icon: (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 10h18M3 14h18M9 4v16M15 4v16M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"
-              />
-            </svg>
-          ),
-        };
-      case 'doc_pdf':
-        return {
-          label: 'PDF Invoice',
-          color: '#dc2626',
-          icon: (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 21h10a2 2 0 002-2V9l-5-5H7a2 2 0 00-2 2v13a2 2 0 002 2z"
-              />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 3v6h6" />
-            </svg>
-          ),
-        };
-      case 'resume_generator':
-        return {
-          label: 'Resume Generator',
-          color: '#7c3aed',
-          icon: (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
               />
             </svg>
           ),
@@ -1090,30 +1014,6 @@ export function ChatComposer({
             />
             {/* Menu - Clean text-only style */}
             <div className="fixed bottom-24 left-4 z-[9999] w-52 rounded-lg border border-white/10 bg-zinc-900 shadow-xl overflow-hidden">
-              {/* Featured - Resume Generator */}
-              <button
-                onClick={() => selectToolMode('resume_generator')}
-                className="w-full text-left px-3 py-2.5 text-sm font-medium text-white hover:bg-violet-600/20 transition-colors flex items-center gap-2 bg-violet-600/10 border-b border-white/10"
-              >
-                <svg
-                  className="h-4 w-4 text-violet-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                <span className="text-violet-300">Resume Generator</span>
-                <span className="ml-auto text-[10px] bg-violet-500/30 text-violet-300 px-1.5 py-0.5 rounded">
-                  ATS
-                </span>
-              </button>
-
               {/* Search Agents */}
               <div className="px-3 py-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
                 Search
@@ -1132,32 +1032,9 @@ export function ChatComposer({
               </button>
               <button
                 onClick={() => selectToolMode('research')}
-                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-              >
-                Deep Research
-              </button>
-
-              {/* Documents */}
-              <div className="px-3 py-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-wider border-t border-white/10 mt-1">
-                Create Document
-              </div>
-              <button
-                onClick={() => selectToolMode('doc_word')}
-                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-              >
-                Word Document
-              </button>
-              <button
-                onClick={() => selectToolMode('doc_excel')}
-                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-              >
-                Excel Spreadsheet
-              </button>
-              <button
-                onClick={() => selectToolMode('doc_pdf')}
                 className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors rounded-b-lg"
               >
-                PDF Invoice
+                Deep Research
               </button>
             </div>
           </>,
