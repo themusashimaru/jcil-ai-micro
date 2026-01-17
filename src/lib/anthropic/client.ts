@@ -339,20 +339,46 @@ type AnthropicMessageContent =
       | { type: 'image'; source: { type: 'base64'; media_type: ImageMediaType; data: string } }
     >;
 
+// System prompt with cache control for prompt caching
+type CachedSystemPrompt = Array<{
+  type: 'text';
+  text: string;
+  cache_control?: { type: 'ephemeral' };
+}>;
+
 /**
  * Convert CoreMessage format to Anthropic message format
+ * Supports prompt caching via cache_control on system prompt
+ *
+ * PROMPT CACHING BENEFITS:
+ * - System prompts are cached for 5 minutes
+ * - 90% cost reduction on cached reads
+ * - Especially valuable for long system prompts (2K+ tokens)
  */
 function convertMessages(
   messages: CoreMessage[],
-  systemPrompt?: string
+  systemPrompt?: string,
+  enableCaching: boolean = true
 ): {
-  system: string;
+  system: string | CachedSystemPrompt;
   messages: Array<{
     role: 'user' | 'assistant';
     content: AnthropicMessageContent;
   }>;
 } {
-  const system = systemPrompt || 'You are a helpful AI assistant.';
+  const systemText = systemPrompt || 'You are a helpful AI assistant.';
+
+  // Use cached format for prompt caching (90% cost savings on repeated requests)
+  // Cache control tells Anthropic to cache this prefix for 5 minutes
+  const system: string | CachedSystemPrompt = enableCaching
+    ? [
+        {
+          type: 'text' as const,
+          text: systemText,
+          cache_control: { type: 'ephemeral' as const },
+        },
+      ]
+    : systemText;
   const anthropicMessages: Array<{
     role: 'user' | 'assistant';
     content: AnthropicMessageContent;
@@ -1044,6 +1070,8 @@ export async function createClaudeStreamingChat(options: {
   // Token usage tracking - captured during streaming
   let inputTokens = 0;
   let outputTokens = 0;
+  let cacheCreationTokens = 0;
+  let cacheReadTokens = 0;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -1138,9 +1166,32 @@ export async function createClaudeStreamingChat(options: {
                 controller.enqueue(encoder.encode(delta.text));
               }
             }
-            // Capture token usage from message events
+            // Capture token usage and cache statistics from message events
             if (event.type === 'message_start' && event.message?.usage) {
-              inputTokens = event.message.usage.input_tokens || 0;
+              const usage = event.message.usage as {
+                input_tokens?: number;
+                cache_creation_input_tokens?: number;
+                cache_read_input_tokens?: number;
+              };
+              inputTokens = usage.input_tokens || 0;
+              cacheCreationTokens = usage.cache_creation_input_tokens || 0;
+              cacheReadTokens = usage.cache_read_input_tokens || 0;
+
+              // Log cache statistics for monitoring savings
+              if (cacheReadTokens > 0) {
+                log.info('Prompt cache HIT', {
+                  cacheReadTokens,
+                  inputTokens,
+                  savingsPercent: Math.round(
+                    (cacheReadTokens / (inputTokens + cacheReadTokens)) * 90
+                  ),
+                });
+              } else if (cacheCreationTokens > 0) {
+                log.info('Prompt cache CREATED', {
+                  cacheCreationTokens,
+                  inputTokens,
+                });
+              }
             }
             if (event.type === 'message_delta' && event.usage) {
               outputTokens = event.usage.output_tokens || 0;
@@ -1211,6 +1262,8 @@ export async function createClaudeStreamingChat(options: {
       inputTokens,
       outputTokens,
       totalTokens: inputTokens + outputTokens,
+      cacheCreationTokens,
+      cacheReadTokens,
     }),
   };
 }
