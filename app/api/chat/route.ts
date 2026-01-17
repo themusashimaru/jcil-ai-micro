@@ -267,43 +267,48 @@ function detectDocumentIntent(
 ): 'xlsx' | 'docx' | 'pdf' | 'pptx' | null {
   const lowerMessage = message.toLowerCase();
 
-  // Excel/Spreadsheet patterns - creation
+  // Excel/Spreadsheet patterns - creation (more comprehensive)
   const spreadsheetPatterns = [
-    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(spreadsheet|excel|xlsx|budget|tracker|expense|financial|schedule|timesheet|inventory|roster|checklist)\b/i,
-    /\b(spreadsheet|excel|xlsx)\b.{0,20}\b(for|with|that|about)\b/i,
-    /\b(budget|expense|financial|inventory)\b.{0,20}\b(tracker|template|sheet)\b/i,
-    /\btrack(ing)?\b.{0,20}\b(expenses?|budget|inventory|time|hours)\b/i,
+    /\b(create|make|generate|build|give me|i need|can you (create|make)|help me (create|make|with))\b.{0,40}\b(spreadsheet|excel|xlsx|budget|tracker|expense|financial|schedule|timesheet|inventory|roster|checklist|planner|log|ledger|calculator|estimator)\b/i,
+    /\b(spreadsheet|excel|xlsx)\b.{0,20}\b(for|with|that|about|to track|to manage)\b/i,
+    /\b(budget|expense|financial|inventory|project|task|time|sales|revenue|cost|profit)\b.{0,20}\b(tracker|template|sheet|planner|log)\b/i,
+    /\btrack(ing)?\b.{0,20}\b(expenses?|budget|inventory|time|hours|sales|projects?|tasks?)\b/i,
+    /\b(calculate|computation|formula|math|totals?|sum)\b.{0,30}\b(sheet|spreadsheet|table)\b/i,
+    /\b(data|numbers?|figures?)\b.{0,20}\b(organize|table|columns?|rows?)\b/i,
   ];
 
-  // Word document patterns - creation
+  // Word document patterns - creation (more comprehensive)
   const wordPatterns = [
-    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(word doc|docx|document|letter|contract|proposal|report|memo|agreement)\b/i,
-    /\b(write|draft)\b.{0,20}\b(letter|contract|proposal|report|memo|agreement)\b/i,
-    /\b(formal|business|professional)\b.{0,20}\b(letter|document)\b/i,
+    /\b(create|make|generate|build|give me|i need|can you (create|make)|help me (create|make|write|draft))\b.{0,40}\b(word doc|docx|document|letter|contract|proposal|report|memo|memorandum|agreement|policy|procedure|sop|manual|guide|handbook|template|form|application|statement|brief|summary|analysis|plan|outline|agenda|minutes|notice|announcement)\b/i,
+    /\b(write|draft|compose|prepare)\b.{0,30}\b(letter|contract|proposal|report|memo|agreement|policy|document|brief|statement|notice)\b/i,
+    /\b(formal|business|professional|official|legal)\b.{0,20}\b(letter|document|agreement|notice|memo)\b/i,
+    /\b(cover letter|resignation|recommendation|reference|termination|offer|acceptance)\b.{0,10}\bletter\b/i,
+    /\b(project|status|progress|annual|quarterly|monthly|weekly)\b.{0,15}\breport\b/i,
+    /\b(business|sales|project|grant|research)\b.{0,15}\bproposal\b/i,
+    /\b(nda|non-disclosure|confidentiality|employment|service|lease|rental)\b.{0,15}\b(agreement|contract)\b/i,
   ];
 
-  // PDF patterns - expanded to cover invoices, letters, reports, certificates, flyers, etc.
+  // PDF patterns - expanded (invoices, certificates, flyers, letters, memos, etc.)
   const pdfPatterns = [
     // Invoice/billing specific
-    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(invoice|receipt|bill)\b/i,
-    /\binvoice\b.{0,20}\b(for|with|that)\b/i,
-    /\b(bill|charge)\b.{0,20}\b(client|customer)\b/i,
-    // General PDF requests - including memos, letters, notices
-    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(pdf|certificate|flyer|brochure|poster|handout|sign|badge|card|ticket|coupon|menu|program)\b/i,
-    /\b(create|make|generate|write|draft)\b.{0,10}\b(a\s+)?pdf\b/i, // "create a pdf", "make pdf"
-    /\bpdf\b.{0,20}\b(memo|letter|notice|document|report|form)\b/i, // "pdf memo", "pdf letter"
-    /\b(memo|letter|notice)\b.{0,20}\b(as\s+)?(a\s+)?pdf\b/i, // "memo as pdf", "letter as a pdf"
-    /\b(convert|export|save|download)\b.{0,20}\b(as|to|into)\b.{0,10}\bpdf\b/i,
-    /\bpdf\b.{0,20}\b(version|format|file)\b/i,
-    /\b(printable|print-ready)\b.{0,20}\b(document|version|copy|memo|letter)\b/i,
-    // Certificate patterns
-    /\b(certificate|diploma|award)\b.{0,20}\b(of|for)\b/i,
-    /\b(achievement|completion|recognition|appreciation)\b.{0,10}\bcertificate\b/i,
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(invoice|receipt|bill|quote|quotation|estimate)\b/i,
+    /\binvoice\b.{0,20}\b(for|with|that|to|client|customer)\b/i,
+    /\b(bill|charge|quote)\b.{0,20}\b(client|customer|services?)\b/i,
+    // Certificate specific
+    /\b(create|make|generate)\b.{0,20}\b(certificate|diploma|award|recognition)\b/i,
+    /\b(certificate|diploma|award)\b.{0,20}\b(of|for)\b.{0,20}\b(completion|achievement|appreciation|excellence|participation|attendance|training)\b/i,
+    // General PDF requests
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(pdf|flyer|brochure|poster|handout|sign|badge|card|ticket|coupon|menu|program|pamphlet|leaflet)\b/i,
+    /\b(create|make|generate|write|draft)\b.{0,15}\b(a\s+)?pdf\b/i,
+    /\bpdf\b.{0,20}\b(memo|letter|notice|document|report|form|version)\b/i,
+    /\b(memo|letter|notice|report)\b.{0,20}\b(as\s+)?(a\s+)?pdf\b/i,
+    /\b(convert|export|save|download)\b.{0,20}\b(as|to|into)\b.{0,15}\bpdf\b/i,
+    /\b(printable|print-ready|print)\b.{0,20}\b(document|version|copy|memo|letter|form)\b/i,
   ];
 
   // PowerPoint patterns - creation
   const pptxPatterns = [
-    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(presentation|powerpoint|pptx|slides?|slide deck)\b/i,
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(presentation|powerpoint|pptx|slides?|slide deck|pitch deck)\b/i,
     /\b(presentation|powerpoint|slides?)\b.{0,20}\b(for|about|on)\b/i,
   ];
 
@@ -318,12 +323,13 @@ function detectDocumentIntent(
   // If user is asking to modify a document, check conversation history
   // ========================================
   const editPatterns = [
-    /\b(add|change|update|modify|edit|adjust|remove|delete|include|insert)\b.{0,30}\b(column|row|cell|section|paragraph|line|item|field|header|footer|color|font|style|format)\b/i,
-    /\b(make it|can you|please)\b.{0,20}\b(bigger|smaller|wider|narrower|bold|italic|different|better)\b/i,
-    /\b(more|less|another|extra|additional)\b.{0,20}\b(column|row|section|item|detail|info)\b/i,
-    /\bchange\b.{0,15}\b(the|this|that|color|title|name)\b/i,
-    /\b(redo|regenerate|try again|new version|update it|fix it)\b/i,
-    /\b(actually|instead|wait)\b.{0,20}\b(can you|make|change)\b/i,
+    /\b(add|change|update|modify|edit|adjust|remove|delete|include|insert|fix|correct|revise)\b.{0,30}\b(column|row|cell|section|paragraph|line|item|field|header|footer|color|font|style|format|number|date|name|title|amount|price|total)\b/i,
+    /\b(make it|can you|please)\b.{0,20}\b(bigger|smaller|wider|narrower|bold|italic|different|better|nicer|cleaner|shorter|longer)\b/i,
+    /\b(more|less|another|extra|additional|different)\b.{0,20}\b(column|row|section|item|detail|info|space|margin|padding)\b/i,
+    /\bchange\b.{0,15}\b(the|this|that|color|title|name|date|number|amount)\b/i,
+    /\b(redo|regenerate|try again|new version|update it|fix it|adjust it|tweak it)\b/i,
+    /\b(actually|instead|wait|oops|wrong)\b.{0,20}\b(can you|make|change|use|put)\b/i,
+    /\b(the document|the spreadsheet|the invoice|the pdf|it)\b.{0,15}\b(should|needs to|has to)\b/i,
   ];
 
   const isEditRequest = editPatterns.some((p) => p.test(lowerMessage));
@@ -338,7 +344,12 @@ function detectDocumentIntent(
       if (msg.role === 'assistant' && content.includes('[document_download:')) {
         if (content.includes('"type":"xlsx"') || content.includes('spreadsheet')) return 'xlsx';
         if (content.includes('"type":"docx"') || content.includes('word document')) return 'docx';
-        if (content.includes('"type":"pdf"') || content.includes('invoice')) return 'pdf';
+        if (
+          content.includes('"type":"pdf"') ||
+          content.includes('pdf') ||
+          content.includes('invoice')
+        )
+          return 'pdf';
         if (content.includes('"type":"pptx"') || content.includes('presentation')) return 'pptx';
       }
     }
@@ -347,175 +358,517 @@ function detectDocumentIntent(
   return null;
 }
 
-function getDocumentSchemaPrompt(documentType: string, userMessage?: string): string {
-  const baseInstruction = `You are a professional document generation assistant. Based on the user's request, generate a JSON object that describes the document they want. Output ONLY valid JSON, no explanation. Create professional, well-structured content with proper formatting.`;
-
-  // Check if this is an invoice request (for PDF type)
-  const isInvoiceRequest = userMessage
-    ? /\b(invoice|receipt|bill|billing|charge|payment)\b/i.test(userMessage)
-    : false;
+/**
+ * Detect the specific sub-type of document for more intelligent generation
+ */
+function detectDocumentSubtype(documentType: string, userMessage: string): string {
+  const msg = userMessage.toLowerCase();
 
   if (documentType === 'xlsx') {
-    return `${baseInstruction}
-
-Generate a spreadsheet JSON with this structure:
-{
-  "type": "spreadsheet",
-  "title": "Document Title",
-  "settings": {
-    "margins": { "top": 0.75, "bottom": 0.75, "left": 0.7, "right": 0.7 },
-    "headerRow": true,
-    "autoFilter": true
-  },
-  "sheets": [{
-    "name": "Sheet1",
-    "rows": [
-      { "cells": [{ "value": "Header1", "bold": true, "fill": "#4472C4", "fontColor": "#FFFFFF" }, { "value": "Header2", "bold": true, "fill": "#4472C4", "fontColor": "#FFFFFF" }], "isHeader": true },
-      { "cells": [{ "value": "Data1" }, { "value": 100, "currency": true }] },
-      { "cells": [{ "value": "Total", "bold": true }, { "formula": "=SUM(B2:B10)", "bold": true }] }
-    ],
-    "columnWidths": [25, 18, 15]
-  }]
-}
-
-Cell options:
-- { "formula": "=SUM(B2:B10)" } for formulas
-- { "value": 100, "currency": true } for currency formatting
-- { "value": 0.15, "percent": true } for percentages
-- { "bold": true, "italic": true } for text styling
-- { "fill": "#4472C4", "fontColor": "#FFFFFF" } for colors
-- { "align": "center" } for alignment (left, center, right)
-
-Make the spreadsheet professional with:
-- Clear headers with background color
-- Proper column widths for content
-- Summary/total rows where appropriate
-- Formulas for calculations`;
+    if (/budget/i.test(msg)) return 'budget';
+    if (/expense|spending/i.test(msg)) return 'expense_tracker';
+    if (/invoice|billing/i.test(msg)) return 'invoice_tracker';
+    if (/inventory|stock/i.test(msg)) return 'inventory';
+    if (/schedule|calendar|planner/i.test(msg)) return 'schedule';
+    if (/timesheet|time.?tracking|hours/i.test(msg)) return 'timesheet';
+    if (/project|task/i.test(msg)) return 'project_tracker';
+    if (/sales|revenue|crm/i.test(msg)) return 'sales_tracker';
+    if (/comparison|compare/i.test(msg)) return 'comparison';
+    return 'general_spreadsheet';
   }
 
   if (documentType === 'docx') {
-    return `${baseInstruction}
-
-Generate a Word document JSON with this structure:
-{
-  "type": "document",
-  "title": "Document Title",
-  "settings": {
-    "margins": { "top": 1, "bottom": 1, "left": 1, "right": 1 },
-    "font": "Calibri",
-    "fontSize": 11
-  },
-  "sections": [
-    { "type": "paragraph", "content": { "text": "Main Title", "style": "title", "alignment": "center" } },
-    { "type": "paragraph", "content": { "text": "Contact info or subtitle", "style": "subtitle", "alignment": "center" } },
-    { "type": "paragraph", "content": { "text": "" } },
-    { "type": "paragraph", "content": { "text": "Section Heading", "style": "heading1" } },
-    { "type": "paragraph", "content": { "text": "Body paragraph with detailed content.", "style": "normal" } },
-    { "type": "paragraph", "content": { "text": "Bullet point item", "bulletLevel": 1 } },
-    { "type": "paragraph", "content": { "text": "Sub-bullet point", "bulletLevel": 2 } },
-    { "type": "table", "content": { "headers": ["Column 1", "Column 2"], "rows": [["Data 1", "Data 2"]], "headerStyle": "bold" } }
-  ]
-}
-
-Available styles: title, subtitle, heading1, heading2, heading3, normal
-Alignment: left, center, right, justify
-Bullet levels: 1, 2, 3
-
-Make the document professional with:
-- Proper spacing between sections
-- Consistent formatting throughout
-- Clear hierarchy with headings
-- Professional language`;
+    if (/cover.?letter/i.test(msg)) return 'cover_letter';
+    if (/resignation/i.test(msg)) return 'resignation_letter';
+    if (/recommendation|reference/i.test(msg)) return 'recommendation_letter';
+    if (/offer.?letter/i.test(msg)) return 'offer_letter';
+    if (/termination/i.test(msg)) return 'termination_letter';
+    if (/formal.?letter|business.?letter/i.test(msg)) return 'formal_letter';
+    if (/memo|memorandum/i.test(msg)) return 'memo';
+    if (/contract|agreement/i.test(msg)) return 'contract';
+    if (/proposal/i.test(msg)) return 'proposal';
+    if (/report/i.test(msg)) return 'report';
+    if (/policy|procedure|sop/i.test(msg)) return 'policy';
+    if (/meeting.?minutes|minutes/i.test(msg)) return 'meeting_minutes';
+    if (/agenda/i.test(msg)) return 'agenda';
+    if (/notice|announcement/i.test(msg)) return 'notice';
+    return 'general_document';
   }
 
   if (documentType === 'pdf') {
+    if (/invoice|bill|receipt/i.test(msg)) return 'invoice';
+    if (/quote|quotation|estimate/i.test(msg)) return 'quote';
+    if (/certificate|diploma|award/i.test(msg)) return 'certificate';
+    if (/flyer|poster|handout/i.test(msg)) return 'flyer';
+    if (/brochure|pamphlet/i.test(msg)) return 'brochure';
+    if (/menu/i.test(msg)) return 'menu';
+    if (/ticket|pass|badge/i.test(msg)) return 'ticket';
+    if (/memo|memorandum/i.test(msg)) return 'memo';
+    if (/letter/i.test(msg)) return 'letter';
+    if (/report/i.test(msg)) return 'report';
+    if (/form/i.test(msg)) return 'form';
+    return 'general_pdf';
+  }
+
+  return 'general';
+}
+
+function getDocumentSchemaPrompt(documentType: string, userMessage?: string): string {
+  const subtype = detectDocumentSubtype(documentType, userMessage || '');
+
+  const baseInstruction = `You are an expert document generation assistant producing Fortune 500-quality documents. Based on the user's request, generate a JSON object that describes the document.
+
+CRITICAL RULES:
+1. Output ONLY valid JSON - no explanation, no markdown, no text before or after
+2. Generate COMPLETE, REALISTIC content - not placeholders like "Your content here"
+3. Use professional business language appropriate for the document type
+4. Include all necessary sections for this type of document
+5. Make smart assumptions based on context if information is missing
+6. Numbers, dates, and data should be realistic and properly formatted`;
+
+  // ========================================
+  // SPREADSHEET PROMPTS (with sub-type intelligence)
+  // ========================================
+  if (documentType === 'xlsx') {
+    const spreadsheetBase = `${baseInstruction}
+
+Generate a professional spreadsheet JSON. Structure:
+{
+  "type": "spreadsheet",
+  "title": "Descriptive Title",
+  "sheets": [{
+    "name": "Sheet Name",
+    "rows": [
+      { "cells": [{ "value": "Header", "bold": true }], "isHeader": true },
+      { "cells": [{ "value": "Data" }, { "value": 100, "currency": true }] },
+      { "cells": [{ "value": "Total", "bold": true }, { "formula": "=SUM(B2:B10)", "bold": true, "currency": true }] }
+    ],
+    "columnWidths": [30, 15, 15],
+    "freezeRow": 1
+  }],
+  "format": { "alternatingRowColors": true }
+}
+
+CELL OPTIONS:
+- Numbers: { "value": 1000 } - auto-formats with thousands separator
+- Currency: { "value": 99.99, "currency": true }
+- Percent: { "value": 0.15, "percent": true } - displays as 15.00%
+- Formulas: { "formula": "=SUM(B2:B10)" } or "=AVERAGE()" or "=B2*C2"
+- Text styling: { "bold": true, "italic": true }
+- Alignment: { "alignment": "right" } for numbers, "center" for headers
+
+PROFESSIONAL STANDARDS:
+- Column widths: 25-35 for text, 12-18 for numbers/currency
+- Always include headers with isHeader: true
+- Add totals/summary rows with formulas
+- Use consistent number formatting
+- Include freezeRow: 1 to freeze headers`;
+
+    // Sub-type specific guidance
+    const subtypeGuidance: Record<string, string> = {
+      budget: `
+
+BUDGET SPREADSHEET STRUCTURE:
+Include columns: Category, Budgeted Amount, Actual Amount, Variance, % of Budget
+Rows: Income section, Expense categories (Housing, Transportation, Food, Utilities, Entertainment, Savings, etc.), Summary row
+Formulas: Variance = Budgeted - Actual, use SUM for totals
+Include both monthly breakdown and annual summary if applicable`,
+      expense_tracker: `
+
+EXPENSE TRACKER STRUCTURE:
+Include columns: Date, Description, Category, Payment Method, Amount, Running Balance
+Pre-populate with realistic expense categories
+Add summary section with totals by category
+Include formulas for running balance and category totals`,
+      inventory: `
+
+INVENTORY TRACKER STRUCTURE:
+Include columns: Item/SKU, Description, Category, Quantity on Hand, Reorder Level, Unit Cost, Total Value
+Add formulas: Total Value = Qty * Unit Cost
+Include low stock highlighting logic description
+Add summary row with total inventory value`,
+      timesheet: `
+
+TIMESHEET STRUCTURE:
+Include columns: Date, Day, Project/Task, Start Time, End Time, Hours Worked, Hourly Rate, Amount
+Add daily totals and weekly/period summary
+Include overtime calculation if hours > 8/day or 40/week
+Formula for Amount = Hours * Rate`,
+      project_tracker: `
+
+PROJECT TRACKER STRUCTURE:
+Include columns: Task Name, Assignee, Status, Priority, Start Date, Due Date, % Complete, Notes
+Use realistic project phases and tasks
+Status options: Not Started, In Progress, On Hold, Completed
+Add summary showing completion percentage`,
+      sales_tracker: `
+
+SALES TRACKER STRUCTURE:
+Include columns: Date, Customer, Product/Service, Quantity, Unit Price, Total, Sales Rep, Region
+Add summary by rep, region, and product
+Include month-to-date and year-to-date totals
+Calculate commission if applicable`,
+      comparison: `
+
+COMPARISON SPREADSHEET STRUCTURE:
+Include columns: Feature/Criteria, Option A, Option B, Option C, Winner/Notes
+Use checkmarks (✓) or values for comparison
+Add weighted scoring if applicable
+Include summary recommendation row`,
+      general_spreadsheet: `
+
+Create a well-organized spreadsheet appropriate for the request.
+Include relevant columns with proper headers.
+Add calculations and summaries where appropriate.
+Use professional formatting throughout.`,
+    };
+
+    return spreadsheetBase + (subtypeGuidance[subtype] || subtypeGuidance.general_spreadsheet);
+  }
+
+  // ========================================
+  // WORD DOCUMENT PROMPTS (with sub-type intelligence)
+  // ========================================
+  if (documentType === 'docx') {
+    const docBase = `${baseInstruction}
+
+Generate a professional Word document JSON. Structure:
+{
+  "type": "document",
+  "title": "Document Title",
+  "sections": [
+    { "type": "paragraph", "content": { "text": "Title Text", "style": "title", "alignment": "center" } },
+    { "type": "paragraph", "content": { "text": "Section Heading", "style": "heading1" } },
+    { "type": "paragraph", "content": { "text": "Body paragraph with professional content.", "style": "normal" } },
+    { "type": "paragraph", "content": { "text": "Bullet point item", "bulletLevel": 1 } },
+    { "type": "table", "content": { "headers": ["Column 1", "Column 2"], "rows": [["Data", "Data"]] } }
+  ],
+  "format": {
+    "fontFamily": "Calibri",
+    "fontSize": 22
+  }
+}
+
+STYLES: title, subtitle, heading1, heading2, heading3, normal
+ALIGNMENT: left (default), center, right, justify
+BULLET LEVELS: 1, 2, 3 for nested lists
+
+PROFESSIONAL WRITING STANDARDS:
+- Use active voice and clear, concise language
+- Maintain consistent tone throughout
+- Include proper transitions between sections
+- Avoid jargon unless industry-appropriate`;
+
+    const subtypeGuidance: Record<string, string> = {
+      formal_letter: `
+
+FORMAL BUSINESS LETTER STRUCTURE:
+1. Date (current date, formatted: January 15, 2024)
+2. Recipient address block
+3. Salutation (Dear Mr./Ms. LastName:)
+4. Opening paragraph - state purpose clearly
+5. Body paragraphs - details, reasoning, supporting info
+6. Closing paragraph - call to action or next steps
+7. Complimentary close (Sincerely,)
+8. Signature block with name and title
+
+Use formal tone, no contractions, professional vocabulary.`,
+      cover_letter: `
+
+COVER LETTER STRUCTURE:
+1. Contact information header
+2. Date and employer address
+3. Opening: Position applying for, how you learned of it, hook statement
+4. Body 1: Why you're interested in this role/company
+5. Body 2: Your relevant qualifications and achievements (quantified)
+6. Body 3: How you'll contribute value
+7. Closing: Call to action, thank you, availability
+
+Keep to one page. Be specific about the role. Show enthusiasm.`,
+      memo: `
+
+MEMO STRUCTURE:
+Header block:
+TO: [Recipient(s)]
+FROM: [Sender]
+DATE: [Current date]
+RE: [Clear, specific subject]
+
+Body:
+1. Purpose statement (first sentence states why you're writing)
+2. Background/context (if needed)
+3. Key points or information (use bullets for clarity)
+4. Action items or next steps
+5. Closing (offer to discuss, deadline reminders)
+
+Keep concise and scannable. Use bullet points for lists.`,
+      contract: `
+
+CONTRACT/AGREEMENT STRUCTURE:
+1. Title (e.g., "SERVICE AGREEMENT")
+2. Parties clause (identifying all parties with addresses)
+3. Recitals/Background ("WHEREAS" statements)
+4. Definitions section
+5. Scope of services/goods
+6. Payment terms
+7. Term and termination
+8. Confidentiality (if applicable)
+9. Limitation of liability
+10. General provisions (governing law, amendments, notices)
+11. Signature blocks
+
+Use clear, unambiguous language. Number all sections.`,
+      proposal: `
+
+BUSINESS PROPOSAL STRUCTURE:
+1. Title page with proposal name and date
+2. Executive Summary (1 paragraph overview)
+3. Problem Statement / Needs Analysis
+4. Proposed Solution
+5. Methodology / Approach
+6. Timeline / Milestones
+7. Budget / Pricing (use table)
+8. Qualifications / Why Choose Us
+9. Terms and Conditions
+10. Call to Action / Next Steps
+
+Focus on benefits to the client. Use data and specifics.`,
+      report: `
+
+REPORT STRUCTURE:
+1. Title
+2. Executive Summary (for longer reports)
+3. Introduction / Purpose
+4. Background / Methodology
+5. Findings / Results (use headings, bullets, tables)
+6. Analysis / Discussion
+7. Conclusions
+8. Recommendations
+9. Appendices (if needed)
+
+Use clear headings. Include data visualizations where appropriate.`,
+      meeting_minutes: `
+
+MEETING MINUTES STRUCTURE:
+Header: Meeting name, Date, Time, Location
+Attendees: List of present members
+Absent: List of absent members
+Agenda Items:
+1. [Topic] - Discussion summary, decisions made, action items
+2. [Topic] - Discussion summary, decisions made, action items
+Action Items Summary: Task, Responsible Party, Due Date
+Next Meeting: Date, time, location
+Adjournment: Time meeting ended`,
+      policy: `
+
+POLICY DOCUMENT STRUCTURE:
+1. Policy Title
+2. Policy Number and Effective Date
+3. Purpose
+4. Scope (who this applies to)
+5. Definitions
+6. Policy Statement (the actual rules)
+7. Procedures (how to implement)
+8. Responsibilities
+9. Compliance / Consequences
+10. Related Documents
+11. Revision History`,
+      general_document: `
+
+Create a well-structured document appropriate for the request.
+Use proper headings and organization.
+Include all relevant sections with complete content.
+Maintain professional tone throughout.`,
+    };
+
+    return docBase + (subtypeGuidance[subtype] || subtypeGuidance.general_document);
+  }
+
+  // ========================================
+  // PDF PROMPTS (with sub-type intelligence)
+  // ========================================
+  if (documentType === 'pdf') {
     // Invoice PDF
-    if (isInvoiceRequest) {
+    if (subtype === 'invoice' || subtype === 'quote') {
       return `${baseInstruction}
 
-Generate an invoice PDF JSON with this structure:
+Generate a professional ${subtype === 'quote' ? 'quote/estimate' : 'invoice'} PDF JSON:
 {
   "type": "invoice",
-  "invoiceNumber": "INV-001",
+  "invoiceNumber": "${subtype === 'quote' ? 'QT' : 'INV'}-001",
   "date": "2024-01-15",
   "dueDate": "2024-02-15",
-  "settings": {
-    "margins": { "top": 50, "bottom": 50, "left": 50, "right": 50 },
-    "primaryColor": "#2563eb",
-    "accentColor": "#1e40af"
-  },
   "from": {
-    "name": "Your Company",
-    "address": ["123 Main St", "City, ST 12345"],
-    "email": "info@company.com",
+    "name": "Company Name",
+    "address": ["123 Business Ave", "City, State 12345"],
+    "email": "billing@company.com",
     "phone": "(555) 123-4567"
   },
   "to": {
     "name": "Client Name",
     "company": "Client Company",
-    "address": ["456 Oak Ave", "City, ST 67890"],
-    "email": "client@email.com"
+    "address": ["456 Client St", "City, State 67890"],
+    "email": "client@example.com"
   },
   "items": [
-    { "description": "Service 1", "details": "Detailed description", "quantity": 1, "unitPrice": 100 },
-    { "description": "Service 2", "details": "Another description", "quantity": 2, "unitPrice": 50 }
+    { "description": "Service/Product Name", "details": "Detailed description of service", "quantity": 1, "unitPrice": 500.00 }
   ],
-  "taxRate": 8.5,
+  "taxRate": 0,
   "discount": 0,
   "notes": "Thank you for your business!",
-  "paymentTerms": "Net 30"
+  "paymentTerms": "Net 30",
+  "format": {
+    "primaryColor": "#1e3a5f"
+  }
 }
 
-Make the invoice professional with:
-- Clear itemization with descriptions
-- Proper tax and total calculations
-- Professional formatting and branding`;
+INVOICE BEST PRACTICES:
+- Use descriptive item names and details
+- Include realistic quantities and prices
+- Set appropriate payment terms (Net 15, Net 30, Due on Receipt)
+- Add professional notes (payment instructions, thank you message)
+- Calculate tax if mentioned or if B2C transaction`;
     }
 
-    // General PDF (certificates, flyers, letters, reports, etc.)
+    // Certificate
+    if (subtype === 'certificate') {
+      return `${baseInstruction}
+
+Generate a certificate PDF JSON:
+{
+  "type": "general_pdf",
+  "title": "Certificate of [Achievement/Completion/etc.]",
+  "format": {
+    "fontFamily": "Times-Roman",
+    "fontSize": 12,
+    "margins": { "top": 72, "bottom": 72, "left": 72, "right": 72 },
+    "primaryColor": "#1e3a5f"
+  },
+  "sections": [
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "CERTIFICATE OF ACHIEVEMENT", "style": "title", "alignment": "center" } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "This is to certify that", "style": "normal", "alignment": "center" } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "[Recipient Name]", "style": "heading1", "alignment": "center" } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "has successfully completed...", "style": "normal", "alignment": "center" } },
+    { "type": "spacer" },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "________________________", "style": "normal", "alignment": "center" } },
+    { "type": "paragraph", "content": { "text": "Authorized Signature", "style": "subtitle", "alignment": "center" } },
+    { "type": "paragraph", "content": { "text": "Date: [Date]", "style": "normal", "alignment": "center" } }
+  ]
+}
+
+CERTIFICATE STYLE: Elegant, centered, use spacers for visual balance. Include achievement details, date, and signature line.`;
+    }
+
+    // Memo PDF
+    if (subtype === 'memo') {
+      return `${baseInstruction}
+
+Generate a memo PDF JSON:
+{
+  "type": "general_pdf",
+  "title": "Memorandum",
+  "format": {
+    "fontFamily": "Helvetica",
+    "fontSize": 11,
+    "margins": { "top": 72, "bottom": 72, "left": 72, "right": 72 },
+    "primaryColor": "#1e3a5f"
+  },
+  "sections": [
+    { "type": "paragraph", "content": { "text": "MEMORANDUM", "style": "title", "alignment": "center" } },
+    { "type": "horizontalRule" },
+    { "type": "paragraph", "content": { "text": "TO: [Recipient Name/Department]", "style": "normal", "bold": true } },
+    { "type": "paragraph", "content": { "text": "FROM: [Sender Name/Title]", "style": "normal", "bold": true } },
+    { "type": "paragraph", "content": { "text": "DATE: [Current Date]", "style": "normal", "bold": true } },
+    { "type": "paragraph", "content": { "text": "RE: [Subject Line]", "style": "normal", "bold": true } },
+    { "type": "horizontalRule" },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "[Opening paragraph stating purpose]", "style": "normal" } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "[Body paragraphs with details, background, key points]", "style": "normal" } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "[Closing with action items or next steps]", "style": "normal" } }
+  ]
+}
+
+MEMO STYLE: Professional header block, clear subject line, concise body. First sentence states purpose. Use bullets for lists.`;
+    }
+
+    // Flyer/Poster
+    if (subtype === 'flyer' || subtype === 'brochure') {
+      return `${baseInstruction}
+
+Generate a ${subtype} PDF JSON:
+{
+  "type": "general_pdf",
+  "title": "[Event/Product Name]",
+  "format": {
+    "fontFamily": "Helvetica",
+    "fontSize": 12,
+    "margins": { "top": 54, "bottom": 54, "left": 54, "right": 54 },
+    "primaryColor": "#2563eb"
+  },
+  "sections": [
+    { "type": "paragraph", "content": { "text": "[ATTENTION-GRABBING HEADLINE]", "style": "title", "alignment": "center" } },
+    { "type": "paragraph", "content": { "text": "[Compelling subheadline or tagline]", "style": "subtitle", "alignment": "center" } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "[Key benefit or hook]", "style": "heading2", "alignment": "center" } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "Feature 1 or key point", "bulletLevel": 1 } },
+    { "type": "paragraph", "content": { "text": "Feature 2 or key point", "bulletLevel": 1 } },
+    { "type": "paragraph", "content": { "text": "Feature 3 or key point", "bulletLevel": 1 } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "[CALL TO ACTION]", "style": "heading1", "alignment": "center" } },
+    { "type": "spacer" },
+    { "type": "paragraph", "content": { "text": "[Contact info / Date / Location / Website]", "style": "normal", "alignment": "center" } }
+  ]
+}
+
+FLYER STYLE: Eye-catching headline, clear benefits, strong call to action. Keep text minimal and impactful.`;
+    }
+
+    // General PDF
     return `${baseInstruction}
 
-Generate a general PDF document JSON with this structure:
+Generate a professional PDF document JSON:
 {
   "type": "general_pdf",
   "title": "Document Title",
   "format": {
     "fontFamily": "Helvetica",
-    "fontSize": 12,
-    "margins": { "top": 50, "bottom": 50, "left": 50, "right": 50 },
+    "fontSize": 11,
+    "margins": { "top": 72, "bottom": 72, "left": 72, "right": 72 },
     "primaryColor": "#1e3a5f",
-    "headerText": "Optional Header",
-    "footerText": "Optional Footer"
+    "footerText": "Page footer text (optional)"
   },
   "sections": [
-    { "type": "paragraph", "content": { "text": "Main Title", "style": "title", "alignment": "center" } },
-    { "type": "paragraph", "content": { "text": "Subtitle or description", "style": "subtitle", "alignment": "center" } },
+    { "type": "paragraph", "content": { "text": "Document Title", "style": "title", "alignment": "center" } },
+    { "type": "paragraph", "content": { "text": "Subtitle or date", "style": "subtitle", "alignment": "center" } },
     { "type": "spacer" },
     { "type": "paragraph", "content": { "text": "Section Heading", "style": "heading1" } },
-    { "type": "paragraph", "content": { "text": "Body paragraph with content.", "style": "normal" } },
-    { "type": "paragraph", "content": { "text": "Bullet point", "bulletLevel": 1 } },
+    { "type": "paragraph", "content": { "text": "Body paragraph with complete, professional content. Write actual content, not placeholders.", "style": "normal" } },
+    { "type": "paragraph", "content": { "text": "Bullet point with useful information", "bulletLevel": 1 } },
     { "type": "horizontalRule" },
-    { "type": "table", "content": { "headers": ["Column 1", "Column 2"], "rows": [["Data 1", "Data 2"]] } }
+    { "type": "table", "content": { "headers": ["Column A", "Column B"], "rows": [["Data", "Data"]] } }
   ]
 }
 
-Available styles: title, subtitle, heading1, heading2, heading3, normal
-Alignment: left, center, right, justify
-Bullet levels: 1, 2, 3
-Available fonts: Helvetica, Times-Roman, Courier
+SECTION TYPES: paragraph, table, pageBreak, horizontalRule, spacer
+STYLES: title, subtitle, heading1, heading2, heading3, normal
+ALIGNMENT: left, center, right, justify
+FONTS: Helvetica (clean), Times-Roman (formal), Courier (technical)
 
-Create professional content appropriate for:
-- Certificates (centered, elegant styling)
-- Flyers (eye-catching headings, bullet points)
-- Reports (structured with headings and tables)
-- Letters (formal formatting)
-- Menus, programs, tickets, etc.`;
+Create content appropriate for the specific document type requested. Write complete, professional text.`;
   }
 
-  // Default to Word document
+  // Default fallback
   return `${baseInstruction}
 
-Generate a Word document JSON. Structure your response as valid JSON with type "document".`;
+Generate a Word document JSON with type "document" and appropriate sections for the user's request.`;
 }
 
 // ============================================================================
@@ -1228,15 +1581,58 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
     }));
     const detectedDocType = detectDocumentIntent(lastUserContent, conversationForDetection);
     if (detectedDocType && isAuthenticated && !explicitDocType) {
+      // Check if this is an edit request
+      const isEditRequest =
+        /\b(add|change|update|modify|edit|adjust|remove|fix|redo|regenerate|different|instead|actually)\b/i.test(
+          lastUserContent
+        );
+
+      // Try to find previous document JSON in conversation history for edits
+      let previousDocumentJson: string | null = null;
+      if (isEditRequest) {
+        const recentHistory = (messages as CoreMessage[]).slice(-10);
+        for (let i = recentHistory.length - 1; i >= 0; i--) {
+          const msg = recentHistory[i];
+          if (msg.role === 'assistant' && typeof msg.content === 'string') {
+            // Look for document download marker
+            const downloadMatch = msg.content.match(/\[DOCUMENT_DOWNLOAD:(\{[^}]+\})\]/);
+            if (downloadMatch) {
+              // Found a previous document - now look for user's original request
+              for (let j = i - 1; j >= 0; j--) {
+                if (recentHistory[j].role === 'user') {
+                  previousDocumentJson =
+                    typeof recentHistory[j].content === 'string'
+                      ? (recentHistory[j].content as string)
+                      : null;
+                  break;
+                }
+              }
+              break;
+            }
+          }
+        }
+      }
+
       log.info('Document request auto-detected', {
         documentType: detectedDocType,
         message: lastUserContent.substring(0, 100),
-        isEdit: lastUserContent.toLowerCase().match(/\b(add|change|update|modify|edit)\b/) !== null,
+        isEdit: isEditRequest,
+        hasPreviousContext: !!previousDocumentJson,
       });
 
       try {
         // Get the appropriate JSON schema prompt based on document type
-        const schemaPrompt = getDocumentSchemaPrompt(detectedDocType, lastUserContent);
+        let schemaPrompt = getDocumentSchemaPrompt(detectedDocType, lastUserContent);
+
+        // If this is an edit request with previous context, add edit instructions
+        if (isEditRequest && previousDocumentJson) {
+          schemaPrompt = `${schemaPrompt}
+
+EDIT MODE: The user previously requested this document: "${previousDocumentJson}"
+Now they want to modify it with this request: "${lastUserContent}"
+
+Apply the requested changes while preserving the overall document structure and content that wasn't mentioned. Generate the complete updated document JSON.`;
+        }
 
         // Use Sonnet for reliable JSON output
         const result = await createClaudeChat({

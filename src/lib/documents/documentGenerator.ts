@@ -24,8 +24,10 @@ import {
 } from 'docx';
 import type { WordDocument, DocumentSection, DocumentParagraph, DocumentTable } from './types';
 
-// Default styling
+// Default styling - Professional document standards
 const DEFAULT_FONT = 'Calibri';
+const DEFAULT_LINE_SPACING = 276; // 1.15 line spacing (240 = single, 276 = 1.15)
+const DEFAULT_PARAGRAPH_SPACING = 160; // 8pt after paragraphs (in twentieths of a point)
 
 /**
  * Generate a Word document from document JSON
@@ -41,7 +43,9 @@ export async function generateWordDocx(wordDoc: WordDocument): Promise<Buffer> {
     switch (section.type) {
       case 'paragraph':
         if (section.content) {
-          children.push(createParagraph(section.content as DocumentParagraph, fontFamily, baseFontSize));
+          children.push(
+            createParagraph(section.content as DocumentParagraph, fontFamily, baseFontSize)
+          );
         }
         break;
 
@@ -84,10 +88,12 @@ export async function generateWordDocx(wordDoc: WordDocument): Promise<Buffer> {
         properties: {
           page: {
             margin: {
-              top: wordDoc.format?.margins?.top ?? 1440, // 1 inch default
-              right: wordDoc.format?.margins?.right ?? 1440,
-              bottom: wordDoc.format?.margins?.bottom ?? 1440,
-              left: wordDoc.format?.margins?.left ?? 1440,
+              // In docx, margins are in twentieths of a point (twips)
+              // 1 inch = 1440 twips, 0.75 inch = 1080 twips
+              top: wordDoc.format?.margins?.top ?? 1440, // 1 inch top
+              right: wordDoc.format?.margins?.right ?? 1080, // 0.75 inch right (modern standard)
+              bottom: wordDoc.format?.margins?.bottom ?? 1440, // 1 inch bottom
+              left: wordDoc.format?.margins?.left ?? 1080, // 0.75 inch left (modern standard)
             },
           },
         },
@@ -140,40 +146,63 @@ export async function generateWordDocx(wordDoc: WordDocument): Promise<Buffer> {
 }
 
 /**
- * Create a paragraph from document paragraph data
+ * Create a paragraph from document paragraph data with professional typography
  */
 function createParagraph(
   para: DocumentParagraph,
   fontFamily: string,
   baseFontSize: number
 ): Paragraph {
-  // Determine heading level and font size
+  // Determine heading level, font size, and spacing
   let heading: (typeof HeadingLevel)[keyof typeof HeadingLevel] | undefined;
   let fontSize = baseFontSize;
   let isBold = para.bold || false;
+  let spacingBefore = 0;
+  let spacingAfter = DEFAULT_PARAGRAPH_SPACING;
+  let color: string | undefined;
 
   switch (para.style) {
     case 'title':
-      fontSize = 48; // 24pt
+      fontSize = 52; // 26pt - prominent but professional
       isBold = true;
+      color = '1e3a5f'; // Navy blue
+      spacingBefore = 0;
+      spacingAfter = 80; // Tight spacing to subtitle
       break;
     case 'subtitle':
-      fontSize = 32; // 16pt
+      fontSize = 28; // 14pt
+      color = '666666';
+      spacingBefore = 0;
+      spacingAfter = 320; // More space after subtitle before content
       break;
     case 'heading1':
       heading = HeadingLevel.HEADING_1;
       fontSize = 36; // 18pt
       isBold = true;
+      color = '1e3a5f';
+      spacingBefore = 400; // Good separation from previous content
+      spacingAfter = 160;
       break;
     case 'heading2':
       heading = HeadingLevel.HEADING_2;
       fontSize = 30; // 15pt
       isBold = true;
+      color = '1e3a5f';
+      spacingBefore = 320;
+      spacingAfter = 120;
       break;
     case 'heading3':
       heading = HeadingLevel.HEADING_3;
       fontSize = 26; // 13pt
       isBold = true;
+      color = '333333';
+      spacingBefore = 240;
+      spacingAfter = 100;
+      break;
+    default:
+      // Normal body text
+      spacingBefore = 0;
+      spacingAfter = DEFAULT_PARAGRAPH_SPACING;
       break;
   }
 
@@ -193,7 +222,7 @@ function createParagraph(
       alignment = AlignmentType.LEFT;
   }
 
-  // Create paragraph
+  // Create paragraph with professional spacing
   return new Paragraph({
     children: [
       new TextRun({
@@ -202,24 +231,31 @@ function createParagraph(
         italics: para.italic,
         size: fontSize,
         font: fontFamily,
+        color: color,
       }),
     ],
     heading,
     alignment,
     bullet: para.bulletLevel && para.bulletLevel > 0 ? { level: para.bulletLevel - 1 } : undefined,
-    spacing: { after: 200 },
+    spacing: {
+      before: spacingBefore,
+      after: spacingAfter,
+      line: DEFAULT_LINE_SPACING,
+    },
   });
 }
 
 /**
- * Create a table from document table data
+ * Create a table from document table data with professional styling
  */
-function createTable(
-  tableData: DocumentTable,
-  fontFamily: string,
-  baseFontSize: number
-): Table {
+function createTable(tableData: DocumentTable, fontFamily: string, baseFontSize: number): Table {
   const rows: TableRow[] = [];
+  const cellMargins = {
+    top: 120, // More generous vertical padding
+    bottom: 120,
+    left: 140, // Comfortable horizontal padding
+    right: 140,
+  };
 
   // Add header row if present
   if (tableData.headers && tableData.headers.length > 0) {
@@ -236,21 +272,19 @@ function createTable(
                       bold: tableData.headerStyle?.bold !== false,
                       size: baseFontSize,
                       font: fontFamily,
+                      color: 'ffffff', // White text on header
                     }),
                   ],
+                  spacing: { before: 0, after: 0 },
                 }),
               ],
               shading: tableData.headerStyle?.backgroundColor
                 ? {
                     fill: tableData.headerStyle.backgroundColor.replace('#', ''),
                   }
-                : { fill: '1e3a5f' },
-              margins: {
-                top: 100,
-                bottom: 100,
-                left: 100,
-                right: 100,
-              },
+                : { fill: '1e3a5f' }, // Navy blue default
+              margins: cellMargins,
+              verticalAlign: 'center' as const,
             })
         ),
         tableHeader: true,
@@ -258,8 +292,11 @@ function createTable(
     );
   }
 
-  // Add data rows
-  for (const rowData of tableData.rows) {
+  // Add data rows with alternating colors
+  for (let rowIndex = 0; rowIndex < tableData.rows.length; rowIndex++) {
+    const rowData = tableData.rows[rowIndex];
+    const isAlternate = rowIndex % 2 === 1;
+
     rows.push(
       new TableRow({
         children: rowData.map(
@@ -270,18 +307,17 @@ function createTable(
                   children: [
                     new TextRun({
                       text: cellText,
-                      size: baseFontSize,
+                      size: baseFontSize - 2, // Slightly smaller for data
                       font: fontFamily,
+                      color: '333333',
                     }),
                   ],
+                  spacing: { before: 0, after: 0 },
                 }),
               ],
-              margins: {
-                top: 100,
-                bottom: 100,
-                left: 100,
-                right: 100,
-              },
+              shading: isAlternate ? { fill: 'f8f9fa' } : { fill: 'ffffff' },
+              margins: cellMargins,
+              verticalAlign: 'center' as const,
             })
         ),
       })

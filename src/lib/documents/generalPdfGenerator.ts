@@ -13,10 +13,11 @@
 import PDFDocument from 'pdfkit';
 import type { GeneralPdfDocument, PdfParagraph, PdfTable, PdfSection } from './types';
 
-// Default styling
+// Default styling - Professional document standards
 const DEFAULT_PRIMARY_COLOR = '#1e3a5f'; // Navy blue
-const DEFAULT_FONT_SIZE = 12;
-const DEFAULT_MARGINS = { top: 50, bottom: 50, left: 50, right: 50 };
+const DEFAULT_FONT_SIZE = 11; // Standard professional font size
+const DEFAULT_MARGINS = { top: 72, bottom: 72, left: 72, right: 72 }; // 1 inch margins (72pt = 1 inch)
+const DEFAULT_LINE_HEIGHT = 1.5; // Professional line spacing
 
 /**
  * Generate a PDF document from general document JSON
@@ -32,10 +33,10 @@ export async function generateGeneralPdf(doc: GeneralPdfDocument): Promise<Buffe
       const pdfDoc = new PDFDocument({
         size: 'LETTER',
         margins: {
-          top: margins.top || 50,
-          bottom: margins.bottom || 50,
-          left: margins.left || 50,
-          right: margins.right || 50,
+          top: margins.top || DEFAULT_MARGINS.top,
+          bottom: margins.bottom || DEFAULT_MARGINS.bottom,
+          left: margins.left || DEFAULT_MARGINS.left,
+          right: margins.right || DEFAULT_MARGINS.right,
         },
         info: {
           Title: doc.title,
@@ -51,21 +52,26 @@ export async function generateGeneralPdf(doc: GeneralPdfDocument): Promise<Buffe
       // Set default font
       pdfDoc.font(fontFamily);
 
-      // Process each section
-      for (const section of doc.sections) {
-        renderSection(pdfDoc, section, baseFontSize, primaryColor, fontFamily);
+      // Process each section with professional spacing
+      for (let i = 0; i < doc.sections.length; i++) {
+        const section = doc.sections[i];
+        const isFirstSection = i === 0;
+        renderSection(pdfDoc, section, baseFontSize, primaryColor, fontFamily, isFirstSection);
       }
 
       // Add footer if specified
       if (doc.format?.footerText) {
         const pageHeight = pdfDoc.page.height;
-        const footerY = pageHeight - 40;
+        const footerY = pageHeight - 50; // Position above bottom margin
+        const leftMargin = margins.left ?? DEFAULT_MARGINS.left;
+        const rightMargin = margins.right ?? DEFAULT_MARGINS.right;
         pdfDoc
+          .font(fontFamily)
           .fontSize(9)
-          .fillColor('#666666')
-          .text(doc.format.footerText, margins.left || 50, footerY, {
+          .fillColor('#888888')
+          .text(doc.format.footerText, leftMargin, footerY, {
             align: 'center',
-            width: pdfDoc.page.width - (margins.left || 50) - (margins.right || 50),
+            width: pdfDoc.page.width - leftMargin - rightMargin,
           });
       }
 
@@ -77,15 +83,18 @@ export async function generateGeneralPdf(doc: GeneralPdfDocument): Promise<Buffe
 }
 
 /**
- * Render a document section
+ * Render a document section with professional spacing
  */
 function renderSection(
   pdfDoc: PDFKit.PDFDocument,
   section: PdfSection,
   baseFontSize: number,
   primaryColor: string,
-  fontFamily: string
+  fontFamily: string,
+  isFirstSection: boolean = false
 ): void {
+  const margins = { left: 72, right: 72 }; // Match default margins
+
   switch (section.type) {
     case 'paragraph':
       if (section.content) {
@@ -94,14 +103,27 @@ function renderSection(
           section.content as PdfParagraph,
           baseFontSize,
           primaryColor,
-          fontFamily
+          fontFamily,
+          isFirstSection
         );
       }
       break;
 
     case 'table':
       if (section.content) {
-        renderTable(pdfDoc, section.content as PdfTable, baseFontSize, primaryColor, fontFamily);
+        // Add spacing before tables
+        if (!isFirstSection) {
+          pdfDoc.moveDown(0.8);
+        }
+        renderTable(
+          pdfDoc,
+          section.content as PdfTable,
+          baseFontSize,
+          primaryColor,
+          fontFamily,
+          margins
+        );
+        pdfDoc.moveDown(1); // Space after table
       }
       break;
 
@@ -110,61 +132,86 @@ function renderSection(
       break;
 
     case 'horizontalRule':
+      pdfDoc.moveDown(0.5);
       const currentY = pdfDoc.y;
       pdfDoc
-        .moveTo(50, currentY)
-        .lineTo(pdfDoc.page.width - 50, currentY)
-        .strokeColor('#cccccc')
-        .lineWidth(1)
+        .moveTo(margins.left, currentY)
+        .lineTo(pdfDoc.page.width - margins.right, currentY)
+        .strokeColor('#d0d0d0')
+        .lineWidth(0.75)
         .stroke();
       pdfDoc.moveDown(1);
       break;
 
     case 'spacer':
-      pdfDoc.moveDown(1);
+      pdfDoc.moveDown(1.5); // More generous spacing
       break;
   }
 }
 
 /**
- * Render a paragraph
+ * Render a paragraph with professional typography
  */
 function renderParagraph(
   pdfDoc: PDFKit.PDFDocument,
   para: PdfParagraph,
   baseFontSize: number,
   primaryColor: string,
-  fontFamily: string
+  fontFamily: string,
+  isFirstSection: boolean = false
 ): void {
   let fontSize = baseFontSize;
   let isBold = para.bold || false;
-  let color = para.color || '#333333';
+  let color = para.color || '#2d2d2d'; // Slightly softer than pure black
+  let spacingBefore = 0;
+  let spacingAfter = 0.6; // Default paragraph spacing
 
-  // Determine font size and style based on style
+  // Determine font size, style, and spacing based on style
   switch (para.style) {
     case 'title':
-      fontSize = baseFontSize * 2; // 24pt for 12pt base
+      fontSize = baseFontSize * 2.2; // ~24pt - prominent but not overwhelming
       isBold = true;
       color = primaryColor;
+      spacingBefore = isFirstSection ? 0 : 1.5;
+      spacingAfter = 0.3; // Tight spacing to subtitle
       break;
     case 'subtitle':
-      fontSize = baseFontSize * 1.5; // 18pt for 12pt base
-      color = '#666666';
+      fontSize = baseFontSize * 1.4; // ~15pt
+      color = '#555555';
+      spacingBefore = 0;
+      spacingAfter = 1.2; // More space after subtitle before content
       break;
     case 'heading1':
-      fontSize = baseFontSize * 1.5; // 18pt for 12pt base
+      fontSize = baseFontSize * 1.6; // ~18pt
       isBold = true;
       color = primaryColor;
+      spacingBefore = isFirstSection ? 0 : 1.8; // Good separation from previous content
+      spacingAfter = 0.6;
       break;
     case 'heading2':
-      fontSize = baseFontSize * 1.25; // 15pt for 12pt base
+      fontSize = baseFontSize * 1.35; // ~15pt
       isBold = true;
       color = primaryColor;
+      spacingBefore = isFirstSection ? 0 : 1.4;
+      spacingAfter = 0.5;
       break;
     case 'heading3':
-      fontSize = baseFontSize * 1.1; // 13pt for 12pt base
+      fontSize = baseFontSize * 1.15; // ~13pt
       isBold = true;
+      color = '#333333';
+      spacingBefore = isFirstSection ? 0 : 1.0;
+      spacingAfter = 0.4;
       break;
+    default:
+      // Normal paragraph - body text
+      spacingBefore = 0;
+      spacingAfter = 0.7; // Comfortable reading spacing
+      break;
+  }
+
+  // Add spacing before (for headings after content)
+  if (spacingBefore > 0 && !isFirstSection) {
+    pdfDoc.moveDown(spacingBefore);
   }
 
   // Set font (bold or regular)
@@ -176,6 +223,9 @@ function renderParagraph(
     pdfDoc.font(fontFamily);
   }
 
+  // Calculate line height for better readability
+  const lineHeight = fontSize * DEFAULT_LINE_HEIGHT;
+
   pdfDoc.fontSize(fontSize).fillColor(color);
 
   // Determine alignment
@@ -184,34 +234,54 @@ function renderParagraph(
     align = para.alignment;
   }
 
-  // Handle bullets
+  // Text options with proper line height
+  const textOptions: PDFKit.Mixins.TextOptions = {
+    align,
+    lineGap: (lineHeight - fontSize) * 0.6, // Comfortable line spacing
+    paragraphGap: 0,
+  };
+
+  // Handle bullets with proper indentation
   if (para.bulletLevel && para.bulletLevel > 0) {
-    const indent = (para.bulletLevel - 1) * 20;
-    const bulletChar = para.bulletLevel === 1 ? '•' : para.bulletLevel === 2 ? '◦' : '▪';
-    pdfDoc.text(`${bulletChar} ${para.text}`, 50 + indent, pdfDoc.y, {
-      align,
-      indent: 15,
+    const baseIndent = 18;
+    const levelIndent = (para.bulletLevel - 1) * 18;
+    const bulletChar = para.bulletLevel === 1 ? '•' : para.bulletLevel === 2 ? '○' : '–';
+
+    // Position bullet
+    const bulletX = 72 + levelIndent;
+    const textX = bulletX + baseIndent;
+
+    // Draw bullet character
+    pdfDoc.text(bulletChar, bulletX, pdfDoc.y, { continued: false, width: baseIndent });
+
+    // Move back up and draw text with proper indentation
+    pdfDoc.moveUp();
+    pdfDoc.text(para.text, textX, pdfDoc.y, {
+      ...textOptions,
+      width: pdfDoc.page.width - textX - 72, // Account for right margin
     });
   } else {
-    pdfDoc.text(para.text, { align });
+    pdfDoc.text(para.text, textOptions);
   }
 
-  pdfDoc.moveDown(0.5);
+  pdfDoc.moveDown(spacingAfter);
 }
 
 /**
- * Render a table
+ * Render a table with professional styling
  */
 function renderTable(
   pdfDoc: PDFKit.PDFDocument,
   tableData: PdfTable,
   baseFontSize: number,
   primaryColor: string,
-  fontFamily: string
+  fontFamily: string,
+  margins: { left: number; right: number } = { left: 72, right: 72 }
 ): void {
-  const tableLeft = 50;
-  const tableWidth = pdfDoc.page.width - 100;
-  const cellPadding = 8;
+  const tableLeft = margins.left;
+  const tableWidth = pdfDoc.page.width - margins.left - margins.right;
+  const cellPadding = 10; // More generous padding
+  const headerPadding = 12;
 
   // Calculate column widths
   const numCols = tableData.headers?.length || (tableData.rows[0]?.length ?? 0);
@@ -223,50 +293,75 @@ function renderTable(
   if (tableData.headers && tableData.headers.length > 0) {
     const headerBgColor = tableData.headerStyle?.backgroundColor || primaryColor;
     const headerTextColor = tableData.headerStyle?.textColor || '#ffffff';
+    const headerHeight = 32; // Taller header for better visual hierarchy
 
-    // Header background
-    pdfDoc.rect(tableLeft, currentY, tableWidth, 25).fill(headerBgColor);
+    // Header background with slight rounded corners effect (fill first)
+    pdfDoc.rect(tableLeft, currentY, tableWidth, headerHeight).fill(headerBgColor);
 
-    // Header text
+    // Header text - centered vertically
     pdfDoc.font(`${fontFamily}-Bold`).fontSize(baseFontSize).fillColor(headerTextColor);
 
+    const headerTextY = currentY + (headerHeight - baseFontSize) / 2;
     tableData.headers.forEach((header, i) => {
-      pdfDoc.text(header, tableLeft + i * colWidth + cellPadding, currentY + cellPadding, {
-        width: colWidth - cellPadding * 2,
+      pdfDoc.text(header, tableLeft + i * colWidth + headerPadding, headerTextY, {
+        width: colWidth - headerPadding * 2,
         align: 'left',
+        lineBreak: false,
       });
     });
 
-    currentY += 25;
+    currentY += headerHeight;
   }
 
   // Draw data rows
-  pdfDoc.font(fontFamily).fontSize(baseFontSize).fillColor('#333333');
+  pdfDoc.font(fontFamily).fontSize(baseFontSize - 0.5); // Slightly smaller for data
+  const rowHeight = 28; // Comfortable row height
 
   for (let rowIndex = 0; rowIndex < tableData.rows.length; rowIndex++) {
     const row = tableData.rows[rowIndex];
-    const rowHeight = 22;
 
-    // Alternating row background
+    // Alternating row background - subtle
     if (rowIndex % 2 === 1) {
-      pdfDoc.rect(tableLeft, currentY, tableWidth, rowHeight).fill('#f5f5f5');
+      pdfDoc.rect(tableLeft, currentY, tableWidth, rowHeight).fill('#f8f9fa');
+    } else {
+      pdfDoc.rect(tableLeft, currentY, tableWidth, rowHeight).fill('#ffffff');
     }
 
-    // Row border
-    pdfDoc.rect(tableLeft, currentY, tableWidth, rowHeight).stroke('#cccccc');
+    // Draw subtle cell borders
+    pdfDoc.strokeColor('#e0e0e0').lineWidth(0.5);
 
-    // Cell text
+    // Bottom border for each row
+    pdfDoc
+      .moveTo(tableLeft, currentY + rowHeight)
+      .lineTo(tableLeft + tableWidth, currentY + rowHeight)
+      .stroke();
+
+    // Vertical lines between columns
+    for (let i = 1; i < numCols; i++) {
+      pdfDoc
+        .moveTo(tableLeft + i * colWidth, currentY)
+        .lineTo(tableLeft + i * colWidth, currentY + rowHeight)
+        .stroke();
+    }
+
+    // Cell text - vertically centered
     pdfDoc.fillColor('#333333');
+    const textY = currentY + (rowHeight - (baseFontSize - 0.5)) / 2;
     row.forEach((cell, i) => {
-      pdfDoc.text(cell, tableLeft + i * colWidth + cellPadding, currentY + 6, {
+      pdfDoc.text(String(cell), tableLeft + i * colWidth + cellPadding, textY, {
         width: colWidth - cellPadding * 2,
         align: 'left',
+        lineBreak: false,
       });
     });
 
     currentY += rowHeight;
   }
 
+  // Draw outer border around the entire table
+  const tableStartY = currentY - tableData.rows.length * rowHeight - (tableData.headers ? 32 : 0);
+  pdfDoc.strokeColor('#d0d0d0').lineWidth(0.75);
+  pdfDoc.rect(tableLeft, tableStartY, tableWidth, currentY - tableStartY).stroke();
+
   pdfDoc.y = currentY;
-  pdfDoc.moveDown(1);
 }
