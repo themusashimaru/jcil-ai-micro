@@ -239,6 +239,7 @@ const RESEARCH_TASKS: ResearchTask[] = [
 let currentTasks: ResearchTask[] = [];
 let hasShownInitialList = false;
 let lastRenderedOutput = '';
+let currentSearchQueries: string[] = [];
 
 /**
  * Reset task state for a new research session
@@ -247,17 +248,30 @@ function resetTaskState(): void {
   currentTasks = RESEARCH_TASKS.map(t => ({ ...t }));
   hasShownInitialList = false;
   lastRenderedOutput = '';
+  currentSearchQueries = [];
 }
 
 /**
  * Render the current task list as a checklist
  * Uses standard markdown checkbox format like Claude Code
+ * Shows search queries when search task is active
  */
 function renderTaskList(): string {
   return currentTasks.map(task => {
     const checkbox = task.status === 'completed' ? '- [x]' :
                      task.status === 'active' ? '- [x]' : '- [ ]';
-    return `${checkbox} ${task.label}`;
+    let line = `${checkbox} ${task.label}`;
+
+    // Show search queries under the search task when active
+    if (task.id === 'search' && task.status === 'active' && currentSearchQueries.length > 0) {
+      const queriesDisplay = currentSearchQueries.slice(0, 5).map(q => `      "${q}"`).join('\n');
+      line += '\n' + queriesDisplay;
+      if (currentSearchQueries.length > 5) {
+        line += `\n      +${currentSearchQueries.length - 5} more...`;
+      }
+    }
+
+    return line;
   }).join('\n');
 }
 
@@ -328,6 +342,7 @@ function formatProgressEvent(event: AgentStreamEvent): string {
   if (taskId === 'complete') {
     // Mark all tasks as completed
     currentTasks.forEach(t => t.status = 'completed');
+    currentSearchQueries = []; // Clear queries on completion
     const newOutput = renderTaskList();
     // Only output if changed
     if (newOutput !== lastRenderedOutput) {
@@ -348,6 +363,16 @@ function formatProgressEvent(event: AgentStreamEvent): string {
 
   // Mark current task as active
   currentTasks[taskIndex].status = 'active';
+
+  // Capture search queries if this is a search event
+  if (taskId === 'search' && details?.queries && Array.isArray(details.queries)) {
+    currentSearchQueries = details.queries as string[];
+  }
+
+  // Clear queries when moving past search
+  if (taskId !== 'search') {
+    currentSearchQueries = [];
+  }
 
   // Render updated list
   const newOutput = renderTaskList();

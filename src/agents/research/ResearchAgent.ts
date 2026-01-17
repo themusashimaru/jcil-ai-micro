@@ -161,6 +161,7 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
         this.emit(onStream, 'searching', `Iteration ${iteration}: Executing ${pendingQueries.length} searches...`, {
           phase: `Iteration ${iteration}`,
           progress: progressBase,
+          queries: pendingQueries.map(q => q.query),
         });
 
         // Start heartbeat to prevent Vercel timeout during long searches
@@ -308,6 +309,7 @@ export class ResearchAgent extends BaseAgent<ResearchInput, ResearchOutput> {
           totalQueries: this.executedQueries.size,
           iterations: iteration,
           executionTime: this.getExecutionTime(),
+          depth: intent.requiredDepth,
         }
       );
 
