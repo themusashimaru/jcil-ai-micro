@@ -501,6 +501,147 @@ IMPORTANT EDIT RULES:
   return context;
 }
 
+/**
+ * Detect if the user wants to match the style of an uploaded document
+ * Returns style matching info if detected
+ */
+function detectStyleMatchRequest(
+  message: string,
+  conversationHistory?: Array<{ role: string; content: unknown }>
+): { wantsStyleMatch: boolean; uploadedFileInfo?: string } {
+  const lowerMessage = message.toLowerCase();
+
+  // Patterns that indicate user wants to match an uploaded document's style
+  const styleMatchPatterns = [
+    /\b(like|match|same (as|style)|similar to|based on|copy|replicate|follow)\b.*\b(this|that|the|my|uploaded|attached)\b/i,
+    /\b(this|that|the|my|uploaded|attached)\b.*\b(style|format|layout|template|look)\b/i,
+    /\bmake (it|one|me one) like (this|that|the)\b/i,
+    /\buse (this|that|the) (as a|as) (template|reference|base|guide)\b/i,
+    /\b(exactly|just) like (this|that|the|my)\b/i,
+    /\bcopy (this|that|the) (style|format|layout)\b/i,
+    /\bsame (columns|structure|layout|format) as\b/i,
+  ];
+
+  const wantsStyleMatch = styleMatchPatterns.some((p) => p.test(lowerMessage));
+
+  // If style match detected, look for uploaded file info in recent conversation
+  let uploadedFileInfo: string | undefined;
+  if (wantsStyleMatch && conversationHistory && conversationHistory.length > 0) {
+    const recentHistory = conversationHistory.slice(-6);
+    for (const msg of recentHistory) {
+      if (msg.role === 'user' && typeof msg.content === 'string') {
+        // Check for file parsing results in the content
+        const content = msg.content;
+        if (
+          content.includes('=== Sheet:') || // Excel parsed content
+          content.includes('Pages:') // PDF parsed content
+        ) {
+          uploadedFileInfo = content;
+          break;
+        }
+      }
+    }
+  }
+
+  return { wantsStyleMatch, uploadedFileInfo };
+}
+
+/**
+ * Generate style-matching instructions for document generation
+ */
+function generateStyleMatchInstructions(uploadedFileContent: string): string {
+  // Detect if it's a spreadsheet or document
+  const isSpreadsheet = uploadedFileContent.includes('=== Sheet:');
+  const isPDF = uploadedFileContent.includes('Pages:');
+
+  if (isSpreadsheet) {
+    // Extract spreadsheet structure
+    const sheets: string[] = [];
+    const sheetMatches = uploadedFileContent.matchAll(/=== Sheet: (.+?) ===/g);
+    for (const match of sheetMatches) {
+      sheets.push(match[1]);
+    }
+
+    // Extract headers (first data row after sheet name)
+    const lines = uploadedFileContent.split('\n');
+    let headers: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('=== Sheet:') && i + 1 < lines.length) {
+        const headerLine = lines[i + 1];
+        if (headerLine && !headerLine.startsWith('-')) {
+          headers = headerLine.split('\t|\t').map((h) => h.trim());
+          break;
+        }
+      }
+    }
+
+    return `
+**STYLE MATCHING INSTRUCTIONS** (User uploaded a spreadsheet as reference):
+The user wants you to create a document that MATCHES the style of their uploaded spreadsheet.
+
+DETECTED STRUCTURE:
+- Sheets: ${sheets.join(', ') || 'Unknown'}
+- Columns/Headers: ${headers.join(', ') || 'Unable to detect'}
+
+YOU MUST:
+1. Use the SAME column structure and headers as the uploaded file
+2. Match the data organization pattern
+3. Include similar formulas and calculations if detected
+4. Maintain the same number of sheets if multi-sheet
+5. Use similar formatting (bold headers, totals rows, etc.)
+
+The user expects the new document to feel familiar and consistent with their existing file.
+`;
+  }
+
+  if (isPDF) {
+    // Extract section headers from PDF
+    const lines = uploadedFileContent.split('\n');
+    const sections: string[] = [];
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (
+        trimmed.length > 2 &&
+        trimmed.length < 50 &&
+        (trimmed === trimmed.toUpperCase() || /^[A-Z][a-z]+:?$/.test(trimmed))
+      ) {
+        sections.push(trimmed);
+      }
+    });
+
+    // Detect document type
+    const textLower = uploadedFileContent.toLowerCase();
+    let docType = 'document';
+    if (textLower.includes('experience') && textLower.includes('education')) {
+      docType = 'resume';
+    } else if (textLower.includes('invoice') || textLower.includes('bill to')) {
+      docType = 'invoice';
+    } else if (textLower.includes('dear ') || textLower.includes('sincerely')) {
+      docType = 'letter';
+    }
+
+    return `
+**STYLE MATCHING INSTRUCTIONS** (User uploaded a ${docType} as reference):
+The user wants you to create a document that MATCHES the style of their uploaded file.
+
+DETECTED STRUCTURE:
+- Document Type: ${docType}
+- Sections Found: ${sections.slice(0, 8).join(', ') || 'General content'}
+
+YOU MUST:
+1. Follow the SAME section structure and ordering
+2. Use similar headings and formatting
+3. Match the tone and professional level
+4. Include similar types of content in each section
+5. Maintain consistent spacing and organization
+
+The user expects the new document to look and feel like their reference file.
+`;
+  }
+
+  return '';
+}
+
 function hasEnoughDetailToGenerate(
   message: string,
   _documentType: string, // Reserved for future type-specific logic
@@ -1882,6 +2023,9 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           lastUserContent
         );
 
+      // Check if user wants to match style of uploaded document
+      const styleMatch = detectStyleMatchRequest(lastUserContent, conversationForDetection);
+
       // Check if user has provided enough detail to generate
       const shouldGenerateNow = hasEnoughDetailToGenerate(
         lastUserContent,
@@ -1891,7 +2035,7 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
 
       // If not enough detail, let it fall through to regular chat
       // where the AI will ask clarifying questions
-      if (!shouldGenerateNow && !isEditRequest) {
+      if (!shouldGenerateNow && !isEditRequest && !styleMatch.wantsStyleMatch) {
         log.info('Document request detected but needs more detail, falling through to chat', {
           documentType: detectedDocType,
           message: lastUserContent.substring(0, 50),
@@ -1904,6 +2048,16 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
         );
 
         const subtype = detectDocumentSubtype(detectedDocType, lastUserContent);
+
+        // Generate style matching instructions if user uploaded a reference document
+        let styleMatchInstructions = '';
+        if (styleMatch.wantsStyleMatch && styleMatch.uploadedFileInfo) {
+          styleMatchInstructions = generateStyleMatchInstructions(styleMatch.uploadedFileInfo);
+          log.info('Style matching detected', {
+            documentType: detectedDocType,
+            hasUploadedFile: !!styleMatch.uploadedFileInfo,
+          });
+        }
         log.info('Document generation starting', {
           documentType: detectedDocType,
           subtype,
@@ -1911,6 +2065,7 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           isEdit: isEditRequest,
           hasPreviousContext: !!previousContext.originalRequest,
           hasMemoryContext: !!memoryContext,
+          hasStyleMatch: !!styleMatchInstructions,
         });
 
         try {
@@ -1929,14 +2084,14 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
             isEditRequest
           );
 
-          // Inject current date and intelligent context into the prompt
+          // Inject current date, intelligent context, and style matching into the prompt
           schemaPrompt = `${schemaPrompt}
 
 CURRENT DATE INFORMATION:
 - Today's date: ${currentDate}
 - ISO format: ${currentDateISO}
 Use these dates where appropriate (e.g., invoice dates, letter dates, document dates).
-${intelligentContext}`;
+${intelligentContext}${styleMatchInstructions}`;
 
           // Use Sonnet for reliable JSON output - with retry logic
           let jsonText = '';
