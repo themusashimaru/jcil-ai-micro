@@ -418,6 +418,411 @@ function detectDocumentSubtype(documentType: string, userMessage: string): strin
  * or if we should ask clarifying questions first.
  * Returns true if we should generate immediately, false if we should ask questions.
  */
+/**
+ * Extract the actual document JSON that was generated in a previous AI response
+ * This finds the JSON structure that was used to generate the document, not just the user's request
+ */
+function extractPreviousDocumentContext(messages: Array<{ role: string; content: unknown }>): {
+  originalRequest: string | null;
+  documentType: string | null;
+  documentDescription: string | null;
+} {
+  const recentHistory = messages.slice(-12);
+
+  for (let i = recentHistory.length - 1; i >= 0; i--) {
+    const msg = recentHistory[i];
+    if (msg.role === 'assistant' && typeof msg.content === 'string') {
+      // Look for DOCUMENT_DOWNLOAD marker which contains the generated doc info
+      const downloadMatch = msg.content.match(/\[DOCUMENT_DOWNLOAD:(\{[^}]+\})\]/);
+      if (downloadMatch) {
+        try {
+          const docInfo = JSON.parse(downloadMatch[1]);
+
+          // Find the user message that triggered this document
+          for (let j = i - 1; j >= 0 && j >= i - 4; j--) {
+            if (recentHistory[j].role === 'user' && typeof recentHistory[j].content === 'string') {
+              return {
+                originalRequest: recentHistory[j].content as string,
+                documentType: docInfo.type || null,
+                documentDescription: msg.content.replace(/\[DOCUMENT_DOWNLOAD:[^\]]+\]/, '').trim(),
+              };
+            }
+          }
+        } catch {
+          // Continue searching if JSON parse fails
+        }
+      }
+    }
+  }
+
+  return { originalRequest: null, documentType: null, documentDescription: null };
+}
+
+/**
+ * Build intelligent context for document generation
+ * Combines user memory, previous document context, and current request
+ */
+function buildDocumentContext(
+  userMessage: string,
+  memoryContext: string | null,
+  previousContext: {
+    originalRequest: string | null;
+    documentType: string | null;
+    documentDescription: string | null;
+  },
+  isEdit: boolean
+): string {
+  let context = '';
+
+  // Add user memory context if available (company name, preferences, etc.)
+  if (memoryContext && memoryContext.trim()) {
+    context += `\n\nUSER CONTEXT (from memory - use this information where relevant):
+${memoryContext}
+`;
+  }
+
+  // Add edit context if this is a modification request
+  if (isEdit && previousContext.originalRequest) {
+    context += `\n\nEDIT MODE - PREVIOUS DOCUMENT CONTEXT:
+Original Request: "${previousContext.originalRequest}"
+${previousContext.documentDescription ? `What was created: ${previousContext.documentDescription}` : ''}
+
+The user now wants to modify this document with: "${userMessage}"
+
+IMPORTANT EDIT RULES:
+1. Preserve ALL original content that the user did NOT ask to change
+2. Apply ONLY the specific changes requested
+3. Maintain the same document structure and formatting
+4. If adding new items, integrate them naturally with existing content
+5. If removing items, ensure remaining content still flows well
+`;
+  }
+
+  return context;
+}
+
+/**
+ * Detect if the user wants to match the style of an uploaded document
+ * Returns style matching info if detected
+ */
+function detectStyleMatchRequest(
+  message: string,
+  conversationHistory?: Array<{ role: string; content: unknown }>
+): { wantsStyleMatch: boolean; uploadedFileInfo?: string } {
+  const lowerMessage = message.toLowerCase();
+
+  // Patterns that indicate user wants to match an uploaded document's style
+  const styleMatchPatterns = [
+    /\b(like|match|same (as|style)|similar to|based on|copy|replicate|follow)\b.*\b(this|that|the|my|uploaded|attached)\b/i,
+    /\b(this|that|the|my|uploaded|attached)\b.*\b(style|format|layout|template|look)\b/i,
+    /\bmake (it|one|me one) like (this|that|the)\b/i,
+    /\buse (this|that|the) (as a|as) (template|reference|base|guide)\b/i,
+    /\b(exactly|just) like (this|that|the|my)\b/i,
+    /\bcopy (this|that|the) (style|format|layout)\b/i,
+    /\bsame (columns|structure|layout|format) as\b/i,
+  ];
+
+  const wantsStyleMatch = styleMatchPatterns.some((p) => p.test(lowerMessage));
+
+  // If style match detected, look for uploaded file info in recent conversation
+  let uploadedFileInfo: string | undefined;
+  if (wantsStyleMatch && conversationHistory && conversationHistory.length > 0) {
+    const recentHistory = conversationHistory.slice(-6);
+    for (const msg of recentHistory) {
+      if (msg.role === 'user' && typeof msg.content === 'string') {
+        // Check for file parsing results in the content
+        const content = msg.content;
+        if (
+          content.includes('=== Sheet:') || // Excel parsed content
+          content.includes('Pages:') // PDF parsed content
+        ) {
+          uploadedFileInfo = content;
+          break;
+        }
+      }
+    }
+  }
+
+  return { wantsStyleMatch, uploadedFileInfo };
+}
+
+/**
+ * Generate style-matching instructions for document generation
+ */
+function generateStyleMatchInstructions(uploadedFileContent: string): string {
+  // Detect if it's a spreadsheet or document
+  const isSpreadsheet = uploadedFileContent.includes('=== Sheet:');
+  const isPDF = uploadedFileContent.includes('Pages:');
+
+  if (isSpreadsheet) {
+    // Extract spreadsheet structure
+    const sheets: string[] = [];
+    const sheetMatches = uploadedFileContent.matchAll(/=== Sheet: (.+?) ===/g);
+    for (const match of sheetMatches) {
+      sheets.push(match[1]);
+    }
+
+    // Extract headers (first data row after sheet name)
+    const lines = uploadedFileContent.split('\n');
+    let headers: string[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('=== Sheet:') && i + 1 < lines.length) {
+        const headerLine = lines[i + 1];
+        if (headerLine && !headerLine.startsWith('-')) {
+          headers = headerLine.split('\t|\t').map((h) => h.trim());
+          break;
+        }
+      }
+    }
+
+    return `
+**STYLE MATCHING INSTRUCTIONS** (User uploaded a spreadsheet as reference):
+The user wants you to create a document that MATCHES the style of their uploaded spreadsheet.
+
+DETECTED STRUCTURE:
+- Sheets: ${sheets.join(', ') || 'Unknown'}
+- Columns/Headers: ${headers.join(', ') || 'Unable to detect'}
+
+YOU MUST:
+1. Use the SAME column structure and headers as the uploaded file
+2. Match the data organization pattern
+3. Include similar formulas and calculations if detected
+4. Maintain the same number of sheets if multi-sheet
+5. Use similar formatting (bold headers, totals rows, etc.)
+
+The user expects the new document to feel familiar and consistent with their existing file.
+`;
+  }
+
+  if (isPDF) {
+    // Extract section headers from PDF
+    const lines = uploadedFileContent.split('\n');
+    const sections: string[] = [];
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (
+        trimmed.length > 2 &&
+        trimmed.length < 50 &&
+        (trimmed === trimmed.toUpperCase() || /^[A-Z][a-z]+:?$/.test(trimmed))
+      ) {
+        sections.push(trimmed);
+      }
+    });
+
+    // Detect document type
+    const textLower = uploadedFileContent.toLowerCase();
+    let docType = 'document';
+    if (textLower.includes('experience') && textLower.includes('education')) {
+      docType = 'resume';
+    } else if (textLower.includes('invoice') || textLower.includes('bill to')) {
+      docType = 'invoice';
+    } else if (textLower.includes('dear ') || textLower.includes('sincerely')) {
+      docType = 'letter';
+    }
+
+    return `
+**STYLE MATCHING INSTRUCTIONS** (User uploaded a ${docType} as reference):
+The user wants you to create a document that MATCHES the style of their uploaded file.
+
+DETECTED STRUCTURE:
+- Document Type: ${docType}
+- Sections Found: ${sections.slice(0, 8).join(', ') || 'General content'}
+
+YOU MUST:
+1. Follow the SAME section structure and ordering
+2. Use similar headings and formatting
+3. Match the tone and professional level
+4. Include similar types of content in each section
+5. Maintain consistent spacing and organization
+
+The user expects the new document to look and feel like their reference file.
+`;
+  }
+
+  return '';
+}
+
+/**
+ * Detect if user wants to extract/combine information from multiple documents
+ * Returns info about what to extract from where
+ */
+function detectMultiDocumentRequest(
+  message: string,
+  conversationHistory?: Array<{ role: string; content: unknown }>
+): {
+  isMultiDoc: boolean;
+  uploadedDocs: Array<{ content: string; type: 'spreadsheet' | 'pdf' | 'text' }>;
+  extractionHints: string[];
+} {
+  const lowerMessage = message.toLowerCase();
+
+  // Patterns that indicate multi-document extraction/combination
+  const multiDocPatterns = [
+    /\b(from|take|get|extract|use|grab)\b.*\b(from|in)\b.*\b(and|also|plus|with)\b.*\b(from|in)\b/i,
+    /\bcombine\b.*\b(documents?|files?|spreadsheets?|pdfs?)\b/i,
+    /\bmerge\b.*\b(data|information|content)\b/i,
+    /\b(this|first|one)\b.*\b(document|file|spreadsheet)\b.*\b(that|second|other)\b/i,
+    /\bfrom (document|file) ?(1|one|a)\b.*\b(document|file) ?(2|two|b)\b/i,
+    /\b(data|info|information) from\b.*\band\b.*\bfrom\b/i,
+    /\bpull\b.*\bfrom\b.*\band\b/i,
+    /\b(the|this) (budget|expenses|income|data)\b.*\b(the|that) (format|style|layout)\b/i,
+  ];
+
+  const isMultiDoc = multiDocPatterns.some((p) => p.test(lowerMessage));
+
+  // Find all uploaded documents in conversation history
+  const uploadedDocs: Array<{ content: string; type: 'spreadsheet' | 'pdf' | 'text' }> = [];
+  const extractionHints: string[] = [];
+
+  if (isMultiDoc && conversationHistory && conversationHistory.length > 0) {
+    // Look through recent conversation for parsed file content
+    const recentHistory = conversationHistory.slice(-12);
+
+    for (const msg of recentHistory) {
+      if (msg.role === 'user' && typeof msg.content === 'string') {
+        const content = msg.content;
+
+        // Detect spreadsheet content
+        if (content.includes('=== Sheet:')) {
+          uploadedDocs.push({ content, type: 'spreadsheet' });
+        }
+        // Detect PDF content
+        else if (content.includes('Pages:') && content.length > 100) {
+          uploadedDocs.push({ content, type: 'pdf' });
+        }
+        // Detect other text content that looks like a document
+        else if (content.length > 200 && (content.includes('\n') || content.includes('\t'))) {
+          uploadedDocs.push({ content, type: 'text' });
+        }
+      }
+    }
+
+    // Extract hints about what user wants from each document
+    // Look for patterns like "the expenses from", "the header from", etc.
+    const hintPatterns = [
+      /\b(the |)(expenses?|income|budget|data|numbers?|figures?|amounts?|totals?)\b.*\bfrom\b/gi,
+      /\b(the |)(header|headers|columns?|structure|layout|format|style)\b.*\bfrom\b/gi,
+      /\b(the |)(contact|address|name|info|information|details?)\b.*\bfrom\b/gi,
+      /\bfrom\b.*\b(the |)(first|second|other|this|that)\b/gi,
+      /\b(section|paragraph|part)\b.*\b(about|on|regarding)\b/gi,
+    ];
+
+    for (const pattern of hintPatterns) {
+      const matches = message.match(pattern);
+      if (matches) {
+        extractionHints.push(...matches);
+      }
+    }
+  }
+
+  return { isMultiDoc, uploadedDocs, extractionHints };
+}
+
+/**
+ * Generate instructions for multi-document extraction and compilation
+ */
+function generateMultiDocInstructions(
+  uploadedDocs: Array<{ content: string; type: 'spreadsheet' | 'pdf' | 'text' }>,
+  extractionHints: string[],
+  userMessage: string
+): string {
+  if (uploadedDocs.length === 0) {
+    return '';
+  }
+
+  // Describe each document
+  const docDescriptions = uploadedDocs.map((doc, idx) => {
+    if (doc.type === 'spreadsheet') {
+      // Extract sheet names and headers
+      const sheets: string[] = [];
+      const sheetMatches = doc.content.matchAll(/=== Sheet: (.+?) ===/g);
+      for (const match of sheetMatches) {
+        sheets.push(match[1]);
+      }
+
+      const lines = doc.content.split('\n');
+      let headers: string[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('=== Sheet:') && i + 1 < lines.length) {
+          const headerLine = lines[i + 1];
+          if (headerLine && !headerLine.startsWith('-')) {
+            headers = headerLine
+              .split('\t|\t')
+              .map((h) => h.trim())
+              .slice(0, 6);
+            break;
+          }
+        }
+      }
+
+      return `DOCUMENT ${idx + 1} (Spreadsheet):
+- Sheets: ${sheets.join(', ') || 'Unknown'}
+- Columns: ${headers.join(', ') || 'Unknown'}
+- Contains tabular data with potential formulas`;
+    }
+
+    if (doc.type === 'pdf') {
+      // Detect document type
+      const textLower = doc.content.toLowerCase();
+      let docType = 'General document';
+      if (textLower.includes('experience') && textLower.includes('education')) {
+        docType = 'Resume/CV';
+      } else if (textLower.includes('invoice') || textLower.includes('bill to')) {
+        docType = 'Invoice';
+      } else if (textLower.includes('dear ') || textLower.includes('sincerely')) {
+        docType = 'Letter';
+      } else if (textLower.includes('contract') || textLower.includes('agreement')) {
+        docType = 'Contract/Agreement';
+      }
+
+      // Extract section hints
+      const sections: string[] = [];
+      const lines = doc.content.split('\n');
+      lines.forEach((line) => {
+        const trimmed = line.trim();
+        if (
+          trimmed.length > 2 &&
+          trimmed.length < 40 &&
+          (trimmed === trimmed.toUpperCase() || /^[A-Z][a-z]+:?$/.test(trimmed))
+        ) {
+          sections.push(trimmed);
+        }
+      });
+
+      return `DOCUMENT ${idx + 1} (PDF - ${docType}):
+- Detected sections: ${sections.slice(0, 5).join(', ') || 'General content'}
+- Content type: ${docType}`;
+    }
+
+    return `DOCUMENT ${idx + 1} (Text):
+- Contains text content for reference`;
+  });
+
+  return `
+**MULTI-DOCUMENT EXTRACTION MODE**
+The user has uploaded ${uploadedDocs.length} documents and wants you to extract/combine information from them.
+
+${docDescriptions.join('\n\n')}
+
+USER'S REQUEST: "${userMessage}"
+${extractionHints.length > 0 ? `\nDETECTED EXTRACTION HINTS: ${extractionHints.join(', ')}` : ''}
+
+**YOUR TASK:**
+1. Identify what specific information the user wants from EACH document
+2. Extract the relevant data/content from each source
+3. Combine intelligently into a single cohesive document
+4. Apply any style/format preferences mentioned
+5. Ensure data integrity - don't mix up which data came from where
+6. If the user wants "expenses from A and format from B", use A's data with B's structure
+
+**IMPORTANT:**
+- Ask clarifying questions if you're unsure which part of which document to use
+- Preserve numerical accuracy when extracting financial data
+- Maintain proper attribution if combining text from multiple sources
+- The final document should feel unified, not like a cut-and-paste job
+`;
+}
+
 function hasEnoughDetailToGenerate(
   message: string,
   _documentType: string, // Reserved for future type-specific logic
@@ -618,11 +1023,41 @@ Spreadsheets MUST include working formulas. Common formulas to use:
 - =B2/C2 - Divide (e.g., for percentages)
 - =SUM(B2:B20)/SUM(C2:C20) - Calculated ratios
 - =IF(B2>C2,"Over","Under") - Conditional logic
+- =ROUND(B2, 2) - Round to 2 decimal places
+- =MAX(B2:B20) - Find highest value
+- =MIN(B2:B20) - Find lowest value
+- =COUNT(B2:B20) - Count numeric cells
+- =COUNTIF(B2:B20,">100") - Conditional count
 
 For budget/financial sheets, ALWAYS include:
 - Sum formulas for totals
 - Variance calculations (Budget - Actual)
 - Percentage calculations where meaningful
+
+**MULTI-SHEET INTELLIGENCE** (for complex requests):
+When the data warrants it, create MULTIPLE SHEETS:
+{
+  "type": "spreadsheet",
+  "title": "Company Budget 2024",
+  "sheets": [
+    { "name": "Monthly Budget", "rows": [...], "freezeRow": 1 },
+    { "name": "Summary", "rows": [...] },
+    { "name": "Categories", "rows": [...] }
+  ]
+}
+
+Use multiple sheets when:
+- User needs both detailed data AND summary views
+- Data has distinct categories (e.g., income vs expenses)
+- Monthly data needs annual summary
+- Reference data (dropdowns, categories) should be separate
+
+**SMART DEFAULTS**:
+- If user mentions "monthly", create 12-month structure
+- If user mentions "quarterly", create Q1-Q4 columns
+- If user mentions "comparison", create side-by-side columns
+- If user mentions "tracking", include date column and running totals
+- Always include a TOTALS row at the bottom with SUM formulas
 
 The user expects CALCULABLE spreadsheets, not just formatted text tables.`;
 
@@ -630,11 +1065,29 @@ The user expects CALCULABLE spreadsheets, not just formatted text tables.`;
     const subtypeGuidance: Record<string, string> = {
       budget: `
 
-BUDGET SPREADSHEET STRUCTURE:
-Include columns: Category, Budgeted Amount, Actual Amount, Variance, % of Budget
-Rows: Income section, Expense categories (Housing, Transportation, Food, Utilities, Entertainment, Savings, etc.), Summary row
-Formulas: Variance = Budgeted - Actual, use SUM for totals
-Include both monthly breakdown and annual summary if applicable`,
+BUDGET SPREADSHEET STRUCTURE (PROFESSIONAL):
+Create a multi-sheet workbook:
+
+Sheet 1 - "Monthly Budget":
+Columns: Category | Jan | Feb | Mar | Apr | May | Jun | Jul | Aug | Sep | Oct | Nov | Dec | Annual Total
+Sections:
+- INCOME (with subcategories: Salary, Bonuses, Other Income)
+- EXPENSES (with subcategories: Housing, Utilities, Transportation, Food, Insurance, Healthcare, Entertainment, Personal, Savings)
+- SUMMARY ROW: Net Income = Total Income - Total Expenses
+
+Sheet 2 - "Summary" (if user wants detailed):
+- Annual totals by category
+- Percentage breakdown pie chart data
+- YTD vs Budget comparison
+
+REQUIRED FORMULAS:
+- Each month total: =SUM(B3:B12) for expenses
+- Annual total: =SUM(B2:M2) for each row
+- Variance: =N2-O2 (Actual - Budget)
+- % of Budget: =N2/O2 (format as percent)
+- Net Income: =B13-B26 (Income Total - Expense Total)
+
+Make it IMMEDIATELY USABLE - user should only need to enter their actual numbers.`,
       expense_tracker: `
 
 EXPENSE TRACKER STRUCTURE:
@@ -1751,6 +2204,12 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           lastUserContent
         );
 
+      // Check if user wants to match style of uploaded document
+      const styleMatch = detectStyleMatchRequest(lastUserContent, conversationForDetection);
+
+      // Check if user wants to extract/combine from multiple documents
+      const multiDocRequest = detectMultiDocumentRequest(lastUserContent, conversationForDetection);
+
       // Check if user has provided enough detail to generate
       const shouldGenerateNow = hasEnoughDetailToGenerate(
         lastUserContent,
@@ -1760,44 +2219,58 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
 
       // If not enough detail, let it fall through to regular chat
       // where the AI will ask clarifying questions
-      if (!shouldGenerateNow && !isEditRequest) {
+      if (
+        !shouldGenerateNow &&
+        !isEditRequest &&
+        !styleMatch.wantsStyleMatch &&
+        !multiDocRequest.isMultiDoc
+      ) {
         log.info('Document request detected but needs more detail, falling through to chat', {
           documentType: detectedDocType,
           message: lastUserContent.substring(0, 50),
         });
         // Don't process here - let it fall through to regular chat
       } else {
-        // Try to find previous document JSON in conversation history for edits
-        let previousDocumentJson: string | null = null;
-        if (isEditRequest) {
-          const recentHistory = (messages as CoreMessage[]).slice(-10);
-          for (let i = recentHistory.length - 1; i >= 0; i--) {
-            const msg = recentHistory[i];
-            if (msg.role === 'assistant' && typeof msg.content === 'string') {
-              const downloadMatch = msg.content.match(/\[DOCUMENT_DOWNLOAD:(\{[^}]+\})\]/);
-              if (downloadMatch) {
-                for (let j = i - 1; j >= 0; j--) {
-                  if (recentHistory[j].role === 'user') {
-                    previousDocumentJson =
-                      typeof recentHistory[j].content === 'string'
-                        ? (recentHistory[j].content as string)
-                        : null;
-                    break;
-                  }
-                }
-                break;
-              }
-            }
-          }
-        }
+        // Extract previous document context for edits using intelligent function
+        const previousContext = extractPreviousDocumentContext(
+          messages as Array<{ role: string; content: unknown }>
+        );
 
         const subtype = detectDocumentSubtype(detectedDocType, lastUserContent);
+
+        // Generate style matching instructions if user uploaded a reference document
+        let styleMatchInstructions = '';
+        if (styleMatch.wantsStyleMatch && styleMatch.uploadedFileInfo) {
+          styleMatchInstructions = generateStyleMatchInstructions(styleMatch.uploadedFileInfo);
+          log.info('Style matching detected', {
+            documentType: detectedDocType,
+            hasUploadedFile: !!styleMatch.uploadedFileInfo,
+          });
+        }
+
+        // Generate multi-document extraction instructions if user wants to combine documents
+        let multiDocInstructions = '';
+        if (multiDocRequest.isMultiDoc && multiDocRequest.uploadedDocs.length > 0) {
+          multiDocInstructions = generateMultiDocInstructions(
+            multiDocRequest.uploadedDocs,
+            multiDocRequest.extractionHints,
+            lastUserContent
+          );
+          log.info('Multi-document extraction detected', {
+            documentType: detectedDocType,
+            documentCount: multiDocRequest.uploadedDocs.length,
+            hints: multiDocRequest.extractionHints.length,
+          });
+        }
         log.info('Document generation starting', {
           documentType: detectedDocType,
           subtype,
           message: lastUserContent.substring(0, 100),
           isEdit: isEditRequest,
-          hasPreviousContext: !!previousDocumentJson,
+          hasPreviousContext: !!previousContext.originalRequest,
+          hasMemoryContext: !!memoryContext,
+          hasStyleMatch: !!styleMatchInstructions,
+          hasMultiDoc: !!multiDocInstructions,
         });
 
         try {
@@ -1808,23 +2281,22 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           // Get the appropriate JSON schema prompt based on document type
           let schemaPrompt = getDocumentSchemaPrompt(detectedDocType, lastUserContent);
 
-          // Inject current date into the prompt
+          // Build intelligent context (user memory + edit context)
+          const intelligentContext = buildDocumentContext(
+            lastUserContent,
+            memoryContext || null,
+            previousContext,
+            isEditRequest
+          );
+
+          // Inject current date, intelligent context, style matching, and multi-doc instructions
           schemaPrompt = `${schemaPrompt}
 
 CURRENT DATE INFORMATION:
 - Today's date: ${currentDate}
 - ISO format: ${currentDateISO}
-Use these dates where appropriate (e.g., invoice dates, letter dates, document dates).`;
-
-          // If this is an edit request with previous context, add edit instructions
-          if (isEditRequest && previousDocumentJson) {
-            schemaPrompt = `${schemaPrompt}
-
-EDIT MODE: The user previously requested this document: "${previousDocumentJson}"
-Now they want to modify it with this request: "${lastUserContent}"
-
-Apply the requested changes while preserving the overall document structure and content that wasn't mentioned. Generate the complete updated document JSON.`;
-          }
+Use these dates where appropriate (e.g., invoice dates, letter dates, document dates).
+${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
 
           // Use Sonnet for reliable JSON output - with retry logic
           let jsonText = '';
@@ -1953,21 +2425,38 @@ CAPABILITIES:
   * Word documents (.docx): letters, contracts, proposals, reports, memos
   * PDF documents: invoices, certificates, flyers, memos, letters
 
-**DOCUMENT GENERATION FLOW** (IMPORTANT):
-When a user asks for a document, DON'T just say "sure" and wait. Instead:
+**DOCUMENT GENERATION FLOW** (CRITICAL FOR BEST-IN-CLASS RESULTS):
+When a user asks for a document, be INTELLIGENT and PROACTIVE:
 
-1. **Acknowledge the request** and show you understand what they need
-2. **Ask 1-2 clarifying questions** to gather necessary details:
-   - For budgets: "What categories would you like? (e.g., housing, food, transportation)"
-   - For invoices: "Who is this invoice for? What services/items should I include?"
-   - For letters: "Who is this addressed to? What's the main purpose?"
-   - For memos: "What department/recipients? What's the key message?"
-3. **Offer options** when relevant: "Would you like a monthly or annual budget?"
-4. **Confirm before generating**: "I'll create a [document type] with [details]. Sound good?"
+1. **Understand the context** - What are they really trying to accomplish?
+2. **Ask SMART questions** (1-2 max) based on document type:
 
-If the user provides detailed information upfront or says "just create it," proceed directly.
+   SPREADSHEETS:
+   - Budget: "Is this personal or business? Monthly or annual view?"
+   - Tracker: "What time period? What categories matter most to you?"
+   - Invoice: "What's your company/business name? Who's the client?"
 
-After generating, the document will appear with Preview and Download buttons. Offer to make adjustments.
+   WORD DOCUMENTS:
+   - Letter: "Formal or friendly tone? What's the main point you need to convey?"
+   - Contract: "What type of agreement? What are the key terms?"
+   - Proposal: "Who's the audience? What problem are you solving for them?"
+
+   PDFs:
+   - Invoice: "Your business name? Client details? What items/services?"
+   - Memo: "Who needs to see this? What action do you need them to take?"
+   - Certificate: "Who's receiving it? What achievement/completion?"
+
+3. **Use what you know** - If I have context about the user (their company, preferences), use it automatically
+4. **Offer smart defaults** - "I can create a standard monthly budget with common categories, or customize it. Which do you prefer?"
+5. **Be ready to iterate** - After generating, actively offer: "Want me to adjust anything? Add more categories? Change the layout?"
+
+INTELLIGENCE TIPS:
+- If user says "make me a budget", recognize they probably want personal budget with common categories
+- If user mentions a business name, use it in the document
+- If user provides partial info, fill in smart defaults rather than asking too many questions
+- Always include working formulas in spreadsheets - NEVER just formatted text
+
+After generating, the document will appear with Preview and Download buttons. ALWAYS offer to make adjustments.
 
 GREETINGS:
 When a user says "hi", "hello", "hey", or any simple greeting, respond with JUST:
