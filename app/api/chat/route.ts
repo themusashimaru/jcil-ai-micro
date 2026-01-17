@@ -642,6 +642,187 @@ The user expects the new document to look and feel like their reference file.
   return '';
 }
 
+/**
+ * Detect if user wants to extract/combine information from multiple documents
+ * Returns info about what to extract from where
+ */
+function detectMultiDocumentRequest(
+  message: string,
+  conversationHistory?: Array<{ role: string; content: unknown }>
+): {
+  isMultiDoc: boolean;
+  uploadedDocs: Array<{ content: string; type: 'spreadsheet' | 'pdf' | 'text' }>;
+  extractionHints: string[];
+} {
+  const lowerMessage = message.toLowerCase();
+
+  // Patterns that indicate multi-document extraction/combination
+  const multiDocPatterns = [
+    /\b(from|take|get|extract|use|grab)\b.*\b(from|in)\b.*\b(and|also|plus|with)\b.*\b(from|in)\b/i,
+    /\bcombine\b.*\b(documents?|files?|spreadsheets?|pdfs?)\b/i,
+    /\bmerge\b.*\b(data|information|content)\b/i,
+    /\b(this|first|one)\b.*\b(document|file|spreadsheet)\b.*\b(that|second|other)\b/i,
+    /\bfrom (document|file) ?(1|one|a)\b.*\b(document|file) ?(2|two|b)\b/i,
+    /\b(data|info|information) from\b.*\band\b.*\bfrom\b/i,
+    /\bpull\b.*\bfrom\b.*\band\b/i,
+    /\b(the|this) (budget|expenses|income|data)\b.*\b(the|that) (format|style|layout)\b/i,
+  ];
+
+  const isMultiDoc = multiDocPatterns.some((p) => p.test(lowerMessage));
+
+  // Find all uploaded documents in conversation history
+  const uploadedDocs: Array<{ content: string; type: 'spreadsheet' | 'pdf' | 'text' }> = [];
+  const extractionHints: string[] = [];
+
+  if (isMultiDoc && conversationHistory && conversationHistory.length > 0) {
+    // Look through recent conversation for parsed file content
+    const recentHistory = conversationHistory.slice(-12);
+
+    for (const msg of recentHistory) {
+      if (msg.role === 'user' && typeof msg.content === 'string') {
+        const content = msg.content;
+
+        // Detect spreadsheet content
+        if (content.includes('=== Sheet:')) {
+          uploadedDocs.push({ content, type: 'spreadsheet' });
+        }
+        // Detect PDF content
+        else if (content.includes('Pages:') && content.length > 100) {
+          uploadedDocs.push({ content, type: 'pdf' });
+        }
+        // Detect other text content that looks like a document
+        else if (content.length > 200 && (content.includes('\n') || content.includes('\t'))) {
+          uploadedDocs.push({ content, type: 'text' });
+        }
+      }
+    }
+
+    // Extract hints about what user wants from each document
+    // Look for patterns like "the expenses from", "the header from", etc.
+    const hintPatterns = [
+      /\b(the |)(expenses?|income|budget|data|numbers?|figures?|amounts?|totals?)\b.*\bfrom\b/gi,
+      /\b(the |)(header|headers|columns?|structure|layout|format|style)\b.*\bfrom\b/gi,
+      /\b(the |)(contact|address|name|info|information|details?)\b.*\bfrom\b/gi,
+      /\bfrom\b.*\b(the |)(first|second|other|this|that)\b/gi,
+      /\b(section|paragraph|part)\b.*\b(about|on|regarding)\b/gi,
+    ];
+
+    for (const pattern of hintPatterns) {
+      const matches = message.match(pattern);
+      if (matches) {
+        extractionHints.push(...matches);
+      }
+    }
+  }
+
+  return { isMultiDoc, uploadedDocs, extractionHints };
+}
+
+/**
+ * Generate instructions for multi-document extraction and compilation
+ */
+function generateMultiDocInstructions(
+  uploadedDocs: Array<{ content: string; type: 'spreadsheet' | 'pdf' | 'text' }>,
+  extractionHints: string[],
+  userMessage: string
+): string {
+  if (uploadedDocs.length === 0) {
+    return '';
+  }
+
+  // Describe each document
+  const docDescriptions = uploadedDocs.map((doc, idx) => {
+    if (doc.type === 'spreadsheet') {
+      // Extract sheet names and headers
+      const sheets: string[] = [];
+      const sheetMatches = doc.content.matchAll(/=== Sheet: (.+?) ===/g);
+      for (const match of sheetMatches) {
+        sheets.push(match[1]);
+      }
+
+      const lines = doc.content.split('\n');
+      let headers: string[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('=== Sheet:') && i + 1 < lines.length) {
+          const headerLine = lines[i + 1];
+          if (headerLine && !headerLine.startsWith('-')) {
+            headers = headerLine
+              .split('\t|\t')
+              .map((h) => h.trim())
+              .slice(0, 6);
+            break;
+          }
+        }
+      }
+
+      return `DOCUMENT ${idx + 1} (Spreadsheet):
+- Sheets: ${sheets.join(', ') || 'Unknown'}
+- Columns: ${headers.join(', ') || 'Unknown'}
+- Contains tabular data with potential formulas`;
+    }
+
+    if (doc.type === 'pdf') {
+      // Detect document type
+      const textLower = doc.content.toLowerCase();
+      let docType = 'General document';
+      if (textLower.includes('experience') && textLower.includes('education')) {
+        docType = 'Resume/CV';
+      } else if (textLower.includes('invoice') || textLower.includes('bill to')) {
+        docType = 'Invoice';
+      } else if (textLower.includes('dear ') || textLower.includes('sincerely')) {
+        docType = 'Letter';
+      } else if (textLower.includes('contract') || textLower.includes('agreement')) {
+        docType = 'Contract/Agreement';
+      }
+
+      // Extract section hints
+      const sections: string[] = [];
+      const lines = doc.content.split('\n');
+      lines.forEach((line) => {
+        const trimmed = line.trim();
+        if (
+          trimmed.length > 2 &&
+          trimmed.length < 40 &&
+          (trimmed === trimmed.toUpperCase() || /^[A-Z][a-z]+:?$/.test(trimmed))
+        ) {
+          sections.push(trimmed);
+        }
+      });
+
+      return `DOCUMENT ${idx + 1} (PDF - ${docType}):
+- Detected sections: ${sections.slice(0, 5).join(', ') || 'General content'}
+- Content type: ${docType}`;
+    }
+
+    return `DOCUMENT ${idx + 1} (Text):
+- Contains text content for reference`;
+  });
+
+  return `
+**MULTI-DOCUMENT EXTRACTION MODE**
+The user has uploaded ${uploadedDocs.length} documents and wants you to extract/combine information from them.
+
+${docDescriptions.join('\n\n')}
+
+USER'S REQUEST: "${userMessage}"
+${extractionHints.length > 0 ? `\nDETECTED EXTRACTION HINTS: ${extractionHints.join(', ')}` : ''}
+
+**YOUR TASK:**
+1. Identify what specific information the user wants from EACH document
+2. Extract the relevant data/content from each source
+3. Combine intelligently into a single cohesive document
+4. Apply any style/format preferences mentioned
+5. Ensure data integrity - don't mix up which data came from where
+6. If the user wants "expenses from A and format from B", use A's data with B's structure
+
+**IMPORTANT:**
+- Ask clarifying questions if you're unsure which part of which document to use
+- Preserve numerical accuracy when extracting financial data
+- Maintain proper attribution if combining text from multiple sources
+- The final document should feel unified, not like a cut-and-paste job
+`;
+}
+
 function hasEnoughDetailToGenerate(
   message: string,
   _documentType: string, // Reserved for future type-specific logic
@@ -2026,6 +2207,9 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
       // Check if user wants to match style of uploaded document
       const styleMatch = detectStyleMatchRequest(lastUserContent, conversationForDetection);
 
+      // Check if user wants to extract/combine from multiple documents
+      const multiDocRequest = detectMultiDocumentRequest(lastUserContent, conversationForDetection);
+
       // Check if user has provided enough detail to generate
       const shouldGenerateNow = hasEnoughDetailToGenerate(
         lastUserContent,
@@ -2035,7 +2219,12 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
 
       // If not enough detail, let it fall through to regular chat
       // where the AI will ask clarifying questions
-      if (!shouldGenerateNow && !isEditRequest && !styleMatch.wantsStyleMatch) {
+      if (
+        !shouldGenerateNow &&
+        !isEditRequest &&
+        !styleMatch.wantsStyleMatch &&
+        !multiDocRequest.isMultiDoc
+      ) {
         log.info('Document request detected but needs more detail, falling through to chat', {
           documentType: detectedDocType,
           message: lastUserContent.substring(0, 50),
@@ -2058,6 +2247,21 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
             hasUploadedFile: !!styleMatch.uploadedFileInfo,
           });
         }
+
+        // Generate multi-document extraction instructions if user wants to combine documents
+        let multiDocInstructions = '';
+        if (multiDocRequest.isMultiDoc && multiDocRequest.uploadedDocs.length > 0) {
+          multiDocInstructions = generateMultiDocInstructions(
+            multiDocRequest.uploadedDocs,
+            multiDocRequest.extractionHints,
+            lastUserContent
+          );
+          log.info('Multi-document extraction detected', {
+            documentType: detectedDocType,
+            documentCount: multiDocRequest.uploadedDocs.length,
+            hints: multiDocRequest.extractionHints.length,
+          });
+        }
         log.info('Document generation starting', {
           documentType: detectedDocType,
           subtype,
@@ -2066,6 +2270,7 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           hasPreviousContext: !!previousContext.originalRequest,
           hasMemoryContext: !!memoryContext,
           hasStyleMatch: !!styleMatchInstructions,
+          hasMultiDoc: !!multiDocInstructions,
         });
 
         try {
@@ -2084,14 +2289,14 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
             isEditRequest
           );
 
-          // Inject current date, intelligent context, and style matching into the prompt
+          // Inject current date, intelligent context, style matching, and multi-doc instructions
           schemaPrompt = `${schemaPrompt}
 
 CURRENT DATE INFORMATION:
 - Today's date: ${currentDate}
 - ISO format: ${currentDateISO}
 Use these dates where appropriate (e.g., invoice dates, letter dates, document dates).
-${intelligentContext}${styleMatchInstructions}`;
+${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
 
           // Use Sonnet for reliable JSON output - with retry logic
           let jsonText = '';
