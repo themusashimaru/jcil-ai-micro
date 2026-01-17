@@ -60,6 +60,17 @@ export interface GeneratedFile {
   size_bytes?: number;
 }
 
+/**
+ * Document download data for preview/download capability
+ * Used for native document generation (Excel, Word, PDF)
+ */
+export interface DocumentDownload {
+  filename: string;
+  mimeType: string;
+  dataUrl: string;
+  canPreview: boolean; // True for PDFs that can be previewed in browser
+}
+
 export interface CodePreview {
   code: string;
   language: 'html' | 'react' | 'vue' | 'svelte';
@@ -72,15 +83,15 @@ export interface CodePreview {
  * Supports full website generation with multiple pages
  */
 export interface WebsitePage {
-  name: string;           // e.g., "Home", "About", "Services"
-  slug: string;           // e.g., "index", "about", "services"
-  code: string;           // Full HTML for this page
-  icon?: string;          // Optional emoji icon
+  name: string; // e.g., "Home", "About", "Services"
+  slug: string; // e.g., "index", "about", "services"
+  code: string; // Full HTML for this page
+  icon?: string; // Optional emoji icon
 }
 
 export interface MultiPageWebsite {
   pages: WebsitePage[];
-  sharedStyles?: string;  // Optional shared CSS
+  sharedStyles?: string; // Optional shared CSS
   sharedScripts?: string; // Optional shared JS
   title: string;
   description?: string;
@@ -117,6 +128,7 @@ export interface Message {
   sourcesUsed?: number; // Number of sources used in search
   searchProvider?: string; // Search provider used (e.g., 'perplexity')
   files?: GeneratedFile[]; // Generated documents (Excel, PowerPoint, Word, PDF)
+  documentDownload?: DocumentDownload; // Native document generation with preview/download
   codePreview?: CodePreview; // For live code previews (landing pages, websites)
   multiPageWebsite?: MultiPageWebsite; // For multi-page website generation
   clonedSite?: ClonedSite; // For cloned/recreated websites

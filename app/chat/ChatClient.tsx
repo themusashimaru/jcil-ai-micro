@@ -2143,26 +2143,25 @@ export function ChatClient() {
           // Remove the marker from the displayed text
           const cleanedContent = finalContent.replace(/\[DOCUMENT_DOWNLOAD:.+?\]/s, '').trim();
 
-          // Trigger auto-download using the dataUrl
+          // Store document data in message for preview/download buttons (no auto-download)
           if (docData.dataUrl) {
-            const link = document.createElement('a');
-            link.href = docData.dataUrl;
-            link.download = docData.filename || 'document';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            // Update the message to show success
-            const successContent =
-              cleanedContent +
-              `\n\n✅ **Downloaded!** Check your downloads folder for "${docData.filename}"`;
-
             setMessages((prev) =>
               prev.map((msg) =>
-                msg.id === assistantMessageId ? { ...msg, content: successContent } : msg
+                msg.id === assistantMessageId
+                  ? {
+                      ...msg,
+                      content: cleanedContent,
+                      documentDownload: {
+                        filename: docData.filename || 'document',
+                        mimeType: docData.mimeType || 'application/octet-stream',
+                        dataUrl: docData.dataUrl,
+                        canPreview: docData.canPreview || false,
+                      },
+                    }
+                  : msg
               )
             );
-            finalContent = successContent;
+            finalContent = cleanedContent;
           }
         } catch (docError) {
           log.error('Error parsing DOCUMENT_DOWNLOAD marker:', docError as Error);

@@ -413,6 +413,151 @@ function detectDocumentSubtype(documentType: string, userMessage: string): strin
   return 'general';
 }
 
+/**
+ * Check if the user has provided enough detail to generate a document,
+ * or if we should ask clarifying questions first.
+ * Returns true if we should generate immediately, false if we should ask questions.
+ */
+function hasEnoughDetailToGenerate(
+  message: string,
+  _documentType: string, // Reserved for future type-specific logic
+  conversationHistory?: Array<{ role: string; content: unknown }>
+): boolean {
+  const lowerMessage = message.toLowerCase();
+
+  // If user explicitly says to just generate/create it, honor that
+  const immediateGeneratePatterns = [
+    /\bjust (create|make|generate|do)\b/i,
+    /\b(create|make|generate) it now\b/i,
+    /\bgo ahead\b/i,
+    /\bsounds good\b/i,
+    /\byes,? (please|create|make|generate)\b/i,
+    /\bthat'?s (good|fine|perfect|great)\b/i,
+    /\bperfect,? (create|make|generate)\b/i,
+    /\blet'?s do it\b/i,
+    /\bproceed\b/i,
+  ];
+
+  if (immediateGeneratePatterns.some((p) => p.test(lowerMessage))) {
+    return true;
+  }
+
+  // Check if we already asked questions in the conversation (AI ready to generate)
+  if (conversationHistory && conversationHistory.length > 0) {
+    const recentHistory = conversationHistory.slice(-6);
+    for (const msg of recentHistory) {
+      if (msg.role === 'assistant') {
+        const content = typeof msg.content === 'string' ? msg.content.toLowerCase() : '';
+        // If AI already asked about document details, user's response is likely confirmation
+        if (
+          content.includes('what type of') ||
+          content.includes('what would you like') ||
+          content.includes('any specific') ||
+          content.includes('do you have') ||
+          content.includes('should i include') ||
+          content.includes('what information') ||
+          content.includes("i'll create") ||
+          content.includes('i can create') ||
+          content.includes('ready to generate')
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // Check for detailed requests that have enough info
+  const hasSpecificDetails =
+    // Has numbers/amounts
+    /\$[\d,]+|\b\d{1,3}(,\d{3})*(\.\d{2})?\b/.test(message) ||
+    // Has dates
+    /\b(january|february|march|april|may|june|july|august|september|october|november|december|\d{1,2}\/\d{1,2}|\d{4})\b/i.test(
+      message
+    ) ||
+    // Has names/companies
+    /\b(for|to|from)\s+[A-Z][a-z]+(\s+[A-Z][a-z]+)*\b/.test(message) ||
+    // Has multiple specific categories mentioned
+    (
+      message.match(
+        /\b(housing|rent|food|utilities|transportation|entertainment|savings|income|expense)\b/gi
+      ) || []
+    ).length >= 3 ||
+    // Has email or phone
+    /\b[\w.-]+@[\w.-]+\.\w+\b/.test(message) ||
+    /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/.test(message) ||
+    // Long detailed message (100+ chars with specifics)
+    (message.length > 150 && /\b(include|with|containing|showing|for|about)\b/i.test(message));
+
+  // For edits, always generate
+  const isEditRequest =
+    /\b(add|change|update|modify|edit|adjust|remove|fix|redo|regenerate|different|instead|actually)\b/i.test(
+      lowerMessage
+    );
+  if (isEditRequest) {
+    return true;
+  }
+
+  return hasSpecificDetails;
+}
+
+/**
+ * Get current date formatted for documents
+ */
+function getCurrentDateFormatted(): string {
+  const now = new Date();
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+  return now.toLocaleDateString('en-US', options);
+}
+
+/**
+ * Get current date in ISO format
+ */
+function getCurrentDateISO(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+/**
+ * Generate a helpful response message based on document type and content
+ */
+function generateDocumentResponseMessage(
+  documentType: string,
+  filename: string,
+  subtype: string
+): string {
+  const docName = getDocumentTypeName(documentType);
+
+  // Base message with preview instructions
+  let message = `I've created your ${docName}: **${filename}**\n\n`;
+
+  // Add type-specific details
+  switch (documentType) {
+    case 'xlsx':
+      message += `**What's included:**\n`;
+      if (subtype === 'budget') {
+        message += `- Income and expense categories with formulas\n- Automatic variance calculations\n- Summary totals\n`;
+      } else if (subtype === 'expense_tracker') {
+        message += `- Date, description, and category columns\n- Running balance formulas\n- Category summary calculations\n`;
+      } else {
+        message += `- Professional headers with formatting\n- Automatic calculations where appropriate\n- Ready-to-use formulas\n`;
+      }
+      message += `\n*All formulas are fully functional - just enter your data!*\n\n`;
+      break;
+    case 'pdf':
+      message += `**Preview tip:** Click "Preview" to view in a new tab before downloading.\n\n`;
+      break;
+    case 'docx':
+      message += `**Ready to customize:** Open in Word to add your specific details.\n\n`;
+      break;
+  }
+
+  message += `**Options:**\n`;
+  message += `- 👁️ **Preview** - View document in new tab\n`;
+  message += `- ⬇️ **Download** - Save to your device\n`;
+  message += `- ✏️ **Edit** - Tell me what to change\n`;
+
+  return message;
+}
+
 function getDocumentSchemaPrompt(documentType: string, userMessage?: string): string {
   const subtype = detectDocumentSubtype(documentType, userMessage || '');
 
@@ -462,7 +607,24 @@ PROFESSIONAL STANDARDS:
 - Always include headers with isHeader: true
 - Add totals/summary rows with formulas
 - Use consistent number formatting
-- Include freezeRow: 1 to freeze headers`;
+- Include freezeRow: 1 to freeze headers
+
+**FORMULA REQUIREMENTS** (CRITICAL):
+Spreadsheets MUST include working formulas. Common formulas to use:
+- =SUM(B2:B20) - Add up a range of cells
+- =AVERAGE(B2:B20) - Calculate average
+- =B2*C2 - Multiply cells (e.g., quantity * price)
+- =B2-C2 - Subtract (e.g., budgeted - actual for variance)
+- =B2/C2 - Divide (e.g., for percentages)
+- =SUM(B2:B20)/SUM(C2:C20) - Calculated ratios
+- =IF(B2>C2,"Over","Under") - Conditional logic
+
+For budget/financial sheets, ALWAYS include:
+- Sum formulas for totals
+- Variance calculations (Budget - Actual)
+- Percentage calculations where meaningful
+
+The user expects CALCULABLE spreadsheets, not just formatted text tables.`;
 
     // Sub-type specific guidance
     const subtypeGuidance: Record<string, string> = {
@@ -1571,15 +1733,17 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
 
     // ========================================
     // ROUTE 3.9: AUTO-DETECT DOCUMENT REQUESTS
-    // Automatically generates documents when user asks in natural language
-    // Also handles edit requests like "add another column" or "change the colors"
-    // Available to all authenticated users (not just admin)
+    // Conversational document generation with intelligent flow:
+    // 1. Detect document intent
+    // 2. Check if enough detail provided - if not, let AI ask questions
+    // 3. Generate only when user has provided details or confirmed
     // ========================================
     const conversationForDetection = messages.map((m) => ({
       role: String(m.role),
       content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
     }));
     const detectedDocType = detectDocumentIntent(lastUserContent, conversationForDetection);
+
     if (detectedDocType && isAuthenticated && !explicitDocType) {
       // Check if this is an edit request
       const isEditRequest =
@@ -1587,116 +1751,182 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
           lastUserContent
         );
 
-      // Try to find previous document JSON in conversation history for edits
-      let previousDocumentJson: string | null = null;
-      if (isEditRequest) {
-        const recentHistory = (messages as CoreMessage[]).slice(-10);
-        for (let i = recentHistory.length - 1; i >= 0; i--) {
-          const msg = recentHistory[i];
-          if (msg.role === 'assistant' && typeof msg.content === 'string') {
-            // Look for document download marker
-            const downloadMatch = msg.content.match(/\[DOCUMENT_DOWNLOAD:(\{[^}]+\})\]/);
-            if (downloadMatch) {
-              // Found a previous document - now look for user's original request
-              for (let j = i - 1; j >= 0; j--) {
-                if (recentHistory[j].role === 'user') {
-                  previousDocumentJson =
-                    typeof recentHistory[j].content === 'string'
-                      ? (recentHistory[j].content as string)
-                      : null;
-                  break;
+      // Check if user has provided enough detail to generate
+      const shouldGenerateNow = hasEnoughDetailToGenerate(
+        lastUserContent,
+        detectedDocType,
+        conversationForDetection
+      );
+
+      // If not enough detail, let it fall through to regular chat
+      // where the AI will ask clarifying questions
+      if (!shouldGenerateNow && !isEditRequest) {
+        log.info('Document request detected but needs more detail, falling through to chat', {
+          documentType: detectedDocType,
+          message: lastUserContent.substring(0, 50),
+        });
+        // Don't process here - let it fall through to regular chat
+      } else {
+        // Try to find previous document JSON in conversation history for edits
+        let previousDocumentJson: string | null = null;
+        if (isEditRequest) {
+          const recentHistory = (messages as CoreMessage[]).slice(-10);
+          for (let i = recentHistory.length - 1; i >= 0; i--) {
+            const msg = recentHistory[i];
+            if (msg.role === 'assistant' && typeof msg.content === 'string') {
+              const downloadMatch = msg.content.match(/\[DOCUMENT_DOWNLOAD:(\{[^}]+\})\]/);
+              if (downloadMatch) {
+                for (let j = i - 1; j >= 0; j--) {
+                  if (recentHistory[j].role === 'user') {
+                    previousDocumentJson =
+                      typeof recentHistory[j].content === 'string'
+                        ? (recentHistory[j].content as string)
+                        : null;
+                    break;
+                  }
                 }
+                break;
               }
-              break;
             }
           }
         }
-      }
 
-      log.info('Document request auto-detected', {
-        documentType: detectedDocType,
-        message: lastUserContent.substring(0, 100),
-        isEdit: isEditRequest,
-        hasPreviousContext: !!previousDocumentJson,
-      });
+        const subtype = detectDocumentSubtype(detectedDocType, lastUserContent);
+        log.info('Document generation starting', {
+          documentType: detectedDocType,
+          subtype,
+          message: lastUserContent.substring(0, 100),
+          isEdit: isEditRequest,
+          hasPreviousContext: !!previousDocumentJson,
+        });
 
-      try {
-        // Get the appropriate JSON schema prompt based on document type
-        let schemaPrompt = getDocumentSchemaPrompt(detectedDocType, lastUserContent);
+        try {
+          // Get current date for the document
+          const currentDate = getCurrentDateFormatted();
+          const currentDateISO = getCurrentDateISO();
 
-        // If this is an edit request with previous context, add edit instructions
-        if (isEditRequest && previousDocumentJson) {
+          // Get the appropriate JSON schema prompt based on document type
+          let schemaPrompt = getDocumentSchemaPrompt(detectedDocType, lastUserContent);
+
+          // Inject current date into the prompt
           schemaPrompt = `${schemaPrompt}
+
+CURRENT DATE INFORMATION:
+- Today's date: ${currentDate}
+- ISO format: ${currentDateISO}
+Use these dates where appropriate (e.g., invoice dates, letter dates, document dates).`;
+
+          // If this is an edit request with previous context, add edit instructions
+          if (isEditRequest && previousDocumentJson) {
+            schemaPrompt = `${schemaPrompt}
 
 EDIT MODE: The user previously requested this document: "${previousDocumentJson}"
 Now they want to modify it with this request: "${lastUserContent}"
 
 Apply the requested changes while preserving the overall document structure and content that wasn't mentioned. Generate the complete updated document JSON.`;
+          }
+
+          // Use Sonnet for reliable JSON output - with retry logic
+          let jsonText = '';
+          let parseError: Error | null = null;
+          const maxRetries = 2;
+
+          for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            const retryPrompt =
+              attempt > 0
+                ? `${schemaPrompt}\n\nIMPORTANT: Your previous response was not valid JSON. Output ONLY the JSON object with no markdown, no explanation, no text before or after. Start with { and end with }.`
+                : schemaPrompt;
+
+            const result = await createClaudeChat({
+              messages: [
+                ...(messages as CoreMessage[]).slice(-5),
+                { role: 'user', content: lastUserContent },
+              ],
+              systemPrompt: retryPrompt,
+              maxTokens: 4096,
+              temperature: attempt > 0 ? 0.1 : 0.3, // Lower temp on retry
+              forceModel: 'sonnet',
+            });
+
+            // Extract JSON from response
+            jsonText = result.text.trim();
+            if (jsonText.startsWith('```json')) {
+              jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+            } else if (jsonText.startsWith('```')) {
+              jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+            }
+
+            // Try to parse
+            try {
+              JSON.parse(jsonText);
+              parseError = null;
+              break; // Success!
+            } catch (e) {
+              parseError = e as Error;
+              log.warn(`JSON parse failed on attempt ${attempt + 1}`, {
+                error: (e as Error).message,
+              });
+              if (attempt < maxRetries) {
+                continue; // Retry
+              }
+            }
+          }
+
+          if (parseError) {
+            throw parseError;
+          }
+
+          const documentData = JSON.parse(jsonText) as DocumentData;
+
+          // Validate the document structure
+          const validation = validateDocumentJSON(documentData);
+          if (!validation.valid) {
+            throw new Error(`Invalid document structure: ${validation.error}`);
+          }
+
+          // Generate the actual file
+          const fileResult = await generateDocument(documentData);
+
+          // Convert to base64 for response
+          const base64 = fileResult.buffer.toString('base64');
+          const dataUrl = `data:${fileResult.mimeType};base64,${base64}`;
+
+          // Generate helpful response message
+          const responseMessage = generateDocumentResponseMessage(
+            detectedDocType,
+            fileResult.filename,
+            subtype
+          );
+
+          // Return document info with download data AND preview capability
+          const responseText =
+            responseMessage +
+            `[DOCUMENT_DOWNLOAD:${JSON.stringify({
+              filename: fileResult.filename,
+              mimeType: fileResult.mimeType,
+              dataUrl: dataUrl,
+              type: detectedDocType,
+              canPreview: detectedDocType === 'pdf', // PDFs can be previewed in browser
+            })}]`;
+
+          // Release slot before returning
+          if (slotAcquired) {
+            await releaseSlot(requestId);
+            slotAcquired = false;
+          }
+
+          return new Response(responseText, {
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Document-Generated': 'true',
+              'X-Document-Type': detectedDocType,
+            },
+          });
+        } catch (error) {
+          log.error('Auto-detected document generation error', error as Error);
+          // Fall through to regular chat - Claude will respond naturally
+          log.info('Falling back to regular chat after document generation failure');
         }
-
-        // Use Sonnet for reliable JSON output
-        const result = await createClaudeChat({
-          messages: [
-            ...(messages as CoreMessage[]).slice(-5),
-            { role: 'user', content: lastUserContent },
-          ],
-          systemPrompt: schemaPrompt,
-          maxTokens: 4096,
-          temperature: 0.3, // Lower temp for structured output
-          forceModel: 'sonnet',
-        });
-
-        // Extract JSON from response
-        let jsonText = result.text.trim();
-        if (jsonText.startsWith('```json')) {
-          jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-        } else if (jsonText.startsWith('```')) {
-          jsonText = jsonText.replace(/^```\n?/, '').replace(/\n?```$/, '');
-        }
-
-        const documentData = JSON.parse(jsonText) as DocumentData;
-
-        // Validate the document structure
-        const validation = validateDocumentJSON(documentData);
-        if (!validation.valid) {
-          throw new Error(`Invalid document structure: ${validation.error}`);
-        }
-
-        // Generate the actual file
-        const fileResult = await generateDocument(documentData);
-
-        // Convert to base64 for response
-        const base64 = fileResult.buffer.toString('base64');
-        const dataUrl = `data:${fileResult.mimeType};base64,${base64}`;
-
-        // Return document info with download data
-        const responseText =
-          `I've created your ${getDocumentTypeName(detectedDocType)} document: **${fileResult.filename}**\n\n` +
-          `Click the download button below to save it.\n\n` +
-          `[DOCUMENT_DOWNLOAD:${JSON.stringify({
-            filename: fileResult.filename,
-            mimeType: fileResult.mimeType,
-            dataUrl: dataUrl,
-            type: detectedDocType,
-          })}]`;
-
-        // Release slot before returning
-        if (slotAcquired) {
-          await releaseSlot(requestId);
-          slotAcquired = false;
-        }
-
-        return new Response(responseText, {
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'X-Document-Generated': 'true',
-            'X-Document-Type': detectedDocType,
-          },
-        });
-      } catch (error) {
-        log.error('Auto-detected document generation error', error as Error);
-        // Fall through to regular chat - Claude will respond naturally
-        log.info('Falling back to regular chat after document generation failure');
       }
     }
 
@@ -1706,19 +1936,38 @@ Apply the requested changes while preserving the overall document structure and 
     const truncatedMessages = truncateMessages(messages as CoreMessage[]);
     const clampedMaxTokens = clampMaxTokens(max_tokens);
 
+    // Inject current date for document discussions
+    const todayDate = getCurrentDateFormatted();
+
     const systemPrompt = `You are JCIL AI, an intelligent American AI assistant.
+
+TODAY'S DATE: ${todayDate}
 
 CAPABILITIES:
 - Web search for current information
 - Deep research on complex topics
 - Code review and generation
 - Scripture and faith-based guidance
-- **DOCUMENT GENERATION**: You can create downloadable files when users ask:
-  * Excel spreadsheets (.xlsx): budgets, trackers, schedules, data tables
-  * Word documents (.docx): resumes, letters, contracts, proposals, reports
-  * PDF invoices: professional invoices with itemized billing
+- **DOCUMENT GENERATION**: You can create professional downloadable files:
+  * Excel spreadsheets (.xlsx): budgets, trackers, schedules, data tables - WITH WORKING FORMULAS
+  * Word documents (.docx): letters, contracts, proposals, reports, memos
+  * PDF documents: invoices, certificates, flyers, memos, letters
 
-  Documents are generated automatically when users request them. A download link will appear.
+**DOCUMENT GENERATION FLOW** (IMPORTANT):
+When a user asks for a document, DON'T just say "sure" and wait. Instead:
+
+1. **Acknowledge the request** and show you understand what they need
+2. **Ask 1-2 clarifying questions** to gather necessary details:
+   - For budgets: "What categories would you like? (e.g., housing, food, transportation)"
+   - For invoices: "Who is this invoice for? What services/items should I include?"
+   - For letters: "Who is this addressed to? What's the main purpose?"
+   - For memos: "What department/recipients? What's the key message?"
+3. **Offer options** when relevant: "Would you like a monthly or annual budget?"
+4. **Confirm before generating**: "I'll create a [document type] with [details]. Sound good?"
+
+If the user provides detailed information upfront or says "just create it," proceed directly.
+
+After generating, the document will appear with Preview and Download buttons. Offer to make adjustments.
 
 GREETINGS:
 When a user says "hi", "hello", "hey", or any simple greeting, respond with JUST:
