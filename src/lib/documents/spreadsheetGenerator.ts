@@ -9,13 +9,18 @@
 import ExcelJS from 'exceljs';
 import type { SpreadsheetDocument, SpreadsheetCell } from './types';
 
-// Default styling
+// Default styling - Professional spreadsheet standards
 const DEFAULT_HEADER_COLOR = '1e3a5f'; // Navy blue
 const DEFAULT_HEADER_TEXT_COLOR = 'ffffff'; // White
-const ALTERNATE_ROW_COLOR = 'f5f5f5'; // Light gray
+const ALTERNATE_ROW_COLOR = 'f8f9fa'; // Subtle light gray (more professional)
+const DEFAULT_ROW_HEIGHT = 22; // Comfortable row height
+const DEFAULT_HEADER_HEIGHT = 28; // Slightly taller header for visual hierarchy
+const DEFAULT_MIN_COLUMN_WIDTH = 12; // Minimum readable column width
+const DEFAULT_MAX_COLUMN_WIDTH = 60; // Maximum column width to prevent sprawl
+const DEFAULT_FONT_SIZE = 11; // Standard Excel font size
 
 /**
- * Generate an Excel file from spreadsheet JSON
+ * Generate an Excel file from spreadsheet JSON with professional styling
  */
 export async function generateSpreadsheetXlsx(spreadsheet: SpreadsheetDocument): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
@@ -24,18 +29,25 @@ export async function generateSpreadsheetXlsx(spreadsheet: SpreadsheetDocument):
 
   const headerColor = spreadsheet.format?.headerColor?.replace('#', '') || DEFAULT_HEADER_COLOR;
   const alternatingRows = spreadsheet.format?.alternatingRowColors !== false;
+  const fontSize = spreadsheet.format?.defaultFontSize || DEFAULT_FONT_SIZE;
 
   // Process each sheet
   for (const sheetData of spreadsheet.sheets) {
     const worksheet = workbook.addWorksheet(sheetData.name);
 
+    // Set default column style for better readability
+    worksheet.properties.defaultRowHeight = DEFAULT_ROW_HEIGHT;
+
     // Set column widths if specified
     if (sheetData.columnWidths && sheetData.columnWidths.length > 0) {
       sheetData.columnWidths.forEach((width, index) => {
         const col = worksheet.getColumn(index + 1);
-        col.width = width;
+        col.width = Math.max(width, DEFAULT_MIN_COLUMN_WIDTH);
       });
     }
+
+    // Track header rows for proper alternating color calculation
+    let headerRowCount = 0;
 
     // Process rows
     let rowIndex = 1;
@@ -46,73 +58,116 @@ export async function generateSpreadsheetXlsx(spreadsheet: SpreadsheetDocument):
       rowData.cells.forEach((cellData, cellIndex) => {
         const cell = row.getCell(cellIndex + 1);
         setCellValue(cell, cellData);
-        applyCellFormatting(cell, cellData, rowData.isHeader, headerColor);
+        applyCellFormatting(cell, cellData, rowData.isHeader, headerColor, fontSize);
       });
 
       // Apply header styling
       if (rowData.isHeader) {
-        row.font = { bold: true, color: { argb: DEFAULT_HEADER_TEXT_COLOR } };
+        headerRowCount++;
+        row.height = DEFAULT_HEADER_HEIGHT;
+        row.font = {
+          bold: true,
+          color: { argb: DEFAULT_HEADER_TEXT_COLOR },
+          size: fontSize,
+        };
         row.fill = {
           type: 'pattern',
           pattern: 'solid',
           fgColor: { argb: headerColor },
         };
-      } else if (alternatingRows && rowIndex % 2 === 0) {
-        // Alternating row colors
-        row.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: ALTERNATE_ROW_COLOR.replace('#', '') },
-        };
-      }
+        // Center-align header text vertically
+        row.alignment = { vertical: 'middle' };
+      } else {
+        // Set comfortable row height for data rows
+        row.height = rowData.height || DEFAULT_ROW_HEIGHT;
 
-      // Set row height if specified
-      if (rowData.height) {
-        row.height = rowData.height;
+        // Alternating row colors (account for header rows)
+        const dataRowIndex = rowIndex - headerRowCount;
+        if (alternatingRows && dataRowIndex % 2 === 0) {
+          row.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: ALTERNATE_ROW_COLOR.replace('#', '') },
+          };
+        }
+
+        // Default vertical alignment for data rows
+        row.alignment = { vertical: 'middle' };
       }
 
       row.commit();
       rowIndex++;
     }
 
-    // Auto-fit columns if no widths specified
+    // Auto-fit columns if no widths specified - improved algorithm
     if (!sheetData.columnWidths || sheetData.columnWidths.length === 0) {
       worksheet.columns.forEach((column) => {
-        let maxLength = 10;
+        let maxLength = DEFAULT_MIN_COLUMN_WIDTH;
         column.eachCell?.({ includeEmpty: true }, (cell) => {
           const cellValue = cell.value?.toString() || '';
-          maxLength = Math.max(maxLength, cellValue.length + 2);
+          // Account for font size and add padding
+          const estimatedWidth = cellValue.length * 1.1 + 4;
+          maxLength = Math.max(maxLength, estimatedWidth);
         });
-        column.width = Math.min(maxLength, 50);
+        column.width = Math.min(
+          Math.max(maxLength, DEFAULT_MIN_COLUMN_WIDTH),
+          DEFAULT_MAX_COLUMN_WIDTH
+        );
       });
     }
 
-    // Freeze panes
-    if (sheetData.freezeRow || sheetData.freezeColumn) {
+    // Freeze panes (default: freeze first row if it's a header)
+    const hasHeader = sheetData.rows.some((r) => r.isHeader);
+    if (sheetData.freezeRow || sheetData.freezeColumn || hasHeader) {
       worksheet.views = [
         {
           state: 'frozen',
           xSplit: sheetData.freezeColumn || 0,
-          ySplit: sheetData.freezeRow || 0,
+          ySplit: sheetData.freezeRow || (hasHeader ? headerRowCount : 0),
         },
       ];
     }
 
-    // Add borders to all cells with data
+    // Add professional borders to all cells with data
     const lastRow = worksheet.lastRow?.number || 1;
     const lastCol = worksheet.columnCount;
     for (let r = 1; r <= lastRow; r++) {
       for (let c = 1; c <= lastCol; c++) {
         const cell = worksheet.getCell(r, c);
-        if (cell.value !== null && cell.value !== undefined) {
-          cell.border = {
-            top: { style: 'thin' },
-            left: { style: 'thin' },
-            bottom: { style: 'thin' },
-            right: { style: 'thin' },
-          };
-        }
+        // Apply borders to all cells in data range (not just those with values)
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'd0d0d0' } },
+          left: { style: 'thin', color: { argb: 'd0d0d0' } },
+          bottom: { style: 'thin', color: { argb: 'd0d0d0' } },
+          right: { style: 'thin', color: { argb: 'd0d0d0' } },
+        };
       }
+    }
+
+    // Add a slightly heavier border around the entire data range
+    for (let r = 1; r <= lastRow; r++) {
+      // Left edge
+      worksheet.getCell(r, 1).border = {
+        ...worksheet.getCell(r, 1).border,
+        left: { style: 'thin', color: { argb: 'a0a0a0' } },
+      };
+      // Right edge
+      worksheet.getCell(r, lastCol).border = {
+        ...worksheet.getCell(r, lastCol).border,
+        right: { style: 'thin', color: { argb: 'a0a0a0' } },
+      };
+    }
+    for (let c = 1; c <= lastCol; c++) {
+      // Top edge
+      worksheet.getCell(1, c).border = {
+        ...worksheet.getCell(1, c).border,
+        top: { style: 'thin', color: { argb: 'a0a0a0' } },
+      };
+      // Bottom edge
+      worksheet.getCell(lastRow, c).border = {
+        ...worksheet.getCell(lastRow, c).border,
+        bottom: { style: 'thin', color: { argb: 'a0a0a0' } },
+      };
     }
   }
 
@@ -133,28 +188,36 @@ function setCellValue(cell: ExcelJS.Cell, cellData: SpreadsheetCell): void {
 }
 
 /**
- * Apply formatting to a cell
+ * Apply formatting to a cell with professional styling
  */
 function applyCellFormatting(
   cell: ExcelJS.Cell,
   cellData: SpreadsheetCell,
   isHeader: boolean = false,
-  _headerColor: string
+  _headerColor: string,
+  fontSize: number = DEFAULT_FONT_SIZE
 ): void {
   // Font styling
-  const font: Partial<ExcelJS.Font> = {};
+  const font: Partial<ExcelJS.Font> = {
+    size: fontSize,
+  };
   if (cellData.bold || isHeader) font.bold = true;
   if (cellData.italic) font.italic = true;
   if (cellData.textColor) font.color = { argb: cellData.textColor.replace('#', '') };
-  if (Object.keys(font).length > 0) {
-    cell.font = font;
-  }
 
-  // Number formatting
+  cell.font = font;
+
+  // Number formatting with thousands separator for better readability
   if (cellData.currency) {
     cell.numFmt = '"$"#,##0.00';
   } else if (cellData.percent) {
     cell.numFmt = '0.00%';
+  } else if (typeof cellData.value === 'number' && !Number.isInteger(cellData.value)) {
+    // Format decimals nicely
+    cell.numFmt = '#,##0.00';
+  } else if (typeof cellData.value === 'number' && Math.abs(cellData.value) >= 1000) {
+    // Add thousands separator for large numbers
+    cell.numFmt = '#,##0';
   }
 
   // Background color
@@ -166,13 +229,15 @@ function applyCellFormatting(
     };
   }
 
-  // Alignment
-  if (cellData.alignment) {
-    cell.alignment = {
-      horizontal: cellData.alignment,
-      vertical: 'middle',
-    };
-  }
+  // Alignment - default numbers to right, text to left
+  const defaultAlignment =
+    typeof cellData.value === 'number' || cellData.currency || cellData.percent ? 'right' : 'left';
+
+  cell.alignment = {
+    horizontal: cellData.alignment || defaultAlignment,
+    vertical: 'middle',
+    wrapText: false, // Prevent wrapping for cleaner look
+  };
 }
 
 /**
