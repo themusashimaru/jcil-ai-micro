@@ -333,28 +333,17 @@ OUTPUT ONLY THE JSON OBJECT.`;
   formatAsMarkdown(output: ResearchOutput): string {
     let md = '';
 
-    // Confidence indicator
-    const confidenceLevel = output.metadata.confidenceScore >= 0.8 ? 'HIGH' :
-      output.metadata.confidenceScore >= 0.6 ? 'MODERATE' : 'LIMITED';
-    const confidenceBar = this.renderConfidenceBar(output.metadata.confidenceScore);
-
-    md += `### Intelligence Confidence: ${confidenceLevel}\n`;
-    md += `${confidenceBar}\n\n`;
-
-    // Executive Summary with professional styling
-    md += `---\n\n`;
+    // Executive Summary - clean, professional start
     md += `## Executive Summary\n\n`;
     md += `${output.executiveSummary}\n\n`;
 
-    // Key Findings with enhanced styling
+    // Key Findings - clean bullet format
     md += `---\n\n`;
-    md += `## Key Intelligence Findings\n\n`;
+    md += `## Key Findings\n\n`;
     output.keyFindings.forEach(f => {
-      const badge = f.confidence === 'high' ? '`HIGH CONFIDENCE`' :
-        f.confidence === 'medium' ? '`MODERATE`' : '`UNVERIFIED`';
-      md += `**${badge}** ${f.finding}\n`;
+      md += `• ${f.finding}\n`;
       if (f.sources.length > 0) {
-        md += `> *Sources: ${f.sources.join(', ')}*\n`;
+        md += `  *Sources: ${f.sources.join(', ')}*\n`;
       }
       md += '\n';
     });
@@ -407,25 +396,11 @@ OUTPUT ONLY THE JSON OBJECT.`;
       md += `\n*+ ${output.sources.length - 10} additional sources*\n`;
     }
 
-    // Professional footer
+    // Clean footer with just essential metadata
     md += `\n---\n\n`;
-    md += `**Research Metadata**\n`;
-    md += `• Execution Time: ${(output.metadata.executionTime / 1000).toFixed(1)}s\n`;
-    md += `• Queries Executed: ${output.metadata.totalQueries}\n`;
-    md += `• Search Iterations: ${output.metadata.iterations}\n`;
-    md += `• Confidence Score: ${(output.metadata.confidenceScore * 100).toFixed(0)}%\n`;
+    md += `*Research completed in ${(output.metadata.executionTime / 1000).toFixed(1)}s using ${output.metadata.totalQueries} queries across ${output.metadata.iterations} iteration${output.metadata.iterations > 1 ? 's' : ''}.*\n`;
 
     return md;
-  }
-
-  /**
-   * Render a visual confidence bar
-   */
-  private renderConfidenceBar(score: number): string {
-    const percentage = Math.round(score * 100);
-    const filled = Math.round(score * 20);
-    const empty = 20 - filled;
-    return `\`[${'█'.repeat(filled)}${'░'.repeat(empty)}]\` ${percentage}%`;
   }
 }
 

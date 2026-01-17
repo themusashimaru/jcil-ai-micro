@@ -171,6 +171,9 @@ export async function executeResearchAgent(
           depth: options.depth,
         };
 
+        // Reset task state for new research session
+        resetTaskState();
+
         // Stream clean header
         controller.enqueue(encoder.encode(`**Research Agent**\n\n`));
 
@@ -214,32 +217,147 @@ export async function executeResearchAgent(
 }
 
 /**
- * Format a progress event for streaming output - Clean checklist style
- * Inspired by Claude Code's vertical checkbox approach
+ * Research task tracking for professional checklist-style progress
+ * Shows all steps upfront and updates as they complete
  */
-function formatProgressEvent(event: AgentStreamEvent): string {
-  // Skip heartbeat messages from cluttering the output
-  const details = event.details as Record<string, unknown> | undefined;
-  if (details?.heartbeat) {
-    return ''; // Don't show "Still working..." messages
+interface ResearchTask {
+  id: string;
+  label: string;
+  status: 'pending' | 'active' | 'completed';
+}
+
+// Define the research workflow steps
+const RESEARCH_TASKS: ResearchTask[] = [
+  { id: 'intent', label: 'Analyze research request', status: 'pending' },
+  { id: 'strategy', label: 'Generate research strategy', status: 'pending' },
+  { id: 'search', label: 'Execute searches', status: 'pending' },
+  { id: 'evaluate', label: 'Evaluate findings', status: 'pending' },
+  { id: 'synthesize', label: 'Synthesize report', status: 'pending' },
+];
+
+// Track current task state across the stream
+let currentTasks: ResearchTask[] = [];
+let hasShownInitialList = false;
+let lastRenderedOutput = '';
+
+/**
+ * Reset task state for a new research session
+ */
+function resetTaskState(): void {
+  currentTasks = RESEARCH_TASKS.map(t => ({ ...t }));
+  hasShownInitialList = false;
+  lastRenderedOutput = '';
+}
+
+/**
+ * Render the current task list as a checklist
+ */
+function renderTaskList(): string {
+  return currentTasks.map(task => {
+    const icon = task.status === 'completed' ? '☑' :
+                 task.status === 'active' ? '◉' : '☐';
+    return `${icon} ${task.label}`;
+  }).join('\n');
+}
+
+/**
+ * Map event types/phases to task IDs
+ */
+function getTaskIdFromEvent(event: AgentStreamEvent): string | null {
+  const phase = (event.details as Record<string, unknown> | undefined)?.phase as string | undefined;
+  const type = event.type;
+
+  // Map phases and types to task IDs
+  if (phase === 'Intent Analysis' || type === 'thinking' && event.message.includes('Analyzing')) {
+    return 'intent';
+  }
+  if (phase === 'Strategy Generation' || event.message.includes('strategy')) {
+    return 'strategy';
+  }
+  if (type === 'searching' || phase?.includes('Iteration')) {
+    return 'search';
+  }
+  if (type === 'evaluating') {
+    return 'evaluate';
+  }
+  if (type === 'synthesizing' || phase === 'Synthesis') {
+    return 'synthesize';
+  }
+  if (type === 'complete') {
+    return 'complete';
   }
 
-  // Checklist-style icons
-  const typeConfig: Record<string, { icon: string; style: 'active' | 'complete' | 'error' }> = {
-    thinking: { icon: '→', style: 'active' },
-    searching: { icon: '→', style: 'active' },
-    evaluating: { icon: '→', style: 'active' },
-    pivoting: { icon: '→', style: 'active' },
-    synthesizing: { icon: '→', style: 'active' },
-    complete: { icon: '✓', style: 'complete' },
-    error: { icon: '✗', style: 'error' },
-  };
+  return null;
+}
 
-  const config = typeConfig[event.type] || { icon: '○', style: 'active' };
+/**
+ * Format a progress event for streaming output - Professional checklist style
+ * Shows all tasks upfront and updates with checkboxes as they complete
+ */
+function formatProgressEvent(event: AgentStreamEvent): string {
+  // Skip heartbeat messages
+  const details = event.details as Record<string, unknown> | undefined;
+  if (details?.heartbeat) {
+    return '';
+  }
 
-  // Clean, minimal formatting - just icon and message
-  // ✓ for complete, → for in-progress, ✗ for error
-  return `${config.icon} ${event.message}\n`;
+  // Handle errors
+  if (event.type === 'error') {
+    return `\n✗ ${event.message}\n`;
+  }
+
+  // Initialize task list on first event
+  if (!hasShownInitialList) {
+    resetTaskState();
+    hasShownInitialList = true;
+    // Mark first task as active
+    currentTasks[0].status = 'active';
+    lastRenderedOutput = renderTaskList();
+    return lastRenderedOutput + '\n';
+  }
+
+  // Get which task this event relates to
+  const taskId = getTaskIdFromEvent(event);
+
+  if (!taskId) {
+    return ''; // Skip events that don't map to tasks
+  }
+
+  // Handle completion
+  if (taskId === 'complete') {
+    // Mark all tasks as completed
+    currentTasks.forEach(t => t.status = 'completed');
+    const newOutput = renderTaskList();
+    // Only output if changed
+    if (newOutput !== lastRenderedOutput) {
+      lastRenderedOutput = newOutput;
+      return '\n' + newOutput + '\n';
+    }
+    return '';
+  }
+
+  // Find current and target task indices
+  const taskIndex = currentTasks.findIndex(t => t.id === taskId);
+  if (taskIndex === -1) return '';
+
+  // Mark all previous tasks as completed
+  for (let i = 0; i < taskIndex; i++) {
+    currentTasks[i].status = 'completed';
+  }
+
+  // Mark current task as active
+  currentTasks[taskIndex].status = 'active';
+
+  // Render updated list
+  const newOutput = renderTaskList();
+
+  // Only output if the state actually changed
+  if (newOutput !== lastRenderedOutput) {
+    lastRenderedOutput = newOutput;
+    return '\n' + newOutput + '\n';
+  }
+
+  return '';
 }
 
 /**
