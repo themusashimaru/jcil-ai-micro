@@ -251,12 +251,13 @@ function resetTaskState(): void {
 
 /**
  * Render the current task list as a checklist
+ * Uses standard markdown checkbox format like Claude Code
  */
 function renderTaskList(): string {
   return currentTasks.map(task => {
-    const icon = task.status === 'completed' ? '☑' :
-                 task.status === 'active' ? '◉' : '☐';
-    return `${icon} ${task.label}`;
+    const checkbox = task.status === 'completed' ? '- [x]' :
+                     task.status === 'active' ? '- [x]' : '- [ ]';
+    return `${checkbox} ${task.label}`;
   }).join('\n');
 }
 
