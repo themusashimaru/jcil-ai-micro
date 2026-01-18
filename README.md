@@ -5,7 +5,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)](https://www.typescriptlang.org/)
 [![Anthropic](https://img.shields.io/badge/Powered%20by-Anthropic%20Claude-orange)](https://anthropic.com/)
-[![Tests](https://img.shields.io/badge/Tests-685%20Passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-924%20Passing-brightgreen)]()
 [![Security](https://img.shields.io/badge/Security-Enterprise%20Grade-green)]()
 [![SOC 2](https://img.shields.io/badge/SOC%202-In%20Progress-yellow)]()
 
@@ -186,16 +186,16 @@ See [SOC2_READINESS.md](./docs/SOC2_READINESS.md) for detailed compliance docume
 
 ### Technology Stack
 
-| Layer           | Technology                              | Purpose                            |
-| --------------- | --------------------------------------- | ---------------------------------- |
-| **Frontend**    | Next.js 14, React 18, TypeScript 5.4    | Server-side rendering, type safety |
-| **AI Provider** | Anthropic Claude (Haiku 4.5 + Sonnet 4) | Chat, reasoning, code generation   |
-| **Database**    | Supabase PostgreSQL                     | User data, conversations, sessions |
-| **Cache**       | Upstash Redis                           | Rate limiting, queue, idempotency  |
-| **Auth**        | Supabase Auth + WebAuthn                | OAuth, passkey authentication      |
-| **Payments**    | Stripe                                  | Subscriptions, billing             |
-| **Sandboxing**  | E2B                                     | Isolated code execution            |
-| **Search**      | Perplexity                              | Web search, fact verification      |
+| Layer           | Technology                                | Purpose                            |
+| --------------- | ----------------------------------------- | ---------------------------------- |
+| **Frontend**    | Next.js 14, React 18, TypeScript 5.4      | Server-side rendering, type safety |
+| **AI Provider** | Anthropic Claude (Haiku 4.5 + Sonnet 4.5) | Chat, reasoning, code generation   |
+| **Database**    | Supabase PostgreSQL                       | User data, conversations, sessions |
+| **Cache**       | Upstash Redis                             | Rate limiting, queue, idempotency  |
+| **Auth**        | Supabase Auth + WebAuthn                  | OAuth, passkey authentication      |
+| **Payments**    | Stripe                                    | Subscriptions, billing             |
+| **Sandboxing**  | E2B                                       | Isolated code execution            |
+| **Search**      | Perplexity                                | Web search, fact verification      |
 
 ### Reliability & Performance
 
@@ -211,41 +211,55 @@ REQUEST_TTL_SECONDS = 120
 
 // Cost-optimized model routing
 Regular chat → Claude Haiku 4.5 (fast, cost-effective)
-Document creation → Claude Sonnet 4 (quality JSON output)
+Document creation → Claude Sonnet 4.5 (quality JSON output)
 ```
 
 ### Quality Metrics
 
-| Metric            | Value     | Target |
-| ----------------- | --------- | ------ |
-| TypeScript Errors | 0         | 0      |
-| ESLint Warnings   | 0         | 0      |
-| Test Coverage     | 685 tests | 700+   |
-| Build Warnings    | 0         | 0      |
-| Uptime Target     | 99.9%     | 99.9%  |
+| Metric             | Value     | Target |
+| ------------------ | --------- | ------ |
+| TypeScript Errors  | 0         | 0      |
+| ESLint Warnings    | 0         | 0      |
+| Test Coverage      | 924 tests | 900+   |
+| Coverage Threshold | 75%       | 75%    |
+| Build Warnings     | 0         | 0      |
+| Uptime Target      | 99.9%     | 99.9%  |
 
 ---
 
 ## Code Lab
 
-A Claude Code-inspired development environment with 30+ agentic tools:
+A fully-functional Claude Code-inspired development environment with 30+ agentic tools, real MCP server integration, and sandboxed cloud execution.
 
 ### Feature Comparison
 
-| Feature               | Claude Code | JCIL Code Lab  |
-| --------------------- | ----------- | -------------- |
-| Shell execution       | ✅          | ✅             |
-| File operations       | ✅          | ✅             |
-| Git integration       | ✅          | ✅             |
-| GitHub PRs            | ✅          | ✅             |
-| Planning mode         | ✅          | ✅             |
-| MCP servers           | ✅          | ✅             |
-| Hooks system          | ✅          | ✅             |
-| Project memory        | ✅          | ✅             |
-| Background tasks      | ✅          | ✅             |
-| Sandboxed execution   | Local       | ✅ Cloud (E2B) |
-| Web-based             | ❌          | ✅             |
-| Persistent workspaces | Local       | ✅ Cloud       |
+| Feature               | Claude Code | JCIL Code Lab                        |
+| --------------------- | ----------- | ------------------------------------ |
+| Shell execution       | ✅          | ✅ E2B Sandboxed                     |
+| File operations       | ✅          | ✅ Real Filesystem                   |
+| Git integration       | ✅          | ✅                                   |
+| GitHub PRs            | ✅          | ✅ Octokit                           |
+| Planning mode         | ✅          | ✅                                   |
+| MCP servers           | ✅          | ✅ 5 Servers                         |
+| Hooks system          | ✅          | ✅                                   |
+| Project memory        | ✅          | ✅                                   |
+| Background tasks      | ✅          | ✅                                   |
+| Sandboxed execution   | Local       | ✅ Cloud (E2B)                       |
+| Web-based             | ❌          | ✅                                   |
+| Persistent workspaces | Local       | ✅ Cloud                             |
+| Multi-platform deploy | ❌          | ✅ Vercel/Netlify/Railway/Cloudflare |
+
+### MCP Server Integration
+
+Real, functional MCP servers (not stubs):
+
+| Server     | Capabilities                                    |
+| ---------- | ----------------------------------------------- |
+| Filesystem | read, write, list, search, get_info, move, copy |
+| GitHub     | repo_info, list_issues, create_issue, create_pr |
+| Memory     | store, retrieve, list, search                   |
+| Puppeteer  | navigate, screenshot, click, type, evaluate     |
+| PostgreSQL | query (SELECT only, RLS enforced)               |
 
 ### Available Tools (30+)
 
@@ -271,6 +285,14 @@ git_checkout                             memory_update
 git_push
 git_pull
 create_pr
+
+Deployment          MCP Tools
+─────────────────   ─────────────────
+deploy_vercel       mcp_filesystem
+deploy_netlify      mcp_github
+deploy_railway      mcp_memory
+deploy_cloudflare   mcp_puppeteer
+check_deploy_status mcp_postgres
 ```
 
 ---
@@ -332,11 +354,13 @@ See [.env.example](./.env.example) for all required and optional environment var
 | Document                                      | Description                            |
 | --------------------------------------------- | -------------------------------------- |
 | [ARCHITECTURE.md](./docs/ARCHITECTURE.md)     | System design and component overview   |
+| [CODE_LAB.md](./docs/CODE_LAB.md)             | Code Lab technical documentation       |
 | [MEMORY_SYSTEM.md](./docs/MEMORY_SYSTEM.md)   | Persistent Memory Agent technical spec |
 | [SECURITY.md](./docs/SECURITY.md)             | Security policies and implementation   |
 | [SOC2_READINESS.md](./docs/SOC2_READINESS.md) | Compliance checklist and status        |
 | [CONTRIBUTING.md](./CONTRIBUTING.md)          | Development guidelines                 |
 | [API.md](./docs/API.md)                       | API documentation                      |
+| [PROJECT_STATUS.md](./PROJECT_STATUS.md)      | Current engineering status             |
 
 ---
 
@@ -357,12 +381,16 @@ See [.env.example](./.env.example) for all required and optional environment var
 
 - [x] Multi-agent architecture (Research, Code, Document, Memory)
 - [x] **Persistent Memory Agent** - Cross-conversation personalization
-- [x] Code Lab with 30+ tools and Claude Code parity
+- [x] Code Lab with 30+ tools and full Claude Code parity
+- [x] **Real MCP Server Integration** - 5 functional MCP servers (filesystem, GitHub, memory, puppeteer, postgres)
+- [x] **E2B Sandboxed Execution** - Secure cloud code execution via E2B Code Interpreter
+- [x] **Multi-platform Deployment** - Vercel, Netlify, Railway, Cloudflare with status polling
 - [x] Enterprise security (CSRF, validation, rate limiting)
-- [x] 685+ automated tests
+- [x] **924 automated tests** with 75% coverage thresholds
 - [x] Document generation (PDF, DOCX, XLSX)
 - [x] WebAuthn/Passkey authentication
 - [x] GDPR-compliant memory management (right to erasure)
+- [x] Skills-enabled AI completion with agentic tool loops
 
 ### In Progress
 

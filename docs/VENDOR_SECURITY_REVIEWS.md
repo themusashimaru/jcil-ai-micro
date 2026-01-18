@@ -17,12 +17,12 @@ This document provides security assessments of all third-party vendors that proc
 
 ## 2. Vendor Risk Classification
 
-| Risk Level | Criteria | Review Frequency |
-|------------|----------|------------------|
+| Risk Level   | Criteria                                     | Review Frequency      |
+| ------------ | -------------------------------------------- | --------------------- |
 | **Critical** | Processes customer data, core infrastructure | Annually + on changes |
-| **High** | Access to systems, payment processing | Annually |
-| **Medium** | Development tools, monitoring | Every 2 years |
-| **Low** | No data access, replaceable services | As needed |
+| **High**     | Access to systems, payment processing        | Annually              |
+| **Medium**   | Development tools, monitoring                | Every 2 years         |
+| **Low**      | No data access, replaceable services         | As needed             |
 
 ---
 
@@ -30,29 +30,29 @@ This document provides security assessments of all third-party vendors that proc
 
 ### 3.1 Anthropic (AI Provider)
 
-| Attribute | Details |
-|-----------|---------|
-| **Service** | Claude AI API (Haiku 4.5, Sonnet 4) |
-| **Risk Level** | Critical |
-| **Data Processed** | User prompts, conversation content |
-| **Last Review** | January 2025 |
+| Attribute          | Details                                         |
+| ------------------ | ----------------------------------------------- |
+| **Service**        | Claude AI API (Haiku 4.5, Sonnet 4.5, Opus 4.5) |
+| **Risk Level**     | Critical                                        |
+| **Data Processed** | User prompts, conversation content              |
+| **Last Review**    | January 2025                                    |
 
 #### Compliance & Certifications
 
-| Certification | Status | Verified |
-|---------------|--------|----------|
-| SOC 2 Type II | ✅ Certified | Jan 2025 |
-| HIPAA Eligible | ✅ Yes | Jan 2025 |
-| GDPR Compliant | ✅ Yes | Jan 2025 |
+| Certification  | Status       | Verified |
+| -------------- | ------------ | -------- |
+| SOC 2 Type II  | ✅ Certified | Jan 2025 |
+| HIPAA Eligible | ✅ Yes       | Jan 2025 |
+| GDPR Compliant | ✅ Yes       | Jan 2025 |
 
 #### Security Controls
 
-| Control | Implementation |
-|---------|----------------|
-| **Data Handling** | API inputs not used for training |
-| **Encryption** | TLS 1.2+ in transit, AES-256 at rest |
-| **Access Control** | API key authentication, rate limiting |
-| **Data Retention** | 30-day log retention, configurable |
+| Control               | Implementation                         |
+| --------------------- | -------------------------------------- |
+| **Data Handling**     | API inputs not used for training       |
+| **Encryption**        | TLS 1.2+ in transit, AES-256 at rest   |
+| **Access Control**    | API key authentication, rate limiting  |
+| **Data Retention**    | 30-day log retention, configurable     |
 | **Incident Response** | 24/7 security team, public status page |
 
 #### Why We Chose Anthropic
@@ -65,11 +65,11 @@ This document provides security assessments of all third-party vendors that proc
 
 #### Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Data breach | Low | High | SOC 2 controls, encryption |
-| Service outage | Low | Medium | Dual-pool API keys |
-| Model safety | Very Low | Medium | Constitutional AI, testing |
+| Risk           | Likelihood | Impact | Mitigation                 |
+| -------------- | ---------- | ------ | -------------------------- |
+| Data breach    | Low        | High   | SOC 2 controls, encryption |
+| Service outage | Low        | Medium | Dual-pool API keys         |
+| Model safety   | Very Low   | Medium | Constitutional AI, testing |
 
 **Overall Risk: LOW**
 
@@ -77,30 +77,30 @@ This document provides security assessments of all third-party vendors that proc
 
 ### 3.2 Supabase (Database & Authentication)
 
-| Attribute | Details |
-|-----------|---------|
-| **Service** | PostgreSQL database, authentication, storage |
-| **Risk Level** | Critical |
-| **Data Processed** | All customer data, credentials |
-| **Last Review** | January 2025 |
+| Attribute          | Details                                      |
+| ------------------ | -------------------------------------------- |
+| **Service**        | PostgreSQL database, authentication, storage |
+| **Risk Level**     | Critical                                     |
+| **Data Processed** | All customer data, credentials               |
+| **Last Review**    | January 2025                                 |
 
 #### Compliance & Certifications
 
-| Certification | Status | Verified |
-|---------------|--------|----------|
-| SOC 2 Type II | ✅ Certified | Jan 2025 |
+| Certification  | Status              | Verified |
+| -------------- | ------------------- | -------- |
+| SOC 2 Type II  | ✅ Certified        | Jan 2025 |
 | HIPAA Eligible | ✅ Yes (Enterprise) | Jan 2025 |
-| GDPR Compliant | ✅ Yes | Jan 2025 |
+| GDPR Compliant | ✅ Yes              | Jan 2025 |
 
 #### Security Controls
 
-| Control | Implementation |
-|---------|----------------|
-| **Encryption** | TLS in transit, AES-256 at rest |
-| **Access Control** | Row-Level Security, role-based access |
-| **Backup** | Daily automatic, point-in-time recovery |
-| **Network** | VPC isolation, SSL-only connections |
-| **Monitoring** | Real-time logging, anomaly detection |
+| Control            | Implementation                          |
+| ------------------ | --------------------------------------- |
+| **Encryption**     | TLS in transit, AES-256 at rest         |
+| **Access Control** | Row-Level Security, role-based access   |
+| **Backup**         | Daily automatic, point-in-time recovery |
+| **Network**        | VPC isolation, SSL-only connections     |
+| **Monitoring**     | Real-time logging, anomaly detection    |
 
 #### Data Residency
 
@@ -110,11 +110,11 @@ This document provides security assessments of all third-party vendors that proc
 
 #### Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Data breach | Low | Critical | RLS, encryption, SOC 2 |
-| Data loss | Very Low | Critical | Daily backups, PITR |
-| Service outage | Low | High | Multi-AZ, failover |
+| Risk           | Likelihood | Impact   | Mitigation             |
+| -------------- | ---------- | -------- | ---------------------- |
+| Data breach    | Low        | Critical | RLS, encryption, SOC 2 |
+| Data loss      | Very Low   | Critical | Daily backups, PITR    |
+| Service outage | Low        | High     | Multi-AZ, failover     |
 
 **Overall Risk: LOW**
 
@@ -122,38 +122,38 @@ This document provides security assessments of all third-party vendors that proc
 
 ### 3.3 Vercel (Application Hosting)
 
-| Attribute | Details |
-|-----------|---------|
-| **Service** | Application hosting, edge network, serverless |
-| **Risk Level** | Critical |
-| **Data Processed** | Application code, environment secrets |
-| **Last Review** | January 2025 |
+| Attribute          | Details                                       |
+| ------------------ | --------------------------------------------- |
+| **Service**        | Application hosting, edge network, serverless |
+| **Risk Level**     | Critical                                      |
+| **Data Processed** | Application code, environment secrets         |
+| **Last Review**    | January 2025                                  |
 
 #### Compliance & Certifications
 
-| Certification | Status | Verified |
-|---------------|--------|----------|
-| SOC 2 Type II | ✅ Certified | Jan 2025 |
-| GDPR Compliant | ✅ Yes | Jan 2025 |
-| ISO 27001 | ✅ Certified | Jan 2025 |
+| Certification  | Status       | Verified |
+| -------------- | ------------ | -------- |
+| SOC 2 Type II  | ✅ Certified | Jan 2025 |
+| GDPR Compliant | ✅ Yes       | Jan 2025 |
+| ISO 27001      | ✅ Certified | Jan 2025 |
 
 #### Security Controls
 
-| Control | Implementation |
-|---------|----------------|
-| **Encryption** | TLS 1.3, automatic HTTPS |
-| **Secrets** | Encrypted environment variables |
-| **DDoS** | Edge-level protection included |
-| **Access Control** | Team-based permissions, SSO available |
-| **Deployment** | Immutable deployments, rollback available |
+| Control            | Implementation                            |
+| ------------------ | ----------------------------------------- |
+| **Encryption**     | TLS 1.3, automatic HTTPS                  |
+| **Secrets**        | Encrypted environment variables           |
+| **DDoS**           | Edge-level protection included            |
+| **Access Control** | Team-based permissions, SSO available     |
+| **Deployment**     | Immutable deployments, rollback available |
 
 #### Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Code exposure | Very Low | High | Encrypted storage, access control |
-| DDoS attack | Medium | Medium | Built-in protection |
-| Service outage | Low | High | Global edge, redundancy |
+| Risk           | Likelihood | Impact | Mitigation                        |
+| -------------- | ---------- | ------ | --------------------------------- |
+| Code exposure  | Very Low   | High   | Encrypted storage, access control |
+| DDoS attack    | Medium     | Medium | Built-in protection               |
+| Service outage | Low        | High   | Global edge, redundancy           |
 
 **Overall Risk: LOW**
 
@@ -161,29 +161,29 @@ This document provides security assessments of all third-party vendors that proc
 
 ### 3.4 Stripe (Payment Processing)
 
-| Attribute | Details |
-|-----------|---------|
-| **Service** | Payment processing, subscriptions |
-| **Risk Level** | High |
+| Attribute          | Details                                 |
+| ------------------ | --------------------------------------- |
+| **Service**        | Payment processing, subscriptions       |
+| **Risk Level**     | High                                    |
 | **Data Processed** | Payment information (handled by Stripe) |
-| **Last Review** | January 2025 |
+| **Last Review**    | January 2025                            |
 
 #### Compliance & Certifications
 
-| Certification | Status | Verified |
-|---------------|--------|----------|
+| Certification   | Status       | Verified |
+| --------------- | ------------ | -------- |
 | PCI DSS Level 1 | ✅ Certified | Jan 2025 |
-| SOC 2 Type II | ✅ Certified | Jan 2025 |
-| GDPR Compliant | ✅ Yes | Jan 2025 |
+| SOC 2 Type II   | ✅ Certified | Jan 2025 |
+| GDPR Compliant  | ✅ Yes       | Jan 2025 |
 
 #### Security Controls
 
-| Control | Implementation |
-|---------|----------------|
-| **Card Data** | Never touches our servers (Stripe.js) |
-| **Encryption** | End-to-end encryption |
-| **Fraud** | Radar fraud detection |
-| **Webhooks** | Signature verification |
+| Control        | Implementation                        |
+| -------------- | ------------------------------------- |
+| **Card Data**  | Never touches our servers (Stripe.js) |
+| **Encryption** | End-to-end encryption                 |
+| **Fraud**      | Radar fraud detection                 |
+| **Webhooks**   | Signature verification                |
 
 #### Data Flow
 
@@ -199,10 +199,10 @@ Customer → Stripe.js → Stripe Servers → Webhook to JCIL.AI
 
 #### Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Payment fraud | Low | Medium | Stripe Radar |
-| Data breach | Very Low | Low | No card data on our systems |
+| Risk          | Likelihood | Impact | Mitigation                  |
+| ------------- | ---------- | ------ | --------------------------- |
+| Payment fraud | Low        | Medium | Stripe Radar                |
+| Data breach   | Very Low   | Low    | No card data on our systems |
 
 **Overall Risk: VERY LOW**
 
@@ -212,26 +212,26 @@ Customer → Stripe.js → Stripe Servers → Webhook to JCIL.AI
 
 ### 4.1 Upstash (Redis Cache)
 
-| Attribute | Details |
-|-----------|---------|
-| **Service** | Serverless Redis |
-| **Risk Level** | High |
+| Attribute          | Details                          |
+| ------------------ | -------------------------------- |
+| **Service**        | Serverless Redis                 |
+| **Risk Level**     | High                             |
 | **Data Processed** | Rate limits, cache, session data |
-| **Last Review** | January 2025 |
+| **Last Review**    | January 2025                     |
 
 #### Compliance & Certifications
 
-| Certification | Status | Verified |
-|---------------|--------|----------|
+| Certification | Status       | Verified |
+| ------------- | ------------ | -------- |
 | SOC 2 Type II | ✅ Certified | Jan 2025 |
 
 #### Security Controls
 
-| Control | Implementation |
-|---------|----------------|
+| Control        | Implementation                    |
+| -------------- | --------------------------------- |
 | **Encryption** | TLS in transit, encrypted at rest |
-| **Access** | Token-based authentication |
-| **Isolation** | Per-database isolation |
+| **Access**     | Token-based authentication        |
+| **Isolation**  | Per-database isolation            |
 
 #### Data Stored
 
@@ -247,28 +247,28 @@ Customer → Stripe.js → Stripe Servers → Webhook to JCIL.AI
 
 ### 4.2 E2B (Code Sandbox)
 
-| Attribute | Details |
-|-----------|---------|
-| **Service** | Sandboxed code execution |
-| **Risk Level** | High |
+| Attribute          | Details                     |
+| ------------------ | --------------------------- |
+| **Service**        | Sandboxed code execution    |
+| **Risk Level**     | High                        |
 | **Data Processed** | User code, execution output |
-| **Last Review** | January 2025 |
+| **Last Review**    | January 2025                |
 
 #### Security Controls
 
-| Control | Implementation |
-|---------|----------------|
-| **Isolation** | Per-execution VM isolation |
-| **Network** | No egress to external networks |
-| **Cleanup** | Automatic after execution |
-| **Limits** | CPU, memory, time limits |
+| Control       | Implementation                 |
+| ------------- | ------------------------------ |
+| **Isolation** | Per-execution VM isolation     |
+| **Network**   | No egress to external networks |
+| **Cleanup**   | Automatic after execution      |
+| **Limits**    | CPU, memory, time limits       |
 
 #### Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Code escape | Very Low | Medium | VM isolation |
-| Resource abuse | Low | Low | Limits enforced |
+| Risk           | Likelihood | Impact | Mitigation      |
+| -------------- | ---------- | ------ | --------------- |
+| Code escape    | Very Low   | Medium | VM isolation    |
+| Resource abuse | Low        | Low    | Limits enforced |
 
 **Overall Risk: LOW**
 
@@ -276,18 +276,18 @@ Customer → Stripe.js → Stripe Servers → Webhook to JCIL.AI
 
 ### 4.3 Perplexity (Web Search)
 
-| Attribute | Details |
-|-----------|---------|
-| **Service** | AI-powered web search |
-| **Risk Level** | Medium |
-| **Data Processed** | Search queries |
-| **Last Review** | January 2025 |
+| Attribute          | Details               |
+| ------------------ | --------------------- |
+| **Service**        | AI-powered web search |
+| **Risk Level**     | Medium                |
+| **Data Processed** | Search queries        |
+| **Last Review**    | January 2025          |
 
 #### Security Controls
 
-| Control | Implementation |
-|---------|----------------|
-| **Encryption** | TLS in transit |
+| Control            | Implementation                      |
+| ------------------ | ----------------------------------- |
+| **Encryption**     | TLS in transit                      |
 | **Data Retention** | Query logs (standard API retention) |
 
 #### Data Flow
@@ -304,21 +304,21 @@ Customer → Stripe.js → Stripe Servers → Webhook to JCIL.AI
 
 ### 5.1 GitHub (Source Control)
 
-| Attribute | Details |
-|-----------|---------|
-| **Service** | Git repository hosting |
-| **Compliance** | SOC 2 Type II |
-| **Data** | Source code, no customer data |
+| Attribute      | Details                       |
+| -------------- | ----------------------------- |
+| **Service**    | Git repository hosting        |
+| **Compliance** | SOC 2 Type II                 |
+| **Data**       | Source code, no customer data |
 
 **Risk: LOW**
 
 ### 5.2 Dependabot (Vulnerability Scanning)
 
-| Attribute | Details |
-|-----------|---------|
-| **Service** | Dependency vulnerability scanning |
-| **Provider** | GitHub (included) |
-| **Data** | Package manifests only |
+| Attribute    | Details                           |
+| ------------ | --------------------------------- |
+| **Service**  | Dependency vulnerability scanning |
+| **Provider** | GitHub (included)                 |
+| **Data**     | Package manifests only            |
 
 **Risk: VERY LOW**
 
@@ -328,14 +328,14 @@ Customer → Stripe.js → Stripe Servers → Webhook to JCIL.AI
 
 All critical and high-risk vendors must meet:
 
-| Requirement | Minimum Standard |
-|-------------|------------------|
-| Encryption in Transit | TLS 1.2+ |
-| Encryption at Rest | AES-256 or equivalent |
-| Access Control | Role-based, least privilege |
-| Compliance | SOC 2 Type II or equivalent |
-| Incident Response | Documented process |
-| Data Processing | Clear DPA available |
+| Requirement           | Minimum Standard            |
+| --------------------- | --------------------------- |
+| Encryption in Transit | TLS 1.2+                    |
+| Encryption at Rest    | AES-256 or equivalent       |
+| Access Control        | Role-based, least privilege |
+| Compliance            | SOC 2 Type II or equivalent |
+| Incident Response     | Documented process          |
+| Data Processing       | Clear DPA available         |
 
 ---
 
@@ -370,13 +370,13 @@ All critical and high-risk vendors must meet:
 
 ## 8. Data Processing Agreements
 
-| Vendor | DPA Status | Location |
-|--------|------------|----------|
-| Anthropic | ✅ Signed | Enterprise agreement |
-| Supabase | ✅ Signed | Terms of Service |
-| Vercel | ✅ Signed | Terms of Service |
-| Stripe | ✅ Signed | Connected Account Agreement |
-| Upstash | ✅ Signed | Terms of Service |
+| Vendor    | DPA Status | Location                    |
+| --------- | ---------- | --------------------------- |
+| Anthropic | ✅ Signed  | Enterprise agreement        |
+| Supabase  | ✅ Signed  | Terms of Service            |
+| Vercel    | ✅ Signed  | Terms of Service            |
+| Stripe    | ✅ Signed  | Connected Account Agreement |
+| Upstash   | ✅ Signed  | Terms of Service            |
 
 ---
 
@@ -384,21 +384,21 @@ All critical and high-risk vendors must meet:
 
 For GDPR compliance, our subprocessors are:
 
-| Subprocessor | Purpose | Location |
-|--------------|---------|----------|
-| Anthropic | AI processing | USA |
-| Supabase | Database hosting | USA (AWS) |
-| Vercel | Application hosting | Global CDN |
-| Stripe | Payment processing | USA |
-| Upstash | Caching | USA |
-| E2B | Code execution | USA |
+| Subprocessor | Purpose             | Location   |
+| ------------ | ------------------- | ---------- |
+| Anthropic    | AI processing       | USA        |
+| Supabase     | Database hosting    | USA (AWS)  |
+| Vercel       | Application hosting | Global CDN |
+| Stripe       | Payment processing  | USA        |
+| Upstash      | Caching             | USA        |
+| E2B          | Code execution      | USA        |
 
 ---
 
 ## 10. Review History
 
-| Date | Reviewer | Changes |
-|------|----------|---------|
+| Date     | Reviewer      | Changes                      |
+| -------- | ------------- | ---------------------------- |
 | Jan 2025 | Security Team | Initial comprehensive review |
 
 **Next Review Due:** January 2026
@@ -407,14 +407,14 @@ For GDPR compliance, our subprocessors are:
 
 ## Appendix: Vendor Contact Information
 
-| Vendor | Security Contact |
-|--------|------------------|
+| Vendor    | Security Contact       |
+| --------- | ---------------------- |
 | Anthropic | security@anthropic.com |
-| Supabase | security@supabase.io |
-| Vercel | security@vercel.com |
-| Stripe | security@stripe.com |
-| Upstash | security@upstash.com |
+| Supabase  | security@supabase.io   |
+| Vercel    | security@vercel.com    |
+| Stripe    | security@stripe.com    |
+| Upstash   | security@upstash.com   |
 
 ---
 
-*This document is confidential and intended for internal use only.*
+_This document is confidential and intended for internal use only._
