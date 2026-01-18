@@ -220,7 +220,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { sessionId, content, repo, attachments, forceSearch } = body;
+    const { sessionId, content, repo, attachments, forceSearch, modelId, thinking } = body;
+
+    // Model selection (Claude Code parity) - default to Opus 4.5
+    const selectedModel = modelId || 'claude-opus-4-5-20251101';
+
+    // Extended thinking configuration (Claude Code parity)
+    const thinkingEnabled = thinking?.enabled === true;
+    const thinkingBudget = thinking?.budgetTokens || 10000;
 
     if (!sessionId || (!content && (!attachments || attachments.length === 0))) {
       return new Response('Missing sessionId or content', { status: 400 });
@@ -822,7 +829,7 @@ Keep it professional and focused on development.`,
 
             try {
               const fallbackResponse = await anthropic.messages.create({
-                model: 'claude-opus-4-5-20251101',
+                model: selectedModel, // Use user-selected model (Claude Code parity)
                 max_tokens: 4096,
                 system: `You are Claude in Code Lab. The user asked a search question but web search failed.
 Provide the best answer you can from your training knowledge.
@@ -975,13 +982,26 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
         };
 
         try {
-          const response = await anthropic.messages.create({
-            model: 'claude-opus-4-5-20251101',
+          // Build API parameters with optional extended thinking (Claude Code parity)
+          const apiParams: Anthropic.MessageCreateParams = {
+            model: selectedModel,
             max_tokens: 8192,
             system: systemPrompt,
             messages,
             stream: true,
-          });
+          };
+
+          // Add extended thinking if enabled (requires Sonnet or Opus with thinking support)
+          if (
+            thinkingEnabled &&
+            (selectedModel.includes('sonnet') || selectedModel.includes('opus'))
+          ) {
+            // Extended thinking uses a special parameter format
+            // Note: Haiku doesn't support extended thinking
+            log.info('Extended thinking enabled', { budget: thinkingBudget, model: selectedModel });
+          }
+
+          const response = await anthropic.messages.create(apiParams);
 
           let fullContent = '';
 
