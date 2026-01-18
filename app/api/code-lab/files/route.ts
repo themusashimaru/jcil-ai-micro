@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
+import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
 
@@ -42,6 +43,21 @@ export async function GET(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limiting
+  const rateLimitResult = rateLimiters.codeLabFiles(user.id);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+        },
+      }
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -93,6 +109,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Rate limiting
+  const rateLimitResult = rateLimiters.codeLabFiles(user.id);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+        },
+      }
+    );
+  }
+
   try {
     const { sessionId, path, content = '' } = await request.json();
 
@@ -135,6 +166,21 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Rate limiting
+  const rateLimitResult = rateLimiters.codeLabFiles(user.id);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+        },
+      }
+    );
+  }
+
   try {
     const { sessionId, path, content } = await request.json();
 
@@ -175,6 +221,21 @@ export async function DELETE(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limiting
+  const rateLimitResult = rateLimiters.codeLabFiles(user.id);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter),
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+        },
+      }
+    );
   }
 
   const { searchParams } = new URL(request.url);

@@ -39,6 +39,14 @@ export const RATE_LIMITS = {
   PASSWORD_RESET_PER_HOUR: 3,
   /** Image generations per minute */
   IMAGE_GEN_PER_MINUTE: 5,
+  /** Code Lab shell commands per minute */
+  CODE_LAB_SHELL_PER_MINUTE: 60,
+  /** Code Lab file operations per minute */
+  CODE_LAB_FILES_PER_MINUTE: 120,
+  /** Code Lab debug operations per minute */
+  CODE_LAB_DEBUG_PER_MINUTE: 60,
+  /** Code Lab edit operations per minute */
+  CODE_LAB_EDIT_PER_MINUTE: 60,
 } as const;
 
 // ========================================

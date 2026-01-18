@@ -128,6 +128,31 @@ export const rateLimiters = {
       limit: RATE_LIMITS.IMAGE_GEN_PER_MINUTE,
       windowMs: 60_000,
     }),
+
+  // Code Lab rate limiters
+  codeLabShell: (userId: string) =>
+    checkRateLimit(`codelab:shell:${userId}`, {
+      limit: RATE_LIMITS.CODE_LAB_SHELL_PER_MINUTE,
+      windowMs: 60_000,
+    }),
+
+  codeLabFiles: (userId: string) =>
+    checkRateLimit(`codelab:files:${userId}`, {
+      limit: RATE_LIMITS.CODE_LAB_FILES_PER_MINUTE,
+      windowMs: 60_000,
+    }),
+
+  codeLabDebug: (userId: string) =>
+    checkRateLimit(`codelab:debug:${userId}`, {
+      limit: RATE_LIMITS.CODE_LAB_DEBUG_PER_MINUTE,
+      windowMs: 60_000,
+    }),
+
+  codeLabEdit: (userId: string) =>
+    checkRateLimit(`codelab:edit:${userId}`, {
+      limit: RATE_LIMITS.CODE_LAB_EDIT_PER_MINUTE,
+      windowMs: 60_000,
+    }),
 };
 
 /**

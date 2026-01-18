@@ -21,6 +21,7 @@ import {
 import { ContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 
@@ -81,6 +82,23 @@ export async function POST(request: NextRequest) {
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;
+    }
+
+    // Rate limiting (skip for dry-run as it doesn't consume resources)
+    if (!dryRun) {
+      const rateLimitResult = rateLimiters.codeLabEdit(auth.user.id);
+      if (!rateLimitResult.allowed) {
+        return NextResponse.json(
+          { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(rateLimitResult.retryAfter),
+              'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            },
+          }
+        );
+      }
     }
 
     const {

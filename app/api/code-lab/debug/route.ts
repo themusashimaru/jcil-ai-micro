@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { getDebugManager } from '@/lib/debugger/debug-manager';
 import { DebugConfiguration, Source } from '@/lib/debugger/debug-adapter';
+import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 
 const log = logger('DebugAPI');
@@ -27,6 +28,26 @@ export async function POST(request: NextRequest) {
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;
+    }
+
+    // Rate limiting
+    const rateLimitResult = rateLimiters.codeLabDebug(auth.user.id);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          retryAfter: rateLimitResult.retryAfter,
+          remaining: rateLimitResult.remaining,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': String(rateLimitResult.resetAt),
+          },
+        }
+      );
     }
 
     const body = await request.json();
@@ -52,11 +73,7 @@ export async function POST(request: NextRequest) {
 
         log.info('Starting debug session', { userId: auth.user.id, type: config.type });
 
-        const debugSession = await debugManager.startSession(
-          auth.user.id,
-          workspaceId,
-          config
-        );
+        const debugSession = await debugManager.startSession(auth.user.id, workspaceId, config);
 
         return NextResponse.json({
           success: true,
@@ -87,10 +104,7 @@ export async function POST(request: NextRequest) {
         }>;
 
         if (!source || !breakpoints) {
-          return NextResponse.json(
-            { error: 'Missing source or breakpoints' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing source or breakpoints' }, { status: 400 });
         }
 
         const verified = await debugManager.setBreakpoints(sessionId, source, breakpoints);
@@ -285,9 +299,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ sessions });
   } catch (error) {
     log.error('Debug API error', error as Error);
-    return NextResponse.json(
-      { error: 'Failed to get debug sessions' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to get debug sessions' }, { status: 500 });
   }
 }
