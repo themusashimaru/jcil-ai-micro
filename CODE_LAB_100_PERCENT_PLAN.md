@@ -670,19 +670,64 @@ After completing all tasks, run this checklist:
 
 ### If Context Runs Out
 
-**Current Progress:** Check the `CODE_LAB_100_PERCENT_PLAN.md` file
+**Current Progress:** Most critical tasks COMPLETE. Only Phase 7 (Polish) and some P3 tasks remain.
 
 **Git Branch:** `claude/audit-coding-lab-hLMWt`
 
-**Last Commit:** `d4043a7` - WebSocket server implementation
+**Last Commit:** `59cf880` - API rate limiting for Code Lab endpoints (Task 6.1)
 
-**Key Files Modified This Session:**
+**Commits This Session (Session 2 & 3):**
 
-- `/src/lib/realtime/websocket-server.ts` - Full WS implementation
-- `/package.json` - Added ws, uuid, @types/ws, @types/uuid
-- `/src/lib/workspace/surgical-edit.ts` - Fixed unused parameter
+- `da78959` - CDP client for Node.js debugging (Tasks 2.1, 2.2) ✓
+- `5ef2f78` - DAP client for Python debugging (Task 2.3) ✓
+- `0f7de07` - MCP container transport (Task 3.1) ✓
+- `f23ca72` - Shell session manager (Task 4.1) ✓
+- `a53ecb7` - Fix diff generation with LCS algorithm (Task 5.2) ✓
+- `535bc7b` - Comprehensive shell injection prevention (Task 4.2) ✓
+- `0124ae0` - Align Edit API with Files API backend (Task 5.1) ✓
+- `59cf880` - API rate limiting for Code Lab endpoints (Task 6.1) ✓
 
-**Next Task to Start:** Task 1.1 - Implement WriteTool
+**Key Files Created/Modified:**
+
+Session 2:
+
+- `/src/lib/debugger/cdp-client.ts` - NEW: Chrome DevTools Protocol client
+- `/src/lib/debugger/dap-client.ts` - NEW: Debug Adapter Protocol client
+- `/src/lib/debugger/debug-adapter.ts` - UPDATED: Connected to real CDP/DAP clients
+- `/src/lib/mcp/mcp-client.ts` - UPDATED: Added container transport support
+- `/src/lib/shell/session-manager.ts` - NEW: Persistent shell sessions
+- `/src/lib/workspace/surgical-edit.ts` - FIXED: LCS-based diff generation
+
+Session 3:
+
+- `/src/agents/code/tools/BashTool.ts` - HARDENED: Shell injection prevention
+- `/app/api/code-lab/edit/route.ts` - FIXED: Uses ContainerManager, CSRF, session verify
+- `/src/lib/constants.ts` - UPDATED: Added Code Lab rate limits
+- `/src/lib/security/rate-limit.ts` - UPDATED: Added Code Lab rate limiters
+- `/app/api/code-lab/debug/route.ts` - UPDATED: Rate limiting
+- `/app/api/code-lab/files/route.ts` - UPDATED: Rate limiting
+
+**COMPLETED TASKS:**
+
+- ✅ Phase 1: All agent tools (Tasks 1.1, 1.2, 1.3)
+- ✅ Task 2.1: CDP client for Node.js debugging
+- ✅ Task 2.2: NodeDebugAdapter connected to CDP
+- ✅ Task 2.3: DAP client for Python debugging
+- ✅ Task 3.1: MCP workspace/container integration
+- ✅ Task 4.1: Persistent shell session manager
+- ✅ Task 4.2: Command validation bypass vectors fixed
+- ✅ Task 5.1: Edit API aligned with Files API backend
+- ✅ Task 5.2: Diff generation bug fixed with LCS algorithm
+- ✅ Task 6.1: API rate limiting added to Code Lab endpoints
+
+**REMAINING TASKS:**
+
+- Task 5.3: Implement backup retrieval/restore (P3)
+- Task 6.2: Improve glob pattern implementation (P3)
+- Task 7.1: Add comprehensive tests (P2)
+- Task 7.2: Update pair programming messaging (P3)
+
+**Next Task to Start:** Task 7.1 - Add comprehensive tests (or Task 5.3 for backup/restore)
 
 **Critical Context:**
 
@@ -690,12 +735,14 @@ After completing all tasks, run this checklist:
 2. Auth uses Supabase with `requireUser` from `@/lib/auth/user-guard`
 3. ContainerManager at `/src/lib/workspace/container.ts` handles E2B
 4. mcp-client.ts EXISTS and is REAL but NOT CONNECTED to workspace
+5. Debugging infrastructure is 95% stubbed - biggest gap remaining
 
 ### Command to Resume
 
 ```bash
 git checkout claude/audit-coding-lab-hLMWt
 cat CODE_LAB_100_PERCENT_PLAN.md
+# Check commits: git log --oneline -10
 ```
 
 ---
