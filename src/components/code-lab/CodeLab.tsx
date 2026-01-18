@@ -35,6 +35,10 @@ import { CodeLabTokenDisplay } from './CodeLabTokenDisplay';
 import { CodeLabThinkingToggle } from './CodeLabThinkingToggle';
 import { CodeLabMCPSettings, MCPServer, DEFAULT_MCP_SERVERS } from './CodeLabMCPSettings';
 import { CodeLabMemoryEditor } from './CodeLabMemoryEditor';
+// Thinking block visualization ready for extended thinking (Claude Code parity)
+// Note: CodeLabThinkingBlock and parseThinkingBlocks are exported for use in CodeLabThread
+export { CodeLabThinkingBlock, parseThinkingBlocks } from './CodeLabThinkingBlock';
+import { CodeLabStatusBar } from './CodeLabStatusBar';
 import { useToastActions } from '@/components/ui/Toast';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
@@ -1460,6 +1464,39 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
               </button>
             </div>
           </div>
+        )}
+
+        {/* Status Bar - Professional status visibility (Claude Code parity) */}
+        {currentSessionId && (
+          <CodeLabStatusBar
+            model={
+              currentModelId.includes('opus')
+                ? 'opus'
+                : currentModelId.includes('haiku')
+                  ? 'haiku'
+                  : 'sonnet'
+            }
+            tokens={{
+              used: tokenStats.totalInputTokens + tokenStats.totalOutputTokens,
+              limit: 200000,
+              costUSD: tokenStats.totalCost.totalCost,
+            }}
+            connectionStatus="connected"
+            sandboxStatus={currentSession?.repo ? 'active' : 'stopped'}
+            git={
+              currentSession?.repo
+                ? {
+                    branch: currentSession.repo.branch || 'main',
+                    isDirty: false,
+                  }
+                : undefined
+            }
+            mcpServersActive={mcpServers.filter((s) => s.status === 'running').length}
+            onModelClick={() => {
+              /* Model selector handles this */
+            }}
+            onTokensClick={() => setWorkspacePanelOpen(true)}
+          />
         )}
       </main>
 

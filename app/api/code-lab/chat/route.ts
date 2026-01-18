@@ -1048,6 +1048,30 @@ Style Guidelines:
 The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'main'})`;
     }
 
+    // Inject CLAUDE.md memory into context (Claude Code parity)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sessionWithSettings } = await (supabase as any)
+      .from('code_lab_sessions')
+      .select('settings')
+      .eq('id', sessionId)
+      .single();
+
+    const memoryContent = sessionWithSettings?.settings?.memory_content;
+    if (memoryContent && memoryContent.trim()) {
+      systemPrompt += `
+
+---
+# Project Memory (CLAUDE.md)
+
+The user has defined the following project-specific context and instructions:
+
+${memoryContent}
+
+---
+IMPORTANT: Follow the instructions above. They represent the user's preferences for this project.`;
+      log.info('Injected memory context', { length: memoryContent.length });
+    }
+
     // Stream the response with reliability features
     const encoder = new TextEncoder();
 
@@ -1153,11 +1177,37 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
                 outputTokens = event.usage.output_tokens || 0;
               }
 
+              // Handle content block start to detect thinking blocks
+              if (event.type === 'content_block_start') {
+                const block = event.content_block;
+                if (block && block.type === 'thinking') {
+                  // Signal start of thinking block
+                  controller.enqueue(encoder.encode('\n<!--THINKING_START-->'));
+                }
+              }
+
+              // Handle content block stop
+              if (event.type === 'content_block_stop') {
+                // Check if this was a thinking block by looking at accumulated content
+                if (
+                  fullContent.includes('<!--THINKING_START-->') &&
+                  !fullContent.includes('<!--THINKING_END-->')
+                ) {
+                  controller.enqueue(encoder.encode('<!--THINKING_END-->\n'));
+                }
+              }
+
               if (event.type === 'content_block_delta') {
                 const delta = event.delta;
+                // Handle regular text
                 if ('text' in delta) {
                   fullContent += delta.text;
                   controller.enqueue(encoder.encode(delta.text));
+                }
+                // Handle thinking text (extended thinking feature)
+                if ('thinking' in delta && typeof delta.thinking === 'string') {
+                  fullContent += delta.thinking;
+                  controller.enqueue(encoder.encode(delta.thinking));
                 }
               }
             } catch (error) {
