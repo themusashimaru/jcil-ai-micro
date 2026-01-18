@@ -80,6 +80,8 @@
     "react-markdown": "^10.1.0",
     "stripe": "^20.1.2",
     "unpdf": "^1.4.0",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.0",
     "zod": "^3.23.0"
   },
   "pnpm": {
@@ -110,6 +112,8 @@
     "tailwindcss": "^3.4.19",
     "typescript": "^5.4.0",
     "vitest": "^2.1.9",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.12",
     "@testing-library/react": "^16.0.0",
     "@testing-library/jest-dom": "^6.6.0",
     "jsdom": "^25.0.0"

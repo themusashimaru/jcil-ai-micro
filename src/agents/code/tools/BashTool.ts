@@ -124,8 +124,8 @@ export class BashTool extends BaseTool {
 
     try {
       if (!this.sandboxUrl) {
-        // Fallback: simulate command execution for development
-        return this.simulateExecution(input.command, startTime);
+        // No sandbox configured - return honest error (no fake simulations)
+        return this.handleNoSandbox(input.command, startTime);
       }
 
       // Execute in Vercel Sandbox
@@ -253,43 +253,38 @@ export class BashTool extends BaseTool {
   }
 
   /**
-   * Simulate command execution for development/testing
+   * Handle missing sandbox configuration - return honest error
+   * NO MORE FAKE SIMULATED RESPONSES
    */
-  private simulateExecution(command: string, startTime: number): BashOutput {
-    // Provide simulated responses for common commands
-    const simulations: Record<string, { stdout: string; exitCode: number }> = {
-      'npm --version': { stdout: '10.2.0', exitCode: 0 },
-      'node --version': { stdout: 'v20.10.0', exitCode: 0 },
-      'ls': { stdout: 'package.json\ntsconfig.json\nsrc/\nnode_modules/', exitCode: 0 },
-      'pwd': { stdout: '/project', exitCode: 0 },
-    };
-
-    const sim = simulations[command.trim()];
-    if (sim) {
-      return {
-        success: sim.exitCode === 0,
-        result: {
-          stdout: sim.stdout,
-          stderr: '',
-          exitCode: sim.exitCode,
-          duration: Date.now() - startTime,
-          truncated: false,
-        },
-        metadata: { executionTime: Date.now() - startTime },
-      };
-    }
-
-    // Default: return placeholder
+  private handleNoSandbox(command: string, startTime: number): BashOutput {
+    // Return an honest error - no fake responses
     return {
-      success: true,
+      success: false,
+      error: 'Sandbox not configured. Shell execution requires a sandbox environment.',
       result: {
-        stdout: `[Simulated] Command executed: ${command}`,
-        stderr: '',
-        exitCode: 0,
+        stdout: '',
+        stderr: `ERROR: Shell execution is not available.
+
+To enable shell command execution, configure one of the following:
+
+1. VERCEL_SANDBOX_URL - Vercel sandbox for command execution
+2. E2B_API_KEY - E2B sandbox for isolated code execution
+
+Command attempted: ${command}
+
+For development, you can:
+- Set up a local development sandbox
+- Use E2B (https://e2b.dev) for cloud sandboxes
+- Configure Vercel's sandbox environment
+
+See docs/CODE_LAB.md for setup instructions.`,
+        exitCode: 1,
         duration: Date.now() - startTime,
         truncated: false,
       },
-      metadata: { executionTime: Date.now() - startTime },
+      metadata: {
+        executionTime: Date.now() - startTime,
+      },
     };
   }
 
