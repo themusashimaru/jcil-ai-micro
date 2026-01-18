@@ -9,7 +9,6 @@ import { EventEmitter } from 'events';
 import {
   DebugAdapter,
   DebugConfiguration,
-  DebugSession,
   Breakpoint,
   Source,
   StackFrame,

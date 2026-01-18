@@ -13,7 +13,6 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
-import { v4 as uuidv4 } from 'uuid';
 
 const log = logger('MCPClient');
 
@@ -431,7 +430,7 @@ export class MCPClient extends EventEmitter {
     log.info('Disconnecting MCP server', { id: this.config.id });
 
     // Cancel pending requests
-    for (const [id, pending] of this.pendingRequests) {
+    for (const [_id, pending] of this.pendingRequests) {
       clearTimeout(pending.timeout);
       pending.reject(new Error('Client disconnected'));
     }

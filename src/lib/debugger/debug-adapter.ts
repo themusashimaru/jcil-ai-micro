@@ -408,7 +408,7 @@ export class NodeDebugAdapter extends DebugAdapter {
     return [{ id: 1, name: 'Main Thread' }];
   }
 
-  async getStackTrace(threadId: number, _startFrame?: number, _levels?: number): Promise<StackFrame[]> {
+  async getStackTrace(_threadId: number, _startFrame?: number, _levels?: number): Promise<StackFrame[]> {
     // In real implementation, query CDP for stack trace
     return [
       {
@@ -421,14 +421,14 @@ export class NodeDebugAdapter extends DebugAdapter {
     ];
   }
 
-  async getScopes(frameId: number): Promise<Scope[]> {
+  async getScopes(_frameId: number): Promise<Scope[]> {
     return [
       { name: 'Local', variablesReference: this.nextVariablesReference(), expensive: false },
       { name: 'Global', variablesReference: this.nextVariablesReference(), expensive: true },
     ];
   }
 
-  async getVariables(variablesReference: number): Promise<Variable[]> {
+  async getVariables(_variablesReference: number): Promise<Variable[]> {
     // In real implementation, query CDP for variables
     return [
       { name: 'this', value: 'Object', type: 'object', variablesReference: 0 },
