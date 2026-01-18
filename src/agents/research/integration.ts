@@ -227,8 +227,8 @@ function resetTaskState(): void {
 }
 
 /**
- * Format a progress event - Simple, clean, single-line updates
- * No checkboxes (avoids to-do list widget), no duplicates
+ * Format a progress event - MINIMAL output to avoid frontend to-do list widget
+ * Only shows "Researching..." once, then results
  */
 function formatProgressEvent(event: AgentStreamEvent): string {
   const details = event.details as Record<string, unknown> | undefined;
@@ -238,57 +238,23 @@ function formatProgressEvent(event: AgentStreamEvent): string {
     return '';
   }
 
-  // Handle errors
+  // Handle errors - always show
   if (event.type === 'error') {
     return `✗ ${event.message}\n`;
   }
 
-  // Handle completion - just a checkmark
+  // Handle completion - clear line for report
   if (event.type === 'complete') {
-    if (lastShownStep !== 'complete') {
-      lastShownStep = 'complete';
-      return `✓ Research complete\n\n`;
-    }
-    return '';
+    return '\n';
   }
 
-  // Map event to a simple status message
-  let stepMessage = '';
-  const phase = details?.phase as string | undefined;
-
-  if (event.type === 'thinking') {
-    if (phase === 'Intent Analysis' || event.message.includes('Analyzing')) {
-      stepMessage = 'Analyzing request...';
-    } else if (phase === 'Strategy Generation' || event.message.includes('strategy')) {
-      stepMessage = 'Planning search strategy...';
-    } else {
-      return ''; // Skip other thinking events
-    }
-  } else if (event.type === 'searching') {
-    // Only show searching message once (first time with query count)
-    if (lastShownStep.startsWith('Searching')) {
-      return ''; // Already showed a searching message
-    }
-    const queries = details?.queries as string[] | undefined;
-    if (queries && queries.length > 0) {
-      stepMessage = `Searching ${queries.length} sources...`;
-    } else {
-      stepMessage = 'Searching...';
-    }
-  } else if (event.type === 'evaluating') {
-    stepMessage = 'Evaluating findings...';
-  } else if (event.type === 'synthesizing') {
-    stepMessage = 'Creating report...';
-  } else {
-    return ''; // Skip unknown events
+  // Show "Researching..." ONCE at the start, then nothing else
+  if (lastShownStep === '') {
+    lastShownStep = 'started';
+    return 'Researching...\n\n';
   }
 
-  // Only output if this is a new step
-  if (stepMessage && stepMessage !== lastShownStep) {
-    lastShownStep = stepMessage;
-    return `${stepMessage}\n`;
-  }
-
+  // Suppress ALL other progress events to avoid to-do list widget
   return '';
 }
 
