@@ -29,6 +29,7 @@ import { getHooksTools, getHooksManager, HookConfig } from './hooks';
 import { getMemoryTools, getMemoryManager } from './memory';
 import { getBackgroundTaskTools, getBackgroundTaskManager } from './background-tasks';
 import { getDebugTools, executeDebugTool, isDebugTool } from './debug-tools';
+import { getLSPTools, executeLSPTool, isLSPTool } from './lsp-tools';
 import { getSubagentTools, executeSubagentTool, isSubagentTool } from '@/lib/agents/subagent';
 
 // ============================================
@@ -451,6 +452,11 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   // DEBUG TOOLS (CLAUDE CODE PARITY+)
   // ============================================
   ...getDebugTools(),
+
+  // ============================================
+  // LSP TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getLSPTools(),
 
   // ============================================
   // SUBAGENT TOOLS (CLAUDE CODE PARITY)
@@ -1373,6 +1379,11 @@ ${output.isComplete ? `‚úì Task completed (exit code: ${output.exitCode})` : '‚è
           // Check if it's a debug tool call
           if (isDebugTool(name)) {
             return executeDebugTool(name, input, this.config.workspaceId, this.config.userId);
+          }
+
+          // Check if it's an LSP tool call
+          if (isLSPTool(name)) {
+            return executeLSPTool(name, input, this.config.workspaceId, '/workspace');
           }
 
           // Check if it's a subagent tool call

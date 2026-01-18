@@ -252,6 +252,12 @@ export const rateLimiters = {
       limit: RATE_LIMITS.CODE_LAB_EDIT_PER_MINUTE,
       windowMs: 60_000,
     }),
+
+  codeLabLSP: (userId: string) =>
+    checkRateLimit(`codelab:lsp:${userId}`, {
+      limit: RATE_LIMITS.CODE_LAB_LSP_PER_MINUTE,
+      windowMs: 60_000,
+    }),
 };
 
 // ========================================

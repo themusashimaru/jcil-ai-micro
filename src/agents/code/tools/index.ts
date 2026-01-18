@@ -15,6 +15,7 @@ export { WriteTool, writeTool } from './WriteTool';
 export { GlobTool, globTool } from './GlobTool';
 export { SearchTool, searchTool } from './SearchTool';
 export { BashTool, bashTool } from './BashTool';
+export { LSPTool, lspTool } from './LSPTool';
 
 // Orchestrator
 export { ToolOrchestrator, toolOrchestrator } from './ToolOrchestrator';
