@@ -79,6 +79,7 @@ export class ToolOrchestrator {
   initialize(config: OrchestratorConfig): void {
     // Initialize ReadTool
     (readTool as ReadTool).initialize({
+      workspaceId: config.workspaceId,
       githubToken: config.githubToken,
       owner: config.owner,
       repo: config.repo,
