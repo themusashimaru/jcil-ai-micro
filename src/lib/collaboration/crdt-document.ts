@@ -55,7 +55,6 @@ export class CRDTDocument extends EventEmitter {
   private content: string = '';
   private operations: CRDTOperation[] = [];
   private vectorClock: Record<string, number> = {};
-  private pendingOperations: CRDTOperation[] = [];
   private version = 0;
   private cursors: Map<string, CursorPosition> = new Map();
 
