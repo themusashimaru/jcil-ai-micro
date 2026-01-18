@@ -144,6 +144,32 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-warning: #f59e0b;
           --cl-error: #ef4444;
           --cl-info: #3b82f6;
+          --cl-critical: #dc2626;
+
+          /* Extended semantic colors */
+          --cl-purple: #8b5cf6;
+          --cl-cyan: #06b6d4;
+          --cl-pink: #ec4899;
+          --cl-gray: #6b7280;
+          --cl-orange: #f38020;
+          --cl-teal: #00ad9f;
+
+          /* Terminal colors */
+          --cl-terminal-prompt: #3fb950;
+          --cl-terminal-success: #3fb950;
+
+          /* Model colors */
+          --cl-model-opus: #a855f7;
+          --cl-model-sonnet: #3b82f6;
+          --cl-model-haiku: #22c55e;
+
+          /* Agent colors */
+          --cl-agent-workspace: #22c55e;
+          --cl-agent-workspace-bg: #dcfce7;
+          --cl-agent-standard: #1e3a5f;
+          --cl-agent-standard-bg: #e8eef5;
+          --cl-agent-code: #2d4a6f;
+          --cl-agent-code-bg: #eef3f8;
 
           --cl-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
           --cl-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -178,6 +204,32 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-warning: #fbbf24;
           --cl-error: #f87171;
           --cl-info: #60a5fa;
+          --cl-critical: #ef4444;
+
+          /* Extended semantic colors */
+          --cl-purple: #a78bfa;
+          --cl-cyan: #22d3ee;
+          --cl-pink: #f472b6;
+          --cl-gray: #9ca3af;
+          --cl-orange: #fb923c;
+          --cl-teal: #2dd4bf;
+
+          /* Terminal colors */
+          --cl-terminal-prompt: #4ade80;
+          --cl-terminal-success: #4ade80;
+
+          /* Model colors */
+          --cl-model-opus: #c084fc;
+          --cl-model-sonnet: #60a5fa;
+          --cl-model-haiku: #4ade80;
+
+          /* Agent colors */
+          --cl-agent-workspace: #4ade80;
+          --cl-agent-workspace-bg: #14532d;
+          --cl-agent-standard: #5b8dc9;
+          --cl-agent-standard-bg: #152238;
+          --cl-agent-code: #79a3d6;
+          --cl-agent-code-bg: #1a2744;
 
           --cl-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
           --cl-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);

@@ -124,9 +124,9 @@ const StatusItem = React.memo(function StatusItem({
 // ============================================================================
 
 const MODEL_INFO: Record<ModelType, { name: string; color: string; icon: string }> = {
-  opus: { name: 'Opus 4.5', color: '#a855f7', icon: '◆' },
-  sonnet: { name: 'Sonnet 4.5', color: '#3b82f6', icon: '◈' },
-  haiku: { name: 'Haiku 4.5', color: '#22c55e', icon: '◇' },
+  opus: { name: 'Opus 4.5', color: 'var(--cl-model-opus)', icon: '◆' },
+  sonnet: { name: 'Sonnet 4.5', color: 'var(--cl-model-sonnet)', icon: '◈' },
+  haiku: { name: 'Haiku 4.5', color: 'var(--cl-model-haiku)', icon: '◇' },
 };
 
 interface ModelIndicatorProps {

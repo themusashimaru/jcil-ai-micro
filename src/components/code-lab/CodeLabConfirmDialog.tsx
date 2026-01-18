@@ -49,17 +49,20 @@ export function CodeLabConfirmDialog({
   }, [isOpen]);
 
   // Handle keyboard events
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!isOpen) return;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!isOpen) return;
 
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
-    } else if (e.key === 'Enter' && e.target === confirmButtonRef.current) {
-      e.preventDefault();
-      onConfirm();
-    }
-  }, [isOpen, onCancel, onConfirm]);
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+      } else if (e.key === 'Enter' && e.target === confirmButtonRef.current) {
+        e.preventDefault();
+        onConfirm();
+      }
+    },
+    [isOpen, onCancel, onConfirm]
+  );
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -71,21 +74,21 @@ export function CodeLabConfirmDialog({
   const severityConfig = {
     info: {
       icon: '💡',
-      color: '#3b82f6',
-      bgColor: '#eff6ff',
-      borderColor: '#93c5fd',
+      color: 'var(--cl-info)',
+      bgColor: 'color-mix(in srgb, var(--cl-info) 10%, var(--cl-bg-primary))',
+      borderColor: 'color-mix(in srgb, var(--cl-info) 40%, var(--cl-bg-primary))',
     },
     warning: {
       icon: '⚠️',
-      color: '#f59e0b',
-      bgColor: '#fffbeb',
-      borderColor: '#fcd34d',
+      color: 'var(--cl-warning)',
+      bgColor: 'color-mix(in srgb, var(--cl-warning) 10%, var(--cl-bg-primary))',
+      borderColor: 'color-mix(in srgb, var(--cl-warning) 40%, var(--cl-bg-primary))',
     },
     danger: {
       icon: '🚨',
-      color: '#ef4444',
-      bgColor: '#fef2f2',
-      borderColor: '#fca5a5',
+      color: 'var(--cl-error)',
+      bgColor: 'color-mix(in srgb, var(--cl-error) 10%, var(--cl-bg-primary))',
+      borderColor: 'color-mix(in srgb, var(--cl-error) 40%, var(--cl-bg-primary))',
     },
   };
 
@@ -118,7 +121,9 @@ export function CodeLabConfirmDialog({
             <ul>
               {action.details.map((detail, idx) => (
                 <li key={idx}>
-                  <span className="detail-bullet" style={{ color: config.color }}>•</span>
+                  <span className="detail-bullet" style={{ color: config.color }}>
+                    •
+                  </span>
                   {detail}
                 </li>
               ))}
@@ -128,10 +133,7 @@ export function CodeLabConfirmDialog({
 
         {/* Action buttons */}
         <div className="confirm-actions">
-          <button
-            className="cancel-btn"
-            onClick={onCancel}
-          >
+          <button className="cancel-btn" onClick={onCancel}>
             {action.cancelLabel || 'Cancel'}
           </button>
           <button
@@ -164,8 +166,12 @@ export function CodeLabConfirmDialog({
         }
 
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         .confirm-dialog {
@@ -392,10 +398,7 @@ export const CONFIRM_ACTIONS = {
     title: 'Delete File',
     description: 'Are you sure you want to delete this file?',
     severity: 'danger' as ConfirmSeverity,
-    details: [
-      'Remove the file from the workspace',
-      'File contents will be lost',
-    ],
+    details: ['Remove the file from the workspace', 'File contents will be lost'],
     confirmLabel: 'Delete',
   },
   installPackage: {

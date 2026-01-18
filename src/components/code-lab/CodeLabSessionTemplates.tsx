@@ -217,11 +217,11 @@ const SESSION_TEMPLATES: SessionTemplate[] = [
 ];
 
 const CATEGORY_INFO: Record<string, { label: string; color: string }> = {
-  build: { label: 'Build', color: '#22c55e' },
-  debug: { label: 'Debug', color: '#ef4444' },
-  learn: { label: 'Learn', color: '#3b82f6' },
-  refactor: { label: 'Refactor', color: '#f59e0b' },
-  deploy: { label: 'Deploy', color: '#8b5cf6' },
+  build: { label: 'Build', color: 'var(--cl-success)' },
+  debug: { label: 'Debug', color: 'var(--cl-error)' },
+  learn: { label: 'Learn', color: 'var(--cl-info)' },
+  refactor: { label: 'Refactor', color: 'var(--cl-warning)' },
+  deploy: { label: 'Deploy', color: 'var(--cl-purple)' },
 };
 
 interface CodeLabSessionTemplatesProps {

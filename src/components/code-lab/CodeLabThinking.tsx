@@ -53,11 +53,11 @@ interface CodeLabThinkingProps {
 // Step type icons and colors
 const stepTypeConfig: Record<ThinkingStep['type'], { icon: string; color: string; label: string }> =
   {
-    analysis: { icon: '🔍', color: '#3b82f6', label: 'Analysis' },
-    reasoning: { icon: '🧠', color: '#8b5cf6', label: 'Reasoning' },
-    decision: { icon: '⚡', color: '#f59e0b', label: 'Decision' },
-    planning: { icon: '📋', color: '#22c55e', label: 'Planning' },
-    verification: { icon: '✓', color: '#06b6d4', label: 'Verification' },
+    analysis: { icon: '🔍', color: 'var(--cl-info)', label: 'Analysis' },
+    reasoning: { icon: '🧠', color: 'var(--cl-purple)', label: 'Reasoning' },
+    decision: { icon: '⚡', color: 'var(--cl-warning)', label: 'Decision' },
+    planning: { icon: '📋', color: 'var(--cl-success)', label: 'Planning' },
+    verification: { icon: '✓', color: 'var(--cl-cyan)', label: 'Verification' },
   };
 
 export function CodeLabThinking({
