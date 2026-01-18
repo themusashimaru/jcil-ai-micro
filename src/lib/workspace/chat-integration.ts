@@ -28,6 +28,7 @@ import { getMCPConfigTools, getMCPManager } from './mcp';
 import { getHooksTools, getHooksManager, HookConfig } from './hooks';
 import { getMemoryTools, getMemoryManager } from './memory';
 import { getBackgroundTaskTools, getBackgroundTaskManager } from './background-tasks';
+import { getDebugTools, executeDebugTool, isDebugTool } from './debug-tools';
 
 // ============================================
 // TYPES
@@ -457,6 +458,11 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   // BACKGROUND TASK TOOLS
   // ============================================
   ...getBackgroundTaskTools(),
+
+  // ============================================
+  // DEBUG TOOLS (CLAUDE CODE PARITY+)
+  // ============================================
+  ...getDebugTools(),
 ];
 
 // ============================================
@@ -1363,6 +1369,11 @@ ${output.isComplete ? `‚úì Task completed (exit code: ${output.exitCode})` : '‚è
         }
 
         default:
+          // Check if it's a debug tool call
+          if (isDebugTool(name)) {
+            return executeDebugTool(name, input, this.config.workspaceId, this.config.userId);
+          }
+
           // Check if it's an MCP tool call
           if (name.startsWith('mcp__')) {
             const mcpManager = getMCPManager();

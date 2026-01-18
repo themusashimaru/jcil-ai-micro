@@ -28,6 +28,7 @@ import { CodeLabLiveFileTree } from './CodeLabLiveFileTree';
 import { CodeLabDiffViewer } from './CodeLabDiffViewer';
 import { CodeLabVisualToCode } from './CodeLabVisualToCode';
 import { CodeLabDeployFlow } from './CodeLabDeployFlow';
+import { CodeLabDebugPanel } from './CodeLabDebugPanel';
 import { useToastActions } from '@/components/ui/Toast';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
@@ -58,7 +59,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // Workspace panel state
   const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
-    'files' | 'diff' | 'deploy' | 'visual'
+    'files' | 'diff' | 'deploy' | 'visual' | 'debug'
   >('files');
   const [workspaceFiles, setWorkspaceFiles] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -739,6 +740,11 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setActiveWorkspaceTab('visual');
         setWorkspacePanelOpen(true);
       }
+      if (cmdKey && e.key === '5') {
+        e.preventDefault();
+        setActiveWorkspaceTab('debug');
+        setWorkspacePanelOpen(true);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -853,6 +859,12 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                   >
                     Visual
                   </button>
+                  <button
+                    className={activeWorkspaceTab === 'debug' ? 'active' : ''}
+                    onClick={() => setActiveWorkspaceTab('debug')}
+                  >
+                    Debug
+                  </button>
                 </div>
                 <div className="workspace-content">
                   {activeWorkspaceTab === 'files' && (
@@ -897,6 +909,19 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                       onInsertCode={(code) =>
                         sendMessage(`/create file with this code:\n\`\`\`\n${code}\n\`\`\``)
                       }
+                    />
+                  )}
+                  {activeWorkspaceTab === 'debug' && currentSessionId && (
+                    <CodeLabDebugPanel
+                      sessionId={currentSessionId}
+                      token={currentSessionId}
+                      workspaceId={currentSessionId}
+                      onAIAnalysis={(debugState) => {
+                        const debugContext = JSON.stringify(debugState, null, 2);
+                        sendMessage(
+                          `/analyze this debug state and help me understand what's happening:\n\`\`\`json\n${debugContext}\n\`\`\``
+                        );
+                      }}
                     />
                   )}
                 </div>
