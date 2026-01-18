@@ -28,6 +28,7 @@ import { CodeLabLiveFileTree } from './CodeLabLiveFileTree';
 import { CodeLabDiffViewer } from './CodeLabDiffViewer';
 import { CodeLabVisualToCode } from './CodeLabVisualToCode';
 import { CodeLabDeployFlow } from './CodeLabDeployFlow';
+import { useToastActions } from '@/components/ui/Toast';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
 import type { FileDiff } from './CodeLabDiffViewer';
@@ -49,6 +50,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Toast notifications for better UX
+  const toast = useToastActions();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   // Workspace panel state
@@ -75,6 +79,16 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
     loadSessions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Show toast notification when error occurs
+  useEffect(() => {
+    if (error) {
+      toast.error('Error', error);
+      // Auto-clear error state after showing toast
+      const timer = setTimeout(() => setError(null), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [error, toast]);
 
   const loadSessions = async () => {
     try {
@@ -936,13 +950,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         )}
       </main>
 
-      {/* Error Toast */}
-      {error && (
-        <div className="code-lab-error">
-          <span>{error}</span>
-          <button onClick={() => setError(null)}>×</button>
-        </div>
-      )}
+      {/* Error notifications now handled by Toast system */}
 
       {/* Command Palette */}
       <CodeLabCommandPalette
@@ -1091,32 +1099,6 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
         .code-lab-empty-btn:hover {
           background: #2d3348;
-        }
-
-        .code-lab-error {
-          position: fixed;
-          bottom: 1rem;
-          right: 1rem;
-          background: #ef4444;
-          color: white;
-          padding: 0.75rem 1rem;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-size: 0.875rem;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          z-index: 1000;
-        }
-
-        .code-lab-error button {
-          background: none;
-          border: none;
-          color: white;
-          font-size: 1.25rem;
-          cursor: pointer;
-          padding: 0;
-          line-height: 1;
         }
 
         /* Header actions */
