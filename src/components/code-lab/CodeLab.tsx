@@ -30,11 +30,16 @@ import { CodeLabVisualToCode } from './CodeLabVisualToCode';
 import { CodeLabDeployFlow } from './CodeLabDeployFlow';
 import { CodeLabDebugPanel } from './CodeLabDebugPanel';
 import { CodeLabPlanView } from './CodeLabPlanView';
+import { CodeLabModelSelector } from './CodeLabModelSelector';
+import { CodeLabTokenDisplay } from './CodeLabTokenDisplay';
+import { CodeLabThinkingToggle } from './CodeLabThinkingToggle';
 import { useToastActions } from '@/components/ui/Toast';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
 import type { FileDiff } from './CodeLabDiffViewer';
 import type { Plan } from '@/lib/workspace/plan-mode';
+import type { SessionStats } from '@/lib/workspace/token-tracker';
+import type { ExtendedThinkingConfig } from '@/lib/workspace/extended-thinking';
 
 interface CodeLabProps {
   userId?: string;
@@ -67,6 +72,29 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [diffFiles, setDiffFiles] = useState<FileDiff[]>([]);
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
+
+  // Model selection state (Claude Code parity)
+  const [currentModelId, setCurrentModelId] = useState('claude-sonnet-4-20250514');
+
+  // Extended thinking state (Claude Code parity)
+  const [thinkingConfig, setThinkingConfig] = useState<ExtendedThinkingConfig>({
+    enabled: false,
+    budgetTokens: 10000,
+    showThinking: true,
+    streamThinking: true,
+  });
+
+  // Token tracking state (Claude Code parity)
+  const [tokenStats, setTokenStats] = useState<SessionStats>({
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalCacheReadTokens: 0,
+    totalCacheWriteTokens: 0,
+    totalCost: { inputCost: 0, outputCost: 0, cacheCost: 0, totalCost: 0, currency: 'USD' },
+    messageCount: 0,
+    startedAt: Date.now(),
+    contextUsagePercent: 0,
+  });
 
   // AbortController for canceling streams
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -447,6 +475,45 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   };
 
   // ========================================
+  // MODEL & THINKING HANDLERS (Claude Code parity)
+  // ========================================
+
+  const handleModelChange = useCallback(
+    (modelId: string) => {
+      setCurrentModelId(modelId);
+      log.info('Model changed', { modelId });
+      toast.success(
+        'Model Changed',
+        `Switched to ${modelId.includes('opus') ? 'Opus' : modelId.includes('haiku') ? 'Haiku' : 'Sonnet'}`
+      );
+    },
+    [toast]
+  );
+
+  const handleThinkingToggle = useCallback(() => {
+    setThinkingConfig((prev) => {
+      const newEnabled = !prev.enabled;
+      if (newEnabled) {
+        toast.success(
+          'Thinking Enabled',
+          `Extended thinking with ${prev.budgetTokens / 1000}K token budget`
+        );
+      } else {
+        toast.success('Thinking Disabled', 'Normal response mode');
+      }
+      return { ...prev, enabled: newEnabled };
+    });
+  }, [toast]);
+
+  const handleThinkingBudgetChange = useCallback(
+    (budget: number) => {
+      setThinkingConfig((prev) => ({ ...prev, budgetTokens: budget }));
+      toast.success('Budget Updated', `Thinking budget set to ${budget / 1000}K tokens`);
+    },
+    [toast]
+  );
+
+  // ========================================
   // MESSAGING
   // ========================================
 
@@ -523,6 +590,14 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             repo: currentSession?.repo,
             attachments: attachmentData,
             forceSearch,
+            // Model & thinking configuration (Claude Code parity)
+            modelId: currentModelId,
+            thinking: thinkingConfig.enabled
+              ? {
+                  enabled: true,
+                  budgetTokens: thinkingConfig.budgetTokens,
+                }
+              : undefined,
           }),
           signal: abortControllerRef.current.signal,
         });
@@ -571,6 +646,34 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                 : s
             )
           );
+
+          // Update token stats (estimate based on content length - ~4 chars per token)
+          const estimatedInputTokens = Math.ceil(content.length / 4);
+          const estimatedOutputTokens = Math.ceil(fullContent.length / 4);
+          setTokenStats((prev) => {
+            const newInputTotal = prev.totalInputTokens + estimatedInputTokens;
+            const newOutputTotal = prev.totalOutputTokens + estimatedOutputTokens;
+            // Estimate cost (Sonnet pricing by default: $0.003/1K input, $0.015/1K output)
+            const inputCost = (newInputTotal / 1000) * 0.003;
+            const outputCost = (newOutputTotal / 1000) * 0.015;
+            const contextUsagePercent = Math.min(
+              100,
+              ((newInputTotal + newOutputTotal) / 200000) * 100
+            );
+            return {
+              ...prev,
+              totalInputTokens: newInputTotal,
+              totalOutputTokens: newOutputTotal,
+              totalCost: {
+                ...prev.totalCost,
+                inputCost,
+                outputCost,
+                totalCost: inputCost + outputCost,
+              },
+              messageCount: prev.messageCount + 2,
+              contextUsagePercent,
+            };
+          });
 
           // Generate title if this is the first message exchange (title is still default)
           if (isFirstMessage) {
@@ -639,7 +742,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setIsStreaming(false);
       }
     },
-    [currentSessionId, currentSession?.repo, isStreaming, sessions]
+    [currentSessionId, currentSession?.repo, isStreaming, sessions, currentModelId, thinkingConfig]
   );
 
   const cancelStream = useCallback(() => {
@@ -818,6 +921,25 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           </button>
           <span className="mobile-title">{currentSession?.title || 'Code Lab'}</span>
           <div className="header-actions">
+            {/* Model Selector (Claude Code parity) */}
+            <CodeLabModelSelector
+              currentModel={currentModelId}
+              onModelChange={handleModelChange}
+              disabled={isStreaming}
+            />
+
+            {/* Extended Thinking Toggle (Claude Code parity) */}
+            <CodeLabThinkingToggle
+              config={thinkingConfig}
+              onToggle={handleThinkingToggle}
+              onBudgetChange={handleThinkingBudgetChange}
+              disabled={isStreaming}
+            />
+
+            {/* Token Usage Display (Claude Code parity) */}
+            <CodeLabTokenDisplay stats={tokenStats} compact />
+
+            {/* Workspace Panel Toggle */}
             <button
               className={`header-btn ${workspacePanelOpen ? 'active' : ''}`}
               onClick={() => setWorkspacePanelOpen(!workspacePanelOpen)}
