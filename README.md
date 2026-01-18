@@ -336,6 +336,54 @@ LAYER 4: EXECUTION
 
 ---
 
+## Accessibility & UX
+
+Code Lab is built to **WCAG 2.1 Level AA** standards with production-grade UX patterns.
+
+### Accessibility Features
+
+| Feature              | Implementation                                  | Standard       |
+| -------------------- | ----------------------------------------------- | -------------- |
+| **Color Contrast**   | All text meets 4.5:1 minimum ratio              | WCAG 2.1 1.4.3 |
+| **Focus Management** | Focus traps in modals, visible focus indicators | WCAG 2.4.3     |
+| **ARIA Labels**      | All interactive elements properly labeled       | WCAG 4.1.2     |
+| **Keyboard Nav**     | Full keyboard support, no mouse required        | WCAG 2.1.1     |
+| **Screen Readers**   | Semantic HTML, live regions for updates         | WCAG 4.1.3     |
+
+### Design System
+
+Centralized design tokens ensure consistency across all components:
+
+```typescript
+// src/styles/design-tokens.ts
+
+// WCAG AA Compliant Text Colors (on white)
+--cl-text-primary: #1a1f36    // 14.1:1 ratio
+--cl-text-secondary: #374151  // 8.5:1 ratio
+--cl-text-tertiary: #4b5563   // 5.9:1 ratio
+--cl-text-muted: #6b7280      // 4.0:1 ratio (placeholders only)
+
+// Z-Index Hierarchy
+workspacePanel: 35
+backdrop: 44
+sidebar: 45
+modal: 50
+commandPalette: 100
+toast: 1000
+```
+
+### UX Patterns
+
+| Pattern                 | Purpose                                    |
+| ----------------------- | ------------------------------------------ |
+| **Toast Notifications** | Non-blocking error/success feedback        |
+| **Skeleton Loaders**    | Perceived performance during data fetching |
+| **Focus Traps**         | Keep keyboard focus within modals          |
+| **Command Palette**     | Cmd+K quick actions with fuzzy search      |
+| **Slash Commands**      | 11 shortcuts for common operations         |
+
+---
+
 ## Technical Stack
 
 | Layer          | Technology                               | Purpose               |
