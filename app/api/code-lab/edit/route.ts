@@ -18,6 +18,7 @@ import {
   formatDiffForDisplay,
   generateUnifiedDiff,
 } from '@/lib/workspace/surgical-edit';
+import { getBackup, listBackups, restoreFromBackup } from '@/lib/workspace/backup-service';
 import { ContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
 import { validateCSRF } from '@/lib/security/csrf';
@@ -150,6 +151,9 @@ export async function POST(request: NextRequest) {
         edits,
         dryRun,
         createBackup: true,
+        workspaceId: effectiveWorkspaceId,
+        userId: auth.user.id,
+        editDescription: `API edit: ${edits.length} change(s) to ${filePath}`,
       },
       (path) => readFileFromWorkspace(effectiveWorkspaceId, path),
       (path, content) => writeFileToWorkspace(effectiveWorkspaceId, path, content)
@@ -194,12 +198,58 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/code-lab/edit
  *
- * Get information about the edit API
+ * Get information about the edit API, or list/get backups
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const action = searchParams.get('action');
+  const sessionId = searchParams.get('sessionId');
+  const backupId = searchParams.get('backupId');
+  const filePath = searchParams.get('filePath');
+
+  // List backups for a session/file
+  if (action === 'listBackups' && sessionId) {
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
+    const supabase = await createClient();
+    const hasAccess = await verifySessionOwnership(supabase, sessionId, auth.user.id);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+    }
+
+    const backups = await listBackups(sessionId, filePath || undefined, 20);
+    return NextResponse.json({ success: true, backups });
+  }
+
+  // Get a specific backup
+  if (action === 'getBackup' && backupId) {
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
+    const backup = await getBackup(backupId);
+    if (!backup) {
+      return NextResponse.json({ error: 'Backup not found' }, { status: 404 });
+    }
+
+    // Verify user has access to this backup's workspace
+    const supabase = await createClient();
+    const hasAccess = await verifySessionOwnership(supabase, backup.workspaceId, auth.user.id);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    return NextResponse.json({ success: true, backup });
+  }
+
+  // Default: Return API info
   return NextResponse.json({
     status: 'active',
-    version: '1.0.0',
+    version: '1.1.0',
     capabilities: {
       lineBasedEditing: true,
       multiEdit: true,
@@ -227,4 +277,90 @@ export async function GET() {
         'Uses same E2B container backend as /api/code-lab/files. CSRF token required for non-dry-run requests.',
     },
   });
+}
+
+/**
+ * PUT /api/code-lab/edit
+ *
+ * Restore a file from backup
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    // CSRF Protection
+    const csrfCheck = validateCSRF(request);
+    if (!csrfCheck.valid) return csrfCheck.response!;
+
+    // Auth check
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
+    // Rate limiting
+    const rateLimitResult = rateLimiters.codeLabEdit(auth.user.id);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+          },
+        }
+      );
+    }
+
+    const body = await request.json();
+    const { backupId } = body as { backupId: string };
+
+    if (!backupId) {
+      return NextResponse.json({ error: 'Missing backupId' }, { status: 400 });
+    }
+
+    // Get the backup to verify access
+    const backup = await getBackup(backupId);
+    if (!backup) {
+      return NextResponse.json({ error: 'Backup not found' }, { status: 404 });
+    }
+
+    // Verify user has access to this backup's workspace
+    const supabase = await createClient();
+    const hasAccess = await verifySessionOwnership(supabase, backup.workspaceId, auth.user.id);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    log.info('Restoring from backup', {
+      userId: auth.user.id,
+      backupId,
+      filePath: backup.filePath,
+      workspaceId: backup.workspaceId,
+    });
+
+    // Perform the restore
+    const result = await restoreFromBackup(backupId, async (workspaceId, filePath, content) => {
+      await writeFileToWorkspace(workspaceId, filePath, content);
+    });
+
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `File ${backup.filePath} restored from backup`,
+      backup: {
+        id: backup.id,
+        filePath: backup.filePath,
+        createdAt: backup.createdAt,
+      },
+    });
+  } catch (error) {
+    log.error('Restore API error', error as Error);
+    return NextResponse.json(
+      { error: 'Internal server error', details: (error as Error).message },
+      { status: 500 }
+    );
+  }
 }

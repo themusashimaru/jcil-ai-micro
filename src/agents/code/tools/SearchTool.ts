@@ -13,12 +13,13 @@
  */
 
 import { BaseTool, ToolInput, ToolOutput, ToolDefinition } from './BaseTool';
+import { minimatch } from 'minimatch';
 
 interface SearchInput extends ToolInput {
   query: string;
   type: 'content' | 'filename' | 'symbol';
-  path?: string;  // Limit to specific directory
-  filePattern?: string;  // e.g., "*.ts", "*.py"
+  path?: string; // Limit to specific directory
+  filePattern?: string; // e.g., "*.ts", "*.py"
   maxResults?: number;
   caseSensitive?: boolean;
 }
@@ -54,11 +55,7 @@ export class SearchTool extends BaseTool {
   /**
    * Initialize with GitHub context
    */
-  initialize(config: {
-    githubToken?: string;
-    owner?: string;
-    repo?: string;
-  }): void {
+  initialize(config: { githubToken?: string; owner?: string; repo?: string }): void {
     this.githubToken = config.githubToken;
     this.owner = config.owner;
     this.repo = config.repo;
@@ -123,13 +120,27 @@ export class SearchTool extends BaseTool {
 
       switch (input.type) {
         case 'content':
-          ({ matches, totalCount } = await this.searchContent(input.query, input.path, input.filePattern, maxResults));
+          ({ matches, totalCount } = await this.searchContent(
+            input.query,
+            input.path,
+            input.filePattern,
+            maxResults
+          ));
           break;
         case 'filename':
-          ({ matches, totalCount } = await this.searchFilenames(input.query, input.path, maxResults));
+          ({ matches, totalCount } = await this.searchFilenames(
+            input.query,
+            input.path,
+            maxResults
+          ));
           break;
         case 'symbol':
-          ({ matches, totalCount } = await this.searchSymbols(input.query, input.path, input.filePattern, maxResults));
+          ({ matches, totalCount } = await this.searchSymbols(
+            input.query,
+            input.path,
+            input.filePattern,
+            maxResults
+          ));
           break;
         default:
           return { success: false, error: `Unknown search type: ${input.type}` };
@@ -201,25 +212,28 @@ export class SearchTool extends BaseTool {
 
     const data = await response.json();
 
-    const matches: SearchMatch[] = data.items?.map((item: {
-      path: string;
-      text_matches?: Array<{
-        fragment: string;
-        matches: Array<{ indices: number[] }>;
-      }>;
-    }) => {
-      const textMatch = item.text_matches?.[0];
-      return {
-        path: item.path,
-        line: 1, // GitHub doesn't give exact line numbers
-        column: textMatch?.matches?.[0]?.indices?.[0] || 0,
-        content: textMatch?.fragment || '',
-        context: {
-          before: '',
-          after: '',
-        },
-      };
-    }) || [];
+    const matches: SearchMatch[] =
+      data.items?.map(
+        (item: {
+          path: string;
+          text_matches?: Array<{
+            fragment: string;
+            matches: Array<{ indices: number[] }>;
+          }>;
+        }) => {
+          const textMatch = item.text_matches?.[0];
+          return {
+            path: item.path,
+            line: 1, // GitHub doesn't give exact line numbers
+            column: textMatch?.matches?.[0]?.indices?.[0] || 0,
+            content: textMatch?.fragment || '',
+            context: {
+              before: '',
+              after: '',
+            },
+          };
+        }
+      ) || [];
 
     return {
       matches,
@@ -254,23 +268,24 @@ export class SearchTool extends BaseTool {
 
     // Filter files matching the query
     const queryLower = query.toLowerCase();
-    const queryRegex = this.globToRegex(query);
 
-    const matchingFiles = data.tree
-      ?.filter((item: { type: string; path: string }) => {
-        if (item.type !== 'blob') return false;
+    const matchingFiles =
+      data.tree
+        ?.filter((item: { type: string; path: string }) => {
+          if (item.type !== 'blob') return false;
 
-        // Apply path filter
-        if (path && !item.path.startsWith(path)) return false;
+          // Apply path filter
+          if (path && !item.path.startsWith(path)) return false;
 
-        // Check filename match
-        const filename = item.path.split('/').pop() || '';
-        return (
-          filename.toLowerCase().includes(queryLower) ||
-          queryRegex.test(filename)
-        );
-      })
-      .slice(0, maxResults) || [];
+          // Check filename match using proper glob matching
+          const filename = item.path.split('/').pop() || '';
+          return (
+            filename.toLowerCase().includes(queryLower) ||
+            this.matchGlob(filename, query) ||
+            this.matchGlob(item.path, query) // Also match full path for ** patterns
+          );
+        })
+        .slice(0, maxResults) || [];
 
     const matches: SearchMatch[] = matchingFiles.map((item: { path: string }) => ({
       path: item.path,
@@ -303,15 +318,16 @@ export class SearchTool extends BaseTool {
       `class ${query}`,
       `interface ${query}`,
       `type ${query}`,
-      `def ${query}`,  // Python
-      `fn ${query}`,   // Rust
+      `def ${query}`, // Python
+      `fn ${query}`, // Rust
       `func ${query}`, // Go
     ];
 
     // Search for each pattern and combine results
     const allMatches: SearchMatch[] = [];
 
-    for (const pattern of symbolPatterns.slice(0, 3)) {  // Limit API calls
+    for (const pattern of symbolPatterns.slice(0, 3)) {
+      // Limit API calls
       try {
         const { matches } = await this.searchContent(pattern, path, filePattern, 5);
         allMatches.push(...matches);
@@ -322,11 +338,13 @@ export class SearchTool extends BaseTool {
 
     // Deduplicate by path
     const seen = new Set<string>();
-    const uniqueMatches = allMatches.filter(m => {
-      if (seen.has(m.path)) return false;
-      seen.add(m.path);
-      return true;
-    }).slice(0, maxResults);
+    const uniqueMatches = allMatches
+      .filter((m) => {
+        if (seen.has(m.path)) return false;
+        seen.add(m.path);
+        return true;
+      })
+      .slice(0, maxResults);
 
     return {
       matches: uniqueMatches,
@@ -335,14 +353,19 @@ export class SearchTool extends BaseTool {
   }
 
   /**
-   * Convert glob pattern to regex
+   * Match a path against a glob pattern using minimatch
+   * Supports full glob syntax including:
+   * - ** for recursive matching
+   * - ! for negation
+   * - [abc] character classes
+   * - {a,b} brace expansion
    */
-  private globToRegex(glob: string): RegExp {
-    const escaped = glob
-      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '.');
-    return new RegExp(`^${escaped}$`, 'i');
+  private matchGlob(filename: string, pattern: string): boolean {
+    return minimatch(filename, pattern, {
+      nocase: true, // Case insensitive
+      dot: true, // Match dotfiles
+      matchBase: true, // Match basename for simple patterns
+    });
   }
 
   /**
@@ -369,13 +392,15 @@ export class SearchTool extends BaseTool {
 
     const data = await response.json();
 
-    return data.tree
-      ?.filter((item: { type: string; path: string }) => {
-        if (item.type !== 'blob') return false;
-        if (path && !item.path.startsWith(path)) return false;
-        return true;
-      })
-      .map((item: { path: string }) => item.path) || [];
+    return (
+      data.tree
+        ?.filter((item: { type: string; path: string }) => {
+          if (item.type !== 'blob') return false;
+          if (path && !item.path.startsWith(path)) return false;
+          return true;
+        })
+        .map((item: { path: string }) => item.path) || []
+    );
   }
 }
 

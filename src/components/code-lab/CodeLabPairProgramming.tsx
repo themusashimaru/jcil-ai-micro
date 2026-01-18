@@ -1,24 +1,22 @@
 'use client';
 
 /**
- * CODE LAB PAIR PROGRAMMING
+ * CODE LAB AI CODE ASSISTANT
  *
- * Revolutionary AI pair programming mode that goes BEYOND Claude Code.
- * Claude watches your typing in real-time and proactively assists.
+ * Smart AI-powered code assistance that analyzes your code and provides
+ * helpful suggestions as you work.
  *
  * Features:
- * - Real-time code analysis as you type
- * - Proactive suggestions (not just on-demand)
- * - Ghost text completions (like Copilot but better)
+ * - Debounced code analysis (500ms after typing stops)
+ * - Proactive suggestions for improvements
+ * - Ghost text completions
  * - Inline annotations and hints
- * - Voice-activated commands
- * - Code quality monitoring
- * - Bug detection before you finish typing
- * - Context-aware documentation popups
- * - Learning mode (adapts to your style)
- * - Pair session recording for review
+ * - Bug detection and prevention
+ * - Code quality suggestions
+ * - Session statistics tracking
  *
- * This is what makes Code Lab unique - true AI pair programming.
+ * Note: Analysis is debounced to avoid overwhelming the API and to provide
+ * more accurate suggestions based on complete code changes.
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -208,11 +206,16 @@ const ModeSelector = React.memo(function ModeSelector({ mode, onModeChange }: Mo
     {
       value: 'active',
       label: 'Active',
-      description: 'Claude proactively suggests as you type',
+      description: 'AI analyzes code after you stop typing (500ms delay)',
       icon: '⚡',
     },
-    { value: 'passive', label: 'Passive', description: 'Claude waits for you to ask', icon: '💤' },
-    { value: 'off', label: 'Off', description: 'Pair programming disabled', icon: '⏸️' },
+    {
+      value: 'passive',
+      label: 'Passive',
+      description: 'AI provides suggestions only when you ask',
+      icon: '💤',
+    },
+    { value: 'off', label: 'Off', description: 'AI code assistance disabled', icon: '⏸️' },
   ];
 
   return (
@@ -300,7 +303,7 @@ const AnalyzingIndicator = React.memo(function AnalyzingIndicator({
         <span />
         <span />
       </div>
-      <span className="analyzing-text">Claude is analyzing...</span>
+      <span className="analyzing-text">Analyzing your code...</span>
     </div>
   );
 });
@@ -1058,10 +1061,10 @@ export function CodeLabPairProgramming({
       {/* Header */}
       <div className="pair-header">
         <div className="pair-title">
-          <span className="pair-title-icon">🤝</span>
-          <span className="pair-title-text">Pair Programming</span>
+          <span className="pair-title-icon">🤖</span>
+          <span className="pair-title-text">AI Code Assistant</span>
           <span className={`pair-title-badge ${mode === 'active' ? 'active' : ''}`}>
-            {mode === 'active' ? 'Active' : mode === 'passive' ? 'Passive' : 'Off'}
+            {mode === 'active' ? 'Active' : mode === 'passive' ? 'On Demand' : 'Off'}
           </span>
         </div>
         <ModeSelector mode={mode} onModeChange={onModeChange} />
@@ -1107,10 +1110,10 @@ export function CodeLabPairProgramming({
             <span className="suggestions-empty-icon">✨</span>
             <span className="suggestions-empty-text">
               {mode === 'active'
-                ? 'Start coding and Claude will suggest improvements'
+                ? 'Start coding - AI will analyze your code after a brief pause'
                 : mode === 'passive'
-                  ? 'Select code and ask Claude for suggestions'
-                  : 'Enable pair programming to get started'}
+                  ? 'Select code and ask for suggestions'
+                  : 'Enable AI assistance to get started'}
             </span>
           </div>
         ) : (
@@ -1127,7 +1130,7 @@ export function CodeLabPairProgramming({
 }
 
 // ============================================================================
-// HOOK FOR PAIR PROGRAMMING STATE - CONNECTED TO REAL BACKEND
+// HOOK FOR AI CODE ASSISTANT STATE - CONNECTED TO REAL BACKEND
 // ============================================================================
 
 // Types for API communication
@@ -1191,75 +1194,125 @@ export function usePairProgramming() {
   /**
    * Call the pair programming API
    */
-  const callAPI = useCallback(async (
-    action: 'edit' | 'open' | 'complete' | 'analyze',
-    context?: PairProgrammingAPIContext,
-    edit?: PairProgrammingAPIEdit
-  ) => {
-    try {
-      const response = await fetch('/api/code-lab/pair-programming', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, context, edit }),
-      });
+  const callAPI = useCallback(
+    async (
+      action: 'edit' | 'open' | 'complete' | 'analyze',
+      context?: PairProgrammingAPIContext,
+      edit?: PairProgrammingAPIEdit
+    ) => {
+      try {
+        const response = await fetch('/api/code-lab/pair-programming', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, context, edit }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'API request failed');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'API request failed');
+        }
+
+        return await response.json();
+      } catch (err) {
+        setError((err as Error).message);
+        console.error('[PairProgramming] API error:', err);
+        return null;
       }
-
-      return await response.json();
-    } catch (err) {
-      setError((err as Error).message);
-      console.error('[PairProgramming] API error:', err);
-      return null;
-    }
-  }, []);
+    },
+    []
+  );
 
   /**
    * Process a code edit and get real AI suggestions
    */
-  const onCodeEdit = useCallback(async (
-    file: string,
-    content: string,
-    oldContent: string,
-    cursorLine: number,
-    cursorColumn: number,
-    language: string = 'typescript'
-  ) => {
-    if (mode !== 'active') return;
+  const onCodeEdit = useCallback(
+    async (
+      file: string,
+      content: string,
+      oldContent: string,
+      cursorLine: number,
+      cursorColumn: number,
+      language: string = 'typescript'
+    ) => {
+      if (mode !== 'active') return;
 
-    // Clear existing debounce
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
+      // Clear existing debounce
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
 
-    // Debounce to avoid overwhelming the API
-    debounceRef.current = setTimeout(async () => {
+      // Debounce analysis for 500ms to provide more accurate suggestions
+      // based on complete code changes rather than each keystroke
+      debounceRef.current = setTimeout(async () => {
+        setIsAnalyzing(true);
+        setError(null);
+
+        const edit: PairProgrammingAPIEdit = {
+          timestamp: Date.now(),
+          file,
+          startLine: cursorLine,
+          endLine: cursorLine,
+          oldContent: oldContent.split('\n')[cursorLine] || '',
+          newContent: content.split('\n')[cursorLine] || '',
+          cursorPosition: { line: cursorLine, column: cursorColumn },
+        };
+
+        const context: PairProgrammingAPIContext = {
+          currentFile: file,
+          fileContent: content,
+          recentEdits: [edit],
+          cursorLine,
+          projectContext: {
+            language,
+          },
+        };
+
+        const result = await callAPI('edit', context, edit);
+
+        if (result?.suggestions && Array.isArray(result.suggestions)) {
+          const newSuggestions: Suggestion[] = result.suggestions.map(
+            (s: Suggestion, i: number) => ({
+              ...s,
+              id: `suggestion-${Date.now()}-${i}`,
+              timestamp: new Date(),
+            })
+          );
+
+          setSuggestions((prev) => [...prev, ...newSuggestions]);
+          setSession((prev) => ({
+            ...prev,
+            suggestionsShown: prev.suggestionsShown + newSuggestions.length,
+            bugsDetected: prev.bugsDetected + newSuggestions.filter((s) => s.type === 'bug').length,
+          }));
+        }
+
+        setIsAnalyzing(false);
+      }, 500); // 500ms debounce
+    },
+    [mode, callAPI]
+  );
+
+  /**
+   * Get suggestions when opening a file
+   */
+  const onFileOpen = useCallback(
+    async (file: string, content: string, language: string = 'typescript') => {
+      if (mode === 'off') return;
+
       setIsAnalyzing(true);
       setError(null);
-
-      const edit: PairProgrammingAPIEdit = {
-        timestamp: Date.now(),
-        file,
-        startLine: cursorLine,
-        endLine: cursorLine,
-        oldContent: oldContent.split('\n')[cursorLine] || '',
-        newContent: content.split('\n')[cursorLine] || '',
-        cursorPosition: { line: cursorLine, column: cursorColumn },
-      };
 
       const context: PairProgrammingAPIContext = {
         currentFile: file,
         fileContent: content,
-        recentEdits: [edit],
-        cursorLine,
+        recentEdits: [],
+        cursorLine: 0,
         projectContext: {
           language,
         },
       };
 
-      const result = await callAPI('edit', context, edit);
+      const result = await callAPI('open', context);
 
       if (result?.suggestions && Array.isArray(result.suggestions)) {
         const newSuggestions: Suggestion[] = result.suggestions.map((s: Suggestion, i: number) => ({
@@ -1272,123 +1325,83 @@ export function usePairProgramming() {
         setSession((prev) => ({
           ...prev,
           suggestionsShown: prev.suggestionsShown + newSuggestions.length,
-          bugsDetected: prev.bugsDetected + newSuggestions.filter((s) => s.type === 'bug').length,
         }));
       }
 
       setIsAnalyzing(false);
-    }, 500); // 500ms debounce
-  }, [mode, callAPI]);
-
-  /**
-   * Get suggestions when opening a file
-   */
-  const onFileOpen = useCallback(async (
-    file: string,
-    content: string,
-    language: string = 'typescript'
-  ) => {
-    if (mode === 'off') return;
-
-    setIsAnalyzing(true);
-    setError(null);
-
-    const context: PairProgrammingAPIContext = {
-      currentFile: file,
-      fileContent: content,
-      recentEdits: [],
-      cursorLine: 0,
-      projectContext: {
-        language,
-      },
-    };
-
-    const result = await callAPI('open', context);
-
-    if (result?.suggestions && Array.isArray(result.suggestions)) {
-      const newSuggestions: Suggestion[] = result.suggestions.map((s: Suggestion, i: number) => ({
-        ...s,
-        id: `suggestion-${Date.now()}-${i}`,
-        timestamp: new Date(),
-      }));
-
-      setSuggestions((prev) => [...prev, ...newSuggestions]);
-      setSession((prev) => ({
-        ...prev,
-        suggestionsShown: prev.suggestionsShown + newSuggestions.length,
-      }));
-    }
-
-    setIsAnalyzing(false);
-  }, [mode, callAPI]);
+    },
+    [mode, callAPI]
+  );
 
   /**
    * Get inline completion (ghost text)
    */
-  const getCompletion = useCallback(async (
-    file: string,
-    content: string,
-    cursorLine: number,
-    _cursorColumn: number,
-    language: string = 'typescript'
-  ): Promise<string | null> => {
-    if (mode !== 'active') return null;
+  const getCompletion = useCallback(
+    async (
+      file: string,
+      content: string,
+      cursorLine: number,
+      _cursorColumn: number,
+      language: string = 'typescript'
+    ): Promise<string | null> => {
+      if (mode !== 'active') return null;
 
-    const context: PairProgrammingAPIContext = {
-      currentFile: file,
-      fileContent: content,
-      recentEdits: [],
-      cursorLine,
-      projectContext: {
-        language,
-      },
-    };
+      const context: PairProgrammingAPIContext = {
+        currentFile: file,
+        fileContent: content,
+        recentEdits: [],
+        cursorLine,
+        projectContext: {
+          language,
+        },
+      };
 
-    const result = await callAPI('complete', context);
-    const completion = result?.completion || null;
-    setGhostText(completion);
-    return completion;
-  }, [mode, callAPI]);
+      const result = await callAPI('complete', context);
+      const completion = result?.completion || null;
+      setGhostText(completion);
+      return completion;
+    },
+    [mode, callAPI]
+  );
 
   /**
    * Run proactive analysis on current code
    */
-  const analyzeCode = useCallback(async (
-    file: string,
-    content: string,
-    language: string = 'typescript'
-  ) => {
-    setIsAnalyzing(true);
-    setError(null);
+  const analyzeCode = useCallback(
+    async (file: string, content: string, language: string = 'typescript') => {
+      setIsAnalyzing(true);
+      setError(null);
 
-    const context: PairProgrammingAPIContext = {
-      currentFile: file,
-      fileContent: content,
-      recentEdits: [],
-      cursorLine: 0,
-      projectContext: {
-        language,
-      },
-    };
+      const context: PairProgrammingAPIContext = {
+        currentFile: file,
+        fileContent: content,
+        recentEdits: [],
+        cursorLine: 0,
+        projectContext: {
+          language,
+        },
+      };
 
-    const result = await callAPI('analyze', context);
+      const result = await callAPI('analyze', context);
 
-    if (result?.suggestions && Array.isArray(result.suggestions)) {
-      const newSuggestions: Suggestion[] = result.suggestions.map((s: Suggestion, i: number) => ({
-        ...s,
-        id: `suggestion-${Date.now()}-${i}`,
-        timestamp: new Date(),
-      }));
+      if (result?.suggestions && Array.isArray(result.suggestions)) {
+        const newSuggestions: Suggestion[] = result.suggestions.map((s: Suggestion, i: number) => ({
+          ...s,
+          id: `suggestion-${Date.now()}-${i}`,
+          timestamp: new Date(),
+        }));
 
-      setSuggestions(newSuggestions); // Replace all suggestions
-      setSession((prev) => ({
-        ...prev,
-        suggestionsShown: prev.suggestionsShown + newSuggestions.length,
-      }));
-    }
+        setSuggestions(newSuggestions); // Replace all suggestions
+        setSession((prev) => ({
+          ...prev,
+          suggestionsShown: prev.suggestionsShown + newSuggestions.length,
+        }));
+      }
 
-    setIsAnalyzing(false);
-  }, [callAPI]);
+      setIsAnalyzing(false);
+    },
+    [callAPI]
+  );
 
   /**
    * Add a local suggestion (for testing or manual additions)
@@ -1404,15 +1417,18 @@ export function usePairProgramming() {
     return newSuggestion.id;
   }, []);
 
-  const acceptSuggestion = useCallback((id: string) => {
-    const suggestion = suggestions.find((s) => s.id === id);
-    setSuggestions((prev) => prev.filter((s) => s.id !== id));
-    setSession((prev) => ({
-      ...prev,
-      suggestionsAccepted: prev.suggestionsAccepted + 1,
-      bugsPrevented: prev.bugsPrevented + (suggestion?.type === 'bug' ? 1 : 0),
-    }));
-  }, [suggestions]);
+  const acceptSuggestion = useCallback(
+    (id: string) => {
+      const suggestion = suggestions.find((s) => s.id === id);
+      setSuggestions((prev) => prev.filter((s) => s.id !== id));
+      setSession((prev) => ({
+        ...prev,
+        suggestionsAccepted: prev.suggestionsAccepted + 1,
+        bugsPrevented: prev.bugsPrevented + (suggestion?.type === 'bug' ? 1 : 0),
+      }));
+    },
+    [suggestions]
+  );
 
   const rejectSuggestion = useCallback((id: string) => {
     setSuggestions((prev) => prev.filter((s) => s.id !== id));

@@ -12,6 +12,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { storeBackup } from './backup-service';
 
 const log = logger('SurgicalEdit');
 
@@ -31,6 +32,9 @@ export interface SurgicalEditRequest {
   edits: LineEdit[];
   dryRun?: boolean; // If true, preview changes without applying
   createBackup?: boolean; // If true, keep original content for rollback
+  workspaceId?: string; // Required for backup storage
+  userId?: string; // User who made the edit
+  editDescription?: string; // Description for the backup
 }
 
 export interface EditDiff {
@@ -258,7 +262,15 @@ export async function surgicalEdit(
   readFile: (path: string) => Promise<string>,
   writeFile: (path: string, content: string) => Promise<void>
 ): Promise<SurgicalEditResult> {
-  const { filePath, edits, dryRun = false, createBackup = true } = request;
+  const {
+    filePath,
+    edits,
+    dryRun = false,
+    createBackup = true,
+    workspaceId,
+    userId,
+    editDescription,
+  } = request;
 
   log.info('Surgical edit requested', {
     filePath,
@@ -333,10 +345,17 @@ export async function surgicalEdit(
     // Calculate modifications (lines that changed but weren't fully added/removed)
     const linesModified = Math.min(linesAdded, linesRemoved);
 
-    // Generate backup ID if needed
-    const backupId = createBackup
-      ? `backup-${Date.now()}-${Math.random().toString(36).slice(2)}`
-      : undefined;
+    // Generate backup ID and store if needed
+    let backupId: string | undefined;
+    if (createBackup && workspaceId && !dryRun) {
+      backupId = `backup-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      await storeBackup(backupId, workspaceId, filePath, originalContent, {
+        editDescription: editDescription || `Surgical edit: ${edits.length} change(s)`,
+        userId,
+        persistToDb: true,
+      });
+      log.info('Backup stored', { backupId, filePath });
+    }
 
     // Actually write if not dry run
     if (!dryRun) {
@@ -346,6 +365,7 @@ export async function surgicalEdit(
         linesAdded,
         linesRemoved,
         linesModified,
+        backupId,
       });
     } else {
       log.info('Surgical edit dry run', {
