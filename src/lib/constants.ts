@@ -47,6 +47,8 @@ export const RATE_LIMITS = {
   CODE_LAB_DEBUG_PER_MINUTE: 60,
   /** Code Lab edit operations per minute */
   CODE_LAB_EDIT_PER_MINUTE: 60,
+  /** Code Lab LSP operations per minute */
+  CODE_LAB_LSP_PER_MINUTE: 200,
 } as const;
 
 // ========================================
