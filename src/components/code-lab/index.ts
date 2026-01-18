@@ -44,6 +44,22 @@ export { CodeLabVisualToCode } from './CodeLabVisualToCode';
 export { CodeLabDeployFlow } from './CodeLabDeployFlow';
 export { CodeLabVoiceCoding } from './CodeLabVoiceCoding';
 
+// Beyond Claude Code - Professional IDE Components
+export { CodeLabEditor } from './CodeLabEditor';
+export { CodeLabThinking } from './CodeLabThinking';
+export { CodeLabPermissionDialog } from './CodeLabPermissionDialog';
+export { CodeLabToolHistory } from './CodeLabToolHistory';
+export { CodeLabSplitPane } from './CodeLabSplitPane';
+export { CodeLabStatusBar, useStatusBar } from './CodeLabStatusBar';
+export { CodeLabPairProgramming, usePairProgramming, GhostText } from './CodeLabPairProgramming';
+export { CodeLabDebugger, useDebugger } from './CodeLabDebugger';
+export {
+  CodeLabCollaboration,
+  useCollaboration,
+  CursorIndicator,
+  SelectionHighlight,
+} from './CodeLabCollaboration';
+
 // Types
 export type {
   CodeLabSession,
@@ -58,3 +74,7 @@ export type { ConfirmAction, ConfirmSeverity } from './CodeLabConfirmDialog';
 export type { SessionTemplate } from './CodeLabSessionTemplates';
 export type { AISuggestion } from './CodeLabAISuggestions';
 export type { ToolExecution, ToolStatus } from './CodeLabToolProgress';
+
+// Beyond Claude Code Types - re-exported from component files
+// Note: Types are defined inline in components, not separately exported
+// Use the component exports above for full type inference
