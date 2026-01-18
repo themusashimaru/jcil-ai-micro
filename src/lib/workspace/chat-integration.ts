@@ -23,14 +23,44 @@ import {
   sanitizeGlobPattern,
   sanitizeSearchPattern,
 } from './security';
-import { getPlanModeTools, getPlanModeManager, formatPlanAsMarkdown } from './planning';
+// NEW: Using plan-mode.ts (step tracking, progress, complexity) instead of planning.ts
+import { getPlanTools, executePlanTool, isPlanTool, getPlanManager } from './plan-mode';
 import { getMCPConfigTools, getMCPManager } from './mcp';
 import { getHooksTools, getHooksManager, HookConfig } from './hooks';
-import { getMemoryTools, getMemoryManager } from './memory';
+// NEW: Using memory-files.ts (CLAUDE.md hierarchical) instead of memory.ts
+import {
+  getClaudeMemoryTools,
+  executeMemoryTool,
+  isClaudeMemoryTool,
+  getCachedMemoryContext,
+} from './memory-files';
 import { getBackgroundTaskTools, getBackgroundTaskManager } from './background-tasks';
 import { getDebugTools, executeDebugTool, isDebugTool } from './debug-tools';
 import { getLSPTools, executeLSPTool, isLSPTool } from './lsp-tools';
 import { getSubagentTools, executeSubagentTool, isSubagentTool } from '@/lib/agents/subagent';
+import { getPermissionTools, executePermissionTool, isPermissionTool } from './permissions';
+import {
+  getModelConfigTools,
+  executeModelConfigTool,
+  isModelConfigTool,
+  getModelConfigManager,
+} from './model-config';
+import {
+  getTokenTrackingTools,
+  executeTokenTrackingTool,
+  isTokenTrackingTool,
+  getTokenTracker,
+} from './token-tracker';
+import {
+  getExtendedThinkingTools,
+  executeExtendedThinkingTool,
+  isExtendedThinkingTool,
+} from './extended-thinking';
+import {
+  getContextCompactionTools,
+  isContextCompactionTool,
+  getContextCompactionManager,
+} from './context-compaction';
 
 // ============================================
 // TYPES
@@ -424,9 +454,10 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
 
   // ============================================
-  // PLANNING MODE TOOLS (CLAUDE CODE PARITY)
+  // PLAN MODE TOOLS (CLAUDE CODE PARITY)
+  // Step tracking, progress, complexity, approval gates
   // ============================================
-  ...getPlanModeTools(),
+  ...getPlanTools(),
 
   // ============================================
   // MCP (MODEL CONTEXT PROTOCOL) TOOLS
@@ -439,9 +470,10 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   ...getHooksTools(),
 
   // ============================================
-  // PROJECT MEMORY TOOLS
+  // CLAUDE.md MEMORY TOOLS (CLAUDE CODE PARITY)
+  // Hierarchical discovery, @include directives
   // ============================================
-  ...getMemoryTools(),
+  ...getClaudeMemoryTools(),
 
   // ============================================
   // BACKGROUND TASK TOOLS
@@ -462,6 +494,31 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   // SUBAGENT TOOLS (CLAUDE CODE PARITY)
   // ============================================
   ...getSubagentTools(),
+
+  // ============================================
+  // PERMISSION TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getPermissionTools(),
+
+  // ============================================
+  // MODEL CONFIG TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getModelConfigTools(),
+
+  // ============================================
+  // TOKEN TRACKING TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getTokenTrackingTools(),
+
+  // ============================================
+  // EXTENDED THINKING TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getExtendedThinkingTools(),
+
+  // ============================================
+  // CONTEXT COMPACTION TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getContextCompactionTools(),
 ];
 
 // ============================================
@@ -501,6 +558,11 @@ export class WorkspaceAgent {
     prompt: string,
     history: Array<{ role: string; content: string }> = []
   ): AsyncGenerator<ToolUpdate> {
+    // Load CLAUDE.md memory context for this session
+    if (!this.memoryContext) {
+      this.memoryContext = await this.loadMemoryContext();
+    }
+
     // Build messages
     const messages: Anthropic.MessageParam[] = [
       ...history.map((m) => ({
@@ -515,14 +577,32 @@ export class WorkspaceAgent {
     while (iterations < (this.config.maxIterations || 25)) {
       iterations++;
 
+      // Get current model from session preferences
+      const modelManager = getModelConfigManager();
+      const currentModel = modelManager.getCurrentModel(this.config.sessionId);
+      const prefs = modelManager.getSessionPreferences(this.config.sessionId);
+
       // Call Claude with tools
       const response = await this.anthropic.messages.create({
-        model: this.config.model || 'claude-sonnet-4-20250514',
-        max_tokens: 8192,
+        model: currentModel.id,
+        max_tokens: prefs.maxTokens,
         system: this.getSystemPrompt(),
         tools: WORKSPACE_TOOLS,
         messages,
       });
+
+      // Track token usage
+      const tokenTracker = getTokenTracker(this.config.sessionId, currentModel.id);
+      if (response.usage) {
+        tokenTracker.recordUsage({
+          inputTokens: response.usage.input_tokens,
+          outputTokens: response.usage.output_tokens,
+          cacheReadTokens: (response.usage as { cache_read_input_tokens?: number })
+            .cache_read_input_tokens,
+          cacheWriteTokens: (response.usage as { cache_creation_input_tokens?: number })
+            .cache_creation_input_tokens,
+        });
+      }
 
       // Process response content
       let hasToolUse = false;
@@ -928,75 +1008,18 @@ export class WorkspaceAgent {
         }
 
         // ============================================
-        // PLANNING MODE TOOLS (CLAUDE CODE PARITY)
+        // PLAN MODE TOOLS (CLAUDE CODE PARITY)
+        // Step tracking, progress, complexity, approval gates
         // ============================================
 
-        case 'enter_plan_mode': {
-          const reason = input.reason as string;
-          const initialQuestions = input.initial_questions as string[] | undefined;
-
-          const planManager = getPlanModeManager();
-          const result = planManager.enterPlanMode(this.config.sessionId, reason, initialQuestions);
-
-          if (result.success) {
-            // Create the plans directory
-            await this.container.executeCommand(
-              this.config.workspaceId,
-              'mkdir -p /workspace/.claude/plans'
-            );
-          }
-
-          return result.message;
-        }
-
-        case 'write_plan': {
-          const title = input.title as string;
-          const summary = input.summary as string;
-          const tasks = input.tasks as Array<{
-            title: string;
-            description?: string;
-            complexity?: string;
-          }>;
-          const notes = input.notes as string | undefined;
-
-          const planManager = getPlanModeManager();
-          const result = planManager.writePlan(title, summary, tasks, notes);
-
-          if (result.success) {
-            // Write the plan to file
-            const plan = planManager.getCurrentPlan();
-            if (plan) {
-              const planContent = formatPlanAsMarkdown(plan);
-              await this.container.writeFile(
-                this.config.workspaceId,
-                `/workspace/.claude/plans/${plan.id}.md`,
-                planContent
-              );
-              this.filesModified.add(`/workspace/.claude/plans/${plan.id}.md`);
-            }
-          }
-
-          return result.message;
-        }
-
-        case 'exit_plan_mode': {
-          const readyForApproval = input.ready_for_approval as boolean;
-          const questionsForUser = input.questions_for_user as string[] | undefined;
-
-          const planManager = getPlanModeManager();
-          const result = planManager.exitPlanMode(readyForApproval, questionsForUser);
-
-          if (result.success && result.plan) {
-            // Update the plan file with final status
-            const planContent = formatPlanAsMarkdown(result.plan);
-            await this.container.writeFile(
-              this.config.workspaceId,
-              `/workspace/.claude/plans/${result.plan.id}.md`,
-              planContent
-            );
-          }
-
-          return result.message;
+        case 'plan_create':
+        case 'plan_status':
+        case 'plan_approve':
+        case 'plan_complete_step':
+        case 'plan_skip_step':
+        case 'plan_cancel': {
+          const planManager = getPlanManager();
+          return executePlanTool(name, input, planManager);
         }
 
         // ============================================
@@ -1169,74 +1192,43 @@ export class WorkspaceAgent {
         }
 
         // ============================================
-        // PROJECT MEMORY TOOLS
+        // CLAUDE.md MEMORY TOOLS (CLAUDE CODE PARITY)
+        // Hierarchical discovery, @include directives
         // ============================================
 
-        case 'memory_read': {
-          const memoryManager = getMemoryManager();
+        case 'memory_load':
+        case 'memory_create':
+        case 'memory_update':
+        case 'memory_add_instruction': {
           const readFileFn = async (path: string) => {
             return await this.container.readFile(this.config.workspaceId, path);
           };
-
-          const memory = await memoryManager.load(readFileFn);
-
-          if (!memory) {
-            return 'No project memory file found (CODELAB.md). Use memory_create to create one.';
-          }
-
-          return `**Project Memory** (${memory.memoryPath})\n\n${memory.content}`;
-        }
-
-        case 'memory_create': {
-          const memoryManager = getMemoryManager();
           const writeFileFn = async (path: string, content: string) => {
             await this.container.writeFile(this.config.workspaceId, path, content);
+            this.filesModified.add(path);
+          };
+          const fileExistsFn = async (path: string) => {
+            try {
+              await this.container.readFile(this.config.workspaceId, path);
+              return true;
+            } catch {
+              return false;
+            }
+          };
+          const listDirFn = async (path: string) => {
+            const files = await this.container.listDirectory(this.config.workspaceId, path);
+            return files.map((f) => f.path);
           };
 
-          const memory = await memoryManager.create(writeFileFn);
-          this.filesModified.add(memory.memoryPath);
-
-          return `Project memory file created at ${memory.memoryPath}.\n\nYou can now customize it with project-specific instructions.`;
-        }
-
-        case 'memory_update': {
-          const content = input.content as string;
-          const memoryManager = getMemoryManager();
-          const writeFileFn = async (path: string, cnt: string) => {
-            await this.container.writeFile(this.config.workspaceId, path, cnt);
-          };
-
-          const memory = await memoryManager.update(content, writeFileFn);
-          this.filesModified.add(memory.memoryPath);
-
-          return `Project memory updated at ${memory.memoryPath}.`;
-        }
-
-        case 'memory_add_section': {
-          const title = input.title as string;
-          const content = input.content as string;
-          const type =
-            (input.type as 'instructions' | 'context' | 'patterns' | 'preferences' | 'notes') ||
-            'notes';
-
-          const memoryManager = getMemoryManager();
-          const readFileFn = async (path: string) => {
-            return await this.container.readFile(this.config.workspaceId, path);
-          };
-          const writeFileFn = async (path: string, cnt: string) => {
-            await this.container.writeFile(this.config.workspaceId, path, cnt);
-          };
-
-          const memory = await memoryManager.addSection(
-            title,
-            content,
-            type,
+          return executeMemoryTool(
+            name,
+            input,
             readFileFn,
-            writeFileFn
+            writeFileFn,
+            fileExistsFn,
+            listDirFn,
+            '/workspace'
           );
-          this.filesModified.add(memory.memoryPath);
-
-          return `Section "${title}" added to project memory.`;
         }
 
         // ============================================
@@ -1376,6 +1368,45 @@ ${output.isComplete ? `‚úì Task completed (exit code: ${output.exitCode})` : '‚è
         }
 
         default:
+          // Check if it's a plan tool call
+          if (isPlanTool(name)) {
+            const planManager = getPlanManager();
+            return executePlanTool(name, input, planManager);
+          }
+
+          // Check if it's a memory tool call
+          if (isClaudeMemoryTool(name)) {
+            const readFileFn = async (path: string) => {
+              return await this.container.readFile(this.config.workspaceId, path);
+            };
+            const writeFileFn = async (path: string, content: string) => {
+              await this.container.writeFile(this.config.workspaceId, path, content);
+              this.filesModified.add(path);
+            };
+            const fileExistsFn = async (path: string) => {
+              try {
+                await this.container.readFile(this.config.workspaceId, path);
+                return true;
+              } catch {
+                return false;
+              }
+            };
+            const listDirFn = async (path: string) => {
+              const files = await this.container.listDirectory(this.config.workspaceId, path);
+              return files.map((f) => f.path);
+            };
+
+            return executeMemoryTool(
+              name,
+              input,
+              readFileFn,
+              writeFileFn,
+              fileExistsFn,
+              listDirFn,
+              '/workspace'
+            );
+          }
+
           // Check if it's a debug tool call
           if (isDebugTool(name)) {
             return executeDebugTool(name, input, this.config.workspaceId, this.config.userId);
@@ -1393,6 +1424,47 @@ ${output.isComplete ? `‚úì Task completed (exit code: ${output.exitCode})` : '‚è
               userId: this.config.userId,
               sessionId: this.config.sessionId,
             });
+          }
+
+          // Check if it's a permission tool call
+          if (isPermissionTool(name)) {
+            return executePermissionTool(name, input);
+          }
+
+          // Check if it's a model config tool call
+          if (isModelConfigTool(name)) {
+            return executeModelConfigTool(name, input, this.config.sessionId);
+          }
+
+          // Check if it's a token tracking tool call
+          if (isTokenTrackingTool(name)) {
+            return executeTokenTrackingTool(name, input, this.config.sessionId);
+          }
+
+          // Check if it's an extended thinking tool call
+          if (isExtendedThinkingTool(name)) {
+            return executeExtendedThinkingTool(name, input, this.config.sessionId);
+          }
+
+          // Check if it's a context compaction tool call
+          if (isContextCompactionTool(name)) {
+            const manager = getContextCompactionManager();
+            if (name === 'context_settings') {
+              if (Object.keys(input).length > 0) {
+                manager.setSettings(
+                  this.config.sessionId,
+                  input as Partial<{
+                    autoCompact: boolean;
+                    threshold: number;
+                    preserveRecentCount: number;
+                  }>
+                );
+                return 'Context compaction settings updated.';
+              }
+              const settings = manager.getSettings(this.config.sessionId);
+              return `**Context Compaction Settings**\n\nAuto-compact: ${settings.autoCompact ? 'Enabled' : 'Disabled'}\nThreshold: ${settings.threshold}%\nPreserve Recent: ${settings.preserveRecentCount} messages`;
+            }
+            return 'Context compaction triggered. Use /compact to compact the conversation.';
           }
 
           // Check if it's an MCP tool call
@@ -1420,11 +1492,49 @@ ${output.isComplete ? `‚úì Task completed (exit code: ${output.exitCode})` : '‚è
     return `/workspace/${path}`;
   }
 
+  /** Cached memory context */
+  private memoryContext: string = '';
+
   /**
-   * Get system prompt
+   * Load CLAUDE.md memory context for the workspace
+   */
+  private async loadMemoryContext(): Promise<string> {
+    try {
+      const readFileFn = async (path: string) => {
+        return await this.container.readFile(this.config.workspaceId, path);
+      };
+      const fileExistsFn = async (path: string) => {
+        try {
+          await this.container.readFile(this.config.workspaceId, path);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      const listDirFn = async (path: string) => {
+        const files = await this.container.listDirectory(this.config.workspaceId, path);
+        return files.map((f) => f.path);
+      };
+
+      const context = await getCachedMemoryContext(
+        '/workspace',
+        readFileFn,
+        fileExistsFn,
+        listDirFn
+      );
+
+      return context.combinedContent;
+    } catch (error) {
+      log.warn('Failed to load memory context', { error });
+      return '';
+    }
+  }
+
+  /**
+   * Get system prompt with CLAUDE.md context injected
    */
   private getSystemPrompt(): string {
-    return `You are Claude, an expert software engineer working in an isolated sandbox environment. You have full access to a Linux shell, file system, and git.
+    const basePrompt = `You are Claude, an expert software engineer working in an isolated sandbox environment. You have full access to a Linux shell, file system, and git.
 
 CAPABILITIES:
 - Execute any shell command (npm, pip, cargo, python, node, etc.)
@@ -1433,6 +1543,8 @@ CAPABILITIES:
 - Run builds and tests
 - Make git commits
 - Install packages
+- Create and execute structured plans with approval gates
+- Load project context from CLAUDE.md files
 
 GUIDELINES:
 1. ALWAYS read files before editing to understand the current state
@@ -1441,6 +1553,15 @@ GUIDELINES:
 4. Run tests after changes to ensure nothing breaks
 5. Search the codebase to understand patterns before making changes
 6. Make clear, descriptive git commits
+7. For complex tasks, use plan_create to structure your approach
+
+PLAN MODE:
+- Use plan_create to break complex tasks into steps
+- Each step tracks progress (pending, in_progress, completed, skipped, failed)
+- Use plan_approve to start execution
+- Use plan_complete_step after finishing each step
+- Use plan_skip_step to skip unnecessary steps
+- Use plan_cancel to abort
 
 ERROR HANDLING:
 - If a command fails, analyze the error and fix it
@@ -1452,12 +1573,19 @@ This is the root of the project. All file paths are relative to this.
 
 Be thorough and proactive. When given a task:
 1. Understand the current state (read files, explore)
-2. Plan your approach
+2. Plan your approach (use plan_create for complex tasks)
 3. Implement changes
 4. Verify they work (build, test)
 5. Report what you did
 
 Always explain what you're doing and why.`;
+
+    // Inject memory context if available
+    if (this.memoryContext) {
+      return `${basePrompt}\n\n${this.memoryContext}`;
+    }
+
+    return basePrompt;
   }
 
   /**
@@ -1705,29 +1833,51 @@ function formatToolName(tool: string): string {
     notebook_edit: 'Editing notebook',
     multi_edit: 'Multi-edit file',
     ask_user: 'Asking user',
-    // Planning mode
-    enter_plan_mode: 'Entering plan mode',
-    write_plan: 'Writing plan',
-    exit_plan_mode: 'Exiting plan mode',
+    // Plan Mode (new step-based system)
+    plan_create: 'Creating plan',
+    plan_status: 'Getting plan status',
+    plan_approve: 'Approving plan',
+    plan_complete_step: 'Completing step',
+    plan_skip_step: 'Skipping step',
+    plan_cancel: 'Cancelling plan',
     // MCP
     mcp_list_servers: 'Listing MCP servers',
-    mcp_enable_server: 'Enabling MCP server',
-    mcp_disable_server: 'Disabling MCP server',
+    mcp_start_server: 'Starting MCP server',
+    mcp_stop_server: 'Stopping MCP server',
+    mcp_list_tools: 'Listing MCP tools',
     // Hooks
     hooks_list: 'Listing hooks',
     hooks_enable: 'Enabling hook',
     hooks_disable: 'Disabling hook',
     hooks_create: 'Creating hook',
-    // Project Memory
-    memory_read: 'Reading project memory',
-    memory_create: 'Creating project memory',
-    memory_update: 'Updating project memory',
-    memory_add_section: 'Adding memory section',
+    // CLAUDE.md Memory (hierarchical)
+    memory_load: 'Loading CLAUDE.md memory',
+    memory_create: 'Creating CLAUDE.md',
+    memory_update: 'Updating CLAUDE.md',
+    memory_add_instruction: 'Adding instruction',
     // Background Tasks
     bg_run: 'Starting background task',
     bg_output: 'Getting task output',
     bg_kill: 'Killing task',
     bg_list: 'Listing tasks',
+    // Permission Tools
+    permission_check: 'Checking permission',
+    permission_request: 'Requesting permission',
+    permission_set_auto: 'Setting auto-approve',
+    // Model Config Tools
+    model_list: 'Listing models',
+    model_select: 'Selecting model',
+    model_current: 'Getting current model',
+    // Token Tracking Tools
+    tokens_usage: 'Getting token usage',
+    tokens_context: 'Getting context info',
+    // Extended Thinking Tools
+    thinking_enable: 'Enabling extended thinking',
+    thinking_disable: 'Disabling extended thinking',
+    thinking_status: 'Getting thinking status',
+    // Context Compaction Tools
+    context_compact: 'Compacting context',
+    context_settings: 'Context settings',
   };
 
   // Handle MCP tool names

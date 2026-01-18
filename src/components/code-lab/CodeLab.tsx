@@ -29,10 +29,12 @@ import { CodeLabDiffViewer } from './CodeLabDiffViewer';
 import { CodeLabVisualToCode } from './CodeLabVisualToCode';
 import { CodeLabDeployFlow } from './CodeLabDeployFlow';
 import { CodeLabDebugPanel } from './CodeLabDebugPanel';
+import { CodeLabPlanView } from './CodeLabPlanView';
 import { useToastActions } from '@/components/ui/Toast';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
 import type { FileDiff } from './CodeLabDiffViewer';
+import type { Plan } from '@/lib/workspace/plan-mode';
 
 interface CodeLabProps {
   userId?: string;
@@ -59,11 +61,12 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // Workspace panel state
   const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
-    'files' | 'diff' | 'deploy' | 'visual' | 'debug'
+    'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan'
   >('files');
   const [workspaceFiles, setWorkspaceFiles] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [diffFiles, setDiffFiles] = useState<FileDiff[]>([]);
+  const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
 
   // AbortController for canceling streams
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -286,6 +289,19 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       }
     } catch (err) {
       log.error('Error loading workspace files', err as Error);
+    }
+  };
+
+  // Fetch current plan status
+  const fetchPlanStatus = async () => {
+    try {
+      const response = await fetch('/api/code-lab/plan');
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentPlan(data.plan || null);
+      }
+    } catch (err) {
+      log.debug('Error fetching plan status', { error: String(err) });
     }
   };
 
@@ -540,6 +556,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m))
           );
 
+          // Refresh plan status in case plan tools were called
+          fetchPlanStatus();
+
           // Update session in sidebar (increment message count, update timestamp)
           setSessions((prev) =>
             prev.map((s) =>
@@ -745,6 +764,11 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         setActiveWorkspaceTab('debug');
         setWorkspacePanelOpen(true);
       }
+      if (cmdKey && e.key === '6') {
+        e.preventDefault();
+        setActiveWorkspaceTab('plan');
+        setWorkspacePanelOpen(true);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -865,6 +889,15 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                   >
                     Debug
                   </button>
+                  <button
+                    className={activeWorkspaceTab === 'plan' ? 'active' : ''}
+                    onClick={() => {
+                      setActiveWorkspaceTab('plan');
+                      fetchPlanStatus();
+                    }}
+                  >
+                    Plan {currentPlan && currentPlan.status === 'in_progress' && '●'}
+                  </button>
                 </div>
                 <div className="workspace-content">
                   {activeWorkspaceTab === 'files' && (
@@ -924,6 +957,58 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                       }}
                     />
                   )}
+                  {activeWorkspaceTab === 'plan' &&
+                    (currentPlan ? (
+                      <CodeLabPlanView
+                        plan={currentPlan}
+                        onApprove={async () => {
+                          const res = await fetch('/api/code-lab/plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              action: 'approve',
+                              sessionId: currentSessionId,
+                            }),
+                          });
+                          if (res.ok) {
+                            const data = await res.json();
+                            setCurrentPlan(data.plan);
+                          }
+                        }}
+                        onSkipStep={async (reason) => {
+                          const res = await fetch('/api/code-lab/plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              action: 'skip',
+                              reason,
+                              sessionId: currentSessionId,
+                            }),
+                          });
+                          if (res.ok) {
+                            const data = await res.json();
+                            setCurrentPlan(data.plan);
+                          }
+                        }}
+                        onCancelPlan={async () => {
+                          const res = await fetch('/api/code-lab/plan', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'cancel', sessionId: currentSessionId }),
+                          });
+                          if (res.ok) {
+                            setCurrentPlan(null);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="plan-empty">
+                        <div className="plan-empty-icon">📋</div>
+                        <h3>No Active Plan</h3>
+                        <p>Claude will create a plan when tackling complex tasks.</p>
+                        <p className="hint">Plans break down work into trackable steps.</p>
+                      </div>
+                    ))}
                 </div>
                 {currentSession?.repo && (
                   <div className="workspace-git-actions">
@@ -1387,6 +1472,35 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
 
         .diff-empty .hint {
+          font-size: 0.8125rem;
+          color: var(--cl-text-muted);
+        }
+
+        /* Plan empty state */
+        .plan-empty {
+          text-align: center;
+          padding: 2rem 1rem;
+          color: var(--cl-text-tertiary);
+        }
+
+        .plan-empty-icon {
+          font-size: 2.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .plan-empty h3 {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--cl-text-primary);
+          margin: 0 0 0.5rem;
+        }
+
+        .plan-empty p {
+          margin: 0 0 0.25rem;
+          font-size: 0.875rem;
+        }
+
+        .plan-empty .hint {
           font-size: 0.8125rem;
           color: var(--cl-text-muted);
         }
