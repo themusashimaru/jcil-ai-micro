@@ -18,6 +18,7 @@ import { readTool, ReadTool } from './ReadTool';
 import { searchTool, SearchTool } from './SearchTool';
 import { bashTool, BashTool } from './BashTool';
 import { writeTool, WriteTool } from './WriteTool';
+import { globTool, GlobTool } from './GlobTool';
 import { AgentStreamCallback } from '../../core/types';
 
 const anthropic = new Anthropic({
@@ -62,6 +63,7 @@ export class ToolOrchestrator {
     // Register all available tools
     this.registerTool(readTool);
     this.registerTool(writeTool);
+    this.registerTool(globTool);
     this.registerTool(searchTool);
     this.registerTool(bashTool);
   }
@@ -106,6 +108,11 @@ export class ToolOrchestrator {
       owner: config.owner,
       repo: config.repo,
       branch: config.branch,
+    });
+
+    // Initialize GlobTool
+    (globTool as GlobTool).initialize({
+      workspaceId: config.workspaceId,
     });
   }
 
