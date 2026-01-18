@@ -123,7 +123,7 @@ export function useDebugSession(options: UseDebugSessionOptions): UseDebugSessio
   const [state, setState] = useState<DebugState>('idle');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [threads, _setThreads] = useState<Thread[]>([]);
+  const [threads] = useState<Thread[]>([]);
   const [stackFrames, setStackFrames] = useState<StackFrame[]>([]);
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [variables, setVariables] = useState<Variable[]>([]);

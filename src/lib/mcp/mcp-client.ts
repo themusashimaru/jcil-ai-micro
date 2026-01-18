@@ -430,7 +430,7 @@ export class MCPClient extends EventEmitter {
     log.info('Disconnecting MCP server', { id: this.config.id });
 
     // Cancel pending requests
-    for (const [_id, pending] of this.pendingRequests) {
+    for (const pending of this.pendingRequests.values()) {
       clearTimeout(pending.timeout);
       pending.reject(new Error('Client disconnected'));
     }
