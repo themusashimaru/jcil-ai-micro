@@ -21,12 +21,21 @@ export {
   type DebugSession,
 } from './debug-adapter';
 
-// Manager
+// CDP Client for Node.js debugging
 export {
-  DebugManager,
-  getDebugManager,
-  type DebugSessionInfo,
-} from './debug-manager';
+  CDPClient,
+  cdpClient,
+  type CDPLocation,
+  type CDPBreakpoint,
+  type CDPCallFrame,
+  type CDPScope,
+  type CDPRemoteObject,
+  type CDPPropertyDescriptor,
+  type CDPScript,
+} from './cdp-client';
+
+// Manager
+export { DebugManager, getDebugManager, type DebugSessionInfo } from './debug-manager';
 
 // Client-side hook (to be used in React components)
 export { useDebugSession } from './useDebugSession';
