@@ -1,9 +1,9 @@
 # Code Lab Technical Documentation
 
-> JCIL.AI Code Lab — A Claude Code-Inspired Agentic IDE
+> JCIL.AI Code Lab — Beyond Claude Code: The Ultimate AI-Powered IDE
 
 **Last Updated:** 2026-01-18
-**Version:** 2.2.0
+**Version:** 3.0.0
 
 ---
 
@@ -19,6 +19,378 @@ Code Lab is a fully-functional, web-based agentic IDE with Claude Code-level cap
 - **Multi-Platform Deployment** - Vercel, Netlify, Railway, Cloudflare
 - **Persistent Workspaces** - Sessions and files stored in cloud
 - **55+ Agentic Tools** - Full Claude Code parity plus extras
+
+### Beyond Claude Code
+
+Code Lab v3.0 goes **beyond Claude Code** with features not available in the CLI:
+
+| Feature                         | Claude Code CLI | Code Lab v3.0 |
+| ------------------------------- | --------------- | ------------- |
+| Zero-install web access         | ❌              | ✅            |
+| Cloud sandboxed execution       | ❌              | ✅            |
+| Real-time collaboration         | ❌              | ✅            |
+| AI pair programming mode        | ❌              | ✅            |
+| Visual debugging                | ❌              | ✅            |
+| Browser automation (MCP)        | ❌              | ✅            |
+| Database queries (MCP)          | ❌              | ✅            |
+| One-click multi-platform deploy | ❌              | ✅            |
+| Monaco-style inline editor      | ❌              | ✅            |
+| Extended thinking UI            | ❌              | ✅            |
+| Tool execution history          | ❌              | ✅            |
+
+---
+
+## Beyond Claude Code Features
+
+### AI Pair Programming Mode
+
+Revolutionary AI-assisted coding where Claude proactively helps as you type.
+
+```typescript
+// src/components/code-lab/CodeLabPairProgramming.tsx
+
+interface Suggestion {
+  id: string;
+  type: 'completion' | 'refactor' | 'bug' | 'docs' | 'test' | 'security';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description: string;
+  code?: string;
+  confidence: number;
+}
+
+// Modes
+type PairMode = 'active' | 'passive' | 'off';
+// Active: Claude proactively suggests as you type
+// Passive: Claude waits for you to ask
+// Off: Pair programming disabled
+```
+
+**Features:**
+
+- Ghost text completions (like Copilot but context-aware)
+- Real-time code quality monitoring
+- Bug detection before you finish typing
+- Inline annotations and hints
+- Session recording for review
+- Learning mode (adapts to your coding style)
+
+---
+
+### Visual Debugging
+
+Full debugging experience in the browser.
+
+```typescript
+// src/components/code-lab/CodeLabDebugger.tsx
+
+interface DebugSession {
+  state: 'idle' | 'running' | 'paused' | 'stopped';
+  currentFrame?: StackFrame;
+  callStack: StackFrame[];
+  breakpoints: Breakpoint[];
+  variables: Variable[];
+  watches: WatchExpression[];
+}
+
+// Variable inspection with tree view
+interface Variable {
+  name: string;
+  value: string;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'function';
+  expandable?: boolean;
+  children?: Variable[];
+  scope: 'local' | 'closure' | 'global';
+  changed?: boolean;
+}
+```
+
+**Features:**
+
+- Step controls (over, into, out, continue)
+- Breakpoint management (line, conditional, logpoint, exception)
+- Variable inspection with expandable tree view
+- Watch expressions
+- Call stack visualization
+- AI-powered debug analysis ("Ask Claude to analyze")
+
+---
+
+### Real-Time Collaboration
+
+True multi-user presence and shared coding experience.
+
+```typescript
+// src/components/code-lab/CodeLabCollaboration.tsx
+
+interface CollabUser {
+  id: string;
+  name: string;
+  color: string;
+  status: 'active' | 'idle' | 'away' | 'busy';
+  role: 'owner' | 'editor' | 'viewer';
+  cursor?: { file: string; line: number; column: number };
+  selection?: { startLine: number; endLine: number };
+  isTyping?: boolean;
+}
+
+interface CollabSession {
+  id: string;
+  users: CollabUser[];
+  activities: ActivityItem[];
+  annotations: CodeAnnotation[];
+  isLive: boolean;
+}
+```
+
+**Features:**
+
+- Real-time cursor presence (see where others are)
+- Live code sharing with conflict resolution
+- User avatars and activity indicators
+- Session invitation system
+- Follow mode (follow another user's view)
+- Code annotations and comments
+- Shared Claude AI interactions
+
+---
+
+### Extended Thinking Visualization
+
+See Claude's reasoning process in real-time.
+
+```typescript
+// src/components/code-lab/CodeLabThinking.tsx
+
+interface ThinkingStep {
+  id: string;
+  type: 'analysis' | 'planning' | 'implementation' | 'verification' | 'refinement';
+  content: string;
+  confidence: number;
+  children?: ThinkingStep[];
+  isExpanded?: boolean;
+}
+
+type ThinkingViewMode = 'stream' | 'tree' | 'timeline';
+```
+
+**Features:**
+
+- Three view modes: stream, tree, timeline
+- Confidence indicators with color coding
+- Token usage tracking
+- Collapsible thinking steps
+- Copy individual steps
+
+---
+
+### Monaco-Style Code Editor
+
+Professional inline code editor with full IDE features.
+
+```typescript
+// src/components/code-lab/CodeLabEditor.tsx
+
+interface EditorTab {
+  id: string;
+  filename: string;
+  filepath: string;
+  language: string;
+  content: string;
+  isDirty: boolean;
+  isActive: boolean;
+}
+
+interface EditorDiff {
+  original: string;
+  modified: string;
+  filename: string;
+  hunks: DiffHunk[];
+}
+```
+
+**Features:**
+
+- Multi-tab editing
+- Breadcrumb navigation
+- Inline diff view with accept/reject actions
+- Search bar with regex support
+- Line numbers and minimap
+- Status bar with file info
+- Keyboard shortcuts (Cmd+S, Cmd+F, Tab)
+
+---
+
+### Permission Dialogs
+
+Secure confirmation for dangerous operations.
+
+```typescript
+// src/components/code-lab/CodeLabPermissionDialog.tsx
+
+interface PermissionRequest {
+  id: string;
+  operation: OperationType;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description: string;
+  details?: string[];
+  affectedFiles?: string[];
+}
+
+type OperationType =
+  | 'file_overwrite'
+  | 'file_delete'
+  | 'directory_delete'
+  | 'git_push'
+  | 'git_force_push'
+  | 'git_reset'
+  | 'package_install'
+  | 'shell_command'
+  | 'network_request'
+  | 'deploy';
+```
+
+**Features:**
+
+- Risk level indicators (low → critical)
+- Operation type icons
+- Affected files list
+- "Always allow" option
+- Smooth animations
+
+---
+
+### Tool Execution History
+
+Complete audit trail of all tool executions.
+
+```typescript
+// src/components/code-lab/CodeLabToolHistory.tsx
+
+interface ToolHistoryItem {
+  id: string;
+  tool: string;
+  category: 'file' | 'shell' | 'git' | 'mcp' | 'deploy' | 'plan' | 'task';
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  input: Record<string, unknown>;
+  output?: unknown;
+  error?: string;
+  startTime: Date;
+  endTime?: Date;
+  duration?: number;
+}
+```
+
+**Features:**
+
+- Filter by category and status
+- Search across tools
+- Retry failed executions
+- Cancel running executions
+- Expandable input/output details
+- Stats bar with counts
+
+---
+
+### Resizable Split Pane Layout
+
+VS Code-like split pane for chat + code.
+
+```typescript
+// src/components/code-lab/CodeLabSplitPane.tsx
+
+interface SplitPaneProps {
+  mode: 'horizontal' | 'vertical';
+  defaultSplit?: number;
+  minPrimarySize?: number;
+  minSecondarySize?: number;
+  snapPoints?: number[];
+  collapsible?: boolean;
+}
+```
+
+**Features:**
+
+- Horizontal/vertical modes
+- Drag to resize with smooth animation
+- Snap to preset positions
+- Collapse/expand panels
+- Keyboard accessible
+- Touch support for mobile
+
+---
+
+### Enhanced Terminal
+
+Claude Code-level terminal with tabs and ANSI support.
+
+```typescript
+// src/components/code-lab/CodeLabTerminal.tsx
+
+interface TerminalTab {
+  id: string;
+  name: string;
+  cwd: string;
+  lines: TerminalLine[];
+  commandHistory: string[];
+  historyIndex: number;
+  isRunning: boolean;
+}
+
+// ANSI color parsing
+const ANSI_COLORS = {
+  '31': '#ef4444', // red
+  '32': '#22c55e', // green
+  '33': '#eab308', // yellow
+  '34': '#3b82f6', // blue
+  '35': '#a855f7', // magenta
+  // ... 16 colors
+};
+```
+
+**Features:**
+
+- Multiple terminal tabs
+- ANSI color code parsing
+- Command history (up/down arrows)
+- Search within output (Ctrl+F)
+- Copy/clear actions
+- Process kill (Ctrl+C)
+- Clear screen (Ctrl+L)
+- Auto-scroll with manual override
+
+---
+
+### Status Bar
+
+VS Code-style status bar with real-time information.
+
+```typescript
+// src/components/code-lab/CodeLabStatusBar.tsx
+
+interface StatusBarProps {
+  model: 'opus' | 'sonnet' | 'haiku';
+  tokens: { used: number; limit: number; costUSD?: number };
+  connectionStatus: 'connected' | 'connecting' | 'disconnected' | 'error';
+  sandboxStatus: 'active' | 'starting' | 'stopped' | 'error';
+  file?: { name: string; language: string; line?: number; column?: number };
+  git?: { branch: string; isDirty: boolean };
+  backgroundTasks?: BackgroundTask[];
+  mcpServersActive?: number;
+}
+```
+
+**Features:**
+
+- Model indicator (Opus/Sonnet/Haiku)
+- Token usage with visual progress bar
+- Connection status (API/Sandbox)
+- Git branch indicator
+- Current file info
+- Background task count
+- Keyboard shortcut hints
+- Live clock
 
 ---
 
@@ -833,5 +1205,32 @@ app/api/code-lab/
 
 ---
 
+## Component Reference
+
+### New v3.0 Components
+
+| Component                 | File                          | Description                      |
+| ------------------------- | ----------------------------- | -------------------------------- |
+| `CodeLabEditor`           | `CodeLabEditor.tsx`           | Monaco-style code editor         |
+| `CodeLabThinking`         | `CodeLabThinking.tsx`         | Extended thinking visualization  |
+| `CodeLabPermissionDialog` | `CodeLabPermissionDialog.tsx` | Permission confirmation dialogs  |
+| `CodeLabToolHistory`      | `CodeLabToolHistory.tsx`      | Tool execution history panel     |
+| `CodeLabSplitPane`        | `CodeLabSplitPane.tsx`        | Resizable split pane layout      |
+| `CodeLabStatusBar`        | `CodeLabStatusBar.tsx`        | Status bar with model/token info |
+| `CodeLabPairProgramming`  | `CodeLabPairProgramming.tsx`  | AI pair programming mode         |
+| `CodeLabDebugger`         | `CodeLabDebugger.tsx`         | Visual debugging interface       |
+| `CodeLabCollaboration`    | `CodeLabCollaboration.tsx`    | Real-time collaboration          |
+
+### Custom Hooks
+
+| Hook                 | Description                          |
+| -------------------- | ------------------------------------ |
+| `useStatusBar`       | Manages status bar state             |
+| `usePairProgramming` | Manages pair programming suggestions |
+| `useDebugger`        | Manages debug session state          |
+| `useCollaboration`   | Manages collaboration session state  |
+
+---
+
 _Last Updated: January 2026_
-_Version: 2.2.0_
+_Version: 3.0.0 — Beyond Claude Code_
