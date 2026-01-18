@@ -361,16 +361,31 @@ OUTPUT ONLY THE JSON OBJECT.`;
     intent: ResearchIntent,
     metadata: { totalQueries: number; iterations: number; executionTime: number; depth: 'quick' | 'standard' | 'deep' }
   ): ResearchOutput {
-    // Extract key sentences from results for concise findings
+    // Extract clean summaries from results
     const keyFindings = results.slice(0, 3).map((r, i) => {
-      // Get first meaningful sentence (not too short, not too long)
-      const sentences = r.content.split(/[.!?]+/).filter(s => s.trim().length > 30 && s.trim().length < 200);
-      const finding = sentences[0]?.trim() || r.content.substring(0, 150);
+      // Clean the content - remove markdown, extra whitespace
+      let content = r.content
+        .replace(/#{1,6}\s*/g, '') // Remove markdown headers
+        .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1') // Remove bold/italic
+        .replace(/\n+/g, ' ') // Replace newlines with spaces
+        .replace(/\s+/g, ' ') // Collapse multiple spaces
+        .trim();
+
+      // Take first 180 chars and find last complete word
+      if (content.length > 180) {
+        content = content.substring(0, 180);
+        const lastSpace = content.lastIndexOf(' ');
+        if (lastSpace > 100) {
+          content = content.substring(0, lastSpace);
+        }
+        content += '...';
+      }
+
       return {
-        title: `Key Point ${i + 1}`,
-        finding: finding + (finding.endsWith('.') ? '' : '.'),
+        title: r.title?.substring(0, 40) || `Finding ${i + 1}`,
+        finding: content,
         confidence: 'medium' as const,
-        sources: [r.title || `Source ${i + 1}`],
+        sources: [r.source],
       };
     });
 

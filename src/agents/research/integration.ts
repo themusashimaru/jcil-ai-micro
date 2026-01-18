@@ -265,6 +265,10 @@ function formatProgressEvent(event: AgentStreamEvent): string {
       return ''; // Skip other thinking events
     }
   } else if (event.type === 'searching') {
+    // Only show searching message once (first time with query count)
+    if (lastShownStep.startsWith('Searching')) {
+      return ''; // Already showed a searching message
+    }
     const queries = details?.queries as string[] | undefined;
     if (queries && queries.length > 0) {
       stepMessage = `Searching ${queries.length} sources...`;
