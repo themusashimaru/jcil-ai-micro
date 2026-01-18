@@ -216,171 +216,73 @@ export async function executeResearchAgent(
   });
 }
 
-/**
- * Research task tracking for professional checklist-style progress
- * Shows all steps upfront and updates as they complete
- */
-interface ResearchTask {
-  id: string;
-  label: string;
-  status: 'pending' | 'active' | 'completed';
-}
-
-// Define the research workflow steps
-const RESEARCH_TASKS: ResearchTask[] = [
-  { id: 'intent', label: 'Analyze research request', status: 'pending' },
-  { id: 'strategy', label: 'Generate research strategy', status: 'pending' },
-  { id: 'search', label: 'Execute searches', status: 'pending' },
-  { id: 'evaluate', label: 'Evaluate findings', status: 'pending' },
-  { id: 'synthesize', label: 'Synthesize report', status: 'pending' },
-];
-
-// Track current task state across the stream
-let currentTasks: ResearchTask[] = [];
-let hasShownInitialList = false;
-let lastRenderedOutput = '';
-let currentSearchQueries: string[] = [];
+// Track last shown step to avoid duplicate output
+let lastShownStep = '';
 
 /**
- * Reset task state for a new research session
+ * Reset progress state for a new research session
  */
 function resetTaskState(): void {
-  currentTasks = RESEARCH_TASKS.map(t => ({ ...t }));
-  hasShownInitialList = false;
-  lastRenderedOutput = '';
-  currentSearchQueries = [];
+  lastShownStep = '';
 }
 
 /**
- * Render the current task list as a checklist
- * Uses standard markdown checkbox format like Claude Code
- * Shows search queries when search task is active
- */
-function renderTaskList(): string {
-  return currentTasks.map(task => {
-    const checkbox = task.status === 'completed' ? '- [x]' :
-                     task.status === 'active' ? '- [x]' : '- [ ]';
-    let line = `${checkbox} ${task.label}`;
-
-    // Show search queries under the search task when active
-    if (task.id === 'search' && task.status === 'active' && currentSearchQueries.length > 0) {
-      const queriesDisplay = currentSearchQueries.slice(0, 5).map(q => `      "${q}"`).join('\n');
-      line += '\n' + queriesDisplay;
-      if (currentSearchQueries.length > 5) {
-        line += `\n      +${currentSearchQueries.length - 5} more...`;
-      }
-    }
-
-    return line;
-  }).join('\n');
-}
-
-/**
- * Map event types/phases to task IDs
- */
-function getTaskIdFromEvent(event: AgentStreamEvent): string | null {
-  const phase = (event.details as Record<string, unknown> | undefined)?.phase as string | undefined;
-  const type = event.type;
-
-  // Map phases and types to task IDs
-  if (phase === 'Intent Analysis' || type === 'thinking' && event.message.includes('Analyzing')) {
-    return 'intent';
-  }
-  if (phase === 'Strategy Generation' || event.message.includes('strategy')) {
-    return 'strategy';
-  }
-  if (type === 'searching' || phase?.includes('Iteration')) {
-    return 'search';
-  }
-  if (type === 'evaluating') {
-    return 'evaluate';
-  }
-  if (type === 'synthesizing' || phase === 'Synthesis') {
-    return 'synthesize';
-  }
-  if (type === 'complete') {
-    return 'complete';
-  }
-
-  return null;
-}
-
-/**
- * Format a progress event for streaming output - Professional checklist style
- * Shows all tasks upfront and updates with checkboxes as they complete
+ * Format a progress event - Simple, clean, single-line updates
+ * No checkboxes (avoids to-do list widget), no duplicates
  */
 function formatProgressEvent(event: AgentStreamEvent): string {
-  // Skip heartbeat messages
   const details = event.details as Record<string, unknown> | undefined;
+
+  // Skip heartbeat messages
   if (details?.heartbeat) {
     return '';
   }
 
   // Handle errors
   if (event.type === 'error') {
-    return `\n✗ ${event.message}\n`;
+    return `✗ ${event.message}\n`;
   }
 
-  // Initialize task list on first event
-  if (!hasShownInitialList) {
-    resetTaskState();
-    hasShownInitialList = true;
-    // Mark first task as active
-    currentTasks[0].status = 'active';
-    lastRenderedOutput = renderTaskList();
-    return lastRenderedOutput + '\n';
-  }
-
-  // Get which task this event relates to
-  const taskId = getTaskIdFromEvent(event);
-
-  if (!taskId) {
-    return ''; // Skip events that don't map to tasks
-  }
-
-  // Handle completion
-  if (taskId === 'complete') {
-    // Mark all tasks as completed
-    currentTasks.forEach(t => t.status = 'completed');
-    currentSearchQueries = []; // Clear queries on completion
-    const newOutput = renderTaskList();
-    // Only output if changed
-    if (newOutput !== lastRenderedOutput) {
-      lastRenderedOutput = newOutput;
-      return '\n' + newOutput + '\n';
+  // Handle completion - just a checkmark
+  if (event.type === 'complete') {
+    if (lastShownStep !== 'complete') {
+      lastShownStep = 'complete';
+      return `✓ Research complete\n\n`;
     }
     return '';
   }
 
-  // Find current and target task indices
-  const taskIndex = currentTasks.findIndex(t => t.id === taskId);
-  if (taskIndex === -1) return '';
+  // Map event to a simple status message
+  let stepMessage = '';
+  const phase = details?.phase as string | undefined;
 
-  // Mark all previous tasks as completed
-  for (let i = 0; i < taskIndex; i++) {
-    currentTasks[i].status = 'completed';
+  if (event.type === 'thinking') {
+    if (phase === 'Intent Analysis' || event.message.includes('Analyzing')) {
+      stepMessage = 'Analyzing request...';
+    } else if (phase === 'Strategy Generation' || event.message.includes('strategy')) {
+      stepMessage = 'Planning search strategy...';
+    } else {
+      return ''; // Skip other thinking events
+    }
+  } else if (event.type === 'searching') {
+    const queries = details?.queries as string[] | undefined;
+    if (queries && queries.length > 0) {
+      stepMessage = `Searching ${queries.length} sources...`;
+    } else {
+      stepMessage = 'Searching...';
+    }
+  } else if (event.type === 'evaluating') {
+    stepMessage = 'Evaluating findings...';
+  } else if (event.type === 'synthesizing') {
+    stepMessage = 'Creating report...';
+  } else {
+    return ''; // Skip unknown events
   }
 
-  // Mark current task as active
-  currentTasks[taskIndex].status = 'active';
-
-  // Capture search queries if this is a search event
-  if (taskId === 'search' && details?.queries && Array.isArray(details.queries)) {
-    currentSearchQueries = details.queries as string[];
-  }
-
-  // Clear queries when moving past search
-  if (taskId !== 'search') {
-    currentSearchQueries = [];
-  }
-
-  // Render updated list
-  const newOutput = renderTaskList();
-
-  // Only output if the state actually changed
-  if (newOutput !== lastRenderedOutput) {
-    lastRenderedOutput = newOutput;
-    return '\n' + newOutput + '\n';
+  // Only output if this is a new step
+  if (stepMessage && stepMessage !== lastShownStep) {
+    lastShownStep = stepMessage;
+    return `${stepMessage}\n`;
   }
 
   return '';
