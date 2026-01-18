@@ -15,6 +15,9 @@ export { generateInvoicePdf } from './invoiceGenerator';
 export { generateWordDocx, createLetterTemplate } from './documentGenerator';
 export { generateGeneralPdf } from './generalPdfGenerator';
 
+// Excel Formula Helpers
+export { ExcelFormulas, columnToLetter, cellRef, rangeRef } from './excelFormulas';
+
 // Type guards (re-exported for convenience)
 export {
   isResumeDocument,
