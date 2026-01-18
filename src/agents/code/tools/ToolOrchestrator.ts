@@ -17,6 +17,8 @@ import { BaseTool, ToolDefinition, ToolCall, ToolOutput } from './BaseTool';
 import { readTool, ReadTool } from './ReadTool';
 import { searchTool, SearchTool } from './SearchTool';
 import { bashTool, BashTool } from './BashTool';
+import { writeTool, WriteTool } from './WriteTool';
+import { globTool, GlobTool } from './GlobTool';
 import { AgentStreamCallback } from '../../core/types';
 
 const anthropic = new Anthropic({
@@ -30,6 +32,7 @@ export interface OrchestratorConfig {
   branch?: string;
   sandboxUrl?: string;
   oidcToken?: string;
+  workspaceId?: string;
 }
 
 export interface ThinkingStep {
@@ -59,6 +62,8 @@ export class ToolOrchestrator {
   constructor() {
     // Register all available tools
     this.registerTool(readTool);
+    this.registerTool(writeTool);
+    this.registerTool(globTool);
     this.registerTool(searchTool);
     this.registerTool(bashTool);
   }
@@ -76,6 +81,7 @@ export class ToolOrchestrator {
   initialize(config: OrchestratorConfig): void {
     // Initialize ReadTool
     (readTool as ReadTool).initialize({
+      workspaceId: config.workspaceId,
       githubToken: config.githubToken,
       owner: config.owner,
       repo: config.repo,
@@ -94,13 +100,27 @@ export class ToolOrchestrator {
       sandboxUrl: config.sandboxUrl,
       oidcToken: config.oidcToken,
     });
+
+    // Initialize WriteTool
+    (writeTool as WriteTool).initialize({
+      workspaceId: config.workspaceId,
+      githubToken: config.githubToken,
+      owner: config.owner,
+      repo: config.repo,
+      branch: config.branch,
+    });
+
+    // Initialize GlobTool
+    (globTool as GlobTool).initialize({
+      workspaceId: config.workspaceId,
+    });
   }
 
   /**
    * Get tool definitions for the LLM
    */
   getToolDefinitions(): ToolDefinition[] {
-    return Array.from(this.tools.values()).map(tool => tool.getDefinition());
+    return Array.from(this.tools.values()).map((tool) => tool.getDefinition());
   }
 
   /**
@@ -243,7 +263,7 @@ export class ToolOrchestrator {
         // Add tool results as user message
         messages.push({
           role: 'user',
-          content: toolResults.map(r => `Tool ${r.id} result: ${r.content}`).join('\n'),
+          content: toolResults.map((r) => `Tool ${r.id} result: ${r.content}`).join('\n'),
         });
       }
 
@@ -303,7 +323,7 @@ When you have enough information to complete the task, provide a clear conclusio
    * Convert tools to Anthropic format
    */
   private getAnthropicToolDefinitions(): Anthropic.Tool[] {
-    return Array.from(this.tools.values()).map(tool => {
+    return Array.from(this.tools.values()).map((tool) => {
       const def = tool.getDefinition();
       return {
         name: def.name,
@@ -354,9 +374,7 @@ When you have enough information to complete the task, provide a clear conclusio
     result: ToolOutput
   ): void {
     const status = result.success ? '✓' : '✗';
-    const preview = result.success
-      ? JSON.stringify(result.result).substring(0, 100)
-      : result.error;
+    const preview = result.success ? JSON.stringify(result.result).substring(0, 100) : result.error;
     onStream({
       type: result.success ? 'evaluating' : 'error',
       message: `${toolName} ${status}: ${preview}`,
@@ -371,7 +389,7 @@ When you have enough information to complete the task, provide a clear conclusio
   async quickSearch(query: string, type: 'content' | 'filename' = 'content'): Promise<string[]> {
     const result = await searchTool.execute({ query, type, maxResults: 10 });
     if (!result.success || !result.result) return [];
-    return result.result.matches.map(m => m.path);
+    return result.result.matches.map((m) => m.path);
   }
 
   /**

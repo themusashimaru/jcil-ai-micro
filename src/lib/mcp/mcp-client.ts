@@ -2,10 +2,11 @@
  * REAL MCP CLIENT IMPLEMENTATION
  *
  * Implements the actual Model Context Protocol:
- * - Spawns MCP server processes
+ * - Spawns MCP server processes (locally or in E2B containers)
  * - JSON-RPC communication over stdio
  * - Tool discovery from real servers
  * - Proper protocol message handling
+ * - Container-aware transport for workspace integration
  *
  * This is REAL MCP, not a facade.
  */
@@ -13,6 +14,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
+import { ContainerManager } from '@/lib/workspace/container';
 
 const log = logger('MCPClient');
 
@@ -29,6 +31,9 @@ export interface MCPServerConfig {
   env?: Record<string, string>;
   enabled: boolean;
   timeout?: number;
+  // Container integration
+  workspaceId?: string; // If provided, run MCP server in E2B container
+  containerCwd?: string; // Working directory in container (default: /workspace)
 }
 
 export interface MCPTool {
@@ -97,17 +102,211 @@ interface JSONRPCNotification {
 }
 
 // ============================================================================
+// MCP TRANSPORT INTERFACE
+// ============================================================================
+
+interface MCPTransport {
+  send(message: string): Promise<void>;
+  onData(handler: (data: string) => void): void;
+  onError(handler: (error: Error) => void): void;
+  onClose(handler: (code: number | null, signal: string | null) => void): void;
+  close(): Promise<void>;
+}
+
+// ============================================================================
+// LOCAL STDIO TRANSPORT
+// ============================================================================
+
+class LocalStdioTransport implements MCPTransport {
+  private process: ChildProcess;
+  private dataHandler: ((data: string) => void) | null = null;
+  private errorHandler: ((error: Error) => void) | null = null;
+  private closeHandler: ((code: number | null, signal: string | null) => void) | null = null;
+
+  constructor(command: string, args: string[], env: Record<string, string>) {
+    this.process = spawn(command, args, {
+      env: { ...process.env, ...env },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    this.process.stdout?.on('data', (data) => {
+      this.dataHandler?.(data.toString());
+    });
+
+    this.process.stderr?.on('data', (data) => {
+      log.debug(`[LocalTransport] stderr: ${data.toString().trim()}`);
+    });
+
+    this.process.on('exit', (code, signal) => {
+      this.closeHandler?.(code, signal);
+    });
+
+    this.process.on('error', (error) => {
+      this.errorHandler?.(error);
+    });
+  }
+
+  async send(message: string): Promise<void> {
+    if (!this.process.stdin?.writable) {
+      throw new Error('Transport stdin not writable');
+    }
+    this.process.stdin.write(message + '\n');
+  }
+
+  onData(handler: (data: string) => void): void {
+    this.dataHandler = handler;
+  }
+
+  onError(handler: (error: Error) => void): void {
+    this.errorHandler = handler;
+  }
+
+  onClose(handler: (code: number | null, signal: string | null) => void): void {
+    this.closeHandler = handler;
+  }
+
+  async close(): Promise<void> {
+    this.process.kill();
+  }
+}
+
+// ============================================================================
+// CONTAINER TRANSPORT (E2B)
+// ============================================================================
+
+class ContainerTransport implements MCPTransport {
+  private container: ContainerManager;
+  private workspaceId: string;
+  private command: string;
+  private args: string[];
+  private env: Record<string, string>;
+  private cwd: string;
+  private dataHandler: ((data: string) => void) | null = null;
+  private errorHandler: ((error: Error) => void) | null = null;
+  private closeHandler: ((code: number | null, signal: string | null) => void) | null = null;
+  private isConnected = false;
+  private requestQueue: Array<{
+    message: string;
+    resolve: () => void;
+    reject: (error: Error) => void;
+  }> = [];
+  private isSending = false;
+
+  constructor(
+    workspaceId: string,
+    command: string,
+    args: string[],
+    env: Record<string, string>,
+    cwd: string
+  ) {
+    this.container = new ContainerManager();
+    this.workspaceId = workspaceId;
+    this.command = command;
+    this.args = args;
+    this.env = env;
+    this.cwd = cwd;
+    this.isConnected = true;
+  }
+
+  /**
+   * Send a message by executing MCP server with request via stdin
+   * Uses a wrapper approach for request-response communication
+   */
+  async send(message: string): Promise<void> {
+    if (!this.isConnected) {
+      throw new Error('Transport not connected');
+    }
+
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push({ message, resolve, reject });
+      this.processQueue();
+    });
+  }
+
+  private async processQueue(): Promise<void> {
+    if (this.isSending || this.requestQueue.length === 0) {
+      return;
+    }
+
+    this.isSending = true;
+    const request = this.requestQueue.shift()!;
+
+    try {
+      // Build environment string for the container command
+      const envStr = Object.entries(this.env)
+        .map(([k, v]) => `${k}="${v}"`)
+        .join(' ');
+
+      // Create a helper script that sends the request and captures response
+      // The MCP server reads from stdin and writes to stdout
+      const argsStr = this.args.map((a) => `"${a}"`).join(' ');
+      const escapedMessage = request.message.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+
+      // Use echo to pipe the message to the MCP server
+      const command = `cd ${this.cwd} && echo '${escapedMessage}' | ${envStr} ${this.command} ${argsStr}`;
+
+      log.debug('Container MCP command', { command: command.substring(0, 200) });
+
+      const result = await this.container.executeCommand(this.workspaceId, command, {
+        timeout: 30000,
+      });
+
+      if (result.exitCode !== 0 && result.stderr) {
+        log.warn('Container MCP stderr', { stderr: result.stderr });
+      }
+
+      // Parse and emit response data
+      if (result.stdout) {
+        this.dataHandler?.(result.stdout);
+      }
+
+      request.resolve();
+    } catch (error) {
+      log.error('Container MCP send failed', error as Error);
+      request.reject(error as Error);
+      this.errorHandler?.(error as Error);
+    } finally {
+      this.isSending = false;
+      // Process next request in queue
+      if (this.requestQueue.length > 0) {
+        this.processQueue();
+      }
+    }
+  }
+
+  onData(handler: (data: string) => void): void {
+    this.dataHandler = handler;
+  }
+
+  onError(handler: (error: Error) => void): void {
+    this.errorHandler = handler;
+  }
+
+  onClose(handler: (code: number | null, signal: string | null) => void): void {
+    this.closeHandler = handler;
+  }
+
+  async close(): Promise<void> {
+    this.isConnected = false;
+    this.closeHandler?.(0, null);
+  }
+}
+
+// ============================================================================
 // MCP CLIENT
 // ============================================================================
 
 export class MCPClient extends EventEmitter {
   private config: MCPServerConfig;
-  private process: ChildProcess | null = null;
-  private pendingRequests: Map<string | number, {
-    resolve: (value: unknown) => void;
-    reject: (error: Error) => void;
-    timeout: NodeJS.Timeout;
-  }> = new Map();
+  private transport: MCPTransport | null = null;
+  private pendingRequests: Map<
+    string | number,
+    {
+      resolve: (value: unknown) => void;
+      reject: (error: Error) => void;
+      timeout: NodeJS.Timeout;
+    }
+  > = new Map();
   private buffer = '';
   private requestId = 0;
   private initialized = false;
@@ -128,11 +327,15 @@ export class MCPClient extends EventEmitter {
    * Start the MCP server and establish connection
    */
   async connect(): Promise<void> {
-    if (this.process) {
+    if (this.transport) {
       throw new Error('Already connected');
     }
 
-    log.info('Starting MCP server', { id: this.config.id, command: this.config.command });
+    log.info('Starting MCP server', {
+      id: this.config.id,
+      command: this.config.command,
+      workspaceId: this.config.workspaceId,
+    });
 
     // Resolve environment variables - spread process.env and add custom vars
     const customEnv: Record<string, string> = {};
@@ -143,36 +346,47 @@ export class MCPClient extends EventEmitter {
       }
     }
 
-    // Spawn the MCP server process
-    this.process = spawn(this.config.command, this.config.args || [], {
-      env: { ...process.env, ...customEnv },
-      stdio: ['pipe', 'pipe', 'pipe'],
+    // Choose transport based on configuration
+    if (this.config.workspaceId) {
+      // Use container transport for workspace execution
+      this.transport = new ContainerTransport(
+        this.config.workspaceId,
+        this.config.command,
+        this.config.args || [],
+        customEnv,
+        this.config.containerCwd || '/workspace'
+      );
+      log.info('Using container transport', { workspaceId: this.config.workspaceId });
+    } else {
+      // Use local stdio transport
+      this.transport = new LocalStdioTransport(
+        this.config.command,
+        this.config.args || [],
+        customEnv
+      );
+      log.info('Using local stdio transport');
+    }
+
+    // Set up transport event handlers
+    this.transport.onData((data) => {
+      this.handleData(data);
     });
 
-    // Set up stdout handling (JSON-RPC messages)
-    this.process.stdout?.on('data', (data) => {
-      this.handleData(data.toString());
+    this.transport.onError((error) => {
+      log.error('MCP server error', error);
+      this.emit('error', error);
     });
 
-    // Set up stderr handling (logging)
-    this.process.stderr?.on('data', (data) => {
-      log.debug(`[${this.config.id}] stderr: ${data.toString().trim()}`);
-    });
-
-    // Handle process exit
-    this.process.on('exit', (code, signal) => {
+    this.transport.onClose((code, signal) => {
       log.info('MCP server exited', { id: this.config.id, code, signal });
       this.cleanup();
       this.emit('exit', { code, signal });
     });
 
-    this.process.on('error', (error) => {
-      log.error('MCP server error', error);
-      this.emit('error', error);
-    });
-
-    // Wait a bit for the process to start
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Wait a bit for the process to start (only needed for local transport)
+    if (!this.config.workspaceId) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
 
     // Initialize the connection
     await this.initialize();
@@ -220,7 +434,6 @@ export class MCPClient extends EventEmitter {
 
       // Discover available tools, resources, and prompts
       await this.discoverCapabilities();
-
     } catch (error) {
       log.error('MCP initialization failed', error as Error);
       throw error;
@@ -286,7 +499,11 @@ export class MCPClient extends EventEmitter {
   /**
    * Read a resource
    */
-  async readResource(uri: string): Promise<{ contents: Array<{ uri: string; mimeType?: string; text?: string; blob?: string }> }> {
+  async readResource(
+    uri: string
+  ): Promise<{
+    contents: Array<{ uri: string; mimeType?: string; text?: string; blob?: string }>;
+  }> {
     if (!this.initialized) {
       throw new Error('MCP client not initialized');
     }
@@ -295,13 +512,18 @@ export class MCPClient extends EventEmitter {
 
     const result = await this.sendRequest('resources/read', { uri });
 
-    return result as { contents: Array<{ uri: string; mimeType?: string; text?: string; blob?: string }> };
+    return result as {
+      contents: Array<{ uri: string; mimeType?: string; text?: string; blob?: string }>;
+    };
   }
 
   /**
    * Get a prompt
    */
-  async getPrompt(name: string, args?: Record<string, string>): Promise<{ description?: string; messages: Array<{ role: string; content: unknown }> }> {
+  async getPrompt(
+    name: string,
+    args?: Record<string, string>
+  ): Promise<{ description?: string; messages: Array<{ role: string; content: unknown }> }> {
     if (!this.initialized) {
       throw new Error('MCP client not initialized');
     }
@@ -338,33 +560,39 @@ export class MCPClient extends EventEmitter {
         params,
       };
 
-      this.send(request);
+      // Send is now async but we don't await it here
+      // The response will come through handleData
+      this.send(request).catch((err) => {
+        this.pendingRequests.delete(id);
+        clearTimeout(timeoutHandle);
+        reject(err);
+      });
     });
   }
 
   /**
    * Send a JSON-RPC notification
    */
-  private sendNotification(method: string, params?: unknown): void {
+  private async sendNotification(method: string, params?: unknown): Promise<void> {
     const notification: JSONRPCNotification = {
       jsonrpc: '2.0',
       method,
       params,
     };
 
-    this.send(notification);
+    await this.send(notification);
   }
 
   /**
    * Send a message to the server
    */
-  private send(message: JSONRPCRequest | JSONRPCNotification): void {
-    if (!this.process?.stdin?.writable) {
-      throw new Error('Server stdin not writable');
+  private async send(message: JSONRPCRequest | JSONRPCNotification): Promise<void> {
+    if (!this.transport) {
+      throw new Error('Transport not connected');
     }
 
-    const data = JSON.stringify(message) + '\n';
-    this.process.stdin.write(data);
+    const data = JSON.stringify(message);
+    await this.transport.send(data);
   }
 
   /**
@@ -425,7 +653,7 @@ export class MCPClient extends EventEmitter {
    * Disconnect from the server
    */
   async disconnect(): Promise<void> {
-    if (!this.process) return;
+    if (!this.transport) return;
 
     log.info('Disconnecting MCP server', { id: this.config.id });
 
@@ -436,8 +664,8 @@ export class MCPClient extends EventEmitter {
     }
     this.pendingRequests.clear();
 
-    // Kill the process
-    this.process.kill();
+    // Close the transport
+    await this.transport.close();
     this.cleanup();
   }
 
@@ -445,7 +673,7 @@ export class MCPClient extends EventEmitter {
    * Clean up state
    */
   private cleanup(): void {
-    this.process = null;
+    this.transport = null;
     this.initialized = false;
     this.serverInfo = null;
     this.capabilities = null;
@@ -458,7 +686,7 @@ export class MCPClient extends EventEmitter {
    * Check if connected
    */
   isConnected(): boolean {
-    return this.process !== null && this.initialized;
+    return this.transport !== null && this.initialized;
   }
 
   /**
@@ -466,7 +694,7 @@ export class MCPClient extends EventEmitter {
    */
   getStatus(): 'running' | 'stopped' | 'error' {
     if (this.isConnected()) return 'running';
-    if (this.process) return 'error';
+    if (this.transport) return 'error';
     return 'stopped';
   }
 }

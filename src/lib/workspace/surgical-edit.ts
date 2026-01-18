@@ -123,41 +123,130 @@ function validateEdits(
 // DIFF GENERATION
 // ============================================================================
 
-function generateDiffs(
-  originalLines: string[],
-  _newLines: string[],
-  edits: LineEdit[]
-): EditDiff[] {
+/**
+ * Generate diffs by comparing original and new content line by line.
+ * Uses simple LCS-based approach for accurate diff detection.
+ */
+function generateDiffs(originalLines: string[], newLines: string[]): EditDiff[] {
   const diffs: EditDiff[] = [];
 
-  for (const edit of edits) {
-    const startIdx = edit.startLine - 1;
-    const endIdx = Math.min(edit.endLine - 1, originalLines.length - 1);
-    const newContentLines = edit.newContent.split('\n');
+  // Use a simple longest common subsequence (LCS) approach
+  // to find matching lines and generate accurate diffs
+  const lcs = computeLCS(originalLines, newLines);
 
-    // Calculate what was removed
-    for (let i = startIdx; i <= endIdx && i < originalLines.length; i++) {
+  let origIdx = 0;
+  let newIdx = 0;
+  let lcsIdx = 0;
+
+  while (origIdx < originalLines.length || newIdx < newLines.length) {
+    if (
+      lcsIdx < lcs.length &&
+      origIdx < originalLines.length &&
+      originalLines[origIdx] === lcs[lcsIdx]
+    ) {
+      // This line is in common
+      if (newIdx < newLines.length && newLines[newIdx] === lcs[lcsIdx]) {
+        // Same line in both - no change, just advance
+        origIdx++;
+        newIdx++;
+        lcsIdx++;
+      } else {
+        // New content added before this common line
+        diffs.push({
+          lineNumber: newIdx + 1,
+          type: 'add',
+          newContent: newLines[newIdx],
+        });
+        newIdx++;
+      }
+    } else if (
+      lcsIdx < lcs.length &&
+      newIdx < newLines.length &&
+      newLines[newIdx] === lcs[lcsIdx]
+    ) {
+      // Line removed from original
       diffs.push({
-        lineNumber: i + 1,
+        lineNumber: origIdx + 1,
         type: 'remove',
-        oldContent: originalLines[i],
+        oldContent: originalLines[origIdx],
       });
-    }
-
-    // Calculate what was added
-    for (let i = 0; i < newContentLines.length; i++) {
+      origIdx++;
+    } else if (origIdx < originalLines.length && newIdx < newLines.length) {
+      // Both differ - check if it's a modification or add/remove
+      if (originalLines[origIdx] !== newLines[newIdx]) {
+        diffs.push({
+          lineNumber: origIdx + 1,
+          type: 'modify',
+          oldContent: originalLines[origIdx],
+          newContent: newLines[newIdx],
+        });
+      }
+      origIdx++;
+      newIdx++;
+    } else if (origIdx < originalLines.length) {
+      // Only original has remaining lines - removed
       diffs.push({
-        lineNumber: startIdx + i + 1,
-        type: 'add',
-        newContent: newContentLines[i],
+        lineNumber: origIdx + 1,
+        type: 'remove',
+        oldContent: originalLines[origIdx],
       });
+      origIdx++;
+    } else if (newIdx < newLines.length) {
+      // Only new has remaining lines - added
+      diffs.push({
+        lineNumber: newIdx + 1,
+        type: 'add',
+        newContent: newLines[newIdx],
+      });
+      newIdx++;
     }
   }
 
-  // Sort diffs by line number
-  diffs.sort((a, b) => a.lineNumber - b.lineNumber);
-
   return diffs;
+}
+
+/**
+ * Compute Longest Common Subsequence of two string arrays.
+ * Used for accurate diff generation.
+ */
+function computeLCS(a: string[], b: string[]): string[] {
+  const m = a.length;
+  const n = b.length;
+
+  // DP table
+  const dp: number[][] = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(0));
+
+  // Fill DP table
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
+  }
+
+  // Backtrack to find LCS
+  const lcs: string[] = [];
+  let i = m;
+  let j = n;
+
+  while (i > 0 && j > 0) {
+    if (a[i - 1] === b[j - 1]) {
+      lcs.unshift(a[i - 1]);
+      i--;
+      j--;
+    } else if (dp[i - 1][j] > dp[i][j - 1]) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+
+  return lcs;
 }
 
 // ============================================================================
@@ -239,7 +328,7 @@ export async function surgicalEdit(
     }
 
     const newContent = newLines.join('\n');
-    const diffs = generateDiffs(originalLines, newLines, edits);
+    const diffs = generateDiffs(originalLines, newLines);
 
     // Calculate modifications (lines that changed but weren't fully added/removed)
     const linesModified = Math.min(linesAdded, linesRemoved);

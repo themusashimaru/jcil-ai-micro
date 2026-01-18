@@ -11,6 +11,8 @@ export type { ToolDefinition, ToolInput, ToolOutput, ToolCall, ToolCallResult } 
 
 // Individual tools
 export { ReadTool, readTool } from './ReadTool';
+export { WriteTool, writeTool } from './WriteTool';
+export { GlobTool, globTool } from './GlobTool';
 export { SearchTool, searchTool } from './SearchTool';
 export { BashTool, bashTool } from './BashTool';
 

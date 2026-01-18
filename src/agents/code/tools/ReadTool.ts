@@ -1,19 +1,24 @@
 /**
  * READ TOOL
  *
- * Reads files from:
- * - GitHub repositories (via GitHub API)
- * - Vercel Sandbox (via sandbox API)
- * - Local file system (development only)
+ * Reads files from (in priority order):
+ * 1. E2B workspace containers (if workspaceId configured)
+ * 2. GitHub repositories (via GitHub API)
  *
  * Features:
  * - Line number support (read specific ranges)
  * - Multiple file reading
  * - Binary file detection
  * - Encoding detection
+ * - Workspace-first strategy for live file access
  */
 
 import { BaseTool, ToolInput, ToolOutput, ToolDefinition } from './BaseTool';
+import { ContainerManager } from '@/lib/workspace/container';
+import { sanitizeFilePath } from '@/lib/workspace/security';
+import { logger } from '@/lib/logger';
+
+const log = logger('ReadTool');
 
 interface ReadInput extends ToolInput {
   path: string;
@@ -30,27 +35,32 @@ interface ReadOutput extends ToolOutput {
     language: string;
     size: number;
     truncated: boolean;
+    source: 'workspace' | 'github';
   };
 }
 
 export class ReadTool extends BaseTool {
   name = 'read';
-  description = 'Read file contents from the codebase. Can read specific line ranges.';
+  description =
+    'Read file contents from the workspace or repository. Reads from active workspace first, falls back to GitHub. Can read specific line ranges.';
 
+  private workspaceId?: string;
   private githubToken?: string;
   private owner?: string;
   private repo?: string;
   private branch?: string;
 
   /**
-   * Initialize with GitHub context
+   * Initialize with workspace and GitHub context
    */
   initialize(config: {
+    workspaceId?: string;
     githubToken?: string;
     owner?: string;
     repo?: string;
     branch?: string;
   }): void {
+    this.workspaceId = config.workspaceId;
     this.githubToken = config.githubToken;
     this.owner = config.owner;
     this.repo = config.repo;
@@ -66,7 +76,7 @@ export class ReadTool extends BaseTool {
         properties: {
           path: {
             type: 'string',
-            description: 'File path relative to repository root (e.g., "src/index.ts")',
+            description: 'File path relative to workspace/repository root (e.g., "src/index.ts")',
             required: true,
           },
           startLine: {
@@ -94,17 +104,43 @@ export class ReadTool extends BaseTool {
     try {
       let content: string;
       let size: number;
+      let source: 'workspace' | 'github';
 
-      if (this.githubToken && this.owner && this.repo) {
-        // Read from GitHub
+      // Strategy 1: Try workspace container first (if configured)
+      if (this.workspaceId) {
+        const workspaceResult = await this.readFromWorkspace(input.path);
+        if (workspaceResult.success) {
+          content = workspaceResult.content!;
+          size = workspaceResult.size!;
+          source = 'workspace';
+          log.debug('Read from workspace', { path: input.path, size });
+        } else if (this.githubToken && this.owner && this.repo) {
+          // Fall back to GitHub if file not in workspace
+          log.debug('File not in workspace, trying GitHub', { path: input.path });
+          const githubResult = await this.readFromGitHub(input.path);
+          content = githubResult.content;
+          size = githubResult.size;
+          source = 'github';
+        } else {
+          // No fallback available
+          return {
+            success: false,
+            error: workspaceResult.error || `File not found: ${input.path}`,
+          };
+        }
+      }
+      // Strategy 2: GitHub only (no workspace)
+      else if (this.githubToken && this.owner && this.repo) {
         const result = await this.readFromGitHub(input.path);
         content = result.content;
         size = result.size;
-      } else {
-        // Fallback: return error (no local filesystem access in production)
+        source = 'github';
+      }
+      // No backend configured
+      else {
         return {
           success: false,
-          error: 'GitHub not configured. Please connect a repository.',
+          error: 'No read backend configured. Please connect a workspace or repository.',
         };
       }
 
@@ -142,6 +178,7 @@ export class ReadTool extends BaseTool {
           language: this.detectLanguage(input.path),
           size,
           truncated,
+          source,
         },
         metadata: {
           executionTime: Date.now() - startTime,
@@ -154,6 +191,35 @@ export class ReadTool extends BaseTool {
         metadata: {
           executionTime: Date.now() - startTime,
         },
+      };
+    }
+  }
+
+  /**
+   * Read file from E2B workspace container
+   */
+  private async readFromWorkspace(
+    path: string
+  ): Promise<{ success: boolean; content?: string; size?: number; error?: string }> {
+    const container = new ContainerManager();
+
+    try {
+      // Sanitize path for security
+      const safePath = sanitizeFilePath(path, '/workspace');
+
+      // Read from container
+      const content = await container.readFile(this.workspaceId!, safePath);
+
+      return {
+        success: true,
+        content,
+        size: Buffer.byteLength(content, 'utf-8'),
+      };
+    } catch (error) {
+      // File doesn't exist or other error
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to read from workspace',
       };
     }
   }
