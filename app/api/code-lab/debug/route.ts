@@ -9,8 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { getDebugManager } from '@/lib/debugger/debug-manager';
 import { DebugConfiguration, Source } from '@/lib/debugger/debug-adapter';
 import { logger } from '@/lib/logger';
@@ -25,9 +24,9 @@ const log = logger('DebugAPI');
 export async function POST(request: NextRequest) {
   try {
     // Auth check
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
     }
 
     const body = await request.json();
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'start': {
         const config = params.config as DebugConfiguration;
-        const workspaceId = (params.workspaceId as string) || session.user.id;
+        const workspaceId = (params.workspaceId as string) || auth.user.id;
 
         if (!config || !config.type || !config.program) {
           return NextResponse.json(
@@ -51,10 +50,10 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        log.info('Starting debug session', { userId: session.user.id, type: config.type });
+        log.info('Starting debug session', { userId: auth.user.id, type: config.type });
 
         const debugSession = await debugManager.startSession(
-          session.user.id,
+          auth.user.id,
           workspaceId,
           config
         );
@@ -253,9 +252,10 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Auth check (GET - no CSRF needed)
+    const auth = await requireUser();
+    if (!auth.authorized) {
+      return auth.response;
     }
 
     const { searchParams } = new URL(request.url);
@@ -281,7 +281,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all sessions for user
-    const sessions = debugManager.getUserSessions(session.user.id);
+    const sessions = debugManager.getUserSessions(auth.user.id);
     return NextResponse.json({ sessions });
   } catch (error) {
     log.error('Debug API error', error as Error);

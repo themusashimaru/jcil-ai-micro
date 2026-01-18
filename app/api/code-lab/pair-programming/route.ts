@@ -7,8 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getPairProgrammer, CodeEdit, PairProgrammerContext, PairProgrammerSuggestion } from '@/lib/pair-programmer';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 
 const log = logger('PairProgrammingAPI');
@@ -93,13 +92,13 @@ function convertSuggestion(suggestion: PairProgrammerSuggestion): {
 export async function POST(request: NextRequest) {
   try {
     // Auth check
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
     }
 
     // Rate limit check
-    if (!checkRateLimit(session.user.id)) {
+    if (!checkRateLimit(auth.user.id)) {
       return NextResponse.json(
         { error: 'Rate limit exceeded. Please slow down.' },
         { status: 429 }

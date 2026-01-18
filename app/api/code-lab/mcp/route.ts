@@ -8,8 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { getMCPManager, MCPServerConfig } from '@/lib/mcp/mcp-client';
 import { logger } from '@/lib/logger';
 
@@ -68,9 +67,9 @@ const DEFAULT_SERVERS: MCPServerConfig[] = [
 export async function POST(request: NextRequest) {
   try {
     // Auth check
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
     }
 
     const body = await request.json();
@@ -92,7 +91,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        log.info('Adding MCP server', { userId: session.user.id, serverId: config.id });
+        log.info('Adding MCP server', { userId: auth.user.id, serverId: config.id });
 
         try {
           const client = await manager.addServer(config);
@@ -305,9 +304,10 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Auth check (GET - no CSRF needed)
+    const auth = await requireUser();
+    if (!auth.authorized) {
+      return auth.response;
     }
 
     const { searchParams } = new URL(request.url);

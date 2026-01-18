@@ -9,12 +9,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import {
   surgicalEdit,
   LineEdit,
-  SurgicalEditResult,
   formatDiffForDisplay,
   generateUnifiedDiff,
 } from '@/lib/workspace/surgical-edit';
@@ -32,7 +30,7 @@ async function readFileFromWorkspace(
   // TODO: Connect to actual workspace file system (E2B, container, etc.)
   // For now, use Supabase storage or return error
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Check if file exists in workspace storage
   const { data, error } = await supabase.storage
@@ -52,7 +50,7 @@ async function writeFileToWorkspace(
   filePath: string,
   content: string
 ): Promise<void> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { error } = await supabase.storage
     .from('workspaces')
@@ -74,9 +72,9 @@ async function writeFileToWorkspace(
 export async function POST(request: NextRequest) {
   try {
     // Auth check
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
     }
 
     const body = await request.json();
@@ -105,10 +103,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Get workspace ID from session if not provided
-    const effectiveWorkspaceId = workspaceId || sessionId || session.user.id;
+    const effectiveWorkspaceId = workspaceId || sessionId || auth.user.id;
 
     log.info('Surgical edit request', {
-      userId: session.user.id,
+      userId: auth.user.id,
       workspaceId: effectiveWorkspaceId,
       filePath,
       editCount: edits.length,
