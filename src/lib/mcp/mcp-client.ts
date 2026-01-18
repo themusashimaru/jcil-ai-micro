@@ -134,18 +134,18 @@ export class MCPClient extends EventEmitter {
 
     log.info('Starting MCP server', { id: this.config.id, command: this.config.command });
 
-    // Resolve environment variables
-    const env: Record<string, string> = { ...process.env as Record<string, string> };
+    // Resolve environment variables - spread process.env and add custom vars
+    const customEnv: Record<string, string> = {};
     if (this.config.env) {
       for (const [key, value] of Object.entries(this.config.env)) {
         // Resolve ${VAR} patterns from process.env
-        env[key] = value.replace(/\$\{(\w+)\}/g, (_, varName) => process.env[varName] || '');
+        customEnv[key] = value.replace(/\$\{(\w+)\}/g, (_, varName) => process.env[varName] || '');
       }
     }
 
     // Spawn the MCP server process
     this.process = spawn(this.config.command, this.config.args || [], {
-      env,
+      env: { ...process.env, ...customEnv },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
