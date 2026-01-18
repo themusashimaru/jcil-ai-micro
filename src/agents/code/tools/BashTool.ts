@@ -284,7 +284,6 @@ See docs/CODE_LAB.md for setup instructions.`,
       },
       metadata: {
         executionTime: Date.now() - startTime,
-        sandboxConfigured: false,
       },
     };
   }
