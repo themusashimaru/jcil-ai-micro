@@ -1073,7 +1073,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
 
         .code-lab-empty p {
-          color: #6b7280;
+          color: #4b5563;
           margin: 0 0 1.5rem;
         }
 
@@ -1131,7 +1131,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           border: none;
           padding: 0.5rem;
           cursor: pointer;
-          color: #6b7280;
+          color: #4b5563;
           border-radius: 6px;
           transition: all 0.2s;
         }
@@ -1207,7 +1207,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           padding: 0.75rem 1rem;
           font-size: 0.8125rem;
           font-weight: 500;
-          color: #6b7280;
+          color: #4b5563;
           cursor: pointer;
           border-bottom: 2px solid transparent;
           margin-bottom: -1px;
@@ -1286,7 +1286,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         .diff-empty {
           text-align: center;
           padding: 2rem 1rem;
-          color: #6b7280;
+          color: #4b5563;
         }
 
         .diff-empty p {
@@ -1295,7 +1295,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
         .diff-empty .hint {
           font-size: 0.8125rem;
-          color: #9ca3af;
+          color: #6b7280;
         }
 
         /* Mobile workspace panel - z-index hierarchy:

@@ -142,7 +142,7 @@ export function CodeLabThread({
           background: #f3f4f6;
           border-radius: 9999px;
           font-size: 0.75rem;
-          color: #6b7280;
+          color: #4b5563;
         }
 
         .thread-repo svg {
@@ -162,7 +162,7 @@ export function CodeLabThread({
           align-items: center;
           justify-content: center;
           padding: 3rem;
-          color: #9ca3af;
+          color: #6b7280;
           gap: 1rem;
         }
 
@@ -207,7 +207,7 @@ export function CodeLabThread({
         }
 
         .thread-welcome p {
-          color: #6b7280;
+          color: #4b5563;
           margin: 0 0 2rem;
           line-height: 1.6;
         }

@@ -567,7 +567,7 @@ export function CodeLabComposer({
           justify-content: center;
           background: #e5e7eb;
           border-radius: 4px;
-          color: #6b7280;
+          color: #4b5563;
         }
 
         .attachment-icon svg {
@@ -763,7 +763,7 @@ export function CodeLabComposer({
           border: none;
           border-radius: 8px;
           cursor: pointer;
-          color: #6b7280;
+          color: #4b5563;
           transition: all 0.2s;
         }
 
@@ -881,7 +881,7 @@ export function CodeLabComposer({
           gap: 0.5rem;
           margin-top: 0.5rem;
           font-size: 0.75rem;
-          color: #9ca3af;
+          color: #6b7280;
         }
 
         .separator {
