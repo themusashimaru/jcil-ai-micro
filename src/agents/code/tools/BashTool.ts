@@ -32,35 +32,84 @@ interface BashOutput extends ToolOutput {
 
 // Commands that are safe to execute
 const ALLOWED_COMMANDS = [
-  'npm', 'npx', 'yarn', 'pnpm', 'bun',
-  'node', 'deno', 'tsx', 'ts-node',
-  'python', 'python3', 'pip', 'pip3',
-  'tsc', 'eslint', 'prettier', 'jest', 'vitest', 'mocha',
-  'ls', 'cat', 'head', 'tail', 'wc', 'grep', 'find',
-  'pwd', 'echo', 'env', 'which', 'whereis',
-  'git',  // Read-only git operations
-  'curl', 'wget',  // For API testing
-  'mkdir', 'touch', 'cp', 'mv',  // File operations
+  'npm',
+  'npx',
+  'yarn',
+  'pnpm',
+  'bun',
+  'node',
+  'deno',
+  'tsx',
+  'ts-node',
+  'python',
+  'python3',
+  'pip',
+  'pip3',
+  'tsc',
+  'eslint',
+  'prettier',
+  'jest',
+  'vitest',
+  'mocha',
+  'ls',
+  'cat',
+  'head',
+  'tail',
+  'wc',
+  'grep',
+  'find',
+  'pwd',
+  'echo',
+  'env',
+  'which',
+  'whereis',
+  'git', // Read-only git operations
+  'curl',
+  'wget', // For API testing
+  'mkdir',
+  'touch',
+  'cp',
+  'mv', // File operations
 ];
 
 // Commands that are explicitly blocked
 const BLOCKED_COMMANDS = [
-  'rm -rf', 'rm -r', 'rmdir',
-  'sudo', 'su',
-  'chmod', 'chown', 'chgrp',
-  'kill', 'killall', 'pkill',
-  'shutdown', 'reboot', 'halt',
-  'dd', 'mkfs', 'fdisk', 'mount', 'umount',
-  'systemctl', 'service',
-  'iptables', 'ufw',
-  'passwd', 'useradd', 'userdel',
+  'rm -rf',
+  'rm -r',
+  'rmdir',
+  'sudo',
+  'su',
+  'chmod',
+  'chown',
+  'chgrp',
+  'kill',
+  'killall',
+  'pkill',
+  'shutdown',
+  'reboot',
+  'halt',
+  'dd',
+  'mkfs',
+  'fdisk',
+  'mount',
+  'umount',
+  'systemctl',
+  'service',
+  'iptables',
+  'ufw',
+  'passwd',
+  'useradd',
+  'userdel',
   'crontab',
-  '>', '>>', '|',  // Blocked in raw form (but allowed in safe contexts)
+  '>',
+  '>>',
+  '|', // Blocked in raw form (but allowed in safe contexts)
 ];
 
 export class BashTool extends BaseTool {
   name = 'bash';
-  description = 'Execute shell commands in a sandboxed environment. Use for running tests, builds, and inspecting files.';
+  description =
+    'Execute shell commands in a sandboxed environment. Use for running tests, builds, and inspecting files.';
 
   private sandboxUrl?: string;
   private oidcToken?: string;
@@ -68,10 +117,7 @@ export class BashTool extends BaseTool {
   /**
    * Initialize with sandbox configuration
    */
-  initialize(config: {
-    sandboxUrl?: string;
-    oidcToken?: string;
-  }): void {
+  initialize(config: { sandboxUrl?: string; oidcToken?: string }): void {
     this.sandboxUrl = config.sandboxUrl || process.env.VERCEL_SANDBOX_URL;
     this.oidcToken = config.oidcToken;
   }
@@ -129,11 +175,7 @@ export class BashTool extends BaseTool {
       }
 
       // Execute in Vercel Sandbox
-      const result = await this.executeInSandbox(
-        input.command,
-        input.workingDirectory,
-        timeout
-      );
+      const result = await this.executeInSandbox(input.command, input.workingDirectory, timeout);
 
       return {
         success: result.exitCode === 0,
@@ -160,27 +202,73 @@ export class BashTool extends BaseTool {
   }
 
   /**
-   * Validate command safety
+   * Validate command safety - comprehensive shell injection prevention
    */
   private validateCommandSafety(command: string): { safe: boolean; reason?: string } {
-    const cmdLower = command.toLowerCase().trim();
+    const trimmed = command.trim();
 
-    // Check for blocked patterns
+    // 1. Block command substitution ($() and backticks) - these can execute arbitrary code
+    if (/\$\(|\$\{|`/.test(trimmed)) {
+      return {
+        safe: false,
+        reason: 'Command substitution ($(), ${}, backticks) is not allowed for security reasons.',
+      };
+    }
+
+    // 2. Block command chaining outside of quoted strings
+    // This prevents: cmd1 && cmd2, cmd1 || cmd2, cmd1; cmd2
+    const chainingCheck = this.detectUnquotedChaining(trimmed);
+    if (chainingCheck.found) {
+      return {
+        safe: false,
+        reason: `Command chaining with "${chainingCheck.operator}" is not allowed. Execute commands one at a time.`,
+      };
+    }
+
+    // 3. Block dangerous redirections outside quoted strings (prevent file overwrite attacks)
+    const redirectionCheck = this.detectDangerousRedirection(trimmed);
+    if (redirectionCheck.found) {
+      return {
+        safe: false,
+        reason: `Dangerous redirection "${redirectionCheck.pattern}" is not allowed.`,
+      };
+    }
+
+    // 4. Block process substitution
+    if (/<\(|>\(/.test(trimmed)) {
+      return {
+        safe: false,
+        reason: 'Process substitution (<() or >()) is not allowed.',
+      };
+    }
+
+    // 5. Check for blocked commands/patterns
+    const cmdLower = trimmed.toLowerCase();
     for (const blocked of BLOCKED_COMMANDS) {
-      if (cmdLower.includes(blocked.toLowerCase())) {
+      // Skip operators that are handled separately above
+      if (['>', '>>', '|'].includes(blocked)) continue;
+
+      // Check if blocked command appears (with word boundary awareness)
+      const blockedPattern = new RegExp(`\\b${this.escapeRegex(blocked)}\\b`, 'i');
+      if (blockedPattern.test(cmdLower)) {
         return {
           safe: false,
-          reason: `Blocked command pattern: "${blocked}". This command is not allowed for security reasons.`,
+          reason: `Blocked command: "${blocked}". This command is not allowed for security reasons.`,
         };
       }
     }
 
-    // Extract base command
-    const baseCmd = cmdLower.split(' ')[0].split('/').pop() || '';
+    // 6. Extract and validate the base command
+    const baseCmd = this.extractBaseCommand(trimmed);
+    if (!baseCmd) {
+      return {
+        safe: false,
+        reason: 'Could not determine base command.',
+      };
+    }
 
-    // Check if base command is allowed
-    const isAllowed = ALLOWED_COMMANDS.some(allowed =>
-      baseCmd === allowed || baseCmd.startsWith(allowed + '.')
+    const isAllowed = ALLOWED_COMMANDS.some(
+      (allowed) => baseCmd === allowed || baseCmd.startsWith(allowed + '.')
     );
 
     if (!isAllowed) {
@@ -190,20 +278,184 @@ export class BashTool extends BaseTool {
       };
     }
 
-    // Additional git safety checks
+    // 7. Additional git safety checks
     if (baseCmd === 'git') {
-      const dangerousGitCmds = ['push', 'force', 'reset --hard', 'clean -fd'];
-      for (const dangerous of dangerousGitCmds) {
-        if (cmdLower.includes(dangerous)) {
+      const dangerousGitOps = [
+        { pattern: /\bpush\b.*--force/, reason: 'force push' },
+        { pattern: /\bpush\b.*-f\b/, reason: 'force push' },
+        { pattern: /\breset\b.*--hard/, reason: 'hard reset' },
+        { pattern: /\bclean\b.*-[fd]/, reason: 'clean with force/directory' },
+      ];
+      for (const op of dangerousGitOps) {
+        if (op.pattern.test(cmdLower)) {
           return {
             safe: false,
-            reason: `Dangerous git operation: "${dangerous}". Use with caution.`,
+            reason: `Dangerous git operation: ${op.reason}. This could cause data loss.`,
+          };
+        }
+      }
+    }
+
+    // 8. Block curl/wget to sensitive endpoints
+    if (baseCmd === 'curl' || baseCmd === 'wget') {
+      const sensitivePatterns = [
+        /169\.254\.169\.254/, // AWS metadata
+        /metadata\.google/, // GCP metadata
+        /localhost/,
+        /127\.0\.0\.1/,
+        /0\.0\.0\.0/,
+        /\[::1\]/,
+      ];
+      for (const pattern of sensitivePatterns) {
+        if (pattern.test(trimmed)) {
+          return {
+            safe: false,
+            reason: 'Accessing internal/metadata endpoints is not allowed.',
           };
         }
       }
     }
 
     return { safe: true };
+  }
+
+  /**
+   * Detect command chaining operators outside of quoted strings
+   * Returns the first found operator or null
+   */
+  private detectUnquotedChaining(command: string): { found: boolean; operator?: string } {
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let escaped = false;
+
+    for (let i = 0; i < command.length; i++) {
+      const char = command[i];
+      const nextChar = command[i + 1];
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+
+      if (char === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+        continue;
+      }
+
+      if (char === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+        continue;
+      }
+
+      // Only check for operators outside of quotes
+      if (!inSingleQuote && !inDoubleQuote) {
+        // Check for &&
+        if (char === '&' && nextChar === '&') {
+          return { found: true, operator: '&&' };
+        }
+        // Check for ||
+        if (char === '|' && nextChar === '|') {
+          return { found: true, operator: '||' };
+        }
+        // Check for single | (pipe) - also a form of chaining
+        if (char === '|' && nextChar !== '|') {
+          return { found: true, operator: '|' };
+        }
+        // Check for ; (semicolon)
+        if (char === ';') {
+          return { found: true, operator: ';' };
+        }
+        // Check for & (background execution - can be used for timing attacks)
+        if (char === '&' && nextChar !== '&') {
+          return { found: true, operator: '&' };
+        }
+      }
+    }
+
+    return { found: false };
+  }
+
+  /**
+   * Detect dangerous redirections outside of quoted strings
+   */
+  private detectDangerousRedirection(command: string): { found: boolean; pattern?: string } {
+    let inSingleQuote = false;
+    let inDoubleQuote = false;
+    let escaped = false;
+
+    for (let i = 0; i < command.length; i++) {
+      const char = command[i];
+      const nextChar = command[i + 1];
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+
+      if (char === "'" && !inDoubleQuote) {
+        inSingleQuote = !inSingleQuote;
+        continue;
+      }
+
+      if (char === '"' && !inSingleQuote) {
+        inDoubleQuote = !inDoubleQuote;
+        continue;
+      }
+
+      // Only check for redirections outside of quotes
+      if (!inSingleQuote && !inDoubleQuote) {
+        // Check for output redirections
+        if (char === '>') {
+          if (nextChar === '>') {
+            return { found: true, pattern: '>>' };
+          }
+          return { found: true, pattern: '>' };
+        }
+        // Check for input redirection (can be used to read files)
+        if (char === '<' && nextChar !== '(') {
+          return { found: true, pattern: '<' };
+        }
+      }
+    }
+
+    return { found: false };
+  }
+
+  /**
+   * Extract the base command from a command string
+   * Handles paths, env vars prefix, and more
+   */
+  private extractBaseCommand(command: string): string {
+    // Skip env var assignments at the start (e.g., "FOO=bar npm test")
+    let cmd = command.trim();
+    while (/^[A-Za-z_][A-Za-z0-9_]*=\S*\s+/.test(cmd)) {
+      cmd = cmd.replace(/^[A-Za-z_][A-Za-z0-9_]*=\S*\s+/, '');
+    }
+
+    // Get the first word (the command)
+    const firstWord = cmd.split(/\s+/)[0] || '';
+
+    // If it's a path, extract just the command name
+    const cmdName = firstWord.split('/').pop() || '';
+
+    return cmdName.toLowerCase();
+  }
+
+  /**
+   * Escape special regex characters
+   */
+  private escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   /**
@@ -304,7 +556,7 @@ See docs/CODE_LAB.md for setup instructions.`,
     for (const cmd of commands) {
       const result = await this.execute({ command: cmd });
       results.push(result);
-      if (!result.success) break;  // Stop on first failure
+      if (!result.success) break; // Stop on first failure
     }
     return results;
   }
