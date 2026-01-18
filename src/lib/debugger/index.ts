@@ -34,6 +34,19 @@ export {
   type CDPScript,
 } from './cdp-client';
 
+// DAP Client for Python debugging
+export {
+  DAPClient,
+  dapClient,
+  type DAPSource,
+  type DAPBreakpoint,
+  type DAPStackFrame,
+  type DAPScope,
+  type DAPVariable,
+  type DAPThread,
+  type DAPCapabilities,
+} from './dap-client';
+
 // Manager
 export { DebugManager, getDebugManager, type DebugSessionInfo } from './debug-manager';
 
