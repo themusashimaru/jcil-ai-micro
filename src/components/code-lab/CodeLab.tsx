@@ -606,6 +606,9 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           throw new Error('Failed to send message');
         }
 
+        // Check if this is an action command (like /clear, /reset)
+        const isActionCommand = response.headers.get('X-Action-Command') === 'true';
+
         // Stream the response
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
@@ -624,6 +627,96 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             setMessages((prev) =>
               prev.map((m) => (m.id === assistantId ? { ...m, content: fullContent } : m))
             );
+          }
+
+          // Parse real token usage from API response (sent as hidden marker)
+          const usageMatch = fullContent.match(/<!--USAGE:({.*?})-->/);
+          if (usageMatch) {
+            try {
+              const usage = JSON.parse(usageMatch[1]);
+              // Remove usage marker from displayed content
+              fullContent = fullContent.replace(/\n?<!--USAGE:.*?-->/, '');
+              setMessages((prev) =>
+                prev.map((m) => (m.id === assistantId ? { ...m, content: fullContent } : m))
+              );
+
+              // Update token stats with REAL values from API
+              setTokenStats((prev) => {
+                const newInputTotal = prev.totalInputTokens + usage.input;
+                const newOutputTotal = prev.totalOutputTokens + usage.output;
+                const newCacheRead = prev.totalCacheReadTokens + (usage.cacheRead || 0);
+                const newCacheWrite = prev.totalCacheWriteTokens + (usage.cacheWrite || 0);
+
+                // Calculate real cost based on model
+                const isOpus = usage.model?.includes('opus');
+                const isHaiku = usage.model?.includes('haiku');
+                // Pricing per 1K tokens
+                const inputPrice = isOpus ? 0.015 : isHaiku ? 0.00025 : 0.003;
+                const outputPrice = isOpus ? 0.075 : isHaiku ? 0.00125 : 0.015;
+
+                const inputCost = (newInputTotal / 1000) * inputPrice;
+                const outputCost = (newOutputTotal / 1000) * outputPrice;
+                const contextUsagePercent = Math.min(
+                  100,
+                  ((newInputTotal + newOutputTotal) / 200000) * 100
+                );
+
+                return {
+                  totalInputTokens: newInputTotal,
+                  totalOutputTokens: newOutputTotal,
+                  totalCacheReadTokens: newCacheRead,
+                  totalCacheWriteTokens: newCacheWrite,
+                  totalCost: {
+                    inputCost,
+                    outputCost,
+                    cacheCost: 0,
+                    totalCost: inputCost + outputCost,
+                    currency: 'USD',
+                  },
+                  messageCount: prev.messageCount + 2,
+                  startedAt: prev.startedAt,
+                  contextUsagePercent,
+                };
+              });
+            } catch {
+              log.warn('Failed to parse token usage');
+            }
+          }
+
+          // Handle action commands that modify local state
+          if (isActionCommand) {
+            if (fullContent.includes('History cleared') || fullContent.includes('Session reset')) {
+              // Clear local messages - keep only the action response
+              setMessages([
+                {
+                  id: assistantId,
+                  sessionId: currentSessionId,
+                  role: 'assistant',
+                  content: fullContent,
+                  createdAt: new Date(),
+                  isStreaming: false,
+                },
+              ]);
+              // Reset token stats
+              setTokenStats({
+                totalInputTokens: 0,
+                totalOutputTokens: 0,
+                totalCacheReadTokens: 0,
+                totalCacheWriteTokens: 0,
+                totalCost: {
+                  inputCost: 0,
+                  outputCost: 0,
+                  cacheCost: 0,
+                  totalCost: 0,
+                  currency: 'USD',
+                },
+                messageCount: 0,
+                startedAt: Date.now(),
+                contextUsagePercent: 0,
+              });
+              setIsStreaming(false);
+              return; // Early exit - don't continue with normal flow
+            }
           }
 
           // Mark streaming as complete
@@ -647,33 +740,18 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             )
           );
 
-          // Update token stats (estimate based on content length - ~4 chars per token)
-          const estimatedInputTokens = Math.ceil(content.length / 4);
-          const estimatedOutputTokens = Math.ceil(fullContent.length / 4);
-          setTokenStats((prev) => {
-            const newInputTotal = prev.totalInputTokens + estimatedInputTokens;
-            const newOutputTotal = prev.totalOutputTokens + estimatedOutputTokens;
-            // Estimate cost (Sonnet pricing by default: $0.003/1K input, $0.015/1K output)
-            const inputCost = (newInputTotal / 1000) * 0.003;
-            const outputCost = (newOutputTotal / 1000) * 0.015;
-            const contextUsagePercent = Math.min(
-              100,
-              ((newInputTotal + newOutputTotal) / 200000) * 100
-            );
-            return {
+          // Token stats are now updated from real API usage (see usageMatch handling above)
+          // This fallback only runs if API didn't return usage data
+          if (!usageMatch) {
+            const estimatedInputTokens = Math.ceil(content.length / 4);
+            const estimatedOutputTokens = Math.ceil(fullContent.length / 4);
+            setTokenStats((prev) => ({
               ...prev,
-              totalInputTokens: newInputTotal,
-              totalOutputTokens: newOutputTotal,
-              totalCost: {
-                ...prev.totalCost,
-                inputCost,
-                outputCost,
-                totalCost: inputCost + outputCost,
-              },
+              totalInputTokens: prev.totalInputTokens + estimatedInputTokens,
+              totalOutputTokens: prev.totalOutputTokens + estimatedOutputTokens,
               messageCount: prev.messageCount + 2,
-              contextUsagePercent,
-            };
-          });
+            }));
+          }
 
           // Generate title if this is the first message exchange (title is still default)
           if (isFirstMessage) {
