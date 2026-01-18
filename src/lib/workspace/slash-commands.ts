@@ -165,17 +165,54 @@ const commands: SlashCommand[] = [
       if (args.trim()) {
         const cmd = findCommand(args.trim());
         if (cmd) {
-          return `**/${cmd.name}** - ${cmd.description}\n\nUsage: \`${cmd.usage}\`\n\nAliases: ${cmd.aliases.map((a) => '/' + a).join(', ')}`;
+          return `## /${cmd.name}\n\n${cmd.description}\n\n**Usage:** \`${cmd.usage}\`\n\n**Aliases:** ${cmd.aliases.length ? cmd.aliases.map((a) => '`/' + a + '`').join(', ') : '*none*'}`;
         }
-        return `Unknown command: /${args.trim()}. Type /help to see all commands.`;
+        return `Unknown command: \`/${args.trim()}\`. Type \`/help\` to see all commands.`;
       }
 
-      let helpText = '**Available Commands:**\n\n';
-      commands.forEach((cmd) => {
-        helpText += `\`/${cmd.name}\` - ${cmd.description}\n`;
-      });
-      helpText += '\n*Type /help [command] for more details about a specific command.*';
-      return helpText;
+      // Beautiful categorized help output like Claude Code
+      return `# Code Lab Commands
+
+## Development
+| Command | Description |
+|---------|-------------|
+| \`/fix\` | Fix errors, bugs, or issues in the code |
+| \`/test\` | Run tests and fix any failures |
+| \`/build\` | Run the build and fix any errors |
+| \`/refactor\` | Refactor code for better quality |
+| \`/review\` | Review code for issues and improvements |
+| \`/explain\` | Explain how code works |
+| \`/install\` | Install packages or dependencies |
+
+## Git Operations
+| Command | Description |
+|---------|-------------|
+| \`/commit\` | Commit current changes with a message |
+| \`/push\` | Push commits to remote |
+| \`/diff\` | Show current uncommitted changes |
+| \`/status\` | Show git status |
+| \`/undo\` | Undo last file change or unstage files |
+
+## Session
+| Command | Description |
+|---------|-------------|
+| \`/clear\` | Clear the chat history |
+| \`/compact\` | Summarize and compact context to free up space |
+| \`/reset\` | Reset the session state |
+| \`/model\` | Switch AI model (sonnet, opus, haiku) |
+| \`/workspace\` | Enable sandbox execution mode |
+
+## Keyboard Shortcuts
+| Shortcut | Action |
+|----------|--------|
+| \`⌘ M\` | Toggle model selector |
+| \`⌘ K\` | Open command palette |
+| \`⌘ Shift P\` | Toggle workspace panel |
+| \`⌘ Enter\` | Send message |
+| \`Escape\` | Cancel streaming |
+
+---
+*Type \`/help <command>\` for details about a specific command.*`;
     },
   },
   // ============================================
