@@ -13,7 +13,13 @@ import {
   type AuthenticationResponseJSON,
 } from '@/lib/auth/webauthn';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  getClientIP,
+} from '@/lib/api/utils';
 import { cacheGet, cacheSet, cacheDelete, isRedisAvailable } from '@/lib/redis/client';
 
 const log = logger('WebAuthnAuthenticate');
@@ -100,7 +106,7 @@ async function deleteChallenge(key: string): Promise<void> {
 export async function POST(request: NextRequest) {
   // Rate limit by IP for login attempts
   const ip = getClientIP(request);
-  const rateLimitResult = checkRequestRateLimit(`webauthn:auth:${ip}`, rateLimits.auth);
+  const rateLimitResult = await checkRequestRateLimit(`webauthn:auth:${ip}`, rateLimits.auth);
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   try {
@@ -151,7 +157,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   // Rate limit by IP for login attempts
   const ip = getClientIP(request);
-  const rateLimitResult = checkRequestRateLimit(`webauthn:verify:${ip}`, rateLimits.auth);
+  const rateLimitResult = await checkRequestRateLimit(`webauthn:verify:${ip}`, rateLimits.auth);
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   try {

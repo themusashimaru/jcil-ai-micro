@@ -86,7 +86,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Strict rate limiting - prevent abuse (3 requests per hour max)
-    const rateLimitResult = checkRequestRateLimit(`delete-account:${user.id}`, {
+    const rateLimitResult = await checkRequestRateLimit(`delete-account:${user.id}`, {
       limit: 3,
       windowMs: 3600_000,
     });

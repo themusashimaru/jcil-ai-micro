@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Rate limiting
-  const rateLimitResult = rateLimiters.codeLabFiles(user.id);
+  const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
   if (!rateLimitResult.allowed) {
     return NextResponse.json(
       { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limiting
-  const rateLimitResult = rateLimiters.codeLabFiles(user.id);
+  const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
   if (!rateLimitResult.allowed) {
     return NextResponse.json(
       { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
@@ -167,7 +167,7 @@ export async function PUT(request: NextRequest) {
   }
 
   // Rate limiting
-  const rateLimitResult = rateLimiters.codeLabFiles(user.id);
+  const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
   if (!rateLimitResult.allowed) {
     return NextResponse.json(
       { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
@@ -224,7 +224,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   // Rate limiting
-  const rateLimitResult = rateLimiters.codeLabFiles(user.id);
+  const rateLimitResult = await rateLimiters.codeLabFiles(user.id);
   if (!rateLimitResult.allowed) {
     return NextResponse.json(
       { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },

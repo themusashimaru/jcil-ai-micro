@@ -17,7 +17,14 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // Valid file types for upload
-const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/gif'];
+const IMAGE_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/x-icon',
+  'image/vnd.microsoft.icon',
+  'image/gif',
+];
 const VIDEO_TYPES = ['video/mp4', 'video/webm'];
 
 // Get Supabase admin client for storage operations
@@ -39,7 +46,10 @@ export async function POST(request: NextRequest) {
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin - strict for uploads
-    const rateLimitResult = checkRequestRateLimit(`admin:upload:${auth.user.id}`, rateLimits.strict);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:upload:${auth.user.id}`,
+      rateLimits.strict
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const formData = await request.formData();
@@ -55,7 +65,9 @@ export async function POST(request: NextRequest) {
     const isImage = IMAGE_TYPES.includes(file.type);
 
     if (!isVideo && !isImage) {
-      return errors.badRequest('Invalid file type. Please upload PNG, JPEG, GIF, ICO, MP4, or WebM files.');
+      return errors.badRequest(
+        'Invalid file type. Please upload PNG, JPEG, GIF, ICO, MP4, or WebM files.'
+      );
     }
 
     // Validate file size - 5MB for images, 15MB for videos
@@ -96,13 +108,11 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     // Upload to Supabase Storage 'branding' bucket
-    const { error } = await supabase.storage
-      .from('branding')
-      .upload(filename, buffer, {
-        contentType: file.type,
-        cacheControl: '31536000', // Cache for 1 year (immutable filename)
-        upsert: false,
-      });
+    const { error } = await supabase.storage.from('branding').upload(filename, buffer, {
+      contentType: file.type,
+      cacheControl: '31536000', // Cache for 1 year (immutable filename)
+      upsert: false,
+    });
 
     if (error) {
       log.error('[Upload] Supabase Storage error:', error instanceof Error ? error : { error });
@@ -121,13 +131,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Retry upload
-        const retryResult = await supabase.storage
-          .from('branding')
-          .upload(filename, buffer, {
-            contentType: file.type,
-            cacheControl: '31536000',
-            upsert: false,
-          });
+        const retryResult = await supabase.storage.from('branding').upload(filename, buffer, {
+          contentType: file.type,
+          cacheControl: '31536000',
+          upsert: false,
+        });
 
         if (retryResult.error) {
           log.error('[Upload] Retry failed:', retryResult.error);
@@ -139,9 +147,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('branding')
-      .getPublicUrl(filename);
+    const { data: urlData } = supabase.storage.from('branding').getPublicUrl(filename);
 
     const publicUrl = urlData.publicUrl;
 

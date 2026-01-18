@@ -24,7 +24,7 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   // Rate limit by IP
   const ip = getClientIP(request);
-  const rateLimitResult = checkRequestRateLimit(`github:link:${ip}`, rateLimits.auth);
+  const rateLimitResult = await checkRequestRateLimit(`github:link:${ip}`, rateLimits.auth);
   if (!rateLimitResult.allowed) {
     const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
     return NextResponse.redirect(new URL('/chat?error=rate_limited', origin));
@@ -56,11 +56,13 @@ export async function GET(request: NextRequest) {
   );
 
   // Check if user is authenticated
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (user) {
     // Check if already linked to GitHub
-    const hasGitHub = user.identities?.some(i => i.provider === 'github');
+    const hasGitHub = user.identities?.some((i) => i.provider === 'github');
     if (hasGitHub) {
       return NextResponse.redirect(new URL(`${redirectTo}?github=already_linked`, origin));
     }

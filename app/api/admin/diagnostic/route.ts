@@ -22,7 +22,10 @@ export async function GET() {
   if (!auth.authorized) return auth.response;
 
   // Rate limit by admin
-  const rateLimitResult = checkRequestRateLimit(`admin:diagnostic:${auth.user.id}`, rateLimits.admin);
+  const rateLimitResult = await checkRequestRateLimit(
+    `admin:diagnostic:${auth.user.id}`,
+    rateLimits.admin
+  );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   const diagnostics = {
@@ -82,7 +85,10 @@ export async function GET() {
 
     if (usersError) {
       // SECURITY FIX: Log detailed error server-side only, return generic status
-      log.error('[Diagnostic] Users query failed', { message: usersError.message, code: usersError.code });
+      log.error('[Diagnostic] Users query failed', {
+        message: usersError.message,
+        code: usersError.code,
+      });
       diagnostics.checks.error = 'Database query failed';
     } else {
       diagnostics.checks.canQueryDatabase = true;
@@ -96,14 +102,16 @@ export async function GET() {
 
     if (adminError) {
       // SECURITY FIX: Log detailed error server-side only
-      log.error('[Diagnostic] Admin users query failed', { message: adminError.message, code: adminError.code });
+      log.error('[Diagnostic] Admin users query failed', {
+        message: adminError.message,
+        code: adminError.code,
+      });
       diagnostics.checks.error = diagnostics.checks.error
         ? 'Multiple database queries failed'
         : 'Database query failed';
     } else {
       diagnostics.checks.adminUserCount = adminUsers?.length || 0;
     }
-
   } catch (error) {
     // SECURITY FIX: Don't expose internal error details to client
     log.error('[Diagnostic] Unexpected error:', error instanceof Error ? error : { error });

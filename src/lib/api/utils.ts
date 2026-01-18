@@ -27,20 +27,24 @@ export interface APIResponse<T = unknown> {
   details?: Array<{ field: string; message: string }>;
 }
 
-export type ValidationResult<T> = {
-  success: true;
-  data: T;
-} | {
-  success: false;
-  response: NextResponse;
-};
+export type ValidationResult<T> =
+  | {
+      success: true;
+      data: T;
+    }
+  | {
+      success: false;
+      response: NextResponse;
+    };
 
-export type RateLimitCheckResult = {
-  allowed: true;
-} | {
-  allowed: false;
-  response: NextResponse;
-};
+export type RateLimitCheckResult =
+  | {
+      allowed: true;
+    }
+  | {
+      allowed: false;
+      response: NextResponse;
+    };
 
 // ========================================
 // RESPONSE HELPERS
@@ -49,7 +53,10 @@ export type RateLimitCheckResult = {
 /**
  * Create a successful API response
  */
-export function successResponse<T>(data: T, status: number = HTTP_STATUS.OK): NextResponse<APIResponse<T>> {
+export function successResponse<T>(
+  data: T,
+  status: number = HTTP_STATUS.OK
+): NextResponse<APIResponse<T>> {
   return NextResponse.json({ ok: true, data }, { status });
 }
 
@@ -79,29 +86,17 @@ export function errorResponse(
  * Common error responses
  */
 export const errors = {
-  unauthorized: () => errorResponse(
-    HTTP_STATUS.UNAUTHORIZED,
-    ERROR_CODES.UNAUTHORIZED,
-    'Authentication required'
-  ),
+  unauthorized: () =>
+    errorResponse(HTTP_STATUS.UNAUTHORIZED, ERROR_CODES.UNAUTHORIZED, 'Authentication required'),
 
-  forbidden: (message = 'Access denied') => errorResponse(
-    HTTP_STATUS.FORBIDDEN,
-    ERROR_CODES.FORBIDDEN,
-    message
-  ),
+  forbidden: (message = 'Access denied') =>
+    errorResponse(HTTP_STATUS.FORBIDDEN, ERROR_CODES.FORBIDDEN, message),
 
-  notFound: (resource = 'Resource') => errorResponse(
-    HTTP_STATUS.NOT_FOUND,
-    ERROR_CODES.NOT_FOUND,
-    `${resource} not found`
-  ),
+  notFound: (resource = 'Resource') =>
+    errorResponse(HTTP_STATUS.NOT_FOUND, ERROR_CODES.NOT_FOUND, `${resource} not found`),
 
-  badRequest: (message = 'Invalid request') => errorResponse(
-    HTTP_STATUS.BAD_REQUEST,
-    ERROR_CODES.INVALID_INPUT,
-    message
-  ),
+  badRequest: (message = 'Invalid request') =>
+    errorResponse(HTTP_STATUS.BAD_REQUEST, ERROR_CODES.INVALID_INPUT, message),
 
   rateLimited: (retryAfter?: number) => {
     const response = errorResponse(
@@ -117,18 +112,15 @@ export const errors = {
     return response;
   },
 
-  serverError: () => errorResponse(
-    HTTP_STATUS.INTERNAL_ERROR,
-    ERROR_CODES.INTERNAL_ERROR,
-    'An unexpected error occurred'
-  ),
+  serverError: () =>
+    errorResponse(
+      HTTP_STATUS.INTERNAL_ERROR,
+      ERROR_CODES.INTERNAL_ERROR,
+      'An unexpected error occurred'
+    ),
 
-  validationError: (errors: Array<{ field: string; message: string }>) => errorResponse(
-    HTTP_STATUS.BAD_REQUEST,
-    ERROR_CODES.INVALID_INPUT,
-    'Validation failed',
-    errors
-  ),
+  validationError: (errors: Array<{ field: string; message: string }>) =>
+    errorResponse(HTTP_STATUS.BAD_REQUEST, ERROR_CODES.INVALID_INPUT, 'Validation failed', errors),
 };
 
 // ========================================
@@ -223,11 +215,11 @@ export function validateParams<T extends ZodSchema>(
 /**
  * Check rate limit for a request
  */
-export function checkRequestRateLimit(
+export async function checkRequestRateLimit(
   identifier: string,
   config: RateLimitConfig
-): RateLimitCheckResult {
-  const result = checkRateLimit(identifier, config);
+): Promise<RateLimitCheckResult> {
+  const result = await checkRateLimit(identifier, config);
 
   if (!result.allowed) {
     return {

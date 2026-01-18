@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting
-    const rateLimitResult = rateLimiters.codeLabDebug(auth.user.id);
+    const rateLimitResult = await rateLimiters.codeLabDebug(auth.user.id);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         {

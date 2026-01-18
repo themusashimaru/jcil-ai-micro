@@ -39,7 +39,7 @@ export async function GET() {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(
+    const rateLimitResult = await checkRequestRateLimit(
       `passkeys:get:${session.user.id}`,
       rateLimits.standard
     );
@@ -79,7 +79,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(
+    const rateLimitResult = await checkRequestRateLimit(
       `passkeys:delete:${session.user.id}`,
       rateLimits.strict
     );

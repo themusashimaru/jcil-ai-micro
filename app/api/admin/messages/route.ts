@@ -49,7 +49,10 @@ export async function GET(request: NextRequest) {
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:messages:get:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:messages:get:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
@@ -59,9 +62,14 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Get messages
-    const { data: messages, error, count } = await supabase
+    const {
+      data: messages,
+      error,
+      count,
+    } = await supabase
       .from('user_messages')
-      .select(`
+      .select(
+        `
         id,
         recipient_user_id,
         recipient_tier,
@@ -74,7 +82,9 @@ export async function GET(request: NextRequest) {
         broadcast_sent_count,
         created_at,
         expires_at
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -84,8 +94,8 @@ export async function GET(request: NextRequest) {
     }
 
     // For individual messages, get recipient info
-    const individualMessages = messages?.filter(m => m.recipient_user_id) || [];
-    const userIds = individualMessages.map(m => m.recipient_user_id);
+    const individualMessages = messages?.filter((m) => m.recipient_user_id) || [];
+    const userIds = individualMessages.map((m) => m.recipient_user_id);
 
     let usersMap: Record<string, { email: string; full_name: string | null }> = {};
     if (userIds.length > 0) {
@@ -95,18 +105,19 @@ export async function GET(request: NextRequest) {
         .in('id', userIds);
 
       if (users) {
-        usersMap = users.reduce((acc, u) => {
-          acc[u.id] = { email: u.email, full_name: u.full_name };
-          return acc;
-        }, {} as typeof usersMap);
+        usersMap = users.reduce(
+          (acc, u) => {
+            acc[u.id] = { email: u.email, full_name: u.full_name };
+            return acc;
+          },
+          {} as typeof usersMap
+        );
       }
     }
 
-    const messagesWithRecipients = messages?.map(m => ({
+    const messagesWithRecipients = messages?.map((m) => ({
       ...m,
-      recipient: m.recipient_user_id
-        ? usersMap[m.recipient_user_id]
-        : { tier: m.recipient_tier },
+      recipient: m.recipient_user_id ? usersMap[m.recipient_user_id] : { tier: m.recipient_tier },
     }));
 
     return successResponse({
@@ -133,7 +144,10 @@ export async function POST(request: NextRequest) {
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin - strict for sending messages
-    const rateLimitResult = checkRequestRateLimit(`admin:messages:post:${auth.user.id}`, rateLimits.strict);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:messages:post:${auth.user.id}`,
+      rateLimits.strict
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();

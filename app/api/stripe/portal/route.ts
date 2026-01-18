@@ -58,7 +58,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`stripe:portal:${user.id}`, rateLimits.strict);
+    const rateLimitResult = await checkRequestRateLimit(
+      `stripe:portal:${user.id}`,
+      rateLimits.strict
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Get user's Stripe customer ID
@@ -84,10 +87,7 @@ export async function POST(request: NextRequest) {
     const returnUrl = validation.success ? validation.data.returnUrl : undefined;
 
     // Create billing portal session
-    const session = await createBillingPortalSession(
-      userData.stripe_customer_id,
-      returnUrl
-    );
+    const session = await createBillingPortalSession(userData.stripe_customer_id, returnUrl);
 
     return successResponse({ url: session.url });
   } catch (error) {

@@ -10,7 +10,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { cacheGet, cacheSet, cacheDelete } from '@/lib/redis/client';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  validateBody,
+  checkRequestRateLimit,
+  rateLimits,
+  getClientIP,
+} from '@/lib/api/utils';
 import { designSettingsSchema } from '@/lib/validation/schemas';
 
 const log = logger('DesignSettingsAPI');
@@ -39,7 +46,7 @@ export async function GET(request: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(request);
-    const rateLimitCheck = checkRequestRateLimit(clientIP, rateLimits.standard);
+    const rateLimitCheck = await checkRequestRateLimit(clientIP, rateLimits.standard);
     if (!rateLimitCheck.allowed) return rateLimitCheck.response;
 
     // Try Redis cache first
@@ -63,11 +70,7 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    const { data, error } = await supabase
-      .from('design_settings')
-      .select('*')
-      .limit(1)
-      .single();
+    const { data, error } = await supabase.from('design_settings').select('*').limit(1).single();
 
     if (error) {
       log.error('Error fetching settings', error instanceof Error ? error : { error });
@@ -108,12 +111,15 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const clientIP = getClientIP(request);
-    const rateLimitCheck = checkRequestRateLimit(clientIP, rateLimits.strict);
+    const rateLimitCheck = await checkRequestRateLimit(clientIP, rateLimits.strict);
     if (!rateLimitCheck.allowed) return rateLimitCheck.response;
 
     // Check admin authentication
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return errors.unauthorized();

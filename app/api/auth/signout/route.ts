@@ -11,20 +11,26 @@ import { createServerClient } from '@supabase/ssr';
 import { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  getClientIP,
+} from '@/lib/api/utils';
 
 const log = logger('AuthSignout');
 
 export async function POST(request: NextRequest) {
   // Rate limit by IP
   const ip = getClientIP(request);
-  const rateLimitResult = checkRequestRateLimit(`signout:${ip}`, rateLimits.auth);
+  const rateLimitResult = await checkRequestRateLimit(`signout:${ip}`, rateLimits.auth);
   if (!rateLimitResult.allowed) return rateLimitResult.response;
   try {
     const cookieStore = await cookies();
 
     log.info('[API] Starting logout process...');
-    log.info('[API] Current cookies', { cookies: cookieStore.getAll().map(c => c.name) });
+    log.info('[API] Current cookies', { cookies: cookieStore.getAll().map((c) => c.name) });
 
     // Create Supabase client with SSR cookie handling
     const supabase = createServerClient(
@@ -68,7 +74,7 @@ export async function POST(request: NextRequest) {
     });
 
     log.info('[API] User signed out successfully');
-    log.info('[API] Remaining cookies', { cookies: cookieStore.getAll().map(c => c.name) });
+    log.info('[API] Remaining cookies', { cookies: cookieStore.getAll().map((c) => c.name) });
 
     // Return success - let client handle redirect
     return successResponse({ success: true });

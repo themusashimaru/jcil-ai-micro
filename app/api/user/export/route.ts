@@ -18,14 +18,20 @@ export async function GET() {
   try {
     // Get authenticated user
     const supabase = await createServerSupabaseClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return errors.unauthorized();
     }
 
     // Rate limit - strict limit for data exports
-    const rateLimitResult = checkRequestRateLimit(`user:export:${user.id}`, rateLimits.strict);
+    const rateLimitResult = await checkRequestRateLimit(
+      `user:export:${user.id}`,
+      rateLimits.strict
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Fetch user profile
@@ -130,9 +136,7 @@ export async function GET() {
           .replace(/"/g, '""')
           .replace(/\n/g, ' ')
           .substring(0, 1000); // Limit content length for CSV
-        csvRows.push(
-          `${msg.id},${msg.conversation_id},${msg.role},"${content}",${msg.created_at}`
-        );
+        csvRows.push(`${msg.id},${msg.conversation_id},${msg.role},"${content}",${msg.created_at}`);
       });
     } else {
       csvRows.push('No messages found');
@@ -155,7 +159,6 @@ export async function GET() {
         'Content-Disposition': `attachment; filename="jcil-ai-data-export-${new Date().toISOString().split('T')[0]}.csv"`,
       },
     });
-
   } catch (error) {
     log.error('[User Export] Error:', error instanceof Error ? error : { error });
     return errors.serverError();

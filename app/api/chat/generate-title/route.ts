@@ -26,7 +26,10 @@ export async function POST(request: NextRequest) {
 
     // Rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const rateLimitResult = checkRequestRateLimit(`generate-title:${ip}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `generate-title:${ip}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Parse and validate body
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
     const validation = generateTitleSchema.safeParse(rawBody);
     if (!validation.success) {
       return errors.validationError(
-        validation.error.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+        validation.error.errors.map((e) => ({ field: e.path.join('.'), message: e.message }))
       );
     }
 
@@ -53,10 +56,10 @@ export async function POST(request: NextRequest) {
 
     if (!userMessage.trim()) {
       log.info('[API] No user message provided, returning fallback title');
-      return new Response(
-        JSON.stringify({ title: 'New Conversation' }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ title: 'New Conversation' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     log.info('[API] Calling Claude to generate title');
@@ -85,23 +88,26 @@ Rules:
       });
       titleText = result.text || '';
     } catch (aiError) {
-      log.error('[API] Claude call failed', aiError instanceof Error ? aiError : { error: aiError });
+      log.error(
+        '[API] Claude call failed',
+        aiError instanceof Error ? aiError : { error: aiError }
+      );
       // Return a generated fallback title based on the user message
       const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
-      return new Response(
-        JSON.stringify({ title: fallbackTitle }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ title: fallbackTitle }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     // Extract the title and clean it up
     if (!titleText) {
       log.info('[API] No text returned from AI, using fallback title');
       const fallbackTitle = userMessage.slice(0, 40).trim() || 'New Conversation';
-      return new Response(
-        JSON.stringify({ title: fallbackTitle }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ title: fallbackTitle }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
     let title = titleText.trim();
     log.info('[API] Raw AI-generated title', { title });
@@ -119,23 +125,17 @@ Rules:
 
     log.info('[API] Final cleaned title', { title });
 
-    return new Response(
-      JSON.stringify({ title }),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ title }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     log.error('[API] Title generation error:', error instanceof Error ? error : { error });
 
-    return new Response(
-      JSON.stringify({ error: 'Failed to generate title' }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: 'Failed to generate title' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
 

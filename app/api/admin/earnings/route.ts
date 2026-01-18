@@ -15,7 +15,9 @@ function getSupabaseAdmin() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase configuration. Please check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
+    throw new Error(
+      'Missing Supabase configuration. Please check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.'
+    );
   }
 
   return createClient(supabaseUrl, supabaseServiceKey, {
@@ -33,7 +35,10 @@ export async function GET(request: NextRequest) {
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:earnings:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:earnings:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
@@ -80,9 +85,9 @@ export async function GET(request: NextRequest) {
     // Calculate monthly revenue
     const tierPricing: Record<string, number> = {
       free: 0,
-      plus: 18.00,
-      pro: 30.00,
-      executive: 99.00,
+      plus: 18.0,
+      pro: 30.0,
+      executive: 99.0,
     };
 
     subscriptionTiers?.forEach((tier: { tier_name: string; monthly_price: number }) => {
@@ -98,15 +103,10 @@ export async function GET(request: NextRequest) {
     };
 
     monthlyRevenue.total =
-      monthlyRevenue.free +
-      monthlyRevenue.basic +
-      monthlyRevenue.pro +
-      monthlyRevenue.executive;
+      monthlyRevenue.free + monthlyRevenue.basic + monthlyRevenue.pro + monthlyRevenue.executive;
 
     // 3. Get usage tracking data for costs
-    let usageQuery = supabase
-      .from('usage_tracking')
-      .select('*');
+    let usageQuery = supabase.from('usage_tracking').select('*');
 
     if (startDate) {
       usageQuery = usageQuery.gte('created_at', startDate);
@@ -118,45 +118,53 @@ export async function GET(request: NextRequest) {
     const { data: usageData, error: usageError } = await usageQuery;
 
     if (usageError) {
-      log.error('Error fetching usage data:', usageError instanceof Error ? usageError : { usageError });
+      log.error(
+        'Error fetching usage data:',
+        usageError instanceof Error ? usageError : { usageError }
+      );
     }
 
     // Calculate costs by model
-    const costsByModel: Record<string, {
-      inputTokens: number;
-      cachedInputTokens: number;
-      outputTokens: number;
-      liveSearchCalls: number;
-      totalCost: number;
-      usageCount: number;
-    }> = {};
-
-    usageData?.forEach((usage: {
-      model_name: string;
-      input_tokens: number;
-      cached_input_tokens: number;
-      output_tokens: number;
-      live_search_calls: number;
-      total_cost: number;
-    }) => {
-      if (!costsByModel[usage.model_name]) {
-        costsByModel[usage.model_name] = {
-          inputTokens: 0,
-          cachedInputTokens: 0,
-          outputTokens: 0,
-          liveSearchCalls: 0,
-          totalCost: 0,
-          usageCount: 0,
-        };
+    const costsByModel: Record<
+      string,
+      {
+        inputTokens: number;
+        cachedInputTokens: number;
+        outputTokens: number;
+        liveSearchCalls: number;
+        totalCost: number;
+        usageCount: number;
       }
+    > = {};
 
-      costsByModel[usage.model_name].inputTokens += usage.input_tokens || 0;
-      costsByModel[usage.model_name].cachedInputTokens += usage.cached_input_tokens || 0;
-      costsByModel[usage.model_name].outputTokens += usage.output_tokens || 0;
-      costsByModel[usage.model_name].liveSearchCalls += usage.live_search_calls || 0;
-      costsByModel[usage.model_name].totalCost += parseFloat(String(usage.total_cost)) || 0;
-      costsByModel[usage.model_name].usageCount += 1;
-    });
+    usageData?.forEach(
+      (usage: {
+        model_name: string;
+        input_tokens: number;
+        cached_input_tokens: number;
+        output_tokens: number;
+        live_search_calls: number;
+        total_cost: number;
+      }) => {
+        if (!costsByModel[usage.model_name]) {
+          costsByModel[usage.model_name] = {
+            inputTokens: 0,
+            cachedInputTokens: 0,
+            outputTokens: 0,
+            liveSearchCalls: 0,
+            totalCost: 0,
+            usageCount: 0,
+          };
+        }
+
+        costsByModel[usage.model_name].inputTokens += usage.input_tokens || 0;
+        costsByModel[usage.model_name].cachedInputTokens += usage.cached_input_tokens || 0;
+        costsByModel[usage.model_name].outputTokens += usage.output_tokens || 0;
+        costsByModel[usage.model_name].liveSearchCalls += usage.live_search_calls || 0;
+        costsByModel[usage.model_name].totalCost += parseFloat(String(usage.total_cost)) || 0;
+        costsByModel[usage.model_name].usageCount += 1;
+      }
+    );
 
     const totalCosts = Object.values(costsByModel).reduce((sum, model) => sum + model.totalCost, 0);
 
@@ -170,19 +178,20 @@ export async function GET(request: NextRequest) {
 
     // Join usage with users to get tier information
     for (const usage of usageData || []) {
-      const user = usersByTier?.find((u: { id: string }) => u.id === (usage as { user_id: string }).user_id);
+      const user = usersByTier?.find(
+        (u: { id: string }) => u.id === (usage as { user_id: string }).user_id
+      );
       if (user) {
         const tier = (user as { subscription_tier: string }).subscription_tier;
         if (tier in costsByTier) {
-          costsByTier[tier] += parseFloat(String((usage as { total_cost: number }).total_cost)) || 0;
+          costsByTier[tier] +=
+            parseFloat(String((usage as { total_cost: number }).total_cost)) || 0;
         }
       }
     }
 
     // 5. Get news page costs
-    let newsQuery = supabase
-      .from('news_costs')
-      .select('*');
+    let newsQuery = supabase.from('news_costs').select('*');
 
     if (startDate) {
       newsQuery = newsQuery.gte('created_at', startDate);
@@ -194,13 +203,24 @@ export async function GET(request: NextRequest) {
     const { data: newsData, error: newsError } = await newsQuery;
 
     if (newsError) {
-      log.error('Error fetching news costs:', newsError instanceof Error ? newsError : { newsError });
+      log.error(
+        'Error fetching news costs:',
+        newsError instanceof Error ? newsError : { newsError }
+      );
     }
 
     const newsCosts = {
       totalCalls: newsData?.length || 0,
-      totalTokens: newsData?.reduce((sum: number, item: { tokens_used: number }) => sum + (item.tokens_used || 0), 0) || 0,
-      totalCost: newsData?.reduce((sum: number, item: { cost: number }) => sum + (parseFloat(String(item.cost)) || 0), 0) || 0,
+      totalTokens:
+        newsData?.reduce(
+          (sum: number, item: { tokens_used: number }) => sum + (item.tokens_used || 0),
+          0
+        ) || 0,
+      totalCost:
+        newsData?.reduce(
+          (sum: number, item: { cost: number }) => sum + (parseFloat(String(item.cost)) || 0),
+          0
+        ) || 0,
     };
 
     // 6. Calculate profit margins by tier
@@ -213,9 +233,7 @@ export async function GET(request: NextRequest) {
     };
 
     // 7. Get API pricing for reference
-    const { data: apiPricing } = await supabase
-      .from('api_pricing')
-      .select('*');
+    const { data: apiPricing } = await supabase.from('api_pricing').select('*');
 
     // 8. Calculate daily averages (if date range provided)
     let daysInRange = 30; // Default to 30 days
@@ -251,9 +269,10 @@ export async function GET(request: NextRequest) {
         profit: {
           byTier: profitByTier,
           daily: dailyAverages.profit,
-          margin: monthlyRevenue.total > 0
-            ? ((profitByTier.total / monthlyRevenue.total) * 100).toFixed(2) + '%'
-            : '0%',
+          margin:
+            monthlyRevenue.total > 0
+              ? ((profitByTier.total / monthlyRevenue.total) * 100).toFixed(2) + '%'
+              : '0%',
         },
         apiPricing,
         dateRange: {
@@ -263,7 +282,6 @@ export async function GET(request: NextRequest) {
         },
       },
     });
-
   } catch (error) {
     log.error('Error calculating earnings', error instanceof Error ? error : { error });
     return errors.serverError();

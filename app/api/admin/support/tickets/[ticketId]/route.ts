@@ -30,16 +30,16 @@ function getSupabaseAdmin() {
 /**
  * GET - Get ticket details with all replies
  */
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { ticketId: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: { ticketId: string } }) {
   try {
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:ticket:get:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:ticket:get:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { ticketId } = params;
@@ -85,7 +85,10 @@ export async function GET(
       .order('created_at', { ascending: true });
 
     if (repliesError) {
-      log.error('[Admin Support API] Error fetching replies:', repliesError instanceof Error ? repliesError : { repliesError });
+      log.error(
+        '[Admin Support API] Error fetching replies:',
+        repliesError instanceof Error ? repliesError : { repliesError }
+      );
     }
 
     // Log admin access
@@ -108,17 +111,17 @@ export async function GET(
 /**
  * PATCH - Update ticket properties
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { ticketId: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: { ticketId: string } }) {
   try {
     // Include request for CSRF validation on state-changing operation
     const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:ticket:patch:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:ticket:patch:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { ticketId } = params;
@@ -151,7 +154,10 @@ export async function PATCH(
       .single();
 
     if (error) {
-      log.error('[Admin Support API] Error updating ticket:', error instanceof Error ? error : { error });
+      log.error(
+        '[Admin Support API] Error updating ticket:',
+        error instanceof Error ? error : { error }
+      );
       return errors.serverError();
     }
 
@@ -167,17 +173,17 @@ export async function PATCH(
 /**
  * POST - Add a reply to the ticket
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { ticketId: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { ticketId: string } }) {
   try {
     // Include request for CSRF validation on state-changing operation
     const auth = await requireAdmin(request);
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:ticket:reply:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:ticket:reply:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { ticketId } = params;
@@ -219,7 +225,10 @@ export async function POST(
       .single();
 
     if (error) {
-      log.error('[Admin Support API] Error creating reply:', error instanceof Error ? error : { error });
+      log.error(
+        '[Admin Support API] Error creating reply:',
+        error instanceof Error ? error : { error }
+      );
       return errors.serverError();
     }
 
@@ -232,21 +241,22 @@ export async function POST(
 
       // For internal tickets (from logged-in users), also send to their inbox
       if (ticket?.user_id && ticket.source === 'internal') {
-        const { error: messageError } = await supabase
-          .from('user_messages')
-          .insert({
-            recipient_user_id: ticket.user_id,
-            sender_admin_id: adminData?.id || null,
-            sender_admin_email: auth.user.email,
-            subject: `Re: ${ticket.subject || 'Your Support Request'}`,
-            message: message.trim(),
-            message_type: 'support_response',
-            priority: 'normal',
-            is_broadcast: false,
-          });
+        const { error: messageError } = await supabase.from('user_messages').insert({
+          recipient_user_id: ticket.user_id,
+          sender_admin_id: adminData?.id || null,
+          sender_admin_email: auth.user.email,
+          subject: `Re: ${ticket.subject || 'Your Support Request'}`,
+          message: message.trim(),
+          message_type: 'support_response',
+          priority: 'normal',
+          is_broadcast: false,
+        });
 
         if (messageError) {
-          log.error('[Admin Support API] Error sending to user inbox:', messageError instanceof Error ? messageError : { messageError });
+          log.error(
+            '[Admin Support API] Error sending to user inbox:',
+            messageError instanceof Error ? messageError : { messageError }
+          );
           // Don't fail the request - reply was still saved
         } else {
           log.info(`[Admin Audit] Reply also sent to user inbox: ${ticket.user_id}`);

@@ -24,7 +24,7 @@ const log = logger('AuthCallback');
 export async function GET(request: NextRequest) {
   // Rate limit by IP
   const ip = getClientIP(request);
-  const rateLimitResult = checkRequestRateLimit(`auth:callback:${ip}`, rateLimits.auth);
+  const rateLimitResult = await checkRequestRateLimit(`auth:callback:${ip}`, rateLimits.auth);
   if (!rateLimitResult.allowed) {
     return NextResponse.redirect(new URL('/login?error=Too%20many%20requests', request.url));
   }
@@ -74,8 +74,8 @@ export async function GET(request: NextRequest) {
           {
             auth: {
               autoRefreshToken: false,
-              persistSession: false
-            }
+              persistSession: false,
+            },
           }
         );
 
@@ -98,9 +98,7 @@ export async function GET(request: NextRequest) {
             subscription_tier: 'free' as const,
           };
 
-          const { error: insertError } = await adminClient
-            .from('users')
-            .insert(userInsert);
+          const { error: insertError } = await adminClient.from('users').insert(userInsert);
 
           if (insertError) {
             // Log error but don't block authentication

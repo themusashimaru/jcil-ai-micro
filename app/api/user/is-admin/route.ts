@@ -50,7 +50,10 @@ export async function GET() {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`admin:check:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:check:${user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Check if user is in admin_users table
@@ -62,13 +65,16 @@ export async function GET() {
 
     if (adminError && adminError.code !== 'PGRST116') {
       // PGRST116 is "not found" error, which is expected for non-admins
-      log.error('[API] Error checking admin status:', adminError instanceof Error ? adminError : { adminError });
+      log.error(
+        '[API] Error checking admin status:',
+        adminError instanceof Error ? adminError : { adminError }
+      );
     }
 
     return successResponse({
       isAdmin: !!adminUser,
       userId: user.id,
-      email: user.email
+      email: user.email,
     });
   } catch (error) {
     log.error('[API] Admin check error:', error instanceof Error ? error : { error });

@@ -36,7 +36,10 @@ export async function GET(request: NextRequest) {
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:tickets:get:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:tickets:get:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
@@ -55,9 +58,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build query
-    let query = supabase
-      .from('support_tickets')
-      .select('*', { count: 'exact' });
+    let query = supabase.from('support_tickets').select('*', { count: 'exact' });
 
     // Apply filters
     if (source) query = query.eq('source', source);
@@ -76,7 +77,9 @@ export async function GET(request: NextRequest) {
     if (search) {
       const sanitized = sanitizePostgrestInput(search);
       if (sanitized.length > 0) {
-        query = query.or(`subject.ilike.%${sanitized}%,sender_email.ilike.%${sanitized}%,sender_name.ilike.%${sanitized}%`);
+        query = query.or(
+          `subject.ilike.%${sanitized}%,sender_email.ilike.%${sanitized}%,sender_name.ilike.%${sanitized}%`
+        );
       }
     }
 

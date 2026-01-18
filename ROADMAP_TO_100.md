@@ -1,7 +1,7 @@
 # ROADMAP TO 100/100: Claude Code Feature Parity
 
 **Created:** 2026-01-18
-**Current Score:** 38/100
+**Current Score:** 48/100
 **Target Score:** 100/100
 **Estimated Timeline:** 24 weeks (6 months)
 **Branch:** `claude/audit-coding-lab-hLMWt`
@@ -141,54 +141,58 @@ Security vulnerabilities must be fixed before adding features.
 
 - **Files:**
   - `/app/api/code-lab/deploy/route.ts`
-  - `/app/api/code-lab/debug/route.ts`
+  - `/app/api/code-lab/tasks/route.ts`
+  - `/app/api/code-lab/git/route.ts`
   - All endpoints that accept sessionId
-- **Status:** ⬜ NOT STARTED
+- **Status:** ✅ COMPLETE (2026-01-18)
 - **Effort:** 4 hours
+- **Commit:** `4a2f17b` - Added session ownership verification
 - **Implementation:**
+
   ```typescript
-  // Create /src/lib/workspace/session-auth.ts
-  export async function verifySessionOwnership(
-    sessionId: string,
-    userId: string,
-    supabase: SupabaseClient
-  ): Promise<boolean> {
-    const { data } = await supabase
-      .from('code_lab_sessions')
-      .select('user_id')
-      .eq('id', sessionId)
-      .single();
-    return data?.user_id === userId;
+  // Added inline to each endpoint
+  const { data: sessionData, error: sessionError } = await supabase
+    .from('code_lab_sessions')
+    .select('id')
+    .eq('id', sessionId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (sessionError || !sessionData) {
+    return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
   }
   ```
 
 #### Task 1.5: Migrate Rate Limiting to Redis
 
 - **Files:** `/src/lib/security/rate-limit.ts`
-- **Status:** ⬜ NOT STARTED
+- **Status:** ✅ COMPLETE (2026-01-18)
 - **Effort:** 4 hours
 - **Implementation:**
+  - Full rewrite of rate-limit.ts to use Redis with in-memory fallback
+  - Uses sliding window algorithm with Redis sorted sets
+  - Updated all 38+ endpoint files to use async rate limiting
+  - Updated all tests to handle async functions
 
   ```typescript
-  import { redis } from '@/lib/redis/client';
-
+  // Uses Upstash Redis when configured, in-memory fallback for dev
   async function checkRateLimitRedis(
-    key: string,
-    options: RateLimitOptions
+    identifier: string,
+    config: RateLimitConfig
   ): Promise<RateLimitResult> {
+    const key = `ratelimit:${identifier}`;
     const now = Date.now();
-    const windowKey = `ratelimit:${key}:${Math.floor(now / options.windowMs)}`;
+    const windowStart = now - config.windowMs;
 
-    const count = await redis.incr(windowKey);
-    if (count === 1) {
-      await redis.expire(windowKey, Math.ceil(options.windowMs / 1000));
-    }
+    const multi = redis.multi();
+    multi.zremrangebyscore(key, 0, windowStart);
+    multi.zadd(key, { score: now, member: `${now}-${Math.random()}` });
+    multi.zcard(key);
+    multi.pexpire(key, config.windowMs);
 
-    return {
-      allowed: count <= options.limit,
-      remaining: Math.max(0, options.limit - count),
-      retryAfter: count > options.limit ? options.windowMs / 1000 : 0,
-    };
+    const results = await multi.exec();
+    const count = results[2] as number;
+    // ...
   }
   ```
 
@@ -548,7 +552,7 @@ Comprehensive test coverage.
 
 | Phase            | Tasks  | Complete | Score Impact | Status         |
 | ---------------- | ------ | -------- | ------------ | -------------- |
-| 1. Security      | 5      | 0/5      | +10          | ⬜ NOT STARTED |
+| 1. Security      | 5      | 5/5      | +10          | ✅ COMPLETE    |
 | 2. Debugging     | 3      | 0/3      | +8           | ⬜ NOT STARTED |
 | 3. MCP           | 3      | 0/3      | +8           | ⬜ NOT STARTED |
 | 4. Subagents     | 4      | 0/4      | +12          | ⬜ NOT STARTED |
@@ -557,7 +561,7 @@ Comprehensive test coverage.
 | 7. UI/UX         | 3      | 0/3      | +4           | ⬜ NOT STARTED |
 | 8. Plan Mode     | 2      | 0/2      | +3           | ⬜ NOT STARTED |
 | 9. Testing       | 4      | 0/4      | +3           | ⬜ NOT STARTED |
-| **TOTAL**        | **30** | **0/30** | **+62**      | **38/100**     |
+| **TOTAL**        | **30** | **5/30** | **+62**      | **48/100**     |
 
 ### Score Progression Target
 

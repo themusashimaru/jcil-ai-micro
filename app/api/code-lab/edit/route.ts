@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     // Rate limiting (skip for dry-run as it doesn't consume resources)
     if (!dryRun) {
-      const rateLimitResult = rateLimiters.codeLabEdit(auth.user.id);
+      const rateLimitResult = await rateLimiters.codeLabEdit(auth.user.id);
       if (!rateLimitResult.allowed) {
         return NextResponse.json(
           { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
@@ -297,7 +297,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Rate limiting
-    const rateLimitResult = rateLimiters.codeLabEdit(auth.user.id);
+    const rateLimitResult = await rateLimiters.codeLabEdit(auth.user.id);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded', retryAfter: rateLimitResult.retryAfter },
