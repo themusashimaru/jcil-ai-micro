@@ -10,9 +10,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { createClient } from '@supabase/supabase-js';
-import { createTask, executeTask, cancelTask, getTaskStatus, getUserTasks } from '@/lib/autonomous-task';
+import {
+  createTask,
+  executeTask,
+  cancelTask,
+  getTaskStatus,
+  getUserTasks,
+} from '@/lib/autonomous-task';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('CodeLabTasks');
 
@@ -47,7 +55,9 @@ function decryptToken(encryptedData: string): string {
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -79,12 +89,27 @@ export async function GET(request: NextRequest) {
  * POST - Create and start a new autonomous task
  */
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limiting
+    const rateLimit = await rateLimiters.codeLabEdit(user.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();
@@ -129,7 +154,7 @@ export async function POST(request: NextRequest) {
     // Auto-start execution in background if requested
     if (autoStart) {
       // Execute asynchronously (don't await)
-      executeTask(task.id, context).catch(err => {
+      executeTask(task.id, context).catch((err) => {
         log.error(`[Tasks API] Background execution error for ${task.id}:`, err);
       });
     }
@@ -158,7 +183,9 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

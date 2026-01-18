@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -19,12 +21,27 @@ const log = logger('CodeLabVisualToCode');
  * POST - Convert visual design to code
  */
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limiting
+    const rateLimit = await rateLimiters.codeLabEdit(user.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();

@@ -7,6 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -23,6 +25,10 @@ interface DeployConfig {
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const supabase = await createClient();
 
   const {
@@ -31,6 +37,15 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limiting
+  const rateLimit = await rateLimiters.codeLabEdit(user.id);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+      { status: 429 }
+    );
   }
 
   try {

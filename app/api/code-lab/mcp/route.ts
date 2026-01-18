@@ -11,6 +11,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { getMCPManager, MCPServerConfig } from '@/lib/mcp/mcp-client';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('MCPAPI');
 
@@ -65,11 +67,24 @@ const DEFAULT_SERVERS: MCPServerConfig[] = [
  * MCP actions: addServer, removeServer, startServer, stopServer, callTool, listTools
  */
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     // Auth check
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;
+    }
+
+    // Rate limiting
+    const rateLimit = await rateLimiters.codeLabEdit(auth.user!.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();
@@ -189,10 +204,7 @@ export async function POST(request: NextRequest) {
         };
 
         if (!serverId || !toolName) {
-          return NextResponse.json(
-            { error: 'Missing serverId or toolName' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing serverId or toolName' }, { status: 400 });
         }
 
         log.info('Calling MCP tool', { serverId, toolName });
@@ -225,10 +237,7 @@ export async function POST(request: NextRequest) {
         const { serverId, uri } = params as { serverId: string; uri: string };
 
         if (!serverId || !uri) {
-          return NextResponse.json(
-            { error: 'Missing serverId or uri' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing serverId or uri' }, { status: 400 });
         }
 
         const client = manager.getClient(serverId);
@@ -259,10 +268,7 @@ export async function POST(request: NextRequest) {
         };
 
         if (!serverId || !name) {
-          return NextResponse.json(
-            { error: 'Missing serverId or name' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing serverId or name' }, { status: 400 });
         }
 
         const client = manager.getClient(serverId);
@@ -352,9 +358,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('MCP API error', error as Error);
-    return NextResponse.json(
-      { error: 'Failed to get MCP info' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to get MCP info' }, { status: 500 });
   }
 }
