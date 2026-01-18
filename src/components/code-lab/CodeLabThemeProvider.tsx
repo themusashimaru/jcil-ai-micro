@@ -131,9 +131,9 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-border-secondary: #d1d5db;
 
           --cl-text-primary: #1a1f36;
-          --cl-text-secondary: #4b5563;
-          --cl-text-tertiary: #6b7280;
-          --cl-text-muted: #9ca3af;
+          --cl-text-secondary: #374151;
+          --cl-text-tertiary: #4b5563;
+          --cl-text-muted: #6b7280;
 
           /* Navy blue accents - professional, trustworthy */
           --cl-accent-primary: #1e3a5f;
@@ -165,9 +165,9 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-border-secondary: #484f58;
 
           --cl-text-primary: #e6edf3;
-          --cl-text-secondary: #8b949e;
-          --cl-text-tertiary: #6e7681;
-          --cl-text-muted: #484f58;
+          --cl-text-secondary: #b1bac4;
+          --cl-text-tertiary: #8b949e;
+          --cl-text-muted: #7d8590;
 
           /* Navy blue accents - lighter for dark mode visibility */
           --cl-accent-primary: #5b8dc9;

@@ -43,6 +43,7 @@ const ACCEPTED_TYPES = [
 ];
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_ATTACHMENTS = 10; // Maximum number of attachments
 
 export function CodeLabComposer({
   onSend,
@@ -109,49 +110,76 @@ export function CodeLabComposer({
     }
   }, []);
 
-  // Handle file selection
-  const handleFileSelect = useCallback((files: FileList | null) => {
-    if (!files) return;
+  // Cleanup ObjectURLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      attachments.forEach((attachment) => {
+        if (attachment.preview) {
+          URL.revokeObjectURL(attachment.preview);
+        }
+      });
+    };
+  }, [attachments]);
 
-    const newAttachments: CodeLabAttachment[] = [];
+  // Handle file selection with validation
+  const handleFileSelect = useCallback(
+    (files: FileList | null) => {
+      if (!files) return;
 
-    Array.from(files).forEach((file) => {
-      // Validate type
-      if (!ACCEPTED_TYPES.includes(file.type)) {
-        console.warn(`[CodeLabComposer] Unsupported file type: ${file.type}`);
+      // Check max attachments limit
+      const currentCount = attachments.length;
+      const availableSlots = MAX_ATTACHMENTS - currentCount;
+
+      if (availableSlots <= 0) {
+        console.warn(`[CodeLabComposer] Maximum attachments (${MAX_ATTACHMENTS}) reached`);
         return;
       }
 
-      // Validate size
-      if (file.size > MAX_FILE_SIZE) {
-        console.warn(`[CodeLabComposer] File too large: ${file.name}`);
-        return;
-      }
+      const newAttachments: CodeLabAttachment[] = [];
 
-      // Determine type
-      let type: CodeLabAttachment['type'] = 'document';
-      if (file.type.startsWith('image/')) {
-        type = 'image';
-      } else if (file.type === 'application/pdf') {
-        type = 'pdf';
-      }
+      Array.from(files)
+        .slice(0, availableSlots) // Only take files up to available slots
+        .forEach((file) => {
+          // Validate type
+          if (!ACCEPTED_TYPES.includes(file.type)) {
+            console.warn(`[CodeLabComposer] Unsupported file type: ${file.type}`);
+            return;
+          }
 
-      // Create preview for images
-      const attachment: CodeLabAttachment = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        file,
-        type,
-      };
+          // Validate size
+          if (file.size > MAX_FILE_SIZE) {
+            console.warn(
+              `[CodeLabComposer] File too large: ${file.name} (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`
+            );
+            return;
+          }
 
-      if (type === 'image') {
-        attachment.preview = URL.createObjectURL(file);
-      }
+          // Determine type
+          let type: CodeLabAttachment['type'] = 'document';
+          if (file.type.startsWith('image/')) {
+            type = 'image';
+          } else if (file.type === 'application/pdf') {
+            type = 'pdf';
+          }
 
-      newAttachments.push(attachment);
-    });
+          // Create preview for images
+          const attachment: CodeLabAttachment = {
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            file,
+            type,
+          };
 
-    setAttachments((prev) => [...prev, ...newAttachments]);
-  }, []);
+          if (type === 'image') {
+            attachment.preview = URL.createObjectURL(file);
+          }
+
+          newAttachments.push(attachment);
+        });
+
+      setAttachments((prev) => [...prev, ...newAttachments]);
+    },
+    [attachments.length]
+  );
 
   // Remove attachment
   const removeAttachment = useCallback((id: string) => {
@@ -172,6 +200,13 @@ export function CodeLabComposer({
     if ((trimmed || attachments.length > 0) && !isStreaming && !disabled) {
       onSend(trimmed, attachments.length > 0 ? attachments : undefined, searchMode);
       setContent('');
+
+      // Revoke ObjectURLs before clearing attachments to prevent memory leaks
+      attachments.forEach((attachment) => {
+        if (attachment.preview) {
+          URL.revokeObjectURL(attachment.preview);
+        }
+      });
       setAttachments([]);
       setSearchMode(false);
 
@@ -254,8 +289,18 @@ export function CodeLabComposer({
                 </div>
               )}
               <span className="attachment-name">{attachment.file.name}</span>
-              <button className="attachment-remove" onClick={() => removeAttachment(attachment.id)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <button
+                className="attachment-remove"
+                onClick={() => removeAttachment(attachment.id)}
+                aria-label={`Remove attachment: ${attachment.file.name}`}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -266,23 +311,44 @@ export function CodeLabComposer({
 
       {/* Search mode indicator */}
       {searchMode && (
-        <div className="search-mode-indicator">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <div className="search-mode-indicator" role="status" aria-live="polite">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
             <circle cx="11" cy="11" r="8" />
             <path strokeLinecap="round" d="M21 21l-4.35-4.35" />
           </svg>
           <span>Web search enabled - will search for relevant info</span>
-          <button onClick={() => setSearchMode(false)}>×</button>
+          <button onClick={() => setSearchMode(false)} aria-label="Disable web search">
+            ×
+          </button>
         </div>
       )}
 
       {/* Recording indicator */}
       {(isRecording || isProcessing) && (
-        <div className={`recording-indicator ${isRecording ? 'active' : 'processing'}`}>
-          <div className="recording-dot" />
+        <div
+          className={`recording-indicator ${isRecording ? 'active' : 'processing'}`}
+          role="status"
+          aria-live="polite"
+          aria-label={
+            isProcessing
+              ? 'Transcribing voice input'
+              : `Recording voice input: ${recordingDuration} seconds`
+          }
+        >
+          <div className="recording-dot" aria-hidden="true" />
           <span>{isProcessing ? 'Transcribing...' : `Recording... ${recordingDuration}s`}</span>
-          {isRecording && <div className="audio-level" style={{ width: `${audioLevel}%` }} />}
-          <button onClick={cancelRecording}>×</button>
+          {isRecording && (
+            <div className="audio-level" style={{ width: `${audioLevel}%` }} aria-hidden="true" />
+          )}
+          <button onClick={cancelRecording} aria-label="Cancel voice recording">
+            ×
+          </button>
         </div>
       )}
 
@@ -296,6 +362,8 @@ export function CodeLabComposer({
           disabled={disabled || isStreaming}
           rows={1}
           className="composer-input"
+          aria-label="Message input - type your message or use slash commands"
+          aria-describedby="composer-hints"
         />
 
         {/* Slash command autocomplete */}
@@ -316,6 +384,7 @@ export function CodeLabComposer({
             accept={ACCEPTED_TYPES.join(',')}
             onChange={(e) => handleFileSelect(e.target.files)}
             style={{ display: 'none' }}
+            aria-label="Upload files"
           />
 
           {/* File attach button */}
@@ -324,6 +393,7 @@ export function CodeLabComposer({
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || isStreaming}
             title="Attach files (images, PDFs)"
+            aria-label="Attach files such as images or PDFs"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path
@@ -340,6 +410,8 @@ export function CodeLabComposer({
             onClick={() => setSearchMode(!searchMode)}
             disabled={disabled || isStreaming}
             title={searchMode ? 'Disable web search' : 'Enable web search'}
+            aria-label={searchMode ? 'Disable web search' : 'Enable web search'}
+            aria-pressed={searchMode}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path
@@ -359,6 +431,14 @@ export function CodeLabComposer({
               title={
                 isRecording ? 'Stop recording' : isProcessing ? 'Processing...' : 'Voice input'
               }
+              aria-label={
+                isRecording
+                  ? 'Stop voice recording'
+                  : isProcessing
+                    ? 'Processing voice input'
+                    : 'Start voice input'
+              }
+              aria-pressed={isRecording}
               style={
                 isRecording
                   ? ({ '--audio-level': `${audioLevel}%` } as React.CSSProperties)
@@ -397,8 +477,12 @@ export function CodeLabComposer({
 
           {/* Send/Stop button */}
           {isStreaming ? (
-            <button className="composer-btn stop" onClick={onCancel}>
-              <svg viewBox="0 0 24 24" fill="currentColor">
+            <button
+              className="composer-btn stop"
+              onClick={onCancel}
+              aria-label="Stop generating response"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <rect x="6" y="6" width="12" height="12" rx="2" />
               </svg>
               Stop
@@ -408,8 +492,15 @@ export function CodeLabComposer({
               className="composer-btn send"
               onClick={handleSubmit}
               disabled={(!content.trim() && attachments.length === 0) || disabled}
+              aria-label="Send message"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -421,13 +512,19 @@ export function CodeLabComposer({
         </div>
       </div>
 
-      <div className="composer-hint">
+      <div className="composer-hint" id="composer-hints" aria-label="Keyboard shortcuts">
         <span>Enter to send</span>
-        <span className="separator">·</span>
+        <span className="separator" aria-hidden="true">
+          ·
+        </span>
         <span>/ for commands</span>
-        <span className="separator">·</span>
+        <span className="separator" aria-hidden="true">
+          ·
+        </span>
         <span>⌘K palette</span>
-        <span className="separator">·</span>
+        <span className="separator" aria-hidden="true">
+          ·
+        </span>
         <span>⌘/ shortcuts</span>
       </div>
 
@@ -470,7 +567,7 @@ export function CodeLabComposer({
           justify-content: center;
           background: #e5e7eb;
           border-radius: 4px;
-          color: #6b7280;
+          color: #4b5563;
         }
 
         .attachment-icon svg {
@@ -666,7 +763,7 @@ export function CodeLabComposer({
           border: none;
           border-radius: 8px;
           cursor: pointer;
-          color: #6b7280;
+          color: #4b5563;
           transition: all 0.2s;
         }
 
@@ -784,7 +881,7 @@ export function CodeLabComposer({
           gap: 0.5rem;
           margin-top: 0.5rem;
           font-size: 0.75rem;
-          color: #9ca3af;
+          color: #6b7280;
         }
 
         .separator {

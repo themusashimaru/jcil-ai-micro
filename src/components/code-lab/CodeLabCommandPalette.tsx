@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface Command {
   id: string;
@@ -44,220 +45,231 @@ export function CodeLabCommandPalette({
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // Focus trap for modal accessibility (WCAG 2.4.3)
+  const { containerRef } = useFocusTrap<HTMLDivElement>({
+    enabled: isOpen,
+    onEscape: onClose,
+    restoreFocus: true,
+    initialFocus: '.palette-input',
+  });
+
   // Define all available commands
-  const commands: Command[] = useMemo(() => [
-    // Slash Commands
-    {
-      id: 'fix',
-      title: '/fix',
-      description: 'Fix errors and bugs in the codebase',
-      icon: '🔧',
-      category: 'slash',
-      shortcut: '',
-      action: () => onExecuteSlashCommand('/fix'),
-    },
-    {
-      id: 'test',
-      title: '/test',
-      description: 'Run tests and fix failures',
-      icon: '🧪',
-      category: 'slash',
-      action: () => onExecuteSlashCommand('/test'),
-    },
-    {
-      id: 'build',
-      title: '/build',
-      description: 'Run build and resolve errors',
-      icon: '🔨',
-      category: 'slash',
-      action: () => onExecuteSlashCommand('/build'),
-    },
-    {
-      id: 'commit',
-      title: '/commit',
-      description: 'Stage changes and create commit',
-      icon: '✅',
-      category: 'slash',
-      action: () => onExecuteSlashCommand('/commit'),
-    },
-    {
-      id: 'push',
-      title: '/push',
-      description: 'Push commits to remote',
-      icon: '🚀',
-      category: 'slash',
-      action: () => onExecuteSlashCommand('/push'),
-    },
-    {
-      id: 'review',
-      title: '/review',
-      description: 'Code review and analysis',
-      icon: '👀',
-      category: 'slash',
-      action: () => onExecuteSlashCommand('/review'),
-    },
-    {
-      id: 'explain',
-      title: '/explain',
-      description: 'Explain code architecture',
-      icon: '📖',
-      category: 'slash',
-      action: () => onExecuteSlashCommand('/explain'),
-    },
-    {
-      id: 'refactor',
-      title: '/refactor',
-      description: 'Refactor code for quality',
-      icon: '♻️',
-      category: 'slash',
-      action: () => onExecuteSlashCommand('/refactor'),
-    },
-    {
-      id: 'install',
-      title: '/install',
-      description: 'Install packages/dependencies',
-      icon: '📦',
-      category: 'slash',
-      action: () => onExecuteSlashCommand('/install'),
-    },
-    {
-      id: 'workspace',
-      title: '/workspace',
-      description: 'Enable sandbox execution mode',
-      icon: '>',
-      category: 'slash',
-      action: () => onExecuteSlashCommand('/workspace'),
-    },
+  const commands: Command[] = useMemo(
+    () => [
+      // Slash Commands
+      {
+        id: 'fix',
+        title: '/fix',
+        description: 'Fix errors and bugs in the codebase',
+        icon: '🔧',
+        category: 'slash',
+        shortcut: '',
+        action: () => onExecuteSlashCommand('/fix'),
+      },
+      {
+        id: 'test',
+        title: '/test',
+        description: 'Run tests and fix failures',
+        icon: '🧪',
+        category: 'slash',
+        action: () => onExecuteSlashCommand('/test'),
+      },
+      {
+        id: 'build',
+        title: '/build',
+        description: 'Run build and resolve errors',
+        icon: '🔨',
+        category: 'slash',
+        action: () => onExecuteSlashCommand('/build'),
+      },
+      {
+        id: 'commit',
+        title: '/commit',
+        description: 'Stage changes and create commit',
+        icon: '✅',
+        category: 'slash',
+        action: () => onExecuteSlashCommand('/commit'),
+      },
+      {
+        id: 'push',
+        title: '/push',
+        description: 'Push commits to remote',
+        icon: '🚀',
+        category: 'slash',
+        action: () => onExecuteSlashCommand('/push'),
+      },
+      {
+        id: 'review',
+        title: '/review',
+        description: 'Code review and analysis',
+        icon: '👀',
+        category: 'slash',
+        action: () => onExecuteSlashCommand('/review'),
+      },
+      {
+        id: 'explain',
+        title: '/explain',
+        description: 'Explain code architecture',
+        icon: '📖',
+        category: 'slash',
+        action: () => onExecuteSlashCommand('/explain'),
+      },
+      {
+        id: 'refactor',
+        title: '/refactor',
+        description: 'Refactor code for quality',
+        icon: '♻️',
+        category: 'slash',
+        action: () => onExecuteSlashCommand('/refactor'),
+      },
+      {
+        id: 'install',
+        title: '/install',
+        description: 'Install packages/dependencies',
+        icon: '📦',
+        category: 'slash',
+        action: () => onExecuteSlashCommand('/install'),
+      },
+      {
+        id: 'workspace',
+        title: '/workspace',
+        description: 'Enable sandbox execution mode',
+        icon: '>',
+        category: 'slash',
+        action: () => onExecuteSlashCommand('/workspace'),
+      },
 
-    // Git Commands
-    {
-      id: 'git-status',
-      title: 'Git: Status',
-      description: 'Show git status',
-      icon: '📊',
-      category: 'git',
-      action: () => onSendMessage('Show me the git status'),
-    },
-    {
-      id: 'git-diff',
-      title: 'Git: Diff',
-      description: 'Show all changes',
-      icon: '📋',
-      category: 'git',
-      action: () => onSendMessage('Show me the git diff'),
-    },
-    {
-      id: 'git-log',
-      title: 'Git: Log',
-      description: 'Show recent commits',
-      icon: '📜',
-      category: 'git',
-      action: () => onSendMessage('Show me the recent git log'),
-    },
-    {
-      id: 'git-branch',
-      title: 'Git: Branches',
-      description: 'List all branches',
-      icon: '🌿',
-      category: 'git',
-      action: () => onSendMessage('List all git branches'),
-    },
+      // Git Commands
+      {
+        id: 'git-status',
+        title: 'Git: Status',
+        description: 'Show git status',
+        icon: '📊',
+        category: 'git',
+        action: () => onSendMessage('Show me the git status'),
+      },
+      {
+        id: 'git-diff',
+        title: 'Git: Diff',
+        description: 'Show all changes',
+        icon: '📋',
+        category: 'git',
+        action: () => onSendMessage('Show me the git diff'),
+      },
+      {
+        id: 'git-log',
+        title: 'Git: Log',
+        description: 'Show recent commits',
+        icon: '📜',
+        category: 'git',
+        action: () => onSendMessage('Show me the recent git log'),
+      },
+      {
+        id: 'git-branch',
+        title: 'Git: Branches',
+        description: 'List all branches',
+        icon: '🌿',
+        category: 'git',
+        action: () => onSendMessage('List all git branches'),
+      },
 
-    // AI Actions
-    {
-      id: 'ai-improve',
-      title: 'AI: Improve Code',
-      description: 'Suggest improvements for current code',
-      icon: '✨',
-      category: 'ai',
-      action: () => onSendMessage('Review my code and suggest improvements'),
-    },
-    {
-      id: 'ai-document',
-      title: 'AI: Add Documentation',
-      description: 'Generate documentation for code',
-      icon: '📝',
-      category: 'ai',
-      action: () => onSendMessage('Add documentation comments to the code'),
-    },
-    {
-      id: 'ai-optimize',
-      title: 'AI: Optimize Performance',
-      description: 'Analyze and optimize performance',
-      icon: '⚡',
-      category: 'ai',
-      action: () => onSendMessage('Analyze this code for performance issues and optimize it'),
-    },
-    {
-      id: 'ai-security',
-      title: 'AI: Security Audit',
-      description: 'Check for security vulnerabilities',
-      icon: '🔒',
-      category: 'ai',
-      action: () => onSendMessage('Perform a security audit on this codebase'),
-    },
-    {
-      id: 'ai-types',
-      title: 'AI: Add TypeScript Types',
-      description: 'Add proper TypeScript types',
-      icon: '📘',
-      category: 'ai',
-      action: () => onSendMessage('Add proper TypeScript types to this code'),
-    },
-    {
-      id: 'ai-tests',
-      title: 'AI: Generate Tests',
-      description: 'Generate unit tests',
-      icon: '🧪',
-      category: 'ai',
-      action: () => onSendMessage('Generate comprehensive unit tests for this code'),
-    },
+      // AI Actions
+      {
+        id: 'ai-improve',
+        title: 'AI: Improve Code',
+        description: 'Suggest improvements for current code',
+        icon: '✨',
+        category: 'ai',
+        action: () => onSendMessage('Review my code and suggest improvements'),
+      },
+      {
+        id: 'ai-document',
+        title: 'AI: Add Documentation',
+        description: 'Generate documentation for code',
+        icon: '📝',
+        category: 'ai',
+        action: () => onSendMessage('Add documentation comments to the code'),
+      },
+      {
+        id: 'ai-optimize',
+        title: 'AI: Optimize Performance',
+        description: 'Analyze and optimize performance',
+        icon: '⚡',
+        category: 'ai',
+        action: () => onSendMessage('Analyze this code for performance issues and optimize it'),
+      },
+      {
+        id: 'ai-security',
+        title: 'AI: Security Audit',
+        description: 'Check for security vulnerabilities',
+        icon: '🔒',
+        category: 'ai',
+        action: () => onSendMessage('Perform a security audit on this codebase'),
+      },
+      {
+        id: 'ai-types',
+        title: 'AI: Add TypeScript Types',
+        description: 'Add proper TypeScript types',
+        icon: '📘',
+        category: 'ai',
+        action: () => onSendMessage('Add proper TypeScript types to this code'),
+      },
+      {
+        id: 'ai-tests',
+        title: 'AI: Generate Tests',
+        description: 'Generate unit tests',
+        icon: '🧪',
+        category: 'ai',
+        action: () => onSendMessage('Generate comprehensive unit tests for this code'),
+      },
 
-    // File Operations
-    {
-      id: 'file-new',
-      title: 'File: New',
-      description: 'Create a new file',
-      icon: '📄',
-      category: 'file',
-      action: () => onSendMessage('Create a new file at'),
-    },
-    {
-      id: 'file-search',
-      title: 'File: Search',
-      description: 'Search files by name',
-      icon: '🔍',
-      category: 'file',
-      action: () => onSendMessage('Search for files matching'),
-    },
-    {
-      id: 'file-tree',
-      title: 'File: Show Tree',
-      description: 'Display project structure',
-      icon: '🌲',
-      category: 'file',
-      action: () => onSendMessage('Show me the project file structure'),
-    },
+      // File Operations
+      {
+        id: 'file-new',
+        title: 'File: New',
+        description: 'Create a new file',
+        icon: '📄',
+        category: 'file',
+        action: () => onSendMessage('Create a new file at'),
+      },
+      {
+        id: 'file-search',
+        title: 'File: Search',
+        description: 'Search files by name',
+        icon: '🔍',
+        category: 'file',
+        action: () => onSendMessage('Search for files matching'),
+      },
+      {
+        id: 'file-tree',
+        title: 'File: Show Tree',
+        description: 'Display project structure',
+        icon: '🌲',
+        category: 'file',
+        action: () => onSendMessage('Show me the project file structure'),
+      },
 
-    // Help
-    {
-      id: 'help-commands',
-      title: 'Help: All Commands',
-      description: 'Show all available commands',
-      icon: '❓',
-      category: 'help',
-      shortcut: '⌘/',
-      action: () => onExecuteSlashCommand('/help'),
-    },
-    {
-      id: 'help-shortcuts',
-      title: 'Help: Keyboard Shortcuts',
-      description: 'Show keyboard shortcuts',
-      icon: '⌨️',
-      category: 'help',
-      action: () => onSendMessage('What keyboard shortcuts are available?'),
-    },
-  ], [onExecuteSlashCommand, onSendMessage]);
+      // Help
+      {
+        id: 'help-commands',
+        title: 'Help: All Commands',
+        description: 'Show all available commands',
+        icon: '❓',
+        category: 'help',
+        shortcut: '⌘/',
+        action: () => onExecuteSlashCommand('/help'),
+      },
+      {
+        id: 'help-shortcuts',
+        title: 'Help: Keyboard Shortcuts',
+        description: 'Show keyboard shortcuts',
+        icon: '⌨️',
+        category: 'help',
+        action: () => onSendMessage('What keyboard shortcuts are available?'),
+      },
+    ],
+    [onExecuteSlashCommand, onSendMessage]
+  );
 
   // Filter commands based on query
   const filteredCommands = useMemo(() => {
@@ -266,18 +278,21 @@ export function CodeLabCommandPalette({
     }
 
     const lowerQuery = query.toLowerCase();
-    return commands.filter(cmd =>
-      cmd.title.toLowerCase().includes(lowerQuery) ||
-      cmd.description?.toLowerCase().includes(lowerQuery) ||
-      cmd.category.toLowerCase().includes(lowerQuery)
-    ).sort((a, b) => {
-      // Prioritize exact matches
-      const aExact = a.title.toLowerCase().startsWith(lowerQuery);
-      const bExact = b.title.toLowerCase().startsWith(lowerQuery);
-      if (aExact && !bExact) return -1;
-      if (!aExact && bExact) return 1;
-      return 0;
-    });
+    return commands
+      .filter(
+        (cmd) =>
+          cmd.title.toLowerCase().includes(lowerQuery) ||
+          cmd.description?.toLowerCase().includes(lowerQuery) ||
+          cmd.category.toLowerCase().includes(lowerQuery)
+      )
+      .sort((a, b) => {
+        // Prioritize exact matches
+        const aExact = a.title.toLowerCase().startsWith(lowerQuery);
+        const bExact = b.title.toLowerCase().startsWith(lowerQuery);
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        return 0;
+      });
   }, [commands, query]);
 
   // Group commands by category
@@ -302,29 +317,32 @@ export function CodeLabCommandPalette({
   };
 
   // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(i => Math.min(i + 1, filteredCommands.length - 1));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(i => Math.max(i - 1, 0));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (filteredCommands[selectedIndex]) {
-          filteredCommands[selectedIndex].action();
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedIndex((i) => Math.min(i + 1, filteredCommands.length - 1));
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedIndex((i) => Math.max(i - 1, 0));
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (filteredCommands[selectedIndex]) {
+            filteredCommands[selectedIndex].action();
+            onClose();
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
           onClose();
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        onClose();
-        break;
-    }
-  }, [filteredCommands, selectedIndex, onClose]);
+          break;
+      }
+    },
+    [filteredCommands, selectedIndex, onClose]
+  );
 
   // Focus input when opened
   useEffect(() => {
@@ -357,10 +375,23 @@ export function CodeLabCommandPalette({
 
   return (
     <div className="command-palette-overlay" onClick={onClose}>
-      <div className="command-palette" onClick={e => e.stopPropagation()}>
+      <div
+        ref={containerRef}
+        className="command-palette"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+      >
         {/* Search Input */}
         <div className="palette-header">
-          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            className="search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
@@ -372,22 +403,42 @@ export function CodeLabCommandPalette({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             className="palette-input"
+            aria-label="Search commands"
+            aria-autocomplete="list"
+            aria-controls="command-list"
+            aria-activedescendant={filteredCommands[selectedIndex]?.id}
           />
           <kbd className="palette-hint">ESC</kbd>
         </div>
 
         {/* Command List */}
-        <div className="palette-list" ref={listRef}>
+        <div
+          id="command-list"
+          className="palette-list"
+          ref={listRef}
+          role="listbox"
+          aria-label="Available commands"
+        >
           {Object.entries(groupedCommands).map(([category, cmds]) => (
-            <div key={category} className="command-group">
-              <div className="group-label">{categoryLabels[category] || category}</div>
+            <div
+              key={category}
+              className="command-group"
+              role="group"
+              aria-labelledby={`group-${category}`}
+            >
+              <div id={`group-${category}`} className="group-label" role="presentation">
+                {categoryLabels[category] || category}
+              </div>
               {cmds.map((cmd) => {
                 const index = currentIndex++;
                 return (
                   <button
                     key={cmd.id}
+                    id={cmd.id}
                     data-index={index}
                     className={`command-item ${index === selectedIndex ? 'selected' : ''}`}
+                    role="option"
+                    aria-selected={index === selectedIndex}
                     onClick={() => {
                       cmd.action();
                       onClose();
@@ -397,13 +448,9 @@ export function CodeLabCommandPalette({
                     <span className="command-icon">{cmd.icon}</span>
                     <div className="command-info">
                       <span className="command-title">{cmd.title}</span>
-                      {cmd.description && (
-                        <span className="command-desc">{cmd.description}</span>
-                      )}
+                      {cmd.description && <span className="command-desc">{cmd.description}</span>}
                     </div>
-                    {cmd.shortcut && (
-                      <kbd className="command-shortcut">{cmd.shortcut}</kbd>
-                    )}
+                    {cmd.shortcut && <kbd className="command-shortcut">{cmd.shortcut}</kbd>}
                   </button>
                 );
               })}
@@ -446,8 +493,12 @@ export function CodeLabCommandPalette({
         }
 
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         .command-palette {
@@ -504,7 +555,7 @@ export function CodeLabCommandPalette({
           background: #f3f4f6;
           border-radius: 4px;
           font-size: 0.75rem;
-          color: #6b7280;
+          color: #4b5563;
           font-family: inherit;
         }
 
@@ -522,7 +573,7 @@ export function CodeLabCommandPalette({
           padding: 0.5rem 0.75rem;
           font-size: 0.6875rem;
           font-weight: 600;
-          color: #6b7280;
+          color: #4b5563;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -572,7 +623,7 @@ export function CodeLabCommandPalette({
         .command-desc {
           display: block;
           font-size: 0.75rem;
-          color: #6b7280;
+          color: #4b5563;
           margin-top: 0.125rem;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -591,7 +642,7 @@ export function CodeLabCommandPalette({
         .no-results {
           padding: 2rem;
           text-align: center;
-          color: #6b7280;
+          color: #4b5563;
         }
 
         .palette-footer {
@@ -607,7 +658,7 @@ export function CodeLabCommandPalette({
           align-items: center;
           gap: 0.375rem;
           font-size: 0.75rem;
-          color: #6b7280;
+          color: #4b5563;
         }
 
         .footer-hint kbd {
