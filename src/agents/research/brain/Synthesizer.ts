@@ -354,37 +354,37 @@ OUTPUT ONLY THE JSON OBJECT.`;
 
   /**
    * Create fallback output if synthesis fails
+   * Provides concise, mobile-friendly output from raw results
    */
   private createFallbackOutput(
     results: SearchResult[],
     intent: ResearchIntent,
     metadata: { totalQueries: number; iterations: number; executionTime: number; depth: 'quick' | 'standard' | 'deep' }
   ): ResearchOutput {
-    // Create basic output from raw results
-    const combinedContent = results.map(r => r.content).join('\n\n');
-
-    return {
-      bottomLine: `Research collected ${results.length} results on "${intent.refinedQuery}" - review findings below.`,
-      executiveSummary: `Research on "${intent.refinedQuery}" collected ${results.length} results from ${new Set(results.map(r => r.source)).size} sources. Review the detailed findings below.`,
-      keyFindings: results.slice(0, 5).map((r, i) => ({
-        title: `Finding ${i + 1}`,
-        finding: r.content.substring(0, 200) + '...',
+    // Extract key sentences from results for concise findings
+    const keyFindings = results.slice(0, 3).map((r, i) => {
+      // Get first meaningful sentence (not too short, not too long)
+      const sentences = r.content.split(/[.!?]+/).filter(s => s.trim().length > 30 && s.trim().length < 200);
+      const finding = sentences[0]?.trim() || r.content.substring(0, 150);
+      return {
+        title: `Key Point ${i + 1}`,
+        finding: finding + (finding.endsWith('.') ? '' : '.'),
         confidence: 'medium' as const,
         sources: [r.title || `Source ${i + 1}`],
-      })),
-      detailedSections: [
-        {
-          title: 'Research Results',
-          content: combinedContent.substring(0, 5000),
-          findings: [],
-        },
-      ],
-      gaps: ['Full synthesis was not possible - raw results provided'],
-      suggestions: ['Review the raw results and identify key takeaways'],
-      followUpQuestions: ['What specific aspects would you like to explore further?'],
+      };
+    });
+
+    return {
+      bottomLine: `Found ${results.length} sources on "${intent.topics[0] || intent.refinedQuery}".`,
+      executiveSummary: '',
+      keyFindings,
+      detailedSections: [],
+      gaps: [],
+      suggestions: [],
+      followUpQuestions: [],
       sources: results.map((r, i) => ({
         id: `source_${i}`,
-        title: r.title || `Result ${i + 1}`,
+        title: r.title || `Source ${i + 1}`,
         url: r.url,
         source: r.source,
         accessedAt: r.timestamp,
@@ -403,125 +403,45 @@ OUTPUT ONLY THE JSON OBJECT.`;
 
   /**
    * Format output as professional markdown report
+   * Optimized for mobile: concise, scannable, no clutter
    */
   formatAsMarkdown(output: ResearchOutput): string {
     let md = '';
 
-    // Research metadata header
-    const depthLabel = output.metadata.depth === 'deep' ? 'Deep Research' :
-                       output.metadata.depth === 'quick' ? 'Quick Research' : 'Standard Research';
-    const completedDate = new Date(output.metadata.completedAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    // Bottom Line - THE key takeaway (most important, first)
+    md += `**Bottom Line:** ${output.bottomLine}\n\n`;
+
+    // Key Findings - max 5, concise format
+    md += `---\n\n`;
+    md += `**Key Findings**\n\n`;
+    const findings = output.keyFindings.slice(0, 5);
+    findings.forEach((f, i) => {
+      const title = f.title ? `**${f.title}:**` : `**${i + 1}.**`;
+      // Truncate long findings for mobile
+      const findingText = f.finding.length > 200 ? f.finding.substring(0, 200) + '...' : f.finding;
+      md += `${title} ${findingText}\n\n`;
     });
 
-    md += `*${depthLabel} • ${completedDate} • Real-time data*\n\n`;
-
-    // Bottom Line - THE key takeaway
-    md += `> **Bottom Line:** ${output.bottomLine}\n\n`;
-
-    // Executive Summary
-    md += `---\n\n`;
-    md += `## Executive Summary\n\n`;
-    md += `${output.executiveSummary}\n\n`;
-
-    // Key Findings - numbered with titles
-    md += `---\n\n`;
-    md += `## Key Findings\n\n`;
-    output.keyFindings.forEach((f, i) => {
-      const title = f.title ? `**${f.title}**` : `**Finding ${i + 1}**`;
-      md += `${i + 1}. ${title}\n`;
-      md += `   ${f.finding}\n`;
-      if (f.sources.length > 0) {
-        md += `   *Sources: ${f.sources.join(', ')}*\n`;
-      }
-      md += '\n';
-    });
-
-    // Comparison Table (if present)
-    if (output.comparisonTable && output.comparisonTable.rows.length > 0) {
+    // Comparison Table (if present and relevant)
+    if (output.comparisonTable && output.comparisonTable.rows.length > 0 && output.comparisonTable.rows.length <= 5) {
       md += `---\n\n`;
-      md += `## Comparison\n\n`;
-      // Header row
+      md += `**Comparison**\n\n`;
       md += `| ${output.comparisonTable.headers.join(' | ')} |\n`;
-      // Separator row
       md += `| ${output.comparisonTable.headers.map(() => '---').join(' | ')} |\n`;
-      // Data rows
-      output.comparisonTable.rows.forEach(row => {
+      output.comparisonTable.rows.slice(0, 5).forEach(row => {
         md += `| ${row.entity} | ${row.values.join(' | ')} |\n`;
       });
       md += '\n';
     }
 
-    // Detailed Sections
-    if (output.detailedSections.length > 0) {
-      md += `---\n\n`;
-      md += `## Detailed Analysis\n\n`;
-      output.detailedSections.forEach(section => {
-        md += `### ${section.title}\n\n`;
-        md += `${section.content}\n\n`;
-        if (section.findings.length > 0) {
-          md += `**Key Points:**\n\n`;
-          section.findings.forEach(f => {
-            md += `• ${f.finding}\n`;
-          });
-          md += '\n';
-        }
-      });
-    }
-
-    // Research Gaps
-    if (output.gaps.length > 0) {
-      md += `---\n\n`;
-      md += `## Data Gaps & Limitations\n\n`;
-      output.gaps.forEach(gap => {
-        md += `• ${gap}\n`;
-      });
-      md += '\n';
-    }
-
-    // Recommended Actions
-    if (output.suggestions.length > 0) {
-      md += `---\n\n`;
-      md += `## Recommended Actions\n\n`;
-      output.suggestions.forEach((s, i) => {
-        md += `**${i + 1}.** ${s}\n\n`;
-      });
-    }
-
-    // What to Explore Next
-    if (output.followUpQuestions && output.followUpQuestions.length > 0) {
-      md += `---\n\n`;
-      md += `## What to Explore Next\n\n`;
-      md += `Based on this research, you might want to ask:\n\n`;
-      output.followUpQuestions.forEach(q => {
-        md += `• ${q}\n`;
-      });
-      md += '\n';
-    }
-
-    // Sources
+    // Sources - minimal, just count
     md += `---\n\n`;
-    md += `## Sources\n\n`;
-    output.sources.slice(0, 10).forEach((s, i) => {
-      md += `${i + 1}. ${s.title}\n`;
-    });
-    if (output.sources.length > 10) {
-      md += `\n*+ ${output.sources.length - 10} additional sources*\n`;
-    }
+    md += `*Based on ${output.sources.length} sources • ${(output.metadata.executionTime / 1000).toFixed(0)}s*\n\n`;
 
-    // Footer with metadata
-    md += `\n---\n\n`;
-    md += `*Research completed in ${(output.metadata.executionTime / 1000).toFixed(1)}s using ${output.metadata.totalQueries} queries across ${output.metadata.iterations} iteration${output.metadata.iterations > 1 ? 's' : ''}.*\n\n`;
-
-    // Document conversion prompt
+    // Document conversion prompt - clean CTA
     md += `---\n\n`;
-    md += `**Would you like me to turn this research into a professional document?**\n\n`;
-    md += `• *"Create a Word document"* — Formatted report ready for sharing\n`;
-    md += `• *"Create a PDF"* — Professional PDF report\n`;
-    md += `• *"Draft an email summary"* — Key findings formatted for email\n`;
-    md += `• *"Create a presentation outline"* — Slide deck structure\n`;
+    md += `**Want a professional document?** Just ask:\n`;
+    md += `• "Create a Word doc" • "Make a PDF" • "Draft an email"\n`;
 
     return md;
   }
