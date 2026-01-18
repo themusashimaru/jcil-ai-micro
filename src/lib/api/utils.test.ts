@@ -36,12 +36,14 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 // Helper to create mock NextRequest
-function createMockRequest(options: {
-  url?: string;
-  method?: string;
-  headers?: Record<string, string>;
-  body?: unknown;
-} = {}): NextRequest {
+function createMockRequest(
+  options: {
+    url?: string;
+    method?: string;
+    headers?: Record<string, string>;
+    body?: unknown;
+  } = {}
+): NextRequest {
   const url = options.url || 'http://localhost:3000/api/test';
   const request = new NextRequest(url, {
     method: options.method || 'GET',
@@ -212,13 +214,17 @@ describe('API Utils', () => {
   });
 
   describe('checkRequestRateLimit', () => {
-    it('should allow requests within limit', () => {
-      const result = checkRequestRateLimit('user-123', rateLimits.standard);
+    it('should allow requests within limit', async () => {
+      const result = await checkRequestRateLimit('user-123', rateLimits.standard);
       expect(result.allowed).toBe(true);
     });
 
-    it('should block requests exceeding limit', () => {
-      const result = checkRequestRateLimit('blocked-user', rateLimits.standard);
+    it('should block requests when limit exceeded', async () => {
+      // Exhaust the rate limit first
+      for (let i = 0; i < 60; i++) {
+        await checkRequestRateLimit('blocked-user', rateLimits.standard);
+      }
+      const result = await checkRequestRateLimit('blocked-user', rateLimits.standard);
       expect(result.allowed).toBe(false);
     });
   });

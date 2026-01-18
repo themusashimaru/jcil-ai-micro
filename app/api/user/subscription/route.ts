@@ -56,7 +56,10 @@ export async function GET() {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`subscription:get:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `subscription:get:${user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Fetch user's subscription details from database
@@ -67,7 +70,10 @@ export async function GET() {
       .single();
 
     if (dbError) {
-      log.error('[API] Error fetching subscription:', dbError instanceof Error ? dbError : { dbError });
+      log.error(
+        '[API] Error fetching subscription:',
+        dbError instanceof Error ? dbError : { dbError }
+      );
       return errors.serverError();
     }
 

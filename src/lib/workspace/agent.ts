@@ -16,6 +16,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ContainerManager, WorkspaceExecutor } from './container';
 import { CodebaseIndexer, BatchOperationManager } from './index';
+import { escapeShellArg, sanitizeCommitMessage } from '@/lib/security/shell-escape';
 
 // ============================================
 // TYPES
@@ -63,7 +64,8 @@ export interface AgentResponse {
 const AGENT_TOOLS: Anthropic.Tool[] = [
   {
     name: 'execute_shell',
-    description: 'Execute a shell command in the workspace. Use for running scripts, installing packages, or any CLI operation.',
+    description:
+      'Execute a shell command in the workspace. Use for running scripts, installing packages, or any CLI operation.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -85,7 +87,8 @@ const AGENT_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'read_file',
-    description: 'Read the contents of a file. Use to understand existing code before making changes.',
+    description:
+      'Read the contents of a file. Use to understand existing code before making changes.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -99,7 +102,8 @@ const AGENT_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'write_file',
-    description: 'Write content to a file. Creates the file if it does not exist, overwrites if it does.',
+    description:
+      'Write content to a file. Creates the file if it does not exist, overwrites if it does.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -117,7 +121,8 @@ const AGENT_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'edit_file',
-    description: 'Make surgical line-based edits to a file. Specify exact line numbers to replace. More precise than write_file for modifications.',
+    description:
+      'Make surgical line-based edits to a file. Specify exact line numbers to replace. More precise than write_file for modifications.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -140,11 +145,13 @@ const AGENT_TOOLS: Anthropic.Tool[] = [
         // Legacy support for text-based edits
         old_text: {
           type: 'string',
-          description: '(Legacy) The exact text to find and replace. Use start_line/end_line for precise edits.',
+          description:
+            '(Legacy) The exact text to find and replace. Use start_line/end_line for precise edits.',
         },
         new_text: {
           type: 'string',
-          description: '(Legacy) The new text to replace it with. Use new_content with line numbers instead.',
+          description:
+            '(Legacy) The new text to replace it with. Use new_content with line numbers instead.',
         },
       },
       required: ['path'],
@@ -152,7 +159,8 @@ const AGENT_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'surgical_edit',
-    description: 'Apply multiple surgical line-based edits to a file in a single operation. Supports dry-run preview.',
+    description:
+      'Apply multiple surgical line-based edits to a file in a single operation. Supports dry-run preview.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -353,7 +361,8 @@ const AGENT_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'get_codebase_context',
-    description: 'Get relevant code context for a query. Use when you need to understand how something works.',
+    description:
+      'Get relevant code context for a query. Use when you need to understand how something works.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -442,7 +451,10 @@ export class CodingAgent {
 
         for (const block of response.content) {
           if (block.type === 'tool_use') {
-            const result = await this.executeTool(block.name, block.input as Record<string, unknown>);
+            const result = await this.executeTool(
+              block.name,
+              block.input as Record<string, unknown>
+            );
             this.toolsUsed.add(block.name);
 
             toolResults.push({
@@ -484,13 +496,10 @@ export class CodingAgent {
     try {
       switch (name) {
         case 'execute_shell': {
-          const result = await this.executor.run(
-            input.command as string,
-            {
-              cwd: (input.cwd as string) || '/workspace',
-              timeout: (input.timeout as number) || 30000,
-            }
-          );
+          const result = await this.executor.run(input.command as string, {
+            cwd: (input.cwd as string) || '/workspace',
+            timeout: (input.timeout as number) || 30000,
+          });
           this.commandsExecuted.push(input.command as string);
           return `Exit code: ${result.exitCode}\n\nOutput:\n${result.stdout}\n${result.stderr ? `\nStderr:\n${result.stderr}` : ''}`;
         }
@@ -556,7 +565,11 @@ export class CodingAgent {
         case 'surgical_edit': {
           const path = this.normalizePath(input.path as string);
           const content = await this.executor.read(path);
-          const edits = input.edits as Array<{ start_line: number; end_line: number; new_content: string }>;
+          const edits = input.edits as Array<{
+            start_line: number;
+            end_line: number;
+            new_content: string;
+          }>;
           const dryRun = (input.dry_run as boolean) || false;
 
           const lines = content.split('\n');
@@ -613,11 +626,13 @@ export class CodingAgent {
         case 'list_files': {
           const path = this.normalizePath((input.path as string) || '/workspace');
           const files = await this.container.listDirectory(this.config.workspaceId, path);
-          return files.map(f => `${f.isDirectory ? '📁' : '📄'} ${f.path}`).join('\n');
+          return files.map((f) => `${f.isDirectory ? '📁' : '📄'} ${f.path}`).join('\n');
         }
 
         case 'search_files': {
-          const result = await this.executor.run(`find /workspace -name "${input.pattern}" -type f | head -50`);
+          const result = await this.executor.run(
+            `find /workspace -name "${input.pattern}" -type f | head -50`
+          );
           return result.stdout || 'No files found';
         }
 
@@ -638,18 +653,24 @@ export class CodingAgent {
         case 'git_commit': {
           const files = input.files as string[] | undefined;
           if (files && files.length > 0) {
-            await this.executor.run(`git add ${files.join(' ')}`);
+            // Escape each file path to prevent injection
+            const escapedFiles = files.map((f) => escapeShellArg(f)).join(' ');
+            await this.executor.run(`git add ${escapedFiles}`);
           } else {
             await this.executor.run('git add .');
           }
-          const result = await this.executor.run(`git commit -m "${(input.message as string).replace(/"/g, '\\"')}"`);
+          // Sanitize and escape commit message
+          const rawMessage = input.message as string;
+          const sanitized = sanitizeCommitMessage(rawMessage);
+          const escaped = escapeShellArg(sanitized);
+          const result = await this.executor.run(`git commit -m ${escaped}`);
           return result.stdout;
         }
 
         case 'git_diff': {
           let cmd = 'git diff';
           if (input.staged) cmd += ' --staged';
-          if (input.file) cmd += ` -- "${input.file}"`;
+          if (input.file) cmd += ` -- ${escapeShellArg(input.file as string)}`;
           const result = await this.executor.run(cmd);
           return result.stdout || 'No changes';
         }
@@ -686,7 +707,7 @@ export class CodingAgent {
           }>;
 
           const batch = await this.batchOps.createBatch(
-            operations.map(op => ({
+            operations.map((op) => ({
               type: op.action === 'write' ? 'create' : 'delete',
               path: this.normalizePath(op.path),
               content: op.content,
@@ -696,7 +717,7 @@ export class CodingAgent {
           const result = await this.batchOps.execute(batch.id);
 
           if (result.success) {
-            operations.forEach(op => this.filesModified.add(op.path));
+            operations.forEach((op) => this.filesModified.add(op.path));
             return `Batch operation completed: ${operations.length} files modified`;
           } else {
             return `Batch operation failed: ${result.error}. All changes rolled back.`;
@@ -782,9 +803,17 @@ export class StreamingCodingAgent extends CodingAgent {
     this.emit({ type: 'start', message: 'Agent started' });
 
     // Override executeTool to emit updates
-    const originalExecuteTool = (this as unknown as { executeTool: (name: string, input: Record<string, unknown>) => Promise<string> }).executeTool.bind(this);
+    const originalExecuteTool = (
+      this as unknown as {
+        executeTool: (name: string, input: Record<string, unknown>) => Promise<string>;
+      }
+    ).executeTool.bind(this);
 
-    (this as unknown as { executeTool: (name: string, input: Record<string, unknown>) => Promise<string> }).executeTool = async (name: string, input: Record<string, unknown>) => {
+    (
+      this as unknown as {
+        executeTool: (name: string, input: Record<string, unknown>) => Promise<string>;
+      }
+    ).executeTool = async (name: string, input: Record<string, unknown>) => {
       this.emit({ type: 'tool_start', tool: name, input });
       const result = await originalExecuteTool(name, input);
       this.emit({ type: 'tool_end', tool: name, output: result });

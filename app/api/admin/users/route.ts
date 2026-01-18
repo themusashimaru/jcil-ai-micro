@@ -36,7 +36,12 @@ interface AdminStats {
   totalUsers: number;
   usersByTier: { free: number; basic: number; pro: number; executive: number };
   usersByStatus: { active: number; trialing: number; past_due: number; canceled: number };
-  usage: { totalMessagesToday: number; totalMessagesAllTime: number; totalImagesToday: number; totalImagesAllTime: number };
+  usage: {
+    totalMessagesToday: number;
+    totalMessagesAllTime: number;
+    totalImagesToday: number;
+    totalImagesAllTime: number;
+  };
   activeUsers: { today: number; last7Days: number; last30Days: number };
 }
 
@@ -46,7 +51,9 @@ function getSupabaseAdmin() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase configuration. Please check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
+    throw new Error(
+      'Missing Supabase configuration. Please check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.'
+    );
   }
 
   return createClient(supabaseUrl, supabaseServiceKey);
@@ -59,7 +66,10 @@ export async function GET(request: NextRequest) {
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:users:get:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:users:get:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
@@ -78,7 +88,8 @@ export async function GET(request: NextRequest) {
     // Fetch users with pagination
     const { data: users, error } = await supabase
       .from('users')
-      .select(`
+      .select(
+        `
         id,
         email,
         full_name,
@@ -93,7 +104,8 @@ export async function GET(request: NextRequest) {
         stripe_subscription_id,
         created_at,
         updated_at
-      `)
+      `
+      )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -114,48 +126,63 @@ export async function GET(request: NextRequest) {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
       // Run all aggregate queries in parallel for performance
-      const [
-        tierCounts,
-        statusCounts,
-        usageStats,
-        activeToday,
-        active7Days,
-        active30Days,
-      ] = await Promise.all([
-        // Count by subscription tier
-        supabase.from('users').select('subscription_tier').then(({ data }) => {
-          const counts = { free: 0, basic: 0, pro: 0, executive: 0 };
-          data?.forEach(u => {
-            const tier = (u.subscription_tier || 'free') as keyof typeof counts;
-            if (tier in counts) counts[tier]++;
-          });
-          return counts;
-        }),
-        // Count by subscription status
-        supabase.from('users').select('subscription_status').then(({ data }) => {
-          const counts = { active: 0, trialing: 0, past_due: 0, canceled: 0 };
-          data?.forEach(u => {
-            const status = u.subscription_status as keyof typeof counts;
-            if (status in counts) counts[status]++;
-          });
-          return counts;
-        }),
-        // Sum usage stats (lightweight - just numbers)
-        supabase.from('users').select('messages_used_today, total_messages, images_generated_today, total_images').then(({ data }) => {
-          return {
-            totalMessagesToday: data?.reduce((sum, u) => sum + (u.messages_used_today || 0), 0) || 0,
-            totalMessagesAllTime: data?.reduce((sum, u) => sum + (u.total_messages || 0), 0) || 0,
-            totalImagesToday: data?.reduce((sum, u) => sum + (u.images_generated_today || 0), 0) || 0,
-            totalImagesAllTime: data?.reduce((sum, u) => sum + (u.total_images || 0), 0) || 0,
-          };
-        }),
-        // Active users today
-        supabase.from('users').select('id', { count: 'exact', head: true }).eq('last_message_date', today),
-        // Active users last 7 days
-        supabase.from('users').select('id', { count: 'exact', head: true }).gte('last_message_date', sevenDaysAgo.toISOString().split('T')[0]),
-        // Active users last 30 days
-        supabase.from('users').select('id', { count: 'exact', head: true }).gte('last_message_date', thirtyDaysAgo.toISOString().split('T')[0]),
-      ]);
+      const [tierCounts, statusCounts, usageStats, activeToday, active7Days, active30Days] =
+        await Promise.all([
+          // Count by subscription tier
+          supabase
+            .from('users')
+            .select('subscription_tier')
+            .then(({ data }) => {
+              const counts = { free: 0, basic: 0, pro: 0, executive: 0 };
+              data?.forEach((u) => {
+                const tier = (u.subscription_tier || 'free') as keyof typeof counts;
+                if (tier in counts) counts[tier]++;
+              });
+              return counts;
+            }),
+          // Count by subscription status
+          supabase
+            .from('users')
+            .select('subscription_status')
+            .then(({ data }) => {
+              const counts = { active: 0, trialing: 0, past_due: 0, canceled: 0 };
+              data?.forEach((u) => {
+                const status = u.subscription_status as keyof typeof counts;
+                if (status in counts) counts[status]++;
+              });
+              return counts;
+            }),
+          // Sum usage stats (lightweight - just numbers)
+          supabase
+            .from('users')
+            .select('messages_used_today, total_messages, images_generated_today, total_images')
+            .then(({ data }) => {
+              return {
+                totalMessagesToday:
+                  data?.reduce((sum, u) => sum + (u.messages_used_today || 0), 0) || 0,
+                totalMessagesAllTime:
+                  data?.reduce((sum, u) => sum + (u.total_messages || 0), 0) || 0,
+                totalImagesToday:
+                  data?.reduce((sum, u) => sum + (u.images_generated_today || 0), 0) || 0,
+                totalImagesAllTime: data?.reduce((sum, u) => sum + (u.total_images || 0), 0) || 0,
+              };
+            }),
+          // Active users today
+          supabase
+            .from('users')
+            .select('id', { count: 'exact', head: true })
+            .eq('last_message_date', today),
+          // Active users last 7 days
+          supabase
+            .from('users')
+            .select('id', { count: 'exact', head: true })
+            .gte('last_message_date', sevenDaysAgo.toISOString().split('T')[0]),
+          // Active users last 30 days
+          supabase
+            .from('users')
+            .select('id', { count: 'exact', head: true })
+            .gte('last_message_date', thirtyDaysAgo.toISOString().split('T')[0]),
+        ]);
 
       stats = {
         totalUsers: totalCount || 0,

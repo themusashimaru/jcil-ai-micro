@@ -33,7 +33,10 @@ export async function POST() {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`passkey:dismiss:${session.user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `passkey:dismiss:${session.user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();

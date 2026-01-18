@@ -9,6 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;
@@ -55,7 +57,9 @@ function decryptToken(encryptedData: string): string {
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -110,22 +114,31 @@ export async function GET(request: NextRequest) {
  * POST - Review a PR
  */
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Rate limiting
+    const rateLimit = await rateLimiters.codeLabEdit(user.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
-    const {
-      owner,
-      repo,
-      prNumber,
-      options = {},
-      postToGitHub = false,
-    } = body;
+    const { owner, repo, prNumber, options = {}, postToGitHub = false } = body;
 
     if (!owner || !repo || !prNumber) {
       return NextResponse.json({ error: 'Missing owner, repo, or prNumber' }, { status: 400 });

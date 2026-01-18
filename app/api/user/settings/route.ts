@@ -10,7 +10,13 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  validateBody,
+  checkRequestRateLimit,
+  rateLimits,
+} from '@/lib/api/utils';
 import { userSettingsSchema } from '@/lib/validation/schemas';
 
 const log = logger('UserSettings');
@@ -33,13 +39,18 @@ async function getSupabase() {
 export async function GET(_request: NextRequest) {
   const supabase = await getSupabase();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
     return errors.unauthorized();
   }
 
   // Rate limiting by user
-  const rateLimitCheck = checkRequestRateLimit(`settings:get:${user.id}`, rateLimits.standard);
+  const rateLimitCheck = await checkRequestRateLimit(
+    `settings:get:${user.id}`,
+    rateLimits.standard
+  );
   if (!rateLimitCheck.allowed) return rateLimitCheck.response;
 
   // Get user settings
@@ -49,8 +60,12 @@ export async function GET(_request: NextRequest) {
     .eq('user_id', user.id)
     .single();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-    log.error('[User Settings] Error fetching settings:', error instanceof Error ? error : { error });
+  if (error && error.code !== 'PGRST116') {
+    // PGRST116 = no rows found
+    log.error(
+      '[User Settings] Error fetching settings:',
+      error instanceof Error ? error : { error }
+    );
     return errors.serverError();
   }
 
@@ -69,13 +84,18 @@ export async function PUT(request: NextRequest) {
 
   const supabase = await getSupabase();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) {
     return errors.unauthorized();
   }
 
   // Rate limiting by user
-  const rateLimitCheck = checkRequestRateLimit(`settings:put:${user.id}`, rateLimits.standard);
+  const rateLimitCheck = await checkRequestRateLimit(
+    `settings:put:${user.id}`,
+    rateLimits.standard
+  );
   if (!rateLimitCheck.allowed) return rateLimitCheck.response;
 
   // Validate request body
@@ -115,7 +135,10 @@ export async function PUT(request: NextRequest) {
     .single();
 
   if (error) {
-    log.error('[User Settings] Error updating settings:', error instanceof Error ? error : { error });
+    log.error(
+      '[User Settings] Error updating settings:',
+      error instanceof Error ? error : { error }
+    );
     return errors.serverError();
   }
 

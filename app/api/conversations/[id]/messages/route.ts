@@ -134,7 +134,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Rate limiting
-    const rateLimitResult = checkRequestRateLimit(`messages:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(`messages:${user.id}`, rateLimits.standard);
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const contentType = request.headers.get('content-type') || '';
@@ -377,7 +377,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Rate limiting
-    const rateLimitResult = checkRequestRateLimit(`messages:edit:${user.id}`, rateLimits.strict);
+    const rateLimitResult = await checkRequestRateLimit(
+      `messages:edit:${user.id}`,
+      rateLimits.strict
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Parse request body
@@ -491,7 +494,10 @@ export async function DELETE(
     }
 
     // Rate limiting
-    const rateLimitResult = checkRequestRateLimit(`messages:delete:${user.id}`, rateLimits.strict);
+    const rateLimitResult = await checkRequestRateLimit(
+      `messages:delete:${user.id}`,
+      rateLimits.strict
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Parse request body

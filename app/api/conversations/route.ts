@@ -80,7 +80,10 @@ export async function GET() {
     log.debug('User authenticated for conversation list', { userId: user.id.slice(0, 8) + '...' });
 
     // Rate limiting
-    const rateLimitResult = checkRequestRateLimit(`conv-list:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `conv-list:${user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // User authenticated successfully - logging minimized for privacy
@@ -139,7 +142,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting
-    const rateLimitResult = checkRequestRateLimit(`conv-create:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `conv-create:${user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Validate request body

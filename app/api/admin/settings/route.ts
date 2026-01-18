@@ -39,7 +39,10 @@ export async function GET() {
   if (!auth.authorized) return auth.response;
 
   // Rate limit by admin
-  const rateLimitResult = checkRequestRateLimit(`admin:settings:get:${auth.user.id}`, rateLimits.admin);
+  const rateLimitResult = await checkRequestRateLimit(
+    `admin:settings:get:${auth.user.id}`,
+    rateLimits.admin
+  );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   return successResponse(DEFAULT_SETTINGS);
@@ -53,7 +56,10 @@ export async function POST(request: NextRequest) {
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:settings:post:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:settings:post:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const body = await request.json();

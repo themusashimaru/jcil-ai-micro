@@ -96,7 +96,10 @@ export async function GET() {
     }
 
     // Rate limiting
-    const rateLimitResult = checkRequestRateLimit(`memory-get:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `memory-get:${user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Load user memory
@@ -152,7 +155,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // Rate limiting
-    const rateLimitResult = checkRequestRateLimit(`memory-update:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `memory-update:${user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Validate request body
@@ -222,7 +228,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Rate limiting (stricter for destructive operations)
-    const rateLimitResult = checkRequestRateLimit(`memory-delete:${user.id}`, {
+    const rateLimitResult = await checkRequestRateLimit(`memory-delete:${user.id}`, {
       ...rateLimits.standard,
       limit: 5,
     });

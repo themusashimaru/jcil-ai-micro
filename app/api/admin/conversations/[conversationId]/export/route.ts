@@ -61,7 +61,10 @@ export async function GET(
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:export:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:export:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { conversationId } = params;
@@ -91,7 +94,9 @@ export async function GET(
     }
 
     // Log admin export for audit trail
-    log.info(`[Admin Audit] Admin exported conversation ${conversationId} as PDF (User: ${conversation.user_id})`);
+    log.info(
+      `[Admin Audit] Admin exported conversation ${conversationId} as PDF (User: ${conversation.user_id})`
+    );
 
     // Generate HTML content for PDF
     const user = Array.isArray(conversation.users) ? conversation.users[0] : conversation.users;
@@ -110,7 +115,11 @@ export async function GET(
   }
 }
 
-function generatePDFHTML(conversation: ConversationData, user: ConversationUser, messages: MessageData[]): string {
+function generatePDFHTML(
+  conversation: ConversationData,
+  user: ConversationUser,
+  messages: MessageData[]
+): string {
   const now = new Date().toLocaleString();
 
   return `
@@ -254,20 +263,28 @@ function generatePDFHTML(conversation: ConversationData, user: ConversationUser,
 
   <h2 style="margin-top: 40px; margin-bottom: 20px; font-size: 18px;">Messages</h2>
 
-  ${messages.map((msg) => `
+  ${messages
+    .map(
+      (msg) => `
     <div class="message ${msg.role}">
       <div class="message-header">
         <span class="message-role ${msg.role}">${msg.role}</span>
         <span class="message-time">${new Date(msg.created_at).toLocaleString()}</span>
       </div>
       <div class="message-content">${escapeHtml(msg.content)}</div>
-      ${msg.moderation_flagged ? `
+      ${
+        msg.moderation_flagged
+          ? `
         <div style="color: #dc2626; font-size: 12px; margin-top: 8px;">
           ⚠️ Content flagged by moderation system
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
-  `).join('\n')}
+  `
+    )
+    .join('\n')}
 
   <div class="footer">
     <p>

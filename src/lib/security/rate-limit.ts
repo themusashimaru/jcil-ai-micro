@@ -1,20 +1,47 @@
 /**
  * RATE LIMITING UTILITIES
  *
- * In-memory rate limiting for API routes.
+ * Redis-backed rate limiting for API routes with in-memory fallback.
  * Uses sliding window algorithm for accurate rate limiting.
  *
- * Note: For production with multiple instances, use Redis-backed rate limiting.
+ * Production: Uses Redis (Upstash) for multi-instance support
+ * Development: Falls back to in-memory when Redis not configured
  */
 
 import { RATE_LIMITS, TIERED_RATE_LIMITS, SubscriptionTier } from '@/lib/constants';
+import { redis, isRedisAvailable } from '@/lib/redis/client';
+import { logger } from '@/lib/logger';
+
+const log = logger('RateLimit');
+
+// ========================================
+// TYPES
+// ========================================
+
+export interface RateLimitResult {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+  retryAfter?: number;
+}
+
+export interface RateLimitConfig {
+  /** Maximum requests allowed in the window */
+  limit: number;
+  /** Window size in milliseconds */
+  windowMs: number;
+}
+
+// ========================================
+// IN-MEMORY FALLBACK (Development only)
+// ========================================
 
 interface RateLimitEntry {
   count: number;
   resetAt: number;
 }
 
-// In-memory store (use Redis for production multi-instance)
+// In-memory store for fallback when Redis unavailable
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 // Cleanup old entries periodically
@@ -32,24 +59,10 @@ function startCleanup() {
   }, 60_000); // Clean up every minute
 }
 
-export interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  resetAt: number;
-  retryAfter?: number;
-}
-
-export interface RateLimitConfig {
-  /** Maximum requests allowed in the window */
-  limit: number;
-  /** Window size in milliseconds */
-  windowMs: number;
-}
-
 /**
- * Check and update rate limit for a given identifier
+ * In-memory rate limit check (fallback)
  */
-export function checkRateLimit(identifier: string, config: RateLimitConfig): RateLimitResult {
+function checkRateLimitMemory(identifier: string, config: RateLimitConfig): RateLimitResult {
   startCleanup();
 
   const now = Date.now();
@@ -89,8 +102,94 @@ export function checkRateLimit(identifier: string, config: RateLimitConfig): Rat
   };
 }
 
+// ========================================
+// REDIS-BACKED RATE LIMITING
+// ========================================
+
+/**
+ * Redis-backed rate limit check using sliding window algorithm
+ */
+async function checkRateLimitRedis(
+  identifier: string,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  if (!redis) {
+    // Fallback to memory if Redis somehow became unavailable
+    return checkRateLimitMemory(identifier, config);
+  }
+
+  const key = `ratelimit:${identifier}`;
+  const now = Date.now();
+  const windowMs = config.windowMs;
+  const windowStart = now - windowMs;
+
+  try {
+    // Use sorted set for sliding window
+    const multi = redis.multi();
+    multi.zremrangebyscore(key, 0, windowStart); // Remove old entries
+    multi.zadd(key, { score: now, member: `${now}-${Math.random()}` }); // Add current request with unique member
+    multi.zcard(key); // Count requests in window
+    multi.pexpire(key, windowMs); // Set expiry in milliseconds
+
+    const results = await multi.exec();
+    const count = results[2] as number;
+
+    const resetAt = now + windowMs;
+
+    if (count > config.limit) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt,
+        retryAfter: Math.ceil(windowMs / 1000),
+      };
+    }
+
+    return {
+      allowed: true,
+      remaining: Math.max(0, config.limit - count),
+      resetAt,
+    };
+  } catch (error) {
+    log.error('Redis rate limit error, falling back to memory', error as Error);
+    // Fallback to memory on Redis error
+    return checkRateLimitMemory(identifier, config);
+  }
+}
+
+// ========================================
+// MAIN RATE LIMIT FUNCTION
+// ========================================
+
+/**
+ * Check and update rate limit for a given identifier
+ * Uses Redis when available, falls back to in-memory
+ */
+export async function checkRateLimit(
+  identifier: string,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  if (isRedisAvailable()) {
+    return checkRateLimitRedis(identifier, config);
+  }
+
+  // In development without Redis, use memory
+  if (process.env.NODE_ENV === 'development') {
+    return checkRateLimitMemory(identifier, config);
+  }
+
+  // In production without Redis, log warning and use memory (but this shouldn't happen)
+  log.warn('Redis not configured in production - using in-memory rate limiting');
+  return checkRateLimitMemory(identifier, config);
+}
+
+// ========================================
+// PRE-CONFIGURED RATE LIMITERS
+// ========================================
+
 /**
  * Pre-configured rate limiters for common use cases
+ * All return Promises for consistent async handling
  */
 export const rateLimiters = {
   chat: (userId: string, isPaid: boolean) =>
@@ -155,25 +254,77 @@ export const rateLimiters = {
     }),
 };
 
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
+
 /**
  * Reset rate limit for a given identifier (for testing or admin)
  */
-export function resetRateLimit(identifier: string): void {
-  rateLimitStore.delete(`rate:${identifier}`);
+export async function resetRateLimit(identifier: string): Promise<void> {
+  const memKey = `rate:${identifier}`;
+  const redisKey = `ratelimit:${identifier}`;
+
+  rateLimitStore.delete(memKey);
+
+  if (redis && isRedisAvailable()) {
+    try {
+      await redis.del(redisKey);
+    } catch (error) {
+      log.warn('Failed to reset Redis rate limit', error as Error);
+    }
+  }
 }
 
 /**
  * Clear all rate limits (for testing)
  */
-export function clearAllRateLimits(): void {
+export async function clearAllRateLimits(): Promise<void> {
   rateLimitStore.clear();
+
+  if (redis && isRedisAvailable()) {
+    try {
+      // Delete all rate limit keys
+      const keys = await redis.keys('ratelimit:*');
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    } catch (error) {
+      log.warn('Failed to clear Redis rate limits', error as Error);
+    }
+  }
 }
 
 /**
  * Get current rate limit status without incrementing
  */
-export function getRateLimitStatus(identifier: string, config: RateLimitConfig): RateLimitResult {
+export async function getRateLimitStatus(
+  identifier: string,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
   const now = Date.now();
+
+  if (redis && isRedisAvailable()) {
+    try {
+      const key = `ratelimit:${identifier}`;
+      const windowStart = now - config.windowMs;
+
+      // Count current entries without adding new one
+      await redis.zremrangebyscore(key, 0, windowStart);
+      const count = await redis.zcard(key);
+
+      return {
+        allowed: count < config.limit,
+        remaining: Math.max(0, config.limit - count),
+        resetAt: now + config.windowMs,
+        retryAfter: count >= config.limit ? Math.ceil(config.windowMs / 1000) : undefined,
+      };
+    } catch (error) {
+      log.warn('Failed to get Redis rate limit status', error as Error);
+    }
+  }
+
+  // Memory fallback
   const key = `rate:${identifier}`;
   const entry = rateLimitStore.get(key);
 
@@ -269,12 +420,12 @@ export interface TieredRateLimitResult extends RateLimitResult {
  * Check all applicable rate limits for chat
  * Returns the most restrictive result
  */
-export function checkTieredChatRateLimit(
+export async function checkTieredChatRateLimit(
   userId: string,
   tier: SubscriptionTier
-): TieredRateLimitResult {
-  const minuteResult = tieredRateLimiters.chatPerMinute(userId, tier);
-  const hourResult = tieredRateLimiters.chatPerHour(userId, tier);
+): Promise<TieredRateLimitResult> {
+  const minuteResult = await tieredRateLimiters.chatPerMinute(userId, tier);
+  const hourResult = await tieredRateLimiters.chatPerHour(userId, tier);
 
   // Return the most restrictive result
   if (!minuteResult.allowed) {
@@ -292,12 +443,12 @@ export function checkTieredChatRateLimit(
  * Check all applicable rate limits for image generation
  * Returns the most restrictive result
  */
-export function checkTieredImageRateLimit(
+export async function checkTieredImageRateLimit(
   userId: string,
   tier: SubscriptionTier
-): TieredRateLimitResult {
-  const minuteResult = tieredRateLimiters.imagePerMinute(userId, tier);
-  const hourResult = tieredRateLimiters.imagePerHour(userId, tier);
+): Promise<TieredRateLimitResult> {
+  const minuteResult = await tieredRateLimiters.imagePerMinute(userId, tier);
+  const hourResult = await tieredRateLimiters.imagePerHour(userId, tier);
 
   // Return the most restrictive result
   if (!minuteResult.allowed) {
@@ -319,4 +470,6 @@ export const _internal = {
       cleanupInterval = null;
     }
   },
+  checkRateLimitMemory,
+  checkRateLimitRedis,
 };

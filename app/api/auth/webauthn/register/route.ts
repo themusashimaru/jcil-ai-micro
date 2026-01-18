@@ -108,7 +108,10 @@ export async function POST(_request: NextRequest) {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`webauthn:register:${session.user.id}`, rateLimits.auth);
+    const rateLimitResult = await checkRequestRateLimit(
+      `webauthn:register:${session.user.id}`,
+      rateLimits.auth
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
@@ -160,7 +163,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`webauthn:verify:${session.user.id}`, rateLimits.auth);
+    const rateLimitResult = await checkRequestRateLimit(
+      `webauthn:verify:${session.user.id}`,
+      rateLimits.auth
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const userId = session.user.id;
@@ -179,10 +185,7 @@ export async function PUT(request: NextRequest) {
     };
 
     // Verify the registration response
-    const verification = await verifyPasskeyRegistration(
-      response,
-      storedChallenge
-    );
+    const verification = await verifyPasskeyRegistration(response, storedChallenge);
 
     if (!verification.verified || !verification.registrationInfo) {
       return errors.badRequest('Verification failed');

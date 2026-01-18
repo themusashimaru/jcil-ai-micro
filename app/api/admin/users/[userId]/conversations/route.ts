@@ -26,17 +26,17 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { userId: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { userId: string } }) {
   try {
     // Require admin authentication
     const auth = await requireAdmin();
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:user:conversations:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:user:conversations:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { userId } = params;

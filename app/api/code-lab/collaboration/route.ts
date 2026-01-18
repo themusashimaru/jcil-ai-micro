@@ -16,6 +16,8 @@ import {
 } from '@/lib/collaboration/collaboration-manager';
 import { CRDTOperation } from '@/lib/collaboration/crdt-document';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 const log = logger('CollaborationAPI');
 
@@ -25,11 +27,24 @@ const log = logger('CollaborationAPI');
  * Collaboration actions: create, join, leave, operation, cursor, sync
  */
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   try {
     // Auth check
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;
+    }
+
+    // Rate limiting
+    const rateLimit = await rateLimiters.codeLabEdit(auth.user!.id);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();
@@ -48,10 +63,7 @@ export async function POST(request: NextRequest) {
         };
 
         if (!documentId) {
-          return NextResponse.json(
-            { error: 'Missing documentId' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing documentId' }, { status: 400 });
         }
 
         log.info('Creating collaboration session', {
@@ -76,10 +88,7 @@ export async function POST(request: NextRequest) {
         const { sessionId } = params as { sessionId: string };
 
         if (!sessionId) {
-          return NextResponse.json(
-            { error: 'Missing sessionId' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
         }
 
         log.info('Joining collaboration session', {
@@ -87,17 +96,10 @@ export async function POST(request: NextRequest) {
           sessionId,
         });
 
-        const result = manager.joinSession(
-          sessionId,
-          auth.user.id,
-          auth.user.email || 'Anonymous'
-        );
+        const result = manager.joinSession(sessionId, auth.user.id, auth.user.email || 'Anonymous');
 
         if (!result) {
-          return NextResponse.json(
-            { error: 'Session not found or inactive' },
-            { status: 404 }
-          );
+          return NextResponse.json({ error: 'Session not found or inactive' }, { status: 404 });
         }
 
         return NextResponse.json({
@@ -112,10 +114,7 @@ export async function POST(request: NextRequest) {
         const { sessionId } = params as { sessionId: string };
 
         if (!sessionId) {
-          return NextResponse.json(
-            { error: 'Missing sessionId' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
         }
 
         manager.leaveSession(sessionId, auth.user.id);
@@ -130,10 +129,7 @@ export async function POST(request: NextRequest) {
         };
 
         if (!sessionId || !operation) {
-          return NextResponse.json(
-            { error: 'Missing sessionId or operation' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing sessionId or operation' }, { status: 400 });
         }
 
         const applied = manager.applyOperation(sessionId, auth.user.id, operation);
@@ -152,10 +148,7 @@ export async function POST(request: NextRequest) {
         };
 
         if (!sessionId || position === undefined) {
-          return NextResponse.json(
-            { error: 'Missing sessionId or position' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing sessionId or position' }, { status: 400 });
         }
 
         manager.updateCursor(sessionId, auth.user.id, position, selection);
@@ -175,10 +168,7 @@ export async function POST(request: NextRequest) {
         };
 
         if (!sessionId || !state) {
-          return NextResponse.json(
-            { error: 'Missing sessionId or state' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Missing sessionId or state' }, { status: 400 });
         }
 
         manager.syncDocument(sessionId, auth.user.id, state);
@@ -187,10 +177,7 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        return NextResponse.json(
-          { error: `Unknown action: ${action}` },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
     }
   } catch (error) {
     log.error('Collaboration API error', error as Error);
@@ -247,10 +234,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     log.error('Collaboration API error', error as Error);
-    return NextResponse.json(
-      { error: 'Failed to get collaboration info' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to get collaboration info' }, { status: 500 });
   }
 }
 

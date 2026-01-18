@@ -72,7 +72,10 @@ export async function GET() {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`usage:get:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `usage:get:${user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Fetch user's tier from database

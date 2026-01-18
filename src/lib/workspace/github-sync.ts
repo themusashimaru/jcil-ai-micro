@@ -15,6 +15,11 @@
 
 import { Octokit } from '@octokit/rest';
 import { logger } from '@/lib/logger';
+import {
+  escapeShellArg,
+  sanitizeCommitMessage,
+  sanitizeBranchName,
+} from '@/lib/security/shell-escape';
 
 const log = logger('GitHubSync');
 
@@ -122,7 +127,7 @@ export class GitHubSyncBridge {
 
       return {
         success: true,
-        filesChanged: files.map(path => ({
+        filesChanged: files.map((path) => ({
           path,
           status: 'added' as const,
           additions: 0,
@@ -228,10 +233,12 @@ export class GitHubSyncBridge {
       // Parse changed files
       const changedFiles = this.parseGitStatus(statusResult.stdout);
 
-      // Commit changes
-      const message = commitMessage || `Code Lab: Auto-sync at ${new Date().toISOString()}`;
+      // Commit changes with properly escaped message
+      const rawMessage = commitMessage || `Code Lab: Auto-sync at ${new Date().toISOString()}`;
+      const sanitizedMessage = sanitizeCommitMessage(rawMessage);
+      const escapedMessage = escapeShellArg(sanitizedMessage);
       const commitResult = await executeShell(
-        `cd /workspace/repo && git commit -m "${message.replace(/"/g, '\\"')}"`
+        `cd /workspace/repo && git commit -m ${escapedMessage}`
       );
 
       if (commitResult.exitCode !== 0 && !commitResult.stdout.includes('nothing to commit')) {
@@ -242,9 +249,10 @@ export class GitHubSyncBridge {
         };
       }
 
-      // Push to remote
+      // Push to remote with sanitized branch name
+      const safeBranch = sanitizeBranchName(this.currentBranch);
       const pushResult = await executeShell(
-        `cd /workspace/repo && git push origin ${this.currentBranch}`
+        `cd /workspace/repo && git push origin ${escapeShellArg(safeBranch)}`
       );
 
       if (pushResult.exitCode !== 0) {
@@ -351,9 +359,7 @@ export class GitHubSyncBridge {
     executeShell: (cmd: string) => Promise<{ stdout: string; stderr: string; exitCode: number }>
   ): Promise<boolean> {
     try {
-      const result = await executeShell(
-        `cd /workspace/repo && git checkout -b ${branchName}`
-      );
+      const result = await executeShell(`cd /workspace/repo && git checkout -b ${branchName}`);
       if (result.exitCode === 0) {
         this.currentBranch = branchName;
         return true;
@@ -372,9 +378,7 @@ export class GitHubSyncBridge {
     executeShell: (cmd: string) => Promise<{ stdout: string; stderr: string; exitCode: number }>
   ): Promise<boolean> {
     try {
-      const result = await executeShell(
-        `cd /workspace/repo && git checkout ${branchName}`
-      );
+      const result = await executeShell(`cd /workspace/repo && git checkout ${branchName}`);
       if (result.exitCode === 0) {
         this.currentBranch = branchName;
         return true;
@@ -395,11 +399,16 @@ export class GitHubSyncBridge {
       const result = await executeShell('cd /workspace/repo && git branch -a');
       const lines = result.stdout.trim().split('\n');
 
-      return lines.map(line => {
-        const current = line.startsWith('*');
-        const name = line.replace(/^\*?\s+/, '').replace(/^remotes\/origin\//, '').trim();
-        return { name, current };
-      }).filter(b => !b.name.includes('HEAD'));
+      return lines
+        .map((line) => {
+          const current = line.startsWith('*');
+          const name = line
+            .replace(/^\*?\s+/, '')
+            .replace(/^remotes\/origin\//, '')
+            .trim();
+          return { name, current };
+        })
+        .filter((b) => !b.name.includes('HEAD'));
     } catch {
       return [];
     }
@@ -463,7 +472,7 @@ export class GitHubSyncBridge {
   // Helper: Parse git status --porcelain output
   private parseGitStatus(output: string): FileChange[] {
     const lines = output.trim().split('\n').filter(Boolean);
-    return lines.map(line => {
+    return lines.map((line) => {
       const status = line.substring(0, 2).trim();
       const path = line.substring(3);
 
@@ -484,7 +493,7 @@ export class GitHubSyncBridge {
   // Helper: Parse git diff --name-status output
   private parseDiffNameStatus(output: string): FileChange[] {
     const lines = output.trim().split('\n').filter(Boolean);
-    return lines.map(line => {
+    return lines.map((line) => {
       const [status, ...pathParts] = line.split('\t');
       const path = pathParts.join('\t');
 

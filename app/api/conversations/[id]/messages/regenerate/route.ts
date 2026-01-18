@@ -72,7 +72,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Rate limiting - use strict limit for regeneration
-    const rateLimitResult = checkRequestRateLimit(`regenerate:${user.id}`, rateLimits.strict);
+    const rateLimitResult = await checkRequestRateLimit(`regenerate:${user.id}`, rateLimits.strict);
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Parse request body

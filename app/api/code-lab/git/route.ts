@@ -7,6 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateCSRF } from '@/lib/security/csrf';
+import { rateLimiters } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -19,7 +21,15 @@ import {
 } from '@/lib/workspace/security';
 import crypto from 'crypto';
 
-type GitOperation = 'clone' | 'push' | 'pull' | 'status' | 'commit' | 'branch' | 'checkout' | 'diff';
+type GitOperation =
+  | 'clone'
+  | 'push'
+  | 'pull'
+  | 'status'
+  | 'commit'
+  | 'branch'
+  | 'checkout'
+  | 'diff';
 
 // Encryption key for token decryption
 function getEncryptionKey() {
@@ -55,14 +65,15 @@ function decryptToken(encryptedData: string): string {
     if (error instanceof TokenDecryptionError) {
       throw error;
     }
-    throw new TokenDecryptionError(
-      'Token decryption failed',
-      'DECRYPTION_FAILED'
-    );
+    throw new TokenDecryptionError('Token decryption failed', 'DECRYPTION_FAILED');
   }
 }
 
 export async function POST(request: NextRequest) {
+  // CSRF protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
   const supabase = await createClient();
 
   const {
@@ -73,8 +84,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Rate limiting
+  const rateLimit = await rateLimiters.codeLabEdit(user.id);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded', retryAfter: rateLimit.retryAfter },
+      { status: 429 }
+    );
+  }
+
   try {
-    const { sessionId, operation, repo, message, branch } = await request.json() as {
+    const { sessionId, operation, repo, message, branch } = (await request.json()) as {
       sessionId: string;
       operation: GitOperation;
       repo?: { owner: string; name: string; branch?: string };
@@ -95,10 +115,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (sessionError || !sessionData) {
-      return NextResponse.json(
-        { error: 'Session not found or access denied' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
     }
 
     // Get user's GitHub token
@@ -291,10 +308,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('[Git API] Error:', error);
-    return NextResponse.json(
-      { error: 'Git operation failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Git operation failed' }, { status: 500 });
   }
 }
 
@@ -306,7 +320,7 @@ function parseDiffOutput(output: string): { path: string; status: string }[] {
     .trim()
     .split('\n')
     .filter(Boolean)
-    .map(line => {
+    .map((line) => {
       const [status, ...pathParts] = line.split('\t');
       return {
         status: status === 'A' ? 'added' : status === 'D' ? 'deleted' : 'modified',

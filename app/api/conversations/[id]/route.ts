@@ -67,7 +67,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
 
     // Rate limiting
-    const rateLimitResult = checkRequestRateLimit(`conv-get:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(`conv-get:${user.id}`, rateLimits.standard);
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Fetch conversation
@@ -123,7 +123,10 @@ export async function DELETE(
     }
 
     // Rate limiting (stricter for delete operations)
-    const rateLimitResult = checkRequestRateLimit(`conv-delete:${user.id}`, rateLimits.strict);
+    const rateLimitResult = await checkRequestRateLimit(
+      `conv-delete:${user.id}`,
+      rateLimits.strict
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // First verify the conversation belongs to this user and isn't already deleted

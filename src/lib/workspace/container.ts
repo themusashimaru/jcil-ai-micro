@@ -18,6 +18,7 @@ import { Sandbox } from '@e2b/code-interpreter';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { escapeShellArg, sanitizeCommitMessage } from '@/lib/security/shell-escape';
 
 const log = logger('ContainerManager');
 
@@ -117,10 +118,11 @@ export class ContainerManager {
       await sandbox.files.makeDir('/workspace');
 
       return sandbox.sandboxId;
-
     } catch (error) {
       log.error('Failed to create container', error as Error);
-      throw new Error(`Container creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Container creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -213,7 +215,6 @@ export class ContainerManager {
         exitCode: result.exitCode,
         executionTime: Date.now() - startTime,
       };
-
     } catch (error) {
       return {
         stdout: '',
@@ -228,10 +229,7 @@ export class ContainerManager {
   /**
    * Execute Python code directly
    */
-  async executePython(
-    workspaceId: string,
-    code: string
-  ): Promise<ExecutionResult> {
+  async executePython(workspaceId: string, code: string): Promise<ExecutionResult> {
     const sandbox = await this.getSandbox(workspaceId);
     const startTime = Date.now();
 
@@ -246,7 +244,6 @@ export class ContainerManager {
         executionTime: Date.now() - startTime,
         error: result.error?.value,
       };
-
     } catch (error) {
       return {
         stdout: '',
@@ -268,7 +265,9 @@ export class ContainerManager {
       const content = await sandbox.files.read(path);
       return content;
     } catch (error) {
-      throw new Error(`Failed to read file ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to read file ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -282,7 +281,9 @@ export class ContainerManager {
       // E2B files.write auto-creates parent directories
       await sandbox.files.write(path, content);
     } catch (error) {
-      throw new Error(`Failed to write file ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to write file ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -303,25 +304,23 @@ export class ContainerManager {
     try {
       const entries = await sandbox.files.list(path);
 
-      return entries.map(entry => ({
+      return entries.map((entry) => ({
         path: `${path}/${entry.name}`,
         isDirectory: entry.type === 'dir',
         size: 0,
         modifiedAt: new Date(),
       }));
     } catch (error) {
-      throw new Error(`Failed to list directory ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to list directory ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Upload a file to the container
    */
-  async uploadFile(
-    workspaceId: string,
-    path: string,
-    content: Buffer | string
-  ): Promise<void> {
+  async uploadFile(workspaceId: string, path: string, content: Buffer | string): Promise<void> {
     const sandbox = await this.getSandbox(workspaceId);
 
     const contentStr = typeof content === 'string' ? content : content.toString('base64');
@@ -330,7 +329,10 @@ export class ContainerManager {
     if (isBase64) {
       // Write base64 content and decode
       await sandbox.files.write(`${path}.b64`, contentStr);
-      await this.executeCommand(workspaceId, `base64 -d "${path}.b64" > "${path}" && rm "${path}.b64"`);
+      await this.executeCommand(
+        workspaceId,
+        `base64 -d "${path}.b64" > "${path}" && rm "${path}.b64"`
+      );
     } else {
       await sandbox.files.write(path, contentStr);
     }
@@ -366,7 +368,10 @@ export class ContainerManager {
   /**
    * Install dependencies based on project type
    */
-  async installDependencies(workspaceId: string, cwd: string = '/workspace'): Promise<ExecutionResult> {
+  async installDependencies(
+    workspaceId: string,
+    cwd: string = '/workspace'
+  ): Promise<ExecutionResult> {
     // Check which package manager to use
     const hasPackageJson = await this.fileExists(workspaceId, `${cwd}/package.json`);
     const hasRequirementsTxt = await this.fileExists(workspaceId, `${cwd}/requirements.txt`);
@@ -388,7 +393,10 @@ export class ContainerManager {
     }
 
     if (hasRequirementsTxt) {
-      return this.executeCommand(workspaceId, 'pip install -r requirements.txt', { cwd, timeout: 120000 });
+      return this.executeCommand(workspaceId, 'pip install -r requirements.txt', {
+        cwd,
+        timeout: 120000,
+      });
     }
 
     if (hasGoMod) {
@@ -432,8 +440,9 @@ export class ContainerManager {
     }
 
     // Try pytest for Python
-    const hasPytest = await this.fileExists(workspaceId, `${cwd}/pytest.ini`) ||
-                      await this.fileExists(workspaceId, `${cwd}/tests`);
+    const hasPytest =
+      (await this.fileExists(workspaceId, `${cwd}/pytest.ini`)) ||
+      (await this.fileExists(workspaceId, `${cwd}/tests`));
 
     if (hasPytest) {
       return this.executeCommand(workspaceId, 'pytest', { cwd, timeout: 300000 });
@@ -513,7 +522,7 @@ export class ContainerManager {
         });
 
         // Wait a bit for server to start
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
 
         // Get the public URL
         const url = sandbox.getHost(port);
@@ -539,11 +548,12 @@ export class ContainerManager {
     );
 
     const files: FileInfo[] = [];
-    const paths = result.stdout.split('\n').filter(p => p.trim());
+    const paths = result.stdout.split('\n').filter((p) => p.trim());
 
     for (const filePath of paths) {
-      const isDir = (await this.executeCommand(workspaceId, `test -d "${filePath}" && echo "dir"`))
-        .stdout.includes('dir');
+      const isDir = (
+        await this.executeCommand(workspaceId, `test -d "${filePath}" && echo "dir"`)
+      ).stdout.includes('dir');
 
       files.push({
         path: filePath,
@@ -682,7 +692,9 @@ export class StreamingShell {
   /**
    * Create async iterator for streaming output
    */
-  async *stream(command: string): AsyncGenerator<{ type: 'stdout' | 'stderr' | 'exit'; data: string | number }> {
+  async *stream(
+    command: string
+  ): AsyncGenerator<{ type: 'stdout' | 'stderr' | 'exit'; data: string | number }> {
     const outputQueue: Array<{ type: 'stdout' | 'stderr' | 'exit'; data: string | number }> = [];
     let done = false;
 
@@ -701,7 +713,7 @@ export class StreamingShell {
       if (outputQueue.length > 0) {
         yield outputQueue.shift()!;
       } else {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
     }
 
@@ -723,7 +735,10 @@ export class WorkspaceExecutor {
   }
 
   // Shell commands
-  async run(command: string, options?: { cwd?: string; timeout?: number }): Promise<ExecutionResult> {
+  async run(
+    command: string,
+    options?: { cwd?: string; timeout?: number }
+  ): Promise<ExecutionResult> {
     return this.container.executeCommand(this.workspaceId, command, options);
   }
 
@@ -759,8 +774,11 @@ export class WorkspaceExecutor {
   }
 
   async gitCommit(message: string): Promise<ExecutionResult> {
+    // Sanitize and escape the commit message to prevent command injection
+    const sanitized = sanitizeCommitMessage(message);
+    const escaped = escapeShellArg(sanitized);
     await this.run('git add .');
-    return this.run(`git commit -m "${message}"`);
+    return this.run(`git commit -m ${escaped}`);
   }
 
   async gitPush(): Promise<ExecutionResult> {

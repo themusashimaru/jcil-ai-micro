@@ -68,7 +68,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit by user
-    const rateLimitResult = checkRequestRateLimit(`stripe:checkout:${user.id}`, rateLimits.strict);
+    const rateLimitResult = await checkRequestRateLimit(
+      `stripe:checkout:${user.id}`,
+      rateLimits.strict
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     // Validate request body

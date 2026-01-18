@@ -10,7 +10,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
-import { successResponse, errors, validateBody, checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  validateBody,
+  checkRequestRateLimit,
+  rateLimits,
+  getClientIP,
+} from '@/lib/api/utils';
 import { z } from 'zod';
 import { emailSchema } from '@/lib/validation/schemas';
 
@@ -68,7 +75,10 @@ async function getAuthenticatedClient() {
 // Database-backed rate limit for support tickets
 const DB_RATE_LIMIT = 3; // 3 tickets per hour
 
-async function checkRateLimit(supabase: ReturnType<typeof getSupabaseAdmin>, identifier: string): Promise<boolean> {
+async function checkRateLimit(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  identifier: string
+): Promise<boolean> {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
   // Count recent tickets from this identifier
@@ -107,9 +117,12 @@ const VALID_CATEGORIES = [
 
 // Validation schema for ticket creation (matches actual request structure)
 const createTicketRequestSchema = z.object({
-  category: z.string().max(50).refine((val) => VALID_CATEGORIES.includes(val), {
-    message: 'Invalid category',
-  }),
+  category: z
+    .string()
+    .max(50)
+    .refine((val) => VALID_CATEGORIES.includes(val), {
+      message: 'Invalid category',
+    }),
   subject: z.string().min(5, 'Subject must be at least 5 characters').max(200),
   message: z.string().min(20, 'Message must be at least 20 characters').max(5000),
   senderEmail: emailSchema.optional(),
@@ -158,7 +171,9 @@ export async function POST(request: NextRequest) {
 
     // Check if user is authenticated
     const authClient = await getAuthenticatedClient();
-    const { data: { user } } = await authClient.auth.getUser();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
 
     let source: 'internal' | 'external';
     let userId: string | null = null;
@@ -168,7 +183,7 @@ export async function POST(request: NextRequest) {
     if (user) {
       // Authenticated user - internal ticket
       // Apply strict rate limiting for authenticated users
-      const rateLimitResult = checkRequestRateLimit(`tickets:${user.id}`, rateLimits.strict);
+      const rateLimitResult = await checkRequestRateLimit(`tickets:${user.id}`, rateLimits.strict);
       if (!rateLimitResult.allowed) return rateLimitResult.response;
 
       source = 'internal';
@@ -186,7 +201,7 @@ export async function POST(request: NextRequest) {
     } else {
       // External contact form
       // Apply strict rate limiting for external users by IP
-      const rateLimitResult = checkRequestRateLimit(`tickets:${ip}`, rateLimits.strict);
+      const rateLimitResult = await checkRequestRateLimit(`tickets:${ip}`, rateLimits.strict);
       if (!rateLimitResult.allowed) return rateLimitResult.response;
 
       source = 'external';
@@ -246,20 +261,27 @@ export async function POST(request: NextRequest) {
 export async function GET(_request: NextRequest) {
   try {
     const authClient = await getAuthenticatedClient();
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await authClient.auth.getUser();
 
     if (authError || !user) {
       return errors.unauthorized();
     }
 
     // Apply rate limiting for authenticated user
-    const rateLimitResult = checkRequestRateLimit(`tickets:get:${user.id}`, rateLimits.standard);
+    const rateLimitResult = await checkRequestRateLimit(
+      `tickets:get:${user.id}`,
+      rateLimits.standard
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const supabase = getSupabaseAdmin();
     const { data: tickets, error } = await supabase
       .from('support_tickets')
-      .select(`
+      .select(
+        `
         id,
         category,
         subject,
@@ -269,17 +291,21 @@ export async function GET(_request: NextRequest) {
         created_at,
         updated_at,
         resolved_at
-      `)
+      `
+      )
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
-      log.error('[Support API] Error fetching tickets:', error instanceof Error ? error : { error });
+      log.error(
+        '[Support API] Error fetching tickets:',
+        error instanceof Error ? error : { error }
+      );
       return errors.serverError();
     }
 
     // Get reply counts for each ticket
-    const ticketIds = tickets?.map(t => t.id) || [];
+    const ticketIds = tickets?.map((t) => t.id) || [];
     let replyCounts: Record<string, number> = {};
 
     if (ticketIds.length > 0) {
@@ -290,14 +316,17 @@ export async function GET(_request: NextRequest) {
         .eq('is_internal_note', false);
 
       if (replies) {
-        replyCounts = replies.reduce((acc, r) => {
-          acc[r.ticket_id] = (acc[r.ticket_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
+        replyCounts = replies.reduce(
+          (acc, r) => {
+            acc[r.ticket_id] = (acc[r.ticket_id] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
       }
     }
 
-    const ticketsWithCounts = tickets?.map(t => ({
+    const ticketsWithCounts = tickets?.map((t) => ({
       ...t,
       reply_count: replyCounts[t.id] || 0,
     }));

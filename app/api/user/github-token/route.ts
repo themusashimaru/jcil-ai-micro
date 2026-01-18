@@ -59,7 +59,10 @@ export async function GET() {
   }
 
   // Rate limit by user
-  const rateLimitResult = checkRequestRateLimit(`github:token:get:${user.id}`, rateLimits.standard);
+  const rateLimitResult = await checkRequestRateLimit(
+    `github:token:get:${user.id}`,
+    rateLimits.standard
+  );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   // Use service role to read from users table
@@ -139,7 +142,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit by user - strict limit for token operations
-  const rateLimitResult = checkRequestRateLimit(`github:token:save:${user.id}`, rateLimits.strict);
+  const rateLimitResult = await checkRequestRateLimit(
+    `github:token:save:${user.id}`,
+    rateLimits.strict
+  );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   const body = await request.json();
@@ -224,7 +230,7 @@ export async function DELETE() {
   }
 
   // Rate limit by user
-  const rateLimitResult = checkRequestRateLimit(
+  const rateLimitResult = await checkRequestRateLimit(
     `github:token:delete:${user.id}`,
     rateLimits.strict
   );

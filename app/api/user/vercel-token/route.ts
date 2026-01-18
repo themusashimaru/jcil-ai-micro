@@ -89,7 +89,10 @@ async function getUser() {
     }
   );
 
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
   return { user, error };
 }
 
@@ -104,7 +107,10 @@ export async function GET() {
   }
 
   // Rate limit by user
-  const rateLimitResult = checkRequestRateLimit(`vercel:token:get:${user.id}`, rateLimits.standard);
+  const rateLimitResult = await checkRequestRateLimit(
+    `vercel:token:get:${user.id}`,
+    rateLimits.standard
+  );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   // Use service role to read from users table
@@ -166,7 +172,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Rate limit by user - strict limit for token operations
-  const rateLimitResult = checkRequestRateLimit(`vercel:token:save:${user.id}`, rateLimits.strict);
+  const rateLimitResult = await checkRequestRateLimit(
+    `vercel:token:save:${user.id}`,
+    rateLimits.strict
+  );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   const body = await request.json();
@@ -215,13 +224,17 @@ export async function POST(request: NextRequest) {
       .from('users')
       .update({
         vercel_token: encryptedToken,
-        vercel_username: vercelUser.user?.username || vercelUser.user?.name || vercelUser.user?.email,
+        vercel_username:
+          vercelUser.user?.username || vercelUser.user?.name || vercelUser.user?.email,
         vercel_team_id: teamId || null,
       })
       .eq('id', user.id);
 
     if (updateError) {
-      log.error('[Vercel Token] Save error:', updateError instanceof Error ? updateError : { updateError });
+      log.error(
+        '[Vercel Token] Save error:',
+        updateError instanceof Error ? updateError : { updateError }
+      );
       return errors.serverError();
     }
 
@@ -230,7 +243,6 @@ export async function POST(request: NextRequest) {
       username: vercelUser.user?.username || vercelUser.user?.name,
       email: vercelUser.user?.email,
     });
-
   } catch (err) {
     log.error('[Vercel Token] Error:', err instanceof Error ? err : { err });
     return errors.serverError();
@@ -248,7 +260,10 @@ export async function DELETE() {
   }
 
   // Rate limit by user
-  const rateLimitResult = checkRequestRateLimit(`vercel:token:delete:${user.id}`, rateLimits.strict);
+  const rateLimitResult = await checkRequestRateLimit(
+    `vercel:token:delete:${user.id}`,
+    rateLimits.strict
+  );
   if (!rateLimitResult.allowed) return rateLimitResult.response;
 
   const adminClient = createClient(
@@ -264,4 +279,3 @@ export async function DELETE() {
 
   return successResponse({ success: true });
 }
-

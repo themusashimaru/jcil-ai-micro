@@ -36,7 +36,10 @@ export async function GET(
     if (!auth.authorized) return auth.response;
 
     // Rate limit by admin
-    const rateLimitResult = checkRequestRateLimit(`admin:conversation:${auth.user.id}`, rateLimits.admin);
+    const rateLimitResult = await checkRequestRateLimit(
+      `admin:conversation:${auth.user.id}`,
+      rateLimits.admin
+    );
     if (!rateLimitResult.allowed) return rateLimitResult.response;
 
     const { conversationId } = params;
@@ -67,7 +70,9 @@ export async function GET(
     }
 
     // Log admin access for audit trail
-    log.info(`[Admin Audit] Admin viewed conversation: ${conversationId} (User: ${conversation.user_id})`);
+    log.info(
+      `[Admin Audit] Admin viewed conversation: ${conversationId} (User: ${conversation.user_id})`
+    );
 
     return successResponse({
       conversation: {
