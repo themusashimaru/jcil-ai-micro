@@ -6,6 +6,8 @@
  * - Multi-edit batching
  * - Dry-run preview
  * - Diff generation
+ *
+ * Uses ContainerManager (E2B) for file operations - same backend as Files API.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,52 +18,47 @@ import {
   formatDiffForDisplay,
   generateUnifiedDiff,
 } from '@/lib/workspace/surgical-edit';
+import { ContainerManager } from '@/lib/workspace/container';
+import { sanitizeFilePath } from '@/lib/workspace/security';
+import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 
 const log = logger('SurgicalEditAPI');
 
-// Simple file operations for the API
-// In production, these would use E2B or another sandbox
-async function readFileFromWorkspace(
-  workspaceId: string,
-  filePath: string
-): Promise<string> {
-  // TODO: Connect to actual workspace file system (E2B, container, etc.)
-  // For now, use Supabase storage or return error
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabase = any;
 
-  const supabase = await createClient();
+// Helper to verify session ownership
+async function verifySessionOwnership(
+  supabase: AnySupabase,
+  sessionId: string,
+  userId: string
+): Promise<boolean> {
+  const { data, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
+    .select('id')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .single();
 
-  // Check if file exists in workspace storage
-  const { data, error } = await supabase.storage
-    .from('workspaces')
-    .download(`${workspaceId}/${filePath}`);
+  return !error && !!data;
+}
 
-  if (error) {
-    // Try to read from GitHub if workspace is linked
-    throw new Error(`File not found: ${filePath}. Connect a workspace or repository first.`);
-  }
-
-  return await data.text();
+// Container-based file operations (matches Files API backend)
+async function readFileFromWorkspace(sessionId: string, filePath: string): Promise<string> {
+  const container = new ContainerManager();
+  const safePath = sanitizeFilePath(filePath);
+  return await container.readFile(sessionId, safePath);
 }
 
 async function writeFileToWorkspace(
-  workspaceId: string,
+  sessionId: string,
   filePath: string,
   content: string
 ): Promise<void> {
-  const supabase = await createClient();
-
-  const { error } = await supabase.storage
-    .from('workspaces')
-    .upload(`${workspaceId}/${filePath}`, content, {
-      upsert: true,
-      contentType: 'text/plain',
-    });
-
-  if (error) {
-    throw new Error(`Failed to write file: ${error.message}`);
-  }
+  const container = new ContainerManager();
+  const safePath = sanitizeFilePath(filePath);
+  await container.writeFile(sessionId, safePath, content);
 }
 
 /**
@@ -71,23 +68,28 @@ async function writeFileToWorkspace(
  */
 export async function POST(request: NextRequest) {
   try {
+    // CSRF Protection (skip for dry-run requests as they don't mutate)
+    const body = await request.json();
+    const { dryRun = false } = body as { dryRun?: boolean };
+
+    if (!dryRun) {
+      const csrfCheck = validateCSRF(request);
+      if (!csrfCheck.valid) return csrfCheck.response!;
+    }
+
     // Auth check
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;
     }
 
-    const body = await request.json();
     const {
       sessionId,
-      workspaceId,
       filePath,
       edits,
-      dryRun = false,
       format = 'json', // 'json' | 'diff' | 'unified'
     } = body as {
-      sessionId?: string;
-      workspaceId?: string;
+      sessionId: string;
       filePath: string;
       edits: LineEdit[];
       dryRun?: boolean;
@@ -95,6 +97,9 @@ export async function POST(request: NextRequest) {
     };
 
     // Validate required fields
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+    }
     if (!filePath) {
       return NextResponse.json({ error: 'Missing filePath' }, { status: 400 });
     }
@@ -102,8 +107,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing or empty edits array' }, { status: 400 });
     }
 
-    // Get workspace ID from session if not provided
-    const effectiveWorkspaceId = workspaceId || sessionId || auth.user.id;
+    // Verify session ownership
+    const supabase = await createClient();
+    const hasAccess = await verifySessionOwnership(supabase, sessionId, auth.user.id);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+    }
+
+    // Use sessionId as the workspace identifier (matches Files API)
+    const effectiveWorkspaceId = sessionId;
 
     log.info('Surgical edit request', {
       userId: auth.user.id,
@@ -181,18 +193,20 @@ export async function GET() {
     usage: {
       endpoint: 'POST /api/code-lab/edit',
       body: {
-        filePath: 'string - path to file',
+        sessionId: 'string (required) - Code Lab session ID',
+        filePath: 'string (required) - path to file within workspace',
         edits: 'Array<{ startLine: number, endLine: number, newContent: string }>',
         dryRun: 'boolean (optional) - preview without applying',
         format: '"json" | "diff" | "unified" (optional) - response format',
       },
       example: {
+        sessionId: 'abc123',
         filePath: 'src/index.ts',
-        edits: [
-          { startLine: 10, endLine: 12, newContent: '// Updated content\nconst x = 1;' },
-        ],
+        edits: [{ startLine: 10, endLine: 12, newContent: '// Updated content\nconst x = 1;' }],
         dryRun: true,
       },
+      notes:
+        'Uses same E2B container backend as /api/code-lab/files. CSRF token required for non-dry-run requests.',
     },
   });
 }
