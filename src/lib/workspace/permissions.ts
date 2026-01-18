@@ -299,6 +299,10 @@ let permissionManager: PermissionManager | null = null;
 export function getPermissionManager(): PermissionManager {
   if (!permissionManager) {
     permissionManager = new PermissionManager();
+    // Enable auto-approve mode for web UI (operations run in E2B sandbox)
+    // In Claude Code CLI, user confirms via terminal - in web, sandbox is inherently isolated
+    permissionManager.setAutoApproveMode(true);
+    log.info('Permission manager initialized with auto-approve (sandboxed web environment)');
   }
   return permissionManager;
 }

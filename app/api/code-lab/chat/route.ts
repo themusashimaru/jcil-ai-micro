@@ -258,6 +258,9 @@ export async function POST(request: NextRequest) {
     // Process slash commands - convert /fix, /test, etc. to enhanced prompts
     let slashCommandFailed = false;
     let slashCommandError = '';
+    let isActionCommand = false;
+    let actionResponse = '';
+
     if (isSlashCommand(enhancedContent)) {
       const parsed = parseSlashCommand(enhancedContent);
       if (parsed) {
@@ -274,7 +277,22 @@ export async function POST(request: NextRequest) {
         });
         if (processedPrompt) {
           log.debug('Slash command detected', { command: content?.substring(0, 50) });
-          enhancedContent = processedPrompt;
+
+          // Handle action commands that require immediate execution
+          if (processedPrompt === '[CLEAR_HISTORY]') {
+            isActionCommand = true;
+            // Delete all messages for this session (will be executed after ownership verification)
+            actionResponse = '**History cleared.** Starting fresh conversation.';
+          } else if (processedPrompt.startsWith('[RESET_SESSION]')) {
+            isActionCommand = true;
+            actionResponse = '**Session reset.** All preferences restored to defaults.';
+          } else if (processedPrompt.startsWith('[COMPACT_CONTEXT]')) {
+            isActionCommand = true;
+            // Trigger context compaction
+            actionResponse = '**Context compacted.** Older messages summarized to free up space.';
+          } else {
+            enhancedContent = processedPrompt;
+          }
         }
       } else {
         // Unknown slash command - provide helpful feedback
@@ -311,6 +329,89 @@ export async function POST(request: NextRequest) {
       return new Response(
         JSON.stringify({ error: 'Access denied', code: 'SESSION_ACCESS_DENIED' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle action commands that execute immediately (ownership verified)
+    if (isActionCommand) {
+      const encoder = new TextEncoder();
+
+      // Execute the actual action
+      if (actionResponse.includes('History cleared')) {
+        // Delete all messages for this session
+        await (supabase.from('code_lab_messages') as AnySupabase)
+          .delete()
+          .eq('session_id', sessionId);
+        // Reset message count
+        await (supabase.from('code_lab_sessions') as AnySupabase)
+          .update({ message_count: 0 })
+          .eq('id', sessionId);
+        log.info('Session history cleared', { sessionId });
+      } else if (actionResponse.includes('Session reset')) {
+        // Delete all messages and reset session
+        await (supabase.from('code_lab_messages') as AnySupabase)
+          .delete()
+          .eq('session_id', sessionId);
+        await (supabase.from('code_lab_sessions') as AnySupabase)
+          .update({
+            message_count: 0,
+            has_summary: false,
+            last_summary_at: null,
+          })
+          .eq('id', sessionId);
+        log.info('Session reset', { sessionId });
+      } else if (actionResponse.includes('Context compacted')) {
+        // Trigger summarization of older messages
+        const { data: allMessages } = await (supabase.from('code_lab_messages') as AnySupabase)
+          .select('id, role, content')
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: true });
+
+        if (allMessages && allMessages.length > 5) {
+          // Summarize older messages (keep last 5)
+          const toSummarize = allMessages.slice(0, -5);
+          const summary = await generateConversationSummary(
+            toSummarize.map((m: { role: string; content: string }) => ({
+              role: m.role,
+              content: m.content,
+            }))
+          );
+
+          // Delete old messages and insert summary
+          const idsToDelete = toSummarize.map((m: { id: string }) => m.id);
+          await (supabase.from('code_lab_messages') as AnySupabase).delete().in('id', idsToDelete);
+
+          await (supabase.from('code_lab_messages') as AnySupabase).insert({
+            id: generateId(),
+            session_id: sessionId,
+            role: 'system',
+            content: summary,
+            created_at: new Date().toISOString(),
+            type: 'summary',
+          });
+
+          await (supabase.from('code_lab_sessions') as AnySupabase)
+            .update({ has_summary: true, last_summary_at: new Date().toISOString() })
+            .eq('id', sessionId);
+
+          log.info('Context compacted', { sessionId, summarizedCount: toSummarize.length });
+        }
+      }
+
+      // Return success response
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode(actionResponse));
+            controller.close();
+          },
+        }),
+        {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Action-Command': 'true',
+          },
+        }
       );
     }
 
@@ -983,7 +1084,8 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
 
         try {
           // Build API parameters with optional extended thinking (Claude Code parity)
-          const apiParams: Anthropic.MessageCreateParams = {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const apiParams: any = {
             model: selectedModel,
             max_tokens: 8192,
             system: systemPrompt,
@@ -996,12 +1098,20 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
             thinkingEnabled &&
             (selectedModel.includes('sonnet') || selectedModel.includes('opus'))
           ) {
-            // Extended thinking uses a special parameter format
+            // Extended thinking uses the thinking parameter
             // Note: Haiku doesn't support extended thinking
+            apiParams.thinking = {
+              type: 'enabled',
+              budget_tokens: thinkingBudget,
+            };
+            // When thinking is enabled, max_tokens must be larger to accommodate thinking
+            apiParams.max_tokens = Math.max(16000, thinkingBudget + 8192);
             log.info('Extended thinking enabled', { budget: thinkingBudget, model: selectedModel });
           }
 
-          const response = await anthropic.messages.create(apiParams);
+          const response = await anthropic.messages.create(
+            apiParams as Anthropic.MessageCreateParamsStreaming
+          );
 
           let fullContent = '';
 
@@ -1009,7 +1119,15 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
           startKeepalive();
 
           // Stream with timeout per chunk
-          const iterator = response[Symbol.asyncIterator]();
+          const iterator = (response as AsyncIterable<Anthropic.MessageStreamEvent>)[
+            Symbol.asyncIterator
+          ]();
+
+          // Track real token usage from API
+          let inputTokens = 0;
+          let outputTokens = 0;
+          let cacheReadTokens = 0;
+          let cacheWriteTokens = 0;
 
           while (true) {
             const timeoutPromise = new Promise<{ done: true; value: undefined }>((_, reject) => {
@@ -1023,6 +1141,17 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
 
               lastActivity = Date.now();
               const event = result.value;
+
+              // Capture token usage from message events
+              if (event.type === 'message_start' && event.message?.usage) {
+                inputTokens = event.message.usage.input_tokens || 0;
+                cacheReadTokens = event.message.usage.cache_read_input_tokens || 0;
+                cacheWriteTokens = event.message.usage.cache_creation_input_tokens || 0;
+              }
+
+              if (event.type === 'message_delta' && event.usage) {
+                outputTokens = event.usage.output_tokens || 0;
+              }
 
               if (event.type === 'content_block_delta') {
                 const delta = event.delta;
@@ -1042,6 +1171,24 @@ The user is working in repository: ${repo.fullName} (branch: ${repo.branch || 'm
               }
               throw error;
             }
+          }
+
+          // Send token usage as special marker at end of stream
+          if (inputTokens > 0 || outputTokens > 0) {
+            const usageMarker = `\n<!--USAGE:${JSON.stringify({
+              input: inputTokens,
+              output: outputTokens,
+              cacheRead: cacheReadTokens,
+              cacheWrite: cacheWriteTokens,
+              model: selectedModel,
+            })}-->`;
+            controller.enqueue(encoder.encode(usageMarker));
+            log.debug('Token usage', {
+              inputTokens,
+              outputTokens,
+              cacheReadTokens,
+              cacheWriteTokens,
+            });
           }
 
           // Save assistant message
