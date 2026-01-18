@@ -582,4 +582,103 @@ export function CodeLabPermissionDialog({
   );
 }
 
+// ============================================
+// PERMISSION MANAGER HOOK
+// ============================================
+
+export interface PermissionPreferences {
+  [key: string]: 'allow' | 'deny';
+}
+
+/**
+ * Hook to manage permission requests and user preferences
+ */
+export function usePermissionManager() {
+  const [pendingRequest, setPendingRequest] = useState<PermissionRequest | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [preferences, setPreferences] = useState<PermissionPreferences>({});
+  const resolverRef = useRef<((approved: boolean) => void) | null>(null);
+
+  // Check if operation type is auto-allowed
+  const isAutoAllowed = useCallback(
+    (type: OperationType): boolean => {
+      const key = `perm_${type}`;
+      return preferences[key] === 'allow';
+    },
+    [preferences]
+  );
+
+  // Request permission for an operation
+  const requestPermission = useCallback(
+    async (request: Omit<PermissionRequest, 'id'>): Promise<boolean> => {
+      const fullRequest: PermissionRequest = {
+        ...request,
+        id: `perm_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      };
+
+      // Check if already allowed
+      if (isAutoAllowed(request.type)) {
+        return true;
+      }
+
+      // Show dialog and wait for response
+      return new Promise((resolve) => {
+        resolverRef.current = resolve;
+        setPendingRequest(fullRequest);
+        setIsDialogOpen(true);
+      });
+    },
+    [isAutoAllowed]
+  );
+
+  // Handle allow
+  const handleAllow = useCallback(
+    (alwaysAllow?: boolean) => {
+      if (resolverRef.current) {
+        resolverRef.current(true);
+        resolverRef.current = null;
+      }
+
+      if (alwaysAllow && pendingRequest) {
+        setPreferences((prev) => ({
+          ...prev,
+          [`perm_${pendingRequest.type}`]: 'allow',
+        }));
+      }
+
+      setIsDialogOpen(false);
+      setPendingRequest(null);
+    },
+    [pendingRequest]
+  );
+
+  // Handle deny
+  const handleDeny = useCallback(() => {
+    if (resolverRef.current) {
+      resolverRef.current(false);
+      resolverRef.current = null;
+    }
+    setIsDialogOpen(false);
+    setPendingRequest(null);
+  }, []);
+
+  // Reset all preferences
+  const resetPreferences = useCallback(() => {
+    setPreferences({});
+  }, []);
+
+  return {
+    pendingRequest,
+    isDialogOpen,
+    requestPermission,
+    handleAllow,
+    handleDeny,
+    preferences,
+    resetPreferences,
+  };
+}
+
+// Export types for external use
+export type { PermissionRequest, RiskLevel, OperationType };
+
 export default CodeLabPermissionDialog;
