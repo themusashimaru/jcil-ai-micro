@@ -29,6 +29,7 @@ import { getHooksTools, getHooksManager, HookConfig } from './hooks';
 import { getMemoryTools, getMemoryManager } from './memory';
 import { getBackgroundTaskTools, getBackgroundTaskManager } from './background-tasks';
 import { getDebugTools, executeDebugTool, isDebugTool } from './debug-tools';
+import { getSubagentTools, executeSubagentTool, isSubagentTool } from '@/lib/agents/subagent';
 
 // ============================================
 // TYPES
@@ -303,25 +304,12 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
       required: ['url'],
     },
   },
-  {
-    name: 'spawn_task',
-    description:
-      'Spawn a sub-agent to handle a complex subtask. Use for parallel work or when a task requires focused attention. The sub-agent has the same capabilities as you.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        description: {
-          type: 'string',
-          description: 'Short description of the task (3-5 words)',
-        },
-        prompt: {
-          type: 'string',
-          description: 'Detailed instructions for the sub-agent',
-        },
-      },
-      required: ['description', 'prompt'],
-    },
-  },
+  // NOTE: spawn_task replaced by 'task' tool from subagent module
+  // See getSubagentTools() for the new Task tool with:
+  // - Specialized agent types (Explore, Plan, Bash, etc.)
+  // - Model selection (haiku, sonnet, opus)
+  // - Background execution
+  // - Resumable agents
   {
     name: 'todo_write',
     description:
@@ -463,6 +451,11 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   // DEBUG TOOLS (CLAUDE CODE PARITY+)
   // ============================================
   ...getDebugTools(),
+
+  // ============================================
+  // SUBAGENT TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getSubagentTools(),
 ];
 
 // ============================================
@@ -807,28 +800,8 @@ export class WorkspaceAgent {
           }
         }
 
-        case 'spawn_task': {
-          const description = input.description as string;
-          const prompt = input.prompt as string;
-
-          // Create a sub-agent with the same config
-          const subAgent = new WorkspaceAgent({
-            ...this.config,
-            sessionId: `${this.config.sessionId}-subtask-${Date.now()}`,
-          });
-
-          // Collect all output from sub-agent
-          let subAgentOutput = '';
-          for await (const update of subAgent.runStreaming(prompt)) {
-            if (update.type === 'text') {
-              subAgentOutput += update.text || '';
-            } else if (update.type === 'tool_end') {
-              subAgentOutput += `\n[Tool: ${update.tool}]\n${update.output}\n`;
-            }
-          }
-
-          return `Sub-task "${description}" completed:\n\n${subAgentOutput}`;
-        }
+        // NOTE: spawn_task replaced by 'task' from subagent module
+        // handled in the default case via isSubagentTool()
 
         case 'todo_write': {
           const todos = input.todos as Array<{
@@ -1400,6 +1373,15 @@ ${output.isComplete ? `âœ“ Task completed (exit code: ${output.exitCode})` : 'â
           // Check if it's a debug tool call
           if (isDebugTool(name)) {
             return executeDebugTool(name, input, this.config.workspaceId, this.config.userId);
+          }
+
+          // Check if it's a subagent tool call
+          if (isSubagentTool(name)) {
+            return executeSubagentTool(name, input, {
+              workspaceId: this.config.workspaceId,
+              userId: this.config.userId,
+              sessionId: this.config.sessionId,
+            });
           }
 
           // Check if it's an MCP tool call
