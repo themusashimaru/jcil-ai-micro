@@ -1329,7 +1329,7 @@ export function usePairProgramming() {
     file: string,
     content: string,
     cursorLine: number,
-    cursorColumn: number,
+    _cursorColumn: number,
     language: string = 'typescript'
   ): Promise<string | null> => {
     if (mode !== 'active') return null;
