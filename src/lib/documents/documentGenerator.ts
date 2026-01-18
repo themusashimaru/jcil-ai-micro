@@ -257,6 +257,11 @@ function createTable(tableData: DocumentTable, fontFamily: string, baseFontSize:
     right: 140,
   };
 
+  // Calculate column count and width
+  const columnCount = tableData.headers?.length || tableData.rows[0]?.length || 1;
+  // Use percentage-based widths - distribute evenly across columns
+  const columnWidthPercent = Math.floor(100 / columnCount);
+
   // Add header row if present
   if (tableData.headers && tableData.headers.length > 0) {
     rows.push(
@@ -278,6 +283,10 @@ function createTable(tableData: DocumentTable, fontFamily: string, baseFontSize:
                   spacing: { before: 0, after: 0 },
                 }),
               ],
+              width: {
+                size: columnWidthPercent,
+                type: WidthType.PERCENTAGE,
+              },
               shading: tableData.headerStyle?.backgroundColor
                 ? {
                     fill: tableData.headerStyle.backgroundColor.replace('#', ''),
@@ -315,6 +324,10 @@ function createTable(tableData: DocumentTable, fontFamily: string, baseFontSize:
                   spacing: { before: 0, after: 0 },
                 }),
               ],
+              width: {
+                size: columnWidthPercent,
+                type: WidthType.PERCENTAGE,
+              },
               shading: isAlternate ? { fill: 'f8f9fa' } : { fill: 'ffffff' },
               margins: cellMargins,
               verticalAlign: 'center' as const,
