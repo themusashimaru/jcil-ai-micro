@@ -101,8 +101,9 @@ Security vulnerabilities must be fixed before adding features.
   - `/app/api/code-lab/mcp/route.ts`
   - `/app/api/code-lab/collaboration/route.ts`
   - `/app/api/code-lab/sessions/[sessionId]/route.ts`
-- **Status:** ⬜ NOT STARTED
+- **Status:** ✅ COMPLETE (2026-01-18)
 - **Effort:** 2 hours
+- **Commit:** `c0414cd` - Added validateCSRF to all 8 endpoints
 - **Implementation:**
 
   ```typescript
@@ -118,8 +119,9 @@ Security vulnerabilities must be fixed before adding features.
 #### Task 1.3: Add Rate Limiting to All Endpoints
 
 - **Files:** Same 8 endpoints as Task 1.2
-- **Status:** ⬜ NOT STARTED
+- **Status:** ✅ COMPLETE (2026-01-18)
 - **Effort:** 2 hours
+- **Commit:** `c0414cd` - Added rate limiting to all endpoints
 - **Implementation:**
 
   ```typescript

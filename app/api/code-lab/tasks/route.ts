@@ -119,6 +119,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing request or sessionId' }, { status: 400 });
     }
 
+    // Verify session ownership
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('code_lab_sessions')
+      .select('id')
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (sessionError || !sessionData) {
+      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+    }
+
     // Get GitHub token if needed
     let githubToken: string | undefined;
     if (repo) {

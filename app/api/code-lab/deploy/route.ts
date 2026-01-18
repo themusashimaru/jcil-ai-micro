@@ -62,6 +62,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify session ownership
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('code_lab_sessions')
+      .select('id')
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (sessionError || !sessionData) {
+      return NextResponse.json({ error: 'Session not found or access denied' }, { status: 403 });
+    }
+
     // Get user's deployment tokens based on platform
     const { data: userData } = await supabase
       .from('users')
