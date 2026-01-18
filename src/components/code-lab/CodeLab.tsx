@@ -33,6 +33,8 @@ import { CodeLabPlanView } from './CodeLabPlanView';
 import { CodeLabModelSelector } from './CodeLabModelSelector';
 import { CodeLabTokenDisplay } from './CodeLabTokenDisplay';
 import { CodeLabThinkingToggle } from './CodeLabThinkingToggle';
+import { CodeLabMCPSettings, MCPServer, DEFAULT_MCP_SERVERS } from './CodeLabMCPSettings';
+import { CodeLabMemoryEditor } from './CodeLabMemoryEditor';
 import { useToastActions } from '@/components/ui/Toast';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
@@ -66,12 +68,35 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // Workspace panel state
   const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
-    'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan'
+    'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan' | 'mcp' | 'memory'
   >('files');
   const [workspaceFiles, setWorkspaceFiles] = useState<FileNode[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [diffFiles, setDiffFiles] = useState<FileDiff[]>([]);
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
+
+  // MCP servers state (Claude Code parity)
+  const [mcpServers, setMcpServers] = useState<MCPServer[]>(() =>
+    DEFAULT_MCP_SERVERS.map((s) => ({
+      ...s,
+      status: 'stopped' as const,
+      tools: [],
+    }))
+  );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [mcpLoading, _setMcpLoading] = useState(false);
+
+  // Memory file state (Claude Code parity - CLAUDE.md)
+  const [memoryFile, setMemoryFile] = useState<
+    | {
+        path: string;
+        content: string;
+        exists: boolean;
+        lastModified?: Date;
+      }
+    | undefined
+  >(undefined);
+  const [memoryLoading, setMemoryLoading] = useState(false);
 
   // Model selection state (Claude Code parity)
   const [currentModelId, setCurrentModelId] = useState('claude-sonnet-4-20250514');
@@ -511,6 +536,152 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
       toast.success('Budget Updated', `Thinking budget set to ${budget / 1000}K tokens`);
     },
     [toast]
+  );
+
+  // MCP server toggle handler (Claude Code parity)
+  const handleMCPServerToggle = useCallback(
+    async (serverId: string, enabled: boolean) => {
+      setMcpServers((prev) =>
+        prev.map((s) =>
+          s.id === serverId
+            ? { ...s, enabled, status: enabled ? 'starting' : 'stopped', error: undefined }
+            : s
+        )
+      );
+
+      try {
+        const response = await fetch('/api/code-lab/mcp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: enabled ? 'startServer' : 'stopServer',
+            serverId,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setMcpServers((prev) =>
+            prev.map((s) =>
+              s.id === serverId
+                ? {
+                    ...s,
+                    status: data.server?.status || (enabled ? 'running' : 'stopped'),
+                    tools: (data.server?.tools || []).map(
+                      (t: { name: string; description: string }) => ({
+                        name: t.name,
+                        description: t.description || '',
+                        serverId,
+                      })
+                    ),
+                    error: undefined,
+                  }
+                : s
+            )
+          );
+          toast.success(
+            enabled ? 'Server Started' : 'Server Stopped',
+            `${serverId} ${enabled ? 'is now running' : 'has been stopped'}`
+          );
+        } else {
+          const error = await response.text();
+          setMcpServers((prev) =>
+            prev.map((s) =>
+              s.id === serverId ? { ...s, status: 'error', error, enabled: false } : s
+            )
+          );
+          toast.error('MCP Error', `Failed to ${enabled ? 'start' : 'stop'} ${serverId}`);
+        }
+      } catch (err) {
+        setMcpServers((prev) =>
+          prev.map((s) =>
+            s.id === serverId
+              ? { ...s, status: 'error', error: 'Network error', enabled: false }
+              : s
+          )
+        );
+        log.error('MCP toggle error', err as Error);
+      }
+    },
+    [currentSessionId, toast]
+  );
+
+  // MCP server add handler (Claude Code parity)
+  const handleMCPServerAdd = useCallback(
+    async (server: Omit<MCPServer, 'status' | 'tools' | 'builtIn'>) => {
+      const newServer: MCPServer = {
+        ...server,
+        status: 'stopped',
+        tools: [],
+        builtIn: false,
+      };
+      setMcpServers((prev) => [...prev, newServer]);
+      toast.success('Server Added', `${server.name} has been added`);
+    },
+    [toast]
+  );
+
+  // MCP server remove handler (Claude Code parity)
+  const handleMCPServerRemove = useCallback(
+    async (serverId: string) => {
+      setMcpServers((prev) => prev.filter((s) => s.id !== serverId));
+      toast.success('Server Removed', 'Custom server has been removed');
+    },
+    [toast]
+  );
+
+  // Memory file load handler (Claude Code parity)
+  const loadMemoryFile = useCallback(async () => {
+    if (!currentSessionId) return;
+    setMemoryLoading(true);
+    try {
+      const response = await fetch(`/api/code-lab/memory?sessionId=${currentSessionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMemoryFile({
+          path: data.path || '/workspace/CLAUDE.md',
+          content: data.content || '',
+          exists: data.exists || false,
+          lastModified: data.lastModified ? new Date(data.lastModified) : undefined,
+        });
+      }
+    } catch (err) {
+      log.error('Failed to load memory file', err as Error);
+    } finally {
+      setMemoryLoading(false);
+    }
+  }, [currentSessionId]);
+
+  // Memory file save handler (Claude Code parity)
+  const saveMemoryFile = useCallback(
+    async (content: string) => {
+      if (!currentSessionId) return;
+      try {
+        const response = await fetch('/api/code-lab/memory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: currentSessionId,
+            content,
+          }),
+        });
+        if (response.ok) {
+          setMemoryFile((prev) => ({
+            path: prev?.path || '/workspace/CLAUDE.md',
+            content,
+            exists: true,
+            lastModified: new Date(),
+          }));
+          toast.success('Memory Saved', 'CLAUDE.md has been updated');
+        } else {
+          toast.error('Save Failed', 'Could not save memory file');
+        }
+      } catch (err) {
+        log.error('Failed to save memory file', err as Error);
+        toast.error('Save Failed', 'Could not save memory file');
+      }
+    },
+    [currentSessionId, toast]
   );
 
   // ========================================
@@ -1098,6 +1269,21 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                   >
                     Plan {currentPlan && currentPlan.status === 'in_progress' && '●'}
                   </button>
+                  <button
+                    className={activeWorkspaceTab === 'mcp' ? 'active' : ''}
+                    onClick={() => setActiveWorkspaceTab('mcp')}
+                  >
+                    MCP {mcpServers.filter((s) => s.status === 'running').length > 0 && '●'}
+                  </button>
+                  <button
+                    className={activeWorkspaceTab === 'memory' ? 'active' : ''}
+                    onClick={() => {
+                      setActiveWorkspaceTab('memory');
+                      if (!memoryFile) loadMemoryFile();
+                    }}
+                  >
+                    Memory {memoryFile?.exists && '●'}
+                  </button>
                 </div>
                 <div className="workspace-content">
                   {activeWorkspaceTab === 'files' && (
@@ -1209,6 +1395,23 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                         <p className="hint">Plans break down work into trackable steps.</p>
                       </div>
                     ))}
+                  {activeWorkspaceTab === 'mcp' && (
+                    <CodeLabMCPSettings
+                      servers={mcpServers}
+                      onServerToggle={handleMCPServerToggle}
+                      onServerAdd={handleMCPServerAdd}
+                      onServerRemove={handleMCPServerRemove}
+                      isLoading={mcpLoading}
+                    />
+                  )}
+                  {activeWorkspaceTab === 'memory' && (
+                    <CodeLabMemoryEditor
+                      memoryFile={memoryFile}
+                      onSave={saveMemoryFile}
+                      onLoad={loadMemoryFile}
+                      isLoading={memoryLoading}
+                    />
+                  )}
                 </div>
                 {currentSession?.repo && (
                   <div className="workspace-git-actions">
