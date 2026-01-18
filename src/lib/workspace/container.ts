@@ -117,6 +117,11 @@ export class ContainerManager {
       // Initialize workspace directory
       await sandbox.files.makeDir('/workspace');
 
+      // Install LSP servers for code intelligence (runs in background)
+      this.installLSPServers(sandbox).catch((err) => {
+        log.warn('LSP server installation failed (non-critical)', { error: err });
+      });
+
       return sandbox.sandboxId;
     } catch (error) {
       log.error('Failed to create container', error as Error);
@@ -139,6 +144,46 @@ export class ContainerManager {
       custom: 'base',
     };
     return templates[template] || 'base';
+  }
+
+  /**
+   * Install Language Server Protocol servers for code intelligence
+   * This enables features like go-to-definition, find references, hover info
+   */
+  private async installLSPServers(sandbox: Sandbox): Promise<void> {
+    log.info('Installing LSP servers...');
+
+    // Install TypeScript language server (for TS/JS projects)
+    const tsInstall = await sandbox.commands.run(
+      'npm install -g typescript typescript-language-server 2>/dev/null',
+      { timeoutMs: 60000 }
+    );
+    if (tsInstall.exitCode === 0) {
+      log.info('TypeScript LSP installed');
+    }
+
+    // Install Python language server
+    const pyInstall = await sandbox.commands.run(
+      'pip install python-lsp-server 2>/dev/null || pip3 install python-lsp-server 2>/dev/null',
+      { timeoutMs: 60000 }
+    );
+    if (pyInstall.exitCode === 0) {
+      log.info('Python LSP installed');
+    }
+
+    // Install Go language server if Go is available
+    const goCheck = await sandbox.commands.run('which go 2>/dev/null', { timeoutMs: 5000 });
+    if (goCheck.exitCode === 0) {
+      const goInstall = await sandbox.commands.run(
+        'go install golang.org/x/tools/gopls@latest 2>/dev/null',
+        { timeoutMs: 120000 }
+      );
+      if (goInstall.exitCode === 0) {
+        log.info('Go LSP installed');
+      }
+    }
+
+    log.info('LSP server installation complete');
   }
 
   /**
