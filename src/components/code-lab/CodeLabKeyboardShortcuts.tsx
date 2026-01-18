@@ -44,6 +44,7 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
         { keys: [cmdKey, 'Shift', 'P'], description: 'Open command palette (alt)' },
         { keys: [cmdKey, '/'], description: 'Show keyboard shortcuts' },
         { keys: [cmdKey, 'B'], description: 'Toggle sidebar' },
+        { keys: [cmdKey, '1-9'], description: 'Switch to session 1-9' },
         { keys: ['Escape'], description: 'Close modal / Cancel stream' },
       ],
     },
@@ -52,6 +53,8 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
       shortcuts: [
         { keys: [cmdKey, 'N'], description: 'New session' },
         { keys: [cmdKey, 'E'], description: 'Export current session' },
+        { keys: [cmdKey, 'W'], description: 'Close current session' },
+        { keys: [cmdKey, 'Shift', 'T'], description: 'Reopen closed session' },
       ],
     },
     {
@@ -61,6 +64,32 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
         { keys: ['Shift', 'Enter'], description: 'New line' },
         { keys: [cmdKey, 'Enter'], description: 'Send message (force)' },
         { keys: [cmdKey, 'V'], description: 'Paste files/images' },
+        { keys: ['↑'], description: 'Previous message (when empty)' },
+        { keys: [cmdKey, 'L'], description: 'Clear conversation' },
+      ],
+    },
+    {
+      title: 'Editor',
+      shortcuts: [
+        { keys: [cmdKey, 'S'], description: 'Save file' },
+        { keys: [cmdKey, 'Z'], description: 'Undo' },
+        { keys: [cmdKey, 'Shift', 'Z'], description: 'Redo' },
+        { keys: [cmdKey, 'F'], description: 'Find in file' },
+        { keys: [cmdKey, 'G'], description: 'Go to line' },
+        { keys: ['F12'], description: 'Go to definition' },
+        { keys: ['Shift', 'F12'], description: 'Find references' },
+        { keys: [cmdKey, 'Space'], description: 'Trigger autocomplete' },
+      ],
+    },
+    {
+      title: 'Terminal',
+      shortcuts: [
+        { keys: [cmdKey, '`'], description: 'Toggle terminal' },
+        { keys: [cmdKey, 'Shift', '`'], description: 'New terminal' },
+        { keys: ['Ctrl', 'C'], description: 'Cancel running command' },
+        { keys: ['Ctrl', 'L'], description: 'Clear terminal' },
+        { keys: ['↑', '↓'], description: 'Navigate command history' },
+        { keys: ['Tab'], description: 'Autocomplete command' },
       ],
     },
     {
@@ -186,11 +215,11 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
 
         .shortcuts-panel {
           width: 100%;
-          max-width: 720px;
+          max-width: 800px;
           max-height: 85vh;
-          background: white;
+          background: var(--cl-bg-primary);
           border-radius: 16px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          box-shadow: var(--cl-shadow-xl);
           overflow: hidden;
           display: flex;
           flex-direction: column;
@@ -214,30 +243,35 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
           align-items: center;
           justify-content: space-between;
           padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid #e5e7eb;
-          background: linear-gradient(to bottom, #f9fafb, #ffffff);
+          border-bottom: 1px solid var(--cl-border-primary);
+          background: var(--cl-bg-secondary);
         }
 
         .shortcuts-header h2 {
           margin: 0;
           font-size: 1.25rem;
           font-weight: 600;
-          color: #1a1f36;
+          color: var(--cl-text-primary);
         }
 
         .close-btn {
           background: none;
           border: none;
-          padding: 0.5rem;
+          padding: 0.625rem;
+          min-width: 44px;
+          min-height: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           cursor: pointer;
-          color: #6b7280;
+          color: var(--cl-text-muted);
           border-radius: 8px;
           transition: all 0.15s;
         }
 
         .close-btn:hover {
-          background: #f3f4f6;
-          color: #1a1f36;
+          background: var(--cl-bg-hover);
+          color: var(--cl-text-primary);
         }
 
         .close-btn svg {
@@ -250,12 +284,12 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
           overflow-y: auto;
           padding: 1.5rem;
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 1.5rem;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 1.25rem;
         }
 
         .shortcut-category {
-          background: #f9fafb;
+          background: var(--cl-bg-secondary);
           border-radius: 12px;
           padding: 1rem;
         }
@@ -264,7 +298,7 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
           margin: 0 0 0.75rem;
           font-size: 0.8125rem;
           font-weight: 600;
-          color: #1e3a5f;
+          color: var(--cl-accent-primary);
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -279,7 +313,7 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 1rem;
+          gap: 0.75rem;
           padding: 0.375rem 0;
         }
 
@@ -296,32 +330,32 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
           justify-content: center;
           min-width: 24px;
           padding: 0.25rem 0.5rem;
-          background: white;
-          border: 1px solid #e5e7eb;
+          background: var(--cl-bg-primary);
+          border: 1px solid var(--cl-border-primary);
           border-radius: 6px;
           font-size: 0.75rem;
           font-family: inherit;
           font-weight: 500;
-          color: #374151;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+          color: var(--cl-text-secondary);
+          box-shadow: var(--cl-shadow-sm);
         }
 
         .shortcut-keys kbd.command {
-          background: #eef2ff;
-          border-color: #c7d2fe;
-          color: #1e3a5f;
+          background: var(--cl-accent-bg);
+          border-color: var(--cl-accent-primary);
+          color: var(--cl-accent-primary);
           font-family: 'SF Mono', 'Menlo', monospace;
         }
 
         .key-separator {
-          color: #9ca3af;
+          color: var(--cl-text-muted);
           font-size: 0.6875rem;
           margin: 0 0.125rem;
         }
 
         .shortcut-desc {
           font-size: 0.8125rem;
-          color: #4b5563;
+          color: var(--cl-text-tertiary);
           text-align: right;
         }
 
@@ -330,31 +364,32 @@ export function CodeLabKeyboardShortcuts({ isOpen, onClose }: CodeLabKeyboardSho
           align-items: center;
           justify-content: space-between;
           padding: 0.875rem 1.5rem;
-          border-top: 1px solid #e5e7eb;
-          background: #f9fafb;
+          border-top: 1px solid var(--cl-border-primary);
+          background: var(--cl-bg-secondary);
         }
 
         .platform-note {
           font-size: 0.75rem;
-          color: #9ca3af;
+          color: var(--cl-text-muted);
         }
 
         .shortcuts-footer kbd {
           display: inline-flex;
           align-items: center;
           padding: 0.25rem 0.5rem;
-          background: white;
-          border: 1px solid #e5e7eb;
+          background: var(--cl-bg-primary);
+          border: 1px solid var(--cl-border-primary);
           border-radius: 4px;
           font-size: 0.6875rem;
           font-family: inherit;
-          color: #6b7280;
+          color: var(--cl-text-muted);
           margin-right: 0.25rem;
         }
 
         @media (max-width: 640px) {
           .shortcuts-panel {
             max-height: 90vh;
+            border-radius: 16px 16px 0 0;
           }
 
           .shortcuts-content {

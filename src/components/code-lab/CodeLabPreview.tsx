@@ -644,6 +644,17 @@ function buildReactPreview(tsxFiles: GeneratedFile[], cssFiles: GeneratedFile[])
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: system-ui, sans-serif; }
+    /* Theme-aware text colors */
+    @media (prefers-color-scheme: dark) {
+      body { background: #0f1419; color: #e6edf3; }
+      .preview-message { color: #7d8590; }
+      .preview-error { color: #f87171; }
+    }
+    @media (prefers-color-scheme: light) {
+      body { background: #ffffff; color: #1a1f36; }
+      .preview-message { color: #6b7280; }
+      .preview-error { color: #ef4444; }
+    }
     ${cssContent}
   </style>
 </head>
@@ -668,14 +679,15 @@ function buildReactPreview(tsxFiles: GeneratedFile[], cssFiles: GeneratedFile[])
       if (MainComponent) {
         root.render(<MainComponent />);
       } else {
-        rootElement.innerHTML = '<p style="padding: 1rem; color: #666;">No component found to render.</p>';
+        rootElement.innerHTML = '<p class="preview-message" style="padding: 1rem;">No component found to render.</p>';
       }
     } catch (err) {
       window.parent.postMessage({ type: 'error', message: err.message }, '*');
       // Safe DOM manipulation to prevent XSS
       const rootEl = document.getElementById('root');
       const pre = document.createElement('pre');
-      pre.style.cssText = 'color: red; padding: 1rem;';
+      pre.className = 'preview-error';
+      pre.style.cssText = 'padding: 1rem;';
       pre.textContent = err.message; // textContent is XSS-safe
       rootEl.innerHTML = '';
       rootEl.appendChild(pre);

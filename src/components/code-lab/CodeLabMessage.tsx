@@ -31,9 +31,24 @@ interface AgentType {
 }
 
 const AGENT_TYPES: Record<string, AgentType> = {
-  workspace: { name: 'Workspace Agent', icon: '>', color: '#22c55e', bgColor: '#dcfce7' },
-  standard: { name: 'Claude Opus 4.5', icon: '', color: '#1e3a5f', bgColor: '#e8eef5' },
-  code: { name: 'Code Generator', icon: '', color: '#2d4a6f', bgColor: '#eef3f8' },
+  workspace: {
+    name: 'Workspace Agent',
+    icon: '>',
+    color: 'var(--cl-agent-workspace)',
+    bgColor: 'var(--cl-agent-workspace-bg)',
+  },
+  standard: {
+    name: 'Claude Opus 4.5',
+    icon: '',
+    color: 'var(--cl-agent-standard)',
+    bgColor: 'var(--cl-agent-standard-bg)',
+  },
+  code: {
+    name: 'Code Generator',
+    icon: '',
+    color: 'var(--cl-agent-code)',
+    bgColor: 'var(--cl-agent-code-bg)',
+  },
 };
 
 export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps) {

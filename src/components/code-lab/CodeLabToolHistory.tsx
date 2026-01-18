@@ -47,22 +47,22 @@ interface CodeLabToolHistoryProps {
 
 // Tool category configurations
 const categoryConfig: Record<ToolCategory, { icon: string; color: string; label: string }> = {
-  file: { icon: '📄', color: '#3b82f6', label: 'File' },
-  shell: { icon: '💻', color: '#8b5cf6', label: 'Shell' },
-  git: { icon: '🔀', color: '#f59e0b', label: 'Git' },
-  mcp: { icon: '🔌', color: '#06b6d4', label: 'MCP' },
-  deploy: { icon: '🚀', color: '#22c55e', label: 'Deploy' },
-  search: { icon: '🔍', color: '#ec4899', label: 'Search' },
-  other: { icon: '⚙️', color: '#6b7280', label: 'Other' },
+  file: { icon: '📄', color: 'var(--cl-info)', label: 'File' },
+  shell: { icon: '💻', color: 'var(--cl-purple)', label: 'Shell' },
+  git: { icon: '🔀', color: 'var(--cl-warning)', label: 'Git' },
+  mcp: { icon: '🔌', color: 'var(--cl-cyan)', label: 'MCP' },
+  deploy: { icon: '🚀', color: 'var(--cl-success)', label: 'Deploy' },
+  search: { icon: '🔍', color: 'var(--cl-pink)', label: 'Search' },
+  other: { icon: '⚙️', color: 'var(--cl-gray)', label: 'Other' },
 };
 
 // Status configurations
 const statusConfig: Record<ToolStatus, { icon: string; color: string; label: string }> = {
-  pending: { icon: '○', color: '#9ca3af', label: 'Pending' },
-  running: { icon: '◐', color: '#3b82f6', label: 'Running' },
-  success: { icon: '✓', color: '#22c55e', label: 'Success' },
-  error: { icon: '✕', color: '#ef4444', label: 'Error' },
-  cancelled: { icon: '⊘', color: '#f59e0b', label: 'Cancelled' },
+  pending: { icon: '○', color: 'var(--cl-gray)', label: 'Pending' },
+  running: { icon: '◐', color: 'var(--cl-info)', label: 'Running' },
+  success: { icon: '✓', color: 'var(--cl-success)', label: 'Success' },
+  error: { icon: '✕', color: 'var(--cl-error)', label: 'Error' },
+  cancelled: { icon: '⊘', color: 'var(--cl-warning)', label: 'Cancelled' },
 };
 
 // Tool name to category mapping

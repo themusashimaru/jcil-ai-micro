@@ -1140,14 +1140,14 @@ export const CodeLabTerminal = forwardRef<CodeLabTerminalRef, CodeLabTerminalPro
                   alignItems: 'center',
                   gap: '4px',
                   fontSize: '11px',
-                  color: '#3fb950',
+                  color: 'var(--cl-terminal-prompt)',
                 }}
               >
                 <span
                   style={{
                     width: '6px',
                     height: '6px',
-                    background: '#3fb950',
+                    background: 'var(--cl-terminal-prompt)',
                     borderRadius: '50%',
                     animation: 'pulse 1.5s infinite',
                   }}
@@ -1231,7 +1231,7 @@ export const CodeLabTerminal = forwardRef<CodeLabTerminalRef, CodeLabTerminalPro
         >
           {activeTab.lines.length === 0 ? (
             <div className="terminal-empty">
-              <span style={{ color: '#3fb950' }}>❯</span>
+              <span style={{ color: 'var(--cl-terminal-prompt)' }}>❯</span>
               <span style={{ animation: 'blink 1s step-start infinite' }}>▋</span>
             </div>
           ) : (

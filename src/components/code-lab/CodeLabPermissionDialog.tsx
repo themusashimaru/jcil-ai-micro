@@ -49,32 +49,32 @@ interface CodeLabPermissionDialogProps {
   isOpen: boolean;
 }
 
-// Risk level configurations
+// Risk level configurations - uses CSS variables with fallback backgrounds
 const riskConfig: Record<
   RiskLevel,
   { color: string; bgColor: string; icon: string; label: string }
 > = {
   low: {
-    color: '#22c55e',
-    bgColor: 'rgba(34, 197, 94, 0.1)',
+    color: 'var(--cl-success)',
+    bgColor: 'color-mix(in srgb, var(--cl-success) 10%, transparent)',
     icon: '✓',
     label: 'Low Risk',
   },
   medium: {
-    color: '#f59e0b',
-    bgColor: 'rgba(245, 158, 11, 0.1)',
+    color: 'var(--cl-warning)',
+    bgColor: 'color-mix(in srgb, var(--cl-warning) 10%, transparent)',
     icon: '⚠',
     label: 'Medium Risk',
   },
   high: {
-    color: '#ef4444',
-    bgColor: 'rgba(239, 68, 68, 0.1)',
+    color: 'var(--cl-error)',
+    bgColor: 'color-mix(in srgb, var(--cl-error) 10%, transparent)',
     icon: '⚠',
     label: 'High Risk',
   },
   critical: {
-    color: '#dc2626',
-    bgColor: 'rgba(220, 38, 38, 0.15)',
+    color: 'var(--cl-critical)',
+    bgColor: 'color-mix(in srgb, var(--cl-critical) 15%, transparent)',
     icon: '🛑',
     label: 'Critical',
   },
