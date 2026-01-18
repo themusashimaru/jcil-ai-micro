@@ -13,6 +13,8 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'lcov'],
       exclude: ['node_modules', '.next', '**/*.d.ts', '**/*.test.ts', '**/*.test.tsx', 'tests/**'],
       thresholds: {
+        // Production-grade coverage thresholds
+        // Note: These apply to files WITH tests - untested files are excluded
         statements: 75,
         branches: 70,
         functions: 75,
