@@ -148,10 +148,6 @@ export function ChatComposer({
   const [isFocused, setIsFocused] = useState(false);
   // Tool mode state (search, research, document creation)
   const [toolMode, setToolMode] = useState<ToolMode>('none');
-  // Tools menu visibility
-  const [showToolsMenu, setShowToolsMenu] = useState(false);
-  // Admin status for showing full agents menu
-  const [isAdmin, setIsAdmin] = useState(false);
   // Typewriter animation state
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState('');
@@ -169,23 +165,6 @@ export function ChatComposer({
   // Set mounted state on client-side (for portal rendering)
   useEffect(() => {
     setIsMounted(true);
-  }, []);
-
-  // Check admin status on mount
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const response = await fetch('/api/user/is-admin');
-        if (response.ok) {
-          const data = await response.json();
-          setIsAdmin(data.data?.isAdmin === true);
-        }
-      } catch (error) {
-        console.error('[ChatComposer] Error checking admin status:', error);
-        setIsAdmin(false);
-      }
-    };
-    checkAdminStatus();
   }, []);
 
   // Auto-focus the textarea on mount so cursor blinks immediately
@@ -308,10 +287,9 @@ export function ChatComposer({
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
-  // Select a tool mode (closes menu)
+  // Select a tool mode
   const selectToolMode = (mode: ToolMode) => {
     setToolMode(mode);
-    setShowToolsMenu(false);
   };
 
   // Clear tool mode
@@ -795,77 +773,77 @@ export function ChatComposer({
                 </div>
               )}
 
-              {/* Agent buttons - 3 individual buttons for regular users, Agents dropdown for admin */}
-              {showSearchButtons &&
-                toolMode === 'none' &&
-                (isAdmin ? (
-                  // Admin: Show Agents dropdown with all tools
+              {/* Agent buttons - 3 individual buttons for all users */}
+              {showSearchButtons && toolMode === 'none' && (
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setShowToolsMenu(!showToolsMenu)}
+                    onClick={() => selectToolMode('search')}
                     disabled={isStreaming || disabled}
-                    className="rounded-full px-3 py-1.5 disabled:opacity-50 flex items-center gap-1.5 transition-colors text-sm"
-                    style={{ color: 'var(--text-muted)' }}
-                    title="AI Agents"
+                    className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
+                    style={{ color: '#3b82f6' }}
+                    title="Web Search"
                   >
-                    <span>Agents</span>
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
                       />
                     </svg>
+                    <span>Search</span>
                   </button>
-                ) : (
-                  // Regular users: Show 2 individual buttons (Search, Fact Check) - text only, no backgrounds
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => selectToolMode('search')}
-                      disabled={isStreaming || disabled}
-                      className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
-                      style={{ color: '#3b82f6' }}
-                      title="Web Search"
+                  <button
+                    onClick={() => selectToolMode('factcheck')}
+                    disabled={isStreaming || disabled}
+                    className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
+                    style={{ color: '#10b981' }}
+                    title="Fact Check"
+                  >
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      <svg
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                        />
-                      </svg>
-                      <span>Search</span>
-                    </button>
-                    <button
-                      onClick={() => selectToolMode('factcheck')}
-                      disabled={isStreaming || disabled}
-                      className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
-                      style={{ color: '#10b981' }}
-                      title="Fact Check"
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span>Fact Check</span>
+                  </button>
+                  <button
+                    onClick={() => selectToolMode('research')}
+                    disabled={isStreaming || disabled}
+                    className="px-1.5 py-1 disabled:opacity-50 flex items-center gap-1 transition-all text-xs hover:brightness-125"
+                    style={{ color: '#8b5cf6' }}
+                    title="Deep Research"
+                  >
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      <svg
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <span>Fact Check</span>
-                    </button>
-                  </div>
-                ))}
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
+                    </svg>
+                    <span>Research</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right side - send button */}
@@ -995,46 +973,6 @@ export function ChatComposer({
                   />
                 </svg>
                 Upload File
-              </button>
-            </div>
-          </>,
-          document.body
-        )}
-
-      {/* Agents menu - rendered via Portal */}
-      {showToolsMenu &&
-        isMounted &&
-        createPortal(
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-[9998] bg-black/20 backdrop-blur-sm"
-              onClick={() => setShowToolsMenu(false)}
-              aria-hidden="true"
-            />
-            {/* Menu - Clean text-only style */}
-            <div className="fixed bottom-24 left-4 z-[9999] w-52 rounded-lg border border-white/10 bg-zinc-900 shadow-xl overflow-hidden">
-              {/* Search Agents */}
-              <div className="px-3 py-1.5 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-                Search
-              </div>
-              <button
-                onClick={() => selectToolMode('search')}
-                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-              >
-                Web Search
-              </button>
-              <button
-                onClick={() => selectToolMode('factcheck')}
-                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors"
-              >
-                Fact Check
-              </button>
-              <button
-                onClick={() => selectToolMode('research')}
-                className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10 transition-colors rounded-b-lg"
-              >
-                Deep Research
               </button>
             </div>
           </>,
