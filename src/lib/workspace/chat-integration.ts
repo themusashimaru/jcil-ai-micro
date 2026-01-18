@@ -38,6 +38,29 @@ import { getBackgroundTaskTools, getBackgroundTaskManager } from './background-t
 import { getDebugTools, executeDebugTool, isDebugTool } from './debug-tools';
 import { getLSPTools, executeLSPTool, isLSPTool } from './lsp-tools';
 import { getSubagentTools, executeSubagentTool, isSubagentTool } from '@/lib/agents/subagent';
+import { getPermissionTools, executePermissionTool, isPermissionTool } from './permissions';
+import {
+  getModelConfigTools,
+  executeModelConfigTool,
+  isModelConfigTool,
+  getModelConfigManager,
+} from './model-config';
+import {
+  getTokenTrackingTools,
+  executeTokenTrackingTool,
+  isTokenTrackingTool,
+  getTokenTracker,
+} from './token-tracker';
+import {
+  getExtendedThinkingTools,
+  executeExtendedThinkingTool,
+  isExtendedThinkingTool,
+} from './extended-thinking';
+import {
+  getContextCompactionTools,
+  isContextCompactionTool,
+  getContextCompactionManager,
+} from './context-compaction';
 
 // ============================================
 // TYPES
@@ -471,6 +494,31 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   // SUBAGENT TOOLS (CLAUDE CODE PARITY)
   // ============================================
   ...getSubagentTools(),
+
+  // ============================================
+  // PERMISSION TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getPermissionTools(),
+
+  // ============================================
+  // MODEL CONFIG TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getModelConfigTools(),
+
+  // ============================================
+  // TOKEN TRACKING TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getTokenTrackingTools(),
+
+  // ============================================
+  // EXTENDED THINKING TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getExtendedThinkingTools(),
+
+  // ============================================
+  // CONTEXT COMPACTION TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getContextCompactionTools(),
 ];
 
 // ============================================
@@ -529,14 +577,32 @@ export class WorkspaceAgent {
     while (iterations < (this.config.maxIterations || 25)) {
       iterations++;
 
+      // Get current model from session preferences
+      const modelManager = getModelConfigManager();
+      const currentModel = modelManager.getCurrentModel(this.config.sessionId);
+      const prefs = modelManager.getSessionPreferences(this.config.sessionId);
+
       // Call Claude with tools
       const response = await this.anthropic.messages.create({
-        model: this.config.model || 'claude-sonnet-4-20250514',
-        max_tokens: 8192,
+        model: currentModel.id,
+        max_tokens: prefs.maxTokens,
         system: this.getSystemPrompt(),
         tools: WORKSPACE_TOOLS,
         messages,
       });
+
+      // Track token usage
+      const tokenTracker = getTokenTracker(this.config.sessionId, currentModel.id);
+      if (response.usage) {
+        tokenTracker.recordUsage({
+          inputTokens: response.usage.input_tokens,
+          outputTokens: response.usage.output_tokens,
+          cacheReadTokens: (response.usage as { cache_read_input_tokens?: number })
+            .cache_read_input_tokens,
+          cacheWriteTokens: (response.usage as { cache_creation_input_tokens?: number })
+            .cache_creation_input_tokens,
+        });
+      }
 
       // Process response content
       let hasToolUse = false;
@@ -1360,6 +1426,47 @@ ${output.isComplete ? `âœ“ Task completed (exit code: ${output.exitCode})` : 'â
             });
           }
 
+          // Check if it's a permission tool call
+          if (isPermissionTool(name)) {
+            return executePermissionTool(name, input);
+          }
+
+          // Check if it's a model config tool call
+          if (isModelConfigTool(name)) {
+            return executeModelConfigTool(name, input, this.config.sessionId);
+          }
+
+          // Check if it's a token tracking tool call
+          if (isTokenTrackingTool(name)) {
+            return executeTokenTrackingTool(name, input, this.config.sessionId);
+          }
+
+          // Check if it's an extended thinking tool call
+          if (isExtendedThinkingTool(name)) {
+            return executeExtendedThinkingTool(name, input, this.config.sessionId);
+          }
+
+          // Check if it's a context compaction tool call
+          if (isContextCompactionTool(name)) {
+            const manager = getContextCompactionManager();
+            if (name === 'context_settings') {
+              if (Object.keys(input).length > 0) {
+                manager.setSettings(
+                  this.config.sessionId,
+                  input as Partial<{
+                    autoCompact: boolean;
+                    threshold: number;
+                    preserveRecentCount: number;
+                  }>
+                );
+                return 'Context compaction settings updated.';
+              }
+              const settings = manager.getSettings(this.config.sessionId);
+              return `**Context Compaction Settings**\n\nAuto-compact: ${settings.autoCompact ? 'Enabled' : 'Disabled'}\nThreshold: ${settings.threshold}%\nPreserve Recent: ${settings.preserveRecentCount} messages`;
+            }
+            return 'Context compaction triggered. Use /compact to compact the conversation.';
+          }
+
           // Check if it's an MCP tool call
           if (name.startsWith('mcp__')) {
             const mcpManager = getMCPManager();
@@ -1753,6 +1860,24 @@ function formatToolName(tool: string): string {
     bg_output: 'Getting task output',
     bg_kill: 'Killing task',
     bg_list: 'Listing tasks',
+    // Permission Tools
+    permission_check: 'Checking permission',
+    permission_request: 'Requesting permission',
+    permission_set_auto: 'Setting auto-approve',
+    // Model Config Tools
+    model_list: 'Listing models',
+    model_select: 'Selecting model',
+    model_current: 'Getting current model',
+    // Token Tracking Tools
+    tokens_usage: 'Getting token usage',
+    tokens_context: 'Getting context info',
+    // Extended Thinking Tools
+    thinking_enable: 'Enabling extended thinking',
+    thinking_disable: 'Disabling extended thinking',
+    thinking_status: 'Getting thinking status',
+    // Context Compaction Tools
+    context_compact: 'Compacting context',
+    context_settings: 'Context settings',
   };
 
   // Handle MCP tool names

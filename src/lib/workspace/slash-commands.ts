@@ -165,17 +165,118 @@ const commands: SlashCommand[] = [
       if (args.trim()) {
         const cmd = findCommand(args.trim());
         if (cmd) {
-          return `**/${cmd.name}** - ${cmd.description}\n\nUsage: \`${cmd.usage}\`\n\nAliases: ${cmd.aliases.map(a => '/' + a).join(', ')}`;
+          return `**/${cmd.name}** - ${cmd.description}\n\nUsage: \`${cmd.usage}\`\n\nAliases: ${cmd.aliases.map((a) => '/' + a).join(', ')}`;
         }
         return `Unknown command: /${args.trim()}. Type /help to see all commands.`;
       }
 
       let helpText = '**Available Commands:**\n\n';
-      commands.forEach(cmd => {
+      commands.forEach((cmd) => {
         helpText += `\`/${cmd.name}\` - ${cmd.description}\n`;
       });
       helpText += '\n*Type /help [command] for more details about a specific command.*';
       return helpText;
+    },
+  },
+  // ============================================
+  // SESSION COMMANDS (Claude Code Parity)
+  // ============================================
+  {
+    name: 'clear',
+    aliases: ['cls'],
+    description: 'Clear the chat history',
+    usage: '/clear',
+    handler: () => {
+      return '[CLEAR_HISTORY]';
+    },
+  },
+  {
+    name: 'compact',
+    aliases: ['summarize'],
+    description: 'Summarize and compact context to free up space',
+    usage: '/compact',
+    handler: () => {
+      return '[COMPACT_CONTEXT] Summarize the conversation history so far, preserving key context but reducing length.';
+    },
+  },
+  {
+    name: 'reset',
+    aliases: [],
+    description: 'Reset the session state',
+    usage: '/reset',
+    handler: () => {
+      return '[RESET_SESSION] Clear history and reset all session preferences to defaults.';
+    },
+  },
+  // ============================================
+  // GIT COMMANDS (Claude Code Parity)
+  // ============================================
+  {
+    name: 'diff',
+    aliases: ['d', 'changes'],
+    description: 'Show current uncommitted changes',
+    usage: '/diff [file]',
+    handler: (args) => {
+      if (args.trim()) {
+        return `Show the git diff for: ${args}`;
+      }
+      return 'Show all current uncommitted changes using git diff.';
+    },
+  },
+  {
+    name: 'status',
+    aliases: ['st'],
+    description: 'Show git status',
+    usage: '/status',
+    handler: () => {
+      return 'Show the current git status including branch, staged, and unstaged changes.';
+    },
+  },
+  {
+    name: 'undo',
+    aliases: ['u'],
+    description: 'Undo last file change or unstage files',
+    usage: '/undo [file]',
+    handler: (args) => {
+      if (args.trim()) {
+        return `Undo changes to: ${args}. Restore it to the last committed version.`;
+      }
+      return 'Unstage all currently staged changes.';
+    },
+  },
+  // ============================================
+  // MODEL COMMANDS (Claude Code Parity)
+  // ============================================
+  {
+    name: 'model',
+    aliases: ['m'],
+    description: 'Switch AI model (sonnet, opus, haiku)',
+    usage: '/model <sonnet|opus|haiku>',
+    handler: (args) => {
+      const model = args.trim().toLowerCase();
+      const validModels = ['sonnet', 'opus', 'haiku'];
+      if (!model) {
+        return 'Available models: sonnet (recommended), opus (most capable), haiku (fastest)\n\nUsage: /model <name>';
+      }
+      if (!validModels.includes(model)) {
+        return `Invalid model: ${model}. Choose from: ${validModels.join(', ')}`;
+      }
+      return `[MODEL_SWITCH:${model}] Switch to Claude ${model.charAt(0).toUpperCase() + model.slice(1)}.`;
+    },
+  },
+  // ============================================
+  // HELP COMMANDS (Claude Code Parity)
+  // ============================================
+  {
+    name: 'bug',
+    aliases: ['issue', 'report'],
+    description: 'Report a bug or issue',
+    usage: '/bug <description>',
+    handler: (args) => {
+      if (!args.trim()) {
+        return 'Please describe the bug: /bug <description>\n\nOr visit: https://github.com/anthropics/claude-code/issues';
+      }
+      return `[BUG_REPORT] Bug reported: ${args}\n\nThank you! To file a formal report, visit: https://github.com/anthropics/claude-code/issues/new`;
     },
   },
 ];
@@ -189,9 +290,7 @@ const commands: SlashCommand[] = [
  */
 function findCommand(nameOrAlias: string): SlashCommand | undefined {
   const lower = nameOrAlias.toLowerCase().replace(/^\//, '');
-  return commands.find(
-    cmd => cmd.name === lower || cmd.aliases.includes(lower)
-  );
+  return commands.find((cmd) => cmd.name === lower || cmd.aliases.includes(lower));
 }
 
 /**
@@ -233,10 +332,7 @@ export function parseSlashCommand(input: string): ParsedCommand | null {
 /**
  * Process a slash command and return the enhanced prompt
  */
-export function processSlashCommand(
-  input: string,
-  context: CommandContext
-): string | null {
+export function processSlashCommand(input: string, context: CommandContext): string | null {
   const parsed = parseSlashCommand(input);
   if (!parsed) {
     return null;
@@ -265,10 +361,11 @@ export function getCommandSuggestions(input: string): SlashCommand[] {
     return commands;
   }
 
-  return commands.filter(cmd =>
-    cmd.name.startsWith(query) ||
-    cmd.aliases.some(a => a.startsWith(query)) ||
-    cmd.description.toLowerCase().includes(query)
+  return commands.filter(
+    (cmd) =>
+      cmd.name.startsWith(query) ||
+      cmd.aliases.some((a) => a.startsWith(query)) ||
+      cmd.description.toLowerCase().includes(query)
   );
 }
 
