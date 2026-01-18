@@ -62,13 +62,15 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   // ============================================
   {
     name: 'execute_shell',
-    description: 'Execute a shell command in the workspace sandbox. Use for running scripts, installing packages, building, testing, or any CLI operation. Commands run in an isolated Linux environment.',
+    description:
+      'Execute a shell command in the workspace sandbox. Use for running scripts, installing packages, building, testing, or any CLI operation. Commands run in an isolated Linux environment.',
     input_schema: {
       type: 'object' as const,
       properties: {
         command: {
           type: 'string',
-          description: 'The shell command to execute (e.g., "npm install", "python script.py", "ls -la")',
+          description:
+            'The shell command to execute (e.g., "npm install", "python script.py", "ls -la")',
         },
         cwd: {
           type: 'string',
@@ -80,7 +82,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'read_file',
-    description: 'Read the contents of a file. Always read files before editing to understand the current state.',
+    description:
+      'Read the contents of a file. Always read files before editing to understand the current state.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -94,7 +97,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'write_file',
-    description: 'Write content to a file. Creates the file if it does not exist, overwrites if it does. Creates parent directories automatically.',
+    description:
+      'Write content to a file. Creates the file if it does not exist, overwrites if it does. Creates parent directories automatically.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -112,7 +116,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'edit_file',
-    description: 'Make targeted edits to a file by finding and replacing specific text. More precise than write_file for modifications. The old_text must match exactly.',
+    description:
+      'Make targeted edits to a file by finding and replacing specific text. More precise than write_file for modifications. The old_text must match exactly.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -122,7 +127,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
         },
         old_text: {
           type: 'string',
-          description: 'The exact text to find and replace (must match exactly, including whitespace)',
+          description:
+            'The exact text to find and replace (must match exactly, including whitespace)',
         },
         new_text: {
           type: 'string',
@@ -166,7 +172,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'search_code',
-    description: 'Search for text or patterns in file contents (like grep). Use to find implementations, usages, or specific code patterns.',
+    description:
+      'Search for text or patterns in file contents (like grep). Use to find implementations, usages, or specific code patterns.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -234,7 +241,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'run_build',
-    description: 'Run the project build command. Auto-detects the build system (npm, cargo, go, etc.).',
+    description:
+      'Run the project build command. Auto-detects the build system (npm, cargo, go, etc.).',
     input_schema: {
       type: 'object' as const,
       properties: {},
@@ -264,7 +272,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
         packages: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Specific packages to install (omit to install all from package.json/requirements.txt)',
+          description:
+            'Specific packages to install (omit to install all from package.json/requirements.txt)',
         },
       },
       required: [],
@@ -276,7 +285,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   // ============================================
   {
     name: 'web_fetch',
-    description: 'Fetch content from a URL. Use to retrieve documentation, API responses, or any web content. Returns markdown-formatted content.',
+    description:
+      'Fetch content from a URL. Use to retrieve documentation, API responses, or any web content. Returns markdown-formatted content.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -294,7 +304,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'spawn_task',
-    description: 'Spawn a sub-agent to handle a complex subtask. Use for parallel work or when a task requires focused attention. The sub-agent has the same capabilities as you.',
+    description:
+      'Spawn a sub-agent to handle a complex subtask. Use for parallel work or when a task requires focused attention. The sub-agent has the same capabilities as you.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -312,7 +323,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'todo_write',
-    description: 'Create or update a task list to track progress on multi-step tasks. Helps organize complex work and show progress to the user.',
+    description:
+      'Create or update a structured task list for your current coding session. This helps track progress, organize complex tasks, and demonstrate thoroughness to the user. Use for multi-step tasks requiring 3+ steps.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -321,12 +333,26 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
           items: {
             type: 'object',
             properties: {
-              content: { type: 'string', description: 'Task description' },
-              status: { type: 'string', enum: ['pending', 'in_progress', 'completed'], description: 'Task status' },
+              content: {
+                type: 'string',
+                description:
+                  'The imperative form describing what needs to be done (e.g., "Run tests", "Build the project")',
+              },
+              status: {
+                type: 'string',
+                enum: ['pending', 'in_progress', 'completed'],
+                description:
+                  'Task status: pending (not started), in_progress (currently working on), completed (finished)',
+              },
+              activeForm: {
+                type: 'string',
+                description:
+                  'The present continuous form shown during execution (e.g., "Running tests", "Building the project")',
+              },
             },
-            required: ['content', 'status'],
+            required: ['content', 'status', 'activeForm'],
           },
-          description: 'List of tasks to track',
+          description: 'The updated todo list with all tasks',
         },
       },
       required: ['todos'],
@@ -366,7 +392,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'multi_edit',
-    description: 'Apply multiple edits to a file atomically. More efficient than multiple edit_file calls.',
+    description:
+      'Apply multiple edits to a file atomically. More efficient than multiple edit_file calls.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -392,7 +419,8 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'ask_user',
-    description: 'Ask the user a clarifying question when you need more information to proceed. Use sparingly.',
+    description:
+      'Ask the user a clarifying question when you need more information to proceed. Use sparingly.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -470,7 +498,7 @@ export class WorkspaceAgent {
   ): AsyncGenerator<ToolUpdate> {
     // Build messages
     const messages: Anthropic.MessageParam[] = [
-      ...history.map(m => ({
+      ...history.map((m) => ({
         role: m.role as 'user' | 'assistant',
         content: m.content,
       })),
@@ -509,10 +537,7 @@ export class WorkspaceAgent {
           };
 
           // Execute the tool
-          const result = await this.executeTool(
-            block.name,
-            block.input as Record<string, unknown>
-          );
+          const result = await this.executeTool(block.name, block.input as Record<string, unknown>);
           this.toolsUsed.add(block.name);
 
           // Emit tool end
@@ -562,11 +587,10 @@ export class WorkspaceAgent {
           const command = input.command as string;
           const cwd = (input.cwd as string) || '/workspace';
 
-          const result = await this.container.executeCommand(
-            this.config.workspaceId,
-            command,
-            { cwd, timeout: 60000 }
-          );
+          const result = await this.container.executeCommand(this.config.workspaceId, command, {
+            cwd,
+            timeout: 60000,
+          });
 
           this.commandsExecuted.push(command);
 
@@ -618,14 +642,14 @@ export class WorkspaceAgent {
 
         case 'list_files': {
           const path = this.normalizePath((input.path as string) || '/workspace');
-          const recursive = input.recursive as boolean || false;
+          const recursive = (input.recursive as boolean) || false;
 
           if (recursive) {
             const files = await this.container.getFileTree(this.config.workspaceId, path, 3);
-            return files.map(f => `${f.isDirectory ? '📁' : '📄'} ${f.path}`).join('\n');
+            return files.map((f) => `${f.isDirectory ? '📁' : '📄'} ${f.path}`).join('\n');
           } else {
             const files = await this.container.listDirectory(this.config.workspaceId, path);
-            return files.map(f => `${f.isDirectory ? '📁' : '📄'} ${f.path}`).join('\n');
+            return files.map((f) => `${f.isDirectory ? '📁' : '📄'} ${f.path}`).join('\n');
           }
         }
 
@@ -641,7 +665,9 @@ export class WorkspaceAgent {
         case 'search_code': {
           const pattern = sanitizeSearchPattern(input.pattern as string);
           const path = sanitizeFilePath((input.path as string) || '/workspace');
-          const filePattern = input.file_pattern ? sanitizeGlobPattern(input.file_pattern as string) : undefined;
+          const filePattern = input.file_pattern
+            ? sanitizeGlobPattern(input.file_pattern as string)
+            : undefined;
 
           let cmd = `grep -rn ${sanitizeShellArg(pattern)} ${sanitizeShellArg(path)}`;
           if (filePattern) {
@@ -654,10 +680,7 @@ export class WorkspaceAgent {
         }
 
         case 'git_status': {
-          const result = await this.container.executeCommand(
-            this.config.workspaceId,
-            'git status'
-          );
+          const result = await this.container.executeCommand(this.config.workspaceId, 'git status');
           return result.stdout || result.stderr || 'Not a git repository';
         }
 
@@ -679,11 +702,8 @@ export class WorkspaceAgent {
 
           // Stage files
           if (files && files.length > 0) {
-            const safeFiles = files.map(f => sanitizeShellArg(sanitizeFilePath(f))).join(' ');
-            await this.container.executeCommand(
-              this.config.workspaceId,
-              `git add ${safeFiles}`
-            );
+            const safeFiles = files.map((f) => sanitizeShellArg(sanitizeFilePath(f))).join(' ');
+            await this.container.executeCommand(this.config.workspaceId, `git add ${safeFiles}`);
           } else {
             await this.container.executeCommand(this.config.workspaceId, 'git add .');
           }
@@ -804,15 +824,33 @@ export class WorkspaceAgent {
         }
 
         case 'todo_write': {
-          const todos = input.todos as Array<{ content: string; status: string }>;
+          const todos = input.todos as Array<{
+            content: string;
+            status: string;
+            activeForm?: string;
+          }>;
 
-          // Store in session context (would be sent back to frontend)
-          const todoList = todos.map((t) => {
-            const icon = t.status === 'completed' ? '✓' : t.status === 'in_progress' ? '→' : '○';
-            return `${icon} ${t.content}`;
-          }).join('\n');
+          // Format task list matching Claude Code's display
+          const todoList = todos
+            .map((t, index) => {
+              const statusLabel =
+                t.status === 'completed'
+                  ? 'completed'
+                  : t.status === 'in_progress'
+                    ? 'in_progress'
+                    : 'pending';
+              const displayText =
+                t.status === 'in_progress' && t.activeForm ? t.activeForm : t.content;
+              return `${index + 1}. [${statusLabel}] ${displayText}`;
+            })
+            .join('\n');
 
-          return `Task list updated:\n${todoList}`;
+          // Count by status
+          const completed = todos.filter((t) => t.status === 'completed').length;
+          const inProgress = todos.filter((t) => t.status === 'in_progress').length;
+          const pending = todos.filter((t) => t.status === 'pending').length;
+
+          return `Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress.\n\n${todoList}\n\nProgress: ${completed}/${todos.length} completed, ${inProgress} in progress, ${pending} pending`;
         }
 
         case 'notebook_edit': {
@@ -842,7 +880,11 @@ export class WorkspaceAgent {
               };
               const insertAt = cellIndex !== undefined ? cellIndex : notebook.cells.length;
               notebook.cells.splice(insertAt, 0, newCell);
-            } else if (editMode === 'replace' && cellIndex !== undefined && newSource !== undefined) {
+            } else if (
+              editMode === 'replace' &&
+              cellIndex !== undefined &&
+              newSource !== undefined
+            ) {
               notebook.cells[cellIndex].source = newSource.split('\n');
               if (cellType) {
                 notebook.cells[cellIndex].cell_type = cellType;
@@ -850,7 +892,11 @@ export class WorkspaceAgent {
             }
 
             // Write back
-            await this.container.writeFile(this.config.workspaceId, notebookPath, JSON.stringify(notebook, null, 2));
+            await this.container.writeFile(
+              this.config.workspaceId,
+              notebookPath,
+              JSON.stringify(notebook, null, 2)
+            );
             this.filesModified.add(notebookPath);
 
             return `Successfully ${editMode}d cell in ${notebookPath}`;
@@ -920,7 +966,11 @@ export class WorkspaceAgent {
         case 'write_plan': {
           const title = input.title as string;
           const summary = input.summary as string;
-          const tasks = input.tasks as Array<{ title: string; description?: string; complexity?: string }>;
+          const tasks = input.tasks as Array<{
+            title: string;
+            description?: string;
+            complexity?: string;
+          }>;
           const notes = input.notes as string | undefined;
 
           const planManager = getPlanModeManager();
@@ -977,13 +1027,18 @@ export class WorkspaceAgent {
 
           const lines = ['**Configured MCP Servers:**\n'];
           for (const server of servers) {
-            const statusIcon = server.status === 'running' ? '🟢' :
-                              server.status === 'error' ? '🔴' :
-                              server.status === 'starting' ? '🟡' : '⚪';
+            const statusIcon =
+              server.status === 'running'
+                ? '🟢'
+                : server.status === 'error'
+                  ? '🔴'
+                  : server.status === 'starting'
+                    ? '🟡'
+                    : '⚪';
             lines.push(`${statusIcon} **${server.name}** (${server.id})`);
             lines.push(`   Status: ${server.status}`);
             if (server.tools.length > 0) {
-              lines.push(`   Tools: ${server.tools.map(t => t.name).join(', ')}`);
+              lines.push(`   Tools: ${server.tools.map((t) => t.name).join(', ')}`);
             }
             if (server.error) {
               lines.push(`   Error: ${server.error}`);
@@ -1146,7 +1201,9 @@ export class WorkspaceAgent {
         case 'memory_add_section': {
           const title = input.title as string;
           const content = input.content as string;
-          const type = (input.type as 'instructions' | 'context' | 'patterns' | 'preferences' | 'notes') || 'notes';
+          const type =
+            (input.type as 'instructions' | 'context' | 'patterns' | 'preferences' | 'notes') ||
+            'notes';
 
           const memoryManager = getMemoryManager();
           const readFileFn = async (path: string) => {
@@ -1156,7 +1213,13 @@ export class WorkspaceAgent {
             await this.container.writeFile(this.config.workspaceId, path, cnt);
           };
 
-          const memory = await memoryManager.addSection(title, content, type, readFileFn, writeFileFn);
+          const memory = await memoryManager.addSection(
+            title,
+            content,
+            type,
+            readFileFn,
+            writeFileFn
+          );
           this.filesModified.add(memory.memoryPath);
 
           return `Section "${title}" added to project memory.`;
@@ -1174,11 +1237,9 @@ export class WorkspaceAgent {
           const task = await taskManager.startTask(command, async (cmd) => {
             // Run the command in the background using nohup
             const bgCmd = `nohup ${cmd} > /tmp/bg-${Date.now()}.log 2>&1 & echo $!`;
-            const result = await this.container.executeCommand(
-              this.config.workspaceId,
-              bgCmd,
-              { timeout: 5000 }
-            );
+            const result = await this.container.executeCommand(this.config.workspaceId, bgCmd, {
+              timeout: 5000,
+            });
             return {
               taskId: result.stdout.trim(),
               initialOutput: `Started background process with PID: ${result.stdout.trim()}`,
@@ -1212,11 +1273,9 @@ Use \`bg_output\` to check output or \`bg_kill\` to stop.`;
               ? `ps -p ${task.pid} -o pid= 2>/dev/null && cat /tmp/bg-*.log 2>/dev/null | tail -100`
               : `cat /tmp/bg-*.log 2>/dev/null | tail -100`;
 
-            const result = await this.container.executeCommand(
-              this.config.workspaceId,
-              checkCmd,
-              { timeout: 5000 }
-            );
+            const result = await this.container.executeCommand(this.config.workspaceId, checkCmd, {
+              timeout: 5000,
+            });
 
             const isComplete = task.pid ? result.stdout.trim() === '' : false;
 
@@ -1285,10 +1344,17 @@ ${output.isComplete ? `✓ Task completed (exit code: ${output.exitCode})` : '�
           ];
 
           for (const task of tasks) {
-            const statusIcon = task.status === 'running' ? '⏳' :
-                              task.status === 'completed' ? '✓' :
-                              task.status === 'killed' ? '⊘' : '✗';
-            lines.push(`${statusIcon} **${task.id}** - \`${task.command.substring(0, 50)}${task.command.length > 50 ? '...' : ''}\``);
+            const statusIcon =
+              task.status === 'running'
+                ? '⏳'
+                : task.status === 'completed'
+                  ? '✓'
+                  : task.status === 'killed'
+                    ? '⊘'
+                    : '✗';
+            lines.push(
+              `${statusIcon} **${task.id}** - \`${task.command.substring(0, 50)}${task.command.length > 50 ? '...' : ''}\``
+            );
             lines.push(`   Status: ${task.status} | Started: ${task.startedAt}`);
           }
 
@@ -1368,7 +1434,7 @@ Always explain what you're doing and why.`;
     if (this.toolsUsed.size === 0) return;
 
     try {
-      const executions = Array.from(this.toolsUsed).map(tool => ({
+      const executions = Array.from(this.toolsUsed).map((tool) => ({
         workspace_id: this.config.workspaceId,
         session_id: this.config.sessionId,
         user_id: this.config.userId,
@@ -1435,22 +1501,43 @@ export function shouldUseWorkspaceAgent(message: string): boolean {
   ];
 
   // Check for agentic patterns
-  if (agenticPatterns.some(p => p.test(message))) {
+  if (agenticPatterns.some((p) => p.test(message))) {
     return true;
   }
 
   // Keyword density check
   const agenticKeywords = [
-    'file', 'folder', 'directory', 'path',
-    'edit', 'modify', 'change', 'update',
-    'run', 'execute', 'command', 'terminal',
-    'install', 'build', 'test', 'deploy',
-    'git', 'commit', 'branch', 'push',
-    'fix', 'debug', 'error', 'bug',
-    'find', 'search', 'grep', 'locate',
+    'file',
+    'folder',
+    'directory',
+    'path',
+    'edit',
+    'modify',
+    'change',
+    'update',
+    'run',
+    'execute',
+    'command',
+    'terminal',
+    'install',
+    'build',
+    'test',
+    'deploy',
+    'git',
+    'commit',
+    'branch',
+    'push',
+    'fix',
+    'debug',
+    'error',
+    'bug',
+    'find',
+    'search',
+    'grep',
+    'locate',
   ];
 
-  const matchCount = agenticKeywords.filter(k => lower.includes(k)).length;
+  const matchCount = agenticKeywords.filter((k) => lower.includes(k)).length;
   return matchCount >= 2;
 }
 
@@ -1483,10 +1570,18 @@ export async function executeWorkspaceAgent(
 
         // Stream header
         controller.enqueue(encoder.encode('```\n'));
-        controller.enqueue(encoder.encode('┌─────────────────────────────────────────────────────────────────┐\n'));
-        controller.enqueue(encoder.encode('│                    WORKSPACE AGENT                              │\n'));
-        controller.enqueue(encoder.encode('│                 Autonomous Code Execution                       │\n'));
-        controller.enqueue(encoder.encode('└─────────────────────────────────────────────────────────────────┘\n'));
+        controller.enqueue(
+          encoder.encode('┌─────────────────────────────────────────────────────────────────┐\n')
+        );
+        controller.enqueue(
+          encoder.encode('│                    WORKSPACE AGENT                              │\n')
+        );
+        controller.enqueue(
+          encoder.encode('│                 Autonomous Code Execution                       │\n')
+        );
+        controller.enqueue(
+          encoder.encode('└─────────────────────────────────────────────────────────────────┘\n')
+        );
         controller.enqueue(encoder.encode('```\n\n'));
 
         // Stream agent execution
@@ -1506,9 +1601,8 @@ export async function executeWorkspaceAgent(
             case 'tool_end': {
               // Show truncated output
               const output = update.output || '';
-              const truncated = output.length > 500
-                ? output.substring(0, 500) + '\n... (truncated)'
-                : output;
+              const truncated =
+                output.length > 500 ? output.substring(0, 500) + '\n... (truncated)' : output;
 
               const outputBlock = '```\n' + truncated + '\n```\n';
               controller.enqueue(encoder.encode(outputBlock));
