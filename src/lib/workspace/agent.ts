@@ -117,7 +117,7 @@ const AGENT_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'edit_file',
-    description: 'Make targeted edits to a file by replacing specific text. More precise than write_file for modifications.',
+    description: 'Make surgical line-based edits to a file. Specify exact line numbers to replace. More precise than write_file for modifications.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -125,16 +125,69 @@ const AGENT_TOOLS: Anthropic.Tool[] = [
           type: 'string',
           description: 'Path to the file',
         },
+        start_line: {
+          type: 'number',
+          description: 'Starting line number (1-indexed) to begin replacement',
+        },
+        end_line: {
+          type: 'number',
+          description: 'Ending line number (1-indexed, inclusive) to replace through',
+        },
+        new_content: {
+          type: 'string',
+          description: 'The new content to replace the specified lines with',
+        },
+        // Legacy support for text-based edits
         old_text: {
           type: 'string',
-          description: 'The exact text to find and replace',
+          description: '(Legacy) The exact text to find and replace. Use start_line/end_line for precise edits.',
         },
         new_text: {
           type: 'string',
-          description: 'The new text to replace it with',
+          description: '(Legacy) The new text to replace it with. Use new_content with line numbers instead.',
         },
       },
-      required: ['path', 'old_text', 'new_text'],
+      required: ['path'],
+    },
+  },
+  {
+    name: 'surgical_edit',
+    description: 'Apply multiple surgical line-based edits to a file in a single operation. Supports dry-run preview.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Path to the file',
+        },
+        edits: {
+          type: 'array',
+          description: 'Array of edits to apply',
+          items: {
+            type: 'object',
+            properties: {
+              start_line: {
+                type: 'number',
+                description: 'Starting line number (1-indexed)',
+              },
+              end_line: {
+                type: 'number',
+                description: 'Ending line number (1-indexed, inclusive)',
+              },
+              new_content: {
+                type: 'string',
+                description: 'New content to replace the lines with',
+              },
+            },
+            required: ['start_line', 'end_line', 'new_content'],
+          },
+        },
+        dry_run: {
+          type: 'boolean',
+          description: 'If true, preview changes without applying them',
+        },
+      },
+      required: ['path', 'edits'],
     },
   },
   {
@@ -458,15 +511,103 @@ export class CodingAgent {
         case 'edit_file': {
           const path = this.normalizePath(input.path as string);
           const content = await this.executor.read(path);
-          const newContent = content.replace(input.old_text as string, input.new_text as string);
 
-          if (content === newContent) {
-            return `Warning: No changes made. The old_text was not found in ${path}`;
+          // Check if using line-based editing (new way) or text-based (legacy)
+          if (input.start_line !== undefined && input.end_line !== undefined) {
+            // Surgical line-based editing
+            const lines = content.split('\n');
+            const startLine = input.start_line as number;
+            const endLine = input.end_line as number;
+            const newContent = input.new_content as string;
+
+            // Validate line numbers
+            if (startLine < 1 || endLine < startLine || startLine > lines.length + 1) {
+              return `Error: Invalid line numbers. File has ${lines.length} lines. Got start_line=${startLine}, end_line=${endLine}`;
+            }
+
+            // Apply surgical edit
+            const startIdx = startLine - 1;
+            const deleteCount = Math.min(endLine, lines.length) - startLine + 1;
+            const newLines = newContent === '' ? [] : newContent.split('\n');
+
+            lines.splice(startIdx, deleteCount, ...newLines);
+            const finalContent = lines.join('\n');
+
+            await this.executor.write(path, finalContent);
+            this.filesModified.add(path);
+
+            const linesRemoved = deleteCount;
+            const linesAdded = newLines.length;
+            return `Surgical edit applied to ${path}: replaced lines ${startLine}-${endLine} (${linesRemoved} lines removed, ${linesAdded} lines added)`;
+          } else {
+            // Legacy text-based editing
+            const newContent = content.replace(input.old_text as string, input.new_text as string);
+
+            if (content === newContent) {
+              return `Warning: No changes made. The old_text was not found in ${path}. Consider using line-based editing with start_line/end_line for precise edits.`;
+            }
+
+            await this.executor.write(path, newContent);
+            this.filesModified.add(path);
+            return `File edited: ${path}`;
+          }
+        }
+
+        case 'surgical_edit': {
+          const path = this.normalizePath(input.path as string);
+          const content = await this.executor.read(path);
+          const edits = input.edits as Array<{ start_line: number; end_line: number; new_content: string }>;
+          const dryRun = (input.dry_run as boolean) || false;
+
+          const lines = content.split('\n');
+
+          // Validate all edits first
+          const sortedEdits = [...edits].sort((a, b) => a.start_line - b.start_line);
+          for (let i = 0; i < sortedEdits.length; i++) {
+            const edit = sortedEdits[i];
+            if (edit.start_line < 1 || edit.end_line < edit.start_line) {
+              return `Error: Invalid edit at index ${i}: start_line=${edit.start_line}, end_line=${edit.end_line}`;
+            }
+            // Check for overlaps
+            if (i > 0 && sortedEdits[i - 1].end_line >= edit.start_line) {
+              return `Error: Overlapping edits detected between lines ${sortedEdits[i - 1].start_line}-${sortedEdits[i - 1].end_line} and ${edit.start_line}-${edit.end_line}`;
+            }
           }
 
-          await this.executor.write(path, newContent);
+          if (dryRun) {
+            // Preview mode - show what would change
+            let preview = `DRY RUN - ${edits.length} edits would be applied to ${path}:\n`;
+            for (const edit of sortedEdits) {
+              const startIdx = edit.start_line - 1;
+              const endIdx = Math.min(edit.end_line - 1, lines.length - 1);
+              const oldLines = lines.slice(startIdx, endIdx + 1).join('\n');
+              preview += `\n--- Lines ${edit.start_line}-${edit.end_line} ---\n`;
+              preview += `BEFORE:\n${oldLines}\n`;
+              preview += `AFTER:\n${edit.new_content}\n`;
+            }
+            return preview;
+          }
+
+          // Apply edits from bottom to top to preserve line numbers
+          const reversedEdits = [...sortedEdits].reverse();
+          let totalAdded = 0;
+          let totalRemoved = 0;
+
+          for (const edit of reversedEdits) {
+            const startIdx = edit.start_line - 1;
+            const deleteCount = Math.min(edit.end_line, lines.length) - edit.start_line + 1;
+            const newLines = edit.new_content === '' ? [] : edit.new_content.split('\n');
+
+            lines.splice(startIdx, deleteCount, ...newLines);
+            totalRemoved += deleteCount;
+            totalAdded += newLines.length;
+          }
+
+          const finalContent = lines.join('\n');
+          await this.executor.write(path, finalContent);
           this.filesModified.add(path);
-          return `File edited: ${path}`;
+
+          return `Surgical edit complete: ${edits.length} edits applied to ${path} (${totalRemoved} lines removed, ${totalAdded} lines added)`;
         }
 
         case 'list_files': {
