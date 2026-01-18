@@ -12,6 +12,7 @@
 
 import { useRef, useEffect } from 'react';
 import { CodeLabMessage } from './CodeLabMessage';
+import { ThreadSkeleton } from '@/components/ui/Skeleton';
 import type { CodeLabMessage as Message, CodeLabSession } from './types';
 
 interface CodeLabThreadProps {
@@ -59,10 +60,7 @@ export function CodeLabThread({
       {/* Messages */}
       <div className="thread-messages">
         {isLoading ? (
-          <div className="thread-loading">
-            <div className="loading-spinner" />
-            <span>Loading conversation...</span>
-          </div>
+          <ThreadSkeleton messageCount={4} />
         ) : messages.length === 0 ? (
           <div className="thread-welcome">
             <div className="welcome-icon">

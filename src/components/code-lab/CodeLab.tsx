@@ -1002,7 +1002,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.4);
-            z-index: 40;
+            z-index: 44; /* Just below sidebar (45) */
           }
 
           .mobile-header {
@@ -1298,7 +1298,14 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           color: #9ca3af;
         }
 
-        /* Mobile workspace panel */
+        /* Mobile workspace panel - z-index hierarchy:
+         * 30: workspace backdrop
+         * 35: workspace panel
+         * 40: sidebar backdrop
+         * 45: sidebar
+         * 100: command palette
+         * 1000: error banner
+         */
         @media (max-width: 1024px) {
           .workspace-panel {
             position: fixed;
@@ -1307,7 +1314,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             bottom: 0;
             width: 100%;
             max-width: 400px;
-            z-index: 50;
+            z-index: 35;
             box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
           }
 

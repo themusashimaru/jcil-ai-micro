@@ -278,6 +278,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // SECURITY: Get session AND verify ownership BEFORE any operations
+    const { data: currentSession, error: sessionFetchError } = await (
+      supabase.from('code_lab_sessions') as AnySupabase
+    )
+      .select('message_count, user_id')
+      .eq('id', sessionId)
+      .single();
+
+    if (sessionFetchError) {
+      log.warn('Failed to get session', { error: sessionFetchError.message });
+      return new Response(
+        JSON.stringify({ error: 'Session not found', code: 'SESSION_NOT_FOUND' }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // SECURITY: Verify the authenticated user owns this session
+    if (currentSession.user_id !== user.id) {
+      log.warn('Session ownership violation attempt', {
+        sessionId,
+        requestingUser: user.id,
+        sessionOwner: currentSession.user_id,
+      });
+      return new Response(
+        JSON.stringify({ error: 'Access denied', code: 'SESSION_ACCESS_DENIED' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Run intelligent intent detection
     const intentResult = detectCodeLabIntent(enhancedContent);
     log.debug('Intent detected', {
@@ -286,7 +315,7 @@ export async function POST(request: NextRequest) {
       workspace: intentResult.shouldUseWorkspace,
     });
 
-    // Save user message
+    // Save user message (now safe - ownership verified)
     const userMessageId = generateId();
     const { error: msgError } = await (supabase.from('code_lab_messages') as AnySupabase).insert({
       id: userMessageId,
@@ -301,19 +330,7 @@ export async function POST(request: NextRequest) {
       // Continue anyway - we can still process the request
     }
 
-    // Get current session to increment message count
-    const { data: currentSession, error: sessionError } = await (
-      supabase.from('code_lab_sessions') as AnySupabase
-    )
-      .select('message_count')
-      .eq('id', sessionId)
-      .single();
-
-    if (sessionError) {
-      log.warn('Failed to get session', { error: sessionError.message });
-    }
-
-    // Update session timestamp and message count
+    // Update session timestamp and message count (session already fetched and verified above)
     const { error: updateError } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .update({
         updated_at: new Date().toISOString(),

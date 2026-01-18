@@ -163,11 +163,21 @@ export function CodeLabSidebar({
   };
 
   return (
-    <aside className={`code-lab-sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside
+      className={`code-lab-sidebar ${collapsed ? 'collapsed' : ''}`}
+      role="complementary"
+      aria-label="Code Lab sidebar navigation"
+    >
       {/* Header */}
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -176,8 +186,19 @@ export function CodeLabSidebar({
           </svg>
           {!collapsed && <span>Code Lab</span>}
         </div>
-        <button className="sidebar-toggle" onClick={onToggle}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <button
+          className="sidebar-toggle"
+          onClick={onToggle}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
             {collapsed ? (
               <path
                 strokeLinecap="round"
@@ -199,8 +220,18 @@ export function CodeLabSidebar({
         <>
           {/* New Session Button */}
           <div className="sidebar-actions">
-            <button className="new-session-btn" onClick={() => onCreateSession()}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <button
+              className="new-session-btn"
+              onClick={() => onCreateSession()}
+              aria-label="Create new coding session"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
               New Session
@@ -251,6 +282,7 @@ export function CodeLabSidebar({
                   onClick={() => fetchRepos(true)}
                   disabled={loadingRepos}
                   title="Refresh repositories"
+                  aria-label="Refresh repository list"
                 >
                   <svg
                     viewBox="0 0 24 24"
@@ -270,6 +302,13 @@ export function CodeLabSidebar({
               <button
                 className="repo-selector"
                 onClick={() => setShowRepoSelector(!showRepoSelector)}
+                aria-label={
+                  currentRepo
+                    ? `Selected repository: ${currentRepo.fullName}. Click to change.`
+                    : 'Select a repository'
+                }
+                aria-expanded={showRepoSelector}
+                aria-haspopup="listbox"
               >
                 {currentRepo ? (
                   <>
@@ -426,16 +465,23 @@ export function CodeLabSidebar({
                             e.stopPropagation();
                             setMenuOpenId(menuOpenId === session.id ? null : session.id);
                           }}
+                          aria-label={`Session options for ${session.title}`}
+                          aria-expanded={menuOpenId === session.id}
+                          aria-haspopup="menu"
                         >
-                          <svg viewBox="0 0 24 24" fill="currentColor">
+                          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                           </svg>
                         </button>
 
                         {/* Session Menu */}
                         {menuOpenId === session.id && (
-                          <div className="session-menu">
-                            <button onClick={() => handleStartEdit(session)}>
+                          <div className="session-menu" role="menu" aria-label="Session actions">
+                            <button
+                              onClick={() => handleStartEdit(session)}
+                              role="menuitem"
+                              aria-label="Rename session"
+                            >
                               <svg
                                 viewBox="0 0 24 24"
                                 fill="none"
@@ -1110,14 +1156,17 @@ export function CodeLabSidebar({
           text-align: center;
         }
 
-        /* Mobile: sidebar as slide-over drawer */
+        /* Mobile: sidebar as slide-over drawer
+         * z-index 45: sidebar overlays workspace panel (35)
+         * backdrop is at 44, just below sidebar
+         */
         @media (max-width: 768px) {
           .code-lab-sidebar {
             position: fixed;
             top: 0;
             left: 0;
             height: 100vh;
-            z-index: 50;
+            z-index: 45;
             box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
             transform: translateX(0);
             transition: transform 0.3s ease;
