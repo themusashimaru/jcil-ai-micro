@@ -16,6 +16,7 @@
 import { useState, useMemo } from 'react';
 import type { CodeLabMessage as MessageType } from './types';
 import { sanitizeHtml, escapeHtml, sanitizeUrl } from '@/lib/sanitize';
+import { CodeLabThinkingBlock, parseThinkingBlocks } from './CodeLabThinkingBlock';
 
 interface CodeLabMessageProps {
   message: MessageType;
@@ -72,10 +73,18 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
     return AGENT_TYPES.standard;
   }, [message.content, isUser, isSystem]);
 
-  // Parse content for code blocks
+  // Extract thinking blocks from content (Claude Code parity)
+  const { thinking, output, isThinkingComplete } = useMemo(() => {
+    if (isUser || isSystem) {
+      return { thinking: null, output: message.content, isThinkingComplete: true };
+    }
+    return parseThinkingBlocks(message.content);
+  }, [message.content, isUser, isSystem]);
+
+  // Parse the output content for code blocks (after thinking extraction)
   const parsedContent = useMemo(() => {
-    return parseMarkdown(message.content);
-  }, [message.content]);
+    return parseMarkdown(output);
+  }, [output]);
 
   const handleCopyCode = async (code: string, blockIndex: number) => {
     try {
@@ -166,6 +175,15 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           <span className="agent-icon">{agentType.icon}</span>
           <span className="agent-name">{agentType.name}</span>
         </div>
+      )}
+
+      {/* Claude's Extended Thinking (Claude Code parity) */}
+      {thinking && (
+        <CodeLabThinkingBlock
+          content={thinking}
+          isStreaming={!isThinkingComplete && message.isStreaming}
+          defaultExpanded={false}
+        />
       )}
 
       {parsedContent.map((block, index) => {

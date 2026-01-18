@@ -39,6 +39,11 @@ import { CodeLabMemoryEditor } from './CodeLabMemoryEditor';
 // Note: CodeLabThinkingBlock and parseThinkingBlocks are exported for use in CodeLabThread
 export { CodeLabThinkingBlock, parseThinkingBlocks } from './CodeLabThinkingBlock';
 import { CodeLabStatusBar } from './CodeLabStatusBar';
+import { CodeLabPermissionDialog, usePermissionManager } from './CodeLabPermissionDialog';
+import {
+  CodeLabFileChangeIndicator,
+  useFileChangeNotifications,
+} from './CodeLabFileChangeIndicator';
 import { useToastActions } from '@/components/ui/Toast';
 import type { CodeLabSession, CodeLabMessage } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
@@ -68,6 +73,22 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
   // Toast notifications for better UX
   const toast = useToastActions();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Permission manager for dangerous operations (Claude Code parity)
+  const {
+    pendingRequest: permissionRequest,
+    isDialogOpen: permissionDialogOpen,
+    requestPermission,
+    handleAllow: handlePermissionAllow,
+    handleDeny: handlePermissionDeny,
+  } = usePermissionManager();
+
+  // File change notifications (Claude Code parity)
+  const {
+    hasChanges: hasFileChanges,
+    clearChanges: clearFileChanges,
+    dismissChanges: dismissFileChanges,
+  } = useFileChangeNotifications(currentSessionId);
 
   // Workspace panel state
   const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
@@ -383,6 +404,22 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
   const handleFileDelete = async (path: string) => {
     if (!currentSessionId) return;
+
+    // Request permission before deleting (Claude Code parity)
+    const approved = await requestPermission({
+      type: 'file_delete',
+      title: 'Delete File',
+      description: `Are you sure you want to delete this file? This action cannot be undone.`,
+      affectedFiles: [path],
+      riskLevel: 'high',
+      allowAlways: false, // Never auto-allow file deletions
+    });
+
+    if (!approved) {
+      toast.info('Cancelled', 'File deletion cancelled');
+      return;
+    }
+
     try {
       await fetch(
         `/api/code-lab/files?sessionId=${currentSessionId}&path=${encodeURIComponent(path)}`,
@@ -391,14 +428,34 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
       );
       loadWorkspaceFiles(currentSessionId);
+      toast.success('Deleted', `${path} has been deleted`);
     } catch (err) {
       log.error('Error deleting file', err as Error);
     }
   };
 
-  // Git operations
+  // Git operations (with permission prompts for Claude Code parity)
   const handleGitPush = async () => {
     if (!currentSessionId || !currentSession?.repo) return;
+
+    // Request permission before pushing (Claude Code parity)
+    const approved = await requestPermission({
+      type: 'git_push',
+      title: 'Push to Remote Repository',
+      description: `This will push your local commits to ${currentSession.repo.fullName} on branch ${currentSession.repo.branch}.`,
+      details: [
+        `Repository: ${currentSession.repo.fullName}`,
+        `Branch: ${currentSession.repo.branch}`,
+      ],
+      riskLevel: 'medium',
+      allowAlways: true,
+    });
+
+    if (!approved) {
+      toast.info('Cancelled', 'Push operation cancelled');
+      return;
+    }
+
     try {
       const response = await fetch('/api/code-lab/git', {
         method: 'POST',
@@ -414,6 +471,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         if (data.diff) {
           setDiffFiles(data.diff);
         }
+        toast.success('Pushed', 'Changes pushed to remote repository');
       }
     } catch (err) {
       log.error('Error pushing to git', err as Error);
@@ -1512,6 +1570,29 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
       {/* Keyboard Shortcuts Help */}
       <CodeLabKeyboardShortcuts isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+      {/* File Change Indicator (Claude Code parity) */}
+      {hasFileChanges && (
+        <CodeLabFileChangeIndicator
+          sessionId={currentSessionId}
+          workspaceActive={!!currentSession?.repo}
+          onRefresh={() => {
+            if (currentSessionId) {
+              loadWorkspaceFiles(currentSessionId);
+            }
+            clearFileChanges();
+          }}
+          onDismiss={dismissFileChanges}
+        />
+      )}
+
+      {/* Permission Dialog for dangerous operations (Claude Code parity) */}
+      <CodeLabPermissionDialog
+        request={permissionRequest}
+        onAllow={handlePermissionAllow}
+        onDeny={handlePermissionDeny}
+        isOpen={permissionDialogOpen}
+      />
 
       {/* Voice Coding Mode - Disabled to prevent double messages with composer voice button */}
       {/* The composer has its own voice input button which is cleaner UX */}
