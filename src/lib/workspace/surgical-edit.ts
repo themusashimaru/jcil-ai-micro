@@ -20,16 +20,16 @@ const log = logger('SurgicalEdit');
 // ============================================================================
 
 export interface LineEdit {
-  startLine: number;      // 1-indexed line number to start replacing
-  endLine: number;        // 1-indexed line number to end replacing (inclusive)
-  newContent: string;     // The new content to insert
-  description?: string;   // Optional description of the edit
+  startLine: number; // 1-indexed line number to start replacing
+  endLine: number; // 1-indexed line number to end replacing (inclusive)
+  newContent: string; // The new content to insert
+  description?: string; // Optional description of the edit
 }
 
 export interface SurgicalEditRequest {
   filePath: string;
   edits: LineEdit[];
-  dryRun?: boolean;       // If true, preview changes without applying
+  dryRun?: boolean; // If true, preview changes without applying
   createBackup?: boolean; // If true, keep original content for rollback
 }
 
@@ -125,7 +125,7 @@ function validateEdits(
 
 function generateDiffs(
   originalLines: string[],
-  newLines: string[],
+  _newLines: string[],
   edits: LineEdit[]
 ): EditDiff[] {
   const diffs: EditDiff[] = [];
@@ -245,7 +245,9 @@ export async function surgicalEdit(
     const linesModified = Math.min(linesAdded, linesRemoved);
 
     // Generate backup ID if needed
-    const backupId = createBackup ? `backup-${Date.now()}-${Math.random().toString(36).slice(2)}` : undefined;
+    const backupId = createBackup
+      ? `backup-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      : undefined;
 
     // Actually write if not dry run
     if (!dryRun) {
@@ -299,11 +301,7 @@ export async function surgicalEdit(
 /**
  * Single line edit - convenience wrapper
  */
-export function createLineEdit(
-  line: number,
-  newContent: string,
-  description?: string
-): LineEdit {
+export function createLineEdit(line: number, newContent: string, description?: string): LineEdit {
   return {
     startLine: line,
     endLine: line,
@@ -396,10 +394,7 @@ export function generateUnifiedDiff(
   const originalLines = originalContent.split('\n');
   const newLines = newContent.split('\n');
 
-  const lines: string[] = [
-    `--- a/${filePath}`,
-    `+++ b/${filePath}`,
-  ];
+  const lines: string[] = [`--- a/${filePath}`, `+++ b/${filePath}`];
 
   // Simple unified diff generation
   let i = 0;
