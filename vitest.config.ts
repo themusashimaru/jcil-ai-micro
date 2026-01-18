@@ -3,19 +3,20 @@ import path from 'path';
 
 export default defineConfig({
   test: {
-    environment: 'node',
+    environment: 'jsdom',
     globals: true,
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    setupFiles: ['./src/test/setup.ts'],
     exclude: ['node_modules', '.next'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
       exclude: ['node_modules', '.next', '**/*.d.ts', '**/*.test.ts', '**/*.test.tsx', 'tests/**'],
       thresholds: {
-        statements: 2,
-        branches: 50,
-        functions: 25,
-        lines: 2,
+        statements: 75,
+        branches: 70,
+        functions: 75,
+        lines: 75,
       },
     },
   },

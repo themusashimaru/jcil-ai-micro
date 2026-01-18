@@ -199,7 +199,7 @@ export class AppGenerator {
   private async planArchitecture(input: AppDescription): Promise<AppStack> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 2048,
         system: `You are a senior software architect. Analyze the app requirements and recommend the best tech stack.
 
@@ -268,7 +268,7 @@ Tech preferences: ${JSON.stringify(input.techPreferences || {})}`,
   ): Promise<DatabaseSchema> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4096,
         system: `You are a database architect. Design a complete database schema.
 
@@ -340,7 +340,7 @@ Features: ${input.features?.join(', ') || 'Standard features'}`,
   ): Promise<APIEndpoint[]> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4096,
         system: `You are an API designer. Design RESTful API endpoints.
 
@@ -368,7 +368,11 @@ Return JSON array:
             content: `Design API endpoints for: "${input.description}"
 
 Database schema:
-${JSON.stringify(schema.tables.map(t => t.name), null, 2)}`,
+${JSON.stringify(
+  schema.tables.map((t) => t.name),
+  null,
+  2
+)}`,
           },
         ],
       });
@@ -399,7 +403,7 @@ ${JSON.stringify(schema.tables.map(t => t.name), null, 2)}`,
   ): Promise<ComponentSpec[]> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4096,
         system: `You are a UI/UX designer. Design the component hierarchy for a web application.
 
@@ -466,25 +470,25 @@ Features: ${input.features?.join(', ') || 'Standard features'}`,
     files.push(...this.generateConfigFiles(stack));
 
     // 3. Database schema files
-    files.push(...await this.generateSchemaFiles(schema, stack));
+    files.push(...(await this.generateSchemaFiles(schema, stack)));
 
     // 4. API route files
-    files.push(...await this.generateAPIFiles(endpoints, stack));
+    files.push(...(await this.generateAPIFiles(endpoints, stack)));
 
     // 5. Component files
-    files.push(...await this.generateComponentFiles(components, stack));
+    files.push(...(await this.generateComponentFiles(components, stack)));
 
     // 6. Page files
-    files.push(...await this.generatePageFiles(input, components, stack));
+    files.push(...(await this.generatePageFiles(input, components, stack)));
 
     // 7. Utility files
     files.push(...this.generateUtilityFiles(stack));
 
     // 8. Layout files
-    files.push(...await this.generateLayoutFiles(stack));
+    files.push(...(await this.generateLayoutFiles(stack)));
 
     // 9. Auth files
-    files.push(...await this.generateAuthFiles(stack));
+    files.push(...(await this.generateAuthFiles(stack)));
 
     return files;
   }
@@ -568,27 +572,31 @@ Features: ${input.features?.join(', ') || 'Standard features'}`,
     // tsconfig.json
     files.push({
       path: 'tsconfig.json',
-      content: JSON.stringify({
-        compilerOptions: {
-          target: 'ES2020',
-          lib: ['dom', 'dom.iterable', 'esnext'],
-          allowJs: true,
-          skipLibCheck: true,
-          strict: true,
-          noEmit: true,
-          esModuleInterop: true,
-          module: 'esnext',
-          moduleResolution: 'bundler',
-          resolveJsonModule: true,
-          isolatedModules: true,
-          jsx: 'preserve',
-          incremental: true,
-          plugins: [{ name: 'next' }],
-          paths: { '@/*': ['./src/*'] },
+      content: JSON.stringify(
+        {
+          compilerOptions: {
+            target: 'ES2020',
+            lib: ['dom', 'dom.iterable', 'esnext'],
+            allowJs: true,
+            skipLibCheck: true,
+            strict: true,
+            noEmit: true,
+            esModuleInterop: true,
+            module: 'esnext',
+            moduleResolution: 'bundler',
+            resolveJsonModule: true,
+            isolatedModules: true,
+            jsx: 'preserve',
+            incremental: true,
+            plugins: [{ name: 'next' }],
+            paths: { '@/*': ['./src/*'] },
+          },
+          include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts'],
+          exclude: ['node_modules'],
         },
-        include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts'],
-        exclude: ['node_modules'],
-      }, null, 2),
+        null,
+        2
+      ),
       description: 'TypeScript configuration',
       type: 'config',
     });
@@ -658,7 +666,7 @@ module.exports = nextConfig;`,
       for (const table of schema.tables) {
         sql += `CREATE TABLE IF NOT EXISTS ${table.name} (\n`;
 
-        const columnDefs = table.columns.map(col => {
+        const columnDefs = table.columns.map((col) => {
           let def = `  ${col.name} ${this.mapToPostgresType(col.type)}`;
           if (!col.nullable) def += ' NOT NULL';
           if (col.unique) def += ' UNIQUE';
@@ -695,7 +703,6 @@ module.exports = nextConfig;`,
         description: 'Initial database migration',
         type: 'schema',
       });
-
     } else if (stack.database.startsWith('prisma')) {
       // Generate Prisma schema
       let prisma = `generator client {
@@ -716,7 +723,8 @@ datasource db {
         for (const col of table.columns) {
           let line = `  ${col.name} ${this.mapToPrismaType(col.type)}`;
           if (col.name === table.primaryKey) line += ' @id @default(uuid())';
-          if (!col.nullable) line = line; // Required by default in Prisma
+          if (!col.nullable)
+            line = line; // Required by default in Prisma
           else line += '?';
           if (col.unique && col.name !== table.primaryKey) line += ' @unique';
           if (col.default) line += ` @default(${col.default})`;
@@ -764,7 +772,7 @@ datasource db {
 
     for (const [resource, eps] of byResource) {
       // Generate main route
-      const mainEps = eps.filter(e => !e.path.includes('['));
+      const mainEps = eps.filter((e) => !e.path.includes('['));
       if (mainEps.length > 0) {
         files.push({
           path: `src/app/api/${resource}/route.ts`,
@@ -775,7 +783,7 @@ datasource db {
       }
 
       // Generate dynamic route
-      const dynamicEps = eps.filter(e => e.path.includes('['));
+      const dynamicEps = eps.filter((e) => e.path.includes('['));
       if (dynamicEps.length > 0) {
         files.push({
           path: `src/app/api/${resource}/[id]/route.ts`,
@@ -840,7 +848,7 @@ ${ep.method === 'POST' || ep.method === 'PUT' || ep.method === 'PATCH' ? `    co
 
       try {
         const response = await this.anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-5-20250929',
           max_tokens: 4096,
           system: `You are a React/TypeScript expert. Generate a complete, production-ready component.
 
@@ -893,13 +901,15 @@ Props: ${JSON.stringify(comp.props)}`,
    * Generate basic component fallback
    */
   private generateBasicComponent(comp: ComponentSpec, stack: AppStack): string {
-    const propsInterface = comp.props.length > 0
-      ? `interface ${comp.name}Props {\n${comp.props.map(p => `  ${p.name}${p.required ? '' : '?'}: ${p.type};`).join('\n')}\n}\n\n`
-      : '';
+    const propsInterface =
+      comp.props.length > 0
+        ? `interface ${comp.name}Props {\n${comp.props.map((p) => `  ${p.name}${p.required ? '' : '?'}: ${p.type};`).join('\n')}\n}\n\n`
+        : '';
 
-    const propsArg = comp.props.length > 0
-      ? `{ ${comp.props.map(p => p.name).join(', ')} }: ${comp.name}Props`
-      : '';
+    const propsArg =
+      comp.props.length > 0
+        ? `{ ${comp.props.map((p) => p.name).join(', ')} }: ${comp.name}Props`
+        : '';
 
     return `'use client';
 
@@ -928,10 +938,10 @@ ${propsInterface}export function ${comp.name}(${propsArg}) {
 
     if (stack.framework !== 'nextjs') return files;
 
-    const pages = components.filter(c => c.type === 'page');
+    const pages = components.filter((c) => c.type === 'page');
 
     // Always generate home page
-    if (!pages.find(p => p.name.toLowerCase().includes('home'))) {
+    if (!pages.find((p) => p.name.toLowerCase().includes('home'))) {
       pages.unshift({
         name: 'HomePage',
         type: 'page',
@@ -945,7 +955,7 @@ ${propsInterface}export function ${comp.name}(${propsArg}) {
 
       try {
         const response = await this.anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-5-20250929',
           max_tokens: 4096,
           system: `You are a React/Next.js expert. Generate a complete page component.
 
@@ -1348,7 +1358,10 @@ export default function LoginPage() {
   }
 
   private toPascalCase(str: string): string {
-    return str.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+    return str
+      .split('_')
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join('');
   }
 
   private mapToPostgresType(type: string): string {
@@ -1417,5 +1430,5 @@ export async function generateAppFiles(
   description: string
 ): Promise<Array<{ path: string; content: string }>> {
   const app = await appGenerator.generateApp({ description });
-  return app.files.map(f => ({ path: f.path, content: f.content }));
+  return app.files.map((f) => ({ path: f.path, content: f.content }));
 }

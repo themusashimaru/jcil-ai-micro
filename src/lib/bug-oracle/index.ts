@@ -260,9 +260,7 @@ export class BugOracle {
   /**
    * Predict bugs in a codebase
    */
-  async predictBugs(
-    files: Array<{ path: string; content: string }>
-  ): Promise<BugPredictionResult> {
+  async predictBugs(files: Array<{ path: string; content: string }>): Promise<BugPredictionResult> {
     log.info('Analyzing files for potential bugs', { fileCount: files.length });
 
     const predictions: PredictedBug[] = [];
@@ -297,7 +295,7 @@ export class BugOracle {
 
     return {
       scannedAt: new Date().toISOString(),
-      filesAnalyzed: files.filter(f => this.isCodeFile(f.path)).length,
+      filesAnalyzed: files.filter((f) => this.isCodeFile(f.path)).length,
       predictions: uniquePredictions.sort((a, b) => {
         const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
         return severityOrder[a.severity] - severityOrder[b.severity];
@@ -312,9 +310,7 @@ export class BugOracle {
   /**
    * Pattern-based bug prediction
    */
-  private patternBasedPrediction(
-    file: { path: string; content: string }
-  ): PredictedBug[] {
+  private patternBasedPrediction(file: { path: string; content: string }): PredictedBug[] {
     const predictions: PredictedBug[] = [];
     const lines = file.content.split('\n');
 
@@ -324,10 +320,9 @@ export class BugOracle {
 
       while ((match = regex.exec(file.content)) !== null) {
         const lineNumber = this.getLineNumber(file.content, match.index);
-        const codeSnippet = lines.slice(
-          Math.max(0, lineNumber - 2),
-          Math.min(lines.length, lineNumber + 2)
-        ).join('\n');
+        const codeSnippet = lines
+          .slice(Math.max(0, lineNumber - 2), Math.min(lines.length, lineNumber + 2))
+          .join('\n');
 
         predictions.push({
           id: `pattern-${Date.now()}-${Math.random().toString(36).substring(7)}`,
@@ -335,7 +330,12 @@ export class BugOracle {
           description: pattern.description,
           category: pattern.category,
           severity: pattern.severity,
-          probability: pattern.falsePositiveRisk === 'low' ? 0.8 : pattern.falsePositiveRisk === 'medium' ? 0.5 : 0.3,
+          probability:
+            pattern.falsePositiveRisk === 'low'
+              ? 0.8
+              : pattern.falsePositiveRisk === 'medium'
+                ? 0.5
+                : 0.3,
           filePath: file.path,
           lineStart: lineNumber,
           lineEnd: lineNumber,
@@ -359,15 +359,13 @@ export class BugOracle {
   /**
    * AI-powered bug prediction
    */
-  private async aiPrediction(
-    file: { path: string; content: string }
-  ): Promise<PredictedBug[]> {
+  private async aiPrediction(file: { path: string; content: string }): Promise<PredictedBug[]> {
     // Skip small files
     if (file.content.length < 100) return [];
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 8192,
         system: `You are a senior QA engineer with psychic abilities to predict bugs before they happen.
 
@@ -475,7 +473,9 @@ ${file.content.substring(0, 8000)}
       }
 
       // Check for complexity
-      const functionMatches = file.content.matchAll(/function\s+(\w+)|(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g);
+      const functionMatches = file.content.matchAll(
+        /function\s+(\w+)|(\w+)\s*=\s*(?:async\s*)?\([^)]*\)\s*=>/g
+      );
       for (const match of functionMatches) {
         const funcName = match[1] || match[2];
         const startIndex = match.index!;
@@ -483,7 +483,8 @@ ${file.content.substring(0, 8000)}
         const funcContent = file.content.substring(startIndex, endIndex);
 
         // Check cyclomatic complexity (simplified)
-        const branches = (funcContent.match(/if\s*\(|else\s*{|\?\s*:|&&|\|\||case\s+/g) || []).length;
+        const branches = (funcContent.match(/if\s*\(|else\s*{|\?\s*:|&&|\|\||case\s+/g) || [])
+          .length;
         if (branches > 10) {
           debt.push({
             type: 'COMPLEXITY',
@@ -574,11 +575,13 @@ ${file.content.substring(0, 8000)}
   ): string[] {
     const recommendations: string[] = [];
 
-    const criticalCount = predictions.filter(p => p.severity === 'critical').length;
-    const highCount = predictions.filter(p => p.severity === 'high').length;
+    const criticalCount = predictions.filter((p) => p.severity === 'critical').length;
+    const highCount = predictions.filter((p) => p.severity === 'high').length;
 
     if (criticalCount > 0) {
-      recommendations.push(`🚨 Address ${criticalCount} critical issues immediately before deployment`);
+      recommendations.push(
+        `🚨 Address ${criticalCount} critical issues immediately before deployment`
+      );
     }
 
     if (highCount > 0) {
@@ -586,7 +589,7 @@ ${file.content.substring(0, 8000)}
     }
 
     // Category-specific recommendations
-    const categories = new Set(predictions.map(p => p.category));
+    const categories = new Set(predictions.map((p) => p.category));
 
     if (categories.has('null-reference')) {
       recommendations.push('Enable strict null checks in TypeScript configuration');
@@ -605,11 +608,15 @@ ${file.content.substring(0, 8000)}
     }
 
     if (debt.length > 10) {
-      recommendations.push(`📝 Address ${debt.length} technical debt items to improve maintainability`);
+      recommendations.push(
+        `📝 Address ${debt.length} technical debt items to improve maintainability`
+      );
     }
 
     if (predictions.length === 0) {
-      recommendations.push('✅ No significant bug risks detected. Consider adding more test coverage.');
+      recommendations.push(
+        '✅ No significant bug risks detected. Consider adding more test coverage.'
+      );
     }
 
     return recommendations;
@@ -652,7 +659,7 @@ ${file.content.substring(0, 8000)}
 
   private deduplicatePredictions(predictions: PredictedBug[]): PredictedBug[] {
     const seen = new Set<string>();
-    return predictions.filter(bug => {
+    return predictions.filter((bug) => {
       const key = `${bug.filePath}:${bug.lineStart}:${bug.category}`;
       if (seen.has(key)) return false;
       seen.add(key);
