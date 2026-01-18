@@ -72,7 +72,12 @@ describe('CodeLab Message Component', () => {
       const message = { role: 'assistant', content: codeContent };
       render(<MockCodeLabMessage message={message} />);
 
-      expect(screen.getByText(codeContent)).toBeInTheDocument();
+      // Use custom text matcher for multiline content
+      expect(
+        screen.getByText((content) => {
+          return content.includes('javascript') && content.includes('const x = 1');
+        })
+      ).toBeInTheDocument();
     });
   });
 });

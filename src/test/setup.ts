@@ -101,24 +101,8 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// Mock Supabase client
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: vi.fn(() => ({
-    auth: {
-      getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
-    },
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(() => Promise.resolve({ data: null, error: null })),
-          order: vi.fn(() => Promise.resolve({ data: [], error: null })),
-        })),
-      })),
-    })),
-  })),
-}));
+// NOTE: Supabase client uses real imports - no mocking
+// Environment variables are stubbed per-test as needed
 
 // Export test utilities
 export const mockFetch = (response: unknown, options: { ok?: boolean; status?: number } = {}) => {
