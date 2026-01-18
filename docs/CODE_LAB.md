@@ -3,13 +3,13 @@
 > JCIL.AI Code Lab — A Claude Code-Inspired Agentic IDE
 
 **Last Updated:** 2026-01-18
-**Version:** 2.0.0
+**Version:** 2.1.0
 
 ---
 
 ## Overview
 
-Code Lab is a fully-functional, web-based agentic IDE with Claude Code-level capabilities. It provides 30+ tools, sandboxed cloud execution, real MCP server integration, and multi-platform deployment.
+Code Lab is a fully-functional, web-based agentic IDE with Claude Code-level capabilities. It provides **55+ tools**, sandboxed cloud execution, **5 real MCP servers**, and multi-platform deployment.
 
 ### Key Features
 
@@ -18,7 +18,7 @@ Code Lab is a fully-functional, web-based agentic IDE with Claude Code-level cap
 - **5 MCP Servers** - Real implementations (not stubs)
 - **Multi-Platform Deployment** - Vercel, Netlify, Railway, Cloudflare
 - **Persistent Workspaces** - Sessions and files stored in cloud
-- **30+ Agentic Tools** - Full Claude Code parity
+- **55+ Agentic Tools** - Full Claude Code parity plus extras
 
 ---
 
@@ -58,7 +58,7 @@ Code Lab is a fully-functional, web-based agentic IDE with Claude Code-level cap
 │                                      ▼                                       │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │                         CORE SERVICES                                │   │
-│  │                                                                       │   │
+│  │                                                                       │
 │  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  │   │
 │  │  │  Anthropic       │  │  Container       │  │  MCP Server      │  │   │
 │  │  │  Client          │  │  Manager         │  │  Manager         │  │   │
@@ -74,7 +74,7 @@ Code Lab is a fully-functional, web-based agentic IDE with Claude Code-level cap
 │                                      ▼                                       │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │                         EXTERNAL SERVICES                            │   │
-│  │                                                                       │   │
+│  │                                                                       │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐            │   │
 │  │  │   E2B    │  │ Supabase │  │  GitHub  │  │ Deploy   │            │   │
 │  │  │ Sandbox  │  │ Database │  │   API    │  │ Targets  │            │   │
@@ -112,96 +112,362 @@ const CODE_LAB_MODEL = 'claude-opus-4-5-20251101';
 
 ## MCP Server Integration
 
+**Model Context Protocol (MCP)** extends Code Lab's capabilities beyond the sandbox. All servers are **real implementations** - no stubs or mocks.
+
 ### Server Overview
 
-| Server     | Location                   | Tools | Status  |
-| ---------- | -------------------------- | ----- | ------- |
-| Filesystem | `src/lib/workspace/mcp.ts` | 7     | ✅ Real |
-| GitHub     | `src/lib/workspace/mcp.ts` | 4     | ✅ Real |
-| Memory     | `src/lib/workspace/mcp.ts` | 4     | ✅ Real |
-| Puppeteer  | `src/lib/workspace/mcp.ts` | 5     | ✅ Real |
-| PostgreSQL | `src/lib/workspace/mcp.ts` | 1     | ✅ Real |
+| Server         | Tools | Implementation | Status |
+| -------------- | ----- | -------------- | ------ |
+| **Filesystem** | 7     | E2B Container  | Real   |
+| **GitHub**     | 4     | Octokit SDK    | Real   |
+| **Memory**     | 4     | In-memory + DB | Real   |
+| **Puppeteer**  | 5     | E2B Headless   | Real   |
+| **PostgreSQL** | 1     | Supabase RPC   | Real   |
 
-### Filesystem Server
+### Puppeteer Server — Browser Automation
 
-Tools for file operations via E2B container:
+Automate any web browser task directly through Claude. Scrape data, test UIs, generate screenshots.
+
+**Available Tools:**
+
+| Tool         | Description                         |
+| ------------ | ----------------------------------- |
+| `navigate`   | Navigate to any URL                 |
+| `screenshot` | Capture page or element screenshots |
+| `click`      | Click elements by selector          |
+| `type`       | Type text into inputs               |
+| `evaluate`   | Execute JavaScript in page context  |
+
+**Example Usage:**
 
 ```typescript
-// Available tools
-read     - Read file contents
-write    - Write/create files
-list     - List directory contents
-search   - Search files by pattern
-get_info - Get file metadata
-move     - Move/rename files
-copy     - Copy files
+// User: "Take a screenshot of the Anthropic homepage"
 
-// Implementation
-async function executeFilesystemTool(
+// Claude executes:
+[mcp_enable_server] puppeteer
+[mcp__puppeteer__navigate] https://anthropic.com
+[mcp__puppeteer__screenshot] /workspace/screenshots/anthropic.png
+
+// Result: Screenshot saved to workspace
+```
+
+**Implementation:**
+
+```typescript
+// src/lib/workspace/mcp.ts
+
+private async executePuppeteerTool(
   toolName: string,
   input: Record<string, unknown>,
-  sessionId: string
-): Promise<MCPToolResult>
+  workspaceId: string
+): Promise<MCPToolResult> {
+  const container = new ContainerManager();
+
+  switch (toolName) {
+    case 'navigate': {
+      const url = input.url as string;
+      // Execute puppeteer script in E2B container
+      const script = `
+        const puppeteer = require('puppeteer');
+        (async () => {
+          const browser = await puppeteer.launch({ headless: 'new' });
+          const page = await browser.newPage();
+          await page.goto('${url}');
+          const title = await page.title();
+          await browser.close();
+          console.log(JSON.stringify({ title, url }));
+        })();
+      `;
+      return await container.executeScript(workspaceId, script);
+    }
+    // ... other tools
+  }
+}
 ```
 
-### GitHub Server
+**Use Cases:**
 
-GitHub operations via Octokit:
+- Visual regression testing
+- Automated form filling
+- Scraping JavaScript-rendered content
+- Generating PDFs from web pages
+- E2E testing without test frameworks
+
+---
+
+### GitHub Server — Repository Integration
+
+Full GitHub access through Claude. Create issues, open PRs, explore repositories.
+
+**Available Tools:**
+
+| Tool           | Description                                     |
+| -------------- | ----------------------------------------------- |
+| `get_repo`     | Repository metadata (stars, forks, description) |
+| `list_issues`  | List issues with state filter                   |
+| `create_issue` | Create new issue                                |
+| `create_pr`    | Open pull request                               |
+
+**Example Usage:**
 
 ```typescript
-// Available tools
-repo_info     - Get repository information
-list_issues   - List repository issues
-create_issue  - Create new issue
-create_pr     - Create pull request
+// User: "List the open issues on my project"
 
-// Requires
-GITHUB_TOKEN environment variable
+// Claude executes:
+[mcp__github__list_issues] owner: "myuser", repo: "my-project", state: "open"
+
+// Result:
+#42 - Bug: Login fails on Safari
+#38 - Feature: Add dark mode
+#35 - Docs: Update API reference
 ```
 
-### Memory Server
-
-Persistent key-value storage:
+**Implementation:**
 
 ```typescript
-// Available tools
-store    - Store value with key
-retrieve - Get value by key
-list     - List all keys
-search   - Search keys by pattern
+// src/lib/workspace/mcp.ts
 
-// Storage
-In-memory Map with optional database persistence
+private async executeGitHubTool(
+  toolName: string,
+  input: Record<string, unknown>,
+  token: string
+): Promise<MCPToolResult> {
+  const { Octokit } = await import('@octokit/rest');
+  const octokit = new Octokit({ auth: token });
+
+  switch (toolName) {
+    case 'list_issues': {
+      const { data } = await octokit.issues.listForRepo({
+        owner: input.owner as string,
+        repo: input.repo as string,
+        state: (input.state as 'open' | 'closed' | 'all') || 'open',
+      });
+      return { success: true, result: data };
+    }
+    // ... other tools
+  }
+}
 ```
 
-### Puppeteer Server
+**Requirements:**
 
-Browser automation via E2B:
+- `GITHUB_TOKEN` environment variable with repo access
+
+---
+
+### PostgreSQL Server — Database Queries
+
+Query your database directly through natural language. Explore schemas, analyze data, debug queries.
+
+**Available Tools:**
+
+| Tool    | Description                        |
+| ------- | ---------------------------------- |
+| `query` | Execute SELECT queries (read-only) |
+
+**Example Usage:**
 
 ```typescript
-// Available tools
-navigate   - Navigate to URL
-screenshot - Capture screenshot
-click      - Click element
-type       - Type text
-evaluate   - Run JavaScript
+// User: "Show me users who signed up in the last week"
 
-// Execution
-Scripts run in E2B container with headless Puppeteer
+// Claude executes:
+[mcp__postgres__query]
+  SELECT email, created_at
+  FROM users
+  WHERE created_at > NOW() - INTERVAL '7 days'
+  ORDER BY created_at DESC
+
+// Result: Formatted table with matching users
 ```
 
-### PostgreSQL Server
-
-Database queries (restricted):
+**Security Restrictions:**
 
 ```typescript
-// Available tools
-query - Execute SELECT query
+// Only SELECT queries allowed
+if (!sql.trim().toLowerCase().startsWith('select')) {
+  return { success: false, error: 'Only SELECT queries allowed for security' };
+}
 
-// Security
-- Only SELECT queries allowed
-- RLS policies enforced
-- Via Supabase RPC
+// Row-Level Security enforced through Supabase
+// Connection via RPC for additional safety layer
+```
+
+---
+
+### Memory Server — Persistent Key-Value Store
+
+Store information across sessions. Remember project context, user preferences, learned patterns.
+
+**Available Tools:**
+
+| Tool        | Description            |
+| ----------- | ---------------------- |
+| `store`     | Save key-value pair    |
+| `retrieve`  | Get value by key       |
+| `list_keys` | List all stored keys   |
+| `search`    | Search keys by pattern |
+
+**Example Usage:**
+
+```typescript
+// User: "Remember that this project uses ESLint with Airbnb config"
+
+// Claude executes:
+[mcp__memory__store]
+  key: "project_linting"
+  value: { "linter": "eslint", "config": "airbnb" }
+
+// Next session:
+[mcp__memory__retrieve] key: "project_linting"
+// Claude automatically applies the stored preferences
+```
+
+**Storage:**
+
+- In-memory Map for fast access
+- Optional database persistence for cross-session memory
+
+---
+
+### Filesystem Server — Sandboxed File Operations
+
+Full filesystem access within the secure E2B sandbox.
+
+**Available Tools:**
+
+| Tool             | Description                    |
+| ---------------- | ------------------------------ |
+| `read_file`      | Read file contents             |
+| `write_file`     | Create or overwrite files      |
+| `list_directory` | Explore folder structure       |
+| `search_files`   | Glob pattern matching          |
+| `get_info`       | File metadata (size, modified) |
+| `move_file`      | Rename or relocate             |
+| `copy_file`      | Duplicate files                |
+
+**Implementation:**
+
+```typescript
+// All operations route through E2B container
+private async executeFilesystemTool(
+  toolName: string,
+  input: Record<string, unknown>,
+  workspaceId: string
+): Promise<MCPToolResult> {
+  const container = new ContainerManager();
+
+  switch (toolName) {
+    case 'read_file': {
+      const content = await container.readFile(workspaceId, input.path as string);
+      return { success: true, result: content };
+    }
+    // ... other operations
+  }
+}
+```
+
+---
+
+## Complete Tool Reference
+
+Code Lab provides **55+ tools** organized by category:
+
+### File Operations (7 tools)
+
+```
+read_file          Read file contents
+write_file         Create or overwrite files
+edit_file          Find-and-replace edits
+list_files         Directory exploration
+search_files       Glob pattern search
+search_code        Grep through codebase
+multi_edit         Atomic batch edits
+```
+
+### Shell & Execution (4 tools)
+
+```
+execute_shell      Run any shell command
+run_build          Auto-detect and run build
+run_tests          Auto-detect and run tests
+install_packages   Package manager detection
+```
+
+### Git & GitHub (9 tools)
+
+```
+git_status         Repository state
+git_diff           View changes
+git_commit         Stage and commit
+git_log            Commit history
+git_branch         Branch management
+git_checkout       Switch branches
+git_push           Push to remote
+git_pull           Pull from remote
+create_pr          Open pull requests
+```
+
+### Planning & Tasks (4 tools)
+
+```
+enter_plan_mode    Start structured planning
+write_plan         Create execution plan
+exit_plan_mode     Finalize and execute
+todo_write         Track task progress
+```
+
+### Background Tasks (4 tools)
+
+```
+bg_run             Start long-running process
+bg_output          Stream task output
+bg_kill            Terminate process
+bg_list            View all tasks
+```
+
+### Project Memory (4 tools)
+
+```
+memory_read        Load project context
+memory_create      Initialize memory file
+memory_update      Modify stored context
+memory_add_section Add new context section
+```
+
+### Hooks System (4 tools)
+
+```
+hooks_list         View configured hooks
+hooks_enable       Activate a hook
+hooks_disable      Deactivate a hook
+hooks_create       Create custom hook
+```
+
+### MCP Management (3 tools)
+
+```
+mcp_list_servers   View all MCP servers
+mcp_enable_server  Activate a server
+mcp_disable_server Deactivate a server
+```
+
+### Deployment (5 tools)
+
+```
+deploy_vercel      Deploy to Vercel
+deploy_netlify     Deploy to Netlify
+deploy_railway     Deploy to Railway
+deploy_cloudflare  Deploy to Cloudflare Pages
+check_deploy_status Poll deployment progress
+```
+
+### Advanced (5 tools)
+
+```
+web_fetch          Fetch and parse URLs
+spawn_task         Parallel sub-agents
+notebook_edit      Jupyter notebook editing
+ask_user           Request clarification
 ```
 
 ---
@@ -218,12 +484,22 @@ class ContainerManager {
   async createSandbox(sessionId: string): Promise<Sandbox>;
 
   // Execute shell command
-  async executeCommand(sessionId: string, command: string): Promise<ExecutionResult>;
+  async executeCommand(
+    sessionId: string,
+    command: string,
+    options?: { cwd?: string; timeout?: number }
+  ): Promise<ExecutionResult>;
 
   // File operations
   async readFile(sessionId: string, path: string): Promise<string>;
   async writeFile(sessionId: string, path: string, content: string): Promise<void>;
   async listDirectory(sessionId: string, path: string): Promise<FileInfo[]>;
+  async getFileTree(sessionId: string, path: string, depth: number): Promise<FileInfo[]>;
+
+  // Build operations
+  async runBuild(sessionId: string): Promise<ExecutionResult>;
+  async runTests(sessionId: string): Promise<ExecutionResult>;
+  async installDependencies(sessionId: string): Promise<ExecutionResult>;
 
   // Cleanup
   async destroySandbox(sessionId: string): Promise<void>;
@@ -249,7 +525,7 @@ Session Start
        │
        ▼
 ┌──────────────┐
-│ Execute      │ ◄── Commands, file ops
+│ Execute      │ ◄── Commands, file ops, MCP tools
 │ Operations   │
 └──────┬───────┘
        │
@@ -306,111 +582,9 @@ const status = await fetch('https://backboard.railway.app/graphql/v2', {
 
 // Cloudflare - v4 API
 const status = await fetch(
-  `https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${projectName}/deployments/${deploymentId}`,
+  `https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${project}/deployments/${id}`,
   { headers: { Authorization: `Bearer ${token}` } }
 );
-```
-
----
-
-## Session Management
-
-### Session Structure
-
-```typescript
-interface CodeLabSession {
-  id: string;
-  user_id: string;
-  title: string;
-  repo_url?: string;
-  branch?: string;
-  created_at: string;
-  updated_at: string;
-  message_count: number;
-  status: 'active' | 'archived';
-}
-```
-
-### API Endpoints
-
-| Endpoint                               | Method | Purpose              |
-| -------------------------------------- | ------ | -------------------- |
-| `/api/code-lab/sessions`               | GET    | List user sessions   |
-| `/api/code-lab/sessions`               | POST   | Create new session   |
-| `/api/code-lab/sessions/[id]`          | GET    | Get single session   |
-| `/api/code-lab/sessions/[id]`          | DELETE | Delete session       |
-| `/api/code-lab/sessions/[id]/messages` | GET    | Get session messages |
-
----
-
-## Chat System
-
-### Message Flow
-
-```
-User Input
-     │
-     ▼
-┌──────────────────┐
-│ Validation       │ ◄── Zod schema validation
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Session Check    │ ◄── Verify ownership
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Claude Opus 4.5  │ ◄── Tool-enabled completion
-│ with Tools       │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Tool Execution   │ ◄── Execute requested tools
-│ Loop             │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Stream Response  │ ◄── SSE to client
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Persist Message  │ ◄── Save to database
-└──────────────────┘
-```
-
-### Tool Calling
-
-The chat system supports Claude's native tool calling:
-
-```typescript
-// Tool definition example
-const tools = [
-  {
-    name: 'execute_shell',
-    description: 'Execute a shell command in the sandbox',
-    input_schema: {
-      type: 'object',
-      properties: {
-        command: { type: 'string', description: 'Command to execute' },
-      },
-      required: ['command'],
-    },
-  },
-  // ... more tools
-];
-
-// Tool execution in agentic loop
-while (response.stop_reason === 'tool_use') {
-  const toolResults = await executeTools(response.content);
-  response = await anthropic.messages.create({
-    messages: [...messages, { role: 'user', content: toolResults }],
-  });
-}
 ```
 
 ---
@@ -435,12 +609,13 @@ if (!sql.trim().toLowerCase().startsWith('select')) {
 }
 
 // Filesystem - Path validation
-if (path.includes('..') || !path.startsWith('/workspace')) {
+const safePath = sanitizeFilePath(path);
+if (safePath.includes('..') || !safePath.startsWith('/workspace')) {
   return { success: false, error: 'Invalid path' };
 }
 
 // GitHub - Token required
-if (!process.env.GITHUB_TOKEN) {
+if (!token) {
   return { success: false, error: 'GitHub token not configured' };
 }
 ```
@@ -461,7 +636,7 @@ if (session.user_id !== user.id) {
 
 ### Test Coverage
 
-| Component         | Tests | Coverage                                   |
+| Component         | Tests | File                                       |
 | ----------------- | ----- | ------------------------------------------ |
 | MCP Integration   | 21    | `src/lib/workspace/mcp.test.ts`            |
 | Container Manager | 27    | `src/lib/workspace/container.test.ts`      |
@@ -489,7 +664,7 @@ SUPABASE_SERVICE_ROLE_KEY=   # Supabase admin key
 E2B_API_KEY=                 # E2B sandbox execution
 ```
 
-### Optional (for deployment)
+### Optional (Deployment)
 
 ```bash
 VERCEL_TOKEN=                # Vercel deployments
@@ -498,10 +673,11 @@ RAILWAY_TOKEN=               # Railway deployments
 CLOUDFLARE_API_TOKEN=        # Cloudflare deployments
 ```
 
-### Optional (for MCP)
+### Optional (MCP)
 
 ```bash
 GITHUB_TOKEN=                # GitHub MCP server
+DATABASE_URL=                # PostgreSQL MCP (if not using Supabase)
 ```
 
 ---
@@ -510,34 +686,40 @@ GITHUB_TOKEN=                # GitHub MCP server
 
 ```
 src/lib/workspace/
-├── container.ts        # E2B sandbox management
-├── mcp.ts              # MCP server implementation
-├── security.ts         # Execution security
-├── container.test.ts   # Container tests
-└── mcp.test.ts         # MCP tests
+├── container.ts           # E2B sandbox management
+├── mcp.ts                 # MCP server implementation
+├── chat-integration.ts    # WorkspaceAgent with 55+ tools
+├── security.ts            # Execution security
+├── planning.ts            # Planning mode tools
+├── hooks.ts               # Hooks system
+├── memory.ts              # Project memory
+├── background-tasks.ts    # Background task manager
+├── container.test.ts      # Container tests
+└── mcp.test.ts            # MCP tests
 
 src/lib/code-lab/
-├── sessions.ts         # Session management
-├── deploy.ts           # Deployment logic
-├── sessions.test.ts    # Session tests
-└── deploy.test.ts      # Deployment tests
+├── sessions.ts            # Session management
+├── deploy.ts              # Deployment logic
+├── sessions.test.ts       # Session tests
+└── deploy.test.ts         # Deployment tests
 
 src/components/code-lab/
-├── CodeLab.tsx         # Main component
-├── ChatPanel.tsx       # Chat interface
-├── FileBrowser.tsx     # File tree
-├── CodeEditor.tsx      # Monaco editor
-└── CodeLab.test.tsx    # Component tests
+├── CodeLab.tsx            # Main component
+├── ChatPanel.tsx          # Chat interface
+├── FileBrowser.tsx        # File tree
+├── CodeEditor.tsx         # Monaco editor
+└── CodeLab.test.tsx       # Component tests
 
 app/api/code-lab/
-├── chat/route.ts       # Chat endpoint
-├── sessions/route.ts   # Sessions CRUD
-├── files/route.ts      # File operations
-├── git/route.ts        # Git operations
-├── deploy/route.ts     # Deployment
-└── tasks/route.ts      # Background tasks
+├── chat/route.ts          # Chat endpoint
+├── sessions/route.ts      # Sessions CRUD
+├── files/route.ts         # File operations
+├── git/route.ts           # Git operations
+├── deploy/route.ts        # Deployment
+└── tasks/route.ts         # Background tasks
 ```
 
 ---
 
 _Last Updated: January 2026_
+_Version: 2.1.0_
