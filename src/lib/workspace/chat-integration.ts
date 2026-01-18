@@ -1026,7 +1026,7 @@ export class WorkspaceAgent {
 
         case 'mcp_list_servers': {
           const mcpManager = getMCPManager();
-          const servers = mcpManager.getAllServerStatus();
+          const servers = mcpManager.getAllServerStatuses();
 
           if (servers.length === 0) {
             return 'No MCP servers configured.';
@@ -1045,7 +1045,9 @@ export class WorkspaceAgent {
             lines.push(`${statusIcon} **${server.name}** (${server.id})`);
             lines.push(`   Status: ${server.status}`);
             if (server.tools.length > 0) {
-              lines.push(`   Tools: ${server.tools.map((t) => t.name).join(', ')}`);
+              lines.push(
+                `   Tools: ${server.tools.map((t: { name: string }) => t.name).join(', ')}`
+              );
             }
             if (server.error) {
               lines.push(`   Error: ${server.error}`);
@@ -1056,32 +1058,58 @@ export class WorkspaceAgent {
           return lines.join('\n');
         }
 
-        case 'mcp_enable_server': {
-          const serverId = input.server_id as string;
+        case 'mcp_start_server': {
+          const serverId = input.serverId as string;
           const mcpManager = getMCPManager();
 
-          if (await mcpManager.enableServer(serverId)) {
-            const startResult = await mcpManager.startServer(serverId);
-            if (startResult.success) {
-              return `MCP server "${serverId}" enabled and started successfully.`;
-            } else {
-              return `MCP server "${serverId}" enabled but failed to start: ${startResult.error}`;
-            }
+          try {
+            await mcpManager.startServer(serverId, this.config.workspaceId);
+            const status = mcpManager.getServerStatus(serverId);
+            const toolCount = status?.tools.length || 0;
+            return `MCP server "${serverId}" started successfully. ${toolCount} tools available.`;
+          } catch (error) {
+            return `Failed to start MCP server "${serverId}": ${error instanceof Error ? error.message : 'Unknown error'}`;
           }
-
-          return `MCP server "${serverId}" not found. Available: filesystem, github, puppeteer, postgres, memory`;
         }
 
-        case 'mcp_disable_server': {
-          const serverId = input.server_id as string;
+        case 'mcp_stop_server': {
+          const serverId = input.serverId as string;
           const mcpManager = getMCPManager();
 
-          await mcpManager.stopServer(serverId);
-          if (await mcpManager.disableServer(serverId)) {
-            return `MCP server "${serverId}" disabled.`;
+          try {
+            await mcpManager.stopServer(serverId);
+            return `MCP server "${serverId}" stopped.`;
+          } catch (error) {
+            return `Failed to stop MCP server "${serverId}": ${error instanceof Error ? error.message : 'Unknown error'}`;
+          }
+        }
+
+        case 'mcp_list_tools': {
+          const mcpManager = getMCPManager();
+          const tools = mcpManager.getAllTools();
+
+          if (tools.length === 0) {
+            return 'No MCP tools available. Start an MCP server first using mcp_start_server.';
           }
 
-          return `MCP server "${serverId}" not found.`;
+          const lines = ['**Available MCP Tools:**\n'];
+          const byServer = new Map<string, Array<{ name: string; description: string }>>();
+
+          for (const tool of tools) {
+            const serverTools = byServer.get(tool.serverId) || [];
+            serverTools.push({ name: tool.name, description: tool.description });
+            byServer.set(tool.serverId, serverTools);
+          }
+
+          for (const [serverId, serverTools] of byServer) {
+            lines.push(`**${serverId}:**`);
+            for (const tool of serverTools) {
+              lines.push(`  - \`mcp__${serverId}__${tool.name}\`: ${tool.description}`);
+            }
+            lines.push('');
+          }
+
+          return lines.join('\n');
         }
 
         // ============================================

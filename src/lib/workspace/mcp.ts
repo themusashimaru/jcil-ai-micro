@@ -1,19 +1,33 @@
 /**
  * CODE LAB MCP (MODEL CONTEXT PROTOCOL) INTEGRATION
  *
- * Provides MCP server support for extending Code Lab with external tools:
- * - Server configuration and management
- * - Tool discovery and invocation
- * - Resource access
- * - Prompt templates
+ * Provides MCP server support for extending Code Lab with external tools.
+ * This implementation properly uses the real MCPClient from mcp-client.ts
+ * for dynamic tool discovery and protocol-compliant communication.
  *
- * Preferences are persisted to code_lab_user_mcp_servers table
+ * Architecture:
+ * - Uses MCPClientManager from mcp-client.ts for real MCP servers
+ * - Falls back to built-in implementations for common tools when servers unavailable
+ * - Supports .mcp.json configuration files
+ * - Persists user preferences to code_lab_user_mcp_servers table
  */
 
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import {
+  MCPClientManager,
+  getMCPManager as getRealMCPManager,
+  MCPServerConfig as RealMCPServerConfig,
+} from '@/lib/mcp/mcp-client';
+import Anthropic from '@anthropic-ai/sdk';
+import { ContainerManager } from './container';
+import { Octokit } from '@octokit/rest';
 
 const log = logger('MCP');
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 export interface MCPServerConfig {
   id: string;
@@ -24,6 +38,7 @@ export interface MCPServerConfig {
   env?: Record<string, string>;
   enabled: boolean;
   timeout?: number;
+  workspaceId?: string;
 }
 
 export interface MCPTool {
@@ -67,9 +82,35 @@ export interface MCPServerStatus {
   lastPing?: string;
 }
 
-/**
- * Default MCP servers that can be optionally enabled
- */
+export interface MCPToolResult {
+  success: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+export interface MCPToolExecutionOptions {
+  workspaceId?: string;
+  githubToken?: string;
+  timeout?: number;
+}
+
+// Database row type for MCP server preferences
+interface MCPServerRow {
+  user_id: string;
+  server_id: string;
+  name?: string;
+  description?: string;
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  enabled: boolean;
+  timeout?: number;
+}
+
+// ============================================================================
+// DEFAULT MCP SERVERS
+// ============================================================================
+
 export const DEFAULT_MCP_SERVERS: MCPServerConfig[] = [
   {
     id: 'filesystem',
@@ -99,38 +140,48 @@ export const DEFAULT_MCP_SERVERS: MCPServerConfig[] = [
   {
     id: 'postgres',
     name: 'PostgreSQL',
-    description: 'Connect to and query PostgreSQL databases',
+    description: 'Query and manage PostgreSQL databases',
     command: 'npx',
-    args: ['-y', '@modelcontextprotocol/server-postgres'],
-    env: { POSTGRES_CONNECTION_STRING: '${DATABASE_URL}' },
+    args: ['-y', '@modelcontextprotocol/server-postgres', '${DATABASE_URL}'],
     enabled: false,
   },
   {
     id: 'memory',
     name: 'Memory',
-    description: 'Persistent memory for storing and retrieving information',
+    description: 'Store and retrieve data across conversations',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-memory'],
     enabled: false,
   },
 ];
 
-/**
- * MCP Server Manager
- * Manages MCP server lifecycle and tool execution
- */
-export class MCPManager {
-  private servers: Map<string, MCPServerConfig> = new Map();
-  private serverStatus: Map<string, MCPServerStatus> = new Map();
-  private toolRegistry: Map<string, MCPTool> = new Map();
-  private userId: string | null = null;
-  private preferencesLoaded = false;
+// ============================================================================
+// MCP MANAGER - USES REAL MCPClient
+// ============================================================================
+
+class MCPManager {
+  private realManager: MCPClientManager;
+  private serverConfigs: Map<string, MCPServerConfig> = new Map();
+  private serverStatuses: Map<string, MCPServerStatus> = new Map();
+  private fallbackTools: Map<string, MCPTool> = new Map();
+
+  // Fallback stores for when real MCP servers aren't available
+  private memoryStore: Map<string, unknown> = new Map();
+  private containerManager: ContainerManager;
 
   constructor() {
-    // Initialize with default servers (disabled by default)
-    DEFAULT_MCP_SERVERS.forEach((server) => {
-      this.servers.set(server.id, { ...server });
-      this.serverStatus.set(server.id, {
+    this.realManager = getRealMCPManager();
+    this.containerManager = new ContainerManager();
+    this.initializeDefaultServers();
+  }
+
+  /**
+   * Initialize default server configurations
+   */
+  private initializeDefaultServers(): void {
+    for (const server of DEFAULT_MCP_SERVERS) {
+      this.serverConfigs.set(server.id, server);
+      this.serverStatuses.set(server.id, {
         id: server.id,
         name: server.name,
         status: 'stopped',
@@ -138,217 +189,234 @@ export class MCPManager {
         resources: [],
         prompts: [],
       });
-    });
-  }
-
-  /**
-   * Load user preferences from database
-   */
-  async loadUserPreferences(userId: string): Promise<void> {
-    if (this.preferencesLoaded && this.userId === userId) return;
-
-    this.userId = userId;
-
-    // Type for the database row (table not in generated types yet)
-    type ServerPref = {
-      server_id: string;
-      enabled: boolean;
-      custom_config: Record<string, unknown> | null;
-    };
-
-    try {
-      const supabase = await createClient();
-      // Cast to any since table is not in generated types yet
-      const result = await (
-        supabase as unknown as {
-          from: (table: string) => {
-            select: (cols: string) => {
-              eq: (
-                col: string,
-                val: string
-              ) => Promise<{ data: ServerPref[] | null; error: unknown }>;
-            };
-          };
-        }
-      )
-        .from('code_lab_user_mcp_servers')
-        .select('server_id, enabled, custom_config')
-        .eq('user_id', userId);
-
-      const { data, error } = result;
-
-      if (error) throw error;
-
-      // Apply user preferences to default servers
-      if (data) {
-        for (const pref of data) {
-          const server = this.servers.get(pref.server_id);
-          if (server) {
-            server.enabled = pref.enabled;
-            // Apply custom config if present
-            if (pref.custom_config) {
-              Object.assign(server, pref.custom_config);
-            }
-          } else if (pref.custom_config) {
-            // Custom user server
-            const customServer = {
-              id: pref.server_id,
-              enabled: pref.enabled,
-              ...pref.custom_config,
-            } as MCPServerConfig;
-            this.servers.set(pref.server_id, customServer);
-            this.serverStatus.set(pref.server_id, {
-              id: pref.server_id,
-              name: customServer.name || pref.server_id,
-              status: 'stopped',
-              tools: [],
-              resources: [],
-              prompts: [],
-            });
-          }
-        }
-      }
-
-      this.preferencesLoaded = true;
-    } catch {
-      // Silently fail - use defaults
-      this.preferencesLoaded = true;
     }
   }
 
   /**
-   * Save server preference to database
+   * Get all server configurations
    */
-  private async saveServerPreference(
-    serverId: string,
-    enabled: boolean,
-    customConfig?: Partial<MCPServerConfig>
-  ): Promise<void> {
-    if (!this.userId) return;
-
-    try {
-      const supabase = await createClient();
-      // Cast to any since table is not in generated types yet
-      await (
-        supabase as unknown as {
-          from: (table: string) => { upsert: (data: unknown, opts: unknown) => Promise<unknown> };
-        }
-      )
-        .from('code_lab_user_mcp_servers')
-        .upsert(
-          {
-            user_id: this.userId,
-            server_id: serverId,
-            enabled,
-            custom_config: customConfig || null,
-          },
-          {
-            onConflict: 'user_id,server_id',
-          }
-        );
-    } catch {
-      // Silently fail - preference not saved but server still works
-    }
+  getServerConfigs(): MCPServerConfig[] {
+    return Array.from(this.serverConfigs.values());
   }
 
   /**
-   * Add or update an MCP server configuration
+   * Get server status
    */
-  addServer(config: MCPServerConfig): void {
-    this.servers.set(config.id, config);
-    if (!this.serverStatus.has(config.id)) {
-      this.serverStatus.set(config.id, {
-        id: config.id,
-        name: config.name,
-        status: 'stopped',
-        tools: [],
-        resources: [],
-        prompts: [],
-      });
-    }
+  getServerStatus(serverId: string): MCPServerStatus | undefined {
+    return this.serverStatuses.get(serverId);
   }
 
   /**
-   * Remove an MCP server
+   * Get all server statuses
    */
-  removeServer(serverId: string): boolean {
-    if (this.servers.has(serverId)) {
-      this.servers.delete(serverId);
-      this.serverStatus.delete(serverId);
-      // Remove tools from registry
-      for (const [toolName, tool] of this.toolRegistry) {
-        if (tool.serverId === serverId) {
-          this.toolRegistry.delete(toolName);
-        }
-      }
-      return true;
-    }
-    return false;
+  getAllServerStatuses(): MCPServerStatus[] {
+    return Array.from(this.serverStatuses.values());
   }
 
   /**
-   * Enable an MCP server (persists to database)
-   */
-  async enableServer(serverId: string): Promise<boolean> {
-    const server = this.servers.get(serverId);
-    if (server) {
-      server.enabled = true;
-      await this.saveServerPreference(serverId, true);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Disable an MCP server (persists to database)
-   */
-  async disableServer(serverId: string): Promise<boolean> {
-    const server = this.servers.get(serverId);
-    if (server) {
-      server.enabled = false;
-      const status = this.serverStatus.get(serverId);
-      if (status) {
-        status.status = 'stopped';
-      }
-      await this.saveServerPreference(serverId, false);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Start an MCP server
-   * Uses E2B sandbox to spawn the actual MCP server process
+   * Start an MCP server - uses real MCPClient
    */
   async startServer(
     serverId: string,
-    workspaceId?: string
-  ): Promise<{ success: boolean; error?: string }> {
-    const server = this.servers.get(serverId);
-    if (!server) {
-      return { success: false, error: 'Server not found' };
+    workspaceId?: string,
+    envOverrides?: Record<string, string>
+  ): Promise<void> {
+    const config = this.serverConfigs.get(serverId);
+    if (!config) {
+      throw new Error(`Unknown server: ${serverId}`);
     }
 
-    if (!server.enabled) {
-      return { success: false, error: 'Server is disabled' };
-    }
-
-    const status = this.serverStatus.get(serverId);
+    const status = this.serverStatuses.get(serverId);
     if (status) {
       status.status = 'starting';
     }
 
     try {
-      // Define built-in tools for each MCP server type
-      const serverTools: Record<string, MCPTool[]> = {
-        filesystem: [
+      // Build environment with overrides
+      const env: Record<string, string> = {};
+      if (config.env) {
+        for (const [key, value] of Object.entries(config.env)) {
+          // Replace ${VAR} placeholders
+          if (value.startsWith('${') && value.endsWith('}')) {
+            const envVar = value.slice(2, -1);
+            const override = envOverrides?.[envVar] || process.env[envVar];
+            if (override) {
+              env[key] = override;
+            }
+          } else {
+            env[key] = value;
+          }
+        }
+      }
+
+      // Create real MCP server config
+      const realConfig: RealMCPServerConfig = {
+        id: serverId,
+        name: config.name,
+        description: config.description,
+        command: config.command,
+        args: config.args,
+        env,
+        enabled: true,
+        timeout: config.timeout || 30000,
+        workspaceId, // Run in E2B container if provided
+      };
+
+      // Try to start the real MCP server
+      try {
+        const client = await this.realManager.addServer(realConfig);
+        await client.connect();
+
+        // Update status with dynamically discovered tools
+        if (status) {
+          status.status = 'running';
+          status.tools = client.tools.map((t) => ({
+            ...t,
+            description: t.description || '',
+            inputSchema: t.inputSchema as MCPTool['inputSchema'],
+            serverId,
+          }));
+          status.resources = client.resources.map((r) => ({ ...r, serverId }));
+          status.prompts = client.prompts.map((p) => ({ ...p, serverId }));
+          status.lastPing = new Date().toISOString();
+        }
+
+        log.info('MCP server started with real client', {
+          serverId,
+          tools: client.tools.length,
+          resources: client.resources.length,
+        });
+      } catch (clientError) {
+        // Fall back to built-in tools if real server fails
+        log.warn('Real MCP server failed, using fallback', { serverId, error: clientError });
+        this.registerFallbackTools(serverId);
+
+        if (status) {
+          status.status = 'running';
+          status.tools = this.getFallbackTools(serverId);
+          status.lastPing = new Date().toISOString();
+        }
+      }
+    } catch (error) {
+      log.error('Failed to start MCP server', { serverId, error });
+      if (status) {
+        status.status = 'error';
+        status.error = error instanceof Error ? error.message : 'Unknown error';
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Stop an MCP server
+   */
+  async stopServer(serverId: string): Promise<void> {
+    try {
+      await this.realManager.removeServer(serverId);
+    } catch {
+      // Ignore - server may not have been started with real client
+    }
+
+    const status = this.serverStatuses.get(serverId);
+    if (status) {
+      status.status = 'stopped';
+      status.tools = [];
+      status.resources = [];
+      status.prompts = [];
+    }
+
+    log.info('MCP server stopped', { serverId });
+  }
+
+  /**
+   * Execute a tool - routes to real MCP server if available, otherwise uses fallback
+   */
+  async executeTool(
+    toolName: string,
+    input: Record<string, unknown>,
+    options?: MCPToolExecutionOptions
+  ): Promise<MCPToolResult> {
+    // Parse tool name to get server ID
+    // Format: mcp__serverId__toolName
+    const parts = toolName.split('__');
+    if (parts.length < 3 || parts[0] !== 'mcp') {
+      return { success: false, error: `Invalid MCP tool name: ${toolName}` };
+    }
+
+    const serverId = parts[1];
+    const actualToolName = parts.slice(2).join('__');
+
+    log.debug('Executing MCP tool', { serverId, tool: actualToolName });
+
+    // Try real MCP client first
+    const client = this.realManager.getClient(serverId);
+    if (client?.isConnected()) {
+      try {
+        const result = await client.callTool(actualToolName, input);
+        return { success: true, result };
+      } catch (error) {
+        log.warn('Real MCP call failed, trying fallback', { error });
+      }
+    }
+
+    // Fall back to built-in implementations
+    return this.executeFallbackTool(serverId, actualToolName, input, options);
+  }
+
+  /**
+   * Get all available tools from all servers
+   */
+  getAllTools(): MCPTool[] {
+    const tools: MCPTool[] = [];
+
+    // Get tools from real MCP servers
+    const realTools = this.realManager.getAllTools();
+    for (const tool of realTools) {
+      tools.push({
+        ...tool,
+        description: tool.description || '',
+        inputSchema: tool.inputSchema as MCPTool['inputSchema'],
+      });
+    }
+
+    // Add fallback tools for servers not using real client
+    for (const [serverId, status] of this.serverStatuses) {
+      if (status.status === 'running' && !this.realManager.getClient(serverId)?.isConnected()) {
+        tools.push(...status.tools);
+      }
+    }
+
+    return tools;
+  }
+
+  // ============================================================================
+  // FALLBACK IMPLEMENTATIONS
+  // ============================================================================
+
+  /**
+   * Register fallback tools for a server
+   */
+  private registerFallbackTools(serverId: string): void {
+    const tools = this.getFallbackTools(serverId);
+    for (const tool of tools) {
+      this.fallbackTools.set(`${serverId}__${tool.name}`, tool);
+    }
+  }
+
+  /**
+   * Get fallback tool definitions for a server
+   */
+  private getFallbackTools(serverId: string): MCPTool[] {
+    switch (serverId) {
+      case 'filesystem':
+        return [
           {
             name: 'read_file',
             description: 'Read the contents of a file',
             inputSchema: {
               type: 'object',
               properties: {
-                path: { type: 'string', description: 'File path to read' },
+                path: { type: 'string', description: 'File path' },
               },
               required: ['path'],
             },
@@ -360,8 +428,8 @@ export class MCPManager {
             inputSchema: {
               type: 'object',
               properties: {
-                path: { type: 'string', description: 'File path to write' },
-                content: { type: 'string', description: 'Content to write' },
+                path: { type: 'string', description: 'File path' },
+                content: { type: 'string', description: 'File content' },
               },
               required: ['path', 'content'],
             },
@@ -369,7 +437,7 @@ export class MCPManager {
           },
           {
             name: 'list_directory',
-            description: 'List contents of a directory',
+            description: 'List files in a directory',
             inputSchema: {
               type: 'object',
               properties: {
@@ -379,8 +447,10 @@ export class MCPManager {
             },
             serverId,
           },
-        ],
-        github: [
+        ];
+
+      case 'github':
+        return [
           {
             name: 'get_repo',
             description: 'Get repository information',
@@ -402,11 +472,7 @@ export class MCPManager {
               properties: {
                 owner: { type: 'string', description: 'Repository owner' },
                 repo: { type: 'string', description: 'Repository name' },
-                state: {
-                  type: 'string',
-                  enum: ['open', 'closed', 'all'],
-                  description: 'Issue state filter',
-                },
+                state: { type: 'string', enum: ['open', 'closed', 'all'] },
               },
               required: ['owner', 'repo'],
             },
@@ -427,16 +493,18 @@ export class MCPManager {
             },
             serverId,
           },
-        ],
-        memory: [
+        ];
+
+      case 'memory':
+        return [
           {
             name: 'store',
-            description: 'Store a key-value pair in memory',
+            description: 'Store a value in memory',
             inputSchema: {
               type: 'object',
               properties: {
-                key: { type: 'string', description: 'Memory key' },
-                value: { type: 'string', description: 'Value to store' },
+                key: { type: 'string', description: 'Storage key' },
+                value: { description: 'Value to store' },
               },
               required: ['key', 'value'],
             },
@@ -448,14 +516,26 @@ export class MCPManager {
             inputSchema: {
               type: 'object',
               properties: {
-                key: { type: 'string', description: 'Memory key' },
+                key: { type: 'string', description: 'Storage key' },
               },
               required: ['key'],
             },
             serverId,
           },
           {
-            name: 'list_keys',
+            name: 'delete',
+            description: 'Delete a value from memory',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                key: { type: 'string', description: 'Storage key' },
+              },
+              required: ['key'],
+            },
+            serverId,
+          },
+          {
+            name: 'list',
             description: 'List all stored keys',
             inputSchema: {
               type: 'object',
@@ -463,171 +543,37 @@ export class MCPManager {
             },
             serverId,
           },
-        ],
-        puppeteer: [
-          {
-            name: 'navigate',
-            description: 'Navigate to a URL',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                url: { type: 'string', description: 'URL to navigate to' },
-              },
-              required: ['url'],
-            },
-            serverId,
-          },
-          {
-            name: 'screenshot',
-            description: 'Take a screenshot of the current page',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                path: { type: 'string', description: 'Output file path' },
-              },
-              required: ['path'],
-            },
-            serverId,
-          },
-        ],
-        postgres: [
-          {
-            name: 'query',
-            description: 'Execute a SQL query',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                sql: { type: 'string', description: 'SQL query to execute' },
-              },
-              required: ['sql'],
-            },
-            serverId,
-          },
-        ],
-      };
+        ];
 
-      // Store workspace ID for tool execution
-      if (workspaceId) {
-        this.activeWorkspaceId = workspaceId;
-      }
-
-      if (status) {
-        status.status = 'running';
-        status.lastPing = new Date().toISOString();
-        status.tools = serverTools[serverId] || [];
-
-        // Register discovered tools
-        status.tools.forEach((tool) => {
-          this.toolRegistry.set(`mcp__${serverId}__${tool.name}`, tool);
-        });
-      }
-
-      log.info(`MCP server ${serverId} started`, { tools: status?.tools.length || 0 });
-      return { success: true };
-    } catch (error) {
-      log.error(`Failed to start MCP server ${serverId}`, error as Error);
-      if (status) {
-        status.status = 'error';
-        status.error = error instanceof Error ? error.message : 'Unknown error';
-      }
-      return { success: false, error: status?.error };
+      default:
+        return [];
     }
   }
 
-  private activeWorkspaceId: string | null = null;
-
   /**
-   * Stop an MCP server
+   * Execute a fallback tool implementation
    */
-  async stopServer(serverId: string): Promise<{ success: boolean }> {
-    const status = this.serverStatus.get(serverId);
-    if (status) {
-      status.status = 'stopped';
-
-      // Unregister tools
-      for (const [toolName, tool] of this.toolRegistry) {
-        if (tool.serverId === serverId) {
-          this.toolRegistry.delete(toolName);
-        }
-      }
-    }
-    return { success: true };
-  }
-
-  /**
-   * Get all configured servers
-   */
-  getServers(): MCPServerConfig[] {
-    return Array.from(this.servers.values());
-  }
-
-  /**
-   * Get server status
-   */
-  getServerStatus(serverId: string): MCPServerStatus | undefined {
-    return this.serverStatus.get(serverId);
-  }
-
-  /**
-   * Get all server statuses
-   */
-  getAllServerStatus(): MCPServerStatus[] {
-    return Array.from(this.serverStatus.values());
-  }
-
-  /**
-   * Get all registered tools from all running servers
-   */
-  getAvailableTools(): MCPTool[] {
-    return Array.from(this.toolRegistry.values());
-  }
-
-  /**
-   * Execute an MCP tool
-   * Routes tool calls to the appropriate execution handler
-   */
-  async executeTool(
+  private async executeFallbackTool(
+    serverId: string,
     toolName: string,
     input: Record<string, unknown>,
-    options?: { workspaceId?: string; githubToken?: string }
-  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
-    const tool = this.toolRegistry.get(toolName);
-    if (!tool) {
-      return { success: false, error: `Tool not found: ${toolName}` };
-    }
-
-    const status = this.serverStatus.get(tool.serverId);
-    if (!status || status.status !== 'running') {
-      return { success: false, error: `Server ${tool.serverId} is not running` };
-    }
-
-    const workspaceId = options?.workspaceId || this.activeWorkspaceId;
-
+    options?: MCPToolExecutionOptions
+  ): Promise<MCPToolResult> {
     try {
-      log.debug('Executing MCP tool', { toolName, serverId: tool.serverId, input });
-
-      // Route to appropriate handler based on server type
-      switch (tool.serverId) {
+      switch (serverId) {
         case 'filesystem':
-          return await this.executeFilesystemTool(tool.name, input, workspaceId);
+          return this.executeFilesystemTool(toolName, input, options?.workspaceId);
 
         case 'github':
-          return await this.executeGitHubTool(tool.name, input, options?.githubToken);
+          return this.executeGitHubTool(toolName, input, options?.githubToken);
 
         case 'memory':
-          return await this.executeMemoryTool(tool.name, input);
-
-        case 'puppeteer':
-          return await this.executePuppeteerTool(tool.name, input, workspaceId);
-
-        case 'postgres':
-          return await this.executePostgresTool(tool.name, input);
+          return this.executeMemoryTool(toolName, input);
 
         default:
-          return { success: false, error: `Unknown server: ${tool.serverId}` };
+          return { success: false, error: `No fallback for server: ${serverId}` };
       }
     } catch (error) {
-      log.error('MCP tool execution failed', { toolName, error });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Tool execution failed',
@@ -636,51 +582,35 @@ export class MCPManager {
   }
 
   /**
-   * Execute filesystem tools via E2B container
+   * Filesystem tool fallback
    */
   private async executeFilesystemTool(
     toolName: string,
     input: Record<string, unknown>,
-    workspaceId: string | null
-  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
+    workspaceId?: string
+  ): Promise<MCPToolResult> {
     if (!workspaceId) {
-      return { success: false, error: 'No active workspace for filesystem operations' };
+      return { success: false, error: 'workspaceId required for filesystem tools' };
     }
-
-    // Dynamically import container manager to avoid circular deps
-    const { ContainerManager } = await import('./container');
-    const container = new ContainerManager();
 
     switch (toolName) {
       case 'read_file': {
-        const path = input.path as string;
-        try {
-          const content = await container.readFile(workspaceId, path);
-          return { success: true, result: content };
-        } catch (error) {
-          return { success: false, error: `Failed to read ${path}: ${(error as Error).message}` };
-        }
+        const content = await this.containerManager.readFile(workspaceId, input.path as string);
+        return { success: true, result: content };
       }
 
       case 'write_file': {
-        const path = input.path as string;
-        const content = input.content as string;
-        try {
-          await container.writeFile(workspaceId, path, content);
-          return { success: true, result: `File written to ${path}` };
-        } catch (error) {
-          return { success: false, error: `Failed to write ${path}: ${(error as Error).message}` };
-        }
+        await this.containerManager.writeFile(
+          workspaceId,
+          input.path as string,
+          input.content as string
+        );
+        return { success: true, result: 'File written successfully' };
       }
 
       case 'list_directory': {
-        const path = input.path as string;
-        try {
-          const files = await container.listDirectory(workspaceId, path);
-          return { success: true, result: files };
-        } catch (error) {
-          return { success: false, error: `Failed to list ${path}: ${(error as Error).message}` };
-        }
+        const files = await this.containerManager.listDirectory(workspaceId, input.path as string);
+        return { success: true, result: files };
       }
 
       default:
@@ -689,71 +619,60 @@ export class MCPManager {
   }
 
   /**
-   * Execute GitHub tools via Octokit
+   * GitHub tool fallback
    */
   private async executeGitHubTool(
     toolName: string,
     input: Record<string, unknown>,
-    token?: string
-  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
-    if (!token) {
-      return { success: false, error: 'GitHub token required for GitHub tools' };
+    githubToken?: string
+  ): Promise<MCPToolResult> {
+    if (!githubToken) {
+      return { success: false, error: 'GitHub token required' };
     }
 
-    // Dynamic import to avoid circular deps
-    const { Octokit } = await import('@octokit/rest');
-    const octokit = new Octokit({ auth: token });
+    const octokit = new Octokit({ auth: githubToken });
 
-    try {
-      switch (toolName) {
-        case 'get_repo': {
-          const { data } = await octokit.repos.get({
-            owner: input.owner as string,
-            repo: input.repo as string,
-          });
-          return { success: true, result: data };
-        }
-
-        case 'list_issues': {
-          const { data } = await octokit.issues.listForRepo({
-            owner: input.owner as string,
-            repo: input.repo as string,
-            state: (input.state as 'open' | 'closed' | 'all') || 'open',
-          });
-          return { success: true, result: data };
-        }
-
-        case 'create_issue': {
-          const { data } = await octokit.issues.create({
-            owner: input.owner as string,
-            repo: input.repo as string,
-            title: input.title as string,
-            body: input.body as string | undefined,
-          });
-          return { success: true, result: data };
-        }
-
-        default:
-          return { success: false, error: `Unknown GitHub tool: ${toolName}` };
+    switch (toolName) {
+      case 'get_repo': {
+        const { data } = await octokit.repos.get({
+          owner: input.owner as string,
+          repo: input.repo as string,
+        });
+        return { success: true, result: data };
       }
-    } catch (error) {
-      return { success: false, error: `GitHub API error: ${(error as Error).message}` };
+
+      case 'list_issues': {
+        const { data } = await octokit.issues.listForRepo({
+          owner: input.owner as string,
+          repo: input.repo as string,
+          state: (input.state as 'open' | 'closed' | 'all') || 'open',
+        });
+        return { success: true, result: data };
+      }
+
+      case 'create_issue': {
+        const { data } = await octokit.issues.create({
+          owner: input.owner as string,
+          repo: input.repo as string,
+          title: input.title as string,
+          body: input.body as string,
+        });
+        return { success: true, result: data };
+      }
+
+      default:
+        return { success: false, error: `Unknown GitHub tool: ${toolName}` };
     }
   }
 
-  private memoryStore: Map<string, string> = new Map();
-
   /**
-   * Execute memory tools (in-process key-value store)
+   * Memory tool fallback
    */
-  private async executeMemoryTool(
-    toolName: string,
-    input: Record<string, unknown>
-  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
+  private executeMemoryTool(toolName: string, input: Record<string, unknown>): MCPToolResult {
     switch (toolName) {
       case 'store':
-        this.memoryStore.set(input.key as string, input.value as string);
-        return { success: true, result: `Stored key: ${input.key}` };
+        this.memoryStore.set(input.key as string, input.value);
+        return { success: true, result: 'Stored successfully' };
 
       case 'retrieve': {
         const value = this.memoryStore.get(input.key as string);
@@ -763,7 +682,11 @@ export class MCPManager {
         return { success: true, result: value };
       }
 
-      case 'list_keys':
+      case 'delete':
+        this.memoryStore.delete(input.key as string);
+        return { success: true, result: 'Deleted successfully' };
+
+      case 'list':
         return { success: true, result: Array.from(this.memoryStore.keys()) };
 
       default:
@@ -771,161 +694,143 @@ export class MCPManager {
     }
   }
 
+  // ============================================================================
+  // CONFIGURATION PERSISTENCE
+  // ============================================================================
+
   /**
-   * Execute Puppeteer tools via E2B container
+   * Load user MCP server preferences from database
    */
-  private async executePuppeteerTool(
-    toolName: string,
-    input: Record<string, unknown>,
-    workspaceId: string | null
-  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
-    if (!workspaceId) {
-      return { success: false, error: 'No active workspace for Puppeteer operations' };
-    }
+  async loadUserPreferences(userId: string): Promise<void> {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from('code_lab_user_mcp_servers')
+        .select('*')
+        .eq('user_id', userId);
 
-    const { ContainerManager } = await import('./container');
-    const container = new ContainerManager();
-
-    switch (toolName) {
-      case 'navigate': {
-        const url = input.url as string;
-        // Execute puppeteer script in container
-        const script = `
-          const puppeteer = require('puppeteer');
-          (async () => {
-            const browser = await puppeteer.launch({ headless: 'new' });
-            const page = await browser.newPage();
-            await page.goto('${url}');
-            const title = await page.title();
-            await browser.close();
-            console.log(JSON.stringify({ title, url: '${url}' }));
-          })();
-        `;
-        const result = await container.executeCommand(
-          workspaceId,
-          `node -e "${script.replace(/"/g, '\\"')}"`
-        );
-        if (result.exitCode !== 0) {
-          return { success: false, error: result.stderr };
-        }
-        return { success: true, result: JSON.parse(result.stdout) };
+      if (error) {
+        log.warn('Failed to load MCP preferences', { error });
+        return;
       }
 
-      case 'screenshot': {
-        const path = input.path as string;
-        const script = `
-          const puppeteer = require('puppeteer');
-          (async () => {
-            const browser = await puppeteer.launch({ headless: 'new' });
-            const page = await browser.newPage();
-            await page.screenshot({ path: '${path}' });
-            await browser.close();
-            console.log('Screenshot saved');
-          })();
-        `;
-        const result = await container.executeCommand(
-          workspaceId,
-          `node -e "${script.replace(/"/g, '\\"')}"`
-        );
-        if (result.exitCode !== 0) {
-          return { success: false, error: result.stderr };
-        }
-        return { success: true, result: `Screenshot saved to ${path}` };
-      }
+      for (const row of (data || []) as MCPServerRow[]) {
+        const config: MCPServerConfig = {
+          id: row.server_id,
+          name: row.name || row.server_id,
+          description: row.description,
+          command: row.command,
+          args: row.args,
+          env: row.env,
+          enabled: row.enabled,
+          timeout: row.timeout,
+        };
 
-      default:
-        return { success: false, error: `Unknown Puppeteer tool: ${toolName}` };
+        this.serverConfigs.set(config.id, config);
+
+        if (config.enabled) {
+          // Start enabled servers
+          this.startServer(config.id).catch((err) => {
+            log.error('Failed to start user MCP server', { serverId: config.id, error: err });
+          });
+        }
+      }
+    } catch (error) {
+      log.error('Error loading MCP preferences', { error });
     }
   }
 
   /**
-   * Execute PostgreSQL tools (queries against configured database)
+   * Save MCP server configuration to database
    */
-  private async executePostgresTool(
-    toolName: string,
-    input: Record<string, unknown>
-  ): Promise<{ success: boolean; result?: unknown; error?: string }> {
-    const connectionString = process.env.DATABASE_URL;
-    if (!connectionString) {
-      return { success: false, error: 'DATABASE_URL not configured for PostgreSQL tools' };
-    }
+  async saveServerConfig(userId: string, config: MCPServerConfig): Promise<void> {
+    try {
+      const supabase = await createClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('code_lab_user_mcp_servers') as any).upsert({
+        user_id: userId,
+        server_id: config.id,
+        name: config.name,
+        description: config.description,
+        command: config.command,
+        args: config.args,
+        env: config.env,
+        enabled: config.enabled,
+        timeout: config.timeout,
+      });
 
-    switch (toolName) {
-      case 'query': {
-        const sql = input.sql as string;
-
-        // Security: Only allow SELECT queries for safety
-        if (!sql.trim().toLowerCase().startsWith('select')) {
-          return { success: false, error: 'Only SELECT queries are allowed for security reasons' };
-        }
-
-        try {
-          // Use Supabase for query execution
-          const { createClient } = await import('@supabase/supabase-js');
-          const supabaseClient = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          );
-
-          // Execute the query via Supabase RPC
-          // For now, we log and return a note - full implementation would use pg directly
-          log.warn('PostgreSQL MCP tool query executed', { sql: sql.substring(0, 100) });
-
-          // Attempt to execute via rpc if available
-          const { data, error } = await supabaseClient.rpc('execute_sql', { query: sql });
-          if (error) {
-            // RPC not available - return informational message
-            return {
-              success: true,
-              result:
-                'Query execution via MCP requires direct database connection or Supabase RPC function.',
-            };
-          }
-          return { success: true, result: data };
-        } catch (error) {
-          return { success: false, error: `Query failed: ${(error as Error).message}` };
-        }
-      }
-
-      default:
-        return { success: false, error: `Unknown PostgreSQL tool: ${toolName}` };
+      this.serverConfigs.set(config.id, config);
+    } catch (error) {
+      log.error('Error saving MCP config', { error });
+      throw error;
     }
   }
 
   /**
-   * Get MCP tools formatted for Claude's tool use
+   * Load .mcp.json configuration from workspace
    */
-  getToolsForClaude(): Array<{
-    name: string;
-    description: string;
-    input_schema: unknown;
-  }> {
-    return Array.from(this.toolRegistry.values()).map((tool) => ({
-      name: `mcp__${tool.serverId}__${tool.name}`,
-      description: `[MCP: ${tool.serverId}] ${tool.description}`,
-      input_schema: tool.inputSchema,
-    }));
+  async loadWorkspaceConfig(workspaceId: string): Promise<MCPServerConfig[]> {
+    try {
+      const content = await this.containerManager.readFile(workspaceId, '.mcp.json');
+      const config = JSON.parse(content);
+
+      const servers: MCPServerConfig[] = [];
+
+      if (config.mcpServers) {
+        for (const [id, serverConfig] of Object.entries(config.mcpServers)) {
+          const server = serverConfig as {
+            command: string;
+            args?: string[];
+            env?: Record<string, string>;
+          };
+
+          servers.push({
+            id,
+            name: id,
+            command: server.command,
+            args: server.args,
+            env: server.env,
+            enabled: true,
+          });
+        }
+      }
+
+      // Register workspace configs
+      for (const server of servers) {
+        this.serverConfigs.set(server.id, server);
+      }
+
+      log.info('Loaded workspace MCP config', { workspaceId, servers: servers.length });
+      return servers;
+    } catch {
+      // .mcp.json is optional
+      log.debug('No .mcp.json found in workspace', { workspaceId });
+      return [];
+    }
   }
 }
 
-// Singleton instance
-let mcpManager: MCPManager | null = null;
+// ============================================================================
+// SINGLETON & EXPORTS
+// ============================================================================
+
+let mcpManagerInstance: MCPManager | null = null;
 
 export function getMCPManager(): MCPManager {
-  if (!mcpManager) {
-    mcpManager = new MCPManager();
+  if (!mcpManagerInstance) {
+    mcpManagerInstance = new MCPManager();
   }
-  return mcpManager;
+  return mcpManagerInstance;
 }
 
 /**
- * MCP configuration tool definitions for the workspace agent
+ * Get MCP tool definitions for Anthropic API
  */
-export function getMCPConfigTools() {
+export function getMCPConfigTools(): Anthropic.Tool[] {
   return [
     {
       name: 'mcp_list_servers',
-      description: 'List all configured MCP (Model Context Protocol) servers and their status.',
+      description: 'List available MCP servers and their status',
       input_schema: {
         type: 'object' as const,
         properties: {},
@@ -933,32 +838,40 @@ export function getMCPConfigTools() {
       },
     },
     {
-      name: 'mcp_enable_server',
-      description:
-        'Enable an MCP server by ID. Available servers: filesystem, github, puppeteer, postgres, memory.',
+      name: 'mcp_start_server',
+      description: 'Start an MCP server to access its tools',
       input_schema: {
         type: 'object' as const,
         properties: {
-          server_id: {
+          serverId: {
             type: 'string',
-            description: 'The ID of the MCP server to enable',
+            description: 'ID of the server to start (e.g., "filesystem", "github", "memory")',
           },
         },
-        required: ['server_id'],
+        required: ['serverId'],
       },
     },
     {
-      name: 'mcp_disable_server',
-      description: 'Disable an MCP server by ID.',
+      name: 'mcp_stop_server',
+      description: 'Stop a running MCP server',
       input_schema: {
         type: 'object' as const,
         properties: {
-          server_id: {
+          serverId: {
             type: 'string',
-            description: 'The ID of the MCP server to disable',
+            description: 'ID of the server to stop',
           },
         },
-        required: ['server_id'],
+        required: ['serverId'],
+      },
+    },
+    {
+      name: 'mcp_list_tools',
+      description: 'List all available tools from running MCP servers',
+      input_schema: {
+        type: 'object' as const,
+        properties: {},
+        required: [],
       },
     },
   ];
