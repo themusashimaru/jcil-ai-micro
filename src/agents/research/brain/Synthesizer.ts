@@ -14,9 +14,6 @@ import {
   ResearchIntent,
   SearchResult,
   ResearchOutput,
-  KeyFinding,
-  ResearchSection,
-  SourceCitation,
   EvaluatedResults,
   ComparisonTable,
 } from '../../core/types';
@@ -25,9 +22,11 @@ import { logger } from '@/lib/logger';
 const log = logger('Synthesizer');
 
 export class Synthesizer {
-
   /**
    * Synthesize all research into a structured output
+   *
+   * ULTRA-OPTIMIZED: Perplexity returns one-sentence answers per query.
+   * We just combine and present them - minimal LLM processing.
    */
   async synthesize(
     results: SearchResult[],
@@ -40,111 +39,64 @@ export class Synthesizer {
       depth: 'quick' | 'standard' | 'deep';
     }
   ): Promise<ResearchOutput> {
-    // Combine all results
-    const combinedContent = results
-      .map(r => `[${r.source.toUpperCase()}] ${r.title || 'Source'}\nURL: ${r.url || 'N/A'}\n${r.content}`)
-      .join('\n\n---\n\n');
-
-    // Get gaps from evaluations
-    const allGaps = [...new Set(evaluations.flatMap(e => e.quality.gaps))];
-    const conflicts = [...new Set(evaluations.flatMap(e => e.quality.conflicts))];
-
-    // Detect if this is comparison/competitor research
-    const isComparisonResearch = /competitor|compare|comparison|versus|vs\.?|alternative/i.test(intent.originalQuery);
-
-    const prompt = `You are an elite research analyst producing premium intelligence reports. Synthesize the following research into a comprehensive, professional report.
-
-ORIGINAL RESEARCH REQUEST:
-"${intent.originalQuery}"
-
-REFINED UNDERSTANDING:
-"${intent.refinedQuery}"
-
-TOPICS RESEARCHED:
-${intent.topics.join(', ')}
-
-EXPECTED OUTPUTS:
-${intent.expectedOutputs.join(', ')}
-
-RESEARCH COLLECTED:
-${combinedContent.substring(0, 20000)}
-
-KNOWN GAPS IN RESEARCH:
-${allGaps.length > 0 ? allGaps.join('\n') : 'None identified'}
-
-CONFLICTS FOUND:
-${conflicts.length > 0 ? conflicts.join('\n') : 'None identified'}
-
-Create a premium research report as JSON:
-{
-  "bottomLine": "ONE powerful sentence that directly answers the user's question - this is the most important takeaway",
-  "executiveSummary": "2-3 paragraph overview of key findings and strategic recommendations",
-  "keyFindings": [
-    {
-      "title": "Short finding title (3-5 words)",
-      "finding": "Detailed, specific, actionable finding with data points",
-      "confidence": "high" | "medium" | "low",
-      "sources": ["source names that support this"]
-    }
-  ],
-  "detailedSections": [
-    {
-      "title": "Section title based on topic",
-      "content": "Detailed analysis with specific data points, statistics, and insights",
-      "findings": [
-        {
-          "finding": "Section-specific finding",
-          "confidence": "high" | "medium" | "low",
-          "sources": ["supporting sources"]
+    // Extract one-sentence answers from Perplexity responses
+    const oneSentenceAnswers = results
+      .slice(0, 6)
+      .map((r) => {
+        // Clean the content - remove sources section, get the core answer
+        let answer = r.content.split('**Sources:**')[0].trim();
+        // Remove markdown formatting
+        answer = answer.replace(/\*\*/g, '').trim();
+        // Get first sentence if still too long
+        if (answer.length > 200) {
+          const firstSentence = answer.match(/^[^.!?]+[.!?]/);
+          answer = firstSentence ? firstSentence[0].trim() : answer.substring(0, 200);
         }
-      ]
-    }
-  ],${isComparisonResearch ? `
+        return answer;
+      })
+      .filter((a) => a.length > 10);
+
+    // Detect if this is comparison research
+    const isComparisonResearch = /competitor|compare|comparison|versus|vs\.?|alternative/i.test(
+      intent.originalQuery
+    );
+
+    // ULTRA-LEAN prompt - just combine one-liners
+    const prompt = `Combine these research findings into a brief report.
+
+QUESTION: "${intent.originalQuery}"
+
+FINDINGS (one per source):
+${oneSentenceAnswers.map((a, i) => `${i + 1}. ${a}`).join('\n')}
+
+Return JSON:
+{
+  "bottomLine": "One sentence answer synthesizing the findings",
+  "keyFindings": [
+    {"title": "3-5 word title", "finding": "Unique insight under 120 chars"}
+  ]${
+    isComparisonResearch
+      ? `,
   "comparisonTable": {
-    "headers": ["Feature/Aspect", "Column headers for each entity being compared"],
-    "rows": [
-      {
-        "entity": "Row label (feature/aspect name)",
-        "values": ["Value for each column"]
-      }
-    ]
-  },` : ''}
-  "gaps": ["What we couldn't find or verify - be honest"],
-  "suggestions": ["Actionable next steps the user should take"],
-  "followUpQuestions": ["3-5 specific follow-up questions the user might want to explore based on these findings"],
-  "sources": [
-    {
-      "title": "Source title",
-      "url": "URL if available",
-      "source": "google" | "perplexity"
-    }
-  ]
+    "headers": ["Metric", "Entity1", "Entity2"],
+    "rows": [{"entity": "Metric", "values": ["val1", "val2"]}]
+  }`
+      : ''
+  }
 }
 
-SYNTHESIS RULES:
-1. bottomLine MUST directly answer the user's question in ONE impactful sentence
-2. executiveSummary should be strategic and actionable, not just descriptive
-3. keyFindings should be 5-10 SPECIFIC findings with real data/numbers when available
-4. Each keyFinding needs a short "title" for scannability
-5. Confidence levels:
-   - "high": Multiple sources agree, recent data, verifiable
-   - "medium": Single source or some ambiguity
-   - "low": Uncertain, conflicting, or outdated
-6. detailedSections should organize by topic (3-5 sections)
-7. gaps should be honest about what's missing - users appreciate transparency
-8. suggestions should be concrete, actionable next steps
-9. followUpQuestions should be specific and valuable questions to explore next
-10. ${isComparisonResearch ? 'Include comparisonTable with meaningful comparison data' : 'Skip comparisonTable if not relevant'}
-11. Include ALL sources used
+Rules:
+- bottomLine: Direct answer, one sentence
+- keyFindings: 3-5 unique insights, no duplicates
+${isComparisonResearch ? '- comparisonTable: Key metrics comparison' : ''}
 
-OUTPUT ONLY THE JSON OBJECT.`;
+JSON only:`;
 
     try {
       const schema = {
         type: 'object',
         properties: {
           bottomLine: { type: 'string' },
-          executiveSummary: { type: 'string' },
           keyFindings: {
             type: 'array',
             items: {
@@ -152,19 +104,6 @@ OUTPUT ONLY THE JSON OBJECT.`;
               properties: {
                 title: { type: 'string' },
                 finding: { type: 'string' },
-                confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-                sources: { type: 'array', items: { type: 'string' } },
-              },
-            },
-          },
-          detailedSections: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                title: { type: 'string' },
-                content: { type: 'string' },
-                findings: { type: 'array' },
               },
             },
           },
@@ -184,52 +123,53 @@ OUTPUT ONLY THE JSON OBJECT.`;
               },
             },
           },
-          gaps: { type: 'array', items: { type: 'string' } },
-          suggestions: { type: 'array', items: { type: 'string' } },
-          followUpQuestions: { type: 'array', items: { type: 'string' } },
-          sources: { type: 'array' },
         },
-        required: ['bottomLine', 'executiveSummary', 'keyFindings'],
+        required: ['bottomLine', 'keyFindings'],
       };
 
       interface SynthesisResponse {
         bottomLine?: string;
-        executiveSummary?: string;
-        keyFindings?: unknown[];
-        detailedSections?: unknown[];
+        keyFindings?: { title?: string; finding?: string }[];
         comparisonTable?: {
           headers?: string[];
           rows?: { entity?: string; values?: string[] }[];
         };
-        gaps?: string[];
-        suggestions?: string[];
-        followUpQuestions?: string[];
-        sources?: unknown[];
       }
 
       const { data: parsed } = await createClaudeStructuredOutput<SynthesisResponse>({
         messages: [{ role: 'user', content: prompt }],
-        systemPrompt: 'You are an expert research analyst. Respond with valid JSON only.',
+        systemPrompt: 'You are a research analyst. Return valid JSON only.',
         schema,
       });
 
-      log.info(`Using Claude Sonnet for research synthesis`);
+      log.info(`Synthesis complete`);
 
-      // Build the output with proper typing
+      // Build lean output
       const output: ResearchOutput = {
-        bottomLine: String(parsed.bottomLine || 'Research synthesis complete.'),
-        executiveSummary: String(parsed.executiveSummary || 'Research synthesis complete.'),
-        keyFindings: this.buildKeyFindings(parsed.keyFindings),
-        detailedSections: this.buildSections(parsed.detailedSections),
+        bottomLine: String(parsed.bottomLine || 'Research complete.'),
+        executiveSummary: '',
+        keyFindings: (parsed.keyFindings || []).slice(0, 5).map((f) => ({
+          title: f.title,
+          finding: String(f.finding || ''),
+          confidence: 'medium' as const,
+          sources: [],
+        })),
+        detailedSections: [],
         comparisonTable: this.buildComparisonTable(parsed.comparisonTable),
-        gaps: (parsed.gaps as string[]) || allGaps,
-        suggestions: (parsed.suggestions as string[]) || [],
-        followUpQuestions: (parsed.followUpQuestions as string[]) || [],
-        sources: this.buildSources(parsed.sources, results),
+        gaps: [],
+        suggestions: [],
+        followUpQuestions: [],
+        sources: results.map((r, i) => ({
+          id: `source_${i}`,
+          title: r.title || `Source ${i + 1}`,
+          url: r.url,
+          source: r.source,
+          accessedAt: r.timestamp,
+        })),
         metadata: {
           totalQueries: metadata.totalQueries,
           iterations: metadata.iterations,
-          sourcesUsed: [...new Set(results.map(r => r.source))],
+          sourcesUsed: [...new Set(results.map((r) => r.source))],
           confidenceScore: this.calculateConfidence(evaluations),
           executionTime: metadata.executionTime,
           depth: metadata.depth,
@@ -239,105 +179,30 @@ OUTPUT ONLY THE JSON OBJECT.`;
 
       return output;
     } catch (error) {
-      log.error('Error synthesizing results (Claude Sonnet)', error as Error);
+      log.error('Synthesis error', error as Error);
       return this.createFallbackOutput(results, intent, metadata);
     }
   }
 
   /**
-   * Build key findings with proper typing
-   */
-  private buildKeyFindings(findings: unknown[] | undefined): KeyFinding[] {
-    if (!findings || !Array.isArray(findings)) return [];
-
-    return findings.map((f: unknown) => {
-      const finding = f as Record<string, unknown>;
-      return {
-        title: finding.title ? String(finding.title) : undefined,
-        finding: String(finding.finding || ''),
-        confidence: this.validateConfidence(finding.confidence),
-        sources: (finding.sources as string[]) || [],
-      };
-    }).filter(f => f.finding.length > 0);
-  }
-
-  /**
    * Build comparison table if present
    */
-  private buildComparisonTable(table: { headers?: string[]; rows?: { entity?: string; values?: string[] }[] } | undefined): ComparisonTable | undefined {
+  private buildComparisonTable(
+    table: { headers?: string[]; rows?: { entity?: string; values?: string[] }[] } | undefined
+  ): ComparisonTable | undefined {
     if (!table || !table.headers || !table.rows || table.rows.length === 0) {
       return undefined;
     }
 
     return {
       headers: table.headers,
-      rows: table.rows.map(row => ({
-        entity: String(row.entity || ''),
-        values: (row.values || []).map(v => String(v)),
-      })).filter(row => row.entity.length > 0),
+      rows: table.rows
+        .map((row) => ({
+          entity: String(row.entity || ''),
+          values: (row.values || []).map((v) => String(v)),
+        }))
+        .filter((row) => row.entity.length > 0),
     };
-  }
-
-  /**
-   * Build detailed sections
-   */
-  private buildSections(sections: unknown[] | undefined): ResearchSection[] {
-    if (!sections || !Array.isArray(sections)) return [];
-
-    return sections.map((s: unknown) => {
-      const section = s as Record<string, unknown>;
-      return {
-        title: String(section.title || 'Research Section'),
-        content: String(section.content || ''),
-        findings: this.buildKeyFindings(section.findings as unknown[]),
-      };
-    }).filter(s => s.content.length > 0);
-  }
-
-  /**
-   * Build source citations
-   */
-  private buildSources(sources: unknown[] | undefined, results: SearchResult[]): SourceCitation[] {
-    // Start with parsed sources
-    const citations: SourceCitation[] = [];
-
-    if (sources && Array.isArray(sources)) {
-      sources.forEach((s: unknown, i: number) => {
-        const source = s as Record<string, unknown>;
-        citations.push({
-          id: `source_${i}`,
-          title: String(source.title || 'Source'),
-          url: source.url ? String(source.url) : undefined,
-          source: (source.source === 'perplexity' ? 'perplexity' : 'google') as 'google' | 'perplexity',
-          accessedAt: Date.now(),
-        });
-      });
-    }
-
-    // Add any sources from results not already included
-    results.forEach((r, i) => {
-      if (r.url && !citations.some(c => c.url === r.url)) {
-        citations.push({
-          id: `result_source_${i}`,
-          title: r.title || 'Search Result',
-          url: r.url,
-          source: r.source,
-          accessedAt: r.timestamp,
-        });
-      }
-    });
-
-    return citations;
-  }
-
-  /**
-   * Validate confidence level
-   */
-  private validateConfidence(confidence: unknown): 'high' | 'medium' | 'low' {
-    const valid = ['high', 'medium', 'low'];
-    return valid.includes(String(confidence))
-      ? (confidence as 'high' | 'medium' | 'low')
-      : 'medium';
   }
 
   /**
@@ -346,10 +211,12 @@ OUTPUT ONLY THE JSON OBJECT.`;
   private calculateConfidence(evaluations: EvaluatedResults[]): number {
     if (evaluations.length === 0) return 0.5;
 
-    const avgCoverage = evaluations.reduce((acc, e) => acc + e.coverage.score, 0) / evaluations.length;
-    const avgQuality = evaluations.reduce((acc, e) => acc + e.quality.score, 0) / evaluations.length;
+    const avgCoverage =
+      evaluations.reduce((acc, e) => acc + e.coverage.score, 0) / evaluations.length;
+    const avgQuality =
+      evaluations.reduce((acc, e) => acc + e.quality.score, 0) / evaluations.length;
 
-    return (avgCoverage * 0.5) + (avgQuality * 0.5);
+    return avgCoverage * 0.5 + avgQuality * 0.5;
   }
 
   /**
@@ -359,18 +226,38 @@ OUTPUT ONLY THE JSON OBJECT.`;
   private createFallbackOutput(
     results: SearchResult[],
     intent: ResearchIntent,
-    metadata: { totalQueries: number; iterations: number; executionTime: number; depth: 'quick' | 'standard' | 'deep' }
+    metadata: {
+      totalQueries: number;
+      iterations: number;
+      executionTime: number;
+      depth: 'quick' | 'standard' | 'deep';
+    }
   ): ResearchOutput {
-    // Extract key sentences from results for concise findings
+    // Extract clean summaries from results
     const keyFindings = results.slice(0, 3).map((r, i) => {
-      // Get first meaningful sentence (not too short, not too long)
-      const sentences = r.content.split(/[.!?]+/).filter(s => s.trim().length > 30 && s.trim().length < 200);
-      const finding = sentences[0]?.trim() || r.content.substring(0, 150);
+      // Clean the content - remove markdown, extra whitespace
+      let content = r.content
+        .replace(/#{1,6}\s*/g, '') // Remove markdown headers
+        .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1') // Remove bold/italic
+        .replace(/\n+/g, ' ') // Replace newlines with spaces
+        .replace(/\s+/g, ' ') // Collapse multiple spaces
+        .trim();
+
+      // Take first 180 chars and find last complete word
+      if (content.length > 180) {
+        content = content.substring(0, 180);
+        const lastSpace = content.lastIndexOf(' ');
+        if (lastSpace > 100) {
+          content = content.substring(0, lastSpace);
+        }
+        content += '...';
+      }
+
       return {
-        title: `Key Point ${i + 1}`,
-        finding: finding + (finding.endsWith('.') ? '' : '.'),
+        title: r.title?.substring(0, 40) || `Finding ${i + 1}`,
+        finding: content,
         confidence: 'medium' as const,
-        sources: [r.title || `Source ${i + 1}`],
+        sources: [r.source],
       };
     });
 
@@ -392,7 +279,7 @@ OUTPUT ONLY THE JSON OBJECT.`;
       metadata: {
         totalQueries: metadata.totalQueries,
         iterations: metadata.iterations,
-        sourcesUsed: [...new Set(results.map(r => r.source))],
+        sourcesUsed: [...new Set(results.map((r) => r.source))],
         confidenceScore: 0.5,
         executionTime: metadata.executionTime,
         depth: metadata.depth,
@@ -423,12 +310,16 @@ OUTPUT ONLY THE JSON OBJECT.`;
     });
 
     // Comparison Table (if present and relevant)
-    if (output.comparisonTable && output.comparisonTable.rows.length > 0 && output.comparisonTable.rows.length <= 5) {
+    if (
+      output.comparisonTable &&
+      output.comparisonTable.rows.length > 0 &&
+      output.comparisonTable.rows.length <= 5
+    ) {
       md += `---\n\n`;
       md += `**Comparison**\n\n`;
       md += `| ${output.comparisonTable.headers.join(' | ')} |\n`;
       md += `| ${output.comparisonTable.headers.map(() => '---').join(' | ')} |\n`;
-      output.comparisonTable.rows.slice(0, 5).forEach(row => {
+      output.comparisonTable.rows.slice(0, 5).forEach((row) => {
         md += `| ${row.entity} | ${row.values.join(' | ')} |\n`;
       });
       md += '\n';

@@ -32,26 +32,23 @@ export class PerplexityExecutor {
         };
       }
 
-      // Use sonar-pro for deep research
+      // Use sonar-pro with ULTRA-LEAN prompt - one sentence answers only
       const result = await perplexitySearch({
         query: this.enhanceQuery(query),
         model: 'sonar-pro',
-        systemPrompt: `You are an expert research analyst conducting deep research.
+        systemPrompt: `You are a research analyst. Return ONE SENTENCE direct answers.
 
-RESEARCH CONTEXT:
-Purpose: ${query.purpose}
-Expected Information: ${query.expectedInfo.join(', ') || 'Comprehensive information'}
+PURPOSE: ${query.purpose}
 
-INSTRUCTIONS:
-1. Provide comprehensive, detailed information
-2. Include specific data points, statistics, and figures
-3. Cite sources when possible
-4. Organize information clearly
-5. Highlight key insights and findings
-6. Note any conflicting information found
-7. Include recent developments (2024-2025)
+RESPOND WITH EXACTLY:
+[One sentence with the key fact, number, or insight. Max 150 characters.]
 
-Be thorough. This is for business intelligence purposes.`,
+RULES:
+- ONE sentence only
+- Include specific numbers/data when available
+- No preambles, no "Based on...", no filler
+- Be direct and factual
+- 2024-2025 data preferred`,
       });
 
       // Format content with sources
