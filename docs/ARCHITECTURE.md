@@ -163,12 +163,21 @@ The AI client implements enterprise-grade reliability:
 │  │                         ▼                                  ▼  │   │
 │  │                  ┌───────────┐                    ┌───────────┐│   │
 │  │                  │  HAIKU    │                    │  SONNET   ││   │
-│  │                  │  4.5      │                    │    4      ││   │
+│  │                  │  4.5      │                    │   4.5     ││   │
 │  │                  │           │                    │           ││   │
 │  │                  │ • Chat    │                    │ • Resumes ││   │
 │  │                  │ • Fast    │                    │ • PDFs    ││   │
 │  │                  │ • Cheap   │                    │ • Documents│   │
 │  │                  └───────────┘                    └───────────┘│   │
+│  │                                                                 │   │
+│  │                  ┌───────────┐                                 │   │
+│  │                  │   OPUS    │ ◄── Code Lab                    │   │
+│  │                  │   4.5     │                                 │   │
+│  │                  │           │                                 │   │
+│  │                  │ • Agentic │                                 │   │
+│  │                  │ • Tools   │                                 │   │
+│  │                  │ • Complex │                                 │   │
+│  │                  └───────────┘                                 │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                      │
 │  ┌─────────────────────────────────────────────────────────────┐   │
@@ -448,7 +457,61 @@ The chat composer provides three tool buttons:
 | Fact Check | "fact check", "verify if", "is it true", "debunk"     | "did X really", "is it correct that"  |
 | Research   | "research", "investigate", "analyze", "pros and cons" | "how does X work", "impact of X"      |
 
-### 5. Queue System
+### 5. Code Lab Architecture
+
+The Code Lab is a fully-functional agentic IDE with Claude Code-level capabilities:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      CODE LAB ARCHITECTURE                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    CLAUDE OPUS 4.5                           │   │
+│  │                                                               │   │
+│  │  • Tool calling with 30+ tools                               │   │
+│  │  • Agentic loop for complex tasks                           │   │
+│  │  • Streaming responses                                       │   │
+│  └─────────────────────────────────┬───────────────────────────┘   │
+│                                    │                                 │
+│          ┌─────────────────────────┼─────────────────────────┐      │
+│          │                         │                         │      │
+│          ▼                         ▼                         ▼      │
+│  ┌───────────────┐      ┌───────────────┐      ┌───────────────┐  │
+│  │  E2B SANDBOX  │      │  MCP SERVERS  │      │  DEPLOYMENT   │  │
+│  │               │      │               │      │               │  │
+│  │ • Shell exec  │      │ • Filesystem  │      │ • Vercel      │  │
+│  │ • File ops    │      │ • GitHub      │      │ • Netlify     │  │
+│  │ • Persistence │      │ • Memory      │      │ • Railway     │  │
+│  │               │      │ • Puppeteer   │      │ • Cloudflare  │  │
+│  │               │      │ • PostgreSQL  │      │               │  │
+│  └───────────────┘      └───────────────┘      └───────────────┘  │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Components:**
+
+| Component         | Location                           | Purpose               |
+| ----------------- | ---------------------------------- | --------------------- |
+| Container Manager | `src/lib/workspace/container.ts`   | E2B sandbox lifecycle |
+| MCP Server        | `src/lib/workspace/mcp.ts`         | Tool implementations  |
+| Sessions          | `src/lib/code-lab/sessions.ts`     | Session persistence   |
+| Deployment        | `app/api/code-lab/deploy/route.ts` | Multi-platform deploy |
+
+**MCP Servers (Real Implementation):**
+
+| Server     | Tools                                           | Status  |
+| ---------- | ----------------------------------------------- | ------- |
+| Filesystem | read, write, list, search, move, copy           | ✅ Real |
+| GitHub     | repo_info, list_issues, create_issue, create_pr | ✅ Real |
+| Memory     | store, retrieve, list, search                   | ✅ Real |
+| Puppeteer  | navigate, screenshot, click, type, evaluate     | ✅ Real |
+| PostgreSQL | query (SELECT only)                             | ✅ Real |
+
+See [CODE_LAB.md](./CODE_LAB.md) for detailed Code Lab documentation.
+
+### 6. Queue System
 
 The queue system prevents API overload in serverless environments:
 

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { sessionId, platform, config } = await request.json() as {
+    const { sessionId, platform, config } = (await request.json()) as {
       sessionId: string;
       platform: DeployPlatform;
       config: DeployConfig;
@@ -54,7 +54,12 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const tokens = userData as { vercel_token?: string; netlify_token?: string; railway_token?: string; cloudflare_token?: string } | null;
+    const tokens = userData as {
+      vercel_token?: string;
+      netlify_token?: string;
+      railway_token?: string;
+      cloudflare_token?: string;
+    } | null;
 
     switch (platform) {
       case 'vercel': {
@@ -96,7 +101,10 @@ export async function POST(request: NextRequest) {
       case 'cloudflare': {
         if (!tokens?.cloudflare_token) {
           return NextResponse.json(
-            { error: 'Cloudflare not connected. Please connect your Cloudflare account in settings.' },
+            {
+              error:
+                'Cloudflare not connected. Please connect your Cloudflare account in settings.',
+            },
             { status: 400 }
           );
         }
@@ -110,10 +118,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('[Deploy API] Error:', error);
-    return NextResponse.json(
-      { error: 'Deployment failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Deployment failed' }, { status: 500 });
   }
 }
 
@@ -363,10 +368,11 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const platform = searchParams.get('platform') as DeployPlatform;
   const projectId = searchParams.get('projectId');
+  const projectName = searchParams.get('projectName');
 
-  if (!platform || !projectId) {
+  if (!platform || (!projectId && !projectName)) {
     return NextResponse.json(
-      { error: 'Platform and project ID required' },
+      { error: 'Platform and project ID or name required' },
       { status: 400 }
     );
   }
@@ -378,20 +384,210 @@ export async function GET(request: NextRequest) {
     .eq('id', user.id)
     .single();
 
-  const token = userData?.[`${platform}_token` as keyof typeof userData];
+  const token = userData?.[`${platform}_token` as keyof typeof userData] as string | undefined;
 
   if (!token) {
-    return NextResponse.json(
-      { error: `${platform} not connected` },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: `${platform} not connected` }, { status: 400 });
   }
 
-  // Check deployment status based on platform
-  // This would query the specific platform's API
-  return NextResponse.json({
-    status: 'ready',
-    platform,
-    projectId,
-  });
+  try {
+    // Check deployment status based on platform
+    switch (platform) {
+      case 'vercel': {
+        const response = await fetch(
+          `https://api.vercel.com/v9/projects/${projectName || projectId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (!response.ok) {
+          return NextResponse.json({
+            status: 'error',
+            platform,
+            error: 'Project not found or access denied',
+          });
+        }
+
+        const project = await response.json();
+
+        // Get latest deployment
+        const deploymentsRes = await fetch(
+          `https://api.vercel.com/v6/deployments?projectId=${project.id}&limit=1`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const deployments = await deploymentsRes.json();
+        const latestDeployment = deployments.deployments?.[0];
+
+        return NextResponse.json({
+          status: latestDeployment?.readyState || 'pending',
+          platform,
+          projectId: project.id,
+          projectName: project.name,
+          url: latestDeployment?.url ? `https://${latestDeployment.url}` : null,
+          deploymentId: latestDeployment?.uid,
+          createdAt: latestDeployment?.createdAt,
+          state: latestDeployment?.state,
+        });
+      }
+
+      case 'netlify': {
+        const response = await fetch(`https://api.netlify.com/api/v1/sites/${projectId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          return NextResponse.json({
+            status: 'error',
+            platform,
+            error: 'Site not found or access denied',
+          });
+        }
+
+        const site = await response.json();
+
+        // Get latest deploy
+        const deploysRes = await fetch(
+          `https://api.netlify.com/api/v1/sites/${projectId}/deploys?per_page=1`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const deploys = await deploysRes.json();
+        const latestDeploy = deploys[0];
+
+        return NextResponse.json({
+          status: latestDeploy?.state || 'pending',
+          platform,
+          projectId: site.id,
+          projectName: site.name,
+          url: site.ssl_url || site.url,
+          deploymentId: latestDeploy?.id,
+          createdAt: latestDeploy?.created_at,
+          state: latestDeploy?.state,
+          errorMessage: latestDeploy?.error_message,
+        });
+      }
+
+      case 'railway': {
+        const query = `
+          query GetProject($id: String!) {
+            project(id: $id) {
+              id
+              name
+              deployments(first: 1) {
+                edges {
+                  node {
+                    id
+                    status
+                    createdAt
+                    url
+                  }
+                }
+              }
+            }
+          }
+        `;
+
+        const response = await fetch('https://backboard.railway.app/graphql/v2', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query,
+            variables: { id: projectId },
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.errors) {
+          return NextResponse.json({
+            status: 'error',
+            platform,
+            error: data.errors[0]?.message || 'Railway API error',
+          });
+        }
+
+        const project = data.data?.project;
+        const latestDeploy = project?.deployments?.edges?.[0]?.node;
+
+        return NextResponse.json({
+          status: latestDeploy?.status?.toLowerCase() || 'pending',
+          platform,
+          projectId: project?.id,
+          projectName: project?.name,
+          url: latestDeploy?.url,
+          deploymentId: latestDeploy?.id,
+          createdAt: latestDeploy?.createdAt,
+        });
+      }
+
+      case 'cloudflare': {
+        // Get account ID first
+        const accountsResponse = await fetch('https://api.cloudflare.com/client/v4/accounts', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const accountsData = await accountsResponse.json();
+        const accountId = accountsData.result?.[0]?.id;
+
+        if (!accountId) {
+          return NextResponse.json({
+            status: 'error',
+            platform,
+            error: 'No Cloudflare account found',
+          });
+        }
+
+        const response = await fetch(
+          `https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${projectName || projectId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (!response.ok) {
+          return NextResponse.json({
+            status: 'error',
+            platform,
+            error: 'Project not found or access denied',
+          });
+        }
+
+        const project = await response.json();
+        const latestDeploy = project.result?.latest_deployment;
+
+        return NextResponse.json({
+          status: latestDeploy?.latest_stage?.status || 'pending',
+          platform,
+          projectId: project.result?.id,
+          projectName: project.result?.name,
+          url: latestDeploy?.url || `https://${project.result?.name}.pages.dev`,
+          deploymentId: latestDeploy?.id,
+          createdAt: latestDeploy?.created_on,
+          stage: latestDeploy?.latest_stage?.name,
+        });
+      }
+
+      default:
+        return NextResponse.json({ error: 'Unsupported platform' }, { status: 400 });
+    }
+  } catch (error) {
+    console.error('[Deploy Status] Error:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        platform,
+        error: error instanceof Error ? error.message : 'Failed to check deployment status',
+      },
+      { status: 500 }
+    );
+  }
 }

@@ -73,6 +73,7 @@ We use strict TypeScript settings:
 ```
 
 **Requirements:**
+
 - No `any` types (use `unknown` and narrow)
 - No unused variables or imports
 - Explicit return types on exported functions
@@ -165,10 +166,7 @@ export async function POST(request: NextRequest) {
     // 2. Queue Management
     slotAcquired = await acquireSlot(requestId);
     if (!slotAcquired) {
-      return Response.json(
-        { error: 'Server busy', retryAfter: 5 },
-        { status: 503 }
-      );
+      return Response.json({ error: 'Server busy', retryAfter: 5 }, { status: 503 });
     }
 
     // 3. Parse and Validate Input
@@ -186,14 +184,9 @@ export async function POST(request: NextRequest) {
 
     // 5. Return Response
     return Response.json({ ok: true, data: result });
-
   } catch (error) {
     log.error('Request failed', error as Error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   } finally {
     // 6. Release Queue Slot
     if (slotAcquired) {
@@ -218,14 +211,17 @@ export const myFeatureSchema = z.object({
 // In API route
 const validation = myFeatureSchema.safeParse(body);
 if (!validation.success) {
-  return Response.json({
-    error: 'Validation failed',
-    code: 'VALIDATION_ERROR',
-    details: validation.error.errors.map(e => ({
-      field: e.path.join('.'),
-      message: e.message,
-    })),
-  }, { status: 400 });
+  return Response.json(
+    {
+      error: 'Validation failed',
+      code: 'VALIDATION_ERROR',
+      details: validation.error.errors.map((e) => ({
+        field: e.path.join('.'),
+        message: e.message,
+      })),
+    },
+    { status: 400 }
+  );
 }
 ```
 
@@ -243,7 +239,7 @@ log.info('Operation completed', { userId, count: items.length });
 log.error('Operation failed', error, { context: 'additional info' });
 
 // Bad
-console.log('Something happened');  // Don't use console.log
+console.log('Something happened'); // Don't use console.log
 ```
 
 ### Error Handling
@@ -261,7 +257,7 @@ try {
 }
 
 // Bad
-const result = await riskyOperation();  // Unhandled rejection
+const result = await riskyOperation(); // Unhandled rejection
 ```
 
 ---
@@ -296,6 +292,15 @@ const result = await riskyOperation();  // Unhandled rejection
 
 ## Testing
 
+### Test Coverage Requirements
+
+| Metric     | Threshold |
+| ---------- | --------- |
+| Statements | 75%       |
+| Branches   | 70%       |
+| Functions  | 75%       |
+| Lines      | 75%       |
+
 ### Test Structure
 
 ```
@@ -304,26 +309,101 @@ src/lib/
 └── feature.test.ts    # Tests next to source
 ```
 
+### Testing Philosophy
+
+**No Mocks for Core Functionality**
+
+We test real implementations, not mocked behavior:
+
+```typescript
+// GOOD - Use real imports
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+describe('Supabase Client', () => {
+  beforeEach(() => {
+    // Stub environment variables, not the module
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'test-key');
+  });
+
+  it('should create client with real SDK', async () => {
+    const { createBrowserClient } = await import('./client');
+    const client = createBrowserClient();
+
+    // Test actual behavior
+    expect(client).toBeDefined();
+    expect(typeof client.from).toBe('function');
+  });
+});
+
+// BAD - Don't mock core modules globally
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: vi.fn(), // This hides real bugs!
+}));
+```
+
+**Only Mock External APIs When Necessary**
+
+```typescript
+// Acceptable: Mock HTTP calls to external services
+vi.mock('node-fetch', () => ({
+  default: vi.fn(),
+}));
+
+// Acceptable: Mock logger to reduce noise
+vi.mock('@/lib/logger', () => ({
+  logger: () => ({ info: vi.fn(), error: vi.fn() }),
+}));
+```
+
 ### Writing Tests
 
 ```typescript
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { myFunction } from './feature';
 
 describe('myFunction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('should handle valid input', () => {
     const result = myFunction({ valid: 'input' });
     expect(result).toBe(expected);
   });
 
   it('should reject invalid input', () => {
-    expect(() => myFunction({ invalid: 'input' }))
-      .toThrow('Expected error');
+    expect(() => myFunction({ invalid: 'input' })).toThrow('Expected error');
   });
 
   it('should handle edge cases', () => {
     expect(myFunction(null)).toBe(defaultValue);
     expect(myFunction(undefined)).toBe(defaultValue);
+  });
+});
+```
+
+### React Component Testing
+
+Use React Testing Library for component tests:
+
+```typescript
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MyComponent } from './MyComponent';
+
+describe('MyComponent', () => {
+  it('should render correctly', () => {
+    render(<MyComponent title="Test" />);
+    expect(screen.getByText('Test')).toBeInTheDocument();
+  });
+
+  it('should handle user interaction', () => {
+    const onClick = vi.fn();
+    render(<MyComponent onClick={onClick} />);
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClick).toHaveBeenCalled();
   });
 });
 ```
@@ -339,14 +419,18 @@ pnpm test:watch
 
 # Run with coverage
 pnpm test:coverage
+
+# Run specific test file
+pnpm test src/lib/feature.test.ts
 ```
 
 ### Test Requirements
 
 - All new features require tests
-- Test coverage should not decrease
+- Test coverage should not decrease below thresholds
 - Test both success and error paths
-- Mock external services appropriately
+- Use real implementations, not mocks for core functionality
+- Stub environment variables per-test as needed
 
 ---
 
@@ -388,16 +472,20 @@ chore: update dependencies
 
 ```markdown
 ## Summary
+
 Brief description of changes
 
 ## Changes
+
 - Change 1
 - Change 2
 
 ## Testing
+
 How to test these changes
 
 ## Checklist
+
 - [ ] Tests added/updated
 - [ ] Documentation updated
 - [ ] No TypeScript errors
@@ -460,6 +548,7 @@ export async function processRequest(
 ### README Updates
 
 Update documentation when:
+
 - Adding new features
 - Changing configuration
 - Modifying APIs
@@ -497,4 +586,4 @@ Update documentation when:
 
 ---
 
-*Thank you for contributing to JCIL.AI!*
+_Thank you for contributing to JCIL.AI!_

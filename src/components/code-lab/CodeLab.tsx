@@ -583,11 +583,22 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
                 : m
             )
           );
+          // Only count 1 message (user) since assistant was cancelled
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.id === currentSessionId
+                ? { ...s, messageCount: s.messageCount + 1, updatedAt: new Date() }
+                : s
+            )
+          );
         } else {
           log.error('Error sending message', err as Error);
           setError('Failed to send message');
-          // Remove the failed assistant message
-          setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+          // Remove BOTH the failed user message and assistant message
+          // This ensures state stays in sync with server
+          setMessages((prev) =>
+            prev.filter((m) => m.id !== assistantId && m.id !== userMessage.id)
+          );
         }
       } finally {
         abortControllerRef.current = null;
