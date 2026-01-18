@@ -1,7 +1,7 @@
 # ROADMAP TO 100/100: Claude Code Feature Parity
 
 **Created:** 2026-01-18
-**Current Score:** 84/100
+**Current Score:** 90/100
 **Target Score:** 100/100
 **Estimated Timeline:** 24 weeks (6 months)
 **Branch:** `claude/audit-coding-lab-hLMWt`
@@ -419,34 +419,40 @@ CLAUDE.md and user configuration.
 #### Task 6.1: Implement CLAUDE.md Support
 
 - **File:** `/src/lib/workspace/memory-files.ts` (NEW)
-- **Status:** ⬜ NOT STARTED
+- **Status:** ✅ COMPLETE (2026-01-18)
 - **Effort:** 8 hours
-- **Features:**
-  - Hierarchical discovery (repo, parent, home)
-  - @include directives
-  - Automatic injection into prompts
+- **Implementation:**
+  - Hierarchical discovery (workspace, parent directories, home)
+  - @include directives with recursive processing
+  - Memory file caching with 5-minute TTL
+  - Support for CLAUDE.md, CODELAB.md, and .claude.md
+  - Tools: memory_load, memory_create, memory_update, memory_add_instruction
 
 #### Task 6.2: Implement Custom Skills System
 
 - **File:** `/src/lib/skills/` (NEW directory)
-- **Status:** ⬜ NOT STARTED
+- **Status:** ✅ COMPLETE (2026-01-18)
 - **Effort:** 12 hours
-- **Features:**
-  - Load skills from `.claude/skills/`
-  - Skill frontmatter parsing
-  - Hot-reload on change
-  - Slash command registration
+- **Implementation:**
+  - SkillLoader class with YAML frontmatter parsing
+  - Load skills from `.claude/skills/` directory
+  - Skill metadata: name, description, model, allowedTools, tags
+  - Tools: skill_list, skill_run, skill_create, skill_reload
+  - Prompt building with {{input}} placeholder substitution
 
 #### Task 6.3: Implement Settings File
 
 - **File:** `/src/lib/config/user-settings.ts` (NEW)
-- **Status:** ⬜ NOT STARTED
+- **Status:** ✅ COMPLETE (2026-01-18)
 - **Effort:** 4 hours
-- **Settings:**
-  - Theme preferences
-  - Model preferences
-  - Permission rules
-  - Custom prompts
+- **Implementation:**
+  - SettingsLoader with hierarchical loading (home → workspace → .claude)
+  - Theme settings (mode, fontSize, fontFamily, minimap, etc.)
+  - Model preferences (default, quick, complex, temperature, maxTokens)
+  - Permission rules (allowedPaths, deniedPaths, custom rules)
+  - Prompt customizations (systemPromptAdditions, personality, language)
+  - Tool configurations (disabled, config)
+  - Tools: settings_get, settings_update, settings_reset
 
 ---
 
@@ -568,11 +574,11 @@ Comprehensive test coverage.
 | 3. MCP           | 3      | 3/3       | +8           | ✅ COMPLETE    |
 | 4. Subagents     | 4      | 4/4       | +12          | ✅ COMPLETE    |
 | 5. LSP           | 3      | 3/3       | +8           | ✅ COMPLETE    |
-| 6. Memory/Config | 3      | 0/3       | +6           | ⬜ NOT STARTED |
+| 6. Memory/Config | 3      | 3/3       | +6           | ✅ COMPLETE    |
 | 7. UI/UX         | 3      | 0/3       | +4           | ⬜ NOT STARTED |
 | 8. Plan Mode     | 2      | 0/2       | +3           | ⬜ NOT STARTED |
 | 9. Testing       | 4      | 0/4       | +3           | ⬜ NOT STARTED |
-| **TOTAL**        | **30** | **18/30** | **+62**      | **84/100**     |
+| **TOTAL**        | **30** | **21/30** | **+62**      | **90/100**     |
 
 ### Score Progression Target
 
