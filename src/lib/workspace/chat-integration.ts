@@ -708,10 +708,11 @@ export class WorkspaceAgent {
             await this.container.executeCommand(this.config.workspaceId, 'git add .');
           }
 
-          // Commit with sanitized message
+          // Commit with sanitized message to prevent command injection
+          const safeMessage = sanitizeCommitMessage(message);
           const result = await this.container.executeCommand(
             this.config.workspaceId,
-            `git commit -m '${message}'`
+            `git commit -m '${safeMessage}'`
           );
 
           return result.stdout || result.stderr;

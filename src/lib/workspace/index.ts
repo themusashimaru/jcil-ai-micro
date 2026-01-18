@@ -14,6 +14,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { escapeShellArg, sanitizeCommitMessage } from '@/lib/security/shell-escape';
 
 const log = logger('Workspace');
 
@@ -373,7 +374,6 @@ export class ShellExecutor {
       result.exitCode = response.exitCode;
       result.completedAt = new Date();
       result.duration = result.completedAt.getTime() - startedAt.getTime();
-
     } catch (error) {
       result.output = error instanceof Error ? error.message : 'Unknown error';
       result.exitCode = 1;
@@ -554,10 +554,12 @@ export class VirtualFileSystem {
     );
 
     const files: WorkspaceFile[] = [];
-    const paths = result.output.split('\n').filter(p => p.trim());
+    const paths = result.output.split('\n').filter((p) => p.trim());
 
     for (const filePath of paths) {
-      const isDir = (await shell.execute(`test -d "${filePath}" && echo "dir"`)).output.includes('dir');
+      const isDir = (await shell.execute(`test -d "${filePath}" && echo "dir"`)).output.includes(
+        'dir'
+      );
       files.push({
         path: filePath,
         content: '',
@@ -577,13 +579,16 @@ export class VirtualFileSystem {
   async glob(pattern: string): Promise<string[]> {
     const shell = new ShellExecutor(this.workspaceId);
     const result = await shell.execute(`find . -name "${pattern}" -type f | head -100`);
-    return result.output.split('\n').filter(p => p.trim());
+    return result.output.split('\n').filter((p) => p.trim());
   }
 
   /**
    * Search file contents
    */
-  async grep(pattern: string, path: string = '.'): Promise<Array<{ file: string; line: number; content: string }>> {
+  async grep(
+    pattern: string,
+    path: string = '.'
+  ): Promise<Array<{ file: string; line: number; content: string }>> {
     const shell = new ShellExecutor(this.workspaceId);
     const result = await shell.execute(
       `grep -rn "${pattern}" "${path}" --include="*.{ts,tsx,js,jsx,py,go,rs,java,cs}" | head -100`
@@ -672,15 +677,24 @@ export class GitWorkflow {
    * Stage files
    */
   async add(paths: string[] | string = '.'): Promise<void> {
-    const pathsStr = Array.isArray(paths) ? paths.join(' ') : paths;
-    await this.shell.execute(`git add ${pathsStr}`);
+    if (paths === '.') {
+      await this.shell.execute('git add .');
+      return;
+    }
+    // Escape each path to prevent command injection
+    const pathsArray = Array.isArray(paths) ? paths : [paths];
+    const escapedPaths = pathsArray.map((p) => escapeShellArg(p)).join(' ');
+    await this.shell.execute(`git add ${escapedPaths}`);
   }
 
   /**
    * Commit changes
    */
   async commit(message: string): Promise<string> {
-    const result = await this.shell.execute(`git commit -m "${message.replace(/"/g, '\\"')}"`);
+    // Sanitize and escape the commit message to prevent command injection
+    const sanitized = sanitizeCommitMessage(message);
+    const escaped = escapeShellArg(sanitized);
+    const result = await this.shell.execute(`git commit -m ${escaped}`);
 
     // Extract commit hash
     const hashMatch = result.output.match(/\[[\w-]+ ([a-f0-9]+)\]/);
@@ -692,7 +706,10 @@ export class GitWorkflow {
    */
   async push(remote: string = 'origin', branch?: string): Promise<void> {
     const branchArg = branch || (await this.status()).branch;
-    await this.shell.execute(`git push ${remote} ${branchArg}`);
+    // Escape remote and branch to prevent command injection
+    const escapedRemote = escapeShellArg(remote);
+    const escapedBranch = escapeShellArg(branchArg);
+    await this.shell.execute(`git push ${escapedRemote} ${escapedBranch}`);
   }
 
   /**
@@ -727,7 +744,7 @@ export class GitWorkflow {
       const conflictResult = await this.shell.execute('git diff --name-only --diff-filter=U');
       return {
         success: false,
-        conflicts: conflictResult.output.split('\n').filter(f => f.trim()),
+        conflicts: conflictResult.output.split('\n').filter((f) => f.trim()),
       };
     }
 
@@ -749,20 +766,23 @@ export class GitWorkflow {
   /**
    * Get commit log
    */
-  async log(count: number = 10): Promise<Array<{
-    hash: string;
-    author: string;
-    date: Date;
-    message: string;
-  }>> {
-    const result = await this.shell.execute(
-      `git log -${count} --pretty=format:"%H|%an|%aI|%s"`
-    );
+  async log(count: number = 10): Promise<
+    Array<{
+      hash: string;
+      author: string;
+      date: Date;
+      message: string;
+    }>
+  > {
+    const result = await this.shell.execute(`git log -${count} --pretty=format:"%H|%an|%aI|%s"`);
 
-    return result.output.split('\n').filter(l => l).map(line => {
-      const [hash, author, date, message] = line.split('|');
-      return { hash, author, date: new Date(date), message };
-    });
+    return result.output
+      .split('\n')
+      .filter((l) => l)
+      .map((line) => {
+        const [hash, author, date, message] = line.split('|');
+        return { hash, author, date: new Date(date), message };
+      });
   }
 
   /**
@@ -887,7 +907,6 @@ export class TaskQueue {
         completedAt: new Date(),
         error: result.exitCode !== 0 ? result.output : undefined,
       });
-
     } catch (error) {
       await this.updateTask(taskId, {
         status: 'failed',
@@ -901,10 +920,7 @@ export class TaskQueue {
    * Update task status
    */
   private async updateTask(taskId: string, updates: Partial<BackgroundTask>): Promise<void> {
-    await this.supabase
-      .from('background_tasks')
-      .update(updates)
-      .eq('id', taskId);
+    await this.supabase.from('background_tasks').update(updates).eq('id', taskId);
   }
 
   /**
@@ -1017,7 +1033,12 @@ export class ToolRegistry {
         input: {
           workspaceId: { type: 'string', description: 'Workspace ID', required: true },
           command: { type: 'string', description: 'Command to execute', required: true },
-          timeout: { type: 'number', description: 'Timeout in ms', required: false, default: 30000 },
+          timeout: {
+            type: 'number',
+            description: 'Timeout in ms',
+            required: false,
+            default: 30000,
+          },
         },
         output: {
           output: { type: 'string', description: 'Command output', required: true },
@@ -1294,11 +1315,7 @@ export class SessionManager {
    * Get session by ID
    */
   async getSession(sessionId: string): Promise<SessionContext | null> {
-    const { data } = await this.supabase
-      .from('sessions')
-      .select('*')
-      .eq('id', sessionId)
-      .single();
+    const { data } = await this.supabase.from('sessions').select('*').eq('id', sessionId).single();
 
     return data;
   }
@@ -1307,10 +1324,7 @@ export class SessionManager {
    * Update session
    */
   private async updateSession(session: SessionContext): Promise<void> {
-    await this.supabase
-      .from('sessions')
-      .update(session)
-      .eq('id', session.id);
+    await this.supabase.from('sessions').update(session).eq('id', session.id);
   }
 
   /**
@@ -1320,7 +1334,7 @@ export class SessionManager {
     const session = await this.getSession(sessionId);
     if (!session) throw new Error('Session not found');
 
-    return session.messages.map(m => ({
+    return session.messages.map((m) => ({
       role: m.role,
       content: m.content,
     }));
@@ -1403,23 +1417,22 @@ export class BatchOperationManager {
 
       await this.updateBatch(batchId, {
         status: 'committed',
-        executedAt: new Date()
+        executedAt: new Date(),
       });
 
       return { success: true };
-
     } catch (error) {
       // Rollback all executed operations
       await this.rollback(executedOps);
 
       await this.updateBatch(batchId, {
         status: 'rolled_back',
-        executedAt: new Date()
+        executedAt: new Date(),
       });
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -1499,10 +1512,7 @@ export class BatchOperationManager {
    * Update batch status
    */
   private async updateBatch(batchId: string, updates: Partial<BatchOperation>): Promise<void> {
-    await this.supabase
-      .from('batch_operations')
-      .update(updates)
-      .eq('id', batchId);
+    await this.supabase.from('batch_operations').update(updates).eq('id', batchId);
   }
 }
 
@@ -1538,10 +1548,20 @@ export class CodebaseIndexer {
 
     // Get all source files
     const filePatterns = [
-      '*.ts', '*.tsx', '*.js', '*.jsx',
-      '*.py', '*.go', '*.rs', '*.java',
-      '*.cs', '*.rb', '*.php', '*.vue',
-      '*.svelte', '*.astro'
+      '*.ts',
+      '*.tsx',
+      '*.js',
+      '*.jsx',
+      '*.py',
+      '*.go',
+      '*.rs',
+      '*.java',
+      '*.cs',
+      '*.rb',
+      '*.php',
+      '*.vue',
+      '*.svelte',
+      '*.astro',
     ];
 
     for (const pattern of filePatterns) {
@@ -1554,7 +1574,7 @@ export class CodebaseIndexer {
           const content = await this.fs.readFile(file);
           const indexed = await this.indexFile(file, content);
           index.files.push(indexed);
-          index.symbols.push(...await this.extractSymbols(file, content));
+          index.symbols.push(...(await this.extractSymbols(file, content)));
         } catch {
           // Skip files that can't be read
         }
@@ -1565,9 +1585,7 @@ export class CodebaseIndexer {
     index.dependencies = await this.parseDependencies();
 
     // Store index
-    await this.supabase
-      .from('codebase_indexes')
-      .upsert(index);
+    await this.supabase.from('codebase_indexes').upsert(index);
 
     return index;
   }
@@ -1609,16 +1627,8 @@ export class CodebaseIndexer {
         /(?:export\s+)?const\s+(\w+)\s*=/g,
         /(?:export\s+)?enum\s+(\w+)/g,
       ],
-      python: [
-        /def\s+(\w+)\s*\(/g,
-        /class\s+(\w+)/g,
-        /(\w+)\s*=\s*(?:lambda|async)/g,
-      ],
-      go: [
-        /func\s+(\w+)/g,
-        /type\s+(\w+)\s+struct/g,
-        /type\s+(\w+)\s+interface/g,
-      ],
+      python: [/def\s+(\w+)\s*\(/g, /class\s+(\w+)/g, /(\w+)\s*=\s*(?:lambda|async)/g],
+      go: [/func\s+(\w+)/g, /type\s+(\w+)\s+struct/g, /type\s+(\w+)\s+interface/g],
     };
 
     const langPatterns = patterns[language] || patterns.typescript;
@@ -1649,7 +1659,8 @@ export class CodebaseIndexer {
    * Infer symbol type from regex pattern
    */
   private inferSymbolType(pattern: string): Symbol['type'] {
-    if (pattern.includes('function') || pattern.includes('def') || pattern.includes('func')) return 'function';
+    if (pattern.includes('function') || pattern.includes('def') || pattern.includes('func'))
+      return 'function';
     if (pattern.includes('class')) return 'class';
     if (pattern.includes('interface')) return 'interface';
     if (pattern.includes('type')) return 'type';
@@ -1685,7 +1696,8 @@ export class CodebaseIndexer {
     const exports: string[] = [];
 
     if (language === 'typescript' || language === 'javascript') {
-      const pattern = /export\s+(?:default\s+)?(?:const|let|var|function|class|interface|type|enum)\s+(\w+)/g;
+      const pattern =
+        /export\s+(?:default\s+)?(?:const|let|var|function|class|interface|type|enum)\s+(\w+)/g;
       let match;
       while ((match = pattern.exec(content)) !== null) {
         exports.push(match[1]);
@@ -1726,7 +1738,7 @@ export class CodebaseIndexer {
             name: match[1].trim(),
             version: match[3]?.trim() || '*',
             type: 'production',
-            source: 'pip'
+            source: 'pip',
           });
         }
       }
@@ -1759,8 +1771,10 @@ export class CodebaseIndexer {
   private detectLanguage(path: string): string {
     const ext = path.split('.').pop()?.toLowerCase() || '';
     const langMap: Record<string, string> = {
-      ts: 'typescript', tsx: 'typescript',
-      js: 'javascript', jsx: 'javascript',
+      ts: 'typescript',
+      tsx: 'typescript',
+      js: 'javascript',
+      jsx: 'javascript',
       py: 'python',
       go: 'go',
       rs: 'rust',
@@ -1782,7 +1796,7 @@ export class CodebaseIndexer {
     const data = encoder.encode(content);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -1802,7 +1816,9 @@ export class CodebaseIndexer {
       '.idea',
       '.vscode',
     ];
-    return ignorePatterns.some(pattern => path.includes(`/${pattern}/`) || path.startsWith(pattern));
+    return ignorePatterns.some(
+      (pattern) => path.includes(`/${pattern}/`) || path.startsWith(pattern)
+    );
   }
 
   /**
@@ -1824,15 +1840,16 @@ export class CodebaseIndexer {
 
     const queryLower = query.toLowerCase();
 
-    const files = index.files.filter((f: IndexedFile) =>
-      f.path.toLowerCase().includes(queryLower) ||
-      f.imports.some((i: string) => i.toLowerCase().includes(queryLower)) ||
-      f.exports.some((e: string) => e.toLowerCase().includes(queryLower))
+    const files = index.files.filter(
+      (f: IndexedFile) =>
+        f.path.toLowerCase().includes(queryLower) ||
+        f.imports.some((i: string) => i.toLowerCase().includes(queryLower)) ||
+        f.exports.some((e: string) => e.toLowerCase().includes(queryLower))
     );
 
-    const symbols = index.symbols.filter((s: Symbol) =>
-      s.name.toLowerCase().includes(queryLower) ||
-      s.signature?.toLowerCase().includes(queryLower)
+    const symbols = index.symbols.filter(
+      (s: Symbol) =>
+        s.name.toLowerCase().includes(queryLower) || s.signature?.toLowerCase().includes(queryLower)
     );
 
     return { files, symbols };
