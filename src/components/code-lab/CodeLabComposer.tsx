@@ -56,6 +56,7 @@ export function CodeLabComposer({
   const [attachments, setAttachments] = useState<CodeLabAttachment[]>([]);
   const [searchMode, setSearchMode] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -243,6 +244,7 @@ export function CodeLabComposer({
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
+      setIsDragging(false);
       handleFileSelect(e.dataTransfer.files);
     },
     [handleFileSelect]
@@ -250,7 +252,54 @@ export function CodeLabComposer({
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragging(true);
   }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    // Only set to false if leaving the composer area entirely
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  // Handle paste for images (Claude Code parity - Cmd+V paste images)
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData.items;
+      const imageFiles: File[] = [];
+
+      // Check for image items in clipboard
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            // Create a meaningful filename for pasted images
+            const ext = item.type.split('/')[1] || 'png';
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const renamedFile = new File([file], `screenshot-${timestamp}.${ext}`, {
+              type: file.type,
+            });
+            imageFiles.push(renamedFile);
+          }
+        }
+      }
+
+      // If we found images, handle them
+      if (imageFiles.length > 0) {
+        e.preventDefault(); // Prevent default paste behavior for images
+        const dataTransfer = new DataTransfer();
+        imageFiles.forEach((file) => dataTransfer.items.add(file));
+        handleFileSelect(dataTransfer.files);
+      }
+      // Let text paste through normally
+    },
+    [handleFileSelect]
+  );
 
   // Track content changes for slash autocomplete
   const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -266,7 +315,12 @@ export function CodeLabComposer({
   }, []);
 
   return (
-    <div className="code-lab-composer" onDrop={handleDrop} onDragOver={handleDragOver}>
+    <div
+      className={`code-lab-composer ${isDragging ? 'dragging' : ''}`}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+    >
       {/* Attachment previews */}
       {attachments.length > 0 && (
         <div className="attachment-previews">
@@ -358,11 +412,12 @@ export function CodeLabComposer({
           value={content}
           onChange={handleContentChange}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder={placeholder}
           disabled={disabled || isStreaming}
           rows={1}
           className="composer-input"
-          aria-label="Message input - type your message or use slash commands"
+          aria-label="Message input - type your message or use slash commands. Paste images with Cmd+V"
           aria-describedby="composer-hints"
         />
 
@@ -533,6 +588,31 @@ export function CodeLabComposer({
           padding: 1rem 1.5rem 1.5rem;
           background: white;
           border-top: 1px solid #e5e7eb;
+          position: relative;
+          transition: all 0.2s ease;
+        }
+
+        /* Drag and drop indicator (Claude Code parity) */
+        .code-lab-composer.dragging {
+          background: #f0f9ff;
+          border-top-color: #3b82f6;
+        }
+
+        .code-lab-composer.dragging::before {
+          content: 'Drop images or files here';
+          position: absolute;
+          inset: 0;
+          background: rgba(59, 130, 246, 0.1);
+          border: 2px dashed #3b82f6;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.9375rem;
+          font-weight: 500;
+          color: #2563eb;
+          z-index: 10;
+          pointer-events: none;
         }
 
         .attachment-previews {
