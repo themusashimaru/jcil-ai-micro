@@ -104,15 +104,16 @@ export class ContainerManager {
       // Store sandbox reference
       this.activeSandboxes.set(workspaceId, sandbox);
 
-      // Update database with container ID
+      // Update database with sandbox ID
+      // Note: workspaceId is actually the session_id in code_lab_workspaces table
       await this.supabase
-        .from('workspaces')
+        .from('code_lab_workspaces')
         .update({
-          container_id: sandbox.sandboxId,
+          sandbox_id: sandbox.sandboxId,
           status: 'active',
           updated_at: new Date().toISOString(),
         })
-        .eq('id', workspaceId);
+        .eq('session_id', workspaceId);
 
       // Initialize workspace directory
       await sandbox.files.makeDir('/workspace');
@@ -191,19 +192,21 @@ export class ContainerManager {
    */
   async getSandbox(workspaceId: string): Promise<Sandbox> {
     // Check if we have an active sandbox
+    // Note: workspaceId is actually the session_id
     let sandbox = this.activeSandboxes.get(workspaceId);
 
     if (!sandbox) {
       // Try to reconnect to existing sandbox
+      // Query code_lab_workspaces using session_id
       const { data: workspace } = await this.supabase
-        .from('workspaces')
-        .select('container_id')
-        .eq('id', workspaceId)
+        .from('code_lab_workspaces')
+        .select('sandbox_id')
+        .eq('session_id', workspaceId)
         .single();
 
-      if (workspace?.container_id) {
+      if (workspace?.sandbox_id) {
         try {
-          sandbox = await Sandbox.connect(workspace.container_id);
+          sandbox = await Sandbox.connect(workspace.sandbox_id);
           this.activeSandboxes.set(workspaceId, sandbox);
         } catch {
           // Sandbox expired, create new one
@@ -688,13 +691,13 @@ export class ContainerManager {
     }
 
     await this.supabase
-      .from('workspaces')
+      .from('code_lab_workspaces')
       .update({
-        container_id: null,
+        sandbox_id: null,
         status: 'suspended',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', workspaceId);
+      .eq('session_id', workspaceId);
   }
 
   /**
@@ -716,27 +719,27 @@ export class ContainerManager {
     uptime?: number;
   }> {
     const { data: workspace } = await this.supabase
-      .from('workspaces')
-      .select('container_id, status, updated_at')
-      .eq('id', workspaceId)
+      .from('code_lab_workspaces')
+      .select('sandbox_id, status, updated_at')
+      .eq('session_id', workspaceId)
       .single();
 
-    if (!workspace?.container_id) {
+    if (!workspace?.sandbox_id) {
       return { isRunning: false };
     }
 
     // Try to check if sandbox is still alive
     try {
-      const sandbox = await Sandbox.connect(workspace.container_id);
+      const sandbox = await Sandbox.connect(workspace.sandbox_id);
       this.activeSandboxes.set(workspaceId, sandbox);
 
       return {
         isRunning: true,
-        containerId: workspace.container_id,
+        containerId: workspace.sandbox_id,
         uptime: Date.now() - new Date(workspace.updated_at).getTime(),
       };
     } catch {
-      return { isRunning: false, containerId: workspace.container_id };
+      return { isRunning: false, containerId: workspace.sandbox_id };
     }
   }
 }

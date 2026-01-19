@@ -139,6 +139,17 @@ src/lib/middleware.test.ts                # 35 tests - Middleware
 - [x] **Vim mode** - Full editor keybindings (`src/lib/workspace/vim-mode.ts`)
 - [x] **Plugin marketplace UI** - Visual discovery and installation (`src/components/code-lab/CodeLabPluginMarketplace.tsx`)
 
+### January 19, 2026 - Critical Bug Fixes (Code Lab Audit)
+
+- [x] **Fixed database table mismatch** - ContainerManager now queries `code_lab_workspaces` instead of `workspaces`
+- [x] **Fixed field name mismatch** - Now uses `sandbox_id` consistently instead of `container_id`
+- [x] **Fixed session/workspace ID lookup** - ContainerManager uses `session_id` for lookups
+- [x] **Added git authentication** - Credential helper configured before clone/push/pull operations
+- [x] **Fixed command injection vulnerabilities** - All branch names sanitized with `sanitizeBranchName()` + `escapeShellArg()`
+- [x] **Fixed pull operation security** - Branch names now properly escaped in git pull
+
+See [CODE_LAB_CRITICAL_BUGS.md](./CODE_LAB_CRITICAL_BUGS.md) for full audit report.
+
 ### January 2026 - Code Lab Engineering Fixes
 
 - [x] **Updated Claude model names** to `claude-sonnet-4-5-20250929`
