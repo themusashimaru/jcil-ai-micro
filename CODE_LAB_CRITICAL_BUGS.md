@@ -17,6 +17,9 @@ The Code Lab had **6 CRITICAL bugs** and **4 HIGH severity bugs** that break cor
 2. ✅ **Git authentication** - Credential helper configured before clone/push/pull
 3. ✅ **Session/Workspace ID confusion** - Now uses `sandbox_id` field consistently
 4. ✅ **Command injection vulnerabilities** - All branch names sanitized and escaped
+5. ✅ **Chat route workspace lookup** - Now queries by `session_id` not `user_id`
+6. ✅ **WorkspaceAgent ID mismatch** - Chat route now passes `sessionId` correctly
+7. ✅ **Path traversal vulnerability** - `normalizePath()` now sanitizes paths
 
 ---
 
@@ -400,6 +403,57 @@ const safeBranch = sanitizeBranchName(this.currentBranch);
 await executeShell(`git pull origin ${escapeShellArg(safeBranch)}`);
 ```
 
+### 4. Chat Route Workspace ID Fix (`app/api/code-lab/chat/route.ts`) ✅ FIXED
+
+**Problem:** Chat route queried workspace by `user_id` instead of `session_id`, causing sessions to share workspaces unintentionally. Also passed `workspace.id` instead of `sessionId` to WorkspaceAgent.
+
+```typescript
+// BEFORE: Wrong lookup and wrong ID passed
+const { data: workspaceData } = await supabase
+  .from('code_lab_workspaces')
+  .eq('user_id', user.id)  // ❌ Gets any user's workspace
+  ...
+
+const workspaceStream = await executeWorkspaceAgent(content, {
+  workspaceId,  // ❌ This was workspace.id, not sessionId
+  ...
+});
+
+// AFTER: Session-specific lookup and correct ID
+const { data: workspaceData } = await supabase
+  .from('code_lab_workspaces')
+  .eq('session_id', sessionId)  // ✅ Gets THIS session's workspace
+  .eq('user_id', user.id)
+  ...
+
+const workspaceStream = await executeWorkspaceAgent(content, {
+  workspaceId: sessionId,  // ✅ Pass sessionId since ContainerManager queries by session_id
+  ...
+});
+```
+
+### 5. Path Traversal Prevention (`src/lib/workspace/chat-integration.ts`) ✅ FIXED
+
+**Problem:** `normalizePath()` didn't sanitize paths, allowing traversal attacks like `/../etc/passwd`.
+
+```typescript
+// BEFORE: No sanitization
+private normalizePath(path: string): string {
+  if (path.startsWith('/')) return path;  // ❌ Allows /../etc/passwd
+  return `/workspace/${path}`;
+}
+
+// AFTER: Sanitized paths
+private normalizePath(path: string): string {
+  const sanitized = sanitizeFilePath(path);  // ✅ Remove traversals
+  if (sanitized.startsWith('/workspace/')) return sanitized;
+  if (sanitized.startsWith('/')) {
+    return `/workspace/${sanitized.slice(1)}`;  // Confine to workspace
+  }
+  return `/workspace/${sanitized}`;
+}
+```
+
 ---
 
 ## RECOMMENDED FOLLOW-UP ACTIONS
@@ -408,7 +462,10 @@ await executeShell(`git pull origin ${escapeShellArg(safeBranch)}`);
 2. ✅ ~~Fix ContainerManager to query `code_lab_workspaces` table~~ - DONE
 3. ✅ ~~Add git credential configuration before clone/push/pull~~ - DONE
 4. ✅ ~~Sanitize all branch names with `sanitizeBranchName()` + `escapeShellArg()`~~ - DONE
-5. **Add integration tests** that actually exercise the full flow (PENDING)
+5. ✅ ~~Fix chat route workspace lookup by session_id~~ - DONE
+6. ✅ ~~Fix chat route to pass sessionId to WorkspaceAgent~~ - DONE
+7. ✅ ~~Add path traversal prevention in normalizePath~~ - DONE
+8. **Add integration tests** that actually exercise the full flow (PENDING)
 
 ---
 

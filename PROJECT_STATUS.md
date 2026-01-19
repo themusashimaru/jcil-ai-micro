@@ -139,7 +139,15 @@ src/lib/middleware.test.ts                # 35 tests - Middleware
 - [x] **Vim mode** - Full editor keybindings (`src/lib/workspace/vim-mode.ts`)
 - [x] **Plugin marketplace UI** - Visual discovery and installation (`src/components/code-lab/CodeLabPluginMarketplace.tsx`)
 
-### January 19, 2026 - Critical Bug Fixes (Code Lab Audit)
+### January 19, 2026 - Critical Bug Fixes (Code Lab Deep Dive Audit)
+
+**Phase 2 - Chat Flow Issues:**
+
+- [x] **Fixed chat route workspace lookup** - Now queries by `session_id` instead of `user_id` (sessions were sharing workspaces!)
+- [x] **Fixed WorkspaceAgent ID mismatch** - Chat route now passes `sessionId` to WorkspaceAgent correctly
+- [x] **Fixed path traversal vulnerability** - `normalizePath()` now uses `sanitizeFilePath()` to prevent `/../` attacks
+
+**Phase 1 - Infrastructure Issues:**
 
 - [x] **Fixed database table mismatch** - ContainerManager now queries `code_lab_workspaces` instead of `workspaces`
 - [x] **Fixed field name mismatch** - Now uses `sandbox_id` consistently instead of `container_id`

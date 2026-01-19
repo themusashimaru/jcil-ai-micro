@@ -1631,11 +1631,27 @@ ${output.isComplete ? `‚úì Task completed (exit code: ${output.exitCode})` : '‚è
   }
 
   /**
-   * Normalize file path
+   * Normalize and sanitize file path
+   * Prevents path traversal attacks (e.g., /../etc/passwd)
    */
   private normalizePath(path: string): string {
-    if (path.startsWith('/')) return path;
-    return `/workspace/${path}`;
+    // Sanitize the path first to remove dangerous characters and traversals
+    const sanitized = sanitizeFilePath(path);
+
+    // If already absolute and within workspace, return as-is
+    if (sanitized.startsWith('/workspace/') || sanitized === '/workspace') {
+      return sanitized;
+    }
+
+    // If absolute path outside workspace, confine to workspace
+    if (sanitized.startsWith('/')) {
+      // Remove leading slash and prepend workspace
+      const relativePath = sanitized.slice(1);
+      return `/workspace/${relativePath}`;
+    }
+
+    // Relative path - prepend workspace
+    return `/workspace/${sanitized}`;
   }
 
   /** Cached memory context */

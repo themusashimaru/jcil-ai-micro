@@ -578,13 +578,13 @@ export async function POST(request: NextRequest) {
     // ========================================
     // WORKSPACE AGENT - E2B Sandbox Execution (Claude Code-like)
     // ========================================
-    // Check if user has an active workspace for this session
+    // Check if user has an active workspace for THIS SESSION (not any session)
+    // CRITICAL FIX: Query by session_id to get session-specific workspace
     const { data: workspaceData } = await (supabase.from('code_lab_workspaces') as AnySupabase)
       .select('id, sandbox_id, status')
+      .eq('session_id', sessionId)
       .eq('user_id', user.id)
       .eq('status', 'active')
-      .order('last_activity_at', { ascending: false })
-      .limit(1)
       .single();
 
     // Use workspace agent if: has active workspace AND request is agentic (high confidence)
@@ -644,8 +644,10 @@ export async function POST(request: NextRequest) {
         }
 
         // Execute workspace agent with streaming
+        // CRITICAL FIX: Pass sessionId as workspaceId since ContainerManager queries by session_id
+        // The workspace row ID is only used for DB operations, not for sandbox lookups
         const workspaceStream = await executeWorkspaceAgent(content, {
-          workspaceId,
+          workspaceId: sessionId,
           userId: user.id,
           sessionId,
           history: (history || []).map((m: { role: string; content: string }) => ({
