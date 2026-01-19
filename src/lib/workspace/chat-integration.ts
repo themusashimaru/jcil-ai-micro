@@ -61,6 +61,13 @@ import {
   isContextCompactionTool,
   getContextCompactionManager,
 } from './context-compaction';
+import { getCheckpointTools, isCheckpointTool, executeCheckpointTool } from './checkpoint';
+import {
+  getCustomCommandTools,
+  isCustomCommandTool,
+  executeCustomCommandTool,
+} from './custom-commands';
+import { getMCPScopeTools, isMCPScopeTool, executeMCPScopeTool } from './mcp-scopes';
 
 // ============================================
 // TYPES
@@ -519,6 +526,21 @@ const WORKSPACE_TOOLS: Anthropic.Tool[] = [
   // CONTEXT COMPACTION TOOLS (CLAUDE CODE PARITY)
   // ============================================
   ...getContextCompactionTools(),
+
+  // ============================================
+  // CHECKPOINT/REWIND TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getCheckpointTools(),
+
+  // ============================================
+  // CUSTOM SLASH COMMANDS TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getCustomCommandTools(),
+
+  // ============================================
+  // MCP SCOPE PERMISSION TOOLS (CLAUDE CODE PARITY)
+  // ============================================
+  ...getMCPScopeTools(),
 ];
 
 // ============================================
@@ -1530,6 +1552,65 @@ ${output.isComplete ? `âœ“ Task completed (exit code: ${output.exitCode})` : 'â
               return `**Context Compaction Settings**\n\nAuto-compact: ${settings.autoCompact ? 'Enabled' : 'Disabled'}\nThreshold: ${settings.threshold}%\nPreserve Recent: ${settings.preserveRecentCount} messages`;
             }
             return 'Context compaction triggered. Use /compact to compact the conversation.';
+          }
+
+          // Check if it's a checkpoint tool call
+          if (isCheckpointTool(name)) {
+            return executeCheckpointTool(name, input, {
+              sessionId: this.config.sessionId,
+              workspaceId: this.config.workspaceId,
+              userId: this.config.userId,
+              getFiles: async () => {
+                const tree = await this.container.getFileTree(
+                  this.config.workspaceId,
+                  '/workspace',
+                  5
+                );
+                const files: Array<{ path: string; content: string }> = [];
+                for (const node of tree) {
+                  if (!node.isDirectory) {
+                    try {
+                      const content = await this.container.readFile(
+                        this.config.workspaceId,
+                        node.path
+                      );
+                      files.push({ path: node.path, content });
+                    } catch {
+                      // Skip unreadable files
+                    }
+                  }
+                }
+                return files;
+              },
+              writeFile: async (path: string, content: string) => {
+                await this.container.writeFile(this.config.workspaceId, path, content);
+                this.filesModified.add(path);
+              },
+              messageCount: 0, // Will be updated by chat route
+              workspaceContext: {
+                cwd: '/workspace',
+                activeFiles: Array.from(this.filesModified),
+              },
+            });
+          }
+
+          // Check if it's a custom command tool call
+          if (isCustomCommandTool(name)) {
+            return executeCustomCommandTool(name, input, {
+              userId: this.config.userId,
+              workspaceId: this.config.workspaceId,
+              readFile: async (path: string) =>
+                this.container.readFile(this.config.workspaceId, path),
+            });
+          }
+
+          // Check if it's an MCP scope tool call
+          if (isMCPScopeTool(name)) {
+            return executeMCPScopeTool(name, input, {
+              userId: this.config.userId,
+              sessionId: this.config.sessionId,
+              workspaceId: this.config.workspaceId,
+            });
           }
 
           // Check if it's an MCP tool call
