@@ -523,7 +523,7 @@ The Code Lab includes a comprehensive debugging system supporting 30+ programmin
 │  │                    DEBUG MANAGER                             │   │
 │  │                                                               │   │
 │  │  • Session orchestration                                     │   │
-│  │  • WebSocket event broadcasting                              │   │
+│  │  • SSE event broadcasting (serverless-compatible)            │   │
 │  │  • Multi-language routing                                    │   │
 │  └─────────────────────────────┬───────────────────────────────┘   │
 │                                │                                     │
@@ -542,14 +542,15 @@ The Code Lab includes a comprehensive debugging system supporting 30+ programmin
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-| Component               | Location                                      | Purpose                      |
-| ----------------------- | --------------------------------------------- | ---------------------------- |
-| Debug Manager           | `src/lib/debugger/debug-manager.ts`           | Session orchestration        |
-| CDP Client              | `src/lib/debugger/cdp-client.ts`              | Chrome DevTools Protocol     |
-| DAP Client              | `src/lib/debugger/dap-client.ts`              | Debug Adapter Protocol       |
-| Multi-Language Adapters | `src/lib/debugger/multi-language-adapters.ts` | 30+ language configurations  |
-| Container Debug Adapter | `src/lib/debugger/container-debug-adapter.ts` | E2B sandbox debugging        |
-| Debug Tools             | `src/lib/workspace/debug-tools.ts`            | AI-accessible debug commands |
+| Component               | Location                                      | Purpose                       |
+| ----------------------- | --------------------------------------------- | ----------------------------- |
+| Debug Manager           | `src/lib/debugger/debug-manager.ts`           | Session orchestration         |
+| Debug Event Broadcaster | `src/lib/debugger/debug-event-broadcaster.ts` | SSE-compatible event dispatch |
+| CDP Client              | `src/lib/debugger/cdp-client.ts`              | Chrome DevTools Protocol      |
+| DAP Client              | `src/lib/debugger/dap-client.ts`              | Debug Adapter Protocol        |
+| Multi-Language Adapters | `src/lib/debugger/multi-language-adapters.ts` | 30+ language configurations   |
+| Container Debug Adapter | `src/lib/debugger/container-debug-adapter.ts` | E2B sandbox debugging         |
+| Debug Tools             | `src/lib/workspace/debug-tools.ts`            | AI-accessible debug commands  |
 
 **Supported Languages:**
 
