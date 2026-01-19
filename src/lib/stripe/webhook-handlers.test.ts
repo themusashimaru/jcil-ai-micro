@@ -72,8 +72,8 @@ describe('Stripe Webhook Handler Logic', () => {
 
   describe('Customer ID Security', () => {
     it('should reject if user has different Stripe customer ID', () => {
-      const existingCustomerId = 'cus_existing';
-      const newCustomerId = 'cus_new';
+      const existingCustomerId: string = 'cus_existing';
+      const newCustomerId: string = 'cus_new';
 
       const isMatch = existingCustomerId === newCustomerId;
       expect(isMatch).toBe(false);
@@ -233,8 +233,8 @@ describe('Stripe Security Validations', () => {
 
   describe('Customer ID Mismatch Logging', () => {
     it('should log security warning on mismatch', () => {
-      const existingId = 'cus_original';
-      const newId = 'cus_attacker';
+      const existingId: string = 'cus_original';
+      const newId: string = 'cus_attacker';
       const isMismatch = existingId !== newId && !!existingId;
       expect(isMismatch).toBe(true);
     });
