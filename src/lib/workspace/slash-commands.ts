@@ -201,6 +201,14 @@ const commands: SlashCommand[] = [
 | \`/reset\` | Reset the session state |
 | \`/model\` | Switch AI model (sonnet, opus, haiku) |
 | \`/workspace\` | Enable sandbox execution mode |
+| \`/rename\` | Rename the current session |
+| \`/rewind\` | Rewind file changes to a checkpoint |
+
+## Customization
+| Command | Description |
+|---------|-------------|
+| \`/style\` | Change output style (concise, verbose, markdown, minimal) |
+| \`/vim\` | Toggle vim mode for the editor |
 
 ## Keyboard Shortcuts
 | Shortcut | Action |
@@ -314,6 +322,110 @@ const commands: SlashCommand[] = [
         return 'Please describe the bug: /bug <description>\n\nOr visit: https://github.com/anthropics/claude-code/issues';
       }
       return `[BUG_REPORT] Bug reported: ${args}\n\nThank you! To file a formal report, visit: https://github.com/anthropics/claude-code/issues/new`;
+    },
+  },
+  // ============================================
+  // OUTPUT STYLE COMMANDS (Claude Code Parity)
+  // ============================================
+  {
+    name: 'style',
+    aliases: ['output', 'format'],
+    description: 'Change output style (concise, verbose, markdown, minimal)',
+    usage: '/style <concise|verbose|markdown|minimal>',
+    handler: (args) => {
+      const style = args.trim().toLowerCase();
+      const validStyles = ['concise', 'verbose', 'markdown', 'minimal'];
+
+      if (!style) {
+        return `## Output Styles
+
+| Style | Description |
+|-------|-------------|
+| \`concise\` | Brief, focused responses (default) |
+| \`verbose\` | Detailed explanations with full context |
+| \`markdown\` | Rich formatting with headers and sections |
+| \`minimal\` | Bare essentials only - no decorations |
+
+**Usage:** \`/style <name>\`
+**Current:** Check your settings with \`/style current\``;
+      }
+
+      if (style === 'current') {
+        return '[STYLE_GET] Get current output style setting.';
+      }
+
+      if (!validStyles.includes(style)) {
+        return `Invalid style: "${style}". Choose from: ${validStyles.join(', ')}`;
+      }
+
+      return `[STYLE_SWITCH:${style}] Output style changed to ${style}.`;
+    },
+  },
+  // ============================================
+  // VIM MODE COMMAND (Claude Code Parity)
+  // ============================================
+  {
+    name: 'vim',
+    aliases: ['vi'],
+    description: 'Toggle vim mode for the editor',
+    usage: '/vim [on|off]',
+    handler: (args) => {
+      const mode = args.trim().toLowerCase();
+
+      if (!mode) {
+        return '[VIM_TOGGLE] Toggle vim mode for the editor.';
+      }
+
+      if (mode === 'on' || mode === 'enable') {
+        return '[VIM_ENABLE] Vim mode enabled. Use hjkl for navigation, i for insert, Esc for normal mode.';
+      }
+
+      if (mode === 'off' || mode === 'disable') {
+        return '[VIM_DISABLE] Vim mode disabled. Standard editor shortcuts restored.';
+      }
+
+      return `Invalid vim mode: "${mode}". Use: /vim on, /vim off, or /vim to toggle.`;
+    },
+  },
+  // ============================================
+  // RENAME COMMAND (Claude Code Parity)
+  // ============================================
+  {
+    name: 'rename',
+    aliases: ['name', 'title'],
+    description: 'Rename the current session',
+    usage: '/rename <new name>',
+    handler: (args) => {
+      const name = args.trim();
+
+      if (!name) {
+        return 'Please provide a new name: /rename <new name>';
+      }
+
+      return `[SESSION_RENAME:${name}] Session renamed to "${name}".`;
+    },
+  },
+  // ============================================
+  // REWIND COMMAND (Claude Code Parity)
+  // ============================================
+  {
+    name: 'rewind',
+    aliases: ['undo-all', 'rollback'],
+    description: 'Rewind file changes to a previous checkpoint',
+    usage: '/rewind [number of changes]',
+    handler: (args) => {
+      const count = args.trim();
+
+      if (!count) {
+        return '[REWIND_SHOW] Show available checkpoints and recent file changes.';
+      }
+
+      const num = parseInt(count, 10);
+      if (isNaN(num) || num < 1) {
+        return `Invalid number: "${count}". Use a positive integer like: /rewind 3`;
+      }
+
+      return `[REWIND:${num}] Reverting last ${num} file change(s).`;
     },
   },
 ];
