@@ -43,7 +43,6 @@ export { CodeLabDiffViewer } from './CodeLabDiffViewer';
 export { CodeLabLiveFileTree } from './CodeLabLiveFileTree';
 export { CodeLabVisualToCode } from './CodeLabVisualToCode';
 export { CodeLabDeployFlow } from './CodeLabDeployFlow';
-export { CodeLabVoiceCoding } from './CodeLabVoiceCoding';
 
 // Beyond Claude Code - Professional IDE Components
 export { CodeLabEditor } from './CodeLabEditor';
