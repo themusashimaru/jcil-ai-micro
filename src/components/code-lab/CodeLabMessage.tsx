@@ -131,15 +131,15 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
             display: flex;
             gap: 0.75rem;
             padding: 1rem;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: #000000;
+            border: 1px solid #333;
             border-radius: 12px;
             margin: 1.5rem 0;
           }
           .user-avatar {
             width: 32px;
             height: 32px;
-            background: #1a1f36;
+            background: #333;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -155,7 +155,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
             flex: 1;
             font-size: 0.9375rem;
             line-height: 1.6;
-            color: #1a1f36;
+            color: #ffffff;
             white-space: pre-wrap;
           }
         `}</style>
@@ -257,7 +257,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
         .message-assistant {
           padding: 0.5rem 0;
           line-height: 1.7;
-          color: #1a1f36;
+          color: #ffffff;
         }
 
         .message-assistant.streaming {
@@ -279,20 +279,20 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
 
         .text-block :global(strong) {
           font-weight: 600;
-          color: #0f172a;
+          color: #ffffff;
         }
 
         .text-block :global(code) {
-          background: #f1f5f9;
+          background: #2a2a2a;
           padding: 0.125rem 0.375rem;
           border-radius: 4px;
           font-family: 'SF Mono', 'Menlo', monospace;
           font-size: 0.875em;
-          color: #1e3a5f;
+          color: #ffffff;
         }
 
         .text-block :global(a) {
-          color: #1e3a5f;
+          color: #7dd3fc;
           text-decoration: none;
         }
 
@@ -314,7 +314,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
         .text-block :global(h2),
         .text-block :global(h3) {
           font-weight: 600;
-          color: #0f172a;
+          color: #ffffff;
           margin: 1.5rem 0 0.75rem;
         }
 
@@ -332,7 +332,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           margin: 1rem 0;
           border-radius: 8px;
           overflow: hidden;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #333;
         }
 
         .code-header {
@@ -340,14 +340,14 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           align-items: center;
           justify-content: space-between;
           padding: 0.5rem 0.75rem;
-          background: #f8fafc;
-          border-bottom: 1px solid #e2e8f0;
+          background: #1a1a1a;
+          border-bottom: 1px solid #333;
         }
 
         .code-lang {
           font-size: 0.75rem;
           font-weight: 500;
-          color: #64748b;
+          color: #888;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -360,15 +360,15 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           background: transparent;
           border: none;
           font-size: 0.75rem;
-          color: #64748b;
+          color: #888;
           cursor: pointer;
           border-radius: 4px;
           transition: all 0.2s;
         }
 
         .code-copy:hover {
-          background: #e2e8f0;
-          color: #1a1f36;
+          background: #333;
+          color: #ffffff;
         }
 
         .code-copy svg {
@@ -379,7 +379,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
         .code-content {
           margin: 0;
           padding: 1rem;
-          background: #1e293b;
+          background: #0d0d0d;
           overflow-x: auto;
         }
 
@@ -394,7 +394,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           margin: 1rem 0;
           border-radius: 8px;
           overflow: hidden;
-          background: #0f172a;
+          background: #0d0d0d;
         }
 
         .terminal-header {
@@ -402,7 +402,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           align-items: center;
           gap: 0.5rem;
           padding: 0.625rem 0.75rem;
-          background: #1e293b;
+          background: #1a1a1a;
         }
 
         .terminal-dots {
@@ -414,7 +414,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           width: 10px;
           height: 10px;
           border-radius: 50%;
-          background: #475569;
+          background: #444;
         }
 
         .terminal-dots span:first-child {
@@ -429,7 +429,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
 
         .terminal-title {
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: #888;
           margin-left: 0.5rem;
         }
 
@@ -447,7 +447,7 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           display: inline-block;
           width: 8px;
           height: 18px;
-          background: #1e3a5f;
+          background: #ffffff;
           margin-left: 2px;
           animation: blink 1s infinite;
         }
@@ -475,6 +475,8 @@ export function CodeLabMessage({ message, isLast: _isLast }: CodeLabMessageProps
           margin-bottom: 0.75rem;
           text-transform: uppercase;
           letter-spacing: 0.025em;
+          background: #1a1a1a !important;
+          color: #ffffff !important;
         }
 
         .agent-icon {

@@ -113,12 +113,13 @@ export function CodeLabThread({
           display: flex;
           flex-direction: column;
           overflow: hidden;
+          background: #1a1a1a;
         }
 
         .thread-header {
           padding: 1rem 1.5rem;
-          border-bottom: 1px solid #e5e7eb;
-          background: white;
+          border-bottom: 1px solid #333;
+          background: #1a1a1a;
         }
 
         .thread-title {
@@ -130,7 +131,7 @@ export function CodeLabThread({
         .thread-title h1 {
           font-size: 1.125rem;
           font-weight: 600;
-          color: #1a1f36;
+          color: #ffffff;
           margin: 0;
         }
 
@@ -139,10 +140,10 @@ export function CodeLabThread({
           align-items: center;
           gap: 0.375rem;
           padding: 0.25rem 0.625rem;
-          background: #f3f4f6;
+          background: #333;
           border-radius: 9999px;
           font-size: 0.75rem;
-          color: #4b5563;
+          color: #ffffff;
         }
 
         .thread-repo svg {
@@ -154,6 +155,7 @@ export function CodeLabThread({
           flex: 1;
           overflow-y: auto;
           padding: 1.5rem;
+          background: #1a1a1a;
         }
 
         .thread-loading {
@@ -162,15 +164,15 @@ export function CodeLabThread({
           align-items: center;
           justify-content: center;
           padding: 3rem;
-          color: #6b7280;
+          color: #888;
           gap: 1rem;
         }
 
         .loading-spinner {
           width: 24px;
           height: 24px;
-          border: 2px solid #e5e7eb;
-          border-top-color: #1e3a5f;
+          border: 2px solid #333;
+          border-top-color: #ffffff;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -191,7 +193,7 @@ export function CodeLabThread({
           width: 64px;
           height: 64px;
           margin: 0 auto 1.5rem;
-          color: #1e3a5f;
+          color: #ffffff;
         }
 
         .welcome-icon svg {
@@ -202,12 +204,12 @@ export function CodeLabThread({
         .thread-welcome h2 {
           font-size: 1.5rem;
           font-weight: 600;
-          color: #1a1f36;
+          color: #ffffff;
           margin: 0 0 0.75rem;
         }
 
         .thread-welcome p {
-          color: #4b5563;
+          color: #888;
           margin: 0 0 2rem;
           line-height: 1.6;
         }
@@ -221,19 +223,19 @@ export function CodeLabThread({
 
         .welcome-suggestions button {
           padding: 0.5rem 1rem;
-          background: white;
-          border: 1px solid #e5e7eb;
+          background: #000000;
+          border: 1px solid #444;
           border-radius: 9999px;
           font-size: 0.875rem;
-          color: #374151;
+          color: #ffffff;
           cursor: pointer;
           transition: all 0.2s;
         }
 
         .welcome-suggestions button:hover {
-          background: #f9fafb;
-          border-color: #1e3a5f;
-          color: #1e3a5f;
+          background: #333;
+          border-color: #666;
+          color: #ffffff;
         }
 
         .stream-indicator {
@@ -246,7 +248,7 @@ export function CodeLabThread({
         .stream-dot {
           width: 6px;
           height: 6px;
-          background: #1e3a5f;
+          background: #ffffff;
           border-radius: 50%;
           animation: pulse 1.4s ease-in-out infinite;
         }
