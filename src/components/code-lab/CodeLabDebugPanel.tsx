@@ -7,7 +7,7 @@
  * This bridges the backend debugging infrastructure with the visual UI.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { CodeLabDebugger, DebugSession, Breakpoint as UIBreakpoint } from './CodeLabDebugger';
 import {
   useDebugSession,
@@ -58,6 +58,9 @@ export function CodeLabDebugPanel({
   const [debugType, setDebugType] = useState<'node' | 'python'>('node');
   const [program, setProgram] = useState('');
 
+  // Use ref to break circular dependency between options and debugSession
+  const debugSessionRef = useRef<ReturnType<typeof useDebugSession> | null>(null);
+
   // Debug session hook
   const options: UseDebugSessionOptions = useMemo(
     () => ({
@@ -66,7 +69,7 @@ export function CodeLabDebugPanel({
       onStateChange: (state) => {
         // Auto-load stack trace when paused
         if (state === 'paused') {
-          debugSession.loadStackTrace();
+          debugSessionRef.current?.loadStackTrace();
         }
       },
     }),
@@ -74,6 +77,11 @@ export function CodeLabDebugPanel({
   );
 
   const debugSession = useDebugSession(options);
+
+  // Keep ref in sync with debugSession
+  useEffect(() => {
+    debugSessionRef.current = debugSession;
+  }, [debugSession]);
 
   // Convert hook breakpoints to UI format
   const uiBreakpoints: UIBreakpoint[] = useMemo(() => {

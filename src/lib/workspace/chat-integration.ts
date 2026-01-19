@@ -666,6 +666,55 @@ export class WorkspaceAgent {
    * Execute a single tool
    */
   private async executeTool(name: string, input: Record<string, unknown>): Promise<string> {
+    // Plan Mode Approval Gate (Claude Code parity)
+    // Block dangerous operations when plan needs approval
+    const dangerousTools = new Set([
+      'execute_shell',
+      'write_file',
+      'edit_file',
+      'surgical_edit',
+      'batch_edit',
+      'git_commit',
+      'git_push',
+      'run_build',
+      'run_tests',
+      'install_packages',
+    ]);
+
+    if (dangerousTools.has(name)) {
+      const planManager = getPlanManager();
+      const currentPlan = planManager?.getCurrentPlan();
+
+      if (currentPlan && planManager.needsApproval()) {
+        const planStatus = currentPlan.status;
+        const currentStep = planManager.getCurrentStep();
+
+        // Block execution if plan is in draft and needs user approval
+        if (planStatus === 'draft') {
+          return (
+            `[APPROVAL REQUIRED] A plan is awaiting approval before executing ${name}.\n\n` +
+            `Current plan: "${currentPlan.title}"\n` +
+            `Status: ${planStatus}\n` +
+            `Steps: ${currentPlan.steps.length}\n\n` +
+            `Please approve the plan in the Workspace panel (Plan tab) or press the "Approve & Start" button before proceeding with this operation.`
+          );
+        }
+
+        // If plan is in progress but current step needs high-complexity approval
+        if (planStatus === 'in_progress' && currentStep?.complexity === 'high') {
+          const settings = planManager.getSettings();
+          if (settings.requireApprovalForHigh && !settings.autoAccept) {
+            return (
+              `[STEP APPROVAL REQUIRED] The current step "${currentStep.title}" is high complexity and requires explicit approval.\n\n` +
+              `Step: ${currentStep.description}\n` +
+              `Complexity: ${currentStep.complexity}\n\n` +
+              `Enable auto-accept mode or manually advance this step to proceed.`
+            );
+          }
+        }
+      }
+    }
+
     try {
       switch (name) {
         case 'execute_shell': {
@@ -740,10 +789,26 @@ export class WorkspaceAgent {
 
         case 'search_files': {
           const pattern = sanitizeGlobPattern(input.pattern as string);
-          const result = await this.container.executeCommand(
+          // Respect .gitignore - use git ls-files if available, exclude common directories otherwise
+          const isGitRepo = await this.container.executeCommand(
             this.config.workspaceId,
-            `find /workspace -name ${sanitizeShellArg(pattern)} -type f 2>/dev/null | head -50`
+            'cd /workspace && git rev-parse --git-dir 2>/dev/null'
           );
+
+          let result;
+          if (isGitRepo.exitCode === 0) {
+            // Use git ls-files and filter by pattern (respects .gitignore)
+            result = await this.container.executeCommand(
+              this.config.workspaceId,
+              `cd /workspace && git ls-files --full-name | grep -E ${sanitizeShellArg(pattern.replace('*', '.*'))} | head -50`
+            );
+          } else {
+            // Fall back to find with exclusions
+            result = await this.container.executeCommand(
+              this.config.workspaceId,
+              `find /workspace -path "*/node_modules" -prune -o -path "*/.git" -prune -o -name ${sanitizeShellArg(pattern)} -type f -print 2>/dev/null | head -50`
+            );
+          }
           return result.stdout || 'No files found matching pattern';
         }
 

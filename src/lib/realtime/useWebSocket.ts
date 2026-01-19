@@ -112,6 +112,73 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   const handlersRef = useRef<Map<string, Set<(message: WebSocketMessage) => void>>>(new Map());
 
   // ============================================================================
+  // MESSAGE HANDLING (defined first to be available in connect)
+  // ============================================================================
+
+  const handleMessage = useCallback((message: WebSocketMessage) => {
+    // Handle built-in message types
+    switch (message.type) {
+      case 'connected':
+        setClientId((message.payload as { clientId: string }).clientId);
+        break;
+
+      case 'session:joined': {
+        const payload = message.payload as { sessionId: string; members: SessionMember[] };
+        setSessionId(payload.sessionId);
+        setMembers(payload.members);
+        break;
+      }
+
+      case 'session:left':
+        setSessionId(null);
+        setMembers([]);
+        setPresenceList([]);
+        break;
+
+      case 'presence:join': {
+        const member = message.payload as SessionMember;
+        setMembers((prev) => [...prev.filter((m) => m.clientId !== member.clientId), member]);
+        break;
+      }
+
+      case 'presence:leave': {
+        const { clientId: leavingClientId } = message.payload as { clientId: string };
+        setMembers((prev) => prev.filter((m) => m.clientId !== leavingClientId));
+        setPresenceList((prev) =>
+          prev.filter((p) => p.userId !== (message.payload as { userId: string }).userId)
+        );
+        break;
+      }
+
+      case 'presence:update': {
+        const presence = message.payload as PresenceInfo;
+        setPresenceList((prev) => {
+          const existing = prev.findIndex((p) => p.userId === presence.userId);
+          if (existing !== -1) {
+            const updated = [...prev];
+            updated[existing] = presence;
+            return updated;
+          }
+          return [...prev, presence];
+        });
+        break;
+      }
+    }
+
+    // Call registered handlers
+    const handlers = handlersRef.current.get(message.type);
+    if (handlers) {
+      handlers.forEach((handler) => handler(message));
+    }
+
+    // Call wildcard handlers
+    const wildcardHandlers = handlersRef.current.get('*');
+    if (wildcardHandlers) {
+      wildcardHandlers.forEach((handler) => handler(message));
+    }
+  }, []);
+
+  // ============================================================================
   // CONNECTION MANAGEMENT
   // ============================================================================
 
@@ -168,7 +235,18 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
       setConnectionState('error');
       onError?.(error);
     };
-  }, [url, token, sessionId, reconnect, maxReconnectAttempts, onConnect, onDisconnect, onError, onMessage]);
+  }, [
+    url,
+    token,
+    sessionId,
+    reconnect,
+    maxReconnectAttempts,
+    onConnect,
+    onDisconnect,
+    onError,
+    onMessage,
+    handleMessage,
+  ]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -179,97 +257,40 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
   }, [maxReconnectAttempts]);
 
   // ============================================================================
-  // MESSAGE HANDLING
-  // ============================================================================
-
-  const handleMessage = useCallback((message: WebSocketMessage) => {
-    // Handle built-in message types
-    switch (message.type) {
-      case 'connected':
-        setClientId((message.payload as { clientId: string }).clientId);
-        break;
-
-      case 'session:joined': {
-        const payload = message.payload as { sessionId: string; members: SessionMember[] };
-        setSessionId(payload.sessionId);
-        setMembers(payload.members);
-        break;
-      }
-
-      case 'session:left':
-        setSessionId(null);
-        setMembers([]);
-        setPresenceList([]);
-        break;
-
-      case 'presence:join': {
-        const member = message.payload as SessionMember;
-        setMembers((prev) => [...prev.filter((m) => m.clientId !== member.clientId), member]);
-        break;
-      }
-
-      case 'presence:leave': {
-        const { clientId: leavingClientId } = message.payload as { clientId: string };
-        setMembers((prev) => prev.filter((m) => m.clientId !== leavingClientId));
-        setPresenceList((prev) => prev.filter((p) => p.userId !== (message.payload as { userId: string }).userId));
-        break;
-      }
-
-      case 'presence:update': {
-        const presence = message.payload as PresenceInfo;
-        setPresenceList((prev) => {
-          const existing = prev.findIndex((p) => p.userId === presence.userId);
-          if (existing !== -1) {
-            const updated = [...prev];
-            updated[existing] = presence;
-            return updated;
-          }
-          return [...prev, presence];
-        });
-        break;
-      }
-    }
-
-    // Call registered handlers
-    const handlers = handlersRef.current.get(message.type);
-    if (handlers) {
-      handlers.forEach((handler) => handler(message));
-    }
-
-    // Call wildcard handlers
-    const wildcardHandlers = handlersRef.current.get('*');
-    if (wildcardHandlers) {
-      wildcardHandlers.forEach((handler) => handler(message));
-    }
-  }, []);
-
-  // ============================================================================
   // PUBLIC METHODS
   // ============================================================================
 
   const send = useCallback((type: string, payload: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type,
-        payload,
-        timestamp: Date.now(),
-      }));
+      wsRef.current.send(
+        JSON.stringify({
+          type,
+          payload,
+          timestamp: Date.now(),
+        })
+      );
     } else {
       console.warn('[WebSocket] Cannot send - not connected');
     }
   }, []);
 
-  const joinSession = useCallback((newSessionId: string) => {
-    send('session:join', { sessionId: newSessionId });
-  }, [send]);
+  const joinSession = useCallback(
+    (newSessionId: string) => {
+      send('session:join', { sessionId: newSessionId });
+    },
+    [send]
+  );
 
   const leaveSession = useCallback(() => {
     send('session:leave', {});
   }, [send]);
 
-  const updatePresence = useCallback((presence: Partial<PresenceInfo>) => {
-    send('presence:update', presence);
-  }, [send]);
+  const updatePresence = useCallback(
+    (presence: Partial<PresenceInfo>) => {
+      send('presence:update', presence);
+    },
+    [send]
+  );
 
   const on = useCallback((type: string, handler: (message: WebSocketMessage) => void) => {
     let handlers = handlersRef.current.get(type);
@@ -341,33 +362,37 @@ export function usePresence(
   updateSelection: (startLine: number, endLine: number) => void;
   updateStatus: (status: 'active' | 'idle' | 'away') => void;
 } {
-  const {
-    members,
-    presenceList,
-    updatePresence,
-    isConnected,
-  } = useWebSocket({
+  const { members, presenceList, updatePresence, isConnected } = useWebSocket({
     token,
     sessionId,
   });
 
-  const updateCursor = useCallback((line: number, column: number) => {
-    if (isConnected) {
-      updatePresence({ cursorPosition: { line, column } });
-    }
-  }, [isConnected, updatePresence]);
+  const updateCursor = useCallback(
+    (line: number, column: number) => {
+      if (isConnected) {
+        updatePresence({ cursorPosition: { line, column } });
+      }
+    },
+    [isConnected, updatePresence]
+  );
 
-  const updateSelection = useCallback((startLine: number, endLine: number) => {
-    if (isConnected) {
-      updatePresence({ selection: { startLine, endLine } });
-    }
-  }, [isConnected, updatePresence]);
+  const updateSelection = useCallback(
+    (startLine: number, endLine: number) => {
+      if (isConnected) {
+        updatePresence({ selection: { startLine, endLine } });
+      }
+    },
+    [isConnected, updatePresence]
+  );
 
-  const updateStatus = useCallback((status: 'active' | 'idle' | 'away') => {
-    if (isConnected) {
-      updatePresence({ status });
-    }
-  }, [isConnected, updatePresence]);
+  const updateStatus = useCallback(
+    (status: 'active' | 'idle' | 'away') => {
+      if (isConnected) {
+        updatePresence({ status });
+      }
+    },
+    [isConnected, updatePresence]
+  );
 
   return {
     members,

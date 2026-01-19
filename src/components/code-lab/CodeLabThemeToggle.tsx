@@ -3,14 +3,14 @@
 /**
  * CODE LAB THEME TOGGLE
  *
- * A beautiful toggle button for switching between light and dark modes.
+ * A beautiful toggle button for switching between Pro Mode (dark) and Light Mode.
  * Features:
- * - Animated sun/moon icons
+ * - Animated sun/moon icons with Pro Mode star
+ * - Integrates with global theme context
  * - Accessible
- * - Works with theme provider
  */
 
-import { useTheme } from './CodeLabThemeProvider';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface CodeLabThemeToggleProps {
   className?: string;
@@ -18,16 +18,24 @@ interface CodeLabThemeToggleProps {
 }
 
 export function CodeLabThemeToggle({ className = '', showLabel = false }: CodeLabThemeToggleProps) {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
-  const isDark = resolvedTheme === 'dark';
+  // Pro mode is the dark/professional theme, light is light mode
+  const isDark = theme === 'pro' || theme === 'dark' || theme === 'ocean';
+
+  const themeLabel =
+    theme === 'pro'
+      ? 'Pro'
+      : theme === 'light'
+        ? 'Light'
+        : theme.charAt(0).toUpperCase() + theme.slice(1);
 
   return (
     <button
       className={`theme-toggle ${className}`}
       onClick={toggleTheme}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={`Current theme: ${themeLabel}. Click to cycle themes.`}
+      title={`${themeLabel} Mode - Click to switch`}
     >
       <div className="toggle-track">
         <div className={`toggle-thumb ${isDark ? 'dark' : 'light'}`}>
@@ -63,11 +71,7 @@ export function CodeLabThemeToggle({ className = '', showLabel = false }: CodeLa
         </div>
       </div>
 
-      {showLabel && (
-        <span className="toggle-label">
-          {isDark ? 'Dark' : 'Light'}
-        </span>
-      )}
+      {showLabel && <span className="toggle-label">{themeLabel}</span>}
 
       <style jsx>{`
         .theme-toggle {
@@ -122,7 +126,9 @@ export function CodeLabThemeToggle({ className = '', showLabel = false }: CodeLa
         .icon {
           width: 14px;
           height: 14px;
-          transition: opacity 0.15s, transform 0.3s;
+          transition:
+            opacity 0.15s,
+            transform 0.3s;
         }
 
         .icon.visible {

@@ -406,7 +406,7 @@ export function CodeLabDeployFlow({
           justify-content: space-between;
           padding: 1rem 1.5rem;
           border-bottom: 1px solid var(--cl-border-primary, #e5e7eb);
-          background: linear-gradient(135deg, #f9fafb 0%, #f0fdf4 100%);
+          background: var(--cl-gradient-subtle, linear-gradient(135deg, #f9fafb 0%, #f0fdf4 100%));
         }
 
         .deploy-title {

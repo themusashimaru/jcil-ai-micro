@@ -171,6 +171,20 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-agent-code: #2d4a6f;
           --cl-agent-code-bg: #eef3f8;
 
+          /* Semantic backgrounds for panels and highlights */
+          --cl-success-bg: #dcfce7;
+          --cl-success-bg-light: #f0fdf4;
+          --cl-info-bg: #eef2ff;
+          --cl-info-bg-light: #f8f9ff;
+          --cl-info-bg-medium: #e0e7ff;
+          --cl-warning-bg: #fef3c7;
+          --cl-error-bg: #fee2e2;
+          --cl-gradient-subtle: linear-gradient(
+            135deg,
+            var(--cl-bg-secondary) 0%,
+            var(--cl-accent-bg) 100%
+          );
+
           --cl-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
           --cl-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
           --cl-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
@@ -290,6 +304,20 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
           --cl-agent-standard-bg: rgba(125, 232, 255, 0.15);
           --cl-agent-code: #9ef0ff;
           --cl-agent-code-bg: rgba(158, 240, 255, 0.15);
+
+          /* Semantic backgrounds for panels and highlights - Pro Mode dark variants */
+          --cl-success-bg: rgba(74, 222, 128, 0.2);
+          --cl-success-bg-light: rgba(74, 222, 128, 0.1);
+          --cl-info-bg: rgba(125, 232, 255, 0.15);
+          --cl-info-bg-light: rgba(125, 232, 255, 0.08);
+          --cl-info-bg-medium: rgba(125, 232, 255, 0.25);
+          --cl-warning-bg: rgba(251, 191, 36, 0.15);
+          --cl-error-bg: rgba(248, 113, 113, 0.15);
+          --cl-gradient-subtle: linear-gradient(
+            135deg,
+            var(--cl-bg-secondary) 0%,
+            var(--cl-accent-bg) 100%
+          );
 
           --cl-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
           --cl-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);

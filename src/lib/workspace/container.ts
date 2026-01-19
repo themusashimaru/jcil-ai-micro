@@ -581,27 +581,64 @@ export class ContainerManager {
 
   /**
    * Get file tree recursively
+   * Respects .gitignore when available (Claude Code parity)
    */
   async getFileTree(
     workspaceId: string,
     path: string = '/workspace',
     maxDepth: number = 5
   ): Promise<FileInfo[]> {
-    const result = await this.executeCommand(
+    // Common directories to always ignore (security + performance)
+    const alwaysIgnore = [
+      'node_modules',
+      '.git',
+      '.next',
+      'dist',
+      'build',
+      '.cache',
+      '__pycache__',
+      '.venv',
+      'venv',
+      '.tox',
+      'coverage',
+      '.nyc_output',
+    ];
+
+    // Try git ls-files first if in a git repo (respects .gitignore)
+    const isGitRepo = await this.executeCommand(
       workspaceId,
-      `find "${path}" -maxdepth ${maxDepth} -type f -o -type d 2>/dev/null | head -500`
+      `cd "${path}" && git rev-parse --git-dir 2>/dev/null`
     );
+
+    let result;
+    if (isGitRepo.exitCode === 0) {
+      // Use git ls-files for tracked files + ls-files -o for untracked (respects .gitignore)
+      result = await this.executeCommand(
+        workspaceId,
+        `cd "${path}" && (git ls-files; git ls-files -o --exclude-standard) | head -500`
+      );
+    } else {
+      // Fall back to find with common exclusions
+      const excludeArgs = alwaysIgnore.map((d) => `-path "*/${d}" -prune -o`).join(' ');
+      result = await this.executeCommand(
+        workspaceId,
+        `find "${path}" -maxdepth ${maxDepth} ${excludeArgs} -type f -print -o -type d -print 2>/dev/null | head -500`
+      );
+    }
 
     const files: FileInfo[] = [];
     const paths = result.stdout.split('\n').filter((p) => p.trim());
 
     for (const filePath of paths) {
+      // For git ls-files output, prepend the path if relative
+      const fullPath = filePath.startsWith('/') ? filePath : `${path}/${filePath}`;
+
       const isDir = (
-        await this.executeCommand(workspaceId, `test -d "${filePath}" && echo "dir"`)
+        await this.executeCommand(workspaceId, `test -d "${fullPath}" && echo "dir"`)
       ).stdout.includes('dir');
 
       files.push({
-        path: filePath,
+        path: fullPath,
         isDirectory: isDir,
         size: 0,
         modifiedAt: new Date(),

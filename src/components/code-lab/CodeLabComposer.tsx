@@ -587,12 +587,12 @@ export function CodeLabComposer({
           align-items: center;
           gap: 0.5rem;
           padding: 0.5rem 0.75rem;
-          background: #eef2ff;
-          border: 1px solid #c7d2fe;
+          background: var(--cl-info-bg, #eef2ff);
+          border: 1px solid var(--cl-border-secondary, #c7d2fe);
           border-radius: 8px;
           margin-bottom: 0.75rem;
           font-size: 0.8125rem;
-          color: #4f46e5;
+          color: var(--cl-accent-primary, #4f46e5);
         }
 
         .search-mode-indicator svg {
@@ -693,8 +693,8 @@ export function CodeLabComposer({
         }
 
         .composer-btn.search.active {
-          background: #eef2ff;
-          color: #1e3a5f;
+          background: var(--cl-info-bg, #eef2ff);
+          color: var(--cl-accent-primary, #1e3a5f);
         }
 
         .composer-btn.send {
