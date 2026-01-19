@@ -52,7 +52,7 @@ const DEFAULT_THINKING_CONFIG: ExtendedThinkingConfig = {
 
 export function useCodeLabModel(options: UseCodeLabModelOptions = {}): UseCodeLabModelReturn {
   const {
-    defaultModelId = 'claude-sonnet-4-20250514',
+    defaultModelId = 'claude-sonnet-4-5-20250514',
     defaultThinkingConfig = DEFAULT_THINKING_CONFIG,
     onToast,
   } = options;

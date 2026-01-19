@@ -1,45 +1,72 @@
 /**
- * DEBUG TOOLS FOR WORKSPACE AGENT
+ * DEBUG TOOLS FOR WORKSPACE AGENT - EPIC MULTI-LANGUAGE SUPPORT
  *
  * Provides AI-accessible debugging tools that connect to the DebugManager.
+ * Supports 30+ programming languages!
+ *
  * Enables Claude to:
- * - Start/stop debug sessions
- * - Set breakpoints
+ * - Start/stop debug sessions for any supported language
+ * - Set breakpoints with conditions
  * - Step through code
- * - Inspect variables
+ * - Inspect variables and stack frames
  * - Evaluate expressions
+ *
+ * Supported Languages:
+ * - node (JavaScript/TypeScript), python, go, rust
+ * - java, kotlin, scala, groovy, clojure
+ * - c, cpp, ruby, php, csharp, fsharp, swift
+ * - perl, lua, r, julia, elixir, erlang
+ * - haskell, dart, zig, nim, crystal
+ * - ocaml, v, odin, bash, powershell
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { DebugSessionInfo, getDebugManager } from '@/lib/debugger/debug-manager';
-import { DebugConfiguration, Source } from '@/lib/debugger/debug-adapter';
+import {
+  DebugConfiguration,
+  Source,
+  getSupportedLanguages,
+  getLanguageDisplayNames,
+  DebugLanguage,
+} from '@/lib/debugger/debug-adapter';
 import { logger } from '@/lib/logger';
 
 const log = logger('DebugTools');
+
+// All supported languages for debugging
+const SUPPORTED_DEBUG_LANGUAGES = getSupportedLanguages();
+const LANGUAGE_NAMES = getLanguageDisplayNames();
 
 // Track active debug sessions per workspace
 const workspaceDebugSessions = new Map<string, string>();
 
 /**
- * Debug tool definitions for the workspace agent
+ * Debug tool definitions for the workspace agent - supports 30+ languages
  */
 export function getDebugTools(): Anthropic.Tool[] {
+  // Build the language enum dynamically from supported languages
+  const languageEnum = SUPPORTED_DEBUG_LANGUAGES;
+
+  // Build description with all language names
+  const languageDescriptions = Object.entries(LANGUAGE_NAMES)
+    .map(([key, name]) => `${key} (${name})`)
+    .join(', ');
+
   return [
     {
       name: 'debug_start',
-      description:
-        'Start a debug session for a program. Supports Node.js and Python. The debugger will pause at the first line or breakpoint.',
+      description: `Start a debug session for a program. Supports 30+ programming languages including: ${languageDescriptions}. The debugger will pause at the first line or breakpoint.`,
       input_schema: {
         type: 'object' as const,
         properties: {
           type: {
             type: 'string',
-            enum: ['node', 'python'],
-            description: 'Type of debugger (node for JavaScript/TypeScript, python for Python)',
+            enum: languageEnum,
+            description: `Language/debugger type. Supported: node (JS/TS), python, go, rust, java, kotlin, scala, groovy, clojure, c, cpp, ruby, php, csharp, fsharp, swift, perl, lua, r, julia, elixir, erlang, haskell, dart, zig, nim, crystal, ocaml, v, odin, bash, powershell`,
           },
           program: {
             type: 'string',
-            description: 'Path to the program to debug (e.g., "index.js", "main.py")',
+            description: 'Path to the program to debug (e.g., "index.js", "main.py", "main.go")',
           },
           args: {
             type: 'array',
@@ -56,6 +83,15 @@ export function getDebugTools(): Anthropic.Tool[] {
           },
         },
         required: ['type', 'program'],
+      },
+    },
+    {
+      name: 'debug_languages',
+      description: 'List all 30+ supported debugging languages with their capabilities.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {},
+        required: [],
       },
     },
     {
@@ -187,8 +223,15 @@ export async function executeDebugTool(
           }
         }
 
+        const debugType = input.type as DebugLanguage;
+
+        // Validate that the language is supported
+        if (!SUPPORTED_DEBUG_LANGUAGES.includes(debugType)) {
+          return `Unsupported debug language: ${debugType}. Supported languages: ${SUPPORTED_DEBUG_LANGUAGES.join(', ')}`;
+        }
+
         const config: DebugConfiguration = {
-          type: input.type as 'node' | 'python',
+          type: debugType,
           name: `Debug ${input.program}`,
           request: 'launch',
           program: input.program as string,
@@ -203,6 +246,10 @@ export async function executeDebugTool(
         log.info('Debug session started', { sessionId: session.id, program: config.program });
 
         return formatDebugSessionInfo(session);
+      }
+
+      case 'debug_languages': {
+        return formatSupportedLanguages();
       }
 
       case 'debug_stop': {
@@ -353,10 +400,41 @@ export async function executeDebugTool(
 // FORMATTING HELPERS
 // ============================================================================
 
+function formatSupportedLanguages(): string {
+  const categories = {
+    'Web/Scripting': ['node', 'python', 'ruby', 'php', 'perl', 'lua', 'bash', 'powershell'],
+    'Systems Programming': ['go', 'rust', 'c', 'cpp', 'zig', 'nim', 'crystal', 'v', 'odin'],
+    'JVM Languages': ['java', 'kotlin', 'scala', 'groovy', 'clojure'],
+    '.NET Languages': ['csharp', 'fsharp'],
+    'Apple Ecosystem': ['swift'],
+    'Functional Languages': ['haskell', 'ocaml', 'elixir', 'erlang'],
+    'Data Science': ['r', 'julia'],
+    'Mobile/Cross-platform': ['dart'],
+  };
+
+  const lines: string[] = ['**Code Lab Debugger - 30+ Supported Languages**', ''];
+
+  for (const [category, langs] of Object.entries(categories)) {
+    lines.push(`**${category}:**`);
+    for (const lang of langs) {
+      const name = LANGUAGE_NAMES[lang as DebugLanguage] || lang;
+      lines.push(`  - \`${lang}\` - ${name}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('**Usage:** `debug_start` with `type` set to any of the above language codes.');
+  lines.push('');
+  lines.push('Example: `debug_start({ type: "go", program: "main.go" })`');
+
+  return lines.join('\n');
+}
+
 function formatDebugSessionInfo(session: DebugSessionInfo): string {
+  const langName = LANGUAGE_NAMES[session.type as DebugLanguage] || session.type;
   return `Debug session started:
   ID: ${session.id}
-  Type: ${session.type}
+  Language: ${langName} (${session.type})
   State: ${session.state}
   Program: ${session.configuration.program}
 
@@ -364,7 +442,8 @@ The debugger is now attached. Use:
 - debug_breakpoint to set breakpoints
 - debug_step to control execution
 - debug_inspect to view state
-- debug_evaluate to check values`;
+- debug_evaluate to check values
+- debug_languages to list all 30+ supported languages`;
 }
 
 function formatBreakpoints(
