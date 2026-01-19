@@ -21,6 +21,36 @@ import { checkRequestRateLimit, rateLimits, getClientIP } from '@/lib/api/utils'
 
 const log = logger('AuthCallback');
 
+/**
+ * Validate redirect path to prevent open redirect attacks
+ * Only allows:
+ * - Paths starting with single / (relative paths)
+ * - No protocol:// patterns
+ * - No // at start (protocol-relative URLs)
+ * - No backslash tricks
+ */
+function isValidRedirectPath(path: string): boolean {
+  // Must be a string
+  if (typeof path !== 'string') return false;
+
+  // Must start with /
+  if (!path.startsWith('/')) return false;
+
+  // Must NOT start with // (protocol-relative URL)
+  if (path.startsWith('//')) return false;
+
+  // Must NOT contain :// (absolute URL with protocol)
+  if (path.includes('://')) return false;
+
+  // Must NOT contain backslash (URL encoding tricks)
+  if (path.includes('\\')) return false;
+
+  // Must NOT contain @ (userinfo in URL)
+  if (path.includes('@')) return false;
+
+  return true;
+}
+
 export async function GET(request: NextRequest) {
   // Rate limit by IP
   const ip = getClientIP(request);
@@ -31,7 +61,11 @@ export async function GET(request: NextRequest) {
 
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
-  const next = requestUrl.searchParams.get('next') || '/chat';
+
+  // SECURITY: Validate 'next' parameter to prevent open redirect attacks
+  // Only allow relative paths starting with / and not //
+  const rawNext = requestUrl.searchParams.get('next') || '/chat';
+  const next = isValidRedirectPath(rawNext) ? rawNext : '/chat';
 
   if (code) {
     try {
