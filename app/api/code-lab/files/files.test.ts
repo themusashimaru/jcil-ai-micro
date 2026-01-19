@@ -357,8 +357,8 @@ describe('Session Ownership Verification', () => {
   });
 
   it('should reject access to other users sessions', () => {
-    const sessionUserId = 'user-abc';
-    const currentUserId = 'user-xyz';
+    const sessionUserId: string = 'user-abc';
+    const currentUserId: string = 'user-xyz';
     expect(sessionUserId !== currentUserId).toBe(true);
   });
 });
