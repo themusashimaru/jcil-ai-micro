@@ -144,6 +144,9 @@ export async function POST(request: NextRequest) {
       command: command.substring(0, 100),
     });
 
+    // Check if we're in production - require real execution
+    const isProduction = process.env.NODE_ENV === 'production';
+
     // Try to execute via E2B sandbox if available
     if (sandboxId) {
       try {
@@ -161,19 +164,47 @@ export async function POST(request: NextRequest) {
           stdout: result.stdout,
           stderr: result.stderr,
           exitCode: result.exitCode,
+          mode: 'sandbox',
         });
       } catch (e2bError) {
-        log.warn('E2B execution failed, falling back to simulation', { error: e2bError });
+        log.error('E2B execution failed', { error: e2bError });
+
+        // In production, fail loudly - don't fall back to simulation
+        if (isProduction) {
+          return NextResponse.json(
+            {
+              error: 'Sandbox execution failed',
+              details: 'Unable to connect to execution sandbox. Please try again.',
+              code: 'SANDBOX_CONNECTION_FAILED',
+            },
+            { status: 503 }
+          );
+        }
+        // In development, log warning and continue to simulation
+        log.warn('E2B execution failed, falling back to simulation (dev mode only)');
       }
+    } else if (isProduction) {
+      // In production, require a sandbox ID
+      return NextResponse.json(
+        {
+          error: 'Sandbox required',
+          details: 'No sandbox ID provided. Please ensure workspace is initialized.',
+          code: 'SANDBOX_ID_MISSING',
+        },
+        { status: 400 }
+      );
     }
 
-    // Fallback: Simulated execution for demo/development
+    // Development-only fallback: Simulated execution
+    // This is clearly marked and only for local development/demo
+    log.info('Using simulated execution (development mode)');
     const simulatedResult = simulateCommand(command, cwd);
 
     return NextResponse.json({
       success: true,
       ...simulatedResult,
       mode: 'simulated',
+      warning: 'Running in simulation mode - not real execution',
     });
   } catch (error) {
     log.error('Execute API error', error as Error);
