@@ -1,400 +1,368 @@
 /**
  * CUSTOM SLASH COMMANDS
  *
- * User-defined slash commands for personalized workflows.
- *
- * Features:
- * - Create custom commands
- * - Parameter support
- * - Command templates
- * - Import/export
- * - Command sharing
+ * Load and execute user-defined slash commands from .claude/commands/ directory.
+ * Claude Code Parity: Supports custom command files with prompt templates.
  */
 
 import { logger } from '@/lib/logger';
+import { createClient as createSupabaseClient } from '@/lib/supabase/server';
 
 const log = logger('CustomCommands');
 
-export interface CustomCommandParameter {
-  name: string;
-  description: string;
-  type: 'string' | 'number' | 'boolean' | 'file' | 'select';
-  required: boolean;
-  default?: unknown;
-  options?: string[]; // For select type
-}
+// ============================================================================
+// TYPES
+// ============================================================================
 
 export interface CustomCommand {
-  id: string;
-  name: string; // The command name (without /)
+  name: string;
   description: string;
-  category: string;
-  icon: string;
-  parameters: CustomCommandParameter[];
-  template: string; // The prompt template with {{param}} placeholders
-  requiresWorkspace: boolean;
-  isPublic: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  author?: string;
-  usageCount: number;
-}
-
-export interface CommandExecutionContext {
-  sessionId: string;
+  promptTemplate: string;
+  parameters: CommandParameter[];
+  enabled: boolean;
+  source: 'file' | 'db';
   workspaceId?: string;
-  userId?: string;
-  parameters: Record<string, unknown>;
 }
 
-// Built-in command templates that users can customize
-export const COMMAND_TEMPLATES: Omit<CustomCommand, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>[] = [
-  {
-    name: 'quick-fix',
-    description: 'Fix a specific type of issue',
-    category: 'debug',
-    icon: '🔧',
-    parameters: [
-      { name: 'issue_type', description: 'Type of issue to fix', type: 'select', required: true, options: ['type-error', 'lint-error', 'runtime-error', 'build-error'] },
-      { name: 'file', description: 'Specific file to focus on', type: 'file', required: false },
-    ],
-    template: 'Fix all {{issue_type}} issues{{#file}} in {{file}}{{/file}}. Show me what you changed.',
-    requiresWorkspace: true,
-    isPublic: false,
-  },
-  {
-    name: 'generate-api',
-    description: 'Generate REST API endpoints',
-    category: 'generate',
-    icon: '🔌',
-    parameters: [
-      { name: 'resource', description: 'Resource name (e.g., users, posts)', type: 'string', required: true },
-      { name: 'operations', description: 'CRUD operations to include', type: 'select', required: false, options: ['all', 'read-only', 'write-only'], default: 'all' },
-    ],
-    template: 'Generate REST API endpoints for the {{resource}} resource with {{operations}} operations. Include proper validation, error handling, and TypeScript types.',
-    requiresWorkspace: true,
-    isPublic: true,
-  },
-  {
-    name: 'add-tests',
-    description: 'Add tests for a specific file or function',
-    category: 'testing',
-    icon: '🧪',
-    parameters: [
-      { name: 'target', description: 'File or function to test', type: 'string', required: true },
-      { name: 'framework', description: 'Testing framework', type: 'select', required: false, options: ['jest', 'vitest', 'mocha', 'pytest'], default: 'vitest' },
-    ],
-    template: 'Write comprehensive tests for {{target}} using {{framework}}. Include edge cases and mock external dependencies.',
-    requiresWorkspace: true,
-    isPublic: true,
-  },
-  {
-    name: 'document',
-    description: 'Generate documentation',
-    category: 'docs',
-    icon: '📝',
-    parameters: [
-      { name: 'target', description: 'What to document', type: 'string', required: true },
-      { name: 'format', description: 'Documentation format', type: 'select', required: false, options: ['jsdoc', 'tsdoc', 'readme', 'api-docs'], default: 'tsdoc' },
-    ],
-    template: 'Generate {{format}} documentation for {{target}}. Include examples and type information.',
-    requiresWorkspace: true,
-    isPublic: true,
-  },
-  {
-    name: 'optimize',
-    description: 'Optimize code for performance',
-    category: 'refactor',
-    icon: '⚡',
-    parameters: [
-      { name: 'file', description: 'File to optimize', type: 'file', required: true },
-      { name: 'focus', description: 'Optimization focus', type: 'select', required: false, options: ['speed', 'memory', 'bundle-size', 'all'], default: 'all' },
-    ],
-    template: 'Optimize {{file}} for {{focus}}. Identify bottlenecks and implement improvements while maintaining functionality.',
-    requiresWorkspace: true,
-    isPublic: true,
-  },
-  {
-    name: 'security-check',
-    description: 'Run security analysis',
-    category: 'security',
-    icon: '🔒',
-    parameters: [
-      { name: 'scope', description: 'What to check', type: 'select', required: false, options: ['full', 'auth', 'inputs', 'deps'], default: 'full' },
-    ],
-    template: 'Perform a {{scope}} security analysis. Check for OWASP top 10 vulnerabilities, insecure patterns, and suggest fixes.',
-    requiresWorkspace: true,
-    isPublic: true,
-  },
-  {
-    name: 'migrate',
-    description: 'Migrate to a new version or framework',
-    category: 'upgrade',
-    icon: '🔄',
-    parameters: [
-      { name: 'from', description: 'Current version/framework', type: 'string', required: true },
-      { name: 'to', description: 'Target version/framework', type: 'string', required: true },
-    ],
-    template: 'Migrate from {{from}} to {{to}}. Update all affected files, dependencies, and configurations. List breaking changes and manual steps needed.',
-    requiresWorkspace: true,
-    isPublic: true,
-  },
-];
+export interface CommandParameter {
+  name: string;
+  description: string;
+  required: boolean;
+  default?: string;
+}
 
-/**
- * Custom Command Manager
- */
-export class CustomCommandManager {
-  private commands: Map<string, CustomCommand> = new Map();
-  private storageKey = 'code-lab-custom-commands';
+// ============================================================================
+// COMMAND CACHE
+// ============================================================================
 
-  constructor() {
-    this.loadFromStorage();
+const commandCache = new Map<string, CustomCommand[]>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const cacheTimestamps = new Map<string, number>();
+
+// ============================================================================
+// COMMAND LOADING
+// ============================================================================
+
+export async function loadCommandsFromDirectory(
+  workspaceId: string,
+  readFile: (path: string) => Promise<string>,
+  listDir: (path: string) => Promise<string[]>
+): Promise<CustomCommand[]> {
+  const commands: CustomCommand[] = [];
+  const commandsDir = '/workspace/.claude/commands';
+
+  try {
+    const files = await listDir(commandsDir);
+    const mdFiles = files.filter((f) => f.endsWith('.md'));
+
+    for (const file of mdFiles) {
+      try {
+        const content = await readFile(commandsDir + '/' + file);
+        const command = parseCommandFile(content, file);
+        if (command) {
+          command.workspaceId = workspaceId;
+          commands.push(command);
+        }
+      } catch (error) {
+        log.warn('Failed to load command file', { file, error });
+      }
+    }
+  } catch {
+    log.debug('No .claude/commands directory found');
   }
 
-  /**
-   * Create a new custom command
-   */
-  create(command: Omit<CustomCommand, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>): CustomCommand {
-    const id = this.generateId();
-    const now = new Date();
+  return commands;
+}
 
-    const newCommand: CustomCommand = {
-      ...command,
-      id,
-      createdAt: now,
-      updatedAt: now,
-      usageCount: 0,
+function parseCommandFile(content: string, filename: string): CustomCommand | null {
+  try {
+    const baseName = filename.replace(/\.md$/, '');
+    let name = baseName;
+    let description = 'Custom command: ' + baseName;
+    let template = content;
+
+    // Simple frontmatter parsing
+    const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+    if (match) {
+      const frontmatter = match[1];
+      template = match[2].trim();
+
+      const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
+      if (nameMatch) name = nameMatch[1].trim();
+
+      const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
+      if (descMatch) description = descMatch[1].trim();
+    }
+
+    if (!template) return null;
+
+    return {
+      name,
+      description,
+      promptTemplate: template,
+      parameters: [],
+      enabled: true,
+      source: 'file',
     };
-
-    this.commands.set(command.name, newCommand);
-    this.saveToStorage();
-
-    return newCommand;
+  } catch {
+    return null;
   }
+}
 
-  /**
-   * Update an existing command
-   */
-  update(name: string, updates: Partial<CustomCommand>): CustomCommand | null {
-    const command = this.commands.get(name);
-    if (!command) return null;
+export async function loadCommandsFromDatabase(
+  userId: string,
+  workspaceId?: string
+): Promise<CustomCommand[]> {
+  try {
+    const supabase = await createSupabaseClient();
 
-    const updated = {
-      ...command,
-      ...updates,
-      updatedAt: new Date(),
-    };
+    let query = supabase
+      .from('custom_slash_commands')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('enabled', true);
 
-    // If name changed, update the key
-    if (updates.name && updates.name !== name) {
-      this.commands.delete(name);
-      this.commands.set(updates.name, updated);
+    if (workspaceId) {
+      query = query.or('workspace_id.is.null,workspace_id.eq.' + workspaceId);
     } else {
-      this.commands.set(name, updated);
+      query = query.is('workspace_id', null);
     }
 
-    this.saveToStorage();
-    return updated;
-  }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (query as any);
 
-  /**
-   * Delete a command
-   */
-  delete(name: string): boolean {
-    const deleted = this.commands.delete(name);
-    if (deleted) {
-      this.saveToStorage();
-    }
-    return deleted;
-  }
-
-  /**
-   * Get a command by name
-   */
-  get(name: string): CustomCommand | undefined {
-    return this.commands.get(name);
-  }
-
-  /**
-   * Get all commands
-   */
-  getAll(): CustomCommand[] {
-    return Array.from(this.commands.values());
-  }
-
-  /**
-   * Get commands by category
-   */
-  getByCategory(category: string): CustomCommand[] {
-    return this.getAll().filter(c => c.category === category);
-  }
-
-  /**
-   * Search commands
-   */
-  search(query: string): CustomCommand[] {
-    const lower = query.toLowerCase();
-    return this.getAll().filter(c =>
-      c.name.toLowerCase().includes(lower) ||
-      c.description.toLowerCase().includes(lower)
-    );
-  }
-
-  /**
-   * Execute a command and return the expanded prompt
-   */
-  execute(name: string, params: Record<string, unknown>): string {
-    const command = this.commands.get(name);
-    if (!command) {
-      throw new Error(`Command not found: ${name}`);
+    if (error) {
+      log.error('Failed to load commands from database', { error });
+      return [];
     }
 
-    // Validate required parameters
-    for (const param of command.parameters) {
-      if (param.required && !(param.name in params)) {
-        throw new Error(`Missing required parameter: ${param.name}`);
-      }
-    }
-
-    // Apply defaults
-    const finalParams: Record<string, unknown> = {};
-    for (const param of command.parameters) {
-      finalParams[param.name] = params[param.name] ?? param.default;
-    }
-
-    // Expand template
-    let prompt = command.template;
-
-    // Handle simple {{param}} replacements
-    for (const [key, value] of Object.entries(finalParams)) {
-      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-      prompt = prompt.replace(regex, String(value ?? ''));
-    }
-
-    // Handle conditional blocks {{#param}}...{{/param}}
-    for (const param of command.parameters) {
-      const conditionalRegex = new RegExp(
-        `\\{\\{#${param.name}\\}\\}(.+?)\\{\\{/${param.name}\\}\\}`,
-        'gs'
-      );
-
-      if (finalParams[param.name]) {
-        // Replace with content, expanding inner {{param}}
-        prompt = prompt.replace(conditionalRegex, (_, content) => {
-          return content.replace(
-            new RegExp(`\\{\\{${param.name}\\}\\}`, 'g'),
-            String(finalParams[param.name])
-          );
-        });
-      } else {
-        // Remove the entire block
-        prompt = prompt.replace(conditionalRegex, '');
-      }
-    }
-
-    // Increment usage count
-    command.usageCount++;
-    command.updatedAt = new Date();
-    this.saveToStorage();
-
-    return prompt;
-  }
-
-  /**
-   * Import commands from JSON
-   */
-  import(json: string): number {
-    try {
-      const commands = JSON.parse(json) as CustomCommand[];
-      let imported = 0;
-
-      for (const cmd of commands) {
-        if (!this.commands.has(cmd.name)) {
-          this.commands.set(cmd.name, {
-            ...cmd,
-            id: this.generateId(),
-            createdAt: new Date(cmd.createdAt),
-            updatedAt: new Date(),
-            usageCount: 0,
-          });
-          imported++;
-        }
-      }
-
-      this.saveToStorage();
-      return imported;
-    } catch {
-      throw new Error('Invalid command JSON');
-    }
-  }
-
-  /**
-   * Export commands as JSON
-   */
-  export(names?: string[]): string {
-    const commands = names
-      ? this.getAll().filter(c => names.includes(c.name))
-      : this.getAll();
-
-    return JSON.stringify(commands, null, 2);
-  }
-
-  /**
-   * Initialize with built-in templates
-   */
-  initializeDefaults(): void {
-    for (const template of COMMAND_TEMPLATES) {
-      if (!this.commands.has(template.name)) {
-        this.create(template);
-      }
-    }
-  }
-
-  // Private: Load from localStorage
-  private loadFromStorage(): void {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const stored = localStorage.getItem(this.storageKey);
-      if (stored) {
-        const commands = JSON.parse(stored) as CustomCommand[];
-        for (const cmd of commands) {
-          cmd.createdAt = new Date(cmd.createdAt);
-          cmd.updatedAt = new Date(cmd.updatedAt);
-          this.commands.set(cmd.name, cmd);
-        }
-      }
-    } catch (e) {
-      log.error('Failed to load custom commands', e as Error);
-    }
-  }
-
-  // Private: Save to localStorage
-  private saveToStorage(): void {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const commands = this.getAll();
-      localStorage.setItem(this.storageKey, JSON.stringify(commands));
-    } catch (e) {
-      log.error('Failed to save custom commands', e as Error);
-    }
-  }
-
-  // Private: Generate unique ID
-  private generateId(): string {
-    return `cmd_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data || []).map((row: any) => ({
+      name: row.name,
+      description: row.description || '',
+      promptTemplate: row.prompt_template,
+      parameters: (row.parameters as CommandParameter[]) || [],
+      enabled: row.enabled,
+      source: 'db' as const,
+      workspaceId: row.workspace_id,
+    }));
+  } catch (error) {
+    log.error('Database error loading commands', { error });
+    return [];
   }
 }
 
-// Singleton instance
-let commandManagerInstance: CustomCommandManager | null = null;
+export async function getCustomCommands(
+  userId: string,
+  workspaceId: string,
+  readFile?: (path: string) => Promise<string>,
+  listDir?: (path: string) => Promise<string[]>
+): Promise<CustomCommand[]> {
+  const cacheKey = userId + ':' + workspaceId;
+  const cachedTime = cacheTimestamps.get(cacheKey);
 
-export function getCustomCommandManager(): CustomCommandManager {
-  if (!commandManagerInstance) {
-    commandManagerInstance = new CustomCommandManager();
-    commandManagerInstance.initializeDefaults();
+  if (cachedTime && Date.now() - cachedTime < CACHE_TTL_MS) {
+    const cached = commandCache.get(cacheKey);
+    if (cached) return cached;
   }
-  return commandManagerInstance;
+
+  const [fileCommands, dbCommands] = await Promise.all([
+    readFile && listDir
+      ? loadCommandsFromDirectory(workspaceId, readFile, listDir)
+      : Promise.resolve([]),
+    loadCommandsFromDatabase(userId, workspaceId),
+  ]);
+
+  const commandMap = new Map<string, CustomCommand>();
+  for (const cmd of dbCommands) commandMap.set(cmd.name, cmd);
+  for (const cmd of fileCommands) commandMap.set(cmd.name, cmd);
+
+  const commands = Array.from(commandMap.values());
+  commandCache.set(cacheKey, commands);
+  cacheTimestamps.set(cacheKey, Date.now());
+
+  return commands;
+}
+
+export function executeCommand(command: CustomCommand, args: string): string {
+  return command.promptTemplate.replace(/\$ARGUMENTS/g, args);
+}
+
+// ============================================================================
+// COMMAND MANAGEMENT
+// ============================================================================
+
+export async function saveCommand(
+  userId: string,
+  command: Omit<CustomCommand, 'source' | 'enabled'> & { enabled?: boolean }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createSupabaseClient();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('custom_slash_commands') as any).upsert(
+      {
+        user_id: userId,
+        workspace_id: command.workspaceId || null,
+        name: command.name,
+        description: command.description,
+        prompt_template: command.promptTemplate,
+        parameters: command.parameters,
+        enabled: command.enabled ?? true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,workspace_id,name' }
+    );
+
+    // Invalidate cache
+    for (const key of commandCache.keys()) {
+      if (key.startsWith(userId + ':')) {
+        commandCache.delete(key);
+        cacheTimestamps.delete(key);
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+export async function deleteCommand(
+  userId: string,
+  commandName: string,
+  workspaceId?: string
+): Promise<boolean> {
+  try {
+    const supabase = await createSupabaseClient();
+
+    let query = supabase
+      .from('custom_slash_commands')
+      .delete()
+      .eq('user_id', userId)
+      .eq('name', commandName);
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    } else {
+      query = query.is('workspace_id', null);
+    }
+
+    await query;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================================
+// TOOL DEFINITIONS
+// ============================================================================
+
+export function getCustomCommandTools(): Array<{
+  name: string;
+  description: string;
+  input_schema: {
+    type: 'object';
+    properties: Record<string, unknown>;
+    required: string[];
+  };
+}> {
+  return [
+    {
+      name: 'command_list',
+      description: 'List all available custom slash commands.',
+      input_schema: { type: 'object' as const, properties: {}, required: [] },
+    },
+    {
+      name: 'command_create',
+      description: 'Create a new custom slash command.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          name: { type: 'string', description: 'Command name (without leading slash)' },
+          description: { type: 'string', description: 'What the command does' },
+          prompt_template: {
+            type: 'string',
+            description: 'Prompt template. Use $ARGUMENTS for arguments.',
+          },
+        },
+        required: ['name', 'prompt_template'],
+      },
+    },
+    {
+      name: 'command_delete',
+      description: 'Delete a custom slash command.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          name: { type: 'string', description: 'Command name to delete' },
+        },
+        required: ['name'],
+      },
+    },
+  ];
+}
+
+export function isCustomCommandTool(name: string): boolean {
+  return name.startsWith('command_');
+}
+
+export async function executeCustomCommandTool(
+  name: string,
+  input: Record<string, unknown>,
+  context: {
+    userId: string;
+    workspaceId: string;
+    readFile?: (path: string) => Promise<string>;
+  }
+): Promise<string> {
+  switch (name) {
+    case 'command_list': {
+      const commands = await getCustomCommands(context.userId, context.workspaceId);
+      if (commands.length === 0) {
+        return 'No custom commands found. Create one with command_create or add files to .claude/commands/';
+      }
+      const lines = ['**Custom Commands:**\n'];
+      for (const cmd of commands) {
+        const icon = cmd.source === 'file' ? '📁' : '💾';
+        lines.push(icon + ' **/' + cmd.name + '** - ' + cmd.description);
+      }
+      return lines.join('\n');
+    }
+
+    case 'command_create': {
+      const cmdName = input.name as string;
+      const description = (input.description as string) || '';
+      const promptTemplate = input.prompt_template as string;
+
+      if (!cmdName || !promptTemplate) {
+        return 'Error: name and prompt_template required';
+      }
+
+      const result = await saveCommand(context.userId, {
+        name: cmdName,
+        description,
+        promptTemplate,
+        parameters: [],
+        workspaceId: context.workspaceId,
+      });
+
+      return result.success ? 'Command **/' + cmdName + '** created.' : 'Error: ' + result.error;
+    }
+
+    case 'command_delete': {
+      const cmdName = input.name as string;
+      if (!cmdName) return 'Error: name required';
+
+      const success = await deleteCommand(context.userId, cmdName, context.workspaceId);
+      return success ? 'Command **/' + cmdName + '** deleted.' : 'Failed to delete command.';
+    }
+
+    default:
+      return 'Unknown command tool: ' + name;
+  }
 }

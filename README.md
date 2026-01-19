@@ -525,14 +525,14 @@ VERCEL_TOKEN=         # Vercel deployments
 
 ### In Progress (Phase 16: 100% Claude Code Parity)
 
-- [ ] **Event-driven hook system** (PreToolUse, PostToolUse, SessionStart, etc.)
-- [ ] **Custom slash commands** (`.claude/commands/` support)
-- [ ] **Subagent architecture** (spawnable specialized agents)
-- [ ] **Tool permission patterns** (glob-based allow/deny rules)
+- [x] **Event-driven hook system** (PreToolUse, PostToolUse, SessionStart, etc.)
+- [x] **Custom slash commands** (`.claude/commands/` support)
+- [x] **Subagent architecture** (spawnable specialized agents)
+- [x] **Tool permission patterns** (glob-based allow/deny rules)
+- [x] **Session forking** (parallel workspaces)
+- [x] **Rewind/checkpointing** (full workspace state rollback)
+- [x] **MCP scopes** (global, workspace, session permission levels)
 - [ ] **Plugin system** (extensible marketplace)
-- [ ] **Session forking** (parallel workspaces)
-- [ ] **Rewind/checkpointing** (file change rollback)
-- [ ] **MCP scopes** (local, project, user configurations)
 
 ### Planned (Phase 17+)
 
