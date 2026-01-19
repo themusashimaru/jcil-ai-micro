@@ -60,13 +60,41 @@ export interface SyncResult {
 export class GitHubSyncBridge {
   private octokit: Octokit;
   private _workspaceId: string;
+  private accessToken: string;
   private repo: GitHubRepo | null = null;
   private currentBranch: string = 'main';
   private lastSyncSha: string | null = null;
+  private credentialsConfigured: boolean = false;
 
   constructor(accessToken: string, workspaceId: string) {
     this.octokit = new Octokit({ auth: accessToken });
+    this.accessToken = accessToken;
     this._workspaceId = workspaceId;
+  }
+
+  /**
+   * Configure git credentials for shell commands
+   * This must be called before clone/push/pull operations
+   */
+  private async configureGitCredentials(
+    executeShell: (cmd: string) => Promise<{ stdout: string; stderr: string; exitCode: number }>
+  ): Promise<void> {
+    if (this.credentialsConfigured) return;
+
+    // Configure git credential helper to use the token
+    // This is safer than embedding token in URL as it's not logged in command history
+    await executeShell(`git config --global credential.helper store`);
+    await executeShell(
+      `echo "https://${escapeShellArg(this.accessToken)}:x-oauth-basic@github.com" > ~/.git-credentials`
+    );
+    await executeShell(`chmod 600 ~/.git-credentials`);
+
+    // Configure git user for commits
+    await executeShell(`git config --global user.email "codelab@jcil.ai"`);
+    await executeShell(`git config --global user.name "Code Lab"`);
+
+    this.credentialsConfigured = true;
+    log.info('Git credentials configured');
   }
 
   /**
@@ -104,9 +132,12 @@ export class GitHubSyncBridge {
     }
 
     try {
-      // Clone the repository
+      // Configure git credentials for authentication (required for private repos)
+      await this.configureGitCredentials(executeShell);
+
+      // Clone the repository (credentials will be used automatically)
       const cloneResult = await executeShell(
-        `git clone --depth 50 ${this.repo.cloneUrl} /workspace/repo`
+        `git clone --depth 50 ${escapeShellArg(this.repo.cloneUrl)} /workspace/repo`
       );
 
       if (cloneResult.exitCode !== 0) {
@@ -295,9 +326,10 @@ export class GitHubSyncBridge {
       // Stash any local changes
       await executeShell('cd /workspace/repo && git stash');
 
-      // Pull from remote
+      // Pull from remote with sanitized branch name
+      const safeBranch = sanitizeBranchName(this.currentBranch);
       const pullResult = await executeShell(
-        `cd /workspace/repo && git pull origin ${this.currentBranch}`
+        `cd /workspace/repo && git pull origin ${escapeShellArg(safeBranch)}`
       );
 
       if (pullResult.exitCode !== 0) {
@@ -359,7 +391,10 @@ export class GitHubSyncBridge {
     executeShell: (cmd: string) => Promise<{ stdout: string; stderr: string; exitCode: number }>
   ): Promise<boolean> {
     try {
-      const result = await executeShell(`cd /workspace/repo && git checkout -b ${branchName}`);
+      const safeBranch = sanitizeBranchName(branchName);
+      const result = await executeShell(
+        `cd /workspace/repo && git checkout -b ${escapeShellArg(safeBranch)}`
+      );
       if (result.exitCode === 0) {
         this.currentBranch = branchName;
         return true;
@@ -378,7 +413,10 @@ export class GitHubSyncBridge {
     executeShell: (cmd: string) => Promise<{ stdout: string; stderr: string; exitCode: number }>
   ): Promise<boolean> {
     try {
-      const result = await executeShell(`cd /workspace/repo && git checkout ${branchName}`);
+      const safeBranch = sanitizeBranchName(branchName);
+      const result = await executeShell(
+        `cd /workspace/repo && git checkout ${escapeShellArg(safeBranch)}`
+      );
       if (result.exitCode === 0) {
         this.currentBranch = branchName;
         return true;

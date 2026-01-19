@@ -109,6 +109,13 @@ describe('GitHubSyncBridge', () => {
       await syncBridge.connect('testuser', 'testrepo');
 
       mockExecuteShell
+        // Credential configuration (5 calls)
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // git config credential.helper
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // echo to .git-credentials
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // chmod 600
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // git config user.email
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // git config user.name
+        // Actual clone operations
         .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // git clone
         .mockResolvedValueOnce({ stdout: 'abc123', stderr: '', exitCode: 0 }) // git rev-parse
         .mockResolvedValueOnce({ stdout: 'file1.ts\nfile2.ts', stderr: '', exitCode: 0 }); // git ls-files
@@ -123,11 +130,19 @@ describe('GitHubSyncBridge', () => {
     it('should handle clone failure', async () => {
       await syncBridge.connect('testuser', 'testrepo');
 
-      mockExecuteShell.mockResolvedValueOnce({
-        stdout: '',
-        stderr: 'Repository not found',
-        exitCode: 128,
-      });
+      mockExecuteShell
+        // Credential configuration (5 calls)
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // git config credential.helper
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // echo to .git-credentials
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // chmod 600
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // git config user.email
+        .mockResolvedValueOnce({ stdout: '', stderr: '', exitCode: 0 }) // git config user.name
+        // Clone fails
+        .mockResolvedValueOnce({
+          stdout: '',
+          stderr: 'Repository not found',
+          exitCode: 128,
+        });
 
       const result = await syncBridge.cloneToWorkspace(mockExecuteShell);
 

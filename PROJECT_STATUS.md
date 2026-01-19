@@ -139,6 +139,31 @@ src/lib/middleware.test.ts                # 35 tests - Middleware
 - [x] **Vim mode** - Full editor keybindings (`src/lib/workspace/vim-mode.ts`)
 - [x] **Plugin marketplace UI** - Visual discovery and installation (`src/components/code-lab/CodeLabPluginMarketplace.tsx`)
 
+### January 19, 2026 - Critical Bug Fixes (Code Lab Deep Dive Audit)
+
+**Phase 3 - Error Handling & Data Integrity:**
+
+- [x] **Fixed workspace upsert issue** - `createContainer()` now uses UPSERT instead of UPDATE to handle files/git API access before first chat message (`src/lib/workspace/container.ts`)
+- [x] **Fixed error message persistence** - All 5 chat error handlers now save assistant messages to maintain conversation history alignment (`app/api/code-lab/chat/route.ts`)
+- [x] **Fixed variable scoping** - Moved `fullContent` declarations outside try blocks to allow error handler access
+
+**Phase 2 - Chat Flow Issues:**
+
+- [x] **Fixed chat route workspace lookup** - Now queries by `session_id` instead of `user_id` (sessions were sharing workspaces!)
+- [x] **Fixed WorkspaceAgent ID mismatch** - Chat route now passes `sessionId` to WorkspaceAgent correctly
+- [x] **Fixed path traversal vulnerability** - `normalizePath()` now uses `sanitizeFilePath()` to prevent `/../` attacks
+
+**Phase 1 - Infrastructure Issues:**
+
+- [x] **Fixed database table mismatch** - ContainerManager now queries `code_lab_workspaces` instead of `workspaces`
+- [x] **Fixed field name mismatch** - Now uses `sandbox_id` consistently instead of `container_id`
+- [x] **Fixed session/workspace ID lookup** - ContainerManager uses `session_id` for lookups
+- [x] **Added git authentication** - Credential helper configured before clone/push/pull operations
+- [x] **Fixed command injection vulnerabilities** - All branch names sanitized with `sanitizeBranchName()` + `escapeShellArg()`
+- [x] **Fixed pull operation security** - Branch names now properly escaped in git pull
+
+See [CODE_LAB_CRITICAL_BUGS.md](./CODE_LAB_CRITICAL_BUGS.md) for full audit report.
+
 ### January 2026 - Code Lab Engineering Fixes
 
 - [x] **Updated Claude model names** to `claude-sonnet-4-5-20250929`
