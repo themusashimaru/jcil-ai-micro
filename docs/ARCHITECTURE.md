@@ -492,12 +492,13 @@ The Code Lab is a fully-functional agentic IDE with Claude Code-level capabiliti
 
 **Components:**
 
-| Component         | Location                           | Purpose               |
-| ----------------- | ---------------------------------- | --------------------- |
-| Container Manager | `src/lib/workspace/container.ts`   | E2B sandbox lifecycle |
-| MCP Server        | `src/lib/workspace/mcp.ts`         | Tool implementations  |
-| Sessions          | `src/lib/code-lab/sessions.ts`     | Session persistence   |
-| Deployment        | `app/api/code-lab/deploy/route.ts` | Multi-platform deploy |
+| Component         | Location                            | Purpose                |
+| ----------------- | ----------------------------------- | ---------------------- |
+| Container Manager | `src/lib/workspace/container.ts`    | E2B sandbox lifecycle  |
+| MCP Server        | `src/lib/workspace/mcp.ts`          | Tool implementations   |
+| Sessions          | `src/lib/code-lab/sessions.ts`      | Session persistence    |
+| Deployment        | `app/api/code-lab/deploy/route.ts`  | Multi-platform deploy  |
+| Debug Manager     | `src/lib/debugger/debug-manager.ts` | 30+ language debugging |
 
 **MCP Servers (Real Implementation):**
 
@@ -508,6 +509,59 @@ The Code Lab is a fully-functional agentic IDE with Claude Code-level capabiliti
 | Memory     | store, retrieve, list, search                   | ✅ Real |
 | Puppeteer  | navigate, screenshot, click, type, evaluate     | ✅ Real |
 | PostgreSQL | query (SELECT only)                             | ✅ Real |
+
+**Debugging Infrastructure (30+ Languages):**
+
+The Code Lab includes a comprehensive debugging system supporting 30+ programming languages:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    DEBUGGING ARCHITECTURE                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │                    DEBUG MANAGER                             │   │
+│  │                                                               │   │
+│  │  • Session orchestration                                     │   │
+│  │  • WebSocket event broadcasting                              │   │
+│  │  • Multi-language routing                                    │   │
+│  └─────────────────────────────┬───────────────────────────────┘   │
+│                                │                                     │
+│          ┌─────────────────────┼─────────────────────────┐          │
+│          │                     │                         │          │
+│          ▼                     ▼                         ▼          │
+│  ┌───────────────┐    ┌───────────────┐    ┌───────────────────┐  │
+│  │  CDP CLIENT   │    │  DAP CLIENT   │    │  CONTAINER DEBUG  │  │
+│  │               │    │               │    │                   │  │
+│  │ • Node.js     │    │ • Python      │    │ • E2B Sandbox     │  │
+│  │ • JavaScript  │    │ • Go, Rust    │    │ • Language-agnostic│  │
+│  │ • TypeScript  │    │ • Java, C#    │    │ • Isolated env    │  │
+│  │               │    │ • 25+ more    │    │                   │  │
+│  └───────────────┘    └───────────────┘    └───────────────────┘  │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+| Component               | Location                                      | Purpose                      |
+| ----------------------- | --------------------------------------------- | ---------------------------- |
+| Debug Manager           | `src/lib/debugger/debug-manager.ts`           | Session orchestration        |
+| CDP Client              | `src/lib/debugger/cdp-client.ts`              | Chrome DevTools Protocol     |
+| DAP Client              | `src/lib/debugger/dap-client.ts`              | Debug Adapter Protocol       |
+| Multi-Language Adapters | `src/lib/debugger/multi-language-adapters.ts` | 30+ language configurations  |
+| Container Debug Adapter | `src/lib/debugger/container-debug-adapter.ts` | E2B sandbox debugging        |
+| Debug Tools             | `src/lib/workspace/debug-tools.ts`            | AI-accessible debug commands |
+
+**Supported Languages:**
+
+| Category      | Languages                                               |
+| ------------- | ------------------------------------------------------- |
+| Web/Scripting | Node.js, Python, Ruby, PHP, Perl, Lua, Bash, PowerShell |
+| Systems       | Go, Rust, C, C++, Zig, Nim, Crystal, V, Odin            |
+| JVM           | Java, Kotlin, Scala, Groovy, Clojure                    |
+| .NET          | C#, F#                                                  |
+| Functional    | Haskell, OCaml, Elixir, Erlang                          |
+| Data Science  | R, Julia                                                |
+| Mobile        | Dart/Flutter, Swift                                     |
 
 See [CODE_LAB.md](./CODE_LAB.md) for detailed Code Lab documentation.
 
