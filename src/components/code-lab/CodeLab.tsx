@@ -1734,10 +1734,12 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         .code-lab {
           display: flex;
           height: 100vh;
+          height: 100dvh; /* Dynamic viewport height for mobile */
           background: var(--cl-bg-primary);
           color: var(--cl-text-primary);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           position: relative;
+          overflow: hidden;
         }
 
         .code-lab-main {
@@ -1746,6 +1748,8 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           flex-direction: column;
           min-width: 0;
           background: var(--cl-bg-secondary);
+          position: relative;
+          z-index: 1;
         }
 
         /* Mobile backdrop */
@@ -1795,36 +1799,60 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         @media (max-width: 768px) {
           .code-lab {
             flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
           }
 
           .code-lab-main {
+            flex: 1;
             width: 100%;
-            height: 100vh;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            padding-left: 0;
+            padding-right: 0;
+            /* Safe area for notched devices */
+            padding-left: env(safe-area-inset-left, 0);
+            padding-right: env(safe-area-inset-right, 0);
           }
 
           .mobile-backdrop {
             display: block;
             position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.4);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            background: rgba(0, 0, 0, 0.5);
             z-index: 44; /* Just below sidebar (45) */
             -webkit-tap-highlight-color: transparent;
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
           }
 
           .mobile-header {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.5rem;
             padding: 0.75rem 1rem;
-            min-height: 56px; /* Ensure header meets touch target */
+            padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+            min-height: 56px;
             background: var(--cl-bg-primary);
             border-bottom: 1px solid var(--cl-border-primary);
+            flex-shrink: 0;
+            width: 100%;
+            box-sizing: border-box;
           }
 
           .mobile-menu-btn {
             background: none;
             border: none;
-            padding: 0.625rem;
+            padding: 0.5rem;
             min-width: 44px;
             min-height: 44px;
             display: flex;
@@ -1834,6 +1862,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             color: var(--cl-text-secondary);
             border-radius: 8px;
             -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
           }
 
           .mobile-menu-btn:hover,
@@ -1850,7 +1879,11 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
             font-weight: 600;
             color: var(--cl-text-primary);
             flex: 1;
-            font-size: 1rem;
+            font-size: 0.9375rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
           }
 
           /* Increase all touch targets on mobile */
@@ -2289,7 +2322,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         /* Mobile workspace panel - z-index hierarchy:
          * 30: workspace backdrop
          * 35: workspace panel
-         * 40: sidebar backdrop
+         * 44: sidebar backdrop (mobile-backdrop)
          * 45: sidebar
          * 100: command palette
          * 1000: error banner
@@ -2312,25 +2345,48 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
         }
 
         @media (max-width: 768px) {
+          .code-lab-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            width: 100%;
+            overflow: hidden;
+          }
+
+          .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            width: 100%;
+            overflow: hidden;
+          }
+
           .workspace-panel {
             max-width: 100%;
+            top: 0;
+            bottom: 0;
+            padding-bottom: env(safe-area-inset-bottom, 0);
           }
 
           .header-actions {
             display: flex;
             gap: 0.25rem;
+            flex-shrink: 0;
+            margin-left: auto;
           }
 
           /* Smaller padding on mobile header buttons */
           .header-btn {
             padding: 0.5rem;
-            min-width: 40px;
-            min-height: 40px;
+            min-width: 36px;
+            min-height: 36px;
           }
 
           .header-btn svg {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
           }
 
           /* More compact workspace tabs on mobile */
@@ -2343,6 +2399,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           /* Stack git buttons on very small screens */
           .workspace-git-actions {
             padding: 0.5rem;
+            padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0));
           }
 
           .git-btn {
@@ -2354,17 +2411,28 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           /* Ensure workspace content is scrollable */
           .workspace-content {
             padding: 0.75rem;
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
           }
         }
 
         /* Extra small screens (phones in portrait) */
         @media (max-width: 480px) {
+          .mobile-header {
+            padding: 0.5rem 0.75rem;
+            padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem));
+            gap: 0.375rem;
+          }
+
+          .mobile-menu-btn {
+            padding: 0.375rem;
+            min-width: 40px;
+            min-height: 40px;
+          }
+
           .mobile-title {
-            font-size: 0.875rem;
-            max-width: 150px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            font-size: 0.8125rem;
           }
 
           .header-actions {
@@ -2372,9 +2440,14 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
           }
 
           .header-btn {
-            padding: 0.375rem;
-            min-width: 36px;
-            min-height: 36px;
+            padding: 0.25rem;
+            min-width: 32px;
+            min-height: 32px;
+          }
+
+          .header-btn svg {
+            width: 14px;
+            height: 14px;
           }
 
           .code-lab-empty-content {
