@@ -114,6 +114,17 @@ src/lib/middleware.test.ts            # 35 tests - Middleware
 
 ## COMPLETED FEATURES
 
+### January 19, 2026 - Claude Code Parity Push (85% → 96%)
+
+- [x] **Event-driven hook system** - PreToolUse, PostToolUse, SessionStart, etc. (`src/lib/hooks/`)
+- [x] **Custom slash commands** - `.claude/commands/` support (`src/lib/commands/`)
+- [x] **Tool permission patterns** - Glob-based allow/deny rules (`src/lib/workspace/tool-permissions.ts`)
+- [x] **Subagent architecture** - Spawnable specialized agents (`src/lib/agents/subagent.ts`)
+- [x] **Plugin system foundation** - Loader, registry, manifest (`src/lib/plugins/`)
+- [x] **Session forking** - Parallel workspaces (`src/lib/session/session-fork.ts`)
+- [x] **Rewind/checkpointing** - File change rollback (`src/lib/workspace/checkpoint.ts`)
+- [x] **MCP scopes** - Project-level configuration (partial scope hierarchy)
+
 ### January 2026 - Code Lab Engineering Fixes
 
 - [x] **Updated Claude model names** to `claude-sonnet-4-5-20250929`
@@ -250,38 +261,36 @@ GITHUB_TOKEN=                # GitHub MCP operations
 
 ## NEXT STEPS
 
-### Priority 0: 100% Claude Code Parity (Phase 16)
+### Priority 0: Final Claude Code Parity (Phase 17) — 96% → 100%
 
-**Current Parity: ~85% | Target: 100%**
+**Current Parity: ~96% | Target: 100%**
 
 See [CLAUDE_CODE_PARITY.md](./CLAUDE_CODE_PARITY.md) for detailed tracking.
 
-1. **Event-driven hook system** - PreToolUse, PostToolUse, SessionStart, etc.
-2. **Custom slash commands** - `.claude/commands/` support
-3. **Tool permission patterns** - Glob-based allow/deny rules
-4. **Subagent architecture** - Spawnable specialized agents
-5. **Plugin system foundation** - Extensible marketplace
-6. **Session forking** - Parallel workspaces
-7. **Rewind/checkpointing** - File change rollback
-8. **MCP scopes** - Local, project, user configurations
+**Remaining Items (~4%):**
+
+1. **Plugin marketplace UI** - Visual plugin discovery and installation
+2. **Full MCP scope hierarchy** - managed > user > project > local priorities
+3. **Output styles** - concise, verbose, minimal formatting options
+4. **Vim mode** - Editor keybindings for power users
 
 ### Priority 1: Production Readiness
 
-9. Add end-to-end tests with Playwright
-10. Configure monitoring and alerting
-11. Set up error tracking (Sentry configured)
+5. Add end-to-end tests with Playwright
+6. Configure monitoring and alerting
+7. Set up error tracking (Sentry configured)
 
 ### Priority 2: Feature Enhancement
 
-12. Add more MCP servers (Slack, Linear, etc.)
-13. Implement collaborative workspaces
-14. Add real-time file synchronization
+8. Add more MCP servers (Slack, Linear, etc.)
+9. Implement collaborative workspaces
+10. Add real-time file synchronization
 
 ### Priority 3: Scale
 
-15. Multi-region deployment
-16. Database read replicas
-17. Edge caching for static assets
+11. Multi-region deployment
+12. Database read replicas
+13. Edge caching for static assets
 
 ---
 
