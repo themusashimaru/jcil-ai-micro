@@ -18,6 +18,7 @@ import {
   getCollaborationManager,
   type CollaborationEvent,
 } from '@/lib/collaboration/collaboration-manager';
+import { getDebugEventBroadcaster, type DebugEvent } from '@/lib/debugger/debug-event-broadcaster';
 
 const log = logger('RealtimeAPI');
 
@@ -31,7 +32,21 @@ type SSEEvent =
   | { type: 'user:joined'; payload: { userId: string; userName: string } }
   | { type: 'user:left'; payload: { userId: string } }
   | { type: 'heartbeat'; payload: { timestamp: number } }
-  | { type: 'error'; payload: { message: string; code: string } };
+  | { type: 'error'; payload: { message: string; code: string } }
+  // Debug events
+  | { type: 'debug:initialized'; payload: unknown }
+  | { type: 'debug:connected'; payload: unknown }
+  | { type: 'debug:disconnected'; payload: unknown }
+  | { type: 'debug:output'; payload: { category: string; output: string } }
+  | { type: 'debug:stopped'; payload: { reason: string; threadId: number } }
+  | { type: 'debug:continued'; payload: { threadId: number } }
+  | { type: 'debug:breakpoint'; payload: unknown }
+  | { type: 'debug:terminated'; payload: unknown }
+  | { type: 'debug:exited'; payload: { exitCode: number } }
+  | { type: 'debug:process'; payload: unknown }
+  | { type: 'debug:thread'; payload: unknown }
+  | { type: 'debug:loadedSource'; payload: unknown }
+  | { type: 'debug:error'; payload: { message: string } };
 
 interface PresenceUpdate {
   userId: string;
@@ -105,9 +120,10 @@ export async function GET(request: NextRequest) {
           payload: { clientId, userId: user.id, sessionId },
         });
 
-        // If session provided, set up collaboration listeners
+        // If session provided, set up collaboration and debug listeners
         if (sessionId) {
           setupCollaborationListeners(clientId, sessionId, controller);
+          setupDebugListeners(clientId, sessionId, controller);
         }
 
         // Set up heartbeat
@@ -305,4 +321,43 @@ function setupCollaborationListeners(
   };
 
   manager.on('broadcast', handleBroadcast);
+}
+
+/**
+ * Set up debug event listeners for a connected client
+ * Forwards debug events from the broadcaster to the SSE client
+ */
+function setupDebugListeners(
+  clientId: string,
+  sessionId: string,
+  controller: ReadableStreamDefaultController
+): void {
+  const broadcaster = getDebugEventBroadcaster();
+
+  // Listen for all debug broadcasts
+  const handleDebugBroadcast = (event: DebugEvent) => {
+    // Only forward events for this session
+    if (event.sessionId !== sessionId) return;
+
+    const conn = activeConnections.get(clientId);
+    if (!conn) {
+      broadcaster.off('debug:broadcast', handleDebugBroadcast);
+      return;
+    }
+
+    try {
+      sendSSEEvent(controller, {
+        type: event.type,
+        payload: event.payload,
+      } as SSEEvent);
+    } catch {
+      // Connection dead
+      activeConnections.delete(clientId);
+      broadcaster.off('debug:broadcast', handleDebugBroadcast);
+    }
+  };
+
+  broadcaster.on('debug:broadcast', handleDebugBroadcast);
+
+  log.debug('Debug listeners set up', { clientId, sessionId });
 }

@@ -79,6 +79,23 @@ export {
 // Manager
 export { DebugManager, getDebugManager, type DebugSessionInfo } from './debug-manager';
 
+// Debug Event Broadcaster (SSE-compatible real-time events)
+export {
+  getDebugEventBroadcaster,
+  wireDebugAdapterToBroadcaster,
+  DebugEventBroadcaster,
+  type DebugEvent,
+  type DebugEventType,
+  type DebugEventPayload,
+  type OutputPayload,
+  type StoppedPayload,
+  type ContinuedPayload,
+  type BreakpointPayload,
+  type TerminatedPayload,
+  type ExitedPayload,
+  type ErrorPayload,
+} from './debug-event-broadcaster';
+
 // Container Debug Adapter (E2B sandboxed debugging)
 export {
   ContainerDebugAdapter,

@@ -27,7 +27,13 @@ import {
   ContainerDebugConfig,
   getContainerDebugAdapter,
 } from './container-debug-adapter';
-import { getWebSocketServer } from '@/lib/realtime/websocket-server';
+import {
+  getDebugEventBroadcaster,
+  type OutputPayload,
+  type StoppedPayload,
+  type ContinuedPayload,
+  type ExitedPayload,
+} from './debug-event-broadcaster';
 import { logger } from '@/lib/logger';
 
 const log = logger('DebugManager');
@@ -503,51 +509,44 @@ export class DebugManager extends EventEmitter {
   }
 
   /**
-   * Set up event forwarding to WebSocket
+   * Set up event forwarding to SSE broadcaster
+   * Works in serverless environments (Vercel) via SSE streaming
    */
-  private setupEventForwarding(sessionId: string, adapter: DebugAdapter, userId: string): void {
-    const ws = getWebSocketServer();
+  private setupEventForwarding(sessionId: string, adapter: DebugAdapter, _userId: string): void {
+    const broadcaster = getDebugEventBroadcaster();
 
-    // Forward debug events to WebSocket clients
-    const forwardEvent = (event: string, data: unknown) => {
-      ws.sendToUser(userId, {
-        type: `debug:${event}`,
-        payload: {
-          sessionId,
-          ...(data as object),
-        },
-        timestamp: Date.now(),
-      });
-
-      // Also emit on the manager for local listeners
-      this.emit(event, { sessionId, ...(data as object) });
-    };
+    // Register the session with the broadcaster
+    broadcaster.registerSession(sessionId);
 
     adapter.on('initialized', () => {
       log.debug('Debug session initialized', { sessionId });
-      forwardEvent('initialized', {});
+      broadcaster.initialized(sessionId);
+      this.emit('initialized', { sessionId });
     });
 
-    adapter.on('stopped', (data) => {
+    adapter.on('stopped', (data: StoppedPayload) => {
       const session = this.sessions.get(sessionId);
       if (session) {
         session.info.state = 'paused';
       }
       log.debug('Debug session stopped', { sessionId, reason: data.reason });
-      forwardEvent('stopped', data);
+      broadcaster.stopped(sessionId, data);
+      this.emit('stopped', { sessionId, ...data });
     });
 
-    adapter.on('continued', (data) => {
+    adapter.on('continued', (data: ContinuedPayload) => {
       const session = this.sessions.get(sessionId);
       if (session) {
         session.info.state = 'running';
       }
-      forwardEvent('continued', data);
+      broadcaster.continued(sessionId, data);
+      this.emit('continued', { sessionId, ...data });
     });
 
-    adapter.on('exited', (data) => {
+    adapter.on('exited', (data: ExitedPayload) => {
       log.info('Debug session exited', { sessionId, exitCode: data.exitCode });
-      forwardEvent('exited', data);
+      broadcaster.exited(sessionId, data);
+      this.emit('exited', { sessionId, ...data });
     });
 
     adapter.on('terminated', () => {
@@ -556,49 +555,42 @@ export class DebugManager extends EventEmitter {
         session.info.state = 'stopped';
       }
       log.info('Debug session terminated', { sessionId });
-      forwardEvent('terminated', {});
+      broadcaster.terminated(sessionId);
+      this.emit('terminated', { sessionId });
       this.sessions.delete(sessionId);
     });
 
-    adapter.on('output', (data) => {
-      forwardEvent('output', data);
+    adapter.on('output', (data: OutputPayload) => {
+      broadcaster.output(sessionId, data);
+      this.emit('output', { sessionId, ...data });
     });
 
-    adapter.on('breakpoint', (data) => {
-      forwardEvent('breakpoint', data);
+    adapter.on('breakpoint', (data: unknown) => {
+      broadcaster.broadcast('debug:breakpoint', sessionId, data as Record<string, unknown>);
+      this.emit('breakpoint', { sessionId, ...(data as object) });
     });
   }
 
   /**
    * Set up event forwarding for container debug adapter
+   * Works in serverless environments (Vercel) via SSE streaming
    */
   private setupContainerEventForwarding(
     sessionId: string,
     containerAdapter: ContainerDebugAdapter,
-    userId: string
+    _userId: string
   ): void {
-    const ws = getWebSocketServer();
+    const broadcaster = getDebugEventBroadcaster();
 
-    // Forward debug events to WebSocket clients
-    const forwardEvent = (event: string, data: unknown) => {
-      ws.sendToUser(userId, {
-        type: `debug:${event}`,
-        payload: {
-          sessionId,
-          ...(data as object),
-        },
-        timestamp: Date.now(),
-      });
-
-      // Also emit on the manager for local listeners
-      this.emit(event, { sessionId, ...(data as object) });
-    };
+    // Register the session with the broadcaster
+    broadcaster.registerSession(sessionId, { language: 'container' });
 
     // Listen for events from container adapter
     containerAdapter.on('initialized', (data: { sessionId: string }) => {
       if (data.sessionId === sessionId) {
         log.debug('Container debug session initialized', { sessionId });
-        forwardEvent('initialized', {});
+        broadcaster.initialized(sessionId);
+        this.emit('initialized', { sessionId });
       }
     });
 
@@ -611,7 +603,11 @@ export class DebugManager extends EventEmitter {
             session.info.state = 'paused';
           }
           log.debug('Container debug session stopped', { sessionId, reason: data.reason });
-          forwardEvent('stopped', { reason: data.reason, threadId: data.threadId || 1 });
+          broadcaster.stopped(sessionId, {
+            reason: data.reason,
+            threadId: data.threadId || 1,
+          });
+          this.emit('stopped', { sessionId, reason: data.reason, threadId: data.threadId || 1 });
         }
       }
     );
@@ -622,14 +618,16 @@ export class DebugManager extends EventEmitter {
         if (session) {
           session.info.state = 'running';
         }
-        forwardEvent('continued', { threadId: data.threadId || 1 });
+        broadcaster.continued(sessionId, { threadId: data.threadId || 1 });
+        this.emit('continued', { sessionId, threadId: data.threadId || 1 });
       }
     });
 
     containerAdapter.on('exited', (data: { sessionId: string; exitCode: number }) => {
       if (data.sessionId === sessionId) {
         log.info('Container debug session exited', { sessionId, exitCode: data.exitCode });
-        forwardEvent('exited', { exitCode: data.exitCode });
+        broadcaster.exited(sessionId, { exitCode: data.exitCode });
+        this.emit('exited', { sessionId, exitCode: data.exitCode });
       }
     });
 
@@ -640,7 +638,8 @@ export class DebugManager extends EventEmitter {
           session.info.state = 'stopped';
         }
         log.info('Container debug session terminated', { sessionId });
-        forwardEvent('terminated', {});
+        broadcaster.terminated(sessionId);
+        this.emit('terminated', { sessionId });
         this.sessions.delete(sessionId);
       }
     });
@@ -649,7 +648,11 @@ export class DebugManager extends EventEmitter {
       'output',
       (data: { sessionId: string; category: string; output: string }) => {
         if (data.sessionId === sessionId) {
-          forwardEvent('output', { category: data.category, output: data.output });
+          broadcaster.output(sessionId, {
+            category: data.category as 'stdout' | 'stderr' | 'console' | 'important',
+            output: data.output,
+          });
+          this.emit('output', { sessionId, category: data.category, output: data.output });
         }
       }
     );
@@ -657,7 +660,8 @@ export class DebugManager extends EventEmitter {
     containerAdapter.on('connected', (data: { sessionId: string }) => {
       if (data.sessionId === sessionId) {
         log.info('Container debugger connected', { sessionId });
-        forwardEvent('connected', {});
+        broadcaster.connected(sessionId);
+        this.emit('connected', { sessionId });
       }
     });
   }
