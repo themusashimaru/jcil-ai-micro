@@ -246,23 +246,38 @@ GITHUB_TOKEN=                # GitHub MCP operations
 
 ## NEXT STEPS
 
+### Priority 0: 100% Claude Code Parity (Phase 16)
+
+**Current Parity: ~85% | Target: 100%**
+
+See [CLAUDE_CODE_PARITY.md](./CLAUDE_CODE_PARITY.md) for detailed tracking.
+
+1. **Event-driven hook system** - PreToolUse, PostToolUse, SessionStart, etc.
+2. **Custom slash commands** - `.claude/commands/` support
+3. **Tool permission patterns** - Glob-based allow/deny rules
+4. **Subagent architecture** - Spawnable specialized agents
+5. **Plugin system foundation** - Extensible marketplace
+6. **Session forking** - Parallel workspaces
+7. **Rewind/checkpointing** - File change rollback
+8. **MCP scopes** - Local, project, user configurations
+
 ### Priority 1: Production Readiness
 
-1. Add end-to-end tests with Playwright
-2. Configure monitoring and alerting
-3. Set up error tracking (Sentry configured)
+9. Add end-to-end tests with Playwright
+10. Configure monitoring and alerting
+11. Set up error tracking (Sentry configured)
 
 ### Priority 2: Feature Enhancement
 
-4. Add more MCP servers (Slack, linear, etc.)
-5. Implement collaborative workspaces
-6. Add real-time file synchronization
+12. Add more MCP servers (Slack, Linear, etc.)
+13. Implement collaborative workspaces
+14. Add real-time file synchronization
 
 ### Priority 3: Scale
 
-7. Multi-region deployment
-8. Database read replicas
-9. Edge caching for static assets
+15. Multi-region deployment
+16. Database read replicas
+17. Edge caching for static assets
 
 ---
 
