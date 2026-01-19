@@ -104,16 +104,29 @@ export class ContainerManager {
       // Store sandbox reference
       this.activeSandboxes.set(workspaceId, sandbox);
 
-      // Update database with sandbox ID
+      // Update or insert database with sandbox ID
       // Note: workspaceId is actually the session_id in code_lab_workspaces table
-      await this.supabase
-        .from('code_lab_workspaces')
-        .update({
+      // CRITICAL FIX: Use upsert to handle case where workspace row doesn't exist yet
+      // (e.g., user accesses files/git before sending first chat message)
+      const { error: upsertError } = await this.supabase.from('code_lab_workspaces').upsert(
+        {
+          session_id: workspaceId,
           sandbox_id: sandbox.sandboxId,
           status: 'active',
+          template: fullConfig.template,
           updated_at: new Date().toISOString(),
-        })
-        .eq('session_id', workspaceId);
+          created_at: new Date().toISOString(),
+          last_activity_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'session_id',
+          ignoreDuplicates: false,
+        }
+      );
+
+      if (upsertError) {
+        log.warn('Failed to upsert workspace record', { error: upsertError.message });
+      }
 
       // Initialize workspace directory
       await sandbox.files.makeDir('/workspace');

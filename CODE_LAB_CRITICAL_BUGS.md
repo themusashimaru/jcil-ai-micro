@@ -20,6 +20,8 @@ The Code Lab had **6 CRITICAL bugs** and **4 HIGH severity bugs** that break cor
 5. ✅ **Chat route workspace lookup** - Now queries by `session_id` not `user_id`
 6. ✅ **WorkspaceAgent ID mismatch** - Chat route now passes `sessionId` correctly
 7. ✅ **Path traversal vulnerability** - `normalizePath()` now sanitizes paths
+8. ✅ **Workspace upsert** - ContainerManager now uses upsert instead of update
+9. ✅ **Error message persistence** - All error handlers now save messages to maintain conversation history
 
 ---
 
@@ -454,6 +456,57 @@ private normalizePath(path: string): string {
 }
 ```
 
+### 6. Workspace Upsert Fix (`src/lib/workspace/container.ts`) ✅ FIXED
+
+**Problem:** `createContainer()` did an UPDATE which silently failed if no workspace row existed (e.g., when user accesses files/git before sending first chat message).
+
+```typescript
+// BEFORE: Silent failure if row doesn't exist
+await this.supabase
+  .from('code_lab_workspaces')
+  .update({ sandbox_id: sandbox.sandboxId })  // ❌ Fails silently
+  .eq('session_id', workspaceId);
+
+// AFTER: Upsert creates row if missing
+await this.supabase
+  .from('code_lab_workspaces')
+  .upsert(
+    {
+      session_id: workspaceId,
+      sandbox_id: sandbox.sandboxId,
+      status: 'active',
+      ...
+    },
+    { onConflict: 'session_id' }  // ✅ Creates or updates
+  );
+```
+
+### 7. Error Message Persistence (`app/api/code-lab/chat/route.ts`) ✅ FIXED
+
+**Problem:** Error handlers didn't save assistant messages, causing conversation history to become misaligned (user message without matching assistant response).
+
+```typescript
+// BEFORE: Error streamed but not saved
+} catch (error) {
+  controller.enqueue(encoder.encode('Error...'));
+  controller.close();  // ❌ Message not saved!
+}
+
+// AFTER: Error saved to maintain conversation history
+} catch (error) {
+  const errorContent = 'Error...';
+  fullContent += errorContent;
+  await supabase.from('code_lab_messages').insert({
+    session_id: sessionId,
+    role: 'assistant',
+    content: fullContent || errorContent,
+    type: 'error',  // ✅ Saved for history
+  });
+  controller.enqueue(encoder.encode(errorContent));
+  controller.close();
+}
+```
+
 ---
 
 ## RECOMMENDED FOLLOW-UP ACTIONS
@@ -465,7 +518,9 @@ private normalizePath(path: string): string {
 5. ✅ ~~Fix chat route workspace lookup by session_id~~ - DONE
 6. ✅ ~~Fix chat route to pass sessionId to WorkspaceAgent~~ - DONE
 7. ✅ ~~Add path traversal prevention in normalizePath~~ - DONE
-8. **Add integration tests** that actually exercise the full flow (PENDING)
+8. ✅ ~~Use upsert for workspace creation~~ - DONE
+9. ✅ ~~Save error messages to maintain conversation history~~ - DONE
+10. **Add integration tests** that actually exercise the full flow (PENDING)
 
 ---
 

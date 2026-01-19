@@ -141,6 +141,12 @@ src/lib/middleware.test.ts                # 35 tests - Middleware
 
 ### January 19, 2026 - Critical Bug Fixes (Code Lab Deep Dive Audit)
 
+**Phase 3 - Error Handling & Data Integrity:**
+
+- [x] **Fixed workspace upsert issue** - `createContainer()` now uses UPSERT instead of UPDATE to handle files/git API access before first chat message (`src/lib/workspace/container.ts`)
+- [x] **Fixed error message persistence** - All 5 chat error handlers now save assistant messages to maintain conversation history alignment (`app/api/code-lab/chat/route.ts`)
+- [x] **Fixed variable scoping** - Moved `fullContent` declarations outside try blocks to allow error handler access
+
 **Phase 2 - Chat Flow Issues:**
 
 - [x] **Fixed chat route workspace lookup** - Now queries by `session_id` instead of `user_id` (sessions were sharing workspaces!)

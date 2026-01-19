@@ -687,11 +687,25 @@ export async function POST(request: NextRequest) {
               controller.close();
             } catch (error) {
               log.error('Workspace Agent error', error as Error);
-              controller.enqueue(
-                encoder.encode(
-                  '\n\n`✕ Error:` I encountered an error during workspace execution. Please try again.'
-                )
-              );
+              const errorContent =
+                '\n\n`✕ Error:` I encountered an error during workspace execution. Please try again.';
+              fullContent += errorContent;
+
+              // CRITICAL FIX: Save error message to maintain conversation history
+              try {
+                await (supabase.from('code_lab_messages') as AnySupabase).insert({
+                  id: generateId(),
+                  session_id: sessionId,
+                  role: 'assistant',
+                  content: fullContent || errorContent,
+                  created_at: new Date().toISOString(),
+                  type: 'error',
+                });
+              } catch (saveError) {
+                log.error('Failed to save workspace error message', saveError as Error);
+              }
+
+              controller.enqueue(encoder.encode(errorContent));
               controller.close();
             }
           },
@@ -787,9 +801,25 @@ export async function POST(request: NextRequest) {
             controller.close();
           } catch (error) {
             log.error('Code Agent error', error as Error);
-            controller.enqueue(
-              encoder.encode('\n\nI encountered an error during code generation. Please try again.')
-            );
+            const errorContent =
+              '\n\nI encountered an error during code generation. Please try again.';
+            fullContent += errorContent;
+
+            // CRITICAL FIX: Save error message to maintain conversation history
+            try {
+              await (supabase.from('code_lab_messages') as AnySupabase).insert({
+                id: generateId(),
+                session_id: sessionId,
+                role: 'assistant',
+                content: fullContent || errorContent,
+                created_at: new Date().toISOString(),
+                type: 'error',
+              });
+            } catch (saveError) {
+              log.error('Failed to save code agent error message', saveError as Error);
+            }
+
+            controller.enqueue(encoder.encode(errorContent));
             controller.close();
           }
         },
@@ -812,11 +842,10 @@ export async function POST(request: NextRequest) {
       log.info('Multi-Agent mode activated', { agents: suggestedAgents });
 
       const encoder = new TextEncoder();
+      let fullContent = ''; // Moved outside try block for error handler access
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            let fullContent = '';
-
             // Stream the orchestrated response
             const agentStream = orchestrateStream(enhancedContent, {
               userId: user.id,
@@ -853,11 +882,25 @@ export async function POST(request: NextRequest) {
             controller.close();
           } catch (error) {
             log.error('Multi-Agent error', error as Error);
-            controller.enqueue(
-              encoder.encode(
-                '\n\nI encountered an error with the multi-agent system. Please try again.'
-              )
-            );
+            const errorContent =
+              '\n\nI encountered an error with the multi-agent system. Please try again.';
+            fullContent += errorContent;
+
+            // CRITICAL FIX: Save error message to maintain conversation history
+            try {
+              await (supabase.from('code_lab_messages') as AnySupabase).insert({
+                id: generateId(),
+                session_id: sessionId,
+                role: 'assistant',
+                content: fullContent || errorContent,
+                created_at: new Date().toISOString(),
+                type: 'error',
+              });
+            } catch (saveError) {
+              log.error('Failed to save multi-agent error message', saveError as Error);
+            }
+
+            controller.enqueue(encoder.encode(errorContent));
             controller.close();
           }
         },
@@ -877,6 +920,7 @@ export async function POST(request: NextRequest) {
     // ========================================
     if (useSearch && isPerplexityConfigured()) {
       const encoder = new TextEncoder();
+      let fullContent = ''; // Moved outside try block for error handler access
       const stream = new ReadableStream({
         async start(controller) {
           try {
@@ -895,8 +939,7 @@ Keep it professional and focused on development.`,
             });
 
             // Format the search result
-            let fullContent = '';
-            fullContent += searchResult.answer;
+            fullContent = searchResult.answer;
 
             // Add sources
             if (searchResult.sources && searchResult.sources.length > 0) {
@@ -959,7 +1002,23 @@ Be honest about knowledge cutoff limitations when relevant.`,
               });
             } catch (fallbackError) {
               log.error('Fallback error', fallbackError as Error);
-              controller.enqueue(encoder.encode('\n\nI encountered an error. Please try again.'));
+              const errorContent = '\n\nI encountered an error. Please try again.';
+
+              // CRITICAL FIX: Save error message to maintain conversation history
+              try {
+                await (supabase.from('code_lab_messages') as AnySupabase).insert({
+                  id: generateId(),
+                  session_id: sessionId,
+                  role: 'assistant',
+                  content: errorContent,
+                  created_at: new Date().toISOString(),
+                  type: 'error',
+                });
+              } catch (saveError) {
+                log.error('Failed to save search fallback error message', saveError as Error);
+              }
+
+              controller.enqueue(encoder.encode(errorContent));
             }
 
             controller.close();
@@ -1108,6 +1167,9 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
           }
         };
 
+        // Moved outside try block for error handler access
+        let fullContent = '';
+
         try {
           // Build API parameters with optional extended thinking (Claude Code parity)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1138,8 +1200,6 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
           const response = await anthropic.messages.create(
             apiParams as Anthropic.MessageCreateParamsStreaming
           );
-
-          let fullContent = '';
 
           // Start keepalive once stream is established
           startKeepalive();
@@ -1261,6 +1321,25 @@ IMPORTANT: Follow the instructions above. They represent the user's preferences 
           const userMessage = isTimeout
             ? '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
             : '\n\nI encountered an error. Please try again.';
+
+          // Append error to accumulated content
+          fullContent += userMessage;
+
+          // CRITICAL FIX: Save assistant message even on error to maintain conversation history
+          // Without this, history becomes misaligned (user message without assistant response)
+          try {
+            await (supabase.from('code_lab_messages') as AnySupabase).insert({
+              id: generateId(),
+              session_id: sessionId,
+              role: 'assistant',
+              content: fullContent || userMessage,
+              created_at: new Date().toISOString(),
+              type: 'error',
+            });
+          } catch (saveError) {
+            log.error('Failed to save error message', saveError as Error);
+          }
+
           controller.enqueue(encoder.encode(userMessage));
           controller.close();
         } finally {
