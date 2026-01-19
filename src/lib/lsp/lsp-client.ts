@@ -553,6 +553,92 @@ export class LSPClient extends EventEmitter {
     return (result as TextEdit[]) || [];
   }
 
+  /**
+   * Workspace-wide symbol search
+   * Search for symbols across all files in the workspace
+   */
+  async workspaceSymbols(
+    query: string
+  ): Promise<Array<{ name: string; kind: number; location: Location; containerName?: string }>> {
+    if (!this.isReady()) {
+      throw new Error('LSP server not ready');
+    }
+
+    const result = await this.sendRequest('workspace/symbol', { query });
+
+    if (!result) return [];
+
+    return (
+      result as Array<{
+        name: string;
+        kind: number;
+        location: { uri: string; range: Range };
+        containerName?: string;
+      }>
+    ).map((sym) => ({
+      name: sym.name,
+      kind: sym.kind,
+      location: {
+        uri: this.fromFileUri(sym.location.uri),
+        range: sym.location.range,
+      },
+      containerName: sym.containerName,
+    }));
+  }
+
+  /**
+   * Get type definition (for jumping to type declarations)
+   */
+  async typeDefinition(uri: string, position: Position): Promise<Location | Location[] | null> {
+    if (!this.isReady()) {
+      throw new Error('LSP server not ready');
+    }
+
+    const result = await this.sendRequest('textDocument/typeDefinition', {
+      textDocument: { uri: this.toFileUri(uri) },
+      position,
+    } as TextDocumentPositionParams);
+
+    return this.normalizeLocations(result);
+  }
+
+  /**
+   * Get implementation locations
+   */
+  async implementation(uri: string, position: Position): Promise<Location | Location[] | null> {
+    if (!this.isReady()) {
+      throw new Error('LSP server not ready');
+    }
+
+    const result = await this.sendRequest('textDocument/implementation', {
+      textDocument: { uri: this.toFileUri(uri) },
+      position,
+    } as TextDocumentPositionParams);
+
+    return this.normalizeLocations(result);
+  }
+
+  /**
+   * Code actions (quick fixes, refactorings)
+   */
+  async codeActions(
+    uri: string,
+    range: Range,
+    diagnostics: Diagnostic[] = []
+  ): Promise<Array<{ title: string; kind?: string; edit?: WorkspaceEdit }>> {
+    if (!this.isReady()) {
+      throw new Error('LSP server not ready');
+    }
+
+    const result = await this.sendRequest('textDocument/codeAction', {
+      textDocument: { uri: this.toFileUri(uri) },
+      range,
+      context: { diagnostics },
+    });
+
+    return (result as Array<{ title: string; kind?: string; edit?: WorkspaceEdit }>) || [];
+  }
+
   // ============================================================================
   // PRIVATE METHODS
   // ============================================================================
@@ -598,6 +684,24 @@ export class LSPClient extends EventEmitter {
           documentSymbol: { dynamicRegistration: true },
           rename: { dynamicRegistration: true },
           formatting: { dynamicRegistration: true },
+          typeDefinition: { dynamicRegistration: true },
+          implementation: { dynamicRegistration: true },
+          codeAction: {
+            dynamicRegistration: true,
+            codeActionLiteralSupport: {
+              codeActionKind: {
+                valueSet: [
+                  'quickfix',
+                  'refactor',
+                  'refactor.extract',
+                  'refactor.inline',
+                  'refactor.rewrite',
+                  'source',
+                  'source.organizeImports',
+                ],
+              },
+            },
+          },
           publishDiagnostics: {
             relatedInformation: true,
           },
@@ -607,6 +711,15 @@ export class LSPClient extends EventEmitter {
           workspaceEdit: { documentChanges: true },
           didChangeConfiguration: { dynamicRegistration: true },
           workspaceFolders: true,
+          symbol: {
+            dynamicRegistration: true,
+            symbolKind: {
+              valueSet: [
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+                24, 25, 26,
+              ],
+            },
+          },
         },
       },
       initializationOptions: config.initializationOptions,
